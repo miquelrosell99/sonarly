@@ -5,7 +5,32 @@ import { listSongsByAlbum } from '../db/repositories/song-repository.js';
 import { writeTags } from '../tags/writer.js';
 import { validateSongTags, queueResync } from './songs.js';
 
+interface AlbumRow {
+  id: string;
+  name: string;
+  artist_id: string | null;
+  artist_name: string | null;
+  year: number | null;
+  genre: string | null;
+  cover_art: string | null;
+}
+
 export function registerAlbumManagementRoutes(app: FastifyInstance, db: Database.Database): void {
+  app.get('/api/albums', (request: FastifyRequest, reply: FastifyReply) => {
+    const rows = db.prepare('SELECT * FROM albums ORDER BY name LIMIT 500').all() as AlbumRow[];
+    reply.send({
+      albums: rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        artistId: r.artist_id ?? undefined,
+        artistName: r.artist_name ?? undefined,
+        year: r.year ?? undefined,
+        genre: r.genre ?? undefined,
+        coverArt: r.cover_art ?? undefined,
+      })),
+    });
+  });
+
   app.put('/api/albums/:id/tags', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const album = db.prepare('SELECT * FROM albums WHERE id = ?').get(id) as Album | undefined;

@@ -14,6 +14,7 @@ import { registerOpenSubsonicRoutes } from './opensubsonic/routes/system.js';
 import { createSessionStore } from './auth/session.js';
 import { registerAuthManagementRoutes } from './management/auth.js';
 import { registerSongManagementRoutes } from './management/songs.js';
+import { registerArtistManagementRoutes } from './management/artists.js';
 import { registerAlbumManagementRoutes } from './management/albums.js';
 import { registerPlaylistManagementRoutes } from './management/playlists.js';
 import { registerScanManagementRoutes } from './management/scan.js';
@@ -69,6 +70,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
 
   registerAuthManagementRoutes(app, db);
   registerSongManagementRoutes(app, db);
+  registerArtistManagementRoutes(app, db);
   registerAlbumManagementRoutes(app, db);
   registerPlaylistManagementRoutes(app, db);
   registerScanManagementRoutes(app, config, db);

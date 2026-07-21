@@ -52,7 +52,58 @@ interface SongDetailRow {
   album_name: string | null;
 }
 
+interface SongListRow {
+  id: string;
+  file_path: string;
+  title: string;
+  track_number: number | null;
+  disc_number: number | null;
+  duration: number | null;
+  artist_id: string | null;
+  album_id: string | null;
+  genre: string | null;
+  year: number | null;
+  cover_art: string | null;
+  mtime: number;
+  checksum: string;
+  artist_name: string | null;
+  album_name: string | null;
+}
+
+function rowToSong(row: SongDetailRow | SongListRow) {
+  return {
+    id: row.id,
+    filePath: row.file_path,
+    title: row.title,
+    trackNumber: row.track_number ?? undefined,
+    discNumber: row.disc_number ?? undefined,
+    duration: row.duration ?? undefined,
+    artistId: row.artist_id ?? undefined,
+    albumId: row.album_id ?? undefined,
+    genre: row.genre ?? undefined,
+    year: row.year ?? undefined,
+    coverArt: row.cover_art ?? undefined,
+    mtime: row.mtime,
+    checksum: row.checksum,
+    artistName: row.artist_name ?? undefined,
+    albumName: row.album_name ?? undefined,
+  };
+}
+
 export function registerSongManagementRoutes(app: FastifyInstance, db: Database.Database): void {
+  app.get('/api/songs', (request: FastifyRequest, reply: FastifyReply) => {
+    const rows = db.prepare(`
+      SELECT s.*, ar.name AS artist_name, al.name AS album_name
+      FROM songs s
+      LEFT JOIN artists ar ON ar.id = s.artist_id
+      LEFT JOIN albums al ON al.id = s.album_id
+      ORDER BY s.title
+      LIMIT 500
+    `).all() as SongListRow[];
+
+    reply.send({ songs: rows.map(rowToSong) });
+  });
+
   app.put('/api/songs/:id/tags', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const song = getSongById(db, id);
@@ -87,24 +138,6 @@ export function registerSongManagementRoutes(app: FastifyInstance, db: Database.
 
     if (!row) return reply.status(404).send({ error: 'Song not found' });
 
-    reply.send({
-      song: {
-        id: row.id,
-        filePath: row.file_path,
-        title: row.title,
-        trackNumber: row.track_number ?? undefined,
-        discNumber: row.disc_number ?? undefined,
-        duration: row.duration ?? undefined,
-        artistId: row.artist_id ?? undefined,
-        albumId: row.album_id ?? undefined,
-        genre: row.genre ?? undefined,
-        year: row.year ?? undefined,
-        coverArt: row.cover_art ?? undefined,
-        mtime: row.mtime,
-        checksum: row.checksum,
-        artistName: row.artist_name ?? undefined,
-        albumName: row.album_name ?? undefined,
-      },
-    });
+    reply.send({ song: rowToSong(row) });
   });
 }

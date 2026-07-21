@@ -12,7 +12,7 @@ export function Login({ onLogin }: { onLogin: (user: { username: string }) => vo
     e.preventDefault();
     setError(null);
     try {
-      const user = await api<{ username: string }>('/login', {
+      const { user } = await api<{ user: { username: string } }>('/login', {
         method: 'POST',
         body: JSON.stringify({ username, password }),
       });

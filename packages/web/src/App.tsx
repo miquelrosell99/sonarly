@@ -3,6 +3,14 @@ import { useEffect, useState } from 'react';
 import { Layout } from './components/Layout.js';
 import { Login } from './pages/Login.js';
 import { Library } from './pages/Library.js';
+import { Songs } from './pages/Songs.js';
+import { Playlists } from './pages/Playlists.js';
+import { PlaylistDetail } from './pages/PlaylistDetail.js';
+import { Ingest } from './pages/Ingest.js';
+import { Organize } from './pages/Organize.js';
+import { Users } from './pages/Users.js';
+import { Artist } from './pages/Artist.js';
+import { Album } from './pages/Album.js';
 import { api } from './api.js';
 
 export default function App() {
@@ -21,11 +29,14 @@ export default function App() {
     <Router>
       <Layout>
         <Route path="/" component={Library} />
-        <Route path="/songs" component={() => <div>Songs</div>} />
-        <Route path="/playlists" component={() => <div>Playlists</div>} />
-        <Route path="/ingest" component={() => <div>Ingest</div>} />
-        <Route path="/organize" component={() => <div>Organize</div>} />
-        <Route path="/users" component={() => <div>Users</div>} />
+        <Route path="/songs" component={Songs} />
+        <Route path="/playlists" component={Playlists} />
+        <Route path="/playlists/:id" component={PlaylistDetail} />
+        <Route path="/ingest" component={Ingest} />
+        <Route path="/organize" component={Organize} />
+        <Route path="/users" component={Users} />
+        <Route path="/artists/:id" component={Artist} />
+        <Route path="/albums/:id" component={Album} />
       </Layout>
     </Router>
   );
