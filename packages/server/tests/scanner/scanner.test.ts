@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { mkdirSync, rmSync, writeFileSync, copyFileSync, utimesSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync, copyFileSync, utimesSync, chmodSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { migrate } from '../../src/db/migrate.js';
@@ -123,5 +123,32 @@ describe('scanLibrary', () => {
 
     expect(stats.scanned).toBe(0);
     expect(stats.added).toBe(0);
+  });
+
+  it('logs and skips unreadable directories instead of aborting', async () => {
+    if (process.getuid && process.getuid() === 0) {
+      // Permission checks are bypassed for root, so EACCES cannot be triggered.
+      return;
+    }
+
+    const readableDir = join(libraryPath, 'accessible');
+    const unreadableDir = join(libraryPath, 'locked');
+    mkdirSync(readableDir, { recursive: true });
+    mkdirSync(unreadableDir, { recursive: true });
+    const target = join(readableDir, 'Song.mp3');
+    copyFileSync(fixture, target);
+
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    chmodSync(unreadableDir, 0o000);
+    try {
+      const stats = await scanLibrary(config, db);
+
+      expect(stats.scanned).toBe(1);
+      expect(stats.failed).toBe(0);
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('locked'), expect.anything());
+    } finally {
+      chmodSync(unreadableDir, 0o755);
+      errorSpy.mockRestore();
+    }
   });
 });

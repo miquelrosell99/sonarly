@@ -42,7 +42,6 @@ export async function scanLibrary(config: Config, db: Database.Database): Promis
         const movedFrom = (cached && !foundPaths.has(cached.filePath) ? cached : undefined)
           ?? findMovedSong(db, checksum, foundPaths);
         if (movedFrom) {
-          db.prepare('UPDATE songs SET file_path = ? WHERE id = ?').run(filePath, movedFrom.id);
           const song = await persistSong(db, filePath, meta.tags, meta.duration, mtime, checksum, movedFrom.id);
           checksumToSong.set(checksum, song);
           movedFromPaths.add(movedFrom.filePath);
@@ -75,7 +74,13 @@ export async function scanLibrary(config: Config, db: Database.Database): Promis
 }
 
 async function* walkAudioFiles(dir: string): AsyncGenerator<string> {
-  const entries = await readdir(dir, { withFileTypes: true });
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch (err) {
+    console.error(`Scanner: cannot read directory ${dir}`, err);
+    return;
+  }
   for (const entry of entries) {
     const fullPath = join(dir, entry.name);
     if (entry.isDirectory()) {

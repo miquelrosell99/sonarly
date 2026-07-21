@@ -49,7 +49,8 @@ export function upsertSong(db: Database.Database, song: Song): void {
   const stmt = db.prepare(`
     INSERT INTO songs (id, file_path, title, track_number, disc_number, duration, artist_id, album_id, genre, year, cover_art, mtime, checksum)
     VALUES (@id, @filePath, @title, @trackNumber, @discNumber, @duration, @artistId, @albumId, @genre, @year, @coverArt, @mtime, @checksum)
-    ON CONFLICT(file_path) DO UPDATE SET
+    ON CONFLICT(id) DO UPDATE SET
+      file_path = excluded.file_path,
       title = excluded.title,
       track_number = excluded.track_number,
       disc_number = excluded.disc_number,
