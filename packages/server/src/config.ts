@@ -8,6 +8,7 @@ const configSchema = z.object({
   DATA_DIR: z.string().default('/data'),
   LIBRARY_PATH: z.string().default('/data/library'),
   INGEST_PATH: z.string().default('/data/ingest'),
+  ORGANIZE_PATTERN: z.string().default('{artist}/{album}/{track:00} - {title}{ext}'),
   SCAN_INTERVAL_MINUTES: z.coerce.number().default(60),
   WATCHER_USE_POLLING: z.coerce.boolean().default(false),
   PUID: z.coerce.number().default(1000),
