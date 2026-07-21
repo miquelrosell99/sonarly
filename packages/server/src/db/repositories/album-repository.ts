@@ -31,7 +31,7 @@ export function getAlbumByNameAndArtist(db: Database.Database, name: string, art
 }
 
 export function upsertAlbum(db: Database.Database, album: Album): void {
-  db.prepare(`
+  const stmt = db.prepare(`
     INSERT INTO albums (id, name, artist_id, artist_name, year, genre, cover_art)
     VALUES (@id, @name, @artistId, @artistName, @year, @genre, @coverArt)
     ON CONFLICT(id) DO UPDATE SET
@@ -41,5 +41,14 @@ export function upsertAlbum(db: Database.Database, album: Album): void {
       year = excluded.year,
       genre = excluded.genre,
       cover_art = excluded.cover_art
-  `).run(album);
+  `);
+  stmt.run({
+    id: album.id,
+    name: album.name,
+    artistId: album.artistId ?? null,
+    artistName: album.artistName ?? null,
+    year: album.year ?? null,
+    genre: album.genre ?? null,
+    coverArt: album.coverArt ?? null,
+  });
 }
