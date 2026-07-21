@@ -1,6 +1,7 @@
-import { mkdir, rename, copyFile, stat } from 'node:fs/promises';
+import { mkdir, rename, copyFile, stat, unlink } from 'node:fs/promises';
 import { dirname, join, extname, parse } from 'node:path';
 import type { SongTags } from '@sonarly/shared';
+import { computeChecksum } from '../tags/reader.js';
 
 export function buildTargetPath(pattern: string, libraryPath: string, tags: SongTags, originalPath: string): string {
   const ext = extname(originalPath);
@@ -48,8 +49,15 @@ export async function moveToLibrary(sourcePath: string, targetPath: string): Pro
   if (sourcePath === targetPath) return sourcePath;
   await mkdir(dirname(targetPath), { recursive: true });
   const finalPath = await resolveDuplicateTarget(targetPath);
-  await rename(sourcePath, finalPath);
-  return finalPath;
+  try {
+    await rename(sourcePath, finalPath);
+    return finalPath;
+  } catch (err) {
+    if (isExdev(err)) {
+      return await copyAndRemove(sourcePath, finalPath);
+    }
+    throw err;
+  }
 }
 
 export async function copyWithIntegrity(sourcePath: string, targetPath: string): Promise<string> {
@@ -57,6 +65,23 @@ export async function copyWithIntegrity(sourcePath: string, targetPath: string):
   const finalPath = await resolveDuplicateTarget(targetPath);
   await copyFile(sourcePath, finalPath);
   return finalPath;
+}
+
+async function copyAndRemove(sourcePath: string, targetPath: string): Promise<string> {
+  await copyFile(sourcePath, targetPath);
+  const [sourceChecksum, targetChecksum] = await Promise.all([
+    computeChecksum(sourcePath),
+    computeChecksum(targetPath),
+  ]);
+  if (sourceChecksum !== targetChecksum) {
+    throw new Error(`Integrity check failed after copying ${sourcePath} to ${targetPath}`);
+  }
+  await unlink(sourcePath);
+  return targetPath;
+}
+
+function isExdev(err: unknown): boolean {
+  return err instanceof Error && (err as NodeJS.ErrnoException).code === 'EXDEV';
 }
 
 async function resolveDuplicateTarget(targetPath: string): Promise<string> {
