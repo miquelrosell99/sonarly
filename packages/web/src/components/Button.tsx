@@ -1,11 +1,13 @@
+import { cn } from '../lib/cn';
+
 export function Button({
   children,
   variant = 'primary',
+  className,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'ghost' }) {
-  const className = variant === 'primary' ? 'btn' : 'btn-ghost';
   return (
-    <button className={className} {...props}>
+    <button className={cn(variant === 'primary' ? 'btn' : 'btn-ghost', className)} {...props}>
       {children}
     </button>
   );
