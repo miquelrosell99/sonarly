@@ -7,20 +7,23 @@ export function buildSubsonicToken(password: string, salt: string): string {
   return createHash('md5').update(password + salt).digest('hex');
 }
 
-export function verifySubsonicToken(db: Database.Database, username: string, token: string, salt: string, sessionSecret: string): boolean {
+export function verifySubsonicToken(db: Database.Database, username: string, token: string, salt: string, sessionSecret: string): string | null {
   const user = getUserByUsername(db, username);
-  if (!user) return false;
-  if (!user.subsonicPasswordEncrypted) return false;
+  if (!user) return null;
+  if (!user.subsonicPasswordEncrypted) return null;
   let decryptedPassword: string;
   try {
     decryptedPassword = decryptSubsonicPassword(user.subsonicPasswordEncrypted, sessionSecret);
   } catch {
-    return false;
+    return null;
   }
   const expected = buildSubsonicToken(decryptedPassword, salt);
   try {
-    return cryptoTimingSafeEqual(Buffer.from(token, 'hex'), Buffer.from(expected, 'hex'));
+    if (cryptoTimingSafeEqual(Buffer.from(token, 'hex'), Buffer.from(expected, 'hex'))) {
+      return user.id;
+    }
+    return null;
   } catch {
-    return false;
+    return null;
   }
 }

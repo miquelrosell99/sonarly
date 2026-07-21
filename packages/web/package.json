@@ -6,8 +6,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest --passWithNoTests",
-    "lint": "eslint src"
+    "test": "vitest --passWithNoTests --run"
   },
   "dependencies": {
     "@sonarly/shared": "workspace:*",

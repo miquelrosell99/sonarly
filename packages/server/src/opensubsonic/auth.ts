@@ -1,11 +1,11 @@
-import type { FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type Database from 'better-sqlite3';
 import { verifySubsonicToken } from '../auth/token.js';
 import { verifyApiKey } from '../auth/api-keys.js';
-import { getUserById, getUserByUsername } from '../db/repositories/user-repository.js';
+import { getUserById } from '../db/repositories/user-repository.js';
 import { sendSubsonicReply } from './responses.js';
 
-export function registerOpenSubsonicAuth(app: any, db: Database.Database, sessionSecret: string): void {
+export function registerOpenSubsonicAuth(app: FastifyInstance, db: Database.Database, sessionSecret: string): void {
   app.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.routeOptions.url?.startsWith('/rest/')) return;
 
@@ -43,19 +43,13 @@ export function registerOpenSubsonicAuth(app: any, db: Database.Database, sessio
       }, 'failed');
     }
 
-    if (!verifySubsonicToken(db, u, t, s, sessionSecret)) {
+    const userId = verifySubsonicToken(db, u, t, s, sessionSecret);
+    if (!userId) {
       return sendSubsonicReply(reply.status(401), format, {
         error: { code: 40, message: 'Wrong username or password' },
       }, 'failed');
     }
 
-    const user = getUserByUsername(db, u);
-    if (!user) {
-      return sendSubsonicReply(reply.status(401), format, {
-        error: { code: 40, message: 'Wrong username or password' },
-      }, 'failed');
-    }
-
-    (request as any).subsonicUser = user.id;
+    (request as any).subsonicUser = userId;
   });
 }

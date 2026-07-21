@@ -24,9 +24,9 @@ describe('verifySubsonicToken', () => {
     const encrypted = encryptSubsonicPassword(password, SESSION_SECRET);
     createUser(db, { id: 'user-1', username: 'tester', passwordHash: 'ignored', subsonicPasswordEncrypted: encrypted, isAdmin: false, createdAt: new Date().toISOString() });
 
-    expect(verifySubsonicToken(db, 'tester', token, salt, SESSION_SECRET)).toBe(true);
-    expect(verifySubsonicToken(db, 'tester', 'bad', salt, SESSION_SECRET)).toBe(false);
-    expect(verifySubsonicToken(db, 'missing', token, salt, SESSION_SECRET)).toBe(false);
+    expect(verifySubsonicToken(db, 'tester', token, salt, SESSION_SECRET)).toBe('user-1');
+    expect(verifySubsonicToken(db, 'tester', 'bad', salt, SESSION_SECRET)).toBeNull();
+    expect(verifySubsonicToken(db, 'missing', token, salt, SESSION_SECRET)).toBeNull();
 
     db.close();
   });
@@ -37,7 +37,7 @@ describe('verifySubsonicToken', () => {
     createUser(db, { id: 'user-1', username: 'tester', passwordHash: 'ignored', subsonicPasswordEncrypted: '', isAdmin: false, createdAt: new Date().toISOString() });
 
     const token = buildSubsonicToken('supersecret', 'salty');
-    expect(verifySubsonicToken(db, 'tester', token, 'salty', SESSION_SECRET)).toBe(false);
+    expect(verifySubsonicToken(db, 'tester', token, 'salty', SESSION_SECRET)).toBeNull();
 
     db.close();
   });

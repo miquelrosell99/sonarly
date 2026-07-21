@@ -6,7 +6,7 @@ import Fastify from 'fastify';
 import cookie from '@fastify/cookie';
 import session from '@fastify/session';
 import fastifyStatic from '@fastify/static';
-import type { Config } from './config.js';
+import type { Config, WorkerConfig } from './config.js';
 import type Database from 'better-sqlite3';
 import { getDb, closeDb } from './db/connection.js';
 import { migrate } from './db/migrate.js';
@@ -26,8 +26,13 @@ import { registerUserManagementRoutes } from './management/users.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+function isTsxRuntime(): boolean {
+  return process.execArgv.some((arg) => /tsx[\\/]dist[\\/]loader\.mjs$/.test(arg));
+}
+
 function resolveWorkerPath(): string {
   const candidates = [
+    ...(isTsxRuntime() ? [join(__dirname, 'scanner', 'worker.ts')] : []),
     join(__dirname, 'scanner', 'worker.js'),
     join(__dirname, '..', 'dist', 'scanner', 'worker.js'),
   ];
@@ -41,7 +46,17 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   const db = providedDb ?? getDb(config);
   migrate(db);
 
-  const worker = new Worker(resolveWorkerPath(), { workerData: config });
+  const workerConfig: WorkerConfig = {
+    DATA_DIR: config.DATA_DIR,
+    LIBRARY_PATH: config.LIBRARY_PATH,
+    INGEST_PATH: config.INGEST_PATH,
+    ORGANIZE_PATTERN: config.ORGANIZE_PATTERN,
+    SCAN_INTERVAL_MINUTES: config.SCAN_INTERVAL_MINUTES,
+    WATCHER_USE_POLLING: config.WATCHER_USE_POLLING,
+    PUID: config.PUID,
+    PGID: config.PGID,
+  };
+  const worker = new Worker(resolveWorkerPath(), { workerData: workerConfig });
 
   pushJob(db, 'scan', config.LIBRARY_PATH);
 
