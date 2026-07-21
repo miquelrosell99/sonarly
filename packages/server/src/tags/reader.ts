@@ -1,11 +1,13 @@
 import { parseFile } from 'music-metadata';
+import path from 'node:path';
 import type { SongTags } from '@sonarly/shared';
 import { computeChecksum } from './checksum.js';
 
-/** Audio tags plus optional duration, as returned by {@link readMetadata}. */
+/** Audio tags plus optional duration and cover-art hint, as returned by {@link readMetadata}. */
 export interface AudioMetadata {
   tags: SongTags;
   duration?: number;
+  hasCoverArt: boolean;
 }
 
 /**
@@ -27,6 +29,7 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
       year: common.year,
     },
     duration: metadata.format.duration,
+    hasCoverArt: (common.picture?.length ?? 0) > 0,
   };
 }
 
@@ -34,8 +37,7 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
 export const readTags = readMetadata;
 
 function getFilenameFallback(filePath: string): string {
-  const parts = filePath.split('/');
-  return parts[parts.length - 1].replace(/\.[^.]+$/, '');
+  return path.basename(filePath).replace(/\.[^.]+$/, '');
 }
 
 export { computeChecksum };

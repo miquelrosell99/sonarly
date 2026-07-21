@@ -42,17 +42,17 @@ export async function scanLibrary(config: Config, db: Database.Database): Promis
         const movedFrom = (cached && !foundPaths.has(cached.filePath) ? cached : undefined)
           ?? findMovedSong(db, checksum, foundPaths);
         if (movedFrom) {
-          const song = await persistSong(db, filePath, meta.tags, meta.duration, mtime, checksum, movedFrom.id);
+          const song = await persistSong(db, filePath, meta.tags, meta.duration, meta.hasCoverArt, mtime, checksum, movedFrom.id);
           checksumToSong.set(checksum, song);
           movedFromPaths.add(movedFrom.filePath);
           stats.moved++;
         } else {
-          const song = await persistSong(db, filePath, meta.tags, meta.duration, mtime, checksum);
+          const song = await persistSong(db, filePath, meta.tags, meta.duration, meta.hasCoverArt, mtime, checksum);
           checksumToSong.set(checksum, song);
           stats.added++;
         }
       } else {
-        await persistSong(db, filePath, meta.tags, meta.duration, mtime, checksum, existing.id);
+        await persistSong(db, filePath, meta.tags, meta.duration, meta.hasCoverArt, mtime, checksum, existing.id);
         stats.updated++;
       }
     } catch (err) {
@@ -107,6 +107,7 @@ async function persistSong(
   filePath: string,
   tags: SongTags,
   duration: number | undefined,
+  hasCoverArt: boolean,
   mtime: number,
   checksum: string,
   existingId?: string
@@ -115,9 +116,10 @@ async function persistSong(
   const artistId = artistName ? ensureArtist(db, artistName) : undefined;
   const albumArtist = tags.albumArtist || artistName;
   const albumId = tags.album ? ensureAlbum(db, tags.album, albumArtist, artistId, tags.year, tags.genre) : undefined;
+  const id = existingId ?? randomUUID();
 
   const song: Song = {
-    id: existingId ?? randomUUID(),
+    id,
     filePath,
     title: tags.title,
     trackNumber: tags.trackNumber,
@@ -127,6 +129,7 @@ async function persistSong(
     albumId,
     genre: tags.genre,
     year: tags.year,
+    coverArt: hasCoverArt ? id : undefined,
     mtime,
     checksum,
   };
