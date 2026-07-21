@@ -26,7 +26,24 @@ export function validateSongTags(body: unknown): SongTags {
       throw new Error(`Unknown tag field: ${key}`);
     }
   }
+  if ('trackNumber' in input && !Number.isInteger(input.trackNumber)) {
+    throw new Error('trackNumber must be an integer');
+  }
+  if ('discNumber' in input && !Number.isInteger(input.discNumber)) {
+    throw new Error('discNumber must be an integer');
+  }
+  if ('year' in input && !Number.isInteger(input.year)) {
+    throw new Error('year must be an integer');
+  }
   return input as unknown as SongTags;
+}
+
+function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | undefined): boolean {
+  if (!session?.isAdmin) {
+    reply.status(403).send({ error: 'Forbidden' });
+    return false;
+  }
+  return true;
 }
 
 export function queueResync(db: Database.Database, path: string): void {
@@ -105,6 +122,9 @@ export function registerSongManagementRoutes(app: FastifyInstance, db: Database.
   });
 
   app.put('/api/songs/:id/tags', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { isAdmin?: boolean } | undefined;
+    if (!requireAdmin(reply, session)) return;
+
     const { id } = request.params as { id: string };
     const song = getSongById(db, id);
     if (!song) return reply.status(404).send({ error: 'Song not found' });

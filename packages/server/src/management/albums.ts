@@ -27,6 +27,14 @@ function rowToAlbum(row: AlbumRow): Album {
   };
 }
 
+function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | undefined): boolean {
+  if (!session?.isAdmin) {
+    reply.status(403).send({ error: 'Forbidden' });
+    return false;
+  }
+  return true;
+}
+
 export function registerAlbumManagementRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get('/api/albums', (request: FastifyRequest, reply: FastifyReply) => {
     const rows = db.prepare('SELECT * FROM albums ORDER BY name LIMIT 500').all() as AlbumRow[];
@@ -34,6 +42,9 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, db: Database
   });
 
   app.put('/api/albums/:id/tags', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { isAdmin?: boolean } | undefined;
+    if (!requireAdmin(reply, session)) return;
+
     const { id } = request.params as { id: string };
     const album = db.prepare('SELECT * FROM albums WHERE id = ?').get(id) as Album | undefined;
     if (!album) return reply.status(404).send({ error: 'Album not found' });
