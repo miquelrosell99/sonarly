@@ -87,7 +87,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
       wildcard: false,
     });
 
-    app.setNotFoundHandler(async (request, reply) => {
+    app.setNotFoundHandler((request, reply) => {
       if (request.method === 'GET') {
         const accept = Array.isArray(request.headers.accept)
           ? request.headers.accept.join(',')
@@ -96,7 +96,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
           return reply.sendFile('index.html');
         }
       }
-      reply.status(404).send({ error: 'Not Found' });
+      return reply.status(404).send({ error: 'Not Found' });
     });
   }
 
