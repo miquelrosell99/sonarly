@@ -9,6 +9,11 @@ export function Users() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const updateForm = (patch: Partial<typeof form>) => {
+    setSuccess(false);
+    setForm((prev) => ({ ...prev, ...patch }));
+  };
+
   const create = async () => {
     if (!form.username.trim() || !form.password) return;
     setCreating(true);
@@ -39,19 +44,19 @@ export function Users() {
         <Input
           placeholder="Username"
           value={form.username}
-          onChange={(e) => setForm({ ...form, username: e.target.value })}
+          onChange={(e) => updateForm({ username: e.target.value })}
         />
         <Input
           placeholder="Password"
           type="password"
           value={form.password}
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
+          onChange={(e) => updateForm({ password: e.target.value })}
         />
         <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             checked={form.isAdmin}
-            onChange={(e) => setForm({ ...form, isAdmin: e.target.checked })}
+            onChange={(e) => updateForm({ isAdmin: e.target.checked })}
             className="rounded border-gray-300"
           />
           Admin

@@ -45,7 +45,7 @@ export function Artist() {
               className="flex items-center justify-between py-2 text-sm hover:bg-gray-50"
             >
               <span>{album.name}</span>
-              {album.year && <span className="text-gray-400">{album.year}</span>}
+              {album.year !== undefined && album.year !== null && <span className="text-gray-400">{album.year}</span>}
             </Link>
           </li>
         ))}

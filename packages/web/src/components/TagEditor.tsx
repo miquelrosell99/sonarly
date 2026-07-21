@@ -65,10 +65,15 @@ export function TagEditor({
     setSaving(true);
     setError(null);
 
-    const trackNumber = tags.trackNumber ? parseInt(tags.trackNumber, 10) : undefined;
-    const year = tags.year ? parseInt(tags.year, 10) : undefined;
-    if ((tags.trackNumber && Number.isNaN(trackNumber)) || (tags.year && Number.isNaN(year))) {
-      setError('Track number and year must be valid numbers');
+    const parseIntField = (value: string): number | undefined => {
+      if (!value.trim()) return undefined;
+      if (!/^-?\d+$/.test(value.trim())) return Number.NaN;
+      return parseInt(value.trim(), 10);
+    };
+    const trackNumber = parseIntField(tags.trackNumber);
+    const year = parseIntField(tags.year);
+    if (Number.isNaN(trackNumber) || Number.isNaN(year)) {
+      setError('Track number and year must be valid integers');
       setSaving(false);
       return;
     }
