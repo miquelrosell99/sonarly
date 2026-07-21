@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { mkdirSync, rmSync, writeFileSync, copyFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync, copyFileSync, existsSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -52,5 +52,20 @@ describe('processIngestFolder', () => {
     const stats = await processIngestFolder(config, db);
     expect(stats.processed).toBe(1);
     expect(stats.needsReview).toBe(1);
+  });
+
+  it('renames duplicate basenames in review directory', async () => {
+    const subA = join(ingestPath, 'sub-a');
+    const subB = join(ingestPath, 'sub-b');
+    mkdirSync(subA, { recursive: true });
+    mkdirSync(subB, { recursive: true });
+    writeFileSync(join(subA, 'sample.mp3'), 'invalid mp3 content without tags');
+    writeFileSync(join(subB, 'sample.mp3'), 'different invalid content');
+    const stats = await processIngestFolder(config, db);
+    expect(stats.processed).toBe(2);
+    expect(stats.needsReview).toBe(2);
+    const reviewDir = join(ingestPath, 'review');
+    expect(existsSync(join(reviewDir, 'sample.mp3'))).toBe(true);
+    expect(existsSync(join(reviewDir, 'sample (1).mp3'))).toBe(true);
   });
 });

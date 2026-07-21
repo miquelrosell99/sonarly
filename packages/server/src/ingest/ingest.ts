@@ -1,5 +1,5 @@
-import { readdir, rename, mkdir } from 'node:fs/promises';
-import { extname, join, dirname } from 'node:path';
+import { readdir, rename, mkdir, stat } from 'node:fs/promises';
+import { extname, join, dirname, basename, parse } from 'node:path';
 import Database from 'better-sqlite3';
 import type { Config } from '../config.js';
 import { validateIngestFile } from './validator.js';
@@ -63,7 +63,28 @@ async function* walkIngestFiles(dir: string): AsyncGenerator<string> {
 }
 
 async function moveToReview(sourcePath: string, reviewDir: string): Promise<void> {
-  const target = join(reviewDir, sourcePath.split('/').pop()!);
+  const target = await resolveUniquePath(join(reviewDir, basename(sourcePath)));
   await mkdir(dirname(target), { recursive: true });
   await rename(sourcePath, target);
+}
+
+async function resolveUniquePath(targetPath: string): Promise<string> {
+  if (!(await fileExists(targetPath))) return targetPath;
+  const { dir, name, ext } = parse(targetPath);
+  let counter = 1;
+  let candidate = targetPath;
+  while (await fileExists(candidate)) {
+    candidate = join(dir, `${name} (${counter})${ext}`);
+    counter++;
+  }
+  return candidate;
+}
+
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await stat(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
