@@ -2,12 +2,17 @@ import { parseFile } from 'music-metadata';
 import type { SongTags } from '@sonarly/shared';
 import { computeChecksum } from './checksum.js';
 
+/** Audio tags plus optional duration, as returned by {@link readMetadata}. */
 export interface AudioMetadata {
   tags: SongTags;
   duration?: number;
 }
 
-export async function readTags(filePath: string): Promise<AudioMetadata> {
+/**
+ * Reads audio tags and duration.
+ * Use `computeChecksum(path)` separately to get a SHA256 checksum.
+ */
+export async function readMetadata(filePath: string): Promise<AudioMetadata> {
   const metadata = await parseFile(filePath, { duration: true });
   const common = metadata.common;
   return {
@@ -24,6 +29,9 @@ export async function readTags(filePath: string): Promise<AudioMetadata> {
     duration: metadata.format.duration,
   };
 }
+
+/** Backward-compatible alias for {@link readMetadata}. */
+export const readTags = readMetadata;
 
 function getFilenameFallback(filePath: string): string {
   const parts = filePath.split('/');

@@ -18,6 +18,6 @@ describe('computeChecksum', () => {
     const path = join(tmpdir(), 'sonarly-checksum-test.txt');
     writeFileSync(path, 'hello');
     const sum = await computeChecksum(path);
-    expect(sum).toHaveLength(64);
+    expect(sum).toBe('2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824');
   });
 });
