@@ -1,4 +1,5 @@
 import bcrypt from 'bcrypt';
+import { createHash } from 'node:crypto';
 
 const SALT_ROUNDS = 12;
 
@@ -8,4 +9,8 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
+}
+
+export function hashSubsonicPassword(password: string): string {
+  return createHash('md5').update(password).digest('hex');
 }

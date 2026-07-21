@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { buildApp } from '../../src/app.js';
 import { migrate } from '../../src/db/migrate.js';
-import { hashPassword } from '../../src/auth/password.js';
+import { hashPassword, hashSubsonicPassword } from '../../src/auth/password.js';
 import { createUser } from '../../src/db/repositories/user-repository.js';
 import { upsertSong } from '../../src/db/repositories/song-repository.js';
 import { upsertArtist } from '../../src/db/repositories/artist-repository.js';
@@ -76,7 +76,8 @@ describe('management song endpoints', () => {
       id: 'user-1',
       username: 'tester',
       passwordHash: await hashPassword('pass'),
-      isAdmin: false,
+      subsonicPasswordHash: hashSubsonicPassword('pass'),
+      isAdmin: true,
       createdAt: new Date().toISOString(),
     });
     upsertArtist(db, { id: 'artist-1', name: 'Test Artist' });
@@ -175,5 +176,29 @@ describe('management song endpoints', () => {
       payload: { title: 'X' },
     });
     expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 403 for non-admin users', async () => {
+    createUser(db, {
+      id: 'user-2',
+      username: 'regular',
+      passwordHash: await hashPassword('pass'),
+      subsonicPasswordHash: hashSubsonicPassword('pass'),
+      isAdmin: false,
+      createdAt: new Date().toISOString(),
+    });
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/login',
+      payload: { username: 'regular', password: 'pass' },
+    });
+    const regularCookie = login.cookies.find((c) => c.name === 'sessionId')!.value;
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/songs/song-1/tags',
+      cookies: { sessionId: regularCookie },
+      payload: { title: 'X' },
+    });
+    expect(res.statusCode).toBe(403);
   });
 });

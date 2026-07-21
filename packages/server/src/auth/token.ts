@@ -9,7 +9,7 @@ export function buildSubsonicToken(password: string, salt: string): string {
 export function verifySubsonicToken(db: Database.Database, username: string, token: string, salt: string): boolean {
   const user = getUserByUsername(db, username);
   if (!user) return false;
-  const expected = buildSubsonicToken(user.passwordHash, salt);
+  const expected = buildSubsonicToken(user.subsonicPasswordHash, salt);
   try {
     return cryptoTimingSafeEqual(Buffer.from(token, 'hex'), Buffer.from(expected, 'hex'));
   } catch {
