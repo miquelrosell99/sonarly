@@ -54,7 +54,7 @@ describe('Subsonic smoke', () => {
   });
 
   it('returns ok from ping.view', async () => {
-    const res = await app.inject({ method: 'GET', url: buildSubsonicUrl(user.username, user.passwordHash, '/rest/ping.view?') });
+    const res = await app.inject({ method: 'GET', url: buildSubsonicUrl(user.username, user.subsonicPasswordHash, '/rest/ping.view?') });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].status).toBe('ok');
@@ -63,7 +63,7 @@ describe('Subsonic smoke', () => {
   });
 
   it('returns the library music folder', async () => {
-    const res = await app.inject({ method: 'GET', url: buildSubsonicUrl(user.username, user.passwordHash, '/rest/getMusicFolders.view?') });
+    const res = await app.inject({ method: 'GET', url: buildSubsonicUrl(user.username, user.subsonicPasswordHash, '/rest/getMusicFolders.view?') });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].musicFolders.musicFolder).toEqual([
@@ -72,7 +72,7 @@ describe('Subsonic smoke', () => {
   });
 
   it('returns artists grouped by initial', async () => {
-    const res = await app.inject({ method: 'GET', url: buildSubsonicUrl(user.username, user.passwordHash, '/rest/getArtists.view?') });
+    const res = await app.inject({ method: 'GET', url: buildSubsonicUrl(user.username, user.subsonicPasswordHash, '/rest/getArtists.view?') });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     const indexes = body['subsonic-response'].artists.index;
@@ -83,7 +83,7 @@ describe('Subsonic smoke', () => {
   });
 
   it('returns the seeded album with its song', async () => {
-    const res = await app.inject({ method: 'GET', url: buildSubsonicUrl(user.username, user.passwordHash, `/rest/getAlbum.view?id=${albumId}`) });
+    const res = await app.inject({ method: 'GET', url: buildSubsonicUrl(user.username, user.subsonicPasswordHash, `/rest/getAlbum.view?id=${albumId}`) });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].album.id).toBe(albumId);
@@ -100,7 +100,7 @@ describe('Subsonic smoke', () => {
   });
 
   it('streams the song with Accept-Ranges', async () => {
-    const res = await app.inject({ method: 'GET', url: buildSubsonicUrl(user.username, user.passwordHash, `/rest/stream.view?id=${songId}`) });
+    const res = await app.inject({ method: 'GET', url: buildSubsonicUrl(user.username, user.subsonicPasswordHash, `/rest/stream.view?id=${songId}`) });
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('audio/mpeg');
     expect(res.headers['accept-ranges']).toBe('bytes');

@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
-import { hashPassword, verifyPassword } from '../auth/password.js';
+import { hashPassword, hashSubsonicPassword, verifyPassword } from '../auth/password.js';
 import { getUserById, getUserByUsername, createUser } from '../db/repositories/user-repository.js';
 import type { SessionData } from '../auth/session.js';
 
@@ -58,9 +58,10 @@ export function registerAuthManagementRoutes(app: FastifyInstance, db: Database.
 
     const { username, password } = request.body as { username: string; password: string };
     const passwordHash = await hashPassword(password);
+    const subsonicPasswordHash = hashSubsonicPassword(password);
     const id = randomUUID();
     const now = new Date().toISOString();
-    createUser(db, { id, username, passwordHash, isAdmin: true, createdAt: now });
+    createUser(db, { id, username, passwordHash, subsonicPasswordHash, isAdmin: true, createdAt: now });
 
     const session = (request as any).session;
     session.userId = id;

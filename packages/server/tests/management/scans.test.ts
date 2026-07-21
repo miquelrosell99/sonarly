@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { buildApp } from '../../src/app.js';
 import { migrate } from '../../src/db/migrate.js';
-import { hashPassword } from '../../src/auth/password.js';
+import { hashPassword, hashSubsonicPassword } from '../../src/auth/password.js';
 import { createUser } from '../../src/db/repositories/user-repository.js';
 import type { Config } from '../../src/config.js';
 
@@ -48,6 +48,7 @@ describe('management scan endpoints', () => {
   let config: Config;
   let app: Awaited<ReturnType<typeof buildApp>>;
   let cookieValue: string;
+  let db: Database.Database;
 
   beforeEach(async () => {
     root = join(tmpdir(), `sonarly-management-scans-${Date.now()}`);
@@ -61,13 +62,14 @@ describe('management scan endpoints', () => {
     mkdirSync(config.LIBRARY_PATH, { recursive: true });
     mkdirSync(config.INGEST_PATH, { recursive: true });
 
-    const db = new Database(join(root, 'sonarly.db'));
+    db = new Database(join(root, 'sonarly.db'));
     migrate(db);
     createUser(db, {
       id: 'user-1',
       username: 'tester',
       passwordHash: await hashPassword('pass'),
-      isAdmin: false,
+      subsonicPasswordHash: hashSubsonicPassword('pass'),
+      isAdmin: true,
       createdAt: new Date().toISOString(),
     });
 
@@ -111,5 +113,28 @@ describe('management scan endpoints', () => {
     const body = JSON.parse(res.body);
     expect(body.job).toBeDefined();
     expect(body.job.type).toBe('scan');
+  });
+
+  it('returns 403 for non-admin users when triggering a scan', async () => {
+    createUser(db, {
+      id: 'user-2',
+      username: 'regular',
+      passwordHash: await hashPassword('pass'),
+      subsonicPasswordHash: hashSubsonicPassword('pass'),
+      isAdmin: false,
+      createdAt: new Date().toISOString(),
+    });
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/login',
+      payload: { username: 'regular', password: 'pass' },
+    });
+    const regularCookie = login.cookies.find((c) => c.name === 'sessionId')!.value;
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/scans',
+      cookies: { sessionId: regularCookie },
+    });
+    expect(res.statusCode).toBe(403);
   });
 });

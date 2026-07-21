@@ -18,21 +18,23 @@ describe('playlist repository', () => {
   });
 
   it('updates permission when sharing the same playlist with the same user twice', () => {
-    const owner: User & { passwordHash: string } = {
+    const owner: User & { passwordHash: string; subsonicPasswordHash: string } = {
       id: 'owner-1',
       username: 'owner',
       isAdmin: false,
       createdAt: new Date().toISOString(),
       passwordHash: 'hash',
+      subsonicPasswordHash: 'hash',
     };
     createUser(db, owner);
 
-    const user: User & { passwordHash: string } = {
+    const user: User & { passwordHash: string; subsonicPasswordHash: string } = {
       id: 'user-1',
       username: 'friend',
       isAdmin: false,
       createdAt: new Date().toISOString(),
       passwordHash: 'hash',
+      subsonicPasswordHash: 'hash',
     };
     createUser(db, user);
 

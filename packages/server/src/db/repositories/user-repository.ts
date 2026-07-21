@@ -5,6 +5,7 @@ export interface DbUser {
   id: string;
   username: string;
   password_hash: string;
+  subsonic_password_hash: string | null;
   is_admin: number;
   created_at: string;
 }
@@ -23,13 +24,20 @@ export function getUserById(db: Database.Database, id: string): User | undefined
   return row ? toUser(row) : undefined;
 }
 
-export function getUserByUsername(db: Database.Database, username: string): (User & { passwordHash: string }) | undefined {
+export function getUserByUsername(
+  db: Database.Database,
+  username: string,
+): (User & { passwordHash: string; subsonicPasswordHash: string }) | undefined {
   const row = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as DbUser | undefined;
   if (!row) return undefined;
-  return { ...toUser(row), passwordHash: row.password_hash };
+  return {
+    ...toUser(row),
+    passwordHash: row.password_hash,
+    subsonicPasswordHash: row.subsonic_password_hash ?? '',
+  };
 }
 
-export function createUser(db: Database.Database, user: User & { passwordHash: string }): void {
-  db.prepare('INSERT INTO users (id, username, password_hash, is_admin) VALUES (?, ?, ?, ?)')
-    .run(user.id, user.username, user.passwordHash, user.isAdmin ? 1 : 0);
+export function createUser(db: Database.Database, user: User & { passwordHash: string; subsonicPasswordHash: string }): void {
+  db.prepare('INSERT INTO users (id, username, password_hash, subsonic_password_hash, is_admin) VALUES (?, ?, ?, ?, ?)')
+    .run(user.id, user.username, user.passwordHash, user.subsonicPasswordHash, user.isAdmin ? 1 : 0);
 }

@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { buildApp } from '../../src/app.js';
 import { migrate } from '../../src/db/migrate.js';
-import { hashPassword } from '../../src/auth/password.js';
+import { hashPassword, hashSubsonicPassword } from '../../src/auth/password.js';
 import { createUser } from '../../src/db/repositories/user-repository.js';
 import { upsertSong } from '../../src/db/repositories/song-repository.js';
 import type { Config } from '../../src/config.js';
@@ -49,6 +49,7 @@ async function seedDb(db: Database.Database) {
     id: 'owner-1',
     username: 'owner',
     passwordHash: await hashPassword('pass'),
+    subsonicPasswordHash: hashSubsonicPassword('pass'),
     isAdmin: false,
     createdAt: new Date().toISOString(),
   });
@@ -56,6 +57,7 @@ async function seedDb(db: Database.Database) {
     id: 'friend-1',
     username: 'friend',
     passwordHash: await hashPassword('pass'),
+    subsonicPasswordHash: hashSubsonicPassword('pass'),
     isAdmin: false,
     createdAt: new Date().toISOString(),
   });
@@ -63,6 +65,7 @@ async function seedDb(db: Database.Database) {
     id: 'stranger-1',
     username: 'stranger',
     passwordHash: await hashPassword('pass'),
+    subsonicPasswordHash: hashSubsonicPassword('pass'),
     isAdmin: false,
     createdAt: new Date().toISOString(),
   });

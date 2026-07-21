@@ -8,6 +8,7 @@ import { upsertArtist } from '../../src/db/repositories/artist-repository.js';
 import { upsertAlbum } from '../../src/db/repositories/album-repository.js';
 import { upsertSong } from '../../src/db/repositories/song-repository.js';
 import { buildSubsonicToken } from '../../src/auth/token.js';
+import { hashSubsonicPassword } from '../../src/auth/password.js';
 import { generateApiKey, storeApiKey } from '../../src/auth/api-keys.js';
 import type { Config } from '../../src/config.js';
 
@@ -29,10 +30,11 @@ const config: Config = {
 
 function seedUser(db: Database.Database) {
   const username = 'tester';
-  const passwordHash = 'supersecret';
+  const password = 'supersecret';
+  const subsonicPasswordHash = hashSubsonicPassword(password);
   const salt = 'salty';
-  const token = buildSubsonicToken(passwordHash, salt);
-  createUser(db, { id: 'user-1', username, passwordHash, isAdmin: false, createdAt: new Date().toISOString() });
+  const token = buildSubsonicToken(subsonicPasswordHash, salt);
+  createUser(db, { id: 'user-1', username, passwordHash: 'ignored', subsonicPasswordHash, isAdmin: false, createdAt: new Date().toISOString() });
   return { username, token, salt };
 }
 

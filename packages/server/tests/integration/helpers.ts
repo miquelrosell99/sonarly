@@ -7,7 +7,7 @@ import Database from 'better-sqlite3';
 import type { FastifyInstance } from 'fastify';
 import type { Config } from '../../src/config.js';
 import { buildApp } from '../../src/app.js';
-import { hashPassword } from '../../src/auth/password.js';
+import { hashPassword, hashSubsonicPassword } from '../../src/auth/password.js';
 import { createUser } from '../../src/db/repositories/user-repository.js';
 import { buildSubsonicToken } from '../../src/auth/token.js';
 
@@ -32,6 +32,7 @@ export interface SeededUser {
   username: string;
   password: string;
   passwordHash: string;
+  subsonicPasswordHash: string;
 }
 
 export interface TestContext {
@@ -70,24 +71,26 @@ export async function seedUser(
   isAdmin = true
 ): Promise<SeededUser> {
   const passwordHash = await hashPassword(password);
+  const subsonicPasswordHash = hashSubsonicPassword(password);
   const id = randomUUID();
   createUser(db, {
     id,
     username,
     passwordHash,
+    subsonicPasswordHash,
     isAdmin,
     createdAt: new Date().toISOString(),
   });
-  return { id, username, password, passwordHash };
+  return { id, username, password, passwordHash, subsonicPasswordHash };
 }
 
 export function buildSubsonicUrl(
   username: string,
-  passwordHash: string,
+  subsonicPasswordHash: string,
   baseUrl: string
 ): string {
   const salt = randomUUID();
-  const token = buildSubsonicToken(passwordHash, salt);
+  const token = buildSubsonicToken(subsonicPasswordHash, salt);
   const separator = baseUrl.includes('?') ? '&' : '?';
   return `${baseUrl}${separator}u=${encodeURIComponent(username)}&t=${token}&s=${salt}&f=json`;
 }
