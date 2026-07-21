@@ -53,7 +53,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
 
   await app.register(cookie);
   await app.register(session, {
-    secret: config.SESSION_SECRET || 'change-me-in-production',
+    secret: config.SESSION_SECRET,
     cookie: {
       httpOnly: true,
       secure: config.SESSION_COOKIE_SECURE,
