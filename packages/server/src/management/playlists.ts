@@ -108,9 +108,9 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
         (SELECT COUNT(*) FROM playlist_songs ps WHERE ps.playlist_id = p.id) AS song_count
       FROM playlists p
       JOIN users u ON u.id = p.owner_id
-      LEFT JOIN playlist_shares ps ON ps.playlist_id = p.id
-      WHERE p.owner_id = ? OR p.visibility IN ('public', 'link') OR ps.user_id = ?
-      GROUP BY p.id
+      WHERE p.owner_id = ?
+         OR p.visibility IN ('public', 'link')
+         OR EXISTS (SELECT 1 FROM playlist_shares ps WHERE ps.playlist_id = p.id AND ps.user_id = ?)
       ORDER BY p.updated_at DESC
     `).all(userId, userId) as PlaylistListRow[];
 
@@ -152,6 +152,9 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       visibility?: PlaylistVisibility;
       songIds?: string[];
     };
+    if (typeof body.name !== 'string' || body.name.length === 0) {
+      return reply.status(400).send({ error: 'Name is required' });
+    }
     const visibility = isVisibility(body.visibility) ? body.visibility : 'private';
     const songIds = Array.isArray(body.songIds) ? body.songIds : [];
     const now = new Date().toISOString();
