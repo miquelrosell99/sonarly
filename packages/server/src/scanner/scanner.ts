@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto';
 
 const AUDIO_EXTS = new Set(['.mp3', '.flac', '.ogg', '.m4a']);
 
-export interface ScanStats {
+export interface ScanStats extends Record<string, number> {
   scanned: number;
   added: number;
   updated: number;
