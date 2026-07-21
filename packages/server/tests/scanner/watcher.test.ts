@@ -11,6 +11,7 @@ const baseConfig: Config = {
   PORT: 3000,
   NODE_ENV: 'test',
   SESSION_SECRET: 'a'.repeat(32),
+  USE_CRYPTO: false,
   DATA_DIR: '/data',
   LIBRARY_PATH: '/data/library',
   INGEST_PATH: '/data/ingest',

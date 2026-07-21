@@ -16,6 +16,7 @@ const config: Config = {
   NODE_ENV: 'test',
   SESSION_SECRET: 'a-secret-key-that-is-long-enough-for-the-session-secret-32',
   SESSION_COOKIE_SECURE: false,
+  USE_CRYPTO: false,
   DATA_DIR: '/data',
   LIBRARY_PATH: '/data/library',
   INGEST_PATH: '/data/ingest',

@@ -59,6 +59,7 @@ describe('scanner worker thread', () => {
       PORT: 3000,
       NODE_ENV: 'test',
       SESSION_SECRET: 'a'.repeat(32),
+      USE_CRYPTO: false,
       DATA_DIR: root,
       LIBRARY_PATH: libraryPath,
       INGEST_PATH: ingestPath,
