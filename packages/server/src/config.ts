@@ -19,6 +19,8 @@ const configSchema = z.object({
 
 export type Config = z.infer<typeof configSchema>;
 
+export type WorkerConfig = Pick<Config, 'DATA_DIR' | 'LIBRARY_PATH' | 'INGEST_PATH' | 'ORGANIZE_PATTERN' | 'SCAN_INTERVAL_MINUTES' | 'WATCHER_USE_POLLING' | 'PUID' | 'PGID'>;
+
 export function loadConfig(): Config {
   return configSchema.parse(process.env);
 }
