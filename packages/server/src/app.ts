@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import Fastify from 'fastify';
 import cookie from '@fastify/cookie';
 import session from '@fastify/session';
+import fastifyStatic from '@fastify/static';
 import type { Config } from './config.js';
 import type Database from 'better-sqlite3';
 import { getDb, closeDb } from './db/connection.js';
@@ -77,6 +78,27 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   registerIngestManagementRoutes(app, db);
   registerOrganizeManagementRoutes(app, config, db);
   registerUserManagementRoutes(app, db);
+
+  if (config.NODE_ENV === 'production') {
+    const webDist = join(__dirname, '..', 'web-dist');
+    await app.register(fastifyStatic, {
+      root: webDist,
+      prefix: '/',
+      wildcard: false,
+    });
+
+    app.setNotFoundHandler(async (request, reply) => {
+      if (request.method === 'GET') {
+        const accept = Array.isArray(request.headers.accept)
+          ? request.headers.accept.join(',')
+          : (request.headers.accept ?? '');
+        if (accept.includes('text/html')) {
+          return reply.sendFile('index.html');
+        }
+      }
+      reply.status(404).send({ error: 'Not Found' });
+    });
+  }
 
   app.addHook('onClose', async () => {
     worker.postMessage({ type: 'shutdown' });
