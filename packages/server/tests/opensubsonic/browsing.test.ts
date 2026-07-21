@@ -8,6 +8,7 @@ import { upsertArtist } from '../../src/db/repositories/artist-repository.js';
 import { upsertAlbum } from '../../src/db/repositories/album-repository.js';
 import { upsertSong } from '../../src/db/repositories/song-repository.js';
 import { buildSubsonicToken } from '../../src/auth/token.js';
+import { generateApiKey, storeApiKey } from '../../src/auth/api-keys.js';
 import type { Config } from '../../src/config.js';
 
 const config: Config = {
@@ -36,7 +37,8 @@ function seedUser(db: Database.Database) {
 
 function seedCatalog(db: Database.Database) {
   upsertArtist(db, { id: 'artist-1', name: 'Alpha Artist' });
-  upsertArtist(db, { id: 'artist-2', name: 'Beta Band' });
+  upsertArtist(db, { id: 'artist-2', name: 'Another Artist' });
+  upsertArtist(db, { id: 'artist-3', name: 'Beta Band' });
   upsertAlbum(db, {
     id: 'album-1',
     name: 'First Album',
@@ -103,6 +105,7 @@ describe('OpenSubsonic system endpoints', () => {
     expect(body['subsonic-response'].status).toBe('ok');
     expect(body['subsonic-response'].version).toBe('1.16.1');
     expect(body['subsonic-response'].type).toBe('sonarly');
+    expect(body['subsonic-response'].serverVersion).toBe('0.1.0');
   });
 
   it('responds to ping with XML envelope', async () => {
@@ -118,6 +121,9 @@ describe('OpenSubsonic system endpoints', () => {
     expect(res.statusCode).toBe(401);
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].version).toBe('1.16.1');
+    expect(body['subsonic-response'].type).toBe('sonarly');
+    expect(body['subsonic-response'].serverVersion).toBe('0.1.0');
     expect(body['subsonic-response'].error.code).toBe(10);
   });
 
@@ -126,6 +132,36 @@ describe('OpenSubsonic system endpoints', () => {
       method: 'GET',
       url: `/rest/ping.view?u=${auth.username}&t=bad&s=${auth.salt}&f=json`,
     });
+    expect(res.statusCode).toBe(401);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(40);
+  });
+
+  it('authenticates with an API key query parameter', async () => {
+    const apiKey = generateApiKey();
+    storeApiKey(db, 'user-1', apiKey);
+    const res = await app.inject({ method: 'GET', url: `/rest/ping.view?apiKey=${apiKey}&f=json` });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('ok');
+  });
+
+  it('authenticates with an X-API-Key header', async () => {
+    const apiKey = generateApiKey();
+    storeApiKey(db, 'user-1', apiKey);
+    const res = await app.inject({
+      method: 'GET',
+      url: '/rest/ping.view?f=json',
+      headers: { 'X-API-Key': apiKey },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('ok');
+  });
+
+  it('rejects an invalid API key', async () => {
+    const res = await app.inject({ method: 'GET', url: '/rest/ping.view?apiKey=sk_invalid&f=json' });
     expect(res.statusCode).toBe(401);
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].status).toBe('failed');
@@ -162,11 +198,11 @@ describe('OpenSubsonic browsing endpoints', () => {
     return `${url}&u=${auth.username}&t=${auth.token}&s=${auth.salt}&f=${format}`;
   }
 
-  it('returns music folders', async () => {
+  it('returns music folders derived from library path', async () => {
     const res = await app.inject({ method: 'GET', url: query('/rest/getMusicFolders.view?', 'json') });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body['subsonic-response'].musicFolders.musicFolder).toEqual([{ id: 0, name: 'Music' }]);
+    expect(body['subsonic-response'].musicFolders.musicFolder).toEqual([{ id: 0, name: 'library' }]);
   });
 
   it('returns indexes grouped by artist initial', async () => {
@@ -176,8 +212,14 @@ describe('OpenSubsonic browsing endpoints', () => {
     const indexes = body['subsonic-response'].indexes;
     expect(typeof indexes.lastModified).toBe('number');
     expect(indexes.index).toHaveLength(2);
-    expect(indexes.index[0].name).toBe('A');
-    expect(indexes.index[0].artist[0].name).toBe('Alpha Artist');
+    const indexA = indexes.index.find((i: { name: string }) => i.name === 'A');
+    const indexB = indexes.index.find((i: { name: string }) => i.name === 'B');
+    expect(indexA).toBeDefined();
+    expect(indexA.artist).toHaveLength(2);
+    expect(indexA.artist.map((a: { name: string }) => a.name).sort()).toEqual(['Alpha Artist', 'Another Artist']);
+    expect(indexB).toBeDefined();
+    expect(indexB.artist).toHaveLength(1);
+    expect(indexB.artist[0].name).toBe('Beta Band');
   });
 
   it('returns artists grouped by initial', async () => {
@@ -185,6 +227,8 @@ describe('OpenSubsonic browsing endpoints', () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].artists.index).toHaveLength(2);
+    const indexA = body['subsonic-response'].artists.index.find((i: { name: string }) => i.name === 'A');
+    expect(indexA.artist).toHaveLength(2);
   });
 
   it('returns an album with its songs', async () => {
@@ -192,16 +236,41 @@ describe('OpenSubsonic browsing endpoints', () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].album.name).toBe('First Album');
+    expect(body['subsonic-response'].album.artist).toBe('Alpha Artist');
     expect(body['subsonic-response'].album.song).toHaveLength(2);
     expect(body['subsonic-response'].album.song[0].title).toBe('Track One');
+    expect(body['subsonic-response'].album.song[0].album).toBe('First Album');
+    expect(body['subsonic-response'].album.song[0].artist).toBe('Alpha Artist');
+    expect(body['subsonic-response'].album.song[0].albumId).toBe('album-1');
+    expect(body['subsonic-response'].album.song[0].artistId).toBe('artist-1');
   });
 
-  it('returns a single song', async () => {
+  it('returns a controlled error for a missing album', async () => {
+    const res = await app.inject({ method: 'GET', url: query('/rest/getAlbum.view?id=missing', 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(70);
+  });
+
+  it('returns a single song with names and ids', async () => {
     const res = await app.inject({ method: 'GET', url: query('/rest/getSong.view?id=song-1', 'json') });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].song.id).toBe('song-1');
     expect(body['subsonic-response'].song.title).toBe('Track One');
     expect(body['subsonic-response'].song.type).toBe('music');
+    expect(body['subsonic-response'].song.album).toBe('First Album');
+    expect(body['subsonic-response'].song.artist).toBe('Alpha Artist');
+    expect(body['subsonic-response'].song.albumId).toBe('album-1');
+    expect(body['subsonic-response'].song.artistId).toBe('artist-1');
+  });
+
+  it('returns a controlled error for a missing song', async () => {
+    const res = await app.inject({ method: 'GET', url: query('/rest/getSong.view?id=missing', 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(70);
   });
 });

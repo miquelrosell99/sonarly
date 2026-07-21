@@ -9,12 +9,12 @@ export async function registerOpenSubsonicRoutes(app: FastifyInstance, config: C
   registerOpenSubsonicAuth(app, db);
   registerBrowsingRoutes(app, config, db);
 
-  app.get('/rest/ping.view', async (request: FastifyRequest, reply: FastifyReply) => {
+  app.get('/rest/ping.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
     sendSubsonicReply(reply, format, {});
   });
 
-  app.get('/rest/getLicense.view', async (request: FastifyRequest, reply: FastifyReply) => {
+  app.get('/rest/getLicense.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
     sendSubsonicReply(reply, format, { license: { valid: true } });
   });

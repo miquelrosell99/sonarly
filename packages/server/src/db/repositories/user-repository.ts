@@ -18,6 +18,11 @@ function toUser(row: DbUser): User {
   };
 }
 
+export function getUserById(db: Database.Database, id: string): User | undefined {
+  const row = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as DbUser | undefined;
+  return row ? toUser(row) : undefined;
+}
+
 export function getUserByUsername(db: Database.Database, username: string): (User & { passwordHash: string }) | undefined {
   const row = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as DbUser | undefined;
   if (!row) return undefined;

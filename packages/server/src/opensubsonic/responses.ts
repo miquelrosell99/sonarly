@@ -16,7 +16,7 @@ export function sendSubsonicReply(
   format: 'json' | 'xml',
   data: Record<string, unknown>,
   status: 'ok' | 'failed' = 'ok',
-): void {
+): FastifyReply {
   const envelope = {
     'subsonic-response': {
       status,
@@ -28,8 +28,7 @@ export function sendSubsonicReply(
   };
 
   if (format === 'xml') {
-    void reply.type('application/xml').send(toXml(envelope));
-  } else {
-    void reply.send(envelope);
+    return reply.type('application/xml').send(toXml(envelope));
   }
+  return reply.send(envelope);
 }
