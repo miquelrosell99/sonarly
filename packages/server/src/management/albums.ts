@@ -25,6 +25,7 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, db: Database
         queueResync(db, song.filePath);
       } catch (err) {
         request.log.error({ err }, 'Failed to queue resync job after album tag write');
+        return reply.status(500).send({ error: 'Tag update succeeded but resync queue failed' });
       }
     }
 

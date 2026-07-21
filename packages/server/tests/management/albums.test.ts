@@ -41,7 +41,7 @@ const baseConfig: Config = {
   PGID: 1000,
 };
 
-describe('management song endpoints', () => {
+describe('management album endpoints', () => {
   let root: string;
   let config: Config;
   let app: Awaited<ReturnType<typeof buildApp>>;
@@ -50,9 +50,9 @@ describe('management song endpoints', () => {
   let db: Database.Database;
 
   beforeEach(async () => {
-    root = join(tmpdir(), `sonarly-management-songs-${Date.now()}`);
+    root = join(tmpdir(), `sonarly-management-albums-${Date.now()}`);
     mkdirSync(root, { recursive: true });
-    tempDir = mkdtempSync(join(tmpdir(), 'sonarly-song-test-'));
+    tempDir = mkdtempSync(join(tmpdir(), 'sonarly-album-test-'));
     config = {
       ...baseConfig,
       DATA_DIR: root,
@@ -73,18 +73,21 @@ describe('management song endpoints', () => {
     });
     upsertArtist(db, { id: 'artist-1', name: 'Test Artist' });
     upsertAlbum(db, { id: 'album-1', name: 'Test Album', artistName: 'Test Artist' });
+
     const src = new URL('../fixtures/sample.mp3', import.meta.url).pathname;
-    const filePath = join(config.LIBRARY_PATH, 'song1.mp3');
-    copyFileSync(src, filePath);
-    upsertSong(db, {
-      id: 'song-1',
-      filePath,
-      title: 'Old Title',
-      artistId: 'artist-1',
-      albumId: 'album-1',
-      mtime: Date.now(),
-      checksum: 'checksum-1',
-    });
+    for (let i = 1; i <= 2; i++) {
+      const filePath = join(config.LIBRARY_PATH, `song${i}.mp3`);
+      copyFileSync(src, filePath);
+      upsertSong(db, {
+        id: `song-${i}`,
+        filePath,
+        title: `Old Title ${i}`,
+        artistId: 'artist-1',
+        albumId: 'album-1',
+        mtime: Date.now(),
+        checksum: `checksum-${i}`,
+      });
+    }
 
     app = await buildApp(config, db);
     const login = await app.inject({
@@ -101,44 +104,40 @@ describe('management song endpoints', () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it('rejects unknown tag fields', async () => {
+  it('writes tags to every album song and queues resync jobs', async () => {
     const res = await app.inject({
       method: 'PUT',
-      url: '/api/songs/song-1/tags',
+      url: '/api/albums/album-1/tags',
       cookies: { sessionId: cookieValue },
-      payload: { title: 'New', unknownField: 'bad' },
-    });
-    expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body).error).toContain('unknownField');
-  });
-
-  it('writes tags and queues a resync job', async () => {
-    const res = await app.inject({
-      method: 'PUT',
-      url: '/api/songs/song-1/tags',
-      cookies: { sessionId: cookieValue },
-      payload: { title: 'New Title', artist: 'New Artist', trackNumber: 2 },
+      payload: { title: 'Album Title', artist: 'Album Artist' },
     });
     expect(res.statusCode).toBe(200);
-    expect(JSON.parse(res.body)).toEqual({ ok: true });
+    expect(JSON.parse(res.body)).toEqual({ updated: 2 });
 
-    const job = db.prepare("SELECT * FROM scan_jobs WHERE type = 'resync'").get() as any;
-    expect(job).toBeDefined();
-    expect(JSON.parse(job.stats).path).toContain('song1.mp3');
+    const jobs = db.prepare("SELECT * FROM scan_jobs WHERE type = 'resync'").all() as any[];
+    expect(jobs).toHaveLength(2);
+    expect(jobs.map((j) => JSON.parse(j.stats).path).sort()).toEqual([
+      join(config.LIBRARY_PATH, 'song1.mp3'),
+      join(config.LIBRARY_PATH, 'song2.mp3'),
+    ]);
   });
 
-  it('returns 500 when resync queue fails after tag write', async () => {
+  it('returns 500 when resync queue fails during album tag write', async () => {
     const originalPrepare = db.prepare.bind(db);
+    let callCount = 0;
     db.prepare = vi.fn((sql: string) => {
       if (sql.includes('scan_jobs') && sql.includes('resync')) {
-        throw new Error('DB is down');
+        callCount++;
+        if (callCount === 2) {
+          throw new Error('DB is down');
+        }
       }
       return originalPrepare(sql);
     }) as any;
 
     const res = await app.inject({
       method: 'PUT',
-      url: '/api/songs/song-1/tags',
+      url: '/api/albums/album-1/tags',
       cookies: { sessionId: cookieValue },
       payload: { title: 'Another Title' },
     });
@@ -148,22 +147,10 @@ describe('management song endpoints', () => {
     db.prepare = originalPrepare;
   });
 
-  it('returns a song with resolved artist and album names', async () => {
-    const res = await app.inject({
-      method: 'GET',
-      url: '/api/songs/song-1',
-      cookies: { sessionId: cookieValue },
-    });
-    expect(res.statusCode).toBe(200);
-    const body = JSON.parse(res.body);
-    expect(body.song.artistName).toBe('Test Artist');
-    expect(body.song.albumName).toBe('Test Album');
-  });
-
   it('returns 401 without a session', async () => {
     const res = await app.inject({
       method: 'PUT',
-      url: '/api/songs/song-1/tags',
+      url: '/api/albums/album-1/tags',
       payload: { title: 'X' },
     });
     expect(res.statusCode).toBe(401);

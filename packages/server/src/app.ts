@@ -6,7 +6,7 @@ import cookie from '@fastify/cookie';
 import session from '@fastify/session';
 import type { Config } from './config.js';
 import type Database from 'better-sqlite3';
-import { getDb } from './db/connection.js';
+import { getDb, closeDb } from './db/connection.js';
 import { migrate } from './db/migrate.js';
 import { startLibraryWatcher, startIngestWatcher } from './scanner/watcher.js';
 import { pushJob } from './scanner/queue.js';
@@ -80,7 +80,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
     worker.postMessage({ type: 'shutdown' });
     await stopLibraryWatcher();
     await stopIngestWatcher();
-    db.close();
+    closeDb();
   });
 
   return app;
