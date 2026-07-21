@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { copyFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 import type { FastifyInstance } from 'fastify';
 import type { Worker } from 'node:worker_threads';
@@ -13,7 +14,7 @@ import {
   buildTestApp,
 } from './helpers.js';
 
-const fixturePath = new URL('../fixtures/sample.mp3', import.meta.url).pathname;
+const fixturePath = fileURLToPath(new URL('../fixtures/sample.mp3', import.meta.url));
 
 async function waitForSongs(
   app: FastifyInstance,
@@ -48,8 +49,8 @@ describe('Ingest flow', () => {
   beforeAll(async () => {
     ({ root, config } = createTempConfig('sonarly-ingest-flow'));
     db = createTestDatabase(config);
-    await seedUser(db, 'admin', 'adminpass');
     app = await buildTestApp(config, db);
+    await seedUser(db, 'admin', 'adminpass');
 
     // Initial scan runs against the empty library.
     const scanJob = await waitForJob(db, 'scan');

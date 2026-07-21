@@ -34,7 +34,7 @@ function resolveWorkerPath(): string {
   for (const candidate of candidates) {
     if (existsSync(candidate)) return candidate;
   }
-  throw new Error('Scanner worker not found. Run `npm run build` first.');
+  throw new Error('Scanner worker not found. Run `pnpm build` first.');
 }
 
 export async function buildApp(config: Config, providedDb?: Database.Database) {
@@ -115,6 +115,13 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
 
   app.addHook('onClose', async () => {
     worker.postMessage({ type: 'shutdown' });
+    await Promise.race([
+      new Promise<void>((resolve) => worker.once('exit', resolve)),
+      new Promise<void>((resolve) => setTimeout(resolve, 3000)),
+    ]);
+    if (worker.threadId !== -1) {
+      await worker.terminate();
+    }
     await stopLibraryWatcher();
     await stopIngestWatcher();
     closeDb();
