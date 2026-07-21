@@ -29,8 +29,8 @@ describe('Subsonic smoke', () => {
     ({ root, config } = createTempConfig('sonarly-subsonic-smoke'));
     copyFileSync(fixturePath, `${config.LIBRARY_PATH}/sample.mp3`);
     db = createTestDatabase(config);
-    user = await seedUser(db, 'admin', 'adminpass');
     app = await buildTestApp(config, db);
+    user = await seedUser(db, 'admin', 'adminpass');
 
     const job = await waitForJob(db, 'scan');
     expect(job.status).toBe('completed');

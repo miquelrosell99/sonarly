@@ -11,6 +11,14 @@ vi.mock('node:worker_threads', () => {
   class MockWorker {
     postMessage = vi.fn();
     on = vi.fn();
+    once = vi.fn((event: string, cb: () => void) => {
+      if (event === 'exit') {
+        this.threadId = -1;
+        cb();
+      }
+    });
+    terminate = vi.fn().mockResolvedValue(undefined);
+    threadId = 1;
   }
   return {
     Worker: vi.fn().mockImplementation(() => new MockWorker()),

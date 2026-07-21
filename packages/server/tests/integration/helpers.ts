@@ -7,7 +7,6 @@ import Database from 'better-sqlite3';
 import type { FastifyInstance } from 'fastify';
 import type { Config } from '../../src/config.js';
 import { buildApp } from '../../src/app.js';
-import { migrate } from '../../src/db/migrate.js';
 import { hashPassword } from '../../src/auth/password.js';
 import { createUser } from '../../src/db/repositories/user-repository.js';
 import { buildSubsonicToken } from '../../src/auth/token.js';
@@ -18,9 +17,9 @@ export const baseConfig: Config = {
   SESSION_SECRET: 'a-secret-key-that-is-long-enough-for-the-session-secret-32',
   SESSION_COOKIE_SECURE: false,
   USE_CRYPTO: false,
-  DATA_DIR: '/data',
-  LIBRARY_PATH: '/data/library',
-  INGEST_PATH: '/data/ingest',
+  DATA_DIR: '',
+  LIBRARY_PATH: '',
+  INGEST_PATH: '',
   ORGANIZE_PATTERN: '{artist}/{album}/{track:00} - {title}{ext}',
   SCAN_INTERVAL_MINUTES: 60,
   WATCHER_USE_POLLING: true,
@@ -61,7 +60,6 @@ export function createTestDatabase(config: Config): Database.Database {
   const db = new Database(join(config.DATA_DIR, 'sonarly.db'));
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
-  migrate(db);
   return db;
 }
 
@@ -141,19 +139,7 @@ export async function closeAppAndCleanup(
   try {
     await app.close();
   } finally {
-    try {
-      if (app.worker && app.worker.threadId) {
-        await new Promise<void>((resolve) => {
-          const timeout = setTimeout(() => resolve(), 3000);
-          app.worker!.once('exit', () => {
-            clearTimeout(timeout);
-            resolve();
-          });
-        });
-      }
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
+    rmSync(root, { recursive: true, force: true });
   }
 }
 
