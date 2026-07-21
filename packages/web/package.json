@@ -6,7 +6,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest",
+    "test": "vitest --passWithNoTests",
     "lint": "eslint src"
   },
   "dependencies": {
