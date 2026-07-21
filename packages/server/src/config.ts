@@ -5,6 +5,7 @@ const configSchema = z.object({
   PORT: z.coerce.number().default(3000),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   SESSION_SECRET: z.string().min(32),
+  SESSION_COOKIE_SECURE: z.coerce.boolean().default(false),
   DATA_DIR: z.string().default('/data'),
   LIBRARY_PATH: z.string().default('/data/library'),
   INGEST_PATH: z.string().default('/data/ingest'),

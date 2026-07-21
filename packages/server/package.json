@@ -10,6 +10,8 @@
     "lint": "eslint src"
   },
   "dependencies": {
+    "@fastify/cookie": "^9.3.0",
+    "@fastify/session": "^10.9.0",
     "@sonarly/shared": "workspace:*",
     "bcrypt": "^5.1.1",
     "better-sqlite3": "^11.0.0",
