@@ -115,9 +115,10 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
 
   app.addHook('onClose', async () => {
     worker.postMessage({ type: 'shutdown' });
+    let timeout: ReturnType<typeof setTimeout>;
     await Promise.race([
-      new Promise<void>((resolve) => worker.once('exit', resolve)),
-      new Promise<void>((resolve) => setTimeout(resolve, 3000)),
+      new Promise<void>((resolve) => worker.once('exit', () => { clearTimeout(timeout); resolve(); })),
+      new Promise<void>((resolve) => { timeout = setTimeout(resolve, 3000); }),
     ]);
     if (worker.threadId !== -1) {
       await worker.terminate();
