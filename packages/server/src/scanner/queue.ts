@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import Database from 'better-sqlite3';
 
 export type JobType = 'scan' | 'ingest' | 'resync';
@@ -10,7 +11,7 @@ export interface Job {
 
 export function pushJob(db: Database.Database, type: JobType, payload: string): void {
   db.prepare('INSERT INTO scan_jobs (id, type, status, stats) VALUES (?, ?, ?, ?)')
-    .run(crypto.randomUUID(), type, 'pending', JSON.stringify({ path: payload }));
+    .run(randomUUID(), type, 'pending', JSON.stringify({ path: payload }));
 }
 
 export function popPendingJob(db: Database.Database): Job | undefined {

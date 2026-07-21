@@ -25,7 +25,13 @@ export function startLibraryWatcher(config: Config, db: Database.Database): () =
          .on('addDir', scheduleResync)
          .on('unlinkDir', scheduleResync);
 
-  return () => watcher.close();
+  return () => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    return watcher.close();
+  };
 }
 
 export function startIngestWatcher(config: Config, db: Database.Database): () => Promise<void> {
@@ -45,5 +51,11 @@ export function startIngestWatcher(config: Config, db: Database.Database): () =>
   };
 
   watcher.on('add', scheduleIngest).on('addDir', scheduleIngest);
-  return () => watcher.close();
+  return () => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    return watcher.close();
+  };
 }
