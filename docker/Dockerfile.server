@@ -25,7 +25,8 @@ RUN pnpm --filter @sonarly/server deploy --prod /app/standalone
 FROM node:20-alpine AS runner
 
 # Runtime tooling for the scanner/tag writer and audio transcoding.
-RUN apk add --no-cache python3 py3-pip ffmpeg libstdc++ \
+# su-exec is used by the entrypoint to drop privileges after adjusting UID/GID.
+RUN apk add --no-cache python3 py3-pip ffmpeg libstdc++ su-exec \
   && pip3 install --no-cache-dir mutagen --break-system-packages
 
 WORKDIR /app
@@ -35,11 +36,13 @@ COPY --from=builder /app/standalone/dist ./dist
 COPY --from=builder /app/standalone/package.json ./
 COPY --from=builder /app/standalone/node_modules ./node_modules
 COPY --from=builder /app/packages/web/dist ./web-dist
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # The base image already provides a non-root `node` user/group with uid/gid 1000.
+# The entrypoint adjusts this at runtime based on PUID/PGID and drops privileges.
 RUN chown -R node:node /app
 
-USER node
 EXPOSE 3000
 
-CMD ["node", "dist/index.js"]
+ENTRYPOINT ["/entrypoint.sh"]
