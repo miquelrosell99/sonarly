@@ -1,6 +1,7 @@
 import { Worker } from 'node:worker_threads';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { existsSync } from 'node:fs';
 import Fastify from 'fastify';
 import cookie from '@fastify/cookie';
 import session from '@fastify/session';
@@ -25,11 +26,22 @@ import { registerUserManagementRoutes } from './management/users.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+function resolveWorkerPath(): string {
+  const candidates = [
+    join(__dirname, 'scanner', 'worker.js'),
+    join(__dirname, '..', 'dist', 'scanner', 'worker.js'),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate;
+  }
+  throw new Error('Scanner worker not found. Run `npm run build` first.');
+}
+
 export async function buildApp(config: Config, providedDb?: Database.Database) {
   const db = providedDb ?? getDb(config);
   migrate(db);
 
-  const worker = new Worker(join(__dirname, 'scanner', 'worker.js'), { workerData: config });
+  const worker = new Worker(resolveWorkerPath(), { workerData: config });
 
   pushJob(db, 'scan', config.LIBRARY_PATH);
 
@@ -37,6 +49,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   const stopIngestWatcher = startIngestWatcher(config, db);
 
   const app = Fastify({ logger: true });
+  (app as any).worker = worker;
 
   await app.register(cookie);
   await app.register(session, {
