@@ -17,7 +17,8 @@ const db = new Database(getDbPath(config));
 migrate(db);
 
 let running = true;
-let currentJobId: string | null = null;
+let activeJobId: string | null = null;
+let shutdownJobId: string | null = null;
 
 async function loop(): Promise<void> {
   while (running) {
@@ -26,7 +27,7 @@ async function loop(): Promise<void> {
       await new Promise((r) => setTimeout(r, 1000));
       continue;
     }
-    currentJobId = job.id;
+    activeJobId = job.id;
     markJobRunning(db, job.id);
     try {
       if (job.type === 'scan' || job.type === 'resync') {
@@ -39,12 +40,12 @@ async function loop(): Promise<void> {
     } catch (err) {
       markJobFailed(db, job.id, String(err));
     } finally {
-      currentJobId = null;
+      activeJobId = null;
     }
   }
 
-  if (currentJobId) {
-    markJobFailed(db, currentJobId, 'Worker shut down while job was running');
+  if (shutdownJobId) {
+    markJobFailed(db, shutdownJobId, 'Worker shut down while job was running');
   }
   db.close();
   process.exit(0);
@@ -53,6 +54,9 @@ async function loop(): Promise<void> {
 parentPort.on('message', (msg: WorkerMessage) => {
   if (msg.type === 'shutdown') {
     running = false;
+    if (activeJobId) {
+      shutdownJobId = activeJobId;
+    }
   }
 });
 

@@ -30,6 +30,12 @@ export function startLibraryWatcher(config: Config, db: Database.Database): () =
       clearTimeout(debounceTimer);
       debounceTimer = null;
     }
+    watcher
+      .off('add', scheduleResync)
+      .off('change', scheduleResync)
+      .off('unlink', scheduleResync)
+      .off('addDir', scheduleResync)
+      .off('unlinkDir', scheduleResync);
     return watcher.close();
   };
 }
@@ -56,6 +62,7 @@ export function startIngestWatcher(config: Config, db: Database.Database): () =>
       clearTimeout(debounceTimer);
       debounceTimer = null;
     }
+    watcher.off('add', scheduleIngest).off('addDir', scheduleIngest);
     return watcher.close();
   };
 }
