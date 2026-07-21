@@ -28,7 +28,7 @@ export function registerOpenSubsonicAuth(app: any, db: Database.Database): void 
           error: { code: 40, message: 'Wrong username or password' },
         }, 'failed');
       }
-      (request as any).subsonicUser = user.username;
+      (request as any).subsonicUser = user.id;
       return;
     }
 
@@ -51,6 +51,6 @@ export function registerOpenSubsonicAuth(app: any, db: Database.Database): void 
       }, 'failed');
     }
 
-    (request as any).subsonicUser = user.username;
+    (request as any).subsonicUser = user.id;
   });
 }

@@ -4,10 +4,16 @@ import type { Config } from '../../config.js';
 import { registerOpenSubsonicAuth } from '../auth.js';
 import { sendSubsonicReply } from '../responses.js';
 import { registerBrowsingRoutes } from './browsing.js';
+import { registerRetrievalRoutes } from './retrieval.js';
+import { registerPlaylistRoutes } from './playlists.js';
+import { registerStarringRoutes } from './starring.js';
 
 export async function registerOpenSubsonicRoutes(app: FastifyInstance, config: Config, db: Database.Database): Promise<void> {
   registerOpenSubsonicAuth(app, db);
   registerBrowsingRoutes(app, config, db);
+  registerRetrievalRoutes(app, db);
+  registerPlaylistRoutes(app, db);
+  registerStarringRoutes(app, db);
 
   app.get('/rest/ping.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;

@@ -25,7 +25,7 @@ export function createPlaylist(db: Database.Database, playlist: Playlist): void 
 }
 
 export function updatePlaylist(db: Database.Database, playlist: Playlist): void {
-  db.prepare('UPDATE playlists SET name = ?, visibility = ?, share_token = ?, updated_at = datetime("now") WHERE id = ?')
+  db.prepare("UPDATE playlists SET name = ?, visibility = ?, share_token = ?, updated_at = datetime('now') WHERE id = ?")
     .run(playlist.name, playlist.visibility, playlist.shareToken ?? null, playlist.id);
   db.prepare('DELETE FROM playlist_songs WHERE playlist_id = ?').run(playlist.id);
   insertPlaylistSongs(db, playlist.id, playlist.songIds);
