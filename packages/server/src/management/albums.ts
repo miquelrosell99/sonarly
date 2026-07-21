@@ -15,20 +15,22 @@ interface AlbumRow {
   cover_art: string | null;
 }
 
+function rowToAlbum(row: AlbumRow): Album {
+  return {
+    id: row.id,
+    name: row.name,
+    artistId: row.artist_id ?? undefined,
+    artistName: row.artist_name ?? undefined,
+    year: row.year ?? undefined,
+    genre: row.genre ?? undefined,
+    coverArt: row.cover_art ?? undefined,
+  };
+}
+
 export function registerAlbumManagementRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get('/api/albums', (request: FastifyRequest, reply: FastifyReply) => {
     const rows = db.prepare('SELECT * FROM albums ORDER BY name LIMIT 500').all() as AlbumRow[];
-    reply.send({
-      albums: rows.map((r) => ({
-        id: r.id,
-        name: r.name,
-        artistId: r.artist_id ?? undefined,
-        artistName: r.artist_name ?? undefined,
-        year: r.year ?? undefined,
-        genre: r.genre ?? undefined,
-        coverArt: r.cover_art ?? undefined,
-      })),
-    });
+    reply.send({ albums: rows.map(rowToAlbum) });
   });
 
   app.put('/api/albums/:id/tags', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -59,10 +61,10 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, db: Database
 
   app.get('/api/albums/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const album = db.prepare('SELECT * FROM albums WHERE id = ?').get(id) as Album | undefined;
-    if (!album) return reply.status(404).send({ error: 'Album not found' });
+    const row = db.prepare('SELECT * FROM albums WHERE id = ?').get(id) as AlbumRow | undefined;
+    if (!row) return reply.status(404).send({ error: 'Album not found' });
 
     const songs = listSongsByAlbum(db, id);
-    reply.send({ album, songs });
+    reply.send({ album: rowToAlbum(row), songs });
   });
 }

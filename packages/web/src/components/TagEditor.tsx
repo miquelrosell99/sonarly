@@ -64,6 +64,15 @@ export function TagEditor({
   const save = async () => {
     setSaving(true);
     setError(null);
+
+    const trackNumber = tags.trackNumber ? parseInt(tags.trackNumber, 10) : undefined;
+    const year = tags.year ? parseInt(tags.year, 10) : undefined;
+    if ((tags.trackNumber && Number.isNaN(trackNumber)) || (tags.year && Number.isNaN(year))) {
+      setError('Track number and year must be valid numbers');
+      setSaving(false);
+      return;
+    }
+
     try {
       await api(`/songs/${songId}/tags`, {
         method: 'PUT',
@@ -71,8 +80,8 @@ export function TagEditor({
           title: tags.title,
           artist: tags.artist || undefined,
           album: tags.album || undefined,
-          trackNumber: tags.trackNumber ? parseInt(tags.trackNumber, 10) : undefined,
-          year: tags.year ? parseInt(tags.year, 10) : undefined,
+          trackNumber,
+          year,
           genre: tags.genre || undefined,
         }),
       });

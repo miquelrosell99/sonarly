@@ -77,7 +77,7 @@ export function Album() {
         <h2 className="text-lg font-semibold">{detail.album.name}</h2>
         <p className="text-sm text-gray-500">
           {detail.album.artistName}
-          {detail.album.year && ` • ${detail.album.year}`}
+          {detail.album.year !== undefined && detail.album.year !== null && ` • ${detail.album.year}`}
           {detail.album.genre && ` • ${detail.album.genre}`}
         </p>
       </div>

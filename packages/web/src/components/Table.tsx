@@ -1,9 +1,10 @@
+import type { ReactNode } from 'react';
 import { cn } from '../lib/cn.js';
 
 export interface TableColumn<T> {
   key: string;
-  header: React.ReactNode;
-  render: (row: T) => React.ReactNode;
+  header: ReactNode;
+  render: (row: T) => ReactNode;
   className?: string;
 }
 
@@ -11,7 +12,7 @@ interface TableProps<T> {
   columns: TableColumn<T>[];
   rows: T[];
   rowKey: (row: T) => string;
-  empty?: React.ReactNode;
+  empty?: ReactNode;
 }
 
 export function Table<T>({ columns, rows, rowKey, empty }: TableProps<T>) {

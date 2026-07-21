@@ -61,7 +61,7 @@ export function Users() {
         </Button>
       </div>
       {error && <p className="mt-4 text-sm text-danger">{error}</p>}
-      {success && <p className="mt-4 text-sm text-green-600">User created.</p>}
+      {success && <p className="mt-4 text-sm text-gray-700">User created.</p>}
     </div>
   );
 }
