@@ -22,10 +22,14 @@ export function migrate(db: Database.Database): void {
     .filter((f) => f.endsWith('.sql'))
     .sort();
 
+  const runMigration = db.transaction((file: string, sql: string) => {
+    db.exec(sql);
+    db.prepare('INSERT INTO migrations (filename) VALUES (?)').run(file);
+  });
+
   for (const file of files) {
     if (applied.has(file)) continue;
     const sql = readFileSync(join(migrationsDir, file), 'utf-8');
-    db.exec(sql);
-    db.prepare('INSERT INTO migrations (filename) VALUES (?)').run(file);
+    runMigration(file, sql);
   }
 }

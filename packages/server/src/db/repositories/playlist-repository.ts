@@ -39,6 +39,8 @@ function insertPlaylistSongs(db: Database.Database, playlistId: string, songIds:
 }
 
 export function sharePlaylistWithUser(db: Database.Database, playlistId: string, userId: string, canEdit: boolean): void {
-  db.prepare('INSERT INTO playlist_shares (playlist_id, user_id, can_edit) VALUES (?, ?, ?)')
-    .run(playlistId, userId, canEdit ? 1 : 0);
+  db.prepare(`
+    INSERT INTO playlist_shares (playlist_id, user_id, can_edit) VALUES (?, ?, ?)
+    ON CONFLICT(playlist_id, user_id) DO UPDATE SET can_edit = excluded.can_edit
+  `).run(playlistId, userId, canEdit ? 1 : 0);
 }
