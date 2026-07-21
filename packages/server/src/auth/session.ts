@@ -10,7 +10,7 @@ export interface SessionData {
 export function createSessionStore(db: Database.Database): SessionStore {
   const get = (sid: string, callback: (err: Error | null, session?: any) => void) => {
     try {
-      const row = db.prepare('SELECT sess FROM sessions WHERE sid = ? AND expire > datetime("now")').get(sid) as any;
+      const row = db.prepare("SELECT sess FROM sessions WHERE sid = ? AND expire > datetime('now')").get(sid) as any;
       callback(null, row ? JSON.parse(row.sess) : undefined);
     } catch (err) {
       callback(err as Error);

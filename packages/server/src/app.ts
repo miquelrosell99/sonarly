@@ -10,8 +10,15 @@ import { migrate } from './db/migrate.js';
 import { startLibraryWatcher, startIngestWatcher } from './scanner/watcher.js';
 import { pushJob } from './scanner/queue.js';
 import { registerOpenSubsonicRoutes } from './opensubsonic/routes/system.js';
-import { registerManagementRoutes } from './management/scan.js';
 import { createSessionStore } from './auth/session.js';
+import { registerAuthManagementRoutes } from './management/auth.js';
+import { registerSongManagementRoutes } from './management/songs.js';
+import { registerAlbumManagementRoutes } from './management/albums.js';
+import { registerPlaylistManagementRoutes } from './management/playlists.js';
+import { registerScanManagementRoutes } from './management/scan.js';
+import { registerIngestManagementRoutes } from './management/ingest.js';
+import { registerOrganizeManagementRoutes } from './management/organize.js';
+import { registerUserManagementRoutes } from './management/users.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -41,12 +48,34 @@ export async function buildApp(config: Config) {
   });
 
   await registerOpenSubsonicRoutes(app, config, db);
-  await registerManagementRoutes(app, config, db);
+
+  registerAuthManagementRoutes(app, db);
+
+  app.addHook('preHandler', async (request, reply) => {
+    const url = request.raw.url ?? '';
+    if (!url.startsWith('/api/')) return;
+    const exempt = ['/api/login', '/api/logout', '/api/setup', '/api/me'];
+    if (exempt.some((p) => url === p || url.startsWith(`${p}?`))) return;
+
+    const session = (request as any).session as { userId?: string } | undefined;
+    if (!session?.userId) {
+      return reply.status(401).send({ error: 'Unauthorized' });
+    }
+  });
+
+  registerSongManagementRoutes(app, db);
+  registerAlbumManagementRoutes(app, db);
+  registerPlaylistManagementRoutes(app, db);
+  registerScanManagementRoutes(app, config, db);
+  registerIngestManagementRoutes(app, db);
+  registerOrganizeManagementRoutes(app, config, db);
+  registerUserManagementRoutes(app, db);
 
   app.addHook('onClose', async () => {
     worker.postMessage({ type: 'shutdown' });
     await stopLibraryWatcher();
     await stopIngestWatcher();
+    db.close();
   });
 
   return app;
