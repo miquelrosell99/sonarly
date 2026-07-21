@@ -1,5 +1,45 @@
-FROM node:20-alpine
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-RUN apk add --no-cache python3 py3-pip ffmpeg
-RUN pip3 install --no-cache-dir mutagen --break-system-packages
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+
+# Native dependencies (bcrypt, better-sqlite3) need a compiler and Python.
+RUN apk add --no-cache python3 make g++
+
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY packages/shared/package.json packages/shared/
+COPY packages/server/package.json packages/server/
+COPY packages/web/package.json packages/web/
+
+RUN pnpm install --frozen-lockfile
+
+COPY packages/shared packages/shared
+COPY packages/server packages/server
+COPY packages/web packages/web
+
+RUN pnpm -r build
+
+# Produce a self-contained production node_modules tree for the server.
+RUN pnpm --filter @sonarly/server deploy --prod /app/standalone
+
+FROM node:20-alpine AS runner
+
+# Runtime tooling for the scanner/tag writer and audio transcoding.
+RUN apk add --no-cache python3 py3-pip ffmpeg libstdc++ \
+  && pip3 install --no-cache-dir mutagen --break-system-packages
+
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=builder /app/standalone/dist ./dist
+COPY --from=builder /app/standalone/package.json ./
+COPY --from=builder /app/standalone/node_modules ./node_modules
+COPY --from=builder /app/packages/web/dist ./web-dist
+
+# The base image already provides a non-root `node` user/group with uid/gid 1000.
+RUN chown -R node:node /app
+
+USER node
+EXPOSE 3000
+
+CMD ["node", "dist/index.js"]
