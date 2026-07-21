@@ -9,7 +9,7 @@ import { registerPlaylistRoutes } from './playlists.js';
 import { registerStarringRoutes } from './starring.js';
 
 export async function registerOpenSubsonicRoutes(app: FastifyInstance, config: Config, db: Database.Database): Promise<void> {
-  registerOpenSubsonicAuth(app, db);
+  registerOpenSubsonicAuth(app, db, config.SESSION_SECRET);
   registerBrowsingRoutes(app, config, db);
   registerRetrievalRoutes(app, db);
   registerPlaylistRoutes(app, db);

@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { createHash } from 'node:crypto';
+import { encrypt, decrypt } from './encryption.js';
 
 const SALT_ROUNDS = 12;
 
@@ -11,6 +11,10 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password, hash);
 }
 
-export function hashSubsonicPassword(password: string): string {
-  return createHash('md5').update(password).digest('hex');
+export function encryptSubsonicPassword(password: string, sessionSecret: string): string {
+  return encrypt(password, sessionSecret);
+}
+
+export function decryptSubsonicPassword(encrypted: string, sessionSecret: string): string {
+  return decrypt(encrypted, sessionSecret);
 }

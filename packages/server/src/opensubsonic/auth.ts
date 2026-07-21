@@ -5,7 +5,7 @@ import { verifyApiKey } from '../auth/api-keys.js';
 import { getUserById, getUserByUsername } from '../db/repositories/user-repository.js';
 import { sendSubsonicReply } from './responses.js';
 
-export function registerOpenSubsonicAuth(app: any, db: Database.Database): void {
+export function registerOpenSubsonicAuth(app: any, db: Database.Database, sessionSecret: string): void {
   app.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.routeOptions.url?.startsWith('/rest/')) return;
 
@@ -43,7 +43,7 @@ export function registerOpenSubsonicAuth(app: any, db: Database.Database): void 
       }, 'failed');
     }
 
-    if (!verifySubsonicToken(db, u, t, s)) {
+    if (!verifySubsonicToken(db, u, t, s, sessionSecret)) {
       return sendSubsonicReply(reply.status(401), format, {
         error: { code: 40, message: 'Wrong username or password' },
       }, 'failed');

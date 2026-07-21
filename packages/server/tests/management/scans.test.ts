@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { buildApp } from '../../src/app.js';
 import { migrate } from '../../src/db/migrate.js';
-import { hashPassword, hashSubsonicPassword } from '../../src/auth/password.js';
+import { hashPassword, encryptSubsonicPassword } from '../../src/auth/password.js';
 import { createUser } from '../../src/db/repositories/user-repository.js';
 import type { Config } from '../../src/config.js';
 
@@ -68,7 +68,7 @@ describe('management scan endpoints', () => {
       id: 'user-1',
       username: 'tester',
       passwordHash: await hashPassword('pass'),
-      subsonicPasswordHash: hashSubsonicPassword('pass'),
+      subsonicPasswordEncrypted: encryptSubsonicPassword('pass', baseConfig.SESSION_SECRET),
       isAdmin: true,
       createdAt: new Date().toISOString(),
     });
@@ -120,7 +120,7 @@ describe('management scan endpoints', () => {
       id: 'user-2',
       username: 'regular',
       passwordHash: await hashPassword('pass'),
-      subsonicPasswordHash: hashSubsonicPassword('pass'),
+      subsonicPasswordEncrypted: encryptSubsonicPassword('pass', baseConfig.SESSION_SECRET),
       isAdmin: false,
       createdAt: new Date().toISOString(),
     });

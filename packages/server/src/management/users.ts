@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
-import { hashPassword, hashSubsonicPassword } from '../auth/password.js';
+import { hashPassword, encryptSubsonicPassword } from '../auth/password.js';
 import { createUser } from '../db/repositories/user-repository.js';
 import type { CreateUserInput } from '@sonarly/shared';
 
@@ -16,7 +16,7 @@ function isUniqueConstraintError(err: unknown): boolean {
   return err instanceof Error && ((err as any).code === 'SQLITE_CONSTRAINT_UNIQUE' || err.message.includes('UNIQUE constraint failed'));
 }
 
-export function registerUserManagementRoutes(app: FastifyInstance, db: Database.Database): void {
+export function registerUserManagementRoutes(app: FastifyInstance, db: Database.Database, sessionSecret: string): void {
   app.post('/api/users', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
     if (!session?.isAdmin) return reply.status(403).send({ error: 'Forbidden' });
@@ -30,14 +30,14 @@ export function registerUserManagementRoutes(app: FastifyInstance, db: Database.
     }
 
     const passwordHash = await hashPassword(input.password);
-    const subsonicPasswordHash = hashSubsonicPassword(input.password);
+    const subsonicPasswordEncrypted = encryptSubsonicPassword(input.password, sessionSecret);
     try {
       createUser(db, {
         id: randomUUID(),
         username: input.username,
         isAdmin: input.isAdmin ?? false,
         passwordHash,
-        subsonicPasswordHash,
+        subsonicPasswordEncrypted,
         createdAt: new Date().toISOString(),
       });
     } catch (err) {

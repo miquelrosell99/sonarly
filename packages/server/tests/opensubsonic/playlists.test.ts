@@ -6,7 +6,7 @@ import { migrate } from '../../src/db/migrate.js';
 import { createUser } from '../../src/db/repositories/user-repository.js';
 import { upsertSong } from '../../src/db/repositories/song-repository.js';
 import { buildSubsonicToken } from '../../src/auth/token.js';
-import { hashSubsonicPassword } from '../../src/auth/password.js';
+import { encryptSubsonicPassword } from '../../src/auth/password.js';
 import { sharePlaylistWithUser } from '../../src/db/repositories/playlist-repository.js';
 import type { Config } from '../../src/config.js';
 
@@ -28,10 +28,10 @@ const config: Config = {
 
 function seedUser(db: Database.Database, id: string, username: string) {
   const password = 'supersecret';
-  const subsonicPasswordHash = hashSubsonicPassword(password);
+  const subsonicPasswordEncrypted = encryptSubsonicPassword(password, config.SESSION_SECRET);
   const salt = `salty-${id}`;
-  const token = buildSubsonicToken(subsonicPasswordHash, salt);
-  createUser(db, { id, username, passwordHash: 'ignored', subsonicPasswordHash, isAdmin: false, createdAt: new Date().toISOString() });
+  const token = buildSubsonicToken(password, salt);
+  createUser(db, { id, username, passwordHash: 'ignored', subsonicPasswordEncrypted, isAdmin: false, createdAt: new Date().toISOString() });
   return { id, username, token, salt };
 }
 

@@ -82,7 +82,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
     }
   });
 
-  registerAuthManagementRoutes(app, db);
+  registerAuthManagementRoutes(app, db, config.SESSION_SECRET);
   registerSongManagementRoutes(app, db);
   registerArtistManagementRoutes(app, db);
   registerAlbumManagementRoutes(app, db);
@@ -90,7 +90,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   registerScanManagementRoutes(app, config, db);
   registerIngestManagementRoutes(app, db);
   registerOrganizeManagementRoutes(app, config, db);
-  registerUserManagementRoutes(app, db);
+  registerUserManagementRoutes(app, db, config.SESSION_SECRET);
 
   if (config.NODE_ENV === 'production') {
     const webDist = join(__dirname, '..', 'web-dist');
