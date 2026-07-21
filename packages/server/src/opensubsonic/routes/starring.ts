@@ -26,8 +26,15 @@ export function registerStarringRoutes(app: FastifyInstance, db: Database.Databa
   app.get('/rest/setRating.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
     const userId = (request as any).subsonicUser;
-    const { id, rating } = request.query as { id: string; rating: string };
-    const ratingValue = Math.min(5, Math.max(0, parseInt(rating, 10)));
+    const { id, rating } = request.query as { id: string; rating: string | string[] };
+
+    const ratingValue = parseRating(rating);
+    if (ratingValue === undefined) {
+      return sendSubsonicReply(reply, format, {
+        error: { code: 10, message: 'Missing or invalid rating parameter' },
+      }, 'failed');
+    }
+
     db.prepare(`
       INSERT INTO user_songs (user_id, song_id, rating) VALUES (?, ?, ?)
       ON CONFLICT(user_id, song_id) DO UPDATE SET rating = excluded.rating
@@ -55,6 +62,16 @@ export function registerStarringRoutes(app: FastifyInstance, db: Database.Databa
 function normalizeIds(value: string | string[] | undefined): string[] {
   if (value === undefined || value === '') return [];
   return Array.isArray(value) ? value.filter((v) => v !== '') : [value];
+}
+
+function parseRating(value: string | string[] | undefined): number | undefined {
+  if (value === undefined || value === '') return undefined;
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw === undefined || raw === '') return undefined;
+  if (!/^\d+$/.test(raw)) return undefined;
+  const num = parseInt(raw, 10);
+  if (num < 0 || num > 5) return undefined;
+  return num;
 }
 
 function setStar(db: Database.Database, userId: string, songId: string, starred: boolean): void {

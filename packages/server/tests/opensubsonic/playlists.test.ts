@@ -6,6 +6,7 @@ import { migrate } from '../../src/db/migrate.js';
 import { createUser } from '../../src/db/repositories/user-repository.js';
 import { upsertSong } from '../../src/db/repositories/song-repository.js';
 import { buildSubsonicToken } from '../../src/auth/token.js';
+import { sharePlaylistWithUser } from '../../src/db/repositories/playlist-repository.js';
 import type { Config } from '../../src/config.js';
 
 const config: Config = {
@@ -29,7 +30,7 @@ function seedUser(db: Database.Database, id: string, username: string) {
   const salt = `salty-${id}`;
   const token = buildSubsonicToken(passwordHash, salt);
   createUser(db, { id, username, passwordHash, isAdmin: false, createdAt: new Date().toISOString() });
-  return { username, token, salt };
+  return { id, username, token, salt };
 }
 
 function seedSongs(db: Database.Database) {
@@ -81,6 +82,10 @@ describe('OpenSubsonic playlist endpoints', () => {
     return `${url}&u=${auth.username}&t=${auth.token}&s=${auth.salt}&f=${format}`;
   }
 
+  function otherQuery(user: ReturnType<typeof seedUser>, url: string, format: 'json' | 'xml' = 'json') {
+    return `${url}&u=${user.username}&t=${user.token}&s=${user.salt}&f=${format}`;
+  }
+
   it('creates a playlist and returns ok', async () => {
     const res = await app.inject({
       method: 'GET',
@@ -89,6 +94,17 @@ describe('OpenSubsonic playlist endpoints', () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].status).toBe('ok');
+  });
+
+  it('creates a playlist using the first element when name is supplied as an array', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: query('/rest/createPlaylist.view?name=First&name=Second&songId=song-1', 'json'),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('ok');
+    expect(body['subsonic-response'].playlist.name).toBe('First');
   });
 
   it('lists owned playlists via getPlaylists', async () => {
@@ -146,6 +162,24 @@ describe('OpenSubsonic playlist endpoints', () => {
     expect(playlist.entry.map((e: { id: string }) => e.id)).toEqual(['song-2', 'song-3']);
   });
 
+  it('updates a playlist using the first element when name is supplied as an array', async () => {
+    const createRes = await app.inject({
+      method: 'GET',
+      url: query('/rest/createPlaylist.view?name=Old&songId=song-1', 'json'),
+    });
+    const id = JSON.parse(createRes.body)['subsonic-response'].playlist?.id;
+
+    const res = await app.inject({
+      method: 'GET',
+      url: query(`/rest/updatePlaylist.view?playlistId=${id}&name=ArrayName1&name=ArrayName2`, 'json'),
+    });
+    expect(res.statusCode).toBe(200);
+
+    const getRes = await app.inject({ method: 'GET', url: query(`/rest/getPlaylist.view?id=${id}`, 'json') });
+    const playlist = JSON.parse(getRes.body)['subsonic-response'].playlist;
+    expect(playlist.name).toBe('ArrayName1');
+  });
+
   it('deletes a playlist', async () => {
     const createRes = await app.inject({
       method: 'GET',
@@ -190,5 +224,110 @@ describe('OpenSubsonic playlist endpoints', () => {
     const res = await app.inject({ method: 'GET', url: query('/rest/getPlaylists.view?', 'json') });
     const playlists = JSON.parse(res.body)['subsonic-response'].playlists.playlist;
     expect(playlists).toHaveLength(0);
+  });
+
+  it('denies a non-owner view of a private playlist', async () => {
+    const other = seedUser(db, 'user-2', 'other');
+    const createRes = await app.inject({
+      method: 'GET',
+      url: otherQuery(other, '/rest/createPlaylist.view?name=Private&visibility=private&songId=song-1', 'json'),
+    });
+    const id = JSON.parse(createRes.body)['subsonic-response'].playlist?.id;
+
+    const res = await app.inject({ method: 'GET', url: query(`/rest/getPlaylist.view?id=${id}`, 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(50);
+  });
+
+  it('allows a shared user to view a private playlist', async () => {
+    const other = seedUser(db, 'user-2', 'other');
+    const createRes = await app.inject({
+      method: 'GET',
+      url: otherQuery(other, '/rest/createPlaylist.view?name=Shared&visibility=private&songId=song-1', 'json'),
+    });
+    const id = JSON.parse(createRes.body)['subsonic-response'].playlist?.id;
+    sharePlaylistWithUser(db, id, auth.id, false);
+
+    const res = await app.inject({ method: 'GET', url: query(`/rest/getPlaylist.view?id=${id}`, 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('ok');
+    expect(body['subsonic-response'].playlist.name).toBe('Shared');
+  });
+
+  it('denies a shared user without can_edit from updating a playlist', async () => {
+    const other = seedUser(db, 'user-2', 'other');
+    const createRes = await app.inject({
+      method: 'GET',
+      url: otherQuery(other, '/rest/createPlaylist.view?name=Shared&visibility=private&songId=song-1', 'json'),
+    });
+    const id = JSON.parse(createRes.body)['subsonic-response'].playlist?.id;
+    sharePlaylistWithUser(db, id, auth.id, false);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: query(`/rest/updatePlaylist.view?playlistId=${id}&name=Hacked`, 'json'),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(50);
+  });
+
+  it('allows a shared user with can_edit to update a playlist', async () => {
+    const other = seedUser(db, 'user-2', 'other');
+    const createRes = await app.inject({
+      method: 'GET',
+      url: otherQuery(other, '/rest/createPlaylist.view?name=Shared&visibility=private&songId=song-1', 'json'),
+    });
+    const id = JSON.parse(createRes.body)['subsonic-response'].playlist?.id;
+    sharePlaylistWithUser(db, id, auth.id, true);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: query(`/rest/updatePlaylist.view?playlistId=${id}&name=Updated`, 'json'),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('ok');
+
+    const getRes = await app.inject({ method: 'GET', url: otherQuery(other, `/rest/getPlaylist.view?id=${id}`, 'json') });
+    const playlist = JSON.parse(getRes.body)['subsonic-response'].playlist;
+    expect(playlist.name).toBe('Updated');
+  });
+
+  it('denies a non-owner from deleting a playlist', async () => {
+    const other = seedUser(db, 'user-2', 'other');
+    const createRes = await app.inject({
+      method: 'GET',
+      url: otherQuery(other, '/rest/createPlaylist.view?name=Private&visibility=private&songId=song-1', 'json'),
+    });
+    const id = JSON.parse(createRes.body)['subsonic-response'].playlist?.id;
+
+    const res = await app.inject({ method: 'GET', url: query(`/rest/deletePlaylist.view?id=${id}`, 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(50);
+  });
+
+  it('allows a shared user with can_edit to delete a playlist', async () => {
+    const other = seedUser(db, 'user-2', 'other');
+    const createRes = await app.inject({
+      method: 'GET',
+      url: otherQuery(other, '/rest/createPlaylist.view?name=Shared&visibility=private&songId=song-1', 'json'),
+    });
+    const id = JSON.parse(createRes.body)['subsonic-response'].playlist?.id;
+    sharePlaylistWithUser(db, id, auth.id, true);
+
+    const res = await app.inject({ method: 'GET', url: query(`/rest/deletePlaylist.view?id=${id}`, 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('ok');
+
+    const getRes = await app.inject({ method: 'GET', url: otherQuery(other, `/rest/getPlaylist.view?id=${id}`, 'json') });
+    expect(JSON.parse(getRes.body)['subsonic-response'].playlist).toBeUndefined();
   });
 });

@@ -92,6 +92,38 @@ describe('OpenSubsonic retrieval endpoints', () => {
     expect(res.rawPayload.length).toBe(10);
   });
 
+  it('returns 206 for an open-ended byte range request', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: query('/rest/stream.view?id=song-1', 'json'),
+      headers: { range: 'bytes=10-' },
+    });
+    expect(res.statusCode).toBe(206);
+    expect(res.headers['content-range']).toBe(`bytes 10-${fixtureBytes.length - 1}/${fixtureBytes.length}`);
+    expect(res.rawPayload.length).toBe(fixtureBytes.length - 10);
+  });
+
+  it('returns 206 for a suffix byte range request', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: query('/rest/stream.view?id=song-1', 'json'),
+      headers: { range: 'bytes=-10' },
+    });
+    expect(res.statusCode).toBe(206);
+    expect(res.headers['content-range']).toBe(`bytes ${fixtureBytes.length - 10}-${fixtureBytes.length - 1}/${fixtureBytes.length}`);
+    expect(res.rawPayload.length).toBe(10);
+    expect(Buffer.compare(res.rawPayload, fixtureBytes.subarray(-10))).toBe(0);
+  });
+
+  it('returns 416 for an out-of-range byte range request', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: query('/rest/stream.view?id=song-1', 'json'),
+      headers: { range: `bytes=${fixtureBytes.length}-` },
+    });
+    expect(res.statusCode).toBe(416);
+  });
+
   it('returns 404 when streaming a missing song', async () => {
     const res = await app.inject({ method: 'GET', url: query('/rest/stream.view?id=missing', 'json') });
     expect(res.statusCode).toBe(404);
@@ -102,6 +134,12 @@ describe('OpenSubsonic retrieval endpoints', () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('audio/mpeg');
     expect(res.rawPayload.length).toBe(fixtureBytes.length);
+  });
+
+  it('sets the download filename from the file path basename', async () => {
+    const res = await app.inject({ method: 'GET', url: query('/rest/download.view?id=song-1', 'json') });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-disposition']).toBe('attachment; filename="sample.mp3"');
   });
 
   it('returns 404 when downloading a missing song', async () => {
@@ -117,5 +155,19 @@ describe('OpenSubsonic retrieval endpoints', () => {
   it('returns 404 for cover art of a missing song', async () => {
     const res = await app.inject({ method: 'GET', url: query('/rest/getCoverArt.view?id=missing', 'json') });
     expect(res.statusCode).toBe(404);
+  });
+
+  it('returns 500 for cover art when the file cannot be read', async () => {
+    upsertSong(db, {
+      id: 'song-missing-file',
+      filePath: '/data/library/does-not-exist.mp3',
+      title: 'Missing File Song',
+      duration: 1,
+      mtime: Date.now(),
+      checksum: 'checksum-missing',
+    });
+
+    const res = await app.inject({ method: 'GET', url: query('/rest/getCoverArt.view?id=song-missing-file', 'json') });
+    expect(res.statusCode).toBe(500);
   });
 });

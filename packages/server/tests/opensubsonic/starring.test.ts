@@ -113,6 +113,39 @@ describe('OpenSubsonic starring and interaction endpoints', () => {
     expect(getUserSong('song-1')?.rating).toBe(4);
   });
 
+  it('rejects a missing rating parameter', async () => {
+    const res = await app.inject({ method: 'GET', url: query('/rest/setRating.view?id=song-1', 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(10);
+    expect(getUserSong('song-1')).toBeUndefined();
+  });
+
+  it('rejects a non-numeric rating', async () => {
+    const res = await app.inject({ method: 'GET', url: query('/rest/setRating.view?id=song-1&rating=abc', 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(10);
+  });
+
+  it('rejects a rating outside the 0-5 range', async () => {
+    const res = await app.inject({ method: 'GET', url: query('/rest/setRating.view?id=song-1&rating=6', 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(10);
+  });
+
+  it('rejects a negative rating', async () => {
+    const res = await app.inject({ method: 'GET', url: query('/rest/setRating.view?id=song-1&rating=-1', 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(10);
+  });
+
   it('scrobbles a single song and increments play count', async () => {
     const res = await app.inject({ method: 'GET', url: query('/rest/scrobble.view?id=song-1', 'json') });
     expect(res.statusCode).toBe(200);

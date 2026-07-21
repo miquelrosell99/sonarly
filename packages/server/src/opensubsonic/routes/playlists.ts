@@ -36,10 +36,14 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
 
   app.get('/rest/getPlaylist.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
+    const userId = (request as any).subsonicUser;
     const { id } = request.query as { id: string };
     const playlist = getPlaylistById(db, id);
     if (!playlist) {
       return sendSubsonicReply(reply, format, {});
+    }
+    if (!canViewPlaylist(db, playlist, userId)) {
+      return sendUnauthorized(reply, format);
     }
     sendSubsonicReply(reply, format, { playlist: toOpenSubsonicPlaylist(playlist, true, db) });
   });
@@ -53,7 +57,7 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
     const now = new Date().toISOString();
     const playlist: Playlist = {
       id: randomUUID(),
-      name: String(query.name || 'New Playlist'),
+      name: asName(query.name) ?? 'New Playlist',
       ownerId,
       visibility,
       songIds,
@@ -66,6 +70,7 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
 
   app.get('/rest/updatePlaylist.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
+    const userId = (request as any).subsonicUser;
     const query = request.query as Record<string, string | string[]>;
     const playlistId = String(query.playlistId ?? '');
     const existing = getPlaylistById(db, playlistId);
@@ -73,6 +78,10 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
       return sendSubsonicReply(reply, format, {
         error: { code: 70, message: 'Data not found' },
       }, 'failed');
+    }
+
+    if (!canEditOrOwnPlaylist(db, existing, userId)) {
+      return sendUnauthorized(reply, format);
     }
 
     let songIds = existing.songIds.slice();
@@ -99,7 +108,7 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
 
     const updated: Playlist = {
       ...existing,
-      name: query.name ? String(query.name) : existing.name,
+      name: asName(query.name) ?? existing.name,
       visibility: asVisibility(query.visibility) ?? existing.visibility,
       songIds,
       updatedAt: new Date().toISOString(),
@@ -110,7 +119,15 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
 
   app.get('/rest/deletePlaylist.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
+    const userId = (request as any).subsonicUser;
     const { id } = request.query as { id: string };
+    const existing = getPlaylistById(db, id);
+    if (!existing) {
+      return sendSubsonicReply(reply, format, {});
+    }
+    if (!canEditOrOwnPlaylist(db, existing, userId)) {
+      return sendUnauthorized(reply, format);
+    }
     db.prepare('DELETE FROM playlists WHERE id = ?').run(id);
     sendSubsonicReply(reply, format, {});
   });
@@ -121,10 +138,37 @@ function normalizeParam(value: string | string[] | undefined): string[] {
   return Array.isArray(value) ? value.filter((v) => v !== '') : [value];
 }
 
+function asName(value: string | string[] | undefined): string | undefined {
+  if (value === undefined || value === '') return undefined;
+  const v = Array.isArray(value) ? value[0] : value;
+  return v === '' ? undefined : v;
+}
+
 function asVisibility(value: string | string[] | undefined): PlaylistVisibility | undefined {
   const v = Array.isArray(value) ? value[0] : value;
   if (v === 'private' || v === 'shared' || v === 'public' || v === 'link') return v;
   return undefined;
+}
+
+function canViewPlaylist(db: Database.Database, playlist: Playlist, userId: string): boolean {
+  if (playlist.ownerId === userId) return true;
+  if (playlist.visibility === 'public' || playlist.visibility === 'link') return true;
+  const share = db.prepare('SELECT 1 FROM playlist_shares WHERE playlist_id = ? AND user_id = ?')
+    .get(playlist.id, userId) as { 1: number } | undefined;
+  return share !== undefined;
+}
+
+function canEditOrOwnPlaylist(db: Database.Database, playlist: Playlist, userId: string): boolean {
+  if (playlist.ownerId === userId) return true;
+  const share = db.prepare('SELECT can_edit FROM playlist_shares WHERE playlist_id = ? AND user_id = ?')
+    .get(playlist.id, userId) as { can_edit: number } | undefined;
+  return share !== undefined && share.can_edit === 1;
+}
+
+function sendUnauthorized(reply: FastifyReply, format: 'json' | 'xml'): FastifyReply {
+  return sendSubsonicReply(reply, format, {
+    error: { code: 50, message: 'User is not authorized for this operation' },
+  }, 'failed');
 }
 
 function toOpenSubsonicPlaylist(
