@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { buildApp } from '../../src/app.js';
 import { migrate } from '../../src/db/migrate.js';
-import { hashPassword, hashSubsonicPassword } from '../../src/auth/password.js';
+import { hashPassword, encryptSubsonicPassword } from '../../src/auth/password.js';
 import { createUser } from '../../src/db/repositories/user-repository.js';
 import type { Config } from '../../src/config.js';
 
@@ -45,12 +45,12 @@ const baseConfig: Config = {
 
 async function seedAdminUser(db: Database.Database) {
   const passwordHash = await hashPassword('adminpass');
-  const subsonicPasswordHash = hashSubsonicPassword('adminpass');
+  const subsonicPasswordEncrypted = encryptSubsonicPassword('adminpass', baseConfig.SESSION_SECRET);
   createUser(db, {
     id: 'admin-1',
     username: 'admin',
     passwordHash,
-    subsonicPasswordHash,
+    subsonicPasswordEncrypted,
     isAdmin: true,
     createdAt: new Date().toISOString(),
   });

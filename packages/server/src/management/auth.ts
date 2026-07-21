@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
-import { hashPassword, hashSubsonicPassword, verifyPassword } from '../auth/password.js';
+import { hashPassword, encryptSubsonicPassword, verifyPassword } from '../auth/password.js';
 import { getUserById, getUserByUsername, createUser } from '../db/repositories/user-repository.js';
 import type { SessionData } from '../auth/session.js';
 
@@ -18,7 +18,7 @@ function userCount(db: Database.Database): number {
   return row.count;
 }
 
-export function registerAuthManagementRoutes(app: FastifyInstance, db: Database.Database): void {
+export function registerAuthManagementRoutes(app: FastifyInstance, db: Database.Database, sessionSecret: string): void {
   app.post('/api/login', async (request: FastifyRequest, reply: FastifyReply) => {
     const { username, password } = request.body as { username: string; password: string };
     const userId = await loginUser(db, username, password);
@@ -58,10 +58,10 @@ export function registerAuthManagementRoutes(app: FastifyInstance, db: Database.
 
     const { username, password } = request.body as { username: string; password: string };
     const passwordHash = await hashPassword(password);
-    const subsonicPasswordHash = hashSubsonicPassword(password);
+    const subsonicPasswordEncrypted = encryptSubsonicPassword(password, sessionSecret);
     const id = randomUUID();
     const now = new Date().toISOString();
-    createUser(db, { id, username, passwordHash, subsonicPasswordHash, isAdmin: true, createdAt: now });
+    createUser(db, { id, username, passwordHash, subsonicPasswordEncrypted, isAdmin: true, createdAt: now });
 
     const session = (request as any).session;
     session.userId = id;
