@@ -330,4 +330,26 @@ describe('OpenSubsonic playlist endpoints', () => {
     const getRes = await app.inject({ method: 'GET', url: otherQuery(other, `/rest/getPlaylist.view?id=${id}`, 'json') });
     expect(JSON.parse(getRes.body)['subsonic-response'].playlist).toBeUndefined();
   });
+
+  it('allows unauthenticated access to a link playlist with a valid share token', async () => {
+    const createRes = await app.inject({
+      method: 'GET',
+      url: query('/rest/createPlaylist.view?name=Link&visibility=link&songId=song-1', 'json'),
+    });
+    const id = JSON.parse(createRes.body)['subsonic-response'].playlist?.id;
+    const row = db.prepare('SELECT share_token FROM playlists WHERE id = ?').get(id) as { share_token: string } | undefined;
+    expect(row).toBeDefined();
+
+    const noToken = await app.inject({ method: 'GET', url: `/rest/getPlaylist.view?id=${id}&f=json` });
+    expect(noToken.statusCode).toBe(401);
+
+    const withToken = await app.inject({
+      method: 'GET',
+      url: `/rest/getPlaylist.view?id=${id}&shareToken=${row!.share_token}&f=json`,
+    });
+    expect(withToken.statusCode).toBe(200);
+    const body = JSON.parse(withToken.body);
+    expect(body['subsonic-response'].status).toBe('ok');
+    expect(body['subsonic-response'].playlist.name).toBe('Link');
+  });
 });

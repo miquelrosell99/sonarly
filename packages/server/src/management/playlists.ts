@@ -7,6 +7,7 @@ import {
   createPlaylist,
   updatePlaylist,
   sharePlaylistWithUser,
+  generateShareToken,
 } from '../db/repositories/playlist-repository.js';
 
 const VISIBILITIES: PlaylistVisibility[] = ['private', 'shared', 'public', 'link'];
@@ -15,9 +16,16 @@ function isVisibility(value: unknown): value is PlaylistVisibility {
   return typeof value === 'string' && VISIBILITIES.includes(value as PlaylistVisibility);
 }
 
-function canViewPlaylist(db: Database.Database, playlist: Playlist, userId: string): boolean {
-  if (playlist.ownerId === userId) return true;
-  if (playlist.visibility === 'public' || playlist.visibility === 'link') return true;
+function canViewPlaylist(
+  db: Database.Database,
+  playlist: Playlist,
+  userId: string | undefined,
+  shareToken?: string,
+): boolean {
+  if (userId && playlist.ownerId === userId) return true;
+  if (playlist.visibility === 'public') return true;
+  if (playlist.visibility === 'link' && shareToken && shareToken === playlist.shareToken) return true;
+  if (!userId) return false;
   const share = db.prepare('SELECT 1 FROM playlist_shares WHERE playlist_id = ? AND user_id = ?')
     .get(playlist.id, userId) as { 1: number } | undefined;
   return share !== undefined;
@@ -113,7 +121,7 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
         ownerId: r.owner_id,
         ownerUsername: r.owner_username,
         visibility: r.visibility,
-        shareToken: r.share_token ?? undefined,
+        shareToken: r.owner_id === userId ? (r.share_token ?? undefined) : undefined,
         songCount: r.song_count,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
@@ -122,11 +130,12 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
   });
 
   app.get('/api/playlists/:id', async (request: FastifyRequest, reply: FastifyReply) => {
-    const userId = (request as any).session.userId as string;
+    const userId = (request as any).session?.userId as string | undefined;
     const { id } = request.params as { id: string };
+    const { shareToken } = request.query as { shareToken?: string };
     const playlist = getPlaylistById(db, id);
     if (!playlist) return reply.status(404).send({ error: 'Playlist not found' });
-    if (!canViewPlaylist(db, playlist, userId)) return reply.status(403).send({ error: 'Forbidden' });
+    if (!canViewPlaylist(db, playlist, userId, shareToken)) return reply.status(403).send({ error: 'Forbidden' });
 
     reply.send({
       playlist: {
@@ -151,6 +160,7 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       name: body.name,
       ownerId: userId,
       visibility,
+      shareToken: visibility === 'link' ? generateShareToken() : undefined,
       songIds,
       createdAt: now,
       updatedAt: now,
@@ -172,10 +182,19 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       songIds: string[];
     }>;
 
+    const visibility = isVisibility(body.visibility) ? body.visibility : existing.visibility;
+    let shareToken = existing.shareToken;
+    if (visibility === 'link' && !shareToken) {
+      shareToken = generateShareToken();
+    } else if (visibility !== 'link') {
+      shareToken = undefined;
+    }
+
     const updated: Playlist = {
       ...existing,
       name: typeof body.name === 'string' && body.name.length > 0 ? body.name : existing.name,
-      visibility: isVisibility(body.visibility) ? body.visibility : existing.visibility,
+      visibility,
+      shareToken,
       songIds: Array.isArray(body.songIds) ? body.songIds : existing.songIds,
       updatedAt: new Date().toISOString(),
     };

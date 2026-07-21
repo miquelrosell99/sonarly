@@ -13,15 +13,6 @@ export async function loginUser(db: Database.Database, username: string, passwor
   return user.id;
 }
 
-export function requireAuth(request: FastifyRequest, reply: FastifyReply): SessionData {
-  const session = (request as any).session as { userId: string; username: string; isAdmin: boolean } | undefined;
-  if (!session?.userId) {
-    reply.status(401).send({ error: 'Unauthorized' });
-    throw new Error('Unauthorized');
-  }
-  return session;
-}
-
 function userCount(db: Database.Database): number {
   const row = db.prepare('SELECT COUNT(*) AS count FROM users').get() as { count: number };
   return row.count;

@@ -14,6 +14,11 @@ export function registerOpenSubsonicAuth(app: any, db: Database.Database): void 
     const format = (f === 'xml' ? 'xml' : 'json') as 'json' | 'xml';
     (request as any).subsonicFormat = format;
 
+    if (request.routeOptions.url === '/rest/getPlaylist.view' && query.shareToken) {
+      (request as any).subsonicUser = undefined;
+      return;
+    }
+
     const apiKey = query.apiKey ?? (request.headers['x-api-key'] as string | undefined);
     if (apiKey) {
       const userId = verifyApiKey(db, apiKey);

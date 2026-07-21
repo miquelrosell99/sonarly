@@ -84,9 +84,8 @@ describe('management song endpoints', () => {
       mtime: Date.now(),
       checksum: 'checksum-1',
     });
-    db.close();
 
-    app = await buildApp(config);
+    app = await buildApp(config, db);
     const login = await app.inject({
       method: 'POST',
       url: '/api/login',

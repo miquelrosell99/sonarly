@@ -66,7 +66,11 @@ export function registerSongManagementRoutes(app: FastifyInstance, db: Database.
     }
 
     await writeTags(song.filePath, tags);
-    queueResync(db, song.filePath);
+    try {
+      queueResync(db, song.filePath);
+    } catch (err) {
+      request.log.error({ err }, 'Failed to queue resync job after tag write');
+    }
     return reply.send({ ok: true });
   });
 

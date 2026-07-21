@@ -21,7 +21,11 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, db: Database
     const songs = listSongsByAlbum(db, id);
     for (const song of songs) {
       await writeTags(song.filePath, tags);
-      queueResync(db, song.filePath);
+      try {
+        queueResync(db, song.filePath);
+      } catch (err) {
+        request.log.error({ err }, 'Failed to queue resync job after album tag write');
+      }
     }
 
     reply.send({ updated: songs.length });

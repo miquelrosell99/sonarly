@@ -3,7 +3,7 @@ import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import type { Playlist, PlaylistVisibility } from '@sonarly/shared';
 import { sendSubsonicReply } from '../responses.js';
-import { getPlaylistById, createPlaylist, updatePlaylist } from '../../db/repositories/playlist-repository.js';
+import { getPlaylistById, createPlaylist, updatePlaylist, generateShareToken } from '../../db/repositories/playlist-repository.js';
 
 interface SongRow {
   id: string;
@@ -36,13 +36,13 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
 
   app.get('/rest/getPlaylist.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
-    const userId = (request as any).subsonicUser;
-    const { id } = request.query as { id: string };
+    const userId = (request as any).subsonicUser as string | undefined;
+    const { id, shareToken } = request.query as { id: string; shareToken?: string };
     const playlist = getPlaylistById(db, id);
     if (!playlist) {
       return sendSubsonicReply(reply, format, {});
     }
-    if (!canViewPlaylist(db, playlist, userId)) {
+    if (!canViewPlaylist(db, playlist, userId, shareToken)) {
       return sendUnauthorized(reply, format);
     }
     sendSubsonicReply(reply, format, { playlist: toOpenSubsonicPlaylist(playlist, true, db) });
@@ -60,6 +60,7 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
       name: asName(query.name) ?? 'New Playlist',
       ownerId,
       visibility,
+      shareToken: visibility === 'link' ? generateShareToken() : undefined,
       songIds,
       createdAt: now,
       updatedAt: now,
@@ -106,10 +107,19 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
       }
     }
 
+    const visibility = asVisibility(query.visibility) ?? existing.visibility;
+    let shareToken = existing.shareToken;
+    if (visibility === 'link' && !shareToken) {
+      shareToken = generateShareToken();
+    } else if (visibility !== 'link') {
+      shareToken = undefined;
+    }
+
     const updated: Playlist = {
       ...existing,
       name: asName(query.name) ?? existing.name,
-      visibility: asVisibility(query.visibility) ?? existing.visibility,
+      visibility,
+      shareToken,
       songIds,
       updatedAt: new Date().toISOString(),
     };
@@ -150,9 +160,16 @@ function asVisibility(value: string | string[] | undefined): PlaylistVisibility 
   return undefined;
 }
 
-function canViewPlaylist(db: Database.Database, playlist: Playlist, userId: string): boolean {
-  if (playlist.ownerId === userId) return true;
-  if (playlist.visibility === 'public' || playlist.visibility === 'link') return true;
+function canViewPlaylist(
+  db: Database.Database,
+  playlist: Playlist,
+  userId: string | undefined,
+  shareToken?: string,
+): boolean {
+  if (userId && playlist.ownerId === userId) return true;
+  if (playlist.visibility === 'public') return true;
+  if (playlist.visibility === 'link' && shareToken && shareToken === playlist.shareToken) return true;
+  if (!userId) return false;
   const share = db.prepare('SELECT 1 FROM playlist_shares WHERE playlist_id = ? AND user_id = ?')
     .get(playlist.id, userId) as { 1: number } | undefined;
   return share !== undefined;

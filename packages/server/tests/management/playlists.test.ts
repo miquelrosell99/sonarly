@@ -98,9 +98,8 @@ describe('management playlist endpoints', () => {
     const db = new Database(join(root, 'sonarly.db'));
     migrate(db);
     await seedDb(db);
-    db.close();
 
-    app = await buildApp(config);
+    app = await buildApp(config, db);
 
     const ownerLogin = await app.inject({
       method: 'POST',
@@ -304,5 +303,68 @@ describe('management playlist endpoints', () => {
     });
     expect(update.statusCode).toBe(200);
     expect(JSON.parse(update.body).playlist.name).toBe('UpdatedByFriend');
+  });
+
+  it('creates a link playlist with a share token', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/playlists',
+      cookies: { sessionId: ownerCookie },
+      payload: { name: 'Link', visibility: 'link', songIds: ['song-1'] },
+    });
+    expect(create.statusCode).toBe(201);
+    const body = JSON.parse(create.body);
+    expect(body.playlist.visibility).toBe('link');
+    expect(body.playlist.shareToken).toBeDefined();
+
+    const list = await app.inject({
+      method: 'GET',
+      url: '/api/playlists',
+      cookies: { sessionId: ownerCookie },
+    });
+    const playlists = JSON.parse(list.body).playlists;
+    expect(playlists[0].shareToken).toBe(body.playlist.shareToken);
+  });
+
+  it('allows unauthenticated access to a link playlist with a valid share token', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/playlists',
+      cookies: { sessionId: ownerCookie },
+      payload: { name: 'Link', visibility: 'link', songIds: ['song-1'] },
+    });
+    const { id, shareToken } = JSON.parse(create.body).playlist;
+
+    const noToken = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}`,
+    });
+    expect(noToken.statusCode).toBe(401);
+
+    const withToken = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}?shareToken=${shareToken}`,
+    });
+    expect(withToken.statusCode).toBe(200);
+    expect(JSON.parse(withToken.body).playlist.name).toBe('Link');
+  });
+
+  it('clears the share token when visibility is changed away from link', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/playlists',
+      cookies: { sessionId: ownerCookie },
+      payload: { name: 'Link', visibility: 'link' },
+    });
+    const id = JSON.parse(create.body).playlist.id;
+
+    const update = await app.inject({
+      method: 'PUT',
+      url: `/api/playlists/${id}`,
+      cookies: { sessionId: ownerCookie },
+      payload: { visibility: 'private' },
+    });
+    expect(update.statusCode).toBe(200);
+    expect(JSON.parse(update.body).playlist.shareToken).toBeUndefined();
   });
 });

@@ -36,6 +36,7 @@ const baseConfig: Config = {
 describe('buildApp', () => {
   let root: string;
   let config: Config;
+  let db: Database.Database;
 
   beforeEach(() => {
     root = join(tmpdir(), `sonarly-app-${Date.now()}`);
@@ -48,19 +49,19 @@ describe('buildApp', () => {
     };
     mkdirSync(config.LIBRARY_PATH, { recursive: true });
     mkdirSync(config.INGEST_PATH, { recursive: true });
-    const db = new Database(join(root, 'sonarly.db'));
+    db = new Database(join(root, 'sonarly.db'));
     migrate(db);
-    db.close();
   });
 
   afterEach(() => {
+    try { db.close(); } catch {}
     rmSync(root, { recursive: true, force: true });
   });
 
   it('returns a fastify app, pushes an initial scan job, and registers an onClose hook', async () => {
     const { Worker } = await import('node:worker_threads');
 
-    const app = await buildApp(config);
+    const app = await buildApp(config, db);
 
     expect(app).toBeDefined();
     expect(Worker).toHaveBeenCalledTimes(1);
@@ -68,11 +69,11 @@ describe('buildApp', () => {
     const workerInstance = (Worker as any).mock.results[0].value;
     expect(workerInstance.postMessage).not.toHaveBeenCalled();
 
-    const db = new Database(join(root, 'sonarly.db'));
-    const job = db.prepare("SELECT type, stats FROM scan_jobs WHERE type = 'scan'").get() as any;
+    const checkDb = new Database(join(root, 'sonarly.db'));
+    const job = checkDb.prepare("SELECT type, stats FROM scan_jobs WHERE type = 'scan'").get() as any;
     expect(job).toBeDefined();
     expect(JSON.parse(job.stats).path).toBe(config.LIBRARY_PATH);
-    db.close();
+    checkDb.close();
 
     await app.close();
     expect(workerInstance.postMessage).toHaveBeenCalledWith({ type: 'shutdown' });

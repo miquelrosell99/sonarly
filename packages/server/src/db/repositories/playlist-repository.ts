@@ -1,5 +1,10 @@
 import Database from 'better-sqlite3';
+import { randomUUID } from 'node:crypto';
 import type { Playlist, PlaylistVisibility } from '@sonarly/shared';
+
+export function generateShareToken(): string {
+  return randomUUID();
+}
 
 export function getPlaylistById(db: Database.Database, id: string): Playlist | undefined {
   const row = db.prepare('SELECT * FROM playlists WHERE id = ?').get(id) as any;
