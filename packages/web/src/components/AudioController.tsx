@@ -66,9 +66,8 @@ export function AudioController() {
 
   const handlePlay = () => {
     play();
-    if (currentSong && currentSong.id !== lastScrobbledRef.current) {
-      api(`/songs/${currentSong.id}/scrobble`, { method: 'POST' }).catch(() => {});
-      lastScrobbledRef.current = currentSong.id;
+    if (currentSong) {
+      scrobble(currentSong.id);
     }
   };
 
@@ -86,7 +85,16 @@ export function AudioController() {
     }
   };
 
+  const scrobble = (songId: string) => {
+    if (songId === lastScrobbledRef.current) return;
+    api(`/songs/${songId}/scrobble`, { method: 'POST' }).catch(() => {});
+    lastScrobbledRef.current = songId;
+  };
+
   const handleEnded = () => {
+    if (currentSong) {
+      scrobble(currentSong.id);
+    }
     onEnded();
   };
 

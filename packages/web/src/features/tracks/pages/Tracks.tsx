@@ -4,6 +4,7 @@ import type { Song } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
 
 interface Track extends Song {
@@ -22,6 +23,7 @@ export function Tracks() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { playSong, shufflePlay } = usePlayActions();
+  const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
 
   const load = () => {
@@ -62,6 +64,28 @@ export function Tracks() {
     shufflePlay(tracks);
   };
 
+  const handleFavorite = async (track: Track, starred: boolean) => {
+    try {
+      await setFavorite('song', track.id, starred);
+      setTracks((prev) =>
+        prev.map((t) => (t.id === track.id ? { ...t, starred } : t)),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+    }
+  };
+
+  const handleRate = async (track: Track, rating?: number) => {
+    try {
+      await setRating('song', track.id, rating);
+      setTracks((prev) =>
+        prev.map((t) => (t.id === track.id ? { ...t, rating } : t)),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update rating');
+    }
+  };
+
   const columns: LibraryViewColumn<Track>[] = [
     {
       key: 'title',
@@ -100,6 +124,10 @@ export function Tracks() {
       getHref={(track) => `/tracks/${track.id}`}
       onPlay={handlePlay}
       onShufflePlay={handleShufflePlay}
+      onFavorite={handleFavorite}
+      onRate={handleRate}
+      getFavorite={(track) => track.starred}
+      getRating={(track) => track.rating}
       emptyMessage="No tracks match the current filters."
     />
   );

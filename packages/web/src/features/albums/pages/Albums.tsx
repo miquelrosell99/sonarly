@@ -4,6 +4,7 @@ import type { Album, Song } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
 
 interface AlbumDetail {
@@ -16,6 +17,7 @@ export function Albums() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
+  const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
 
   const load = () => {
@@ -70,6 +72,28 @@ export function Albums() {
     }
   };
 
+  const handleFavorite = async (album: Album, starred: boolean) => {
+    try {
+      await setFavorite('album', album.id, starred);
+      setAlbums((prev) =>
+        prev.map((a) => (a.id === album.id ? { ...a, starred } : a)),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+    }
+  };
+
+  const handleRate = async (album: Album, rating?: number) => {
+    try {
+      await setRating('album', album.id, rating);
+      setAlbums((prev) =>
+        prev.map((a) => (a.id === album.id ? { ...a, rating } : a)),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update rating');
+    }
+  };
+
   const columns: LibraryViewColumn<Album>[] = [
     {
       key: 'title',
@@ -103,6 +127,10 @@ export function Albums() {
       getHref={(album) => `/albums/${album.id}`}
       onPlay={playAlbum}
       onShufflePlay={shuffleAlbums}
+      onFavorite={handleFavorite}
+      onRate={handleRate}
+      getFavorite={(album) => album.starred}
+      getRating={(album) => album.rating}
       emptyMessage="No albums match the current filters."
     />
   );

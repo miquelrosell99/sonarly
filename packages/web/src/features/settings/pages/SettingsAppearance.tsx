@@ -3,7 +3,8 @@ import { Settings } from '../components/Settings.js';
 import { useTheme } from '../../../stores/themeStore.js';
 import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferences.js';
 import { cn } from '../../../lib/cn.js';
-import type { ThemeMode, AccentColor } from '@sonarly/shared';
+import { Icon } from '../../../components/ui/Icon.js';
+import type { ThemeMode, AccentColor, SidebarItem } from '@sonarly/shared';
 
 const themeModes: { value: ThemeMode; label: string }[] = [
   { value: 'light', label: 'Light' },
@@ -21,6 +22,26 @@ const accentColors: { value: AccentColor; label: string; className: string }[] =
   { value: 'purple', label: 'Purple', className: 'bg-[hsl(270,60%,55%)]' },
   { value: 'yellow', label: 'Yellow', className: 'bg-[hsl(45,93%,47%)]' },
 ];
+
+const DEFAULT_SIDEBAR_ITEMS: SidebarItem[] = [
+  { id: 'home', type: 'link', visible: true },
+  { id: 'albums', type: 'link', visible: true },
+  { id: 'tracks', type: 'link', visible: true },
+  { id: 'album-artists', type: 'link', visible: true },
+  { id: 'artists', type: 'link', visible: true },
+  { id: 'genres', type: 'link', visible: true },
+  { id: 'playlists', type: 'playlists', visible: true, collapsed: false },
+];
+
+const SIDEBAR_LABELS: Record<string, string> = {
+  home: 'Home',
+  albums: 'Albums',
+  tracks: 'Tracks',
+  'album-artists': 'Album Artists',
+  artists: 'Artists',
+  genres: 'Genres',
+  playlists: 'Playlists section',
+};
 
 export function SettingsAppearance() {
   const { themeMode, accentColor, setThemeMode, setAccentColor } = useTheme();
@@ -53,6 +74,35 @@ export function SettingsAppearance() {
   const handleAccentColor = (color: AccentColor) => {
     setAccentColor(color);
     updatePreferences.mutate({ accentColor: color });
+  };
+
+  const sidebarItems = preferences?.sidebarConfig?.items ?? DEFAULT_SIDEBAR_ITEMS;
+
+  const updateSidebarItems = (next: SidebarItem[]) => {
+    updatePreferences.mutate({ sidebarConfig: { items: next } });
+  };
+
+  const moveItem = (index: number, direction: -1 | 1) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= sidebarItems.length) return;
+    const next = [...sidebarItems];
+    [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+    updateSidebarItems(next);
+  };
+
+  const toggleVisible = (index: number) => {
+    const next = [...sidebarItems];
+    const item = next[index];
+    if (!item) return;
+    next[index] = { ...item, visible: !item.visible };
+    updateSidebarItems(next);
+  };
+
+  const togglePlaylistsCollapsed = () => {
+    const next = sidebarItems.map((item) =>
+      item.type === 'playlists' ? { ...item, collapsed: !item.collapsed } : item,
+    );
+    updateSidebarItems(next);
   };
 
   return (
@@ -100,6 +150,70 @@ export function SettingsAppearance() {
               </button>
             ))}
           </div>
+        </section>
+
+        <section>
+          <h3 className="mb-4 text-base font-medium">Sidebar</h3>
+          <p className="mb-4 text-sm text-muted">
+            Show, hide, and reorder library navigation items.
+          </p>
+          <ul className="space-y-2">
+            {sidebarItems.map((item, index) => {
+              const label = SIDEBAR_LABELS[item.id] ?? item.id;
+              const isPlaylists = item.type === 'playlists';
+              return (
+                <li
+                  key={item.id}
+                  className="flex items-center justify-between rounded-md border border-rule bg-surface px-3 py-2"
+                >
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={item.visible}
+                      onChange={() => toggleVisible(index)}
+                      aria-label={`Show ${label}`}
+                      className="h-4 w-4 accent-accent"
+                    />
+                    <span className="text-sm">{label}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {isPlaylists && (
+                      <button
+                        type="button"
+                        onClick={togglePlaylistsCollapsed}
+                        title={item.collapsed ? 'Expand playlists section' : 'Collapse playlists section'}
+                        className="rounded p-1 text-muted transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      >
+                        <Icon
+                          name="mdi-chevron-down"
+                          size={18}
+                          className={cn('transition-transform', item.collapsed && '-rotate-90')}
+                        />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => moveItem(index, -1)}
+                      disabled={index === 0}
+                      title="Move up"
+                      className="rounded p-1 text-muted transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"
+                    >
+                      <Icon name="mdi-chevron-up" size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveItem(index, 1)}
+                      disabled={index === sidebarItems.length - 1}
+                      title="Move down"
+                      className="rounded p-1 text-muted transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"
+                    >
+                      <Icon name="mdi-chevron-down" size={18} />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </section>
       </div>
     </Settings>

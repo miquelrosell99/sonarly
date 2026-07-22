@@ -1,8 +1,8 @@
 import { Link, useLocation } from 'wouter';
-import { useState } from 'react';
 import type { Playlist, UserPreferences, SidebarItem } from '@sonarly/shared';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
+import { useUpdatePreferences } from '../hooks/usePreferences.js';
 
 interface SidebarProps {
   config: UserPreferences['sidebarConfig'];
@@ -69,6 +69,7 @@ function SidebarNavLink({
 
 export function Sidebar({ config, playlists }: SidebarProps) {
   const [location] = useLocation();
+  const updatePreferences = useUpdatePreferences();
   const effectiveConfig = config ?? DEFAULT_SIDEBAR_CONFIG;
   const items = effectiveConfig.items;
 
@@ -76,18 +77,25 @@ export function Sidebar({ config, playlists }: SidebarProps) {
     | Extract<SidebarItem, { type: 'playlists' }>
     | undefined;
   const playlistsVisible = playlistsItem?.visible ?? true;
-  const [collapsed, setCollapsed] = useState(playlistsItem?.collapsed ?? false);
+  const collapsed = playlistsItem?.collapsed ?? false;
 
-  const visibleLibraryLinks = LIBRARY_LINKS.filter((link) => {
-    const item = findItem(items, link.id);
-    return item?.visible ?? true;
-  });
+  const orderedLibraryLinks = items
+    .filter((item): item is SidebarItem & { type: 'link' } => item.type === 'link')
+    .map((item) => LIBRARY_LINKS.find((link) => link.id === item.id))
+    .filter((link): link is (typeof LIBRARY_LINKS)[number] => link !== undefined && (findItem(items, link.id)?.visible ?? true));
+
+  const toggleCollapsed = () => {
+    const next = items.map((item) =>
+      item.type === 'playlists' ? { ...item, collapsed: !collapsed } : item,
+    );
+    updatePreferences.mutate({ sidebarConfig: { items: next } });
+  };
 
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-rule bg-surface">
       <div className="flex-1 overflow-y-auto p-3">
         <nav className="space-y-1">
-          {visibleLibraryLinks.map((link) => (
+          {orderedLibraryLinks.map((link) => (
             <SidebarNavLink
               key={link.id}
               href={link.href}
@@ -115,7 +123,7 @@ export function Sidebar({ config, playlists }: SidebarProps) {
                   type="button"
                   aria-label="Collapse playlists"
                   title="Collapse playlists"
-                  onClick={() => setCollapsed((v) => !v)}
+                  onClick={toggleCollapsed}
                   className="rounded p-1 text-muted transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   <Icon

@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'wouter';
 import type { SmartPlaylistRules, UserPreferences } from '@sonarly/shared';
 import { api } from '../../../api.js';
+import { cn } from '../../../lib/cn.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
 import { Button } from '../../../components/ui/Button.js';
+import { Icon } from '../../../components/ui/Icon.js';
 import { SmartPlaylistEditor } from '../components/SmartPlaylistEditor.js';
+import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 
 interface PlaylistSong {
   id: string;
@@ -23,6 +26,8 @@ interface Playlist {
   isSmart?: boolean;
   rules?: SmartPlaylistRules;
   entries: PlaylistSong[];
+  starred?: boolean;
+  rating?: number;
 }
 
 export function PlaylistDetail() {
@@ -32,6 +37,7 @@ export function PlaylistDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const { setFavorite, setRating } = useFavoriteActions();
 
   useEffect(() => {
     if (!id) return;
@@ -67,6 +73,26 @@ export function PlaylistDetail() {
 
   const blurExplicitTitles = preferences.blurExplicitTitles === true;
 
+  const handleFavorite = async (starred: boolean) => {
+    if (!playlist) return;
+    try {
+      await setFavorite('playlist', playlist.id, starred);
+      setPlaylist((prev) => (prev ? { ...prev, starred } : prev));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+    }
+  };
+
+  const handleRate = async (rating?: number) => {
+    if (!playlist) return;
+    try {
+      await setRating('playlist', playlist.id, rating);
+      setPlaylist((prev) => (prev ? { ...prev, rating } : prev));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update rating');
+    }
+  };
+
   const columns: TableColumn<PlaylistSong>[] = [
     {
       key: 'title',
@@ -100,7 +126,40 @@ export function PlaylistDetail() {
     <div>
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">{playlist.name}</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold">{playlist.name}</h2>
+            <button
+              type="button"
+              onClick={() => handleFavorite(!playlist.starred)}
+              aria-label={playlist.starred ? 'Remove favorite' : 'Add favorite'}
+              title={playlist.starred ? 'Remove favorite' : 'Add favorite'}
+              className={cn(
+                'rounded p-1 transition hover:bg-surface-hover',
+                playlist.starred ? 'text-accent' : 'text-muted hover:text-accent',
+              )}
+            >
+              <Icon name={playlist.starred ? 'mdi-heart' : 'mdi-heart-outline'} size={20} />
+            </button>
+            <span className="inline-flex items-center gap-0.5">
+              {[1, 2, 3, 4, 5].map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => handleRate(value === playlist.rating ? undefined : value)}
+                  aria-label={`Rate ${value} stars`}
+                  className={cn(
+                    'rounded p-0.5 transition hover:bg-surface-hover',
+                    value <= (playlist.rating ?? 0) ? 'text-accent' : 'text-muted hover:text-accent/70',
+                  )}
+                >
+                  <Icon
+                    name={value <= (playlist.rating ?? 0) ? 'mdi-star' : 'mdi-star-outline'}
+                    size={18}
+                  />
+                </button>
+              ))}
+            </span>
+          </div>
           <p className="text-sm text-gray-500">
             {playlist.visibility}
             {playlist.isSmart && (
