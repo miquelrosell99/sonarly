@@ -129,6 +129,7 @@ async function persistSong(
     albumId,
     genre: tags.genre,
     year: tags.year,
+    explicit: tags.explicit,
     coverArt: hasCoverArt ? id : undefined,
     mtime,
     checksum,

@@ -26,10 +26,12 @@ def parse_num_pair(value):
 
 def write_tags(path, tags):
     ext = path.lower().rsplit('.', 1)[-1] if '.' in path else ''
+    explicit = tags.get('explicit')
 
     if ext == 'mp3':
         from mutagen.mp3 import MP3
         from mutagen.easyid3 import EasyID3
+        from mutagen.id3 import ID3, TXXX
         audio = MP3(path, ID3=EasyID3)
         if audio.tags is None:
             audio.add_tags(EasyID3)
@@ -55,6 +57,12 @@ def write_tags(path, tags):
             else:
                 audio.tags[mutagen_key] = str(value)
         audio.save()
+
+        # EasyID3 does not support custom TXXX frames; write explicit via raw ID3.
+        if explicit is not None:
+            id3 = ID3(path)
+            id3['TXXX:ITUNESADVISORY'] = TXXX(encoding=0, desc='ITUNESADVISORY', text='1' if explicit else '0')
+            id3.save()
 
     elif ext in ('flac', 'ogg'):
         from mutagen.flac import FLAC
@@ -84,6 +92,8 @@ def write_tags(path, tags):
                 audio.tags[mutagen_key] = f'{pair[0]}/{pair[1]}' if pair[1] else str(pair[0])
             else:
                 audio.tags[mutagen_key] = str(value)
+        if explicit is not None:
+            audio.tags['ITUNESADVISORY'] = '1' if explicit else '0'
         audio.save()
 
     elif ext in ('m4a', 'mp4'):
@@ -110,6 +120,8 @@ def write_tags(path, tags):
                 audio[mutagen_key] = [pair]
             else:
                 audio[mutagen_key] = [str(value)]
+        if explicit is not None:
+            audio['rtng'] = [(1 if explicit else 0)]
         audio.save()
 
     else:
