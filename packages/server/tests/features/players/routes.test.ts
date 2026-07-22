@@ -152,4 +152,47 @@ describe('players endpoint', () => {
     expect(players[0].userId).toBeUndefined();
     expect(players[0].songId).toBe('song-1');
   });
+
+  it('only returns players belonging to the authenticated user', async () => {
+    createUser(db, {
+      id: 'user-2',
+      username: 'other',
+      passwordHash: await hashPassword('pass'),
+      subsonicPasswordEncrypted: encryptSubsonicPassword('pass', baseConfig.SESSION_SECRET),
+      isAdmin: false,
+      createdAt: new Date().toISOString(),
+    });
+    const otherLogin = await app.inject({
+      method: 'POST',
+      url: '/api/login',
+      payload: { username: 'other', password: 'pass' },
+    });
+    const otherCookie = otherLogin.cookies.find((c) => c.name === 'sessionId')!.value;
+
+    const otherSalt = 'other-salty';
+    const otherToken = buildSubsonicToken('pass', otherSalt);
+    await app.inject({
+      method: 'GET',
+      url: `/rest/stream.view?id=song-1&u=other&t=${otherToken}&s=${otherSalt}&f=json`,
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/players',
+      cookies: { sessionId: cookieValue },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.players).toHaveLength(0);
+
+    const otherRes = await app.inject({
+      method: 'GET',
+      url: '/api/players',
+      cookies: { sessionId: otherCookie },
+    });
+    expect(otherRes.statusCode).toBe(200);
+    const otherBody = JSON.parse(otherRes.body);
+    expect(otherBody.players).toHaveLength(1);
+    expect(otherBody.players[0].userId).toBe('user-2');
+  });
 });
