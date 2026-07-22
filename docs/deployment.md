@@ -4,7 +4,7 @@ Sonarly ships as a single Docker image that contains the Fastify server and the 
 
 ## Docker Compose (recommended)
 
-From the `docker/` directory:
+From the repository root:
 
 ```bash
 cp .env.example .env
@@ -26,7 +26,7 @@ SESSION_SECRET=$(openssl rand -hex 32)
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `SESSION_SECRET` | *(required)* | Secret used to sign session cookies. Must be at least 32 characters. The container refuses to start without it. See `docker/.env.example`. |
+| `SESSION_SECRET` | *(required)* | Secret used to sign session cookies. Must be at least 32 characters. The container refuses to start without it. See `.env.example`. |
 | `SESSION_COOKIE_SECURE` | `false` | Set to `true` only when serving Sonarly over HTTPS. Defaults to `false` so the cookie works over plain HTTP. |
 | `WATCHER_USE_POLLING` | `false` | Set to `true` when the library/ingest volumes are on filesystems without inotify support (Docker Desktop, NFS, etc.). |
 | `PUID` | `1000` | User ID the container process runs as. Match this to the owner of your bind mounts. |

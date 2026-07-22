@@ -1,0 +1,55 @@
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import type Database from 'better-sqlite3';
+import { verifySubsonicToken } from '../auth/index.js';
+import { verifyApiKey } from '../auth/index.js';
+import { getUserById } from '../users/index.js';
+import { sendSubsonicReply } from './responses.js';
+
+export function registerOpenSubsonicAuth(app: FastifyInstance, db: Database.Database, sessionSecret: string): void {
+  app.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!request.routeOptions.url?.startsWith('/rest/')) return;
+
+    const query = request.query as Record<string, string>;
+    const { u, t, s, f } = query;
+    const format = (f === 'xml' ? 'xml' : 'json') as 'json' | 'xml';
+    (request as any).subsonicFormat = format;
+
+    if (request.routeOptions.url === '/rest/getPlaylist.view' && query.shareToken) {
+      (request as any).subsonicUser = undefined;
+      return;
+    }
+
+    const apiKey = query.apiKey ?? (request.headers['x-api-key'] as string | undefined);
+    if (apiKey) {
+      const userId = verifyApiKey(db, apiKey);
+      if (!userId) {
+        return sendSubsonicReply(reply.status(401), format, {
+          error: { code: 40, message: 'Wrong username or password' },
+        }, 'failed');
+      }
+      const user = getUserById(db, userId);
+      if (!user) {
+        return sendSubsonicReply(reply.status(401), format, {
+          error: { code: 40, message: 'Wrong username or password' },
+        }, 'failed');
+      }
+      (request as any).subsonicUser = user.id;
+      return;
+    }
+
+    if (!u || !t || !s) {
+      return sendSubsonicReply(reply.status(401), format, {
+        error: { code: 10, message: 'Missing authentication' },
+      }, 'failed');
+    }
+
+    const userId = verifySubsonicToken(db, u, t, s, sessionSecret);
+    if (!userId) {
+      return sendSubsonicReply(reply.status(401), format, {
+        error: { code: 40, message: 'Wrong username or password' },
+      }, 'failed');
+    }
+
+    (request as any).subsonicUser = userId;
+  });
+}
