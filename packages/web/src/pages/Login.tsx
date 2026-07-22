@@ -3,7 +3,7 @@ import { api } from '../api.js';
 import { Button } from '../components/Button.js';
 import { Input } from '../components/Input.js';
 
-export function Login({ onLogin }: { onLogin: (user: { username: string }) => void }) {
+export function Login({ onLogin }: { onLogin: (user: { username: string; isAdmin: boolean }) => void }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -12,7 +12,7 @@ export function Login({ onLogin }: { onLogin: (user: { username: string }) => vo
     e.preventDefault();
     setError(null);
     try {
-      const { user } = await api<{ user: { username: string } }>('/login', {
+      const { user } = await api<{ user: { username: string; isAdmin: boolean } }>('/login', {
         method: 'POST',
         body: JSON.stringify({ username, password }),
       });
@@ -26,7 +26,14 @@ export function Login({ onLogin }: { onLogin: (user: { username: string }) => vo
     <div className="flex min-h-screen items-center justify-center bg-white p-6">
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
         <h1 className="text-2xl font-bold tracking-tight">Sonarly</h1>
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && (
+          <div
+            className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600"
+            role="alert"
+          >
+            The username or password is incorrect. Please try again.
+          </div>
+        )}
         <div>
           <label htmlFor="username" className="mb-1 block text-sm font-medium text-gray-700">
             Username

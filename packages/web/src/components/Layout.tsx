@@ -1,15 +1,26 @@
 import { Link, useLocation } from 'wouter';
 
+interface LayoutProps {
+  user: { username: string; isAdmin: boolean } | null;
+  children: React.ReactNode;
+}
+
 const nav = [
   { href: '/', label: 'Library' },
   { href: '/songs', label: 'Songs' },
   { href: '/playlists', label: 'Playlists' },
   { href: '/ingest', label: 'Ingest' },
   { href: '/organize', label: 'Organize' },
-  { href: '/users', label: 'Users' },
+  { href: '/settings', label: 'Settings' },
 ];
 
-export function Layout({ children }: { children: React.ReactNode }) {
+function isActive(location: string, href: string): boolean {
+  if (location === href) return true;
+  if (href !== '/' && location.startsWith(href)) return true;
+  return false;
+}
+
+export function Layout({ user, children }: LayoutProps) {
   const [location] = useLocation();
   return (
     <div className="flex min-h-screen">
@@ -20,12 +31,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`block rounded px-2 py-1 text-sm ${location === item.href ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+              className={`block rounded px-2 py-1 text-sm ${isActive(location, item.href) ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-200'}`}
             >
               {item.label}
             </Link>
           ))}
         </nav>
+        {user && <p className="mt-6 text-xs text-gray-500">{user.username}</p>}
       </aside>
       <main className="flex-1 p-6">{children}</main>
     </div>
