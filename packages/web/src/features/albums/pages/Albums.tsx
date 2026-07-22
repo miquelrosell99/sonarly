@@ -37,12 +37,15 @@ export function Albums() {
     }
   };
 
-  const shuffleAlbum = async (album: Album) => {
+  const shuffleAlbums = async (albums: Album[]) => {
+    if (albums.length === 0) return;
     try {
-      const detail = await api<AlbumDetail>(`/albums/${album.id}`);
-      shufflePlay(detail.songs);
+      const details = await Promise.all(
+        albums.map((album) => api<AlbumDetail>(`/albums/${album.id}`)),
+      );
+      shufflePlay(details.flatMap((detail) => detail.songs));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to shuffle album');
+      setError(err instanceof Error ? err.message : 'Failed to shuffle albums');
     }
   };
 
@@ -78,7 +81,7 @@ export function Albums() {
       getId={(album) => album.id}
       getHref={(album) => `/albums/${album.id}`}
       onPlay={playAlbum}
-      onShufflePlay={shuffleAlbum}
+      onShufflePlay={shuffleAlbums}
       emptyMessage="No albums found."
     />
   );
