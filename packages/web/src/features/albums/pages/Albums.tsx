@@ -4,6 +4,7 @@ import type { Album, Song } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { useFilterParams } from '../../../hooks/useFilterParams.js';
 
 interface AlbumDetail {
   album: Album;
@@ -15,6 +16,7 @@ export function Albums() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
+  const { get } = useFilterParams();
 
   const load = () => {
     setLoading(true);
@@ -27,6 +29,25 @@ export function Albums() {
   useEffect(() => {
     load();
   }, []);
+
+  const yearFrom = get('yearFrom');
+  const yearTo = get('yearTo');
+  const genre = get('genre');
+  const favorites = get('favorites');
+
+  const filteredAlbums = albums.filter((album) => {
+    if (yearFrom !== null && yearFrom !== '') {
+      const from = Number(yearFrom);
+      if (!Number.isNaN(from) && (album.year === undefined || album.year < from)) return false;
+    }
+    if (yearTo !== null && yearTo !== '') {
+      const to = Number(yearTo);
+      if (!Number.isNaN(to) && (album.year === undefined || album.year > to)) return false;
+    }
+    if (genre && album.genre !== genre) return false;
+    if (favorites === 'true' && !album.starred) return false;
+    return true;
+  });
 
   const playAlbum = async (album: Album) => {
     try {
@@ -73,7 +94,7 @@ export function Albums() {
   return (
     <LibraryView
       title="Albums"
-      data={albums}
+      data={filteredAlbums}
       isLoading={loading}
       error={error}
       columns={columns}
@@ -82,7 +103,7 @@ export function Albums() {
       getHref={(album) => `/albums/${album.id}`}
       onPlay={playAlbum}
       onShufflePlay={shuffleAlbums}
-      emptyMessage="No albums found."
+      emptyMessage="No albums match the current filters."
     />
   );
 }

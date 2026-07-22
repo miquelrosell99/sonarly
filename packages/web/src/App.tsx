@@ -14,6 +14,7 @@ import { SettingsMedia } from './features/settings/index.js';
 import { SettingsIngest } from './features/settings/index.js';
 import { SettingsConflicts } from './features/settings/index.js';
 import { SettingsProfile } from './features/settings/index.js';
+import { SettingsAppearance } from './features/settings/index.js';
 import { Artists, Artist } from './features/artists/index.js';
 import { Albums, Album } from './features/albums/index.js';
 import { Tracks, Track } from './features/tracks/index.js';
@@ -88,6 +89,7 @@ export default function App() {
         <Route path="/settings/media" component={SettingsMedia} />
         <Route path="/settings/ingest" component={SettingsIngest} />
         <Route path="/settings/profile" component={() => <SettingsProfile user={user} onUserChange={setUser} />} />
+        <Route path="/settings/appearance" component={SettingsAppearance} />
         <Route path="/settings/conflicts" component={SettingsConflicts} />
         <Route path="/users" component={() => <Redirect to="/admin" />} />
         <Route path="*" component={() => <Redirect to="/" />} />
