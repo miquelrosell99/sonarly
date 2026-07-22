@@ -1,0 +1,24 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+
+# Native dependencies (bcrypt, better-sqlite3) need a compiler and Python.
+RUN apk add --no-cache python3 make g++
+
+# Runtime tooling for the scanner/tag writer and audio transcoding.
+RUN apk add --no-cache ffmpeg libstdc++ py3-pip \
+  && pip3 install --no-cache-dir mutagen --break-system-packages
+
+# Install workspace dependencies.
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY packages/shared/package.json packages/shared/
+COPY packages/server/package.json packages/server/
+COPY packages/web/package.json packages/web/
+
+RUN pnpm install --frozen-lockfile
+
+EXPOSE 3000 5173
+
+CMD ["pnpm", "-r", "--parallel", "dev"]

@@ -7,9 +7,9 @@ import Database from 'better-sqlite3';
 import type { FastifyInstance } from 'fastify';
 import type { Config } from '../../src/config.js';
 import { buildApp } from '../../src/app.js';
-import { hashPassword, encryptSubsonicPassword } from '../../src/auth/password.js';
-import { createUser } from '../../src/db/repositories/user-repository.js';
-import { buildSubsonicToken } from '../../src/auth/token.js';
+import { hashPassword, encryptSubsonicPassword } from '../../src/features/auth/password.js';
+import { createUser } from '../../src/features/users/repository.js';
+import { buildSubsonicToken } from '../../src/features/auth/token.js';
 
 export const baseConfig: Config = {
   PORT: 0,
@@ -20,7 +20,7 @@ export const baseConfig: Config = {
   DATA_DIR: '',
   LIBRARY_PATH: '',
   INGEST_PATH: '',
-  ORGANIZE_PATTERN: '{artist}/{album}/{track:00} - {title}{ext}',
+  ORGANIZE_PATTERN: '{artist}/{album}/{track:00} - {title}',
   SCAN_INTERVAL_MINUTES: 60,
   WATCHER_USE_POLLING: true,
   PUID: 1000,

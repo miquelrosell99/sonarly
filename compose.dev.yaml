@@ -1,0 +1,33 @@
+services:
+  sonarly:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    container_name: sonarly-dev
+    ports:
+      - "${SONARLY_DEV_WEB_PORT:-4534}:5173"
+      - "${SONARLY_DEV_API_PORT:-3001}:3000"
+    volumes:
+      - ./config/sonarly/data:/data/db
+      - ./config/sonarly/library:/data/library
+      - ./config/sonarly/ingest:/data/ingest
+      - ./packages/server:/app/packages/server
+      - /app/packages/server/node_modules
+      - ./packages/web:/app/packages/web
+      - /app/packages/web/node_modules
+      - ./packages/shared:/app/packages/shared
+      - /app/packages/shared/node_modules
+    environment:
+      - PORT=3000
+      - NODE_ENV=development
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET is required}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-false}
+      - DATA_DIR=/data/db
+      - LIBRARY_PATH=/data/library
+      - INGEST_PATH=/data/ingest
+      - SCAN_INTERVAL_MINUTES=60
+      - WATCHER_USE_POLLING=${WATCHER_USE_POLLING:-false}
+      - SONARLY_DEV_ALLOWED_HOSTS=${SONARLY_DEV_ALLOWED_HOSTS:-}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+    restart: unless-stopped

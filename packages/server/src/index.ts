@@ -1,6 +1,6 @@
 import { loadConfig } from './config.js';
 import { buildApp } from './app.js';
-import { registerDefaultWriters } from './tags/index.js';
+import { registerDefaultWriters } from './features/tags/index.js';
 
 async function main() {
   registerDefaultWriters();
