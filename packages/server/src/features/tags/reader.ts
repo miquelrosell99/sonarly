@@ -1,7 +1,7 @@
 import { parseFile } from 'music-metadata';
 import path from 'node:path';
 import type { SongTags } from '@sonarly/shared';
-import { computeChecksum } from './checksum.js';
+export { computeChecksum } from './checksum.js';
 
 /** Audio tags plus optional duration and cover-art hint, as returned by {@link readMetadata}. */
 export interface AudioMetadata {
@@ -27,6 +27,7 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
       discNumber: common.disk.no ?? undefined,
       genre: common.genre?.[0],
       year: common.year,
+      explicit: detectExplicit(metadata.native),
     },
     duration: metadata.format.duration,
     hasCoverArt: (common.picture?.length ?? 0) > 0,
@@ -40,4 +41,33 @@ function getFilenameFallback(filePath: string): string {
   return path.basename(filePath).replace(/\.[^.]+$/, '');
 }
 
-export { computeChecksum };
+function detectExplicit(native: Record<string, { id: string; value: unknown }[]> | undefined): boolean | undefined {
+  if (!native) return undefined;
+
+  for (const [tagType, tags] of Object.entries(native)) {
+    for (const tag of tags) {
+      const id = tag.id.toUpperCase();
+      const value = String(Array.isArray(tag.value) ? tag.value[0] : tag.value).trim();
+
+      if (tagType === 'iTunes' || tagType.startsWith('ID3')) {
+        if (id === 'ITUNESADVISORY' || id === 'TXXX:ITUNESADVISORY' || id === 'TXXX:ITUNES_ADVISORY') {
+          return value === '1';
+        }
+      }
+
+      if (tagType === 'vorbis') {
+        if (id === 'ITUNESADVISORY' || id === 'ADVISORY') {
+          return value === '1';
+        }
+      }
+
+      if (tagType === 'iTunes' || tagType === 'mp4') {
+        if (id === 'RTNG') {
+          return value === '1';
+        }
+      }
+    }
+  }
+
+  return undefined;
+}
