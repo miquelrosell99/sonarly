@@ -13,13 +13,16 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
     const song = getSongById(db, id);
     if (!song) return reply.status(404).send('Not found');
 
-    recordStream(db, request, song);
-
     const mime = lookup(song.filePath) || 'application/octet-stream';
     const { size } = statSync(song.filePath);
     const rangeHeader = request.headers.range;
 
+    if (request.method === 'HEAD') {
+      return reply.header('Accept-Ranges', 'bytes').type(mime).send();
+    }
+
     if (!rangeHeader) {
+      recordStream(db, request, song);
       return reply.header('Accept-Ranges', 'bytes').type(mime).send(createReadStream(song.filePath));
     }
 

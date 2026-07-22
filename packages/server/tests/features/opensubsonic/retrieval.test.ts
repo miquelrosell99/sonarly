@@ -9,6 +9,7 @@ import { createUser } from '../../../src/features/users/repository.js';
 import { upsertSong } from '../../../src/features/songs/repository.js';
 import { buildSubsonicToken } from '../../../src/features/auth/token.js';
 import { encryptSubsonicPassword } from '../../../src/features/auth/password.js';
+import { clearActivePlayers, getActivePlayers } from '../../../src/features/players/tracker.js';
 import type { Config } from '../../../src/config.js';
 
 const config: Config = {
@@ -57,6 +58,7 @@ describe('OpenSubsonic retrieval endpoints', () => {
   let auth: ReturnType<typeof seedUser>;
 
   beforeEach(async () => {
+    clearActivePlayers();
     db = new Database(':memory:');
     migrate(db);
     auth = seedUser(db);
@@ -124,6 +126,27 @@ describe('OpenSubsonic retrieval endpoints', () => {
       headers: { range: `bytes=${fixtureBytes.length}-` },
     });
     expect(res.statusCode).toBe(416);
+  });
+
+  it('does not record a player for a byte-range request', async () => {
+    clearActivePlayers();
+    const res = await app.inject({
+      method: 'GET',
+      url: query('/rest/stream.view?id=song-1', 'json'),
+      headers: { range: 'bytes=0-9' },
+    });
+    expect(res.statusCode).toBe(206);
+    expect(getActivePlayers()).toHaveLength(0);
+  });
+
+  it('does not record a player for a HEAD request', async () => {
+    clearActivePlayers();
+    const res = await app.inject({
+      method: 'HEAD',
+      url: query('/rest/stream.view?id=song-1', 'json'),
+    });
+    expect(res.statusCode).toBe(200);
+    expect(getActivePlayers()).toHaveLength(0);
   });
 
   it('returns 404 when streaming a missing song', async () => {
