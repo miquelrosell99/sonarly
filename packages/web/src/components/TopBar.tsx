@@ -7,6 +7,7 @@ import { Icon } from './ui/Icon.js';
 import { api } from '../api.js';
 import { SearchBox } from './SearchBox.js';
 import { FilterPanel, type FilterDefinition } from './FilterPanel.js';
+import { usePlayer } from '../stores/playerStore.js';
 import type { PlayerInfo } from '@sonarly/shared';
 
 interface TopBarProps {
@@ -62,7 +63,9 @@ function usePlayers() {
 function PlayersDropdown() {
   const { data: players = [], isLoading } = usePlayers();
   const [open, setOpen] = useState(false);
+  const [playingId, setPlayingId] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const playNow = usePlayer((state) => state.playNow);
 
   useEffect(() => {
     if (!open) return;
@@ -81,6 +84,20 @@ function PlayersDropdown() {
       document.removeEventListener('keydown', handleKey);
     };
   }, [open]);
+
+  const playHere = async (player: PlayerInfo) => {
+    if (!player.songId) return;
+    setPlayingId(player.id);
+    try {
+      const { song } = await api<{ song: BaseSong }>(`/songs/${player.songId}`);
+      playNow(song as BaseSong & { artistName?: string; albumName?: string });
+      setOpen(false);
+    } catch {
+      // ignore
+    } finally {
+      setPlayingId(null);
+    }
+  };
 
   return (
     <div ref={ref} className="relative">
@@ -104,14 +121,24 @@ function PlayersDropdown() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-40 mt-2 w-56 rounded-md border border-rule bg-bg-primary py-1 shadow-lg"
+          className="absolute right-0 top-full z-40 mt-2 w-64 rounded-md border border-rule bg-bg-primary py-1 shadow-lg"
         >
           {players.length === 0 ? (
             <p className="px-4 py-2 text-sm text-muted">No connected players</p>
           ) : (
             players.map((player) => (
               <div key={player.id} className="px-4 py-2 text-sm">
-                <p className="font-medium text-fg-primary">{player.clientId}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-medium text-fg-primary">{player.clientId}</p>
+                  <button
+                    type="button"
+                    onClick={() => playHere(player)}
+                    disabled={playingId === player.id || !player.songId}
+                    className="rounded bg-accent px-2 py-1 text-xs font-medium text-bg-primary transition hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+                  >
+                    {playingId === player.id ? 'Loading…' : 'Play here'}
+                  </button>
+                </div>
                 <p className="truncate text-xs text-muted">{player.songTitle}</p>
               </div>
             ))

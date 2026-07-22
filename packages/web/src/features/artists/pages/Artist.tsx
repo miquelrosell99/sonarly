@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'wouter';
 import type { UserPreferences } from '@sonarly/shared';
 import { api } from '../../../api.js';
+import { cn } from '../../../lib/cn.js';
+import { Icon } from '../../../components/ui/Icon.js';
+import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 
 interface Album {
   id: string;
@@ -22,6 +25,8 @@ interface ArtistDetail {
   id: string;
   name: string;
   albums: Album[];
+  starred?: boolean;
+  rating?: number;
 }
 
 function formatDuration(seconds: number): string {
@@ -37,6 +42,7 @@ export function Artist() {
   const [preferences, setPreferences] = useState<UserPreferences>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { setFavorite, setRating } = useFavoriteActions();
 
   useEffect(() => {
     if (!id) return;
@@ -55,13 +61,66 @@ export function Artist() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const handleFavorite = async (starred: boolean) => {
+    if (!artist) return;
+    try {
+      await setFavorite('artist', artist.id, starred);
+      setArtist((prev) => (prev ? { ...prev, starred } : prev));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+    }
+  };
+
+  const handleRate = async (rating?: number) => {
+    if (!artist) return;
+    try {
+      await setRating('artist', artist.id, rating);
+      setArtist((prev) => (prev ? { ...prev, rating } : prev));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update rating');
+    }
+  };
+
   if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
   if (error) return <p className="text-sm text-danger">{error}</p>;
   if (!artist) return <p className="text-sm text-gray-500">Artist not found.</p>;
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-semibold">{artist.name}</h2>
+      <div className="mb-4 flex items-center gap-3">
+        <h2 className="text-lg font-semibold">{artist.name}</h2>
+        <button
+          type="button"
+          onClick={() => handleFavorite(!artist.starred)}
+          aria-label={artist.starred ? 'Remove favorite' : 'Add favorite'}
+          title={artist.starred ? 'Remove favorite' : 'Add favorite'}
+          className={cn(
+            'rounded p-1 transition hover:bg-surface-hover',
+            artist.starred ? 'text-accent' : 'text-muted hover:text-accent',
+          )}
+        >
+          <Icon name={artist.starred ? 'mdi-heart' : 'mdi-heart-outline'} size={20} />
+        </button>
+        <span className="inline-flex items-center gap-0.5">
+          {[1, 2, 3, 4, 5].map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => handleRate(value === artist.rating ? undefined : value)}
+              aria-label={`Rate ${value} stars`}
+              className={cn(
+                'rounded p-0.5 transition hover:bg-surface-hover',
+                value <= (artist.rating ?? 0) ? 'text-accent' : 'text-muted hover:text-accent/70',
+              )}
+            >
+              <Icon
+                name={value <= (artist.rating ?? 0) ? 'mdi-star' : 'mdi-star-outline'}
+                size={18}
+              />
+            </button>
+          ))}
+        </span>
+      </div>
       <h3 className="mb-2 text-sm font-medium text-gray-500">Albums</h3>
       <ul className="divide-y divide-gray-100">
         {artist.albums.map((album) => {

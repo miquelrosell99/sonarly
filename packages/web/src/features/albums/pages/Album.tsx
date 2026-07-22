@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'wouter';
 import type { UserPreferences } from '@sonarly/shared';
 import { api } from '../../../api.js';
+import { cn } from '../../../lib/cn.js';
 import { Button } from '../../../components/ui/Button.js';
+import { Icon } from '../../../components/ui/Icon.js';
 import { TagEditor } from '../../songs/index.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
+import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 
 interface Song {
   id: string;
@@ -24,6 +27,8 @@ interface Album {
   genre?: string;
   totalSongCount?: number;
   shownSongCount?: number;
+  starred?: boolean;
+  rating?: number;
 }
 
 interface AlbumDetail {
@@ -38,6 +43,7 @@ export function Album() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
+  const { setFavorite, setRating } = useFavoriteActions();
 
   const load = () => {
     if (!id) return;
@@ -60,6 +66,30 @@ export function Album() {
 
   const blurExplicitTitles = preferences.blurExplicitTitles === true;
   const blurExplicitCovers = preferences.blurExplicitCovers === true;
+
+  const handleFavorite = async (starred: boolean) => {
+    if (!detail) return;
+    try {
+      await setFavorite('album', detail.album.id, starred);
+      setDetail((prev) =>
+        prev ? { ...prev, album: { ...prev.album, starred } } : prev,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+    }
+  };
+
+  const handleRate = async (rating?: number) => {
+    if (!detail) return;
+    try {
+      await setRating('album', detail.album.id, rating);
+      setDetail((prev) =>
+        prev ? { ...prev, album: { ...prev.album, rating } } : prev,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update rating');
+    }
+  };
 
   const columns: TableColumn<Song>[] = [
     { key: 'track', header: '#', className: 'w-12', render: (s) => s.trackNumber ?? '-' },
@@ -107,9 +137,42 @@ export function Album() {
   return (
     <div>
       <div className="mb-4">
-        <h2 className={`text-lg font-semibold ${blurExplicitCovers && hasFilteredSongs ? 'blur-sm' : ''}`}>
-          {detail.album.name}
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className={`text-lg font-semibold ${blurExplicitCovers && hasFilteredSongs ? 'blur-sm' : ''}`}>
+            {detail.album.name}
+          </h2>
+          <button
+            type="button"
+            onClick={() => handleFavorite(!detail.album.starred)}
+            aria-label={detail.album.starred ? 'Remove favorite' : 'Add favorite'}
+            title={detail.album.starred ? 'Remove favorite' : 'Add favorite'}
+            className={cn(
+              'rounded p-1 transition hover:bg-surface-hover',
+              detail.album.starred ? 'text-accent' : 'text-muted hover:text-accent',
+            )}
+          >
+            <Icon name={detail.album.starred ? 'mdi-heart' : 'mdi-heart-outline'} size={20} />
+          </button>
+          <span className="inline-flex items-center gap-0.5">
+            {[1, 2, 3, 4, 5].map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => handleRate(value === detail.album.rating ? undefined : value)}
+                aria-label={`Rate ${value} stars`}
+                className={cn(
+                  'rounded p-0.5 transition hover:bg-surface-hover',
+                  value <= (detail.album.rating ?? 0) ? 'text-accent' : 'text-muted hover:text-accent/70',
+                )}
+              >
+                <Icon
+                  name={value <= (detail.album.rating ?? 0) ? 'mdi-star' : 'mdi-star-outline'}
+                  size={18}
+                />
+              </button>
+            ))}
+          </span>
+        </div>
         <p className="text-sm text-gray-500">
           {detail.album.artistId ? (
             <Link href={`/artists/${detail.album.artistId}`} className="hover:text-muted">
