@@ -1,5 +1,5 @@
 import { useLocation, useSearch } from 'wouter';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { User } from '@sonarly/shared';
 import { api } from '../api.js';
 import { ProfileModal } from '../features/profile/index.js';
@@ -49,15 +49,23 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
   const { data: playlists } = usePlaylists();
   const { themeMode, accentColor, setThemeMode, setAccentColor } = useTheme();
 
+  const themeModeRef = useRef(themeMode);
+  const accentColorRef = useRef(accentColor);
+
+  useEffect(() => {
+    themeModeRef.current = themeMode;
+    accentColorRef.current = accentColor;
+  });
+
   useEffect(() => {
     if (!preferences) return;
-    if (preferences.themeMode && preferences.themeMode !== themeMode) {
+    if (preferences.themeMode && preferences.themeMode !== themeModeRef.current) {
       setThemeMode(preferences.themeMode);
     }
-    if (preferences.accentColor && preferences.accentColor !== accentColor) {
+    if (preferences.accentColor && preferences.accentColor !== accentColorRef.current) {
       setAccentColor(preferences.accentColor);
     }
-  }, [preferences, themeMode, accentColor, setThemeMode, setAccentColor]);
+  }, [preferences, setThemeMode, setAccentColor]);
 
   const handleLogout = async () => {
     try {
