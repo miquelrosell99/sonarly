@@ -172,9 +172,9 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
     const entries = fetchPlaylistSongs(db, songIds);
     const visibleEntries = hideExplicit ? entries.filter((s) => !(s as { explicit?: boolean }).explicit) : entries;
 
-    const interactionRow = effectiveUserId
+    const interactionRow = userId
       ? (db.prepare('SELECT starred, rating FROM user_playlists WHERE user_id = ? AND playlist_id = ?')
-        .get(effectiveUserId, id) as { starred: number | null; rating: number | null } | undefined)
+        .get(userId, id) as { starred: number | null; rating: number | null } | undefined)
       : undefined;
 
     reply.send({
