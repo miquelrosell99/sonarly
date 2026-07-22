@@ -39,7 +39,7 @@ export function Users() {
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-semibold">Users</h2>
+      <h3 className="mb-4 text-base font-medium">Users</h3>
       <div className="space-y-3 border border-gray-200 p-4">
         <Input
           placeholder="Username"
