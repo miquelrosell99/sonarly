@@ -155,10 +155,13 @@ export function SearchBox() {
       list.push(item);
       map.set(item.groupLabel, list);
     });
-    return map;
+    let startIndex = 0;
+    return Array.from(map.entries()).map(([groupLabel, groupItems]) => {
+      const groupStartIndex = startIndex;
+      startIndex += groupItems.length;
+      return { groupLabel, groupItems, startIndex: groupStartIndex };
+    });
   }, [items]);
-
-  let runningIndex = 0;
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -191,14 +194,14 @@ export function SearchBox() {
           {items.length === 0 ? (
             <p className="px-4 py-2 text-sm text-muted">No results found.</p>
           ) : (
-            Array.from(grouped.entries()).map(([groupLabel, groupItems]) => (
+            grouped.map(({ groupLabel, groupItems, startIndex }) => (
               <div key={groupLabel} role="group" aria-label={groupLabel}>
                 <p className="px-4 py-1 text-xs font-semibold uppercase tracking-wider text-muted">
                   {groupLabel}
                 </p>
                 <ul>
-                  {groupItems.map((item) => {
-                    const index = runningIndex++;
+                  {groupItems.map((item, localIndex) => {
+                    const index = startIndex + localIndex;
                     const isHighlighted = index === highlightedIndex;
                     return (
                       <li key={item.id}>
