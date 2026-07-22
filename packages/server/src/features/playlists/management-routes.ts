@@ -1,14 +1,18 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
-import type { Playlist, PlaylistVisibility } from '@sonarly/shared';
+import type { Playlist, PlaylistVisibility, SmartPlaylistRules } from '@sonarly/shared';
+import { isSmartPlaylistRuleGroup } from '@sonarly/shared';
 import {
   getPlaylistById,
   createPlaylist,
   updatePlaylist,
   sharePlaylistWithUser,
   generateShareToken,
+  resolvePlaylistSongIds,
+  resolvePlaylistSongCount,
 } from '../playlists/index.js';
+import { getUserPreferences } from '../user-preferences/index.js';
 
 const VISIBILITIES: PlaylistVisibility[] = ['private', 'shared', 'public', 'link'];
 
@@ -45,9 +49,12 @@ interface PlaylistListRow {
   owner_username: string;
   visibility: PlaylistVisibility;
   share_token: string | null;
+  is_smart: number;
   created_at: string;
   updated_at: string;
   song_count: number;
+  starred: number | null;
+  rating: number | null;
 }
 
 interface PlaylistSongRow {
@@ -58,6 +65,7 @@ interface PlaylistSongRow {
   duration: number | null;
   genre: string | null;
   year: number | null;
+  explicit: number;
   mtime: number;
   album_name: string | null;
   artist_name: string | null;
@@ -85,11 +93,21 @@ function fetchPlaylistSongs(db: Database.Database, songIds: string[]): Record<st
       discNumber: song.disc_number,
       genre: song.genre,
       year: song.year,
+      explicit: song.explicit === 1,
       duration: song.duration,
       type: 'music',
       isDir: false,
       created: new Date(song.mtime).toISOString(),
     }));
+}
+
+function serializeRules(rules: unknown): SmartPlaylistRules | undefined {
+  if (!rules || typeof rules !== 'object') return undefined;
+  const r = rules as SmartPlaylistRules;
+  if (r.rules && !isSmartPlaylistRuleGroup(r.rules)) {
+    throw new Error('Invalid rules group');
+  }
+  return r;
 }
 
 export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Database.Database): void {
@@ -103,30 +121,41 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
         u.username AS owner_username,
         p.visibility,
         p.share_token,
+        p.is_smart,
         p.created_at,
         p.updated_at,
-        (SELECT COUNT(*) FROM playlist_songs ps WHERE ps.playlist_id = p.id) AS song_count
+        (SELECT COUNT(*) FROM playlist_songs ps WHERE ps.playlist_id = p.id) AS song_count,
+        up.starred,
+        up.rating
       FROM playlists p
       JOIN users u ON u.id = p.owner_id
+      LEFT JOIN user_playlists up ON up.user_id = ? AND up.playlist_id = p.id
       WHERE p.owner_id = ?
          OR p.visibility IN ('public', 'link')
          OR EXISTS (SELECT 1 FROM playlist_shares ps WHERE ps.playlist_id = p.id AND ps.user_id = ?)
       ORDER BY p.updated_at DESC
-    `).all(userId, userId) as PlaylistListRow[];
+    `).all(userId, userId, userId) as PlaylistListRow[];
 
-    reply.send({
-      playlists: rows.map((r) => ({
+    const playlists = rows.map((r) => {
+      const isSmart = r.is_smart === 1;
+      const base = getPlaylistById(db, r.id)!;
+      return {
         id: r.id,
         name: r.name,
         ownerId: r.owner_id,
         ownerUsername: r.owner_username,
         visibility: r.visibility,
         shareToken: r.owner_id === userId ? (r.share_token ?? undefined) : undefined,
-        songCount: r.song_count,
+        isSmart,
+        songCount: isSmart ? resolvePlaylistSongCount(db, base, userId) : r.song_count,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
-      })),
+        starred: r.starred === 1,
+        rating: r.rating ?? undefined,
+      };
     });
+
+    reply.send({ playlists });
   });
 
   app.get('/api/playlists/:id', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -137,10 +166,24 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
     if (!playlist) return reply.status(404).send({ error: 'Playlist not found' });
     if (!canViewPlaylist(db, playlist, userId, shareToken)) return reply.status(403).send({ error: 'Forbidden' });
 
+    const effectiveUserId = userId ?? playlist.ownerId;
+    const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
+    const songIds = resolvePlaylistSongIds(db, playlist, effectiveUserId);
+    const entries = fetchPlaylistSongs(db, songIds);
+    const visibleEntries = hideExplicit ? entries.filter((s) => !(s as { explicit?: boolean }).explicit) : entries;
+
+    const interactionRow = effectiveUserId
+      ? (db.prepare('SELECT starred, rating FROM user_playlists WHERE user_id = ? AND playlist_id = ?')
+        .get(effectiveUserId, id) as { starred: number | null; rating: number | null } | undefined)
+      : undefined;
+
     reply.send({
       playlist: {
         ...playlist,
-        entries: fetchPlaylistSongs(db, playlist.songIds),
+        songCount: visibleEntries.length,
+        entries: visibleEntries,
+        starred: interactionRow?.starred === 1,
+        rating: interactionRow?.rating ?? undefined,
       },
     });
   });
@@ -151,12 +194,21 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       name: string;
       visibility?: PlaylistVisibility;
       songIds?: string[];
+      isSmart?: boolean;
+      rules?: SmartPlaylistRules;
     };
     if (typeof body.name !== 'string' || body.name.length === 0) {
       return reply.status(400).send({ error: 'Name is required' });
     }
     const visibility = isVisibility(body.visibility) ? body.visibility : 'private';
-    const songIds = Array.isArray(body.songIds) ? body.songIds : [];
+    const isSmart = body.isSmart === true;
+    let rules: SmartPlaylistRules | undefined;
+    try {
+      rules = isSmart ? serializeRules(body.rules) : undefined;
+    } catch {
+      return reply.status(400).send({ error: 'Invalid rules' });
+    }
+    const songIds = isSmart ? [] : Array.isArray(body.songIds) ? body.songIds : [];
     const now = new Date().toISOString();
     const playlist: Playlist = {
       id: randomUUID(),
@@ -165,6 +217,8 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       visibility,
       shareToken: visibility === 'link' ? generateShareToken() : undefined,
       songIds,
+      isSmart,
+      rules,
       createdAt: now,
       updatedAt: now,
     };
@@ -183,7 +237,21 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       name: string;
       visibility: PlaylistVisibility;
       songIds: string[];
+      rules: SmartPlaylistRules;
     }>;
+
+    if (existing.isSmart && body.songIds !== undefined) {
+      return reply.status(400).send({ error: 'Cannot manually edit songs of a smart playlist' });
+    }
+
+    let rules = existing.rules;
+    if (existing.isSmart && body.rules !== undefined) {
+      try {
+        rules = serializeRules(body.rules);
+      } catch {
+        return reply.status(400).send({ error: 'Invalid rules' });
+      }
+    }
 
     const visibility = isVisibility(body.visibility) ? body.visibility : existing.visibility;
     let shareToken = existing.shareToken;
@@ -199,6 +267,7 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       visibility,
       shareToken,
       songIds: Array.isArray(body.songIds) ? body.songIds : existing.songIds,
+      rules,
       updatedAt: new Date().toISOString(),
     };
     updatePlaylist(db, updated);
