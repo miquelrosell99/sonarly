@@ -1,19 +1,21 @@
 import { Router, Route, useLocation } from 'wouter';
 import { useEffect, useState } from 'react';
+import type { User } from '@sonarly/shared';
 import { Layout } from './components/Layout.js';
-import { Login } from './pages/Login.js';
-import { Setup } from './pages/Setup.js';
-import { Library } from './pages/Library.js';
-import { Songs } from './pages/Songs.js';
-import { Playlists } from './pages/Playlists.js';
-import { PlaylistDetail } from './pages/PlaylistDetail.js';
-import { Ingest } from './pages/Ingest.js';
-import { Organize } from './pages/Organize.js';
-import { Users } from './pages/Users.js';
-import { Settings } from './pages/Settings.js';
-import { SettingsMedia } from './pages/SettingsMedia.js';
-import { Artist } from './pages/Artist.js';
-import { Album } from './pages/Album.js';
+import { Login } from './features/auth/index.js';
+import { Setup } from './features/setup/index.js';
+import { Library } from './features/library/index.js';
+import { Songs } from './features/songs/index.js';
+import { Playlists } from './features/playlists/index.js';
+import { PlaylistDetail } from './features/playlists/index.js';
+import { Organize } from './features/organize/index.js';
+import { Admin } from './features/admin/index.js';
+import { SettingsMedia } from './features/settings/index.js';
+import { SettingsIngest } from './features/settings/index.js';
+import { SettingsConflicts } from './features/settings/index.js';
+import { SettingsProfile } from './features/settings/index.js';
+import { Artist } from './features/artists/index.js';
+import { Album } from './features/albums/index.js';
 import { api } from './api.js';
 
 function Redirect({ to }: { to: string }) {
@@ -25,13 +27,13 @@ function Redirect({ to }: { to: string }) {
 }
 
 export default function App() {
-  const [user, setUser] = useState<{ username: string; isAdmin: boolean } | null | undefined>(undefined);
+  const [user, setUser] = useState<User | null | undefined>(undefined);
   const [needsSetup, setNeedsSetup] = useState<boolean | undefined>(undefined);
 
   useEffect(() => {
     Promise.all([
       api<{ needsSetup: boolean }>('/setup').catch(() => ({ needsSetup: false })),
-      api<{ user: { username: string; isAdmin: boolean } }>('/me').catch(() => null),
+      api<{ user: User }>('/me').catch(() => null),
     ]).then(([setup, me]) => {
       setNeedsSetup(setup.needsSetup);
       setUser(me?.user ?? null);
@@ -62,21 +64,19 @@ export default function App() {
 
   return (
     <Router>
-      <Layout user={user}>
+      <Layout user={user} onUserChange={setUser}>
         <Route path="/" component={Library} />
-        <Route path="/songs" component={Songs} />
+        <Route path="/songs" component={() => <Songs user={user} />} />
         <Route path="/playlists" component={Playlists} />
         <Route path="/playlists/:id" component={PlaylistDetail} />
-        <Route path="/ingest" component={Ingest} />
         <Route path="/organize" component={Organize} />
-        <Route path="/settings" component={() => <Redirect to="/settings/media" />} />
-        <Route path="/settings/media" component={() => (
-          <Settings><SettingsMedia /></Settings>
-        )} />
-        <Route path="/settings/users" component={() => (
-          <Settings><Users /></Settings>
-        )} />
-        <Route path="/users" component={() => <Redirect to="/settings/users" />} />
+        <Route path="/admin" component={() => <Admin user={user} />} />
+        <Route path="/settings" component={() => <Redirect to="/settings/profile" />} />
+        <Route path="/settings/media" component={SettingsMedia} />
+        <Route path="/settings/ingest" component={SettingsIngest} />
+        <Route path="/settings/profile" component={() => <SettingsProfile user={user} onUserChange={setUser} />} />
+        <Route path="/settings/conflicts" component={SettingsConflicts} />
+        <Route path="/users" component={() => <Redirect to="/admin" />} />
         <Route path="/artists/:id" component={Artist} />
         <Route path="/albums/:id" component={Album} />
         <Route path="*" component={() => <Redirect to="/" />} />

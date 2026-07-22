@@ -6,24 +6,35 @@ import Fastify from 'fastify';
 import cookie from '@fastify/cookie';
 import session from '@fastify/session';
 import fastifyStatic from '@fastify/static';
+import multipart from '@fastify/multipart';
 import type { Config, WorkerConfig } from './config.js';
 import type Database from 'better-sqlite3';
 import { getDb, closeDb } from './db/connection.js';
 import { migrate } from './db/migrate.js';
-import { startLibraryWatcher, startIngestWatcher } from './scanner/watcher.js';
-import { pushJob } from './scanner/queue.js';
-import { registerOpenSubsonicRoutes } from './opensubsonic/routes/system.js';
-import { createSessionStore } from './auth/session.js';
-import { registerAuthManagementRoutes } from './management/auth.js';
-import { registerSongManagementRoutes } from './management/songs.js';
-import { registerArtistManagementRoutes } from './management/artists.js';
-import { registerAlbumManagementRoutes } from './management/albums.js';
-import { registerPlaylistManagementRoutes } from './management/playlists.js';
-import { registerScanManagementRoutes } from './management/scan.js';
-import { registerIngestManagementRoutes } from './management/ingest.js';
-import { registerOrganizeManagementRoutes } from './management/organize.js';
-import { registerUserManagementRoutes } from './management/users.js';
-import { registerSettingsManagementRoutes } from './management/settings.js';
+import {
+  startLibraryWatcher,
+  startIngestWatcher,
+  pushJob,
+} from './features/library/index.js';
+import { registerOpenSubsonicRoutes } from './features/opensubsonic/index.js';
+import { createSessionStore } from './features/auth/index.js';
+import {
+  registerAuthManagementRoutes,
+  registerProfileManagementRoutes,
+  registerAdminRoutes,
+} from './features/users/index.js';
+import { registerSongManagementRoutes } from './features/songs/index.js';
+import { registerArtistManagementRoutes } from './features/artists/index.js';
+import { registerAlbumManagementRoutes } from './features/albums/index.js';
+import { registerPlaylistManagementRoutes } from './features/playlists/index.js';
+import { registerScanManagementRoutes } from './features/library/index.js';
+import {
+  registerIngestManagementRoutes,
+  registerOrganizeManagementRoutes,
+} from './features/ingest/index.js';
+import { registerSettingsManagementRoutes } from './features/settings/index.js';
+import { registerConflictManagementRoutes } from './features/conflicts/index.js';
+import { registerSuggestionRoutes } from './features/suggestions/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -33,9 +44,9 @@ function isTsxRuntime(): boolean {
 
 function resolveWorkerPath(): string {
   const candidates = [
-    ...(isTsxRuntime() ? [join(__dirname, 'scanner', 'worker.ts')] : []),
-    join(__dirname, 'scanner', 'worker.js'),
-    join(__dirname, '..', 'dist', 'scanner', 'worker.js'),
+    ...(isTsxRuntime() ? [join(__dirname, 'features', 'library', 'worker.ts')] : []),
+    join(__dirname, 'features', 'library', 'worker.js'),
+    join(__dirname, '..', 'dist', 'features', 'library', 'worker.js'),
   ];
   for (const candidate of candidates) {
     if (existsSync(candidate)) return candidate;
@@ -61,6 +72,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
     INGEST_PATH: config.INGEST_PATH,
     ORGANIZE_PATTERN: config.ORGANIZE_PATTERN,
     SCAN_INTERVAL_MINUTES: config.SCAN_INTERVAL_MINUTES,
+    REVIEW_RETENTION_DAYS: config.REVIEW_RETENTION_DAYS,
     WATCHER_USE_POLLING: config.WATCHER_USE_POLLING,
     PUID: config.PUID,
     PGID: config.PGID,
@@ -89,14 +101,15 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
     },
     store: createSessionStore(db),
   });
+  await app.register(multipart, { limits: { fileSize: 2 * 1024 * 1024 } });
 
   await registerOpenSubsonicRoutes(app, config, db);
 
   app.addHook('preHandler', async (request, reply) => {
     const url = request.raw.url ?? '';
     if (!url.startsWith('/api/')) return;
-    const exempt = ['/api/login', '/api/logout', '/api/setup', '/api/me'];
-    if (exempt.some((p) => url === p || url.startsWith(`${p}?`))) return;
+    const exempt = ['/api/login', '/api/logout', '/api/setup', '/api/me', '/api/avatars'];
+    if (exempt.some((p) => url === p || url.startsWith(`${p}/`) || url.startsWith(`${p}?`))) return;
 
     if (request.method === 'GET' && request.routeOptions.url === '/api/playlists/:id') {
       const { shareToken } = request.query as { shareToken?: string };
@@ -110,15 +123,18 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   });
 
   registerAuthManagementRoutes(app, db, config.SESSION_SECRET);
-  registerSongManagementRoutes(app, db);
+  registerProfileManagementRoutes(app, db, config);
+  registerSongManagementRoutes(app, config, db);
   registerArtistManagementRoutes(app, db);
-  registerAlbumManagementRoutes(app, db);
+  registerAlbumManagementRoutes(app, config, db);
   registerPlaylistManagementRoutes(app, db);
   registerScanManagementRoutes(app, config, db);
   registerIngestManagementRoutes(app, db);
   registerOrganizeManagementRoutes(app, config, db);
-  registerUserManagementRoutes(app, db, config.SESSION_SECRET);
+  registerAdminRoutes(app, db, config.SESSION_SECRET);
   registerSettingsManagementRoutes(app, config, db);
+  registerConflictManagementRoutes(app, db);
+  registerSuggestionRoutes(app, db);
 
   const webDist = join(__dirname, '..', 'web-dist');
   if (existsSync(webDist)) {

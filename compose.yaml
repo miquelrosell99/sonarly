@@ -1,0 +1,25 @@
+services:
+  sonarly:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.server
+    container_name: sonarly
+    ports:
+      - "${SONARLY_PORT:-4533}:3000"
+    volumes:
+      - ./config/sonarly/data:/data/db
+      - ./config/sonarly/library:/data/library
+      - ./config/sonarly/ingest:/data/ingest
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET is required}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-false}
+      - DATA_DIR=/data/db
+      - LIBRARY_PATH=/data/library
+      - INGEST_PATH=/data/ingest
+      - SCAN_INTERVAL_MINUTES=60
+      - WATCHER_USE_POLLING=${WATCHER_USE_POLLING:-false}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+    restart: unless-stopped
