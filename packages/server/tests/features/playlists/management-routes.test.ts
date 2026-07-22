@@ -93,6 +93,7 @@ describe('management playlist endpoints', () => {
   let app: Awaited<ReturnType<typeof buildApp>>;
   let ownerCookie: string;
   let friendCookie: string;
+  let db: Database.Database;
 
   beforeEach(async () => {
     root = join(tmpdir(), `sonarly-management-playlists-${Date.now()}`);
@@ -106,7 +107,7 @@ describe('management playlist endpoints', () => {
     mkdirSync(config.LIBRARY_PATH, { recursive: true });
     mkdirSync(config.INGEST_PATH, { recursive: true });
 
-    const db = new Database(join(root, 'sonarly.db'));
+    db = new Database(join(root, 'sonarly.db'));
     migrate(db);
     await seedDb(db);
 
@@ -358,6 +359,28 @@ describe('management playlist endpoints', () => {
     });
     expect(withToken.statusCode).toBe(200);
     expect(JSON.parse(withToken.body).playlist.name).toBe('Link');
+  });
+
+  it('does not leak owner interactions to anonymous share-token viewers', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/playlists',
+      cookies: { sessionId: ownerCookie },
+      payload: { name: 'Link', visibility: 'link', songIds: ['song-1'] },
+    });
+    const { id, shareToken } = JSON.parse(create.body).playlist;
+
+    db.prepare('INSERT INTO user_playlists (user_id, playlist_id, starred, rating) VALUES (?, ?, ?, ?)')
+      .run('owner-1', id, 1, 5);
+
+    const withToken = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}?shareToken=${shareToken}`,
+    });
+    expect(withToken.statusCode).toBe(200);
+    const body = JSON.parse(withToken.body).playlist;
+    expect(body.starred).toBe(false);
+    expect(body.rating).toBeUndefined();
   });
 
   it('clears the share token when visibility is changed away from link', async () => {
