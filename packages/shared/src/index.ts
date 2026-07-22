@@ -4,3 +4,7 @@ export * from './artist.js';
 export * from './user.js';
 export * from './playlist.js';
 export * from './ingest.js';
+export * from './smart-playlist.js';
+export * from './preferences.js';
+export * from './favorite.js';
+export * from './player.js';

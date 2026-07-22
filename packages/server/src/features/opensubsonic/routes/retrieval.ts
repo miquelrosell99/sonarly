@@ -5,12 +5,15 @@ import { lookup } from 'mime-types';
 import { parseFile } from 'music-metadata';
 import Database from 'better-sqlite3';
 import { getSongById } from '../../songs/index.js';
+import { recordStream } from '../../players/tracker.js';
 
 export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get('/rest/stream.view', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.query as { id: string };
     const song = getSongById(db, id);
     if (!song) return reply.status(404).send('Not found');
+
+    recordStream(db, request, song);
 
     const mime = lookup(song.filePath) || 'application/octet-stream';
     const { size } = statSync(song.filePath);
