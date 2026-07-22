@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/generate-mdi-sprite.js mdi-play mdi-pause mdi-skip-next mdi-skip-previous mdi-repeat mdi-repeat-once mdi-shuffle mdi-volume-high mdi-volume-mute mdi-filter-variant mdi-magnify mdi-chevron-down mdi-cog mdi-account mdi-heart mdi-heart-outline mdi-star mdi-star-outline mdi-star-half-full mdi-playlist-plus mdi-playlist-music mdi-playlist-play mdi-format-list-bulleted mdi-view-grid-outline mdi-dots-horizontal mdi-home mdi-album mdi-music mdi-account-music mdi-account-group mdi-tag mdi-cast-audio mdi-speaker mdi-close mdi-plus && tsc && vite build",
+    "build": "node scripts/generate-mdi-sprite.js mdi-play mdi-pause mdi-skip-next mdi-skip-previous mdi-repeat mdi-repeat-once mdi-shuffle mdi-volume-high mdi-volume-mute mdi-filter-variant mdi-magnify mdi-chevron-down mdi-cog mdi-account mdi-heart mdi-heart-outline mdi-star mdi-star-outline mdi-star-half-full mdi-playlist-plus mdi-playlist-music mdi-playlist-play mdi-format-list-bulleted mdi-view-grid-outline mdi-dots-horizontal mdi-home mdi-album mdi-music mdi-account-music mdi-account-group mdi-tag mdi-cast-audio mdi-speaker mdi-close mdi-plus mdi-logout && tsc && vite build",
     "preview": "vite preview",
     "test": "vitest --passWithNoTests --run"
   },
