@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { Config } from '../config.js';
+import { getOrganizePattern } from '../db/repositories/settings-repository.js';
 import { organizeExistingLibrary } from '../ingest/organize-existing.js';
 
 function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | undefined): boolean {
@@ -21,6 +22,6 @@ export function registerOrganizeManagementRoutes(app: FastifyInstance, config: C
   });
 
   app.get('/api/organize/preview', async (request: FastifyRequest, reply: FastifyReply) => {
-    reply.send({ pattern: config.ORGANIZE_PATTERN });
+    reply.send({ pattern: getOrganizePattern(db, config) });
   });
 }
