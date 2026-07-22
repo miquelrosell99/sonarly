@@ -7,6 +7,7 @@ import { usePlaylists } from '../hooks/usePlaylists.js';
 import { TopBar } from './TopBar.js';
 import { Sidebar } from './Sidebar.js';
 import { PlayerBar } from './PlayerBar.js';
+import { AudioController } from './AudioController.js';
 
 interface LayoutProps {
   user: User;
@@ -65,6 +66,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
       </div>
 
       <PlayerBar />
+      <AudioController />
 
       {isOpen && (
         <ProfileModal
