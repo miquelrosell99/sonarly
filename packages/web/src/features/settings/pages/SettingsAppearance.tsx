@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Settings } from '../components/Settings.js';
 import { useTheme } from '../../../stores/themeStore.js';
 import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferences.js';
@@ -27,15 +27,23 @@ export function SettingsAppearance() {
   const { data: preferences } = usePreferences();
   const updatePreferences = useUpdatePreferences();
 
+  const themeModeRef = useRef(themeMode);
+  const accentColorRef = useRef(accentColor);
+
+  useEffect(() => {
+    themeModeRef.current = themeMode;
+    accentColorRef.current = accentColor;
+  });
+
   useEffect(() => {
     if (!preferences) return;
-    if (preferences.themeMode && preferences.themeMode !== themeMode) {
+    if (preferences.themeMode && preferences.themeMode !== themeModeRef.current) {
       setThemeMode(preferences.themeMode);
     }
-    if (preferences.accentColor && preferences.accentColor !== accentColor) {
+    if (preferences.accentColor && preferences.accentColor !== accentColorRef.current) {
       setAccentColor(preferences.accentColor);
     }
-  }, [preferences, themeMode, accentColor, setThemeMode, setAccentColor]);
+  }, [preferences, setThemeMode, setAccentColor]);
 
   const handleThemeMode = (mode: ThemeMode) => {
     setThemeMode(mode);

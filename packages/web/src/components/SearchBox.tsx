@@ -38,6 +38,7 @@ interface ResultGroup<T> {
   items: T[];
   href: (item: T) => string;
   render: (item: T) => string;
+  id: (item: T) => string;
 }
 
 export function SearchBox() {
@@ -97,6 +98,7 @@ export function SearchBox() {
         items: data.songs,
         href: (item) => `/tracks/${(item as Song).id}`,
         render: (item) => (item as Song).title,
+        id: (item) => `song-${(item as Song).id}`,
       });
     }
     if (data.albums.length > 0) {
@@ -105,6 +107,7 @@ export function SearchBox() {
         items: data.albums,
         href: (item) => `/albums/${(item as Album).id}`,
         render: (item) => (item as Album).name,
+        id: (item) => `album-${(item as Album).id}`,
       });
     }
     if (data.artists.length > 0) {
@@ -113,6 +116,7 @@ export function SearchBox() {
         items: data.artists,
         href: (item) => `/artists/${(item as Artist).id}`,
         render: (item) => (item as Artist).name,
+        id: (item) => `artist-${(item as Artist).id}`,
       });
     }
     if (data.playlists.length > 0) {
@@ -121,6 +125,7 @@ export function SearchBox() {
         items: data.playlists,
         href: (item) => `/playlists/${(item as Playlist).id}`,
         render: (item) => (item as Playlist).name,
+        id: (item) => `playlist-${(item as Playlist).id}`,
       });
     }
   }
@@ -161,10 +166,10 @@ export function SearchBox() {
                   {group.label}
                 </p>
                 <ul>
-                  {group.items.map((item, index) => {
+                  {group.items.map((item) => {
                     const href = group.href(item);
                     return (
-                      <li key={index}>
+                      <li key={group.id(item)}>
                         <button
                           type="button"
                           onClick={() => navigate(href)}
