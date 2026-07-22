@@ -42,6 +42,7 @@ function Slider({
   onChange,
   disabled,
   className = '',
+  ariaLabel,
 }: {
   value: number;
   min: number;
@@ -50,6 +51,7 @@ function Slider({
   onChange: (value: number) => void;
   disabled?: boolean;
   className?: string;
+  ariaLabel?: string;
 }) {
   return (
     <input
@@ -59,6 +61,7 @@ function Slider({
       step={step}
       value={value}
       disabled={disabled}
+      aria-label={ariaLabel}
       onChange={(e) => onChange(parseFloat(e.target.value))}
       className={`h-1.5 w-full cursor-pointer appearance-none rounded bg-rule accent-accent transition disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     />
@@ -149,6 +152,7 @@ export function PlayerBar() {
             step={0.01}
             value={volume}
             onChange={setVolume}
+            ariaLabel="Volume"
             className="max-w-28"
           />
         </div>
