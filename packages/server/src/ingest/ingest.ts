@@ -1,12 +1,15 @@
-import { readdir, rename, mkdir, stat } from 'node:fs/promises';
+import { readdir, rename, mkdir, stat, rmdir } from 'node:fs/promises';
 import { extname, join, dirname, basename, parse } from 'node:path';
 import Database from 'better-sqlite3';
 import type { Config } from '../config.js';
 import { validateIngestFile } from './validator.js';
+import { getOrganizePattern } from '../db/repositories/settings-repository.js';
 import { buildTargetPath, moveToLibrary } from './organizer.js';
 import { createIngestJob, updateIngestJob } from './repository.js';
 
 const AUDIO_EXTS = new Set(['.mp3', '.flac', '.ogg', '.m4a']);
+const COMPANION_IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp']);
+const COMPANION_IMAGE_NAMES = new Set(['cover', 'folder', 'album', 'front', 'art']);
 
 export interface IngestStats extends Record<string, number> {
   processed: number;
@@ -20,8 +23,12 @@ export async function processIngestFolder(config: Config, db: Database.Database)
   const reviewDir = join(config.INGEST_PATH, 'review');
   await mkdir(reviewDir, { recursive: true });
 
+  const importedSourceDirs = new Map<string, string>();
+  const reviewSourceDirs = new Set<string>();
+
   for await (const filePath of walkIngestFiles(config.INGEST_PATH)) {
     stats.processed++;
+    const sourceDir = dirname(filePath);
     const jobId = createIngestJob(db, filePath);
     try {
       const validation = await validateIngestFile(filePath);
@@ -29,17 +36,46 @@ export async function processIngestFolder(config: Config, db: Database.Database)
         await moveToReview(filePath, reviewDir);
         updateIngestJob(db, jobId, 'needs_review', undefined, validation.reason);
         stats.needsReview++;
+        if (sourceDir !== config.INGEST_PATH && !importedSourceDirs.has(sourceDir)) {
+          reviewSourceDirs.add(sourceDir);
+        }
         continue;
       }
-      const targetPath = buildTargetPath(config.ORGANIZE_PATTERN, config.LIBRARY_PATH, validation.tags!, filePath);
+      const pattern = getOrganizePattern(db, config);
+      const targetPath = buildTargetPath(pattern, config.LIBRARY_PATH, validation.tags!, filePath);
       const finalPath = await moveToLibrary(filePath, targetPath);
       updateIngestJob(db, jobId, 'imported', finalPath);
       stats.imported++;
+      if (sourceDir !== config.INGEST_PATH) {
+        importedSourceDirs.set(sourceDir, dirname(finalPath));
+        reviewSourceDirs.delete(sourceDir);
+      }
     } catch (err) {
       updateIngestJob(db, jobId, 'failed', undefined, String(err));
       stats.failed++;
     }
   }
+
+  // Move companion cover art from imported album folders into the library.
+  for (const [sourceDir, targetDir] of importedSourceDirs) {
+    try {
+      await moveCompanionImages(sourceDir, targetDir);
+    } catch (err) {
+      console.error(`Failed to move companion images from ${sourceDir}`, err);
+    }
+  }
+
+  // Move companion cover art for folders where every audio file went to review.
+  for (const sourceDir of reviewSourceDirs) {
+    try {
+      await moveCompanionImages(sourceDir, reviewDir);
+    } catch (err) {
+      console.error(`Failed to move companion images from ${sourceDir} to review`, err);
+    }
+  }
+
+  // Remove empty directories left behind in the ingest folder.
+  await cleanupEmptyDirs(config.INGEST_PATH, config.INGEST_PATH, reviewDir);
 
   return stats;
 }
@@ -86,5 +122,50 @@ async function fileExists(path: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+async function moveCompanionImages(sourceDir: string, targetDir: string): Promise<void> {
+  await mkdir(targetDir, { recursive: true });
+  let entries;
+  try {
+    entries = await readdir(sourceDir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const ext = extname(entry.name).toLowerCase();
+    const base = parse(entry.name).name.toLowerCase();
+    if (COMPANION_IMAGE_EXTS.has(ext) && COMPANION_IMAGE_NAMES.has(base)) {
+      const sourcePath = join(sourceDir, entry.name);
+      const targetPath = join(targetDir, entry.name);
+      await moveToLibrary(sourcePath, targetPath);
+    }
+  }
+}
+
+async function cleanupEmptyDirs(dir: string, root: string, reviewDir: string): Promise<void> {
+  if (dir === root || dir === reviewDir) return;
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      await cleanupEmptyDirs(join(dir, entry.name), root, reviewDir);
+    }
+  }
+  try {
+    entries = await readdir(dir);
+  } catch {
+    return;
+  }
+  if (entries.length === 0) {
+    try {
+      await rmdir(dir);
+    } catch {}
   }
 }

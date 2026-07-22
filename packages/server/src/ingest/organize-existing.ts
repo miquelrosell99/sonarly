@@ -3,6 +3,7 @@ import { extname, join } from 'node:path';
 import Database from 'better-sqlite3';
 import type { Config } from '../config.js';
 import { getSongByPath } from '../db/repositories/song-repository.js';
+import { getOrganizePattern } from '../db/repositories/settings-repository.js';
 import { readTags } from '../tags/reader.js';
 import { buildTargetPath, moveToLibrary } from './organizer.js';
 
@@ -23,7 +24,8 @@ export async function organizeExistingLibrary(config: Config, db: Database.Datab
     try {
       const dbSong = getSongByPath(db, filePath);
       const meta = await readTags(filePath);
-      const targetPath = buildTargetPath(config.ORGANIZE_PATTERN, config.LIBRARY_PATH, meta.tags, filePath);
+      const pattern = getOrganizePattern(db, config);
+      const targetPath = buildTargetPath(pattern, config.LIBRARY_PATH, meta.tags, filePath);
 
       if (filePath === targetPath) {
         stats.skipped++;

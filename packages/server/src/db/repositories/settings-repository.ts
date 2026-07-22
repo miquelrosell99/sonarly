@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { Config } from '../config.js';
+import type { Config } from '../../config.js';
 
 export function getSetting(db: Database.Database, key: string): string | undefined {
   const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined;
