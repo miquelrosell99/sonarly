@@ -5,6 +5,7 @@ import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 import type { SmartPlaylistRules } from '@sonarly/shared';
 import { SmartPlaylistEditor } from '../components/SmartPlaylistEditor.js';
+import { useFilterParams } from '../../../hooks/useFilterParams.js';
 
 interface Playlist {
   id: string;
@@ -23,6 +24,7 @@ export function Playlists() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { get } = useFilterParams();
 
   const load = () => {
     setLoading(true);
@@ -60,6 +62,15 @@ export function Playlists() {
     }
   };
 
+  const owner = get('owner');
+  const visibility = get('visibility');
+
+  const filteredPlaylists = playlists.filter((p) => {
+    if (owner && p.ownerUsername !== owner) return false;
+    if (visibility && p.visibility !== visibility) return false;
+    return true;
+  });
+
   if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
 
   return (
@@ -91,7 +102,7 @@ export function Playlists() {
       </div>
       {error && <p className="mb-4 text-sm text-danger">{error}</p>}
       <ul className="divide-y divide-gray-100">
-        {playlists.map((p) => (
+        {filteredPlaylists.map((p) => (
           <li key={p.id}>
             <Link
               href={`/playlists/${p.id}`}
@@ -110,7 +121,7 @@ export function Playlists() {
           </li>
         ))}
       </ul>
-      {playlists.length === 0 && <p className="py-4 text-sm text-gray-500">No playlists found.</p>}
+      {filteredPlaylists.length === 0 && <p className="py-4 text-sm text-gray-500">No playlists match the current filters.</p>}
     </div>
   );
 }
