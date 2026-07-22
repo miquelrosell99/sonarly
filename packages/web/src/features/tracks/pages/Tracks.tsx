@@ -20,7 +20,7 @@ export function Tracks() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { playSong, playSongs } = usePlayActions();
+  const { playSong, shufflePlay } = usePlayActions();
 
   const load = () => {
     setLoading(true);
@@ -38,8 +38,8 @@ export function Tracks() {
     playSong(track);
   };
 
-  const handleShufflePlay = (track: Track) => {
-    playSongs([track], 0, true);
+  const handleShufflePlay = (tracks: Track[]) => {
+    shufflePlay(tracks);
   };
 
   const columns: LibraryViewColumn<Track>[] = [

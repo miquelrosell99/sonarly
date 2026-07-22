@@ -42,8 +42,8 @@ export function Genres() {
     }
   };
 
-  const shuffleGenre = (genre: string) => {
-    const matching = tracks.filter((t) => t.genre === genre);
+  const shuffleGenres = (selectedGenres: string[]) => {
+    const matching = tracks.filter((t) => selectedGenres.includes(t.genre ?? ''));
     if (matching.length > 0) {
       shufflePlay(matching);
     }
@@ -76,7 +76,7 @@ export function Genres() {
       getId={(genre) => genre}
       getHref={(genre) => `/genres/${encodeURIComponent(genre)}`}
       onPlay={playGenre}
-      onShufflePlay={shuffleGenre}
+      onShufflePlay={shuffleGenres}
       emptyMessage="No genres found."
     />
   );

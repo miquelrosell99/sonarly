@@ -27,7 +27,7 @@ interface LibraryViewProps<T> {
   getId: (item: T) => string;
   getHref: (item: T) => string;
   onPlay?: (item: T) => void;
-  onShufflePlay?: (item: T) => void;
+  onShufflePlay?: (data: T[]) => void;
   renderContextMenu?: (item: T) => ContextMenuItem[];
   emptyMessage?: string;
 }
@@ -62,7 +62,7 @@ export function LibraryView<T>({
     return (
       <div>
         <h2 className="mb-4 text-lg font-semibold">{title}</h2>
-        <p className="text-sm text-gray-500">Loading...</p>
+        <p className="text-sm text-muted">Loading...</p>
       </div>
     );
   }
@@ -80,7 +80,7 @@ export function LibraryView<T>({
     return (
       <div>
         <h2 className="mb-4 text-lg font-semibold">{title}</h2>
-        <p className="py-8 text-center text-sm text-gray-500">{emptyMessage}</p>
+        <p className="py-8 text-center text-sm text-muted">{emptyMessage}</p>
       </div>
     );
   }
@@ -88,7 +88,7 @@ export function LibraryView<T>({
   const renderList = () => (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
-        <thead className="border-b border-gray-200 text-gray-500">
+        <thead className="border-b border-rule text-muted">
           <tr>
             <th className="w-12 py-2 pr-4 font-medium">#</th>
             {columns.map((col) => (
@@ -98,7 +98,7 @@ export function LibraryView<T>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-rule">
           {data.map((item, index) => {
             const href = getHref(item);
             const contextItems = renderContextMenu ? renderContextMenu(item) : [];
@@ -141,9 +141,6 @@ export function LibraryView<T>({
           })}
         </tbody>
       </table>
-      {data.length === 0 && (
-        <div className="py-8 text-center text-sm text-gray-500">{emptyMessage}</div>
-      )}
     </div>
   );
 
@@ -153,10 +150,25 @@ export function LibraryView<T>({
         const href = getHref(item);
         const contextItems = renderContextMenu ? renderContextMenu(item) : [];
         const card = (
-          <Link
-            href={href}
-            className="group relative block overflow-hidden rounded-md border border-rule bg-surface p-3 transition hover:border-accent hover:bg-surface-hover"
-          >
+          <div className="group relative">
+            <Link
+              href={href}
+              className="block overflow-hidden rounded-md border border-rule bg-surface p-3 transition hover:border-accent hover:bg-surface-hover"
+            >
+              <div className="space-y-1">
+                {cardFields.map((field, idx) => (
+                  <div
+                    key={field.key}
+                    className={cn(
+                      'text-sm text-fg-primary',
+                      idx === 0 ? 'font-medium' : 'text-muted',
+                    )}
+                  >
+                    {field.render(item)}
+                  </div>
+                ))}
+              </div>
+            </Link>
             {onPlay && (
               <button
                 type="button"
@@ -165,32 +177,16 @@ export function LibraryView<T>({
                   e.stopPropagation();
                   onPlay(item);
                 }}
-                className="absolute right-2 top-2 z-10 hidden rounded-full bg-accent p-2 text-bg-primary shadow transition hover:bg-accent/90 focus-visible:outline-none group-hover:block"
+                className="pointer-events-auto absolute right-2 top-2 z-10 hidden rounded-full bg-accent p-2 text-bg-primary shadow transition hover:bg-accent/90 focus-visible:outline-none group-hover:block"
                 aria-label="Play"
               >
                 <Icon name="mdi-play" size={20} />
               </button>
             )}
-            <div className="space-y-1">
-              {cardFields.map((field, idx) => (
-                <div
-                  key={field.key}
-                  className={cn(
-                    'text-sm text-fg-primary',
-                    idx === 0 ? 'font-medium' : 'text-muted',
-                  )}
-                >
-                  {field.render(item)}
-                </div>
-              ))}
-            </div>
-          </Link>
+          </div>
         );
         return <ItemContextMenu key={getId(item)} items={contextItems}>{card}</ItemContextMenu>;
       })}
-      {data.length === 0 && (
-        <div className="col-span-full py-8 text-center text-sm text-gray-500">{emptyMessage}</div>
-      )}
     </div>
   );
 
@@ -198,29 +194,42 @@ export function LibraryView<T>({
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold">{title}</h2>
-        <div className="flex items-center rounded-md border border-rule bg-surface p-1">
-          <button
-            type="button"
-            aria-label="List view"
-            onClick={() => setViewMode('list')}
-            className={cn(
-              'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-              viewMode === 'list' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
-            )}
-          >
-            <Icon name="mdi-format-list-bulleted" size={20} />
-          </button>
-          <button
-            type="button"
-            aria-label="Grid view"
-            onClick={() => setViewMode('grid')}
-            className={cn(
-              'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-              viewMode === 'grid' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
-            )}
-          >
-            <Icon name="mdi-view-grid-outline" size={20} />
-          </button>
+        <div className="flex items-center gap-2">
+          {onShufflePlay && (
+            <button
+              type="button"
+              aria-label="Shuffle play"
+              onClick={() => onShufflePlay(data)}
+              disabled={data.length === 0}
+              className="inline-flex items-center rounded-md border border-rule bg-surface p-2 text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+            >
+              <Icon name="mdi-shuffle" size={20} />
+            </button>
+          )}
+          <div className="flex items-center rounded-md border border-rule bg-surface p-1">
+            <button
+              type="button"
+              aria-label="List view"
+              onClick={() => setViewMode('list')}
+              className={cn(
+                'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                viewMode === 'list' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
+              )}
+            >
+              <Icon name="mdi-format-list-bulleted" size={20} />
+            </button>
+            <button
+              type="button"
+              aria-label="Grid view"
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                viewMode === 'grid' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
+              )}
+            >
+              <Icon name="mdi-view-grid-outline" size={20} />
+            </button>
+          </div>
         </div>
       </div>
       {viewMode === 'list' ? renderList() : renderGrid()}
