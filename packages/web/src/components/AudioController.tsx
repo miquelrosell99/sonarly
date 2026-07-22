@@ -11,11 +11,9 @@ export function AudioController() {
   const currentSong = usePlayer((state) => state.currentSong);
   const status = usePlayer((state) => state.status);
   const volume = usePlayer((state) => state.volume);
-  const repeat = usePlayer((state) => state.repeat);
   const currentTime = usePlayer((state) => state.currentTime);
 
   const play = usePlayer((state) => state.play);
-  const pause = usePlayer((state) => state.pause);
   const setStatus = usePlayer((state) => state.setStatus);
   const setDuration = usePlayer((state) => state.setDuration);
   const setCurrentTime = usePlayer((state) => state.setCurrentTime);
@@ -30,9 +28,7 @@ export function AudioController() {
       setStatus('loading');
       audio.src = `/rest/stream.view?id=${currentSong.id}`;
       audio.load();
-      if (usePlayer.getState().status === 'playing') {
-        audio.play().catch(() => setStatus('error'));
-      }
+      audio.play().catch(() => setStatus('error'));
     } else {
       audio.removeAttribute('src');
       audio.load();
@@ -59,18 +55,14 @@ export function AudioController() {
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (audio) {
-      audio.loop = repeat === 'one';
-    }
-  }, [repeat]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
     if (!audio || !currentSong) return;
     if (Math.abs(audio.currentTime - currentTime) > 0.1) {
       audio.currentTime = currentTime;
+      if (status === 'playing' && audio.paused) {
+        audio.play().catch(() => setStatus('error'));
+      }
     }
-  }, [currentTime, currentSong?.id]);
+  }, [currentTime, currentSong?.id, status]);
 
   const handlePlay = () => {
     play();
@@ -78,10 +70,6 @@ export function AudioController() {
       api(`/songs/${currentSong.id}/scrobble`, { method: 'POST' }).catch(() => {});
       lastScrobbledRef.current = currentSong.id;
     }
-  };
-
-  const handlePause = () => {
-    pause();
   };
 
   const handleLoadedMetadata = () => {
@@ -115,7 +103,6 @@ export function AudioController() {
       onTimeUpdate={handleTimeUpdate}
       onEnded={handleEnded}
       onPlay={handlePlay}
-      onPause={handlePause}
       onError={handleError}
       className="hidden"
     />
