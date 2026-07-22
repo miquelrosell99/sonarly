@@ -1,4 +1,4 @@
-import { Worker } from 'node:worker_threads';
+import { Worker, type WorkerOptions } from 'node:worker_threads';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { existsSync } from 'node:fs';
@@ -23,6 +23,7 @@ import { registerScanManagementRoutes } from './management/scan.js';
 import { registerIngestManagementRoutes } from './management/ingest.js';
 import { registerOrganizeManagementRoutes } from './management/organize.js';
 import { registerUserManagementRoutes } from './management/users.js';
+import { registerSettingsManagementRoutes } from './management/settings.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -42,6 +43,14 @@ function resolveWorkerPath(): string {
   throw new Error('Scanner worker not found. Run `pnpm build` first.');
 }
 
+function createTsxWorkerScript(workerPath: string): string {
+  return `
+    import { register } from 'tsx/esm/api';
+    await register();
+    await import(${JSON.stringify(workerPath)});
+  `;
+}
+
 export async function buildApp(config: Config, providedDb?: Database.Database) {
   const db = providedDb ?? getDb(config);
   migrate(db);
@@ -56,7 +65,10 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
     PUID: config.PUID,
     PGID: config.PGID,
   };
-  const worker = new Worker(resolveWorkerPath(), { workerData: workerConfig });
+  const workerPath = resolveWorkerPath();
+  const worker = isTsxRuntime() && workerPath.endsWith('.ts')
+    ? new Worker(createTsxWorkerScript(workerPath), { eval: true, workerData: workerConfig })
+    : new Worker(workerPath, { workerData: workerConfig });
 
   pushJob(db, 'scan', config.LIBRARY_PATH);
 
@@ -106,9 +118,10 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   registerIngestManagementRoutes(app, db);
   registerOrganizeManagementRoutes(app, config, db);
   registerUserManagementRoutes(app, db, config.SESSION_SECRET);
+  registerSettingsManagementRoutes(app, config, db);
 
-  if (config.NODE_ENV === 'production') {
-    const webDist = join(__dirname, '..', 'web-dist');
+  const webDist = join(__dirname, '..', 'web-dist');
+  if (existsSync(webDist)) {
     await app.register(fastifyStatic, {
       root: webDist,
       prefix: '/',
@@ -116,13 +129,8 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
     });
 
     app.setNotFoundHandler((request, reply) => {
-      if (request.method === 'GET') {
-        const accept = Array.isArray(request.headers.accept)
-          ? request.headers.accept.join(',')
-          : (request.headers.accept ?? '');
-        if (accept.includes('text/html')) {
-          return reply.sendFile('index.html');
-        }
+      if (request.method === 'GET' && !request.url.startsWith('/api/') && !request.url.startsWith('/rest/')) {
+        return reply.sendFile('index.html');
       }
       return reply.status(404).send({ error: 'Not Found' });
     });
