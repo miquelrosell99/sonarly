@@ -4,6 +4,7 @@ import type { Song } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { useFilterParams } from '../../../hooks/useFilterParams.js';
 
 interface Track extends Song {
   artistName?: string;
@@ -21,6 +22,7 @@ export function Tracks() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { playSong, shufflePlay } = usePlayActions();
+  const { get } = useFilterParams();
 
   const load = () => {
     setLoading(true);
@@ -33,6 +35,24 @@ export function Tracks() {
   useEffect(() => {
     load();
   }, []);
+
+  const artist = get('artist');
+  const album = get('album');
+  const genre = get('genre');
+  const favorites = get('favorites');
+  const rating = get('rating');
+
+  const filteredTracks = tracks.filter((track) => {
+    if (artist && track.artistName !== artist) return false;
+    if (album && track.albumName !== album) return false;
+    if (genre && track.genre !== genre) return false;
+    if (favorites === 'true' && !track.starred) return false;
+    if (rating !== null && rating !== '') {
+      const r = Number(rating);
+      if (!Number.isNaN(r) && track.rating !== r) return false;
+    }
+    return true;
+  });
 
   const handlePlay = (track: Track) => {
     playSong(track);
@@ -71,7 +91,7 @@ export function Tracks() {
   return (
     <LibraryView
       title="Tracks"
-      data={tracks}
+      data={filteredTracks}
       isLoading={loading}
       error={error}
       columns={columns}
@@ -80,7 +100,7 @@ export function Tracks() {
       getHref={(track) => `/tracks/${track.id}`}
       onPlay={handlePlay}
       onShufflePlay={handleShufflePlay}
-      emptyMessage="No tracks found."
+      emptyMessage="No tracks match the current filters."
     />
   );
 }

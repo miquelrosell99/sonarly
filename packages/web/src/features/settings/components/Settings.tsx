@@ -2,6 +2,7 @@ import { Link, useLocation } from 'wouter';
 
 const sections = [
   { href: '/settings/profile', label: 'Profile' },
+  { href: '/settings/appearance', label: 'Appearance' },
   { href: '/settings/media', label: 'Media Management' },
   { href: '/settings/ingest', label: 'Ingest' },
   { href: '/settings/conflicts', label: 'Conflicts' },
