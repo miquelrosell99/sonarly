@@ -90,6 +90,7 @@ export function SearchBox() {
       const navigating = isOpen && items.length > 0;
 
       if (e.key === 'ArrowDown') {
+        if (!navigating && !inputFocused) return;
         e.preventDefault();
         if (!isOpen && debouncedQuery.length > 0) {
           setIsOpen(true);
