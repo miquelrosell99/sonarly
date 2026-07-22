@@ -45,7 +45,7 @@ export function FilterPanel({ filters }: FilterPanelProps) {
                 <select
                   id={`filter-${filter.key}`}
                   value={value}
-                  onChange={(e) => set(filter.key, e.target.value)}
+                  onChange={(e) => set(filter.key, e.target.value || null)}
                   className={cn('input appearance-none', !value && 'text-muted')}
                 >
                   <option value="">All</option>
