@@ -24,7 +24,7 @@ const DEFAULT_SIDEBAR_CONFIG: NonNullable<UserPreferences['sidebarConfig']> = {
 const LIBRARY_LINKS = [
   { id: 'home', href: '/', label: 'Home', icon: 'mdi-home' },
   { id: 'albums', href: '/albums', label: 'Albums', icon: 'mdi-album' },
-  { id: 'tracks', href: '/songs', label: 'Tracks', icon: 'mdi-music' },
+  { id: 'tracks', href: '/tracks', label: 'Tracks', icon: 'mdi-music' },
   { id: 'album-artists', href: '/album-artists', label: 'Album Artists', icon: 'mdi-account-music' },
   { id: 'artists', href: '/artists', label: 'Artists', icon: 'mdi-account-group' },
   { id: 'genres', href: '/genres', label: 'Genres', icon: 'mdi-tag' },

@@ -12,6 +12,7 @@ interface SongDetail {
   trackNumber?: number;
   year?: number;
   genre?: string;
+  explicit?: boolean;
 }
 
 interface TagForm {
@@ -40,6 +41,7 @@ export function TagEditor({
     year: '',
     genre: '',
   });
+  const [explicit, setExplicit] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +59,7 @@ export function TagEditor({
           year: s.year?.toString() ?? '',
           genre: s.genre ?? '',
         });
+        setExplicit(s.explicit ?? false);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load song'))
       .finally(() => setLoading(false));
@@ -89,6 +92,7 @@ export function TagEditor({
           trackNumber,
           year,
           genre: tags.genre || undefined,
+          explicit,
         }),
       });
       onSaved?.();
@@ -138,6 +142,14 @@ export function TagEditor({
                   />
                 ),
               )}
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={explicit}
+                  onChange={(e) => setExplicit(e.target.checked)}
+                />
+                Explicit content
+              </label>
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <Button variant="ghost" onClick={onClose} disabled={saving}>
