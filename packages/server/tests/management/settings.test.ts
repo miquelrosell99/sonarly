@@ -39,6 +39,7 @@ const baseConfig: Config = {
   INGEST_PATH: '/data/ingest',
   ORGANIZE_PATTERN: '{artist}/{album}/{track:00} - {title}{ext}',
   SCAN_INTERVAL_MINUTES: 60,
+  REVIEW_RETENTION_DAYS: 30,
   WATCHER_USE_POLLING: false,
   PUID: 1000,
   PGID: 1000,

@@ -17,6 +17,7 @@ const baseConfig: Config = {
   INGEST_PATH: '/data/ingest',
   ORGANIZE_PATTERN: '{artist}/{album}/{track:00} - {title}{ext}',
   SCAN_INTERVAL_MINUTES: 60,
+  REVIEW_RETENTION_DAYS: 30,
   WATCHER_USE_POLLING: false,
   PUID: 1000,
   PGID: 1000,
@@ -38,19 +39,19 @@ describe('settings repository', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('returns undefined for missing keys', () => {
-    expect(getSetting(db, 'missing')).toBeUndefined();
+  it('returns the default for missing keys', () => {
+    expect(getSetting(db, 'missing', 'default')).toBe('default');
   });
 
   it('stores and retrieves a value', () => {
     setSetting(db, 'organize_pattern', '{artist}/{title}{ext}');
-    expect(getSetting(db, 'organize_pattern')).toBe('{artist}/{title}{ext}');
+    expect(getSetting(db, 'organize_pattern', '')).toBe('{artist}/{title}{ext}');
   });
 
   it('overwrites existing values', () => {
     setSetting(db, 'organize_pattern', 'a');
     setSetting(db, 'organize_pattern', 'b');
-    expect(getSetting(db, 'organize_pattern')).toBe('b');
+    expect(getSetting(db, 'organize_pattern', '')).toBe('b');
   });
 
   it('falls back to config for organize pattern', () => {

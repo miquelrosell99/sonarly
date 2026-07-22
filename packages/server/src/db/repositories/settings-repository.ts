@@ -1,9 +1,9 @@
 import Database from 'better-sqlite3';
 import type { Config } from '../../config.js';
 
-export function getSetting(db: Database.Database, key: string): string | undefined {
-  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined;
-  return row?.value;
+export function getSetting(db: Database.Database, key: string, defaultValue: string): string {
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').pluck().get(key) as string | undefined;
+  return row ?? defaultValue;
 }
 
 export function setSetting(db: Database.Database, key: string, value: string): void {
@@ -12,6 +12,13 @@ export function setSetting(db: Database.Database, key: string, value: string): v
   ).run(key, value);
 }
 
+export function getReviewRetentionDays(db: Database.Database, defaultValue: number): number {
+  const raw = getSetting(db, 'review_retention_days', String(defaultValue));
+  const parsed = Number(raw);
+  if (Number.isNaN(parsed) || parsed < 1 || parsed > 365) return defaultValue;
+  return parsed;
+}
+
 export function getOrganizePattern(db: Database.Database, config: Config): string {
-  return getSetting(db, 'organize_pattern') ?? config.ORGANIZE_PATTERN;
+  return getSetting(db, 'organize_pattern', config.ORGANIZE_PATTERN);
 }
