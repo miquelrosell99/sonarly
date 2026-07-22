@@ -4,6 +4,76 @@ import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { ItemContextMenu, type ContextMenuItem } from './ItemContextMenu.js';
 
+interface FavoriteButtonProps {
+  starred?: boolean;
+  onClick: () => void;
+  label?: string;
+  className?: string;
+}
+
+function FavoriteButton({ starred, onClick, label, className }: FavoriteButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      aria-label={label ?? (starred ? 'Remove favorite' : 'Add favorite')}
+      title={label ?? (starred ? 'Remove favorite' : 'Add favorite')}
+      className={cn(
+        'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        starred ? 'text-accent' : 'text-muted hover:text-accent',
+        className,
+      )}
+    >
+      <Icon name={starred ? 'mdi-heart' : 'mdi-heart-outline'} size={18} />
+    </button>
+  );
+}
+
+interface StarRatingProps {
+  rating?: number;
+  onRate: (rating: number) => void;
+  className?: string;
+}
+
+function StarRating({ rating = 0, onRate, className }: StarRatingProps) {
+  const [hover, setHover] = useState<number | null>(null);
+  const display = hover ?? rating;
+
+  return (
+    <span
+      className={cn('inline-flex items-center gap-0.5', className)}
+      onMouseLeave={() => setHover(null)}
+      role="group"
+      aria-label="Rating"
+    >
+      {[1, 2, 3, 4, 5].map((value) => (
+        <button
+          key={value}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRate(value === rating ? 0 : value);
+          }}
+          onMouseEnter={() => setHover(value)}
+          aria-label={`Rate ${value} stars`}
+          className={cn(
+            'rounded p-0.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+            value <= display ? 'text-accent' : 'text-muted hover:text-accent/70',
+          )}
+        >
+          <Icon
+            name={value <= display ? 'mdi-star' : 'mdi-star-outline'}
+            size={16}
+          />
+        </button>
+      ))}
+    </span>
+  );
+}
+
 export interface LibraryViewColumn<T> {
   key: string;
   header: ReactNode;
@@ -28,6 +98,10 @@ interface LibraryViewProps<T> {
   getHref: (item: T) => string;
   onPlay?: (item: T) => void;
   onShufflePlay?: (data: T[]) => void;
+  onFavorite?: (item: T, starred: boolean) => void;
+  onRate?: (item: T, rating?: number) => void;
+  getFavorite?: (item: T) => boolean | undefined;
+  getRating?: (item: T) => number | undefined;
   renderContextMenu?: (item: T) => ContextMenuItem[];
   emptyMessage?: string;
 }
@@ -50,6 +124,10 @@ export function LibraryView<T>({
   getHref,
   onPlay,
   onShufflePlay,
+  onFavorite,
+  onRate,
+  getFavorite,
+  getRating,
   renderContextMenu,
   emptyMessage = 'No items found.',
 }: LibraryViewProps<T>) {
@@ -96,12 +174,16 @@ export function LibraryView<T>({
                 {col.header}
               </th>
             ))}
+            {onFavorite && <th className="w-10 py-2 pr-4 font-medium" aria-label="Favorite" />}
+            {onRate && <th className="w-32 py-2 pr-4 font-medium" aria-label="Rating" />}
           </tr>
         </thead>
         <tbody className="divide-y divide-rule">
           {data.map((item, index) => {
             const href = getHref(item);
             const contextItems = renderContextMenu ? renderContextMenu(item) : [];
+            const starred = getFavorite?.(item);
+            const rating = getRating?.(item);
             const row = (
               <tr
                 key={getId(item)}
@@ -135,6 +217,22 @@ export function LibraryView<T>({
                     {col.render(item)}
                   </td>
                 ))}
+                {onFavorite && (
+                  <td className="py-2 pr-4">
+                    <FavoriteButton
+                      starred={starred}
+                      onClick={() => onFavorite(item, !starred)}
+                    />
+                  </td>
+                )}
+                {onRate && (
+                  <td className="py-2 pr-4">
+                    <StarRating
+                      rating={rating}
+                      onRate={(value) => onRate(item, value || undefined)}
+                    />
+                  </td>
+                )}
               </tr>
             );
             return <ItemContextMenu key={getId(item)} items={contextItems}>{row}</ItemContextMenu>;
@@ -149,6 +247,8 @@ export function LibraryView<T>({
       {data.map((item) => {
         const href = getHref(item);
         const contextItems = renderContextMenu ? renderContextMenu(item) : [];
+        const starred = getFavorite?.(item);
+        const rating = getRating?.(item);
         const card = (
           <div className="group relative">
             <Link
@@ -169,6 +269,22 @@ export function LibraryView<T>({
                 ))}
               </div>
             </Link>
+            <div className="pointer-events-auto absolute right-2 top-2 z-10 flex flex-col gap-1">
+              {onFavorite && (
+                <FavoriteButton
+                  starred={starred}
+                  onClick={() => onFavorite(item, !starred)}
+                  className="bg-surface/80 shadow-sm"
+                />
+              )}
+              {onRate && (
+                <StarRating
+                  rating={rating}
+                  onRate={(value) => onRate(item, value || undefined)}
+                  className="rounded bg-surface/80 p-1 shadow-sm"
+                />
+              )}
+            </div>
             {onPlay && (
               <button
                 type="button"
@@ -177,7 +293,7 @@ export function LibraryView<T>({
                   e.stopPropagation();
                   onPlay(item);
                 }}
-                className="pointer-events-auto absolute right-2 top-2 z-10 hidden rounded-full bg-accent p-2 text-bg-primary shadow transition hover:bg-accent/90 focus-visible:outline-none group-hover:block"
+                className="pointer-events-auto absolute bottom-2 right-2 z-10 hidden rounded-full bg-accent p-2 text-bg-primary shadow transition hover:bg-accent/90 focus-visible:outline-none group-hover:block"
                 aria-label="Play"
               >
                 <Icon name="mdi-play" size={20} />

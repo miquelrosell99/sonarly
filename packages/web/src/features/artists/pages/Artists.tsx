@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import type { Artist, Song } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
+import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
 
 export function Artists() {
@@ -10,6 +11,7 @@ export function Artists() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
 
   const load = () => {
@@ -46,6 +48,28 @@ export function Artists() {
     ? artists.filter((artist) => artistGenres.get(artist.id)?.has(genre))
     : artists;
 
+  const handleFavorite = async (artist: Artist, starred: boolean) => {
+    try {
+      await setFavorite('artist', artist.id, starred);
+      setArtists((prev) =>
+        prev.map((a) => (a.id === artist.id ? { ...a, starred } : a)),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+    }
+  };
+
+  const handleRate = async (artist: Artist, rating?: number) => {
+    try {
+      await setRating('artist', artist.id, rating);
+      setArtists((prev) =>
+        prev.map((a) => (a.id === artist.id ? { ...a, rating } : a)),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update rating');
+    }
+  };
+
   const columns: LibraryViewColumn<Artist>[] = [
     {
       key: 'name',
@@ -72,6 +96,10 @@ export function Artists() {
       cardFields={cardFields}
       getId={(artist) => artist.id}
       getHref={(artist) => `/artists/${artist.id}`}
+      onFavorite={handleFavorite}
+      onRate={handleRate}
+      getFavorite={(artist) => artist.starred}
+      getRating={(artist) => artist.rating}
       emptyMessage="No artists match the current filters."
     />
   );
