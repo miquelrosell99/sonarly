@@ -23,6 +23,8 @@ interface PlayerState {
 interface PlayerActions {
   playNow: (song: PlayerSong) => void;
   playQueue: (songs: PlayerSong[], startIndex?: number, shuffle?: boolean) => void;
+  playNext: (song: PlayerSong) => void;
+  addToQueue: (songs: PlayerSong[]) => void;
   togglePlay: () => void;
   play: () => void;
   pause: () => void;
@@ -101,6 +103,34 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
           shuffle: nextShuffle,
           shuffledIndices,
         });
+      },
+
+      playNext: (song) => {
+        const { queue, queueIndex, shuffle, shuffledIndices } = get();
+        const insertAt = queueIndex + 1;
+        const nextQueue = [...queue.slice(0, insertAt), song, ...queue.slice(insertAt)];
+        let nextShuffled = shuffledIndices;
+        if (shuffle) {
+          const position = shuffledIndices.indexOf(queueIndex);
+          nextShuffled = [
+            ...shuffledIndices.slice(0, position + 1),
+            nextQueue.length - 1,
+            ...shuffledIndices.slice(position + 1).map((i) => (i >= insertAt ? i + 1 : i)),
+          ];
+        }
+        set({ queue: nextQueue, shuffledIndices: nextShuffled });
+      },
+
+      addToQueue: (songs) => {
+        const { queue, shuffle, shuffledIndices } = get();
+        const nextQueue = [...queue, ...songs];
+        let nextShuffled = shuffledIndices;
+        if (shuffle) {
+          const existingLength = queue.length;
+          const newIndices = songs.map((_, i) => existingLength + i);
+          nextShuffled = [...shuffledIndices, ...newIndices];
+        }
+        set({ queue: nextQueue, shuffledIndices: nextShuffled });
       },
 
       togglePlay: () => {
