@@ -44,22 +44,22 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white p-6">
+    <div className="flex min-h-screen items-center justify-center bg-bg-primary p-6">
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight">Welcome to Sonarly</h1>
-        <p className="text-sm text-gray-600">
+        <h1 className="text-2xl font-bold tracking-tight text-fg-primary">Welcome to Sonarly</h1>
+        <p className="text-sm text-muted">
           Create the admin account to get started.
         </p>
         {error && (
           <div
-            className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600"
+            className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500"
             role="alert"
           >
             {error}
           </div>
         )}
         <div>
-          <label htmlFor="username" className="mb-1 block text-sm font-medium text-gray-700">
+          <label htmlFor="username" className="mb-1 block text-sm font-medium text-fg-primary">
             Username
           </label>
           <Input
@@ -72,7 +72,7 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="name" className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="name" className="mb-1 block text-sm font-medium text-fg-primary">
               Name
             </label>
             <Input
@@ -83,7 +83,7 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
             />
           </div>
           <div>
-            <label htmlFor="surname" className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="surname" className="mb-1 block text-sm font-medium text-fg-primary">
               Surname
             </label>
             <Input
@@ -95,7 +95,7 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
           </div>
         </div>
         <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
+          <label htmlFor="email" className="mb-1 block text-sm font-medium text-fg-primary">
             Email
           </label>
           <Input
@@ -106,7 +106,7 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
           />
         </div>
         <div>
-          <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
+          <label htmlFor="password" className="mb-1 block text-sm font-medium text-fg-primary">
             Password
           </label>
           <Input
@@ -118,7 +118,7 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
           />
         </div>
         <div>
-          <label htmlFor="confirmPassword" className="mb-1 block text-sm font-medium text-gray-700">
+          <label htmlFor="confirmPassword" className="mb-1 block text-sm font-medium text-fg-primary">
             Confirm password
           </label>
           <Input

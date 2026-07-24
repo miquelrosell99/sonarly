@@ -3,7 +3,8 @@ import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import { unlink } from 'node:fs/promises';
 import type { SongTags } from '@sonarly/shared';
-import { getSongById, deleteSongByPath } from '../songs/index.js';
+import { getSongById, deleteSongByPath, scrobbleSong } from '../songs/index.js';
+import { getUserPreferences } from '../user-preferences/index.js';
 import { writeTags } from '../tags/index.js';
 import { organizeSongFile } from '../ingest/index.js';
 import type { Config } from '../../config.js';
@@ -17,6 +18,7 @@ const ALLOWED_TAG_KEYS = new Set<keyof SongTags>([
   'discNumber',
   'genre',
   'year',
+  'explicit',
 ]);
 
 export function validateSongTags(body: unknown): SongTags {
@@ -37,6 +39,9 @@ export function validateSongTags(body: unknown): SongTags {
   }
   if ('year' in input && !Number.isInteger(input.year)) {
     throw new Error('year must be an integer');
+  }
+  if ('explicit' in input && typeof input.explicit !== 'boolean') {
+    throw new Error('explicit must be a boolean');
   }
   return input as unknown as SongTags;
 }
@@ -65,11 +70,15 @@ interface SongDetailRow {
   album_id: string | null;
   genre: string | null;
   year: number | null;
-  cover_art: string | null;
+  explicit: number;
+  cover_art_id: string | null;
   mtime: number;
   checksum: string;
+  active: number;
   artist_name: string | null;
   album_name: string | null;
+  starred: number | null;
+  rating: number | null;
 }
 
 interface SongListRow {
@@ -83,11 +92,15 @@ interface SongListRow {
   album_id: string | null;
   genre: string | null;
   year: number | null;
-  cover_art: string | null;
+  explicit: number;
+  cover_art_id: string | null;
   mtime: number;
   checksum: string;
+  active: number;
   artist_name: string | null;
   album_name: string | null;
+  starred: number | null;
+  rating: number | null;
 }
 
 function rowToSong(row: SongDetailRow | SongListRow) {
@@ -102,24 +115,34 @@ function rowToSong(row: SongDetailRow | SongListRow) {
     albumId: row.album_id ?? undefined,
     genre: row.genre ?? undefined,
     year: row.year ?? undefined,
-    coverArt: row.cover_art ?? undefined,
+    explicit: row.explicit === 1,
+    coverArt: row.cover_art_id ?? undefined,
     mtime: row.mtime,
     checksum: row.checksum,
+    active: row.active === 1,
     artistName: row.artist_name ?? undefined,
     albumName: row.album_name ?? undefined,
+    starred: row.starred === 1,
+    rating: row.rating ?? undefined,
   };
 }
 
 export function registerSongManagementRoutes(app: FastifyInstance, config: Config, db: Database.Database): void {
   app.get('/api/songs', (request: FastifyRequest, reply: FastifyReply) => {
+    const userId = (request as any).session?.userId as string | undefined;
+    const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
+
     const rows = db.prepare(`
-      SELECT s.*, ar.name AS artist_name, al.name AS album_name
+      SELECT s.*, ar.name AS artist_name, al.name AS album_name, us.starred, us.rating
       FROM songs s
       LEFT JOIN artists ar ON ar.id = s.artist_id
       LEFT JOIN albums al ON al.id = s.album_id
+      LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
+      WHERE s.active = 1
+      ${hideExplicit ? 'AND s.explicit = 0' : ''}
       ORDER BY s.title
       LIMIT 500
-    `).all() as SongListRow[];
+    `).all(userId ?? null) as SongListRow[];
 
     reply.send({ songs: rows.map(rowToSong) });
   });
@@ -160,17 +183,36 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
 
   app.get('/api/songs/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
+    const userId = (request as any).session?.userId as string | undefined;
+    const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
+
     const row = db.prepare(`
-      SELECT s.*, ar.name AS artist_name, al.name AS album_name
+      SELECT s.*, ar.name AS artist_name, al.name AS album_name, us.starred, us.rating
       FROM songs s
       LEFT JOIN artists ar ON ar.id = s.artist_id
       LEFT JOIN albums al ON al.id = s.album_id
-      WHERE s.id = ?
-    `).get(id) as SongDetailRow | undefined;
+      LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
+      WHERE s.id = ? AND s.active = 1
+    `).get(userId ?? null, id) as SongDetailRow | undefined;
 
     if (!row) return reply.status(404).send({ error: 'Song not found' });
+    if (hideExplicit && row.explicit === 1) {
+      return reply.status(404).send({ error: 'Song not found' });
+    }
 
     reply.send({ song: rowToSong(row) });
+  });
+
+  app.post('/api/songs/:id/scrobble', async (request: FastifyRequest, reply: FastifyReply) => {
+    const userId = (request as any).session?.userId as string | undefined;
+    if (!userId) return reply.status(401).send({ error: 'Unauthorized' });
+
+    const { id } = request.params as { id: string };
+    const song = getSongById(db, id);
+    if (!song) return reply.status(404).send({ error: 'Song not found' });
+
+    scrobbleSong(db, userId, id);
+    reply.send({ ok: true });
   });
 
   app.delete('/api/songs/:id', async (request: FastifyRequest, reply: FastifyReply) => {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { User } from '@sonarly/shared';
+import type { User, UserPreferences } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { TagEditor } from '../components/TagEditor.js';
@@ -12,18 +12,26 @@ interface Song {
   albumName?: string;
   trackNumber?: number;
   duration?: number;
+  explicit?: boolean;
 }
 
 export function Songs({ user }: { user: User }) {
   const [songs, setSongs] = useState<Song[]>([]);
+  const [preferences, setPreferences] = useState<UserPreferences>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
-    api<{ songs: Song[] }>('/songs')
-      .then((r) => setSongs(r.songs))
+    Promise.all([
+      api<{ songs: Song[] }>('/songs'),
+      api<{ preferences: UserPreferences }>('/me/preferences').catch(() => ({ preferences: {} })),
+    ])
+      .then(([songsRes, prefsRes]) => {
+        setSongs(songsRes.songs);
+        setPreferences(prefsRes.preferences);
+      })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load songs'))
       .finally(() => setLoading(false));
   };
@@ -32,8 +40,21 @@ export function Songs({ user }: { user: User }) {
     load();
   }, []);
 
+  const blurExplicitTitles = preferences.blurExplicitTitles === true;
+
   const columns: TableColumn<Song>[] = [
-    { key: 'title', header: 'Title', render: (s) => s.title },
+    {
+      key: 'title',
+      header: 'Title',
+      render: (s) => (
+        <span className={`inline-flex items-center gap-2 ${s.explicit && blurExplicitTitles ? 'blur-sm' : ''}`}>
+          {s.title}
+          {s.explicit && (
+            <span className="rounded bg-red-500/10 px-1 text-[10px] font-bold text-red-500">E</span>
+          )}
+        </span>
+      ),
+    },
     { key: 'artist', header: 'Artist', render: (s) => s.artistName ?? '-' },
     { key: 'album', header: 'Album', render: (s) => s.albumName ?? '-' },
     {
@@ -55,7 +76,7 @@ export function Songs({ user }: { user: User }) {
     },
   ];
 
-  if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
+  if (loading) return <p className="text-sm text-muted">Loading...</p>;
   if (error) return <p className="text-sm text-danger">{error}</p>;
 
   return (

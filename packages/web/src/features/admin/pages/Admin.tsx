@@ -118,7 +118,7 @@ export function Admin({ user }: AdminProps) {
     return (
       <div className="max-w-2xl">
         <h2 className="text-lg font-semibold">Admin panel</h2>
-        <p className="mt-2 text-sm text-gray-600">You do not have permission to view this page.</p>
+        <p className="mt-2 text-sm text-muted">You do not have permission to view this page.</p>
       </div>
     );
   }
@@ -132,26 +132,26 @@ export function Admin({ user }: AdminProps) {
       <section className="space-y-4">
         <h3 className="text-base font-medium">Server status</h3>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded border border-gray-200 p-4">
-            <p className="text-xs text-gray-500">Users</p>
+          <div className="rounded border border-rule p-4">
+            <p className="text-xs text-muted">Users</p>
             <p className="text-2xl font-semibold">{status?.counts.users ?? '-'}</p>
           </div>
-          <div className="rounded border border-gray-200 p-4">
-            <p className="text-xs text-gray-500">Songs</p>
+          <div className="rounded border border-rule p-4">
+            <p className="text-xs text-muted">Songs</p>
             <p className="text-2xl font-semibold">{status?.counts.songs ?? '-'}</p>
           </div>
-          <div className="rounded border border-gray-200 p-4">
-            <p className="text-xs text-gray-500">Albums</p>
+          <div className="rounded border border-rule p-4">
+            <p className="text-xs text-muted">Albums</p>
             <p className="text-2xl font-semibold">{status?.counts.albums ?? '-'}</p>
           </div>
-          <div className="rounded border border-gray-200 p-4">
-            <p className="text-xs text-gray-500">Artists</p>
+          <div className="rounded border border-rule p-4">
+            <p className="text-xs text-muted">Artists</p>
             <p className="text-2xl font-semibold">{status?.counts.artists ?? '-'}</p>
           </div>
         </div>
         {status?.latestScan && (
-          <div className="rounded border border-gray-200 p-4">
-            <p className="text-xs text-gray-500">Latest scan</p>
+          <div className="rounded border border-rule p-4">
+            <p className="text-xs text-muted">Latest scan</p>
             <p className="text-sm">
               {status.latestScan.type} — {status.latestScan.status}
               {status.latestScan.finishedAt && ` • ${new Date(status.latestScan.finishedAt).toLocaleString()}`}
@@ -169,7 +169,7 @@ export function Admin({ user }: AdminProps) {
         </div>
         {jobsError && <p className="text-sm text-danger" role="alert">{jobsError}</p>}
         {jobsLoading ? (
-          <p className="text-sm text-gray-500">Loading...</p>
+          <p className="text-sm text-muted">Loading...</p>
         ) : (
           <Table<IngestJob>
             columns={[
@@ -196,7 +196,7 @@ export function Admin({ user }: AdminProps) {
 
       <section className="space-y-4">
         <h3 className="text-base font-medium">Users</h3>
-        <div className="space-y-3 border border-gray-200 p-4">
+        <div className="space-y-3 border border-rule p-4">
           <Input
             placeholder="Username"
             value={form.username}
@@ -213,7 +213,7 @@ export function Admin({ user }: AdminProps) {
               type="checkbox"
               checked={form.isAdmin}
               onChange={(e) => updateForm({ isAdmin: e.target.checked })}
-              className="rounded border-gray-300"
+              className="rounded border-rule"
             />
             Admin
           </label>
@@ -222,18 +222,18 @@ export function Admin({ user }: AdminProps) {
           </Button>
         </div>
 
-        <div className="border border-gray-200">
+        <div className="border border-rule">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-surface">
               <tr>
-                <th className="px-4 py-2 text-left font-medium text-gray-700">Username</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-700">Name</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-700">Admin</th>
+                <th className="px-4 py-2 text-left font-medium text-fg-primary">Username</th>
+                <th className="px-4 py-2 text-left font-medium text-fg-primary">Name</th>
+                <th className="px-4 py-2 text-left font-medium text-fg-primary">Admin</th>
               </tr>
             </thead>
             <tbody>
               {users.map((u) => (
-                <tr key={u.id} className="border-t border-gray-200">
+                <tr key={u.id} className="border-t border-rule">
                   <td className="px-4 py-2">{u.username}</td>
                   <td className="px-4 py-2">{[u.name, u.surname].filter(Boolean).join(' ') || '-'}</td>
                   <td className="px-4 py-2">{u.isAdmin ? 'Yes' : 'No'}</td>

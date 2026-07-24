@@ -19,25 +19,25 @@ export function Library() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
+  if (loading) return <p className="text-sm text-muted">Loading...</p>;
   if (error) return <p className="text-sm text-danger">{error}</p>;
 
   return (
     <div>
       <h2 className="mb-4 text-lg font-semibold">Artists</h2>
-      <ul className="divide-y divide-gray-100">
+      <ul className="divide-y divide-rule">
         {artists.map((a) => (
           <li key={a.id}>
             <Link
               href={`/artists/${a.id}`}
-              className="block py-2 text-sm hover:bg-gray-50"
+              className="block py-2 text-sm hover:bg-surface-hover"
             >
               {a.name}
             </Link>
           </li>
         ))}
       </ul>
-      {artists.length === 0 && <p className="py-4 text-sm text-gray-500">No artists found.</p>}
+      {artists.length === 0 && <p className="py-4 text-sm text-muted">No artists found.</p>}
     </div>
   );
 }

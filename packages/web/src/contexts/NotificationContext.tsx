@@ -86,10 +86,10 @@ function NotificationItem({
 
   const cardClass =
     notification.type === 'error'
-      ? 'bg-red-50 text-red-800 border-red-200'
+      ? 'bg-red-500/10 text-red-500 border-red-500/30'
       : notification.type === 'success'
-        ? 'bg-green-50 text-green-800 border-green-200'
-        : 'bg-white text-gray-800 border-gray-200';
+        ? 'bg-green-500/10 text-green-500 border-green-500/30'
+        : 'bg-surface text-fg-primary border-rule';
 
   return (
     <div

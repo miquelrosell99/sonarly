@@ -33,11 +33,11 @@ export function Organize() {
     <div>
       <h2 className="mb-4 text-lg font-semibold">Organize Library</h2>
       {loading ? (
-        <p className="text-sm text-gray-500">Loading...</p>
+        <p className="text-sm text-muted">Loading...</p>
       ) : (
         <>
-          <p className="mb-4 text-sm text-gray-600">
-            Current pattern: <code className="rounded bg-gray-100 px-1 py-0.5">{pattern}</code>
+          <p className="mb-4 text-sm text-muted">
+            Current pattern: <code className="rounded bg-surface px-1 py-0.5">{pattern}</code>
           </p>
           <Button onClick={run} disabled={running}>
             Reorganize existing library
@@ -46,7 +46,7 @@ export function Organize() {
       )}
       {error && <p className="mt-4 text-sm text-danger">{error}</p>}
       {result && (
-        <pre className="mt-4 rounded border border-gray-200 bg-gray-50 p-3 text-xs">
+        <pre className="mt-4 rounded border border-rule bg-surface p-3 text-xs">
           {JSON.stringify(result, null, 2)}
         </pre>
       )}

@@ -104,7 +104,7 @@ describe('scanLibrary', () => {
     expect(oldRow).toBeUndefined();
   });
 
-  it('removes database entries for files no longer on disk', async () => {
+  it('marks database entries inactive for files no longer on disk', async () => {
     const target = join(libraryPath, 'Song.mp3');
     copyFileSync(fixture, target);
     await scanLibrary(config, db);
@@ -114,7 +114,25 @@ describe('scanLibrary', () => {
 
     expect(stats.removed).toBe(1);
     const row = db.prepare('SELECT * FROM songs WHERE file_path = ?').get(target) as any;
-    expect(row).toBeUndefined();
+    expect(row).toBeDefined();
+    expect(row.active).toBe(0);
+  });
+
+  it('reactivates an inactive song when the file reappears', async () => {
+    const target = join(libraryPath, 'Song.mp3');
+    copyFileSync(fixture, target);
+    await scanLibrary(config, db);
+
+    rmSync(target);
+    await scanLibrary(config, db);
+
+    copyFileSync(fixture, target);
+    const stats = await scanLibrary(config, db);
+
+    expect(stats.updated).toBe(1);
+    const row = db.prepare('SELECT * FROM songs WHERE file_path = ?').get(target) as any;
+    expect(row).toBeDefined();
+    expect(row.active).toBe(1);
   });
 
   it('ignores non-audio files', async () => {
