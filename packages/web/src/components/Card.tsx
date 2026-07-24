@@ -34,16 +34,16 @@ export function Card({ href, children, cover, favorite, rating, play }: CardProp
     <div className="group relative">
       <Link
         href={href}
-        className="block overflow-hidden rounded-md border border-rule bg-surface p-3 transition hover:bg-surface-hover"
+        className="block overflow-hidden rounded-md border border-rule bg-surface transition hover:bg-surface-hover"
       >
-        {cover ? (
-          <div className="relative overflow-hidden">
+        {cover && (
+          <div className="relative overflow-hidden rounded-t-md">
             {cover}
             <div className="absolute inset-0 z-[1] bg-black/40 opacity-0 backdrop-blur-[2px] transition-opacity group-hover:opacity-100" />
             {favorite && (
               <div
                 className={cn(
-                  'pointer-events-auto absolute left-2 top-2 z-10 transition-opacity',
+                  'pointer-events-auto absolute left-1.5 top-1.5 z-10 transition-opacity',
                   favorite.starred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
                 )}
               >
@@ -56,7 +56,7 @@ export function Card({ href, children, cover, favorite, rating, play }: CardProp
               </div>
             )}
             {rating && (
-              <div className="pointer-events-auto absolute right-2 top-2 z-10 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="pointer-events-auto absolute right-1.5 top-1.5 z-10 opacity-0 transition-opacity group-hover:opacity-100">
                 <StarRating
                   rating={rating.value}
                   onRate={rating.onRate}
@@ -72,22 +72,22 @@ export function Card({ href, children, cover, favorite, rating, play }: CardProp
                   e.stopPropagation();
                   play.onClick();
                 }}
-                className="pointer-events-none absolute bottom-2 right-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-accent text-bg-primary opacity-0 shadow-lg transition-opacity hover:bg-accent/90 focus-visible:outline-none group-hover:pointer-events-auto group-hover:opacity-100"
+                className="pointer-events-none absolute bottom-1.5 right-1.5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-accent text-bg-primary opacity-0 shadow-lg transition-opacity hover:bg-accent/90 focus-visible:outline-none group-hover:pointer-events-auto group-hover:opacity-100"
                 aria-label={play.label ?? 'Play'}
               >
                 <Icon name="mdi-play" size={20} />
               </button>
             )}
           </div>
-        ) : (
-          children
         )}
-        {cover && children}
+        <div className={cn('space-y-1 p-3', '[&>*]:line-clamp-1')}>
+          {children}
+        </div>
       </Link>
       {!cover && favorite && (
         <div
           className={cn(
-            'pointer-events-auto absolute left-2 top-2 z-10 transition-opacity',
+            'pointer-events-auto absolute left-1.5 top-1.5 z-10 transition-opacity',
             favorite.starred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
           )}
         >
@@ -99,7 +99,7 @@ export function Card({ href, children, cover, favorite, rating, play }: CardProp
         </div>
       )}
       {!cover && rating && (
-        <div className="pointer-events-auto absolute right-2 top-2 z-10 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="pointer-events-auto absolute right-1.5 top-1.5 z-10 opacity-0 transition-opacity group-hover:opacity-100">
           <StarRating
             rating={rating.value}
             onRate={rating.onRate}
@@ -115,7 +115,7 @@ export function Card({ href, children, cover, favorite, rating, play }: CardProp
             e.stopPropagation();
             play.onClick();
           }}
-          className="pointer-events-none absolute bottom-2 right-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-accent text-bg-primary opacity-0 shadow-lg transition-opacity hover:bg-accent/90 focus-visible:outline-none group-hover:pointer-events-auto group-hover:opacity-100"
+          className="pointer-events-none absolute bottom-1.5 right-1.5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-accent text-bg-primary opacity-0 shadow-lg transition-opacity hover:bg-accent/90 focus-visible:outline-none group-hover:pointer-events-auto group-hover:opacity-100"
           aria-label={play.label ?? 'Play'}
         >
           <Icon name="mdi-play" size={20} />

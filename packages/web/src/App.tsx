@@ -9,7 +9,7 @@ import { Songs } from './features/songs/index.js';
 import { Playlists } from './features/playlists/index.js';
 import { PlaylistDetail } from './features/playlists/index.js';
 import { Organize } from './features/organize/index.js';
-import { Admin } from './features/admin/index.js';
+import { AdminStatus, AdminIngest, AdminUsers } from './features/admin/index.js';
 import { SettingsMedia } from './features/settings/index.js';
 import { SettingsIngest } from './features/settings/index.js';
 import { SettingsSystemTasks } from './features/settings/index.js';
@@ -86,7 +86,10 @@ export default function App() {
         <Route path="/genres" component={Genres} />
         <Route path="/genres/:genre" component={Genre} />
         <Route path="/organize" component={Organize} />
-        <Route path="/admin" component={() => <Admin user={user} />} />
+        <Route path="/admin" component={() => <Redirect to="/admin/status" />} />
+        <Route path="/admin/status" component={() => <AdminStatus user={user} />} />
+        <Route path="/admin/ingest" component={() => <AdminIngest user={user} />} />
+        <Route path="/admin/users" component={() => <AdminUsers user={user} />} />
         <Route path="/settings" component={() => <Redirect to="/settings/profile" />} />
         <Route path="/settings/media" component={SettingsMedia} />
         <Route path="/settings/ingest" component={SettingsIngest} />
@@ -95,7 +98,7 @@ export default function App() {
         <Route path="/settings/appearance" component={SettingsAppearance} />
         <Route path="/settings/conflicts" component={SettingsConflicts} />
         <Route path="/settings/missing" component={SettingsMissing} />
-        <Route path="/users" component={() => <Redirect to="/admin" />} />
+        <Route path="/users" component={() => <Redirect to="/admin/users" />} />
         <Route path="*" component={() => <Redirect to="/" />} />
       </Layout>
     </Router>
