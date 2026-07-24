@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { getUserPreferences } from '../user-preferences/index.js';
+import { listSongsByArtist } from '../songs/index.js';
 
 interface ArtistRow {
   id: string;
@@ -84,5 +85,18 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
         })),
       },
     });
+  });
+
+  app.get('/api/artists/:id/songs', (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const userId = (request as any).session?.userId as string | undefined;
+    const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
+
+    const artist = db.prepare('SELECT id FROM artists WHERE id = ? AND active = 1').get(id) as { id: string } | undefined;
+    if (!artist) return reply.status(404).send({ error: 'Artist not found' });
+
+    const songs = listSongsByArtist(db, id, userId);
+    const visibleSongs = hideExplicit ? songs.filter((s) => !s.explicit) : songs;
+    reply.send({ songs: visibleSongs });
   });
 }

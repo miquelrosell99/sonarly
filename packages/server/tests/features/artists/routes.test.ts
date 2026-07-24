@@ -9,6 +9,7 @@ import { hashPassword, encryptSubsonicPassword } from '../../../src/features/aut
 import { createUser } from '../../../src/features/users/repository.js';
 import { upsertArtist } from '../../../src/features/artists/repository.js';
 import { upsertAlbum } from '../../../src/features/albums/repository.js';
+import { upsertSong } from '../../../src/features/songs/repository.js';
 import type { Config } from '../../../src/config.js';
 
 vi.mock('node:worker_threads', () => {
@@ -80,6 +81,16 @@ describe('management artist endpoints', () => {
     });
     upsertArtist(db, { id: 'artist-1', name: 'Test Artist' });
     upsertAlbum(db, { id: 'album-1', name: 'Test Album', artistId: 'artist-1', artistName: 'Test Artist', year: 2024 });
+    upsertSong(db, {
+      id: 'song-1',
+      filePath: '/data/library/song1.mp3',
+      title: 'Test Song',
+      artistId: 'artist-1',
+      albumId: 'album-1',
+      year: 2024,
+      mtime: Date.now(),
+      checksum: 'c1',
+    });
 
     app = await buildApp(config, db);
     const login = await app.inject({
@@ -121,7 +132,7 @@ describe('management artist endpoints', () => {
         name: 'Test Artist',
         active: true,
         starred: false,
-        albums: [{ id: 'album-1', name: 'Test Album', year: 2024, shownSongCount: 0, totalSongCount: 0, starred: false }],
+        albums: [{ id: 'album-1', name: 'Test Album', year: 2024, shownSongCount: 1, totalSongCount: 1, starred: false }],
       },
     });
   });
@@ -142,5 +153,16 @@ describe('management artist endpoints', () => {
       url: '/api/artists',
     });
     expect(res.statusCode).toBe(401);
+  });
+
+  it('returns songs for an artist', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/artists/artist-1/songs',
+      cookies: { sessionId: cookieValue },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body) as { songs: { id: string }[] };
+    expect(body.songs.length).toBeGreaterThanOrEqual(1);
   });
 });
