@@ -163,7 +163,7 @@ describe('management admin endpoints', () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body.counts).toMatchObject({ users: 2, songs: 0, albums: 0, artists: 0 });
-    expect(body.latestScan).toMatchObject({ type: 'scan', status: 'pending' });
+    expect(body.latestIngest).toBeNull();
   });
 
   it('forbids admin status for non-admins', async () => {

@@ -11,7 +11,8 @@ import {
   getSetting,
   setSetting,
 } from '../settings/index.js';
-import { ScanScheduler } from './scheduler.js';
+import { ScanScheduler, ArtistImageScheduler } from './scheduler.js';
+import { syncMissingArtistImages } from '../artists/index.js';
 
 interface WorkerMessage {
   type: 'shutdown';
@@ -31,6 +32,7 @@ const REVIEW_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const REVIEW_CLEANUP_RETRY_MS = 5 * 60 * 1000;
 
 const scanScheduler = new ScanScheduler(config);
+const artistImageScheduler = new ArtistImageScheduler(config);
 
 function hasPendingOrRunningReviewCleanup(): boolean {
   const row = db.prepare(
@@ -56,6 +58,7 @@ async function loop(): Promise<void> {
   while (running) {
     scheduleReviewCleanupIfNeeded();
     scanScheduler.tick(db);
+    artistImageScheduler.tick(db);
 
     const job = popPendingJob(db);
     if (!job) {
@@ -80,6 +83,13 @@ async function loop(): Promise<void> {
       } else if (job.type === 'organize') {
         const stats = await runOrganizeJob(config, db, job.id);
         markJobCompleted(db, job.id, stats);
+      } else if (job.type === 'artist_images') {
+        const stats = await syncMissingArtistImages(db);
+        markJobCompleted(db, job.id, {
+          scanned: stats.scanned,
+          updated: stats.updated,
+          failed: stats.failed,
+        });
       }
     } catch (err) {
       markJobFailed(db, job.id, String(err));
