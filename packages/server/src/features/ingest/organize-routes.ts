@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import { Config } from '../../config.js';
 import { getOrganizePattern } from '../settings/index.js';
 import { pushJob } from '../library/queue.js';
+import { organizeExistingLibrary } from '../ingest/index.js';
 
 function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | undefined): boolean {
   if (!session?.isAdmin) {
@@ -21,8 +22,17 @@ interface OrganizeJobStatus {
   stats?: Record<string, unknown>;
 }
 
+interface ScanJobRow {
+  id: string;
+  type: string;
+  status: string;
+  started_at: string | null;
+  finished_at: string | null;
+  stats: string | null;
+}
+
 function getOrganizeJob(db: Database.Database, id: string): OrganizeJobStatus | undefined {
-  const row = db.prepare('SELECT * FROM scan_jobs WHERE id = ?').get(id) as any;
+  const row = db.prepare('SELECT id, type, status, started_at, finished_at, stats FROM scan_jobs WHERE id = ?').get(id) as ScanJobRow | undefined;
   if (!row) return undefined;
   return {
     id: row.id,
@@ -36,6 +46,14 @@ function getOrganizeJob(db: Database.Database, id: string): OrganizeJobStatus | 
 
 export function registerOrganizeManagementRoutes(app: FastifyInstance, config: Config, db: Database.Database): void {
   app.post('/api/organize', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { isAdmin?: boolean } | undefined;
+    if (!requireAdmin(reply, session)) return;
+
+    const stats = await organizeExistingLibrary(config, db);
+    reply.send({ stats });
+  });
+
+  app.post('/api/organize/job', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { isAdmin?: boolean } | undefined;
     if (!requireAdmin(reply, session)) return;
 

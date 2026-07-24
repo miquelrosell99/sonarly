@@ -35,4 +35,26 @@ describe('RenameProgressModal', () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalledWith({ moved: 2, skipped: 0, failed: 0 }), { timeout: 2000 });
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('shows failed paths and stays open when completed with failures', async () => {
+    apiMock.mockResolvedValue({
+      job: {
+        id: '1',
+        type: 'organize',
+        status: 'completed',
+        stats: { total: 2, done: 2, moved: 1, skipped: 0, failed: 1, failedPaths: ['/bad.mp3'] },
+      },
+    });
+
+    const onComplete = vi.fn();
+    const onClose = vi.fn();
+    render(<RenameProgressModal jobId="1" onClose={onClose} onComplete={onComplete} />);
+
+    await waitFor(() => expect(screen.getByText('1 file failed')).toBeTruthy());
+    expect(screen.getByText('/bad.mp3')).toBeTruthy();
+
+    vi.advanceTimersByTime(2000);
+    expect(onComplete).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });
