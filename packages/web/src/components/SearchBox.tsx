@@ -5,6 +5,7 @@ import type { Song, Album, Artist, Playlist } from '@sonarly/shared';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { api } from '../api.js';
+import { FilterPanel, type FilterDefinition } from './FilterPanel.js';
 
 interface SearchResponse {
   songs: Song[];
@@ -40,10 +41,17 @@ interface ResultItem {
   groupLabel: string;
 }
 
-export function SearchBox() {
+interface SearchBoxProps {
+  filters?: FilterDefinition[];
+  filtersOpen?: boolean;
+  onToggleFilters?: () => void;
+}
+
+export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: SearchBoxProps) {
   const [, setLocation] = useLocation();
   const [inputValue, setInputValue] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const hasFilters = filters && filters.length > 0;
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -165,34 +173,65 @@ export function SearchBox() {
 
   return (
     <div ref={containerRef} className="relative w-full">
-      <Icon name="mdi-magnify" size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-      <input
-        ref={inputRef}
-        type="text"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onFocus={() => {
-          if (debouncedQuery.length > 0) setIsOpen(true);
-        }}
-        placeholder="Search…"
-        className="input w-full pl-9"
-        aria-label="Search"
-        aria-expanded={isOpen}
-        aria-autocomplete="list"
-        aria-activedescendant={highlightedIndex >= 0 ? items[highlightedIndex]?.id : undefined}
-        role="combobox"
-      />
-      <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-rule bg-surface px-1.5 py-0.5 text-[10px] text-muted sm:block">
-        Ctrl+K
-      </kbd>
+      <div className="relative">
+        <Icon name="mdi-magnify" size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+        <input
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onFocus={() => {
+            if (debouncedQuery.length > 0) setIsOpen(true);
+          }}
+          placeholder="Search…"
+          className={cn('input w-full pl-9', hasFilters ? 'pr-10' : 'pr-9')}
+          aria-label="Search"
+          aria-expanded={isOpen || filtersOpen}
+          aria-autocomplete="list"
+          aria-activedescendant={highlightedIndex >= 0 ? items[highlightedIndex]?.id : undefined}
+          role="combobox"
+        />
+        {hasFilters && onToggleFilters && (
+          <button
+            type="button"
+            onClick={() => onToggleFilters()}
+            aria-expanded={filtersOpen}
+            aria-label={filtersOpen ? 'Hide filters' : 'Show filters'}
+            title="Filters"
+            className={cn(
+              'absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              filtersOpen
+                ? 'bg-surface-hover text-fg-primary'
+                : 'text-muted hover:bg-surface-hover hover:text-fg-primary',
+            )}
+          >
+            <Icon name="mdi-filter-variant" size={18} />
+          </button>
+        )}
+        {!hasFilters && (
+          <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-rule bg-surface px-1.5 py-0.5 text-[10px] text-muted sm:block">
+            Ctrl+K
+          </kbd>
+        )}
+      </div>
 
-      {isOpen && (
+      {(isOpen || filtersOpen) && (
         <div
-          className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[24rem] overflow-auto rounded-md border border-rule bg-bg-primary py-2 shadow-lg"
+          className={cn(
+            'absolute left-0 right-0 top-full z-50 mt-2 overflow-auto rounded-md border border-rule bg-bg-primary py-2 shadow-lg',
+            filtersOpen ? 'max-h-[36rem]' : 'max-h-[24rem]',
+          )}
           role="listbox"
         >
+          {filtersOpen && hasFilters && (
+            <div className="border-b border-rule px-4 pb-4 pt-2">
+              <FilterPanel filters={filters} className="border-0 bg-transparent p-0 shadow-none" />
+            </div>
+          )}
           {items.length === 0 ? (
-            <p className="px-4 py-2 text-sm text-muted">No results found.</p>
+            debouncedQuery.length > 0 ? (
+              <p className="px-4 py-2 text-sm text-muted">No results found.</p>
+            ) : null
           ) : (
             grouped.map(({ groupLabel, groupItems, startIndex }) => (
               <div key={groupLabel} role="group" aria-label={groupLabel}>

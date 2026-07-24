@@ -6,8 +6,7 @@ import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { api } from '../api.js';
 import { SearchBox } from './SearchBox.js';
-import { FilterPanel, type FilterDefinition } from './FilterPanel.js';
-import { usePlayer } from '../stores/playerStore.js';
+import type { FilterDefinition } from './FilterPanel.js';
 import type { PlayerInfo } from '@sonarly/shared';
 
 interface TopBarProps {
@@ -63,9 +62,7 @@ function usePlayers() {
 function PlayersDropdown() {
   const { data: players = [] } = usePlayers();
   const [open, setOpen] = useState(false);
-  const [playingId, setPlayingId] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const playNow = usePlayer((state) => state.playNow);
 
   useEffect(() => {
     if (!open) return;
@@ -85,20 +82,6 @@ function PlayersDropdown() {
     };
   }, [open]);
 
-  const playHere = async (player: PlayerInfo) => {
-    if (!player.songId) return;
-    setPlayingId(player.id);
-    try {
-      const { song } = await api<{ song: BaseSong }>(`/songs/${player.songId}`);
-      playNow(song as BaseSong & { artistName?: string; albumName?: string });
-      setOpen(false);
-    } catch {
-      // ignore
-    } finally {
-      setPlayingId(null);
-    }
-  };
-
   if (players.length === 0) return null;
 
   return (
@@ -108,13 +91,16 @@ function PlayersDropdown() {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        title="Connected devices"
+        title={`Connected devices (${players.length})`}
         className={cn(
-          'flex items-center rounded-md p-2 text-fg-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          'relative flex items-center rounded-md p-2 text-fg-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
           open ? 'bg-surface-hover' : 'hover:bg-surface-hover',
         )}
       >
         <Icon name="mdi-cast-audio" size={20} />
+        <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold text-bg-primary">
+          {players.length}
+        </span>
       </button>
 
       {open && (
@@ -124,17 +110,7 @@ function PlayersDropdown() {
         >
           {players.map((player) => (
             <div key={player.id} className="px-4 py-2 text-sm">
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-medium text-fg-primary">{player.clientId}</p>
-                <button
-                  type="button"
-                  onClick={() => playHere(player)}
-                  disabled={playingId === player.id || !player.songId}
-                  className="rounded bg-accent px-2 py-1 text-xs font-medium text-bg-primary transition hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
-                >
-                  {playingId === player.id ? 'Loading…' : 'Play here'}
-                </button>
-              </div>
+              <p className="font-medium text-fg-primary">{player.clientId}</p>
               <p className="truncate text-xs text-muted">{player.songTitle}</p>
             </div>
           ))}
@@ -340,7 +316,6 @@ export function TopBar({ user, onOpenProfile, onLogout }: TopBarProps) {
   const [location] = useLocation();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filters = useFilterDefinitions(location);
-  const hasFilters = filters.length > 0;
 
   return (
     <>
@@ -350,35 +325,18 @@ export function TopBar({ user, onOpenProfile, onLogout }: TopBarProps) {
         </Link>
 
         <div className="relative hidden w-full max-w-2xl justify-self-center sm:block">
-          <SearchBox />
+          <SearchBox
+            filters={filters}
+            filtersOpen={filtersOpen}
+            onToggleFilters={() => setFiltersOpen((v) => !v)}
+          />
         </div>
 
         <div className="flex items-center justify-end gap-3">
-          {hasFilters && (
-            <button
-              type="button"
-              onClick={() => setFiltersOpen((v) => !v)}
-              aria-expanded={filtersOpen}
-              className={cn(
-                'btn-ghost hidden sm:inline-flex',
-                filtersOpen && 'bg-surface-hover',
-              )}
-            >
-              <Icon name="mdi-filter-variant" size={18} className="mr-2" />
-              Filters
-            </button>
-          )}
-
           <PlayersDropdown />
           <UserMenu user={user} onOpenProfile={onOpenProfile} onLogout={onLogout} />
         </div>
       </header>
-
-      {filtersOpen && hasFilters && (
-        <div className="border-b border-rule bg-bg-primary px-4 py-3">
-          <FilterPanel filters={filters} />
-        </div>
-      )}
     </>
   );
 }

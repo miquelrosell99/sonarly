@@ -1,5 +1,7 @@
 # Sonarly
 
+> Keep this file updated when changing project conventions, structure, or the reusable UI component inventory below.
+
 ## Agent Quick Reference
 
 - **Technology:** TypeScript monorepo — Fastify backend, React + Vite frontend, SQLite database
@@ -83,6 +85,34 @@ The server runs a background worker thread for scanning and organizing audio fil
 - Configuration is validated with Zod in `src/config.ts`.
 - Migrations are plain SQL files executed in order from `src/db/migrations/`.
 - Tests live next to source in `tests/` (mirrors `src/` structure).
+
+## Reusable UI Components
+
+Shared components live in `packages/web/src/components/`. Use them for consistent layout, interactions, and styling across features. Grid views of library content should use the `Card` component so hover actions (favorite, rating, play) and link behavior are uniform.
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| `Layout` | `components/Layout.tsx` | App shell with sidebar and main content area. |
+| `Card` | `components/Card.tsx` | Content card with link, optional cover art, favorite, rating, and play actions. Use for grid views. |
+| `CoverArt` | `components/CoverArt.tsx` | Cover art image with placeholder fallback. |
+| `LibraryView` | `components/LibraryView.tsx` | Toggleable list/grid view for library entities (artists, albums, etc.). |
+| `ListRow` | `components/ListRow.tsx` | Clickable table row with play, favorite, and rating actions. |
+| `ItemContextMenu` | `components/ItemContextMenu.tsx` | Right-click/long-press context menu wrapper. |
+| `FilterPanel` | `components/FilterPanel.tsx` | Filter controls for library pages. |
+| `SearchBox` | `components/SearchBox.tsx` | Global search input. |
+| `TopBar` | `components/TopBar.tsx` | Header with search and user menu. |
+| `Sidebar` | `components/Sidebar.tsx` | Navigation sidebar. |
+| `PlayerBar` | `components/PlayerBar.tsx` | Persistent playback controls. |
+| `AudioController` | `components/AudioController.tsx` | Audio element and playback state bridge. |
+| `ActionButtons` | `components/ActionButtons.tsx` | `FavoriteButton` and `StarRating` primitives. |
+| `Button` | `components/ui/Button.tsx` | Button primitive. |
+| `Input` | `components/ui/Input.tsx` | Text input primitive. |
+| `Icon` | `components/ui/Icon.tsx` | Icon renderer. |
+| `Table` | `components/ui/Table.tsx` | Generic table component. |
+| `AutocompleteInput` | `components/ui/AutocompleteInput.tsx` | Autocomplete input primitive. |
+| `ProgressBar` | `components/ui/ProgressBar.tsx` | Progress indicator. |
+
+When adding, removing, or significantly changing a shared component, update this table.
 
 ## Build and Development Commands
 

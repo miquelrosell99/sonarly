@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'wouter';
-import type { SmartPlaylistRules, UserPreferences } from '@sonarly/shared';
+import type { SmartPlaylistRules, UserPreferences, Song as SharedSong } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { cn } from '../../../lib/cn.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
@@ -8,6 +8,8 @@ import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { SmartPlaylistEditor } from '../components/SmartPlaylistEditor.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
+import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { usePlayer } from '../../../stores/playerStore.js';
 
 interface PlaylistSong {
   id: string;
@@ -38,6 +40,8 @@ export function PlaylistDetail() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const { setFavorite, setRating } = useFavoriteActions();
+  const { playSongs } = usePlayActions();
+  const playingId = usePlayer((state) => state.currentSong?.id);
 
   useEffect(() => {
     if (!id) return;
@@ -72,6 +76,14 @@ export function PlaylistDetail() {
   };
 
   const blurExplicitTitles = preferences.blurExplicitTitles === true;
+
+  const handlePlay = (song: PlaylistSong) => {
+    playSongs([song as unknown as SharedSong], 0);
+  };
+
+  const handlePlaySelection = (songs: PlaylistSong[], startIndex: number) => {
+    playSongs(songs as unknown as SharedSong[], startIndex);
+  };
 
   const handleFavorite = async (starred: boolean) => {
     if (!playlist) return;
@@ -182,7 +194,15 @@ export function PlaylistDetail() {
         </div>
       )}
 
-      <Table columns={columns} rows={playlist.entries} rowKey={(s) => s.id} empty="No songs in this playlist." />
+      <Table
+        columns={columns}
+        rows={playlist.entries}
+        rowKey={(s) => s.id}
+        empty="No songs in this playlist."
+        onPlay={handlePlay}
+        onPlaySelection={handlePlaySelection}
+        playingId={playingId}
+      />
     </div>
   );
 }

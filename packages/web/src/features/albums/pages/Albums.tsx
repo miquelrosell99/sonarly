@@ -111,8 +111,11 @@ export function Albums() {
 
   const cardFields: LibraryViewCardField<Album>[] = [
     { key: 'title', render: (album) => album.name },
-    { key: 'artist', render: (album) => album.artistName ?? '-' },
-    { key: 'year', render: (album) => album.year ?? '-' },
+    {
+      key: 'artist',
+      render: (album) =>
+        `${album.artistName ?? '-'}${album.year !== undefined ? ` • ${album.year}` : ''}`,
+    },
   ];
 
   return (
@@ -131,7 +134,10 @@ export function Albums() {
       onRate={handleRate}
       getFavorite={(album) => album.starred}
       getRating={(album) => album.rating}
+      getCover={(album) => album.coverArt}
+      getCoverAlt={(album) => `Cover art for ${album.name}`}
       emptyMessage="No albums match the current filters."
+      defaultView="grid"
     />
   );
 }

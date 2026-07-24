@@ -3,6 +3,7 @@ import type { User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
+import { InsecureConnectionWarning } from '../../../components/InsecureConnectionWarning.js';
 
 export function Login({ onLogin }: { onLogin: (user: User) => void }) {
   const [username, setUsername] = useState('');
@@ -27,6 +28,7 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
     <div className="flex min-h-screen items-center justify-center bg-bg-primary p-6">
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
         <h1 className="text-2xl font-bold tracking-tight text-fg-primary">Sonarly</h1>
+        <InsecureConnectionWarning />
         {error && (
           <div
             className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500"
@@ -42,6 +44,7 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
           <Input
             id="username"
             type="text"
+            autoComplete="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
@@ -54,6 +57,7 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
           <Input
             id="password"
             type="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
