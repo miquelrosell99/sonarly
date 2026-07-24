@@ -3,6 +3,9 @@ import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import { hashPassword, encryptSubsonicPassword } from '../auth/index.js';
 import { createUser, listUsers, getUserById } from '../users/index.js';
+import { listInactiveSongs, deleteSongById } from '../songs/index.js';
+import { listInactiveAlbums, deleteAlbumById } from '../albums/index.js';
+import { listInactiveArtists, deleteArtistById } from '../artists/index.js';
 import type { CreateUserInput } from '@sonarly/shared';
 
 interface DbUserRow {
@@ -105,5 +108,43 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
           }
         : null,
     });
+  });
+
+  app.get('/api/admin/missing', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    reply.send({
+      songs: listInactiveSongs(db),
+      albums: listInactiveAlbums(db),
+      artists: listInactiveArtists(db),
+    });
+  });
+
+  app.delete('/api/admin/missing/songs/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    const { id } = request.params as { id: string };
+    deleteSongById(db, id);
+    reply.send({ ok: true });
+  });
+
+  app.delete('/api/admin/missing/albums/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    const { id } = request.params as { id: string };
+    deleteAlbumById(db, id);
+    reply.send({ ok: true });
+  });
+
+  app.delete('/api/admin/missing/artists/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    const { id } = request.params as { id: string };
+    deleteArtistById(db, id);
+    reply.send({ ok: true });
   });
 }

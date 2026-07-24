@@ -1,13 +1,13 @@
 import { spawn } from 'node:child_process';
 import { extname } from 'node:path';
-import type { TagWriter } from './writer.js';
+import type { TagWriter, CoverArtData } from './writer.js';
 import type { SongTags } from '@sonarly/shared';
 import { atomicTagRewrite } from './atomic.js';
 
 const SUPPORTED = new Set(['.mp3', '.flac', '.ogg', '.m4a', '.mp4']);
 
 const MUTAGEN_SCRIPT = `
-import sys, json
+import sys, json, base64
 
 def parse_num_pair(value):
     if value is None or value == '':
@@ -100,14 +100,14 @@ def write_tags(path, tags):
         from mutagen.mp4 import MP4
         audio = MP4(path)
         key_map = {
-            'title': '\xa9nam',
-            'artist': '\xa9ART',
-            'album': '\xa9alb',
+            'title': '\\xa9nam',
+            'artist': '\\xa9ART',
+            'album': '\\xa9alb',
             'albumArtist': 'aART',
             'trackNumber': 'trkn',
             'discNumber': 'disk',
-            'genre': '\xa9gen',
-            'year': '\xa9day',
+            'genre': '\\xa9gen',
+            'year': '\\xa9day',
         }
         for our_key, mutagen_key in key_map.items():
             value = tags.get(our_key)
@@ -127,9 +127,63 @@ def write_tags(path, tags):
     else:
         raise ValueError(f"Unsupported extension: {ext}")
 
+def write_cover_art(path, data_b64, format):
+    data = base64.b64decode(data_b64)
+    ext = path.lower().rsplit('.', 1)[-1] if '.' in path else ''
+
+    if ext == 'mp3':
+        from mutagen.mp3 import MP3
+        from mutagen.id3 import ID3, APIC
+        audio = MP3(path)
+        if audio.tags is None:
+            audio.add_tags()
+        # Replace any existing APIC frames.
+        audio.tags['APIC'] = APIC(encoding=3, mime=format, type=3, desc='Cover', data=data)
+        audio.save()
+
+    elif ext == 'flac':
+        from mutagen.flac import FLAC, Picture
+        audio = FLAC(path)
+        audio.clear_pictures()
+        pic = Picture()
+        pic.type = 3
+        pic.mime = format
+        pic.desc = 'Cover'
+        pic.data = data
+        audio.add_picture(pic)
+        audio.save()
+
+    elif ext == 'ogg':
+        from mutagen.oggvorbis import OggVorbis
+        from mutagen.flac import Picture
+        audio = OggVorbis(path)
+        audio['METADATA_BLOCK_PICTURE'] = []
+        pic = Picture()
+        pic.type = 3
+        pic.mime = format
+        pic.desc = 'Cover'
+        pic.data = data
+        audio['METADATA_BLOCK_PICTURE'] = [pic.write()]
+        audio.save()
+
+    elif ext in ('m4a', 'mp4'):
+        from mutagen.mp4 import MP4
+        audio = MP4(path)
+        audio['covr'] = [data]
+        audio.save()
+
+    else:
+        raise ValueError(f"Unsupported extension: {ext}")
+
 if __name__ == '__main__':
     data = json.load(sys.stdin)
-    write_tags(data['path'], data['tags'])
+    path = data['path']
+    if 'tags' in data:
+        write_tags(path, data['tags'])
+    elif 'coverArt' in data:
+        write_cover_art(path, data['coverArt']['data'], data['coverArt']['format'])
+    else:
+        raise ValueError('No tags or coverArt provided')
 `;
 
 export class MutagenWriter implements TagWriter {
@@ -139,12 +193,28 @@ export class MutagenWriter implements TagWriter {
 
   async write(path: string, tags: SongTags): Promise<void> {
     await atomicTagRewrite(path, async (tmpPath) => {
-      await runMutagen(tmpPath, tags);
+      await runMutagen(tmpPath, { tags });
+    });
+  }
+
+  async writeCoverArt(path: string, coverArt: CoverArtData): Promise<void> {
+    await atomicTagRewrite(path, async (tmpPath) => {
+      await runMutagen(tmpPath, {
+        coverArt: {
+          data: coverArt.data.toString('base64'),
+          format: coverArt.format,
+        },
+      });
     });
   }
 }
 
-function runMutagen(path: string, tags: SongTags): Promise<void> {
+interface MutagenPayload {
+  tags?: SongTags;
+  coverArt?: { data: string; format: string };
+}
+
+function runMutagen(path: string, payload: MutagenPayload): Promise<void> {
   return new Promise((resolve, reject) => {
     const proc = spawn('python3', ['-c', MUTAGEN_SCRIPT]);
     let stderr = '';
@@ -154,7 +224,7 @@ function runMutagen(path: string, tags: SongTags): Promise<void> {
       if (code === 0) resolve();
       else reject(new Error(`Mutagen failed (${code}): ${stderr.trim()}`));
     });
-    proc.stdin.write(JSON.stringify({ path, tags }));
+    proc.stdin.write(JSON.stringify({ path, ...payload }));
     proc.stdin.end();
   });
 }

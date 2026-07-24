@@ -81,9 +81,9 @@ export function Artist() {
     }
   };
 
-  if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
+  if (loading) return <p className="text-sm text-muted">Loading...</p>;
   if (error) return <p className="text-sm text-danger">{error}</p>;
-  if (!artist) return <p className="text-sm text-gray-500">Artist not found.</p>;
+  if (!artist) return <p className="text-sm text-muted">Artist not found.</p>;
 
   return (
     <div>
@@ -121,8 +121,8 @@ export function Artist() {
           ))}
         </span>
       </div>
-      <h3 className="mb-2 text-sm font-medium text-gray-500">Albums</h3>
-      <ul className="divide-y divide-gray-100">
+      <h3 className="mb-2 text-sm font-medium text-muted">Albums</h3>
+      <ul className="divide-y divide-rule">
         {artist.albums.map((album) => {
           const hasFilteredSongs =
             album.totalSongCount !== undefined &&
@@ -132,41 +132,41 @@ export function Artist() {
             <li key={album.id}>
               <Link
                 href={`/albums/${album.id}`}
-                className="flex items-center justify-between py-2 text-sm hover:bg-gray-50"
+                className="flex items-center justify-between py-2 text-sm hover:bg-surface-hover"
               >
                 <span className="inline-flex items-center gap-2">
                   {album.name}
                   {hasFilteredSongs && (
-                    <span className="rounded bg-yellow-100 px-1.5 py-0.5 text-xs text-yellow-800">
+                    <span className="rounded bg-yellow-500/10 px-1.5 py-0.5 text-xs text-yellow-500">
                       {album.shownSongCount} of {album.totalSongCount} songs
                     </span>
                   )}
                 </span>
-                {album.year !== undefined && album.year !== null && <span className="text-gray-400">{album.year}</span>}
+                {album.year !== undefined && album.year !== null && <span className="text-muted">{album.year}</span>}
               </Link>
             </li>
           );
         })}
       </ul>
-      {artist.albums.length === 0 && <p className="py-4 text-sm text-gray-500">No albums found.</p>}
+      {artist.albums.length === 0 && <p className="py-4 text-sm text-muted">No albums found.</p>}
 
-      <h3 className="mb-2 mt-6 text-sm font-medium text-gray-500">Top tracks</h3>
-      <ul className="divide-y divide-gray-100">
+      <h3 className="mb-2 mt-6 text-sm font-medium text-muted">Top tracks</h3>
+      <ul className="divide-y divide-rule">
         {topTracks.map((track) => (
           <li key={track.id}>
             <Link
               href={`/tracks/${track.id}`}
-              className="flex items-center justify-between py-2 text-sm hover:bg-gray-50"
+              className="flex items-center justify-between py-2 text-sm hover:bg-surface-hover"
             >
               <span>{track.title}</span>
               {track.duration !== undefined && (
-                <span className="text-gray-400">{formatDuration(track.duration)}</span>
+                <span className="text-muted">{formatDuration(track.duration)}</span>
               )}
             </Link>
           </li>
         ))}
       </ul>
-      {topTracks.length === 0 && <p className="py-4 text-sm text-gray-500">No tracks found.</p>}
+      {topTracks.length === 0 && <p className="py-4 text-sm text-muted">No tracks found.</p>}
     </div>
   );
 }

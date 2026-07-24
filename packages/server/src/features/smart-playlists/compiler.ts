@@ -280,7 +280,8 @@ export function compileSmartPlaylist(
   const baseWhereParams = [...ctx.params];
   // Joins appear before WHERE, so user_id bind must precede WHERE parameters.
   const countParams = [...userIdParam, ...baseWhereParams];
-  const countSql = `SELECT COUNT(DISTINCT s.id) as count FROM songs s ${joins} WHERE ${where}`;
+  const activeWhere = `s.active = 1 AND ${where}`;
+  const countSql = `SELECT COUNT(DISTINCT s.id) as count FROM songs s ${joins} WHERE ${activeWhere}`;
 
   const limit = computeLimit(db, normalized, countSql, countParams);
 
@@ -289,7 +290,7 @@ export function compileSmartPlaylist(
     'SELECT DISTINCT s.id FROM songs s',
     joins,
     'WHERE',
-    where,
+    activeWhere,
     orderBy,
     limit !== undefined ? `LIMIT ${limit}` : '',
   ].filter(Boolean).join(' ');

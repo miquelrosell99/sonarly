@@ -103,7 +103,7 @@ export function PlaylistDetail() {
             {s.title}
           </Link>
           {s.explicit && (
-            <span className="rounded bg-red-100 px-1 text-[10px] font-bold text-red-700">E</span>
+            <span className="rounded bg-red-500/10 px-1 text-[10px] font-bold text-red-500">E</span>
           )}
         </span>
       ),
@@ -118,9 +118,9 @@ export function PlaylistDetail() {
     },
   ];
 
-  if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
+  if (loading) return <p className="text-sm text-muted">Loading...</p>;
   if (error) return <p className="text-sm text-danger">{error}</p>;
-  if (!playlist) return <p className="text-sm text-gray-500">Playlist not found.</p>;
+  if (!playlist) return <p className="text-sm text-muted">Playlist not found.</p>;
 
   return (
     <div>
@@ -160,7 +160,7 @@ export function PlaylistDetail() {
               ))}
             </span>
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted">
             {playlist.visibility}
             {playlist.isSmart && (
               <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary">smart</span>
@@ -173,10 +173,10 @@ export function PlaylistDetail() {
       </div>
 
       {playlist.isSmart && (
-        <div className="mb-6 rounded border border-gray-200 p-4 dark:border-gray-700">
+        <div className="mb-6 rounded border border-rule p-4">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-medium">Smart rules</h3>
-            {saving && <span className="text-xs text-gray-500">Saving...</span>}
+            {saving && <span className="text-xs text-muted">Saving...</span>}
           </div>
           <SmartPlaylistEditor initialRules={playlist.rules} onChange={saveRules} />
         </div>

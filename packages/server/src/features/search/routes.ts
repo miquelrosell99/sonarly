@@ -15,9 +15,10 @@ interface SongSearchRow {
   genre: string | null;
   year: number | null;
   explicit: number;
-  cover_art: string | null;
+  cover_art_id: string | null;
   mtime: number;
   checksum: string;
+  active: number;
   artist_name: string | null;
   album_name: string | null;
   starred: number | null;
@@ -31,7 +32,8 @@ interface AlbumSearchRow {
   artist_name: string | null;
   year: number | null;
   genre: string | null;
-  cover_art: string | null;
+  cover_art_id: string | null;
+  active: number;
   starred: number | null;
   rating: number | null;
 }
@@ -39,6 +41,7 @@ interface AlbumSearchRow {
 interface ArtistSearchRow {
   id: string;
   name: string;
+  active: number;
   starred: number | null;
   rating: number | null;
 }
@@ -75,9 +78,10 @@ function rowToSong(row: SongSearchRow): Song {
     genre: row.genre ?? undefined,
     year: row.year ?? undefined,
     explicit: row.explicit === 1,
-    coverArt: row.cover_art ?? undefined,
+    coverArt: row.cover_art_id ?? undefined,
     mtime: row.mtime,
     checksum: row.checksum,
+    active: row.active === 1,
     starred: row.starred === 1,
     rating: row.rating ?? undefined,
   };
@@ -91,7 +95,8 @@ function rowToAlbum(row: AlbumSearchRow): Album {
     artistName: row.artist_name ?? undefined,
     year: row.year ?? undefined,
     genre: row.genre ?? undefined,
-    coverArt: row.cover_art ?? undefined,
+    coverArt: row.cover_art_id ?? undefined,
+    active: row.active === 1,
     starred: row.starred === 1,
     rating: row.rating ?? undefined,
   };
@@ -101,6 +106,7 @@ function rowToArtist(row: ArtistSearchRow): Artist {
   return {
     id: row.id,
     name: row.name,
+    active: row.active === 1,
     starred: row.starred === 1,
     rating: row.rating ?? undefined,
   };
@@ -145,7 +151,7 @@ export function registerSearchRoutes(app: FastifyInstance, db: Database.Database
       LEFT JOIN artists ar ON ar.id = s.artist_id
       LEFT JOIN albums al ON al.id = s.album_id
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
-      WHERE (
+      WHERE s.active = 1 AND (
         LOWER(s.title) LIKE LOWER(?)
         OR LOWER(ar.name) LIKE LOWER(?)
         OR LOWER(al.name) LIKE LOWER(?)
@@ -162,7 +168,7 @@ export function registerSearchRoutes(app: FastifyInstance, db: Database.Database
         ua.rating
       FROM albums a
       LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
-      WHERE LOWER(a.name) LIKE LOWER(?)
+      WHERE a.active = 1 AND LOWER(a.name) LIKE LOWER(?)
       ORDER BY a.name
       LIMIT 50
     `).all(userId ?? null, pattern) as AlbumSearchRow[];
@@ -174,7 +180,7 @@ export function registerSearchRoutes(app: FastifyInstance, db: Database.Database
         ua.rating
       FROM artists ar
       LEFT JOIN user_artists ua ON ua.user_id = ? AND ua.artist_id = ar.id
-      WHERE LOWER(ar.name) LIKE LOWER(?)
+      WHERE ar.active = 1 AND LOWER(ar.name) LIKE LOWER(?)
       ORDER BY ar.name
       LIMIT 50
     `).all(userId ?? null, pattern) as ArtistSearchRow[];

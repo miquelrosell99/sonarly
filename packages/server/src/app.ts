@@ -39,6 +39,7 @@ import { registerUserPreferenceRoutes } from './features/user-preferences/index.
 import { registerFavoritesRoutes } from './features/favorites/index.js';
 import { registerSearchRoutes } from './features/search/index.js';
 import { registerPlayersRoutes } from './features/players/index.js';
+import { registerHomeRoutes } from './features/home/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -143,6 +144,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   registerFavoritesRoutes(app, db);
   registerSearchRoutes(app, db);
   registerPlayersRoutes(app, db);
+  registerHomeRoutes(app, db);
 
   const webDist = join(__dirname, '..', 'web-dist');
   if (existsSync(webDist)) {

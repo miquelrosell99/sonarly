@@ -1,78 +1,9 @@
 import { useState, type ReactNode } from 'react';
-import { Link, useLocation } from 'wouter';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
+import { Card } from './Card.js';
+import { ListRow } from './ListRow.js';
 import { ItemContextMenu, type ContextMenuItem } from './ItemContextMenu.js';
-
-interface FavoriteButtonProps {
-  starred?: boolean;
-  onClick: () => void;
-  label?: string;
-  className?: string;
-}
-
-function FavoriteButton({ starred, onClick, label, className }: FavoriteButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick();
-      }}
-      aria-label={label ?? (starred ? 'Remove favorite' : 'Add favorite')}
-      title={label ?? (starred ? 'Remove favorite' : 'Add favorite')}
-      className={cn(
-        'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-        starred ? 'text-accent' : 'text-muted hover:text-accent',
-        className,
-      )}
-    >
-      <Icon name={starred ? 'mdi-heart' : 'mdi-heart-outline'} size={18} />
-    </button>
-  );
-}
-
-interface StarRatingProps {
-  rating?: number;
-  onRate: (rating: number) => void;
-  className?: string;
-}
-
-function StarRating({ rating = 0, onRate, className }: StarRatingProps) {
-  const [hover, setHover] = useState<number | null>(null);
-  const display = hover ?? rating;
-
-  return (
-    <span
-      className={cn('inline-flex items-center gap-0.5', className)}
-      onMouseLeave={() => setHover(null)}
-      role="group"
-      aria-label="Rating"
-    >
-      {[1, 2, 3, 4, 5].map((value) => (
-        <button
-          key={value}
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRate(value === rating ? 0 : value);
-          }}
-          onMouseEnter={() => setHover(value)}
-          aria-label={`Rate ${value} stars`}
-          className={cn(
-            'rounded p-0.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-            value <= display ? 'text-accent' : 'text-muted hover:text-accent/70',
-          )}
-        >
-          <Icon
-            name={value <= display ? 'mdi-star' : 'mdi-star-outline'}
-            size={16}
-          />
-        </button>
-      ))}
-    </span>
-  );
-}
 
 export interface LibraryViewColumn<T> {
   key: string;
@@ -108,11 +39,6 @@ interface LibraryViewProps<T> {
 
 type ViewMode = 'list' | 'grid';
 
-function isInteractiveTarget(target: EventTarget) {
-  const el = target as HTMLElement;
-  return el.closest('a, button, [role="menuitem"]') !== null;
-}
-
 export function LibraryView<T>({
   title,
   data,
@@ -131,7 +57,6 @@ export function LibraryView<T>({
   renderContextMenu,
   emptyMessage = 'No items found.',
 }: LibraryViewProps<T>) {
-  const [, setLocation] = useLocation();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   const errorText = error instanceof Error ? error.message : error ?? null;
@@ -185,55 +110,19 @@ export function LibraryView<T>({
             const starred = getFavorite?.(item);
             const rating = getRating?.(item);
             const row = (
-              <tr
-                key={getId(item)}
-                className="group cursor-pointer transition hover:bg-surface-hover"
-                onClick={(e) => {
-                  if (!isInteractiveTarget(e.target)) {
-                    setLocation(href);
-                  }
-                }}
+              <ListRow
+                href={href}
+                index={index}
+                onPlay={onPlay ? () => onPlay(item) : undefined}
+                favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
+                rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
               >
-                <td className="py-2 pr-4">
-                  <span className="inline-flex items-center text-muted">
-                    <span className="group-hover:hidden">{index + 1}</span>
-                    {onPlay && (
-                      <button
-                        type="button"
-                        className="hidden text-accent hover:text-accent/80 focus-visible:outline-none group-hover:inline-flex"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onPlay(item);
-                        }}
-                        aria-label="Play"
-                      >
-                        <Icon name="mdi-play" size={18} />
-                      </button>
-                    )}
-                  </span>
-                </td>
                 {columns.map((col) => (
                   <td key={col.key} className={cn('py-2 pr-4', col.className)}>
                     {col.render(item)}
                   </td>
                 ))}
-                {onFavorite && (
-                  <td className="py-2 pr-4">
-                    <FavoriteButton
-                      starred={starred}
-                      onClick={() => onFavorite(item, !starred)}
-                    />
-                  </td>
-                )}
-                {onRate && (
-                  <td className="py-2 pr-4">
-                    <StarRating
-                      rating={rating}
-                      onRate={(value) => onRate(item, value || undefined)}
-                    />
-                  </td>
-                )}
-              </tr>
+              </ListRow>
             );
             return <ItemContextMenu key={getId(item)} items={contextItems}>{row}</ItemContextMenu>;
           })}
@@ -250,56 +139,26 @@ export function LibraryView<T>({
         const starred = getFavorite?.(item);
         const rating = getRating?.(item);
         const card = (
-          <div className="group relative">
-            <Link
-              href={href}
-              className="block overflow-hidden rounded-md border border-rule bg-surface p-3 transition hover:border-accent hover:bg-surface-hover"
-            >
-              <div className="space-y-1">
-                {cardFields.map((field, idx) => (
-                  <div
-                    key={field.key}
-                    className={cn(
-                      'text-sm text-fg-primary',
-                      idx === 0 ? 'font-medium' : 'text-muted',
-                    )}
-                  >
-                    {field.render(item)}
-                  </div>
-                ))}
-              </div>
-            </Link>
-            <div className="pointer-events-auto absolute right-2 top-2 z-10 flex flex-col gap-1">
-              {onFavorite && (
-                <FavoriteButton
-                  starred={starred}
-                  onClick={() => onFavorite(item, !starred)}
-                  className="bg-surface/80 shadow-sm"
-                />
-              )}
-              {onRate && (
-                <StarRating
-                  rating={rating}
-                  onRate={(value) => onRate(item, value || undefined)}
-                  className="rounded bg-surface/80 p-1 shadow-sm"
-                />
-              )}
+          <Card
+            href={href}
+            favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
+            rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
+            play={onPlay ? { onClick: () => onPlay(item) } : undefined}
+          >
+            <div className="space-y-1">
+              {cardFields.map((field, idx) => (
+                <div
+                  key={field.key}
+                  className={cn(
+                    'text-sm text-fg-primary',
+                    idx === 0 ? 'font-medium' : 'text-muted',
+                  )}
+                >
+                  {field.render(item)}
+                </div>
+              ))}
             </div>
-            {onPlay && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onPlay(item);
-                }}
-                className="pointer-events-auto absolute bottom-2 right-2 z-10 hidden rounded-full bg-accent p-2 text-bg-primary shadow transition hover:bg-accent/90 focus-visible:outline-none group-hover:block"
-                aria-label="Play"
-              >
-                <Icon name="mdi-play" size={20} />
-              </button>
-            )}
-          </div>
+          </Card>
         );
         return <ItemContextMenu key={getId(item)} items={contextItems}>{card}</ItemContextMenu>;
       })}

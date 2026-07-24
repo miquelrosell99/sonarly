@@ -115,10 +115,10 @@ export function TagEditor({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md border border-gray-200 bg-white p-6 shadow-lg">
+      <div className="w-full max-w-md border border-rule bg-surface p-6 shadow-lg">
         <h3 className="mb-4 text-lg font-semibold">Edit Tags</h3>
         {loading ? (
-          <p className="text-sm text-gray-500">Loading...</p>
+          <p className="text-sm text-muted">Loading...</p>
         ) : (
           <>
             {error && <p className="mb-3 text-sm text-danger">{error}</p>}

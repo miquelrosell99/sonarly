@@ -71,9 +71,10 @@ interface SongDetailRow {
   genre: string | null;
   year: number | null;
   explicit: number;
-  cover_art: string | null;
+  cover_art_id: string | null;
   mtime: number;
   checksum: string;
+  active: number;
   artist_name: string | null;
   album_name: string | null;
   starred: number | null;
@@ -92,9 +93,10 @@ interface SongListRow {
   genre: string | null;
   year: number | null;
   explicit: number;
-  cover_art: string | null;
+  cover_art_id: string | null;
   mtime: number;
   checksum: string;
+  active: number;
   artist_name: string | null;
   album_name: string | null;
   starred: number | null;
@@ -114,9 +116,10 @@ function rowToSong(row: SongDetailRow | SongListRow) {
     genre: row.genre ?? undefined,
     year: row.year ?? undefined,
     explicit: row.explicit === 1,
-    coverArt: row.cover_art ?? undefined,
+    coverArt: row.cover_art_id ?? undefined,
     mtime: row.mtime,
     checksum: row.checksum,
+    active: row.active === 1,
     artistName: row.artist_name ?? undefined,
     albumName: row.album_name ?? undefined,
     starred: row.starred === 1,
@@ -135,7 +138,8 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
       LEFT JOIN artists ar ON ar.id = s.artist_id
       LEFT JOIN albums al ON al.id = s.album_id
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
-      ${hideExplicit ? 'WHERE s.explicit = 0' : ''}
+      WHERE s.active = 1
+      ${hideExplicit ? 'AND s.explicit = 0' : ''}
       ORDER BY s.title
       LIMIT 500
     `).all(userId ?? null) as SongListRow[];
@@ -188,7 +192,7 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
       LEFT JOIN artists ar ON ar.id = s.artist_id
       LEFT JOIN albums al ON al.id = s.album_id
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
-      WHERE s.id = ?
+      WHERE s.id = ? AND s.active = 1
     `).get(userId ?? null, id) as SongDetailRow | undefined;
 
     if (!row) return reply.status(404).send({ error: 'Song not found' });

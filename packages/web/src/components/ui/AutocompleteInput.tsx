@@ -109,7 +109,7 @@ export function AutocompleteInput({
       />
       {open && (
         <ul
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto border border-gray-200 bg-white shadow-lg"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto border border-rule bg-surface shadow-lg"
           onMouseDown={() => {
             ignoreBlurRef.current = true;
           }}
@@ -122,8 +122,8 @@ export function AutocompleteInput({
               key={s}
               onClick={() => selectSuggestion(s)}
               className={cn(
-                'cursor-pointer px-3 py-2 text-sm hover:bg-gray-100',
-                i === highlighted && 'bg-gray-100',
+                'cursor-pointer px-3 py-2 text-sm hover:bg-surface-hover',
+                i === highlighted && 'bg-surface-hover',
               )}
             >
               {s}
@@ -132,7 +132,7 @@ export function AutocompleteInput({
         </ul>
       )}
       {loading && (
-        <span className="pointer-events-none absolute right-3 top-1.5 text-xs text-gray-400">...</span>
+        <span className="pointer-events-none absolute right-3 top-1.5 text-xs text-muted">...</span>
       )}
     </div>
   );

@@ -111,6 +111,19 @@ export function Sidebar({ config, playlists }: SidebarProps) {
             <div className="mb-2 flex items-center justify-between px-3">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted">Playlists</span>
               <div className="flex items-center gap-1">
+                <Link
+                  href="/playlists"
+                  aria-label="All playlists"
+                  title="All playlists"
+                  className={cn(
+                    'rounded p-1 transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                    isActive(location, '/playlists')
+                      ? 'text-accent'
+                      : 'text-muted hover:text-fg-primary',
+                  )}
+                >
+                  <Icon name="mdi-playlist-music" size={18} />
+                </Link>
                 <button
                   type="button"
                   aria-label="Create playlist"
@@ -137,18 +150,6 @@ export function Sidebar({ config, playlists }: SidebarProps) {
 
             {!collapsed && (
               <nav className="space-y-1">
-                <Link
-                  href="/playlists"
-                  className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition',
-                    isActive(location, '/playlists')
-                      ? 'bg-surface-hover text-accent'
-                      : 'text-fg-primary hover:bg-surface-hover hover:text-accent',
-                  )}
-                >
-                  <Icon name="mdi-playlist-music" size={20} />
-                  All playlists
-                </Link>
                 {playlists?.map((playlist) => {
                   const href = `/playlists/${playlist.id}`;
                   const active = isActive(location, href);
