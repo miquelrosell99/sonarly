@@ -63,7 +63,9 @@ describe('scanner worker thread', () => {
       DATA_DIR: root,
       LIBRARY_PATH: libraryPath,
       INGEST_PATH: ingestPath,
+      ORGANIZE_PATTERN: '{artist}/{album}/{title}',
       SCAN_INTERVAL_MINUTES: 60,
+      REVIEW_RETENTION_DAYS: 30,
       WATCHER_USE_POLLING: false,
       PUID: 1000,
       PGID: 1000,
@@ -113,6 +115,23 @@ describe('scanner worker thread', () => {
     const row = db.prepare("SELECT status, stats FROM scan_jobs WHERE type = 'ingest'").get() as any;
     expect(row.status).toBe('completed');
     expect(JSON.parse(row.stats)).toEqual({ processed: 0, imported: 0, needsReview: 0, failed: 0 });
+  });
+
+  it('processes an organize job', async () => {
+    copyFileSync(fixture, join(libraryPath, 'loose.mp3'));
+
+    pushJob(db, 'organize', '');
+
+    await waitFor(() => {
+      const row = db.prepare("SELECT status, stats FROM scan_jobs WHERE type = 'organize'").get() as any;
+      return row?.status === 'completed' && row?.stats && JSON.parse(row.stats).moved === 1;
+    });
+
+    const row = db.prepare("SELECT status, stats FROM scan_jobs WHERE type = 'organize'").get() as any;
+    expect(row.status).toBe('completed');
+    const stats = JSON.parse(row.stats);
+    expect(stats.total).toBe(1);
+    expect(stats.moved).toBe(1);
   });
 
 });

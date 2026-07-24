@@ -7,6 +7,7 @@ import { scanLibrary } from './scanner.js';
 import { popPendingJob, pushJob, markJobRunning, markJobCompleted, markJobFailed } from './queue.js';
 import { processIngestFolder } from '../ingest/index.js';
 import { cleanupReviewFolder } from '../ingest/index.js';
+import { runOrganizeJob } from '../ingest/organize-job.js';
 import {
   getReviewRetentionDays,
   getSetting,
@@ -78,6 +79,9 @@ async function loop(): Promise<void> {
         const stats = await cleanupReviewFolder(reviewDir, retentionDays);
         markJobCompleted(db, job.id, stats);
         setSetting(db, 'last_review_cleanup', new Date().toISOString());
+      } else if (job.type === 'organize') {
+        const stats = await runOrganizeJob(config, db, job.id);
+        markJobCompleted(db, job.id, stats);
       }
     } catch (err) {
       markJobFailed(db, job.id, String(err));
