@@ -124,7 +124,7 @@ export function LibraryView<T>({
                 ))}
               </ListRow>
             );
-            return <ItemContextMenu key={getId(item)} items={contextItems}>{row}</ItemContextMenu>;
+            return <ItemContextMenu key={getId(item)} sections={[{ items: contextItems }]}>{row}</ItemContextMenu>;
           })}
         </tbody>
       </table>
@@ -160,7 +160,7 @@ export function LibraryView<T>({
             </div>
           </Card>
         );
-        return <ItemContextMenu key={getId(item)} items={contextItems}>{card}</ItemContextMenu>;
+        return <ItemContextMenu key={getId(item)} sections={[{ items: contextItems }]}>{card}</ItemContextMenu>;
       })}
     </div>
   );
