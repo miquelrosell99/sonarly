@@ -401,4 +401,35 @@ describe('management playlist endpoints', () => {
     expect(update.statusCode).toBe(200);
     expect(JSON.parse(update.body).playlist.shareToken).toBeUndefined();
   });
+
+  it('converts a smart playlist to a normal playlist', async () => {
+    const createRes = await app.inject({
+      method: 'POST',
+      url: '/api/playlists',
+      cookies: { sessionId: ownerCookie },
+      payload: {
+        name: 'Smart',
+        isSmart: true,
+        rules: { rules: { all: [{ field: 'title', operator: 'contains', value: 'Track' }] } },
+      },
+    });
+    const { playlist } = JSON.parse(createRes.body) as { playlist: { id: string } };
+
+    const putRes = await app.inject({
+      method: 'PUT',
+      url: `/api/playlists/${playlist.id}`,
+      cookies: { sessionId: ownerCookie },
+      payload: { isSmart: false },
+    });
+    expect(putRes.statusCode).toBe(200);
+
+    const getRes = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${playlist.id}`,
+      cookies: { sessionId: ownerCookie },
+    });
+    const body = JSON.parse(getRes.body) as { playlist: { isSmart: boolean; songCount: number } };
+    expect(body.playlist.isSmart).toBe(false);
+    expect(body.playlist.songCount).toBeGreaterThanOrEqual(1);
+  });
 });

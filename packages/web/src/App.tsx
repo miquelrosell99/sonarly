@@ -46,6 +46,24 @@ export default function App() {
     });
   }, []);
 
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target.isContentEditable ||
+        target instanceof HTMLImageElement ||
+        target.getAttribute('role') === 'img'
+      ) {
+        return;
+      }
+      e.preventDefault();
+    };
+    document.addEventListener('contextmenu', handler);
+    return () => document.removeEventListener('contextmenu', handler);
+  }, []);
+
   if (user === undefined || needsSetup === undefined) {
     return <div className="p-8">Loading...</div>;
   }

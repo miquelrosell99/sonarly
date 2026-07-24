@@ -1,4 +1,4 @@
-import { Children, useState, type MouseEvent, type KeyboardEvent, type ReactNode, type ReactElement, cloneElement, isValidElement } from 'react';
+import { Children, Fragment, useState, type MouseEvent, type KeyboardEvent, type ReactNode, type ReactElement, cloneElement, isValidElement } from 'react';
 import { cn } from '../../lib/cn.js';
 import { Icon } from './Icon.js';
 
@@ -17,6 +17,7 @@ interface TableProps<T> {
   onPlay?: (row: T) => void;
   onPlaySelection?: (rows: T[], startIndex: number) => void;
   playingId?: string;
+  renderRow?: (row: T, element: ReactNode) => ReactNode;
 }
 
 function isInteractiveTarget(target: EventTarget, currentTarget: EventTarget) {
@@ -41,6 +42,7 @@ export function Table<T>({
   onPlay,
   onPlaySelection,
   playingId,
+  renderRow,
 }: TableProps<T>) {
   const selectable = Boolean(onPlaySelection);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -147,7 +149,7 @@ export function Table<T>({
                 })
               : titleCell;
 
-            return (
+            const tr = (
               <tr
                 key={id}
                 tabIndex={selectable ? 0 : undefined}
@@ -190,6 +192,12 @@ export function Table<T>({
                 {highlightedTitle}
                 {restCells}
               </tr>
+            );
+
+            return renderRow ? (
+              <Fragment key={id}>{renderRow(row, tr)}</Fragment>
+            ) : (
+              tr
             );
           })}
         </tbody>

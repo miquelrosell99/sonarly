@@ -1,16 +1,35 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
 import type { Artist, Song } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
+import { useArtistContextMenu } from '../../../hooks/useArtistContextMenu.js';
+import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
+import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { useNotification } from '../../../contexts/NotificationContext.js';
+
+function ArtistContextMenu({
+  artist,
+  onEdit,
+  children,
+}: {
+  artist: Artist;
+  onEdit: () => void;
+  children: ReactNode;
+}) {
+  const sections = useArtistContextMenu(artist, onEdit);
+  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+}
 
 export function Artists() {
   const [artists, setArtists] = useState<Artist[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Artist | null>(null);
+  const { notify } = useNotification();
   const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
 
@@ -55,7 +74,7 @@ export function Artists() {
         prev.map((a) => (a.id === artist.id ? { ...a, starred } : a)),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+      notify(err instanceof Error ? err.message : 'Failed to update favorite', 'error');
     }
   };
 
@@ -66,7 +85,7 @@ export function Artists() {
         prev.map((a) => (a.id === artist.id ? { ...a, rating } : a)),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update rating');
+      notify(err instanceof Error ? err.message : 'Failed to update rating', 'error');
     }
   };
 
@@ -87,21 +106,37 @@ export function Artists() {
   ];
 
   return (
-    <LibraryView
-      title="Artists"
-      data={filteredArtists}
-      isLoading={loading}
-      error={error}
-      columns={columns}
-      cardFields={cardFields}
-      getId={(artist) => artist.id}
-      getHref={(artist) => `/artists/${artist.id}`}
-      onFavorite={handleFavorite}
-      onRate={handleRate}
-      getFavorite={(artist) => artist.starred}
-      getRating={(artist) => artist.rating}
-      emptyMessage="No artists match the current filters."
-      defaultView="grid"
-    />
+    <>
+      <LibraryView
+        title="Artists"
+        data={filteredArtists}
+        isLoading={loading}
+        error={error}
+        columns={columns}
+        cardFields={cardFields}
+        getId={(artist) => artist.id}
+        getHref={(artist) => `/artists/${artist.id}`}
+        onFavorite={handleFavorite}
+        onRate={handleRate}
+        getFavorite={(artist) => artist.starred}
+        getRating={(artist) => artist.rating}
+        renderContextMenu={(artist, children) => (
+          <ArtistContextMenu artist={artist} onEdit={() => setEditing(artist)}>
+            {children}
+          </ArtistContextMenu>
+        )}
+        emptyMessage="No artists match the current filters."
+        defaultView="grid"
+      />
+      {editing && (
+        <EditEntityModal
+          open
+          entityType="artist"
+          entity={(editing as unknown) as Record<string, unknown>}
+          onClose={() => setEditing(null)}
+          readOnly
+        />
+      )}
+    </>
   );
 }

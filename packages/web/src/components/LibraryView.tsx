@@ -1,10 +1,9 @@
-import { useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import { Fragment, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { Card } from './Card.js';
 import { CoverArt } from './CoverArt.js';
 import { ListRow } from './ListRow.js';
-import { ItemContextMenu, type ContextMenuItem } from './ItemContextMenu.js';
 
 export interface LibraryViewColumn<T> {
   key: string;
@@ -35,7 +34,7 @@ interface LibraryViewProps<T> {
   onRate?: (item: T, rating?: number) => void;
   getFavorite?: (item: T) => boolean | undefined;
   getRating?: (item: T) => number | undefined;
-  renderContextMenu?: (item: T) => ContextMenuItem[];
+  renderContextMenu?: (item: T, children: ReactNode) => ReactNode;
   emptyMessage?: string;
   defaultView?: 'list' | 'grid';
   getCover?: (item: T) => string | undefined;
@@ -183,13 +182,14 @@ export function LibraryView<T>({
         <tbody className="divide-y divide-rule">
           {data.map((item, index) => {
             const id = getId(item);
-            const contextItems = renderContextMenu ? renderContextMenu(item) : [];
+            const href = getHref(item);
             const starred = getFavorite?.(item);
             const rating = getRating?.(item);
             const isSelected = selectedIds.has(id);
             const isPlayingTitle = playingId !== undefined && playingId === id;
             const row = (
               <ListRow
+                href={href}
                 index={index}
                 isSelected={isSelected}
                 isPlayingTitle={isPlayingTitle}
@@ -206,7 +206,11 @@ export function LibraryView<T>({
                 ))}
               </ListRow>
             );
-            return <ItemContextMenu key={id} items={contextItems}>{row}</ItemContextMenu>;
+            return (
+              <Fragment key={id}>
+                {renderContextMenu ? renderContextMenu(item, row) : row}
+              </Fragment>
+            );
           })}
         </tbody>
       </table>
@@ -217,7 +221,6 @@ export function LibraryView<T>({
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
       {data.map((item) => {
         const href = getHref(item);
-        const contextItems = renderContextMenu ? renderContextMenu(item) : [];
         const starred = getFavorite?.(item);
         const rating = getRating?.(item);
         const cover = getCover?.(item);
@@ -242,7 +245,11 @@ export function LibraryView<T>({
             ))}
           </Card>
         );
-        return <ItemContextMenu key={getId(item)} items={contextItems}>{card}</ItemContextMenu>;
+        return (
+          <Fragment key={getId(item)}>
+            {renderContextMenu ? renderContextMenu(item, card) : card}
+          </Fragment>
+        );
       })}
     </div>
   );
