@@ -64,6 +64,8 @@ describe('Albums', () => {
       expect(screen.getByText('Album One')).toBeTruthy();
     });
 
+    fireEvent.click(screen.getByRole('button', { name: /list view/i }));
+
     const rows = screen.getAllByRole('row');
     const firstDataRow = rows[1];
     fireEvent.contextMenu(firstDataRow);
