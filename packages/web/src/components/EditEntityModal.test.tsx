@@ -174,4 +174,22 @@ describe('EditEntityModal', () => {
     expect(screen.getByRole('button', { name: /save/i }).hasAttribute('disabled')).toBe(true);
     expect(screen.getByRole('button', { name: /delete/i }).hasAttribute('disabled')).toBe(true);
   });
+
+  it('renders artist in read-only mode without save or delete', () => {
+    const onClose = vi.fn();
+    render(
+      <EditEntityModal
+        open
+        entityType="artist"
+        entity={{ id: '11', name: 'Read Only Artist' }}
+        onClose={onClose}
+        readOnly
+      />,
+    );
+    expect(screen.getByText('Read Only Artist')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /save/i })).toBeFalsy();
+    expect(screen.queryByRole('button', { name: /delete/i })).toBeFalsy();
+    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });
