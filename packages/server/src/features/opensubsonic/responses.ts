@@ -7,6 +7,7 @@ export interface SubsonicResponse {
     version: string;
     type: string;
     serverVersion: string;
+    openSubsonic: boolean;
     error?: { code: number; message: string };
   } & Record<string, unknown>;
 }
@@ -23,6 +24,7 @@ export function sendSubsonicReply(
       version: '1.16.1',
       type: 'sonarly',
       serverVersion: '0.1.0',
+      openSubsonic: true,
       ...data,
     },
   };
