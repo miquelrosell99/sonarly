@@ -8,12 +8,32 @@ export interface CoverArtPicture {
   format: string;
 }
 
+/** Audio format details extracted by {@link readMetadata}. */
+export interface AudioFormatMetadata {
+  bitRate?: number;
+  bitsPerSample?: number;
+  sampleRate?: number;
+  channels?: number;
+}
+
 /** Audio tags plus optional duration and cover-art hint, as returned by {@link readMetadata}. */
 export interface AudioMetadata {
   tags: SongTags;
   duration?: number;
+  format?: AudioFormatMetadata;
   hasCoverArt: boolean;
   coverArt?: CoverArtPicture;
+  bpm?: number;
+  musicBrainzId?: string;
+  replayGain?: number;
+  comment?: string;
+  sortName?: string;
+  mood?: string;
+  originalReleaseDate?: string;
+  releaseDate?: string;
+  remixOf?: string;
+  displayArtist?: string;
+  displayAlbumArtist?: string;
 }
 
 /**
@@ -24,6 +44,8 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
   const metadata = await parseFile(filePath, { duration: true });
   const common = metadata.common;
   const picture = common.picture?.[0];
+  const replayGain = common.replaygain_track_gain?.dB ?? common.replaygain_track_gain_ratio ?? undefined;
+
   return {
     tags: {
       title: common.title || getFilenameFallback(filePath),
@@ -37,8 +59,25 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
       explicit: detectExplicit(metadata.native),
     },
     duration: metadata.format.duration,
+    format: {
+      bitRate: metadata.format.bitrate,
+      bitsPerSample: metadata.format.bitsPerSample,
+      sampleRate: metadata.format.sampleRate,
+      channels: metadata.format.numberOfChannels,
+    },
     hasCoverArt: picture !== undefined,
     coverArt: picture ? { data: Buffer.from(picture.data), format: picture.format } : undefined,
+    bpm: common.bpm ?? undefined,
+    musicBrainzId: common.musicbrainz_recordingid ?? undefined,
+    replayGain: typeof replayGain === 'number' ? replayGain : undefined,
+    comment: common.comment?.[0] ?? undefined,
+    sortName: common.titlesort ?? undefined,
+    mood: common.mood ?? undefined,
+    originalReleaseDate: common.originaldate ?? undefined,
+    releaseDate: common.releasedate ?? undefined,
+    remixOf: common.remixer?.join(', ') ?? undefined,
+    displayArtist: common.artist ?? undefined,
+    displayAlbumArtist: common.albumartist ?? undefined,
   };
 }
 

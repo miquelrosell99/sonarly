@@ -4,4 +4,5 @@ export interface Artist {
   active?: boolean;
   starred?: boolean;
   rating?: number;
+  artistImageUrl?: string;
 }

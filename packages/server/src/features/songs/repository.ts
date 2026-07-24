@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
-import type { Song } from '@sonarly/shared';
+import { randomUUID } from 'node:crypto';
+import type { Song, ScrobbleDetails } from '@sonarly/shared';
 
 export interface DbSong {
   id: string;
@@ -18,6 +19,23 @@ export interface DbSong {
   mtime: number;
   checksum: string;
   active: number;
+  bit_rate: number | null;
+  bits_per_sample: number | null;
+  sample_rate: number | null;
+  channels: number | null;
+  bpm: number | null;
+  music_brainz_id: string | null;
+  replay_gain: number | null;
+  average_rating: number | null;
+  comment: string | null;
+  sort_name: string | null;
+  mood: string | null;
+  media_type: string | null;
+  original_release_date: string | null;
+  release_date: string | null;
+  remix_of: string | null;
+  display_artist: string | null;
+  display_album_artist: string | null;
 }
 
 interface DbSongWithInteractions extends DbSong {
@@ -43,6 +61,23 @@ function toSong(row: DbSong): Song {
     mtime: row.mtime,
     checksum: row.checksum,
     active: row.active === 1,
+    bitRate: row.bit_rate ?? undefined,
+    bitsPerSample: row.bits_per_sample ?? undefined,
+    sampleRate: row.sample_rate ?? undefined,
+    channels: row.channels ?? undefined,
+    bpm: row.bpm ?? undefined,
+    musicBrainzId: row.music_brainz_id ?? undefined,
+    replayGain: row.replay_gain ?? undefined,
+    averageRating: row.average_rating ?? undefined,
+    comment: row.comment ?? undefined,
+    sortName: row.sort_name ?? undefined,
+    mood: row.mood ?? undefined,
+    mediaType: row.media_type ?? undefined,
+    originalReleaseDate: row.original_release_date ?? undefined,
+    releaseDate: row.release_date ?? undefined,
+    remixOf: row.remix_of ?? undefined,
+    displayArtist: row.display_artist ?? undefined,
+    displayAlbumArtist: row.display_album_artist ?? undefined,
   };
 }
 
@@ -73,20 +108,46 @@ export function getSongByPath(db: Database.Database, path: string): Song | undef
   return row ? toSong(row) : undefined;
 }
 
-export function scrobbleSong(db: Database.Database, userId: string, songId: string): void {
-  db.prepare(`
+export function scrobbleSong(
+  db: Database.Database,
+  userId: string,
+  songId: string,
+  details?: ScrobbleDetails
+): void {
+  const upsertUserSong = db.prepare(`
     INSERT INTO user_songs (user_id, song_id, play_count, last_played)
     VALUES (?, ?, 1, datetime('now'))
     ON CONFLICT(user_id, song_id) DO UPDATE SET
       play_count = play_count + 1,
       last_played = datetime('now')
-  `).run(userId, songId);
+  `);
+
+  const insertHistory = db.prepare(`
+    INSERT INTO listening_history (id, user_id, song_id, played_at, duration_listened, completion, client, source)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const playedAt = details?.playedAt ?? new Date().toISOString();
+
+  db.transaction(() => {
+    upsertUserSong.run(userId, songId);
+    insertHistory.run(
+      randomUUID(),
+      userId,
+      songId,
+      playedAt,
+      details?.durationListened ?? null,
+      details?.completion ?? null,
+      details?.client ?? null,
+      details?.source ?? null
+    );
+  })();
 }
 
 export function upsertSong(db: Database.Database, song: Song): void {
   const stmt = db.prepare(`
-    INSERT INTO songs (id, file_path, title, track_number, disc_number, duration, artist_id, album_id, genre, year, explicit, cover_art_id, cover_art_missing, mtime, checksum, active)
-    VALUES (@id, @filePath, @title, @trackNumber, @discNumber, @duration, @artistId, @albumId, @genre, @year, @explicit, @coverArt, @coverArtMissing, @mtime, @checksum, @active)
+    INSERT INTO songs (id, file_path, title, track_number, disc_number, duration, artist_id, album_id, genre, year, explicit, cover_art_id, cover_art_missing, mtime, checksum, active, bit_rate, bits_per_sample, sample_rate, channels, bpm, music_brainz_id, replay_gain, average_rating, comment, sort_name, mood, media_type, original_release_date, release_date, remix_of, display_artist, display_album_artist)
+    VALUES (@id, @filePath, @title, @trackNumber, @discNumber, @duration, @artistId, @albumId, @genre, @year, @explicit, @coverArt, @coverArtMissing, @mtime, @checksum, @active, @bitRate, @bitsPerSample, @sampleRate, @channels, @bpm, @musicBrainzId, @replayGain, @averageRating, @comment, @sortName, @mood, @mediaType, @originalReleaseDate, @releaseDate, @remixOf, @displayArtist, @displayAlbumArtist)
     ON CONFLICT(id) DO UPDATE SET
       file_path = excluded.file_path,
       title = excluded.title,
@@ -102,7 +163,24 @@ export function upsertSong(db: Database.Database, song: Song): void {
       cover_art_missing = excluded.cover_art_missing,
       mtime = excluded.mtime,
       checksum = excluded.checksum,
-      active = excluded.active
+      active = excluded.active,
+      bit_rate = excluded.bit_rate,
+      bits_per_sample = excluded.bits_per_sample,
+      sample_rate = excluded.sample_rate,
+      channels = excluded.channels,
+      bpm = excluded.bpm,
+      music_brainz_id = excluded.music_brainz_id,
+      replay_gain = excluded.replay_gain,
+      average_rating = excluded.average_rating,
+      comment = excluded.comment,
+      sort_name = excluded.sort_name,
+      mood = excluded.mood,
+      media_type = excluded.media_type,
+      original_release_date = excluded.original_release_date,
+      release_date = excluded.release_date,
+      remix_of = excluded.remix_of,
+      display_artist = excluded.display_artist,
+      display_album_artist = excluded.display_album_artist
   `);
   stmt.run({
     id: song.id,
@@ -121,6 +199,23 @@ export function upsertSong(db: Database.Database, song: Song): void {
     mtime: song.mtime,
     checksum: song.checksum,
     active: song.active === false ? 0 : 1,
+    bitRate: song.bitRate ?? null,
+    bitsPerSample: song.bitsPerSample ?? null,
+    sampleRate: song.sampleRate ?? null,
+    channels: song.channels ?? null,
+    bpm: song.bpm ?? null,
+    musicBrainzId: song.musicBrainzId ?? null,
+    replayGain: song.replayGain ?? null,
+    averageRating: song.averageRating ?? null,
+    comment: song.comment ?? null,
+    sortName: song.sortName ?? null,
+    mood: song.mood ?? null,
+    mediaType: song.mediaType ?? null,
+    originalReleaseDate: song.originalReleaseDate ?? null,
+    releaseDate: song.releaseDate ?? null,
+    remixOf: song.remixOf ?? null,
+    displayArtist: song.displayArtist ?? null,
+    displayAlbumArtist: song.displayAlbumArtist ?? null,
   });
 }
 

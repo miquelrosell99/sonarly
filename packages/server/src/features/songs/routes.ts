@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import { unlink } from 'node:fs/promises';
-import type { SongTags } from '@sonarly/shared';
+import type { SongTags, ScrobbleDetails } from '@sonarly/shared';
 import { getSongById, deleteSongByPath, scrobbleSong } from '../songs/index.js';
 import { getUserPreferences } from '../user-preferences/index.js';
 import { writeTags } from '../tags/index.js';
@@ -20,6 +20,46 @@ const ALLOWED_TAG_KEYS = new Set<keyof SongTags>([
   'year',
   'explicit',
 ]);
+
+function parseScrobbleBody(body: unknown): ScrobbleDetails | undefined {
+  if (body === undefined || body === null) return undefined;
+  if (typeof body !== 'object' || Array.isArray(body)) {
+    throw new Error('Scrobble body must be an object');
+  }
+  const input = body as Record<string, unknown>;
+  const details: ScrobbleDetails = {};
+
+  if ('durationListened' in input) {
+    if (typeof input.durationListened !== 'number' || !Number.isFinite(input.durationListened)) {
+      throw new Error('durationListened must be a finite number');
+    }
+    details.durationListened = input.durationListened;
+  }
+
+  if ('completion' in input) {
+    if (typeof input.completion !== 'number' || !Number.isFinite(input.completion)) {
+      throw new Error('completion must be a finite number');
+    }
+    details.completion = input.completion;
+  }
+
+  if ('client' in input) {
+    if (typeof input.client !== 'string') throw new Error('client must be a string');
+    details.client = input.client;
+  }
+
+  if ('source' in input) {
+    if (typeof input.source !== 'string') throw new Error('source must be a string');
+    details.source = input.source;
+  }
+
+  if ('playedAt' in input) {
+    if (typeof input.playedAt !== 'string') throw new Error('playedAt must be an ISO date string');
+    details.playedAt = input.playedAt;
+  }
+
+  return Object.keys(details).length > 0 ? details : undefined;
+}
 
 export function validateSongTags(body: unknown): SongTags {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
@@ -211,7 +251,8 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
     const song = getSongById(db, id);
     if (!song) return reply.status(404).send({ error: 'Song not found' });
 
-    scrobbleSong(db, userId, id);
+    const details = parseScrobbleBody(request.body);
+    scrobbleSong(db, userId, id, details);
     reply.send({ ok: true });
   });
 

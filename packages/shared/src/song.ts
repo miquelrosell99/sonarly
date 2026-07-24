@@ -17,6 +17,23 @@ export interface Song {
   active?: boolean;
   starred?: boolean;
   rating?: number;
+  bitRate?: number;
+  bitsPerSample?: number;
+  sampleRate?: number;
+  channels?: number;
+  bpm?: number;
+  musicBrainzId?: string;
+  replayGain?: number;
+  averageRating?: number;
+  comment?: string;
+  sortName?: string;
+  mood?: string;
+  mediaType?: string;
+  originalReleaseDate?: string;
+  releaseDate?: string;
+  remixOf?: string;
+  displayArtist?: string;
+  displayAlbumArtist?: string;
 }
 
 export interface SongTags {
