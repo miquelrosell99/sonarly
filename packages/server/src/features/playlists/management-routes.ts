@@ -238,18 +238,30 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       visibility: PlaylistVisibility;
       songIds: string[];
       rules: SmartPlaylistRules;
+      isSmart: boolean;
     }>;
 
-    if (existing.isSmart && body.songIds !== undefined) {
-      return reply.status(400).send({ error: 'Cannot manually edit songs of a smart playlist' });
-    }
-
+    let songIds = existing.songIds;
+    let isSmart = existing.isSmart;
     let rules = existing.rules;
-    if (existing.isSmart && body.rules !== undefined) {
-      try {
-        rules = serializeRules(body.rules);
-      } catch {
-        return reply.status(400).send({ error: 'Invalid rules' });
+
+    if (existing.isSmart && body.isSmart === false) {
+      isSmart = false;
+      rules = undefined;
+      songIds = resolvePlaylistSongIds(db, existing, userId);
+    } else {
+      if (existing.isSmart && body.songIds !== undefined) {
+        return reply.status(400).send({ error: 'Cannot manually edit songs of a smart playlist' });
+      }
+      if (existing.isSmart && body.rules !== undefined) {
+        try {
+          rules = serializeRules(body.rules);
+        } catch {
+          return reply.status(400).send({ error: 'Invalid rules' });
+        }
+      }
+      if (Array.isArray(body.songIds)) {
+        songIds = body.songIds;
       }
     }
 
@@ -266,8 +278,9 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       name: typeof body.name === 'string' && body.name.length > 0 ? body.name : existing.name,
       visibility,
       shareToken,
-      songIds: Array.isArray(body.songIds) ? body.songIds : existing.songIds,
+      isSmart,
       rules,
+      songIds,
       updatedAt: new Date().toISOString(),
     };
     updatePlaylist(db, updated);
