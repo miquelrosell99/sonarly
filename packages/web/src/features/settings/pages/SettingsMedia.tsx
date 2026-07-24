@@ -3,6 +3,7 @@ import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 import { Settings } from '../components/Settings.js';
+import { RenameProgressModal } from '../components/RenameProgressModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 
 interface Template {
@@ -53,7 +54,7 @@ export function SettingsMedia() {
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [renaming, setRenaming] = useState(false);
+  const [jobId, setJobId] = useState<string | null>(null);
 
   useEffect(() => {
     api<MediaSettings>('/settings/media')
@@ -97,24 +98,21 @@ export function SettingsMedia() {
   };
 
   const forceRename = async () => {
-    setRenaming(true);
     try {
-      await api('/organize', {
+      const data = await api<{ jobId: string }>('/organize', {
         method: 'POST',
         body: JSON.stringify({}),
       });
-      notify('Library renamed.', 'success');
+      setJobId(data.jobId);
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to rename library', 'error');
-    } finally {
-      setRenaming(false);
+      notify(err instanceof Error ? err.message : 'Failed to start rename', 'error');
     }
   };
 
   if (loading) {
     return (
       <Settings>
-        <p className="text-sm text-gray-500">Loading...</p>
+        <p className="text-sm text-muted">Loading...</p>
       </Settings>
     );
   }
@@ -133,7 +131,7 @@ export function SettingsMedia() {
         <h3 className="text-base font-medium">Media Management</h3>
 
         <div>
-          <label htmlFor="template" className="mb-1 block text-sm font-medium text-gray-700">
+          <label htmlFor="template" className="mb-1 block text-sm font-medium text-fg-primary">
             Template
           </label>
           <select
@@ -152,7 +150,7 @@ export function SettingsMedia() {
         </div>
 
         <div>
-          <label htmlFor="pattern" className="mb-1 block text-sm font-medium text-gray-700">
+          <label htmlFor="pattern" className="mb-1 block text-sm font-medium text-fg-primary">
             Organization pattern
           </label>
           <div className="flex gap-2">
@@ -163,20 +161,30 @@ export function SettingsMedia() {
               placeholder="{albumArtist}/({year}) {album}/{disc:00}{track:00} - {title}"
               className="flex-1"
             />
-            <Button onClick={forceRename} disabled={renaming} variant="ghost">
-              {renaming ? 'Renaming...' : 'Force rename'}
+            <Button onClick={forceRename} disabled={jobId !== null} variant="ghost">
+              {jobId !== null ? 'Renaming...' : 'Force rename'}
             </Button>
           </div>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-muted">
             Available variables: artist, albumArtist, album, title, track, track:00, disc, disc:00, year, genre. The file extension is always appended.
           </p>
         </div>
 
-        <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
-          <p className="text-xs font-medium text-gray-500">Preview</p>
-          <code className="mt-1 block break-all text-sm text-gray-800">{previewPath}</code>
+        <div className="rounded-md border border-rule bg-surface p-3">
+          <p className="text-xs font-medium text-muted">Preview</p>
+          <code className="mt-1 block break-all text-sm text-fg-primary">{previewPath}</code>
         </div>
       </div>
+
+      {jobId && (
+        <RenameProgressModal
+          jobId={jobId}
+          onClose={() => setJobId(null)}
+          onComplete={(summary) =>
+            notify(`Library renamed: ${summary.moved} moved, ${summary.skipped} skipped.`, 'success')
+          }
+        />
+      )}
     </Settings>
   );
 }
