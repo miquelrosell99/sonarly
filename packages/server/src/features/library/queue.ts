@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import Database from 'better-sqlite3';
 
-export type JobType = 'scan' | 'ingest' | 'resync' | 'cleanup_review';
+export type JobType = 'scan' | 'ingest' | 'resync' | 'cleanup_review' | 'organize';
 
 export interface Job {
   id: string;
@@ -9,9 +9,16 @@ export interface Job {
   payload: string;
 }
 
-export function pushJob(db: Database.Database, type: JobType, payload: string): void {
+export function pushJob(db: Database.Database, type: JobType, payload: string): string {
+  const id = randomUUID();
   db.prepare('INSERT INTO scan_jobs (id, type, status, stats) VALUES (?, ?, ?, ?)')
-    .run(randomUUID(), type, 'pending', JSON.stringify({ path: payload }));
+    .run(id, type, 'pending', JSON.stringify({ path: payload }));
+  return id;
+}
+
+export function updateJobStats(db: Database.Database, id: string, stats: Record<string, unknown>): void {
+  db.prepare('UPDATE scan_jobs SET stats = ? WHERE id = ?')
+    .run(JSON.stringify(stats), id);
 }
 
 export function popPendingJob(db: Database.Database): Job | undefined {
