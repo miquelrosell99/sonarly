@@ -99,7 +99,7 @@ export function SettingsMedia() {
 
   const forceRename = async () => {
     try {
-      const data = await api<{ jobId: string }>('/organize', {
+      const data = await api<{ jobId: string }>('/organize/job', {
         method: 'POST',
         body: JSON.stringify({}),
       });
