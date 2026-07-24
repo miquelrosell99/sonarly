@@ -15,7 +15,8 @@ interface AlbumRow {
   artist_name: string | null;
   year: number | null;
   genre: string | null;
-  cover_art: string | null;
+  cover_art_id: string | null;
+  active: number;
   starred: number | null;
   rating: number | null;
 }
@@ -28,7 +29,8 @@ function rowToAlbum(row: AlbumRow): Album {
     artistName: row.artist_name ?? undefined,
     year: row.year ?? undefined,
     genre: row.genre ?? undefined,
-    coverArt: row.cover_art ?? undefined,
+    coverArt: row.cover_art_id ?? undefined,
+    active: row.active === 1,
     starred: row.starred === 1,
     rating: row.rating ?? undefined,
   };
@@ -55,8 +57,9 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
         COUNT(s.id) AS total_song_count,
         SUM(CASE WHEN s.explicit = 0 THEN 1 ELSE 0 END) AS shown_song_count
       FROM albums a
-      LEFT JOIN songs s ON s.album_id = a.id
+      LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1
       LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
+      WHERE a.active = 1
       ${hideExplicit ? 'GROUP BY a.id HAVING shown_song_count > 0' : 'GROUP BY a.id'}
       ORDER BY a.name
       LIMIT 500
@@ -76,7 +79,7 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
     if (!requireAdmin(reply, session)) return;
 
     const { id } = request.params as { id: string };
-    const album = db.prepare('SELECT * FROM albums WHERE id = ?').get(id) as Album | undefined;
+    const album = db.prepare('SELECT * FROM albums WHERE id = ? AND active = 1').get(id) as Album | undefined;
     if (!album) return reply.status(404).send({ error: 'Album not found' });
 
     let tags: SongTags;
@@ -118,7 +121,7 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
       SELECT a.*, ua.starred, ua.rating
       FROM albums a
       LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
-      WHERE a.id = ?
+      WHERE a.id = ? AND a.active = 1
     `).get(userId ?? null, id) as AlbumRow | undefined;
     if (!row) return reply.status(404).send({ error: 'Album not found' });
 

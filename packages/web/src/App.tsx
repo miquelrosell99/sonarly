@@ -4,7 +4,7 @@ import type { User } from '@sonarly/shared';
 import { Layout } from './components/Layout.js';
 import { Login } from './features/auth/index.js';
 import { Setup } from './features/setup/index.js';
-import { Library } from './features/library/index.js';
+import { HomePage } from './features/home/index.js';
 import { Songs } from './features/songs/index.js';
 import { Playlists } from './features/playlists/index.js';
 import { PlaylistDetail } from './features/playlists/index.js';
@@ -12,9 +12,11 @@ import { Organize } from './features/organize/index.js';
 import { Admin } from './features/admin/index.js';
 import { SettingsMedia } from './features/settings/index.js';
 import { SettingsIngest } from './features/settings/index.js';
+import { SettingsSystemTasks } from './features/settings/index.js';
 import { SettingsConflicts } from './features/settings/index.js';
 import { SettingsProfile } from './features/settings/index.js';
 import { SettingsAppearance } from './features/settings/index.js';
+import { SettingsMissing } from './features/settings/index.js';
 import { Artists, Artist } from './features/artists/index.js';
 import { Albums, Album } from './features/albums/index.js';
 import { Tracks, Track } from './features/tracks/index.js';
@@ -69,7 +71,7 @@ export default function App() {
   return (
     <Router>
       <Layout user={user} onUserChange={setUser}>
-        <Route path="/" component={Library} />
+        <Route path="/" component={HomePage} />
         <Route path="/songs" component={() => <Songs user={user} />} />
         <Route path="/tracks" component={Tracks} />
         <Route path="/tracks/:id" component={Track} />
@@ -88,9 +90,11 @@ export default function App() {
         <Route path="/settings" component={() => <Redirect to="/settings/profile" />} />
         <Route path="/settings/media" component={SettingsMedia} />
         <Route path="/settings/ingest" component={SettingsIngest} />
+        <Route path="/settings/system-tasks" component={SettingsSystemTasks} />
         <Route path="/settings/profile" component={() => <SettingsProfile user={user} onUserChange={setUser} />} />
         <Route path="/settings/appearance" component={SettingsAppearance} />
         <Route path="/settings/conflicts" component={SettingsConflicts} />
+        <Route path="/settings/missing" component={SettingsMissing} />
         <Route path="/users" component={() => <Redirect to="/admin" />} />
         <Route path="*" component={() => <Redirect to="/" />} />
       </Layout>

@@ -240,7 +240,7 @@ function fetchPlaylistSongs(db: Database.Database, songIds: string[]): Record<st
     FROM songs s
     LEFT JOIN albums a ON a.id = s.album_id
     LEFT JOIN artists ar ON ar.id = s.artist_id
-    WHERE s.id IN (${songIds.map(() => '?').join(',')})
+    WHERE s.active = 1 AND s.id IN (${songIds.map(() => '?').join(',')})
   `).all(...songIds) as SongRow[];
   const byId = new Map(rows.map((r) => [r.id, r]));
   return songIds

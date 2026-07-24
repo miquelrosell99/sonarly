@@ -99,12 +99,12 @@ export function Playlists() {
     }
   };
 
-  if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
+  if (loading) return <p className="text-sm text-muted">Loading...</p>;
 
   return (
     <div>
       <h2 className="mb-4 text-lg font-semibold">Playlists</h2>
-      <div className="mb-6 space-y-3 rounded border border-gray-200 p-4 dark:border-gray-700">
+      <div className="mb-6 space-y-3 rounded border border-rule p-4">
         <div className="flex gap-2">
           <Input
             placeholder="New playlist name"
@@ -129,10 +129,10 @@ export function Playlists() {
         )}
       </div>
       {error && <p className="mb-4 text-sm text-danger">{error}</p>}
-      <ul className="divide-y divide-gray-100">
+      <ul className="divide-y divide-rule">
         {filteredPlaylists.map((p) => (
           <li key={p.id}>
-            <div className="flex items-center justify-between py-2 text-sm hover:bg-gray-50">
+            <div className="flex items-center justify-between py-2 text-sm hover:bg-surface-hover">
               <Link
                 href={`/playlists/${p.id}`}
                 className="flex items-center gap-2"
@@ -142,7 +142,7 @@ export function Playlists() {
                   <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary">smart</span>
                 )}
               </Link>
-              <span className="inline-flex items-center gap-2 text-gray-400">
+              <span className="inline-flex items-center gap-2 text-muted">
                 {p.songCount} {p.songCount === 1 ? 'song' : 'songs'} • {p.ownerUsername} • {p.visibility}
                 <button
                   type="button"
@@ -150,7 +150,7 @@ export function Playlists() {
                   aria-label={p.starred ? 'Remove favorite' : 'Add favorite'}
                   title={p.starred ? 'Remove favorite' : 'Add favorite'}
                   className={cn(
-                    'rounded p-1 transition hover:bg-gray-100',
+                    'rounded p-1 transition hover:bg-surface-hover',
                     p.starred ? 'text-accent' : 'text-muted hover:text-accent',
                   )}
                 >
@@ -164,7 +164,7 @@ export function Playlists() {
                       onClick={() => handleRate(p, value === p.rating ? undefined : value)}
                       aria-label={`Rate ${value} stars`}
                       className={cn(
-                        'rounded p-0.5 transition hover:bg-gray-100',
+                        'rounded p-0.5 transition hover:bg-surface-hover',
                         value <= (p.rating ?? 0) ? 'text-accent' : 'text-muted hover:text-accent/70',
                       )}
                     >
@@ -180,7 +180,7 @@ export function Playlists() {
           </li>
         ))}
       </ul>
-      {filteredPlaylists.length === 0 && <p className="py-4 text-sm text-gray-500">No playlists match the current filters.</p>}
+      {filteredPlaylists.length === 0 && <p className="py-4 text-sm text-muted">No playlists match the current filters.</p>}
     </div>
   );
 }

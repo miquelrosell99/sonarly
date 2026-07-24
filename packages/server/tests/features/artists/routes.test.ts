@@ -104,7 +104,7 @@ describe('management artist endpoints', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toEqual({
-      artists: [{ id: 'artist-1', name: 'Test Artist', starred: false }],
+      artists: [{ id: 'artist-1', name: 'Test Artist', active: true, starred: false }],
     });
   });
 
@@ -119,6 +119,7 @@ describe('management artist endpoints', () => {
       artist: {
         id: 'artist-1',
         name: 'Test Artist',
+        active: true,
         starred: false,
         albums: [{ id: 'album-1', name: 'Test Album', year: 2024, shownSongCount: 0, totalSongCount: 0, starred: false }],
       },

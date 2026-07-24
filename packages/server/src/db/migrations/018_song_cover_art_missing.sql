@@ -1,0 +1,1 @@
+ALTER TABLE songs ADD COLUMN cover_art_missing INTEGER NOT NULL DEFAULT 0;

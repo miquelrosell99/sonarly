@@ -34,7 +34,7 @@ export function ProfileModal({ user, onUserChange, onClose, onExpand }: ProfileM
     >
       <div
         ref={panelRef}
-        className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
+        className="w-full max-w-md rounded-xl border border-rule bg-surface p-6 shadow-lg"
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 id="profile-modal-title" className="text-lg font-semibold">
@@ -44,7 +44,7 @@ export function ProfileModal({ user, onUserChange, onClose, onExpand }: ProfileM
             <button
               type="button"
               onClick={onExpand}
-              className="text-sm text-gray-600 underline hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="text-sm text-muted underline hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               Expand
             </button>
@@ -52,7 +52,7 @@ export function ProfileModal({ user, onUserChange, onClose, onExpand }: ProfileM
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="rounded p-1 text-gray-500 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="rounded p-1 text-muted hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               ×
             </button>

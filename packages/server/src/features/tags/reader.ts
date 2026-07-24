@@ -3,11 +3,17 @@ import path from 'node:path';
 import type { SongTags } from '@sonarly/shared';
 export { computeChecksum } from './checksum.js';
 
+export interface CoverArtPicture {
+  data: Buffer;
+  format: string;
+}
+
 /** Audio tags plus optional duration and cover-art hint, as returned by {@link readMetadata}. */
 export interface AudioMetadata {
   tags: SongTags;
   duration?: number;
   hasCoverArt: boolean;
+  coverArt?: CoverArtPicture;
 }
 
 /**
@@ -17,6 +23,7 @@ export interface AudioMetadata {
 export async function readMetadata(filePath: string): Promise<AudioMetadata> {
   const metadata = await parseFile(filePath, { duration: true });
   const common = metadata.common;
+  const picture = common.picture?.[0];
   return {
     tags: {
       title: common.title || getFilenameFallback(filePath),
@@ -30,7 +37,8 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
       explicit: detectExplicit(metadata.native),
     },
     duration: metadata.format.duration,
-    hasCoverArt: (common.picture?.length ?? 0) > 0,
+    hasCoverArt: picture !== undefined,
+    coverArt: picture ? { data: Buffer.from(picture.data), format: picture.format } : undefined,
   };
 }
 

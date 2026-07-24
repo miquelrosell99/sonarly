@@ -24,19 +24,19 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white p-6">
+    <div className="flex min-h-screen items-center justify-center bg-bg-primary p-6">
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight">Sonarly</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-fg-primary">Sonarly</h1>
         {error && (
           <div
-            className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600"
+            className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500"
             role="alert"
           >
             The username or password is incorrect. Please try again.
           </div>
         )}
         <div>
-          <label htmlFor="username" className="mb-1 block text-sm font-medium text-gray-700">
+          <label htmlFor="username" className="mb-1 block text-sm font-medium text-fg-primary">
             Username
           </label>
           <Input
@@ -48,7 +48,7 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
           />
         </div>
         <div>
-          <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
+          <label htmlFor="password" className="mb-1 block text-sm font-medium text-fg-primary">
             Password
           </label>
           <Input

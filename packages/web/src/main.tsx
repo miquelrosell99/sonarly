@@ -19,3 +19,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 
 useTheme.getState().apply();
+
+window
+  .matchMedia('(prefers-color-scheme: dark)')
+  .addEventListener('change', () => useTheme.getState().apply());

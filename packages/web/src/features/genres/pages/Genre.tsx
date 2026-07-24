@@ -48,7 +48,7 @@ export function Genre() {
     load();
   }, [genre]);
 
-  if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
+  if (loading) return <p className="text-sm text-muted">Loading...</p>;
   if (error) return <p className="text-sm text-danger">{error}</p>;
 
   return (
@@ -66,19 +66,19 @@ export function Genre() {
           )}
         </div>
 
-        <h3 className="mb-2 text-sm font-medium text-gray-500">Tracks</h3>
+        <h3 className="mb-2 text-sm font-medium text-muted">Tracks</h3>
         {tracks.length === 0 ? (
-          <p className="text-sm text-gray-500">No tracks for this genre.</p>
+          <p className="text-sm text-muted">No tracks for this genre.</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-rule">
             {tracks.map((track) => (
               <li key={track.id}>
                 <Link
                   href={`/tracks/${track.id}`}
-                  className="flex items-center justify-between py-2 text-sm hover:bg-gray-50"
+                  className="flex items-center justify-between py-2 text-sm hover:bg-surface-hover"
                 >
                   <span>{track.title}</span>
-                  <span className="text-gray-400">
+                  <span className="text-muted">
                     {track.artistName ?? '-'} • {track.duration ? formatDuration(track.duration) : '-'}
                   </span>
                 </Link>
@@ -89,19 +89,19 @@ export function Genre() {
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-medium text-gray-500">Albums</h3>
+        <h3 className="mb-2 text-sm font-medium text-muted">Albums</h3>
         {albums.length === 0 ? (
-          <p className="text-sm text-gray-500">No albums for this genre.</p>
+          <p className="text-sm text-muted">No albums for this genre.</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-rule">
             {albums.map((album) => (
               <li key={album.id}>
                 <Link
                   href={`/albums/${album.id}`}
-                  className="flex items-center justify-between py-2 text-sm hover:bg-gray-50"
+                  className="flex items-center justify-between py-2 text-sm hover:bg-surface-hover"
                 >
                   <span>{album.name}</span>
-                  <span className="text-gray-400">
+                  <span className="text-muted">
                     {album.artistName ?? '-'} {album.year !== undefined && album.year !== null && `• ${album.year}`}
                   </span>
                 </Link>

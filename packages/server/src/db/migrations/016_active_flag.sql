@@ -1,0 +1,7 @@
+ALTER TABLE songs ADD COLUMN active INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE albums ADD COLUMN active INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE artists ADD COLUMN active INTEGER NOT NULL DEFAULT 1;
+
+CREATE INDEX IF NOT EXISTS idx_songs_active ON songs(active);
+CREATE INDEX IF NOT EXISTS idx_albums_active ON albums(active);
+CREATE INDEX IF NOT EXISTS idx_artists_active ON artists(active);

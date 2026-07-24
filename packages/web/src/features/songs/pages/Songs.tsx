@@ -50,7 +50,7 @@ export function Songs({ user }: { user: User }) {
         <span className={`inline-flex items-center gap-2 ${s.explicit && blurExplicitTitles ? 'blur-sm' : ''}`}>
           {s.title}
           {s.explicit && (
-            <span className="rounded bg-red-100 px-1 text-[10px] font-bold text-red-700">E</span>
+            <span className="rounded bg-red-500/10 px-1 text-[10px] font-bold text-red-500">E</span>
           )}
         </span>
       ),
@@ -76,7 +76,7 @@ export function Songs({ user }: { user: User }) {
     },
   ];
 
-  if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
+  if (loading) return <p className="text-sm text-muted">Loading...</p>;
   if (error) return <p className="text-sm text-danger">{error}</p>;
 
   return (

@@ -5,6 +5,7 @@ import { lookup } from 'mime-types';
 import { parseFile } from 'music-metadata';
 import Database from 'better-sqlite3';
 import { getSongById } from '../../songs/index.js';
+import { getCoverArtById } from '../../cover-art/index.js';
 import { recordStream } from '../../players/tracker.js';
 
 export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Database): void {
@@ -58,6 +59,12 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
 
   app.get('/rest/getCoverArt.view', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.query as { id: string };
+
+    const cached = getCoverArtById(db, id);
+    if (cached) {
+      return reply.type(cached.format).send(cached.data);
+    }
+
     const song = getSongById(db, id);
     if (!song) return reply.status(404).send('Not found');
 
