@@ -4,7 +4,7 @@ import { Button } from './ui/Button.js';
 import { Input } from './ui/Input.js';
 import { SmartPlaylistEditor } from '../features/playlists/index.js';
 
-type EntityType = 'song' | 'album' | 'playlist';
+type EntityType = 'song' | 'album' | 'artist' | 'playlist';
 
 interface EditEntityModalProps {
   open: boolean;
@@ -56,14 +56,18 @@ export function EditEntityModal({
   saving,
   deleting,
 }: EditEntityModalProps) {
-  const [values, setValues] = useState<Record<string, string>>(() =>
-    entityType === 'playlist'
-      ? {
-          name: String(entity.name ?? ''),
-          visibility: String(entity.visibility ?? 'private'),
-        }
-      : initialTagValues(entity),
-  );
+  const [values, setValues] = useState<Record<string, string>>(() => {
+    if (entityType === 'playlist') {
+      return {
+        name: String(entity.name ?? ''),
+        visibility: String(entity.visibility ?? 'private'),
+      };
+    }
+    if (entityType === 'artist') {
+      return { name: String(entity.name ?? '') };
+    }
+    return initialTagValues(entity);
+  });
   const [explicit, setExplicit] = useState(() => Boolean(entity.explicit));
   const [rules, setRules] = useState<SmartPlaylistRules | undefined>(() =>
     entityType === 'playlist' ? (entity.rules as SmartPlaylistRules | undefined) ?? undefined : undefined,
@@ -80,6 +84,8 @@ export function EditEntityModal({
       if (entity.isSmart) {
         patched.rules = rules;
       }
+    } else if (entityType === 'artist') {
+      patched.name = values.name;
     } else {
       for (const { key, type } of TAG_FIELDS) {
         const raw = values[key];
@@ -107,7 +113,15 @@ export function EditEntityModal({
         <h3 id="edit-entity-title" className="mb-4 text-lg font-semibold">Edit {entityType}</h3>
 
         <div className="space-y-3">
-          {entityType === 'playlist' ? (
+          {entityType === 'artist' ? (
+            <Input
+              id="edit-name"
+              value={values.name ?? ''}
+              onChange={(e) => setValues({ ...values, name: e.target.value })}
+              placeholder="Name"
+              aria-label="Name"
+            />
+          ) : entityType === 'playlist' ? (
             <>
               <Input
                 id="edit-name"
@@ -159,14 +173,16 @@ export function EditEntityModal({
         </div>
 
         <div className="mt-6 flex justify-between">
-          <Button
-            variant="ghost"
-            onClick={handleDelete}
-            disabled={deleting || saving}
-            className="text-danger"
-          >
-            Delete
-          </Button>
+          {entityType !== 'artist' && (
+            <Button
+              variant="ghost"
+              onClick={handleDelete}
+              disabled={deleting || saving}
+              className="text-danger"
+            >
+              Delete
+            </Button>
+          )}
           <div className="flex gap-2">
             <Button variant="ghost" onClick={onClose} disabled={saving || deleting}>
               Cancel

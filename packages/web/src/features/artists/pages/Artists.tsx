@@ -1,16 +1,34 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
 import type { Artist, Song } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
+import { useArtistContextMenu } from '../../../hooks/useArtistContextMenu.js';
+import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
+import { EditEntityModal } from '../../../components/EditEntityModal.js';
+
+function ArtistContextMenu({
+  artist,
+  onEdit,
+  children,
+}: {
+  artist: Artist;
+  onEdit: () => void;
+  children: ReactNode;
+}) {
+  const sections = useArtistContextMenu(artist, onEdit);
+  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+}
 
 export function Artists() {
   const [artists, setArtists] = useState<Artist[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Artist | null>(null);
+  const [saving, setSaving] = useState(false);
   const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
 
@@ -70,6 +88,17 @@ export function Artists() {
     }
   };
 
+  const handleSave = async () => {
+    if (!editing) return;
+    setSaving(true);
+    try {
+      // Artist updates are not yet supported by the backend; close the modal.
+      setEditing(null);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const columns: LibraryViewColumn<Artist>[] = [
     {
       key: 'name',
@@ -87,20 +116,38 @@ export function Artists() {
   ];
 
   return (
-    <LibraryView
-      title="Artists"
-      data={filteredArtists}
-      isLoading={loading}
-      error={error}
-      columns={columns}
-      cardFields={cardFields}
-      getId={(artist) => artist.id}
-      getHref={(artist) => `/artists/${artist.id}`}
-      onFavorite={handleFavorite}
-      onRate={handleRate}
-      getFavorite={(artist) => artist.starred}
-      getRating={(artist) => artist.rating}
-      emptyMessage="No artists match the current filters."
-    />
+    <>
+      <LibraryView
+        title="Artists"
+        data={filteredArtists}
+        isLoading={loading}
+        error={error}
+        columns={columns}
+        cardFields={cardFields}
+        getId={(artist) => artist.id}
+        getHref={(artist) => `/artists/${artist.id}`}
+        onFavorite={handleFavorite}
+        onRate={handleRate}
+        getFavorite={(artist) => artist.starred}
+        getRating={(artist) => artist.rating}
+        renderContextMenu={(artist, children) => (
+          <ArtistContextMenu artist={artist} onEdit={() => setEditing(artist)}>
+            {children}
+          </ArtistContextMenu>
+        )}
+        emptyMessage="No artists match the current filters."
+      />
+      {editing && (
+        <EditEntityModal
+          open
+          entityType="artist"
+          entity={(editing as unknown) as Record<string, unknown>}
+          onClose={() => setEditing(null)}
+          onSave={handleSave}
+          onDelete={() => {}}
+          saving={saving}
+        />
+      )}
+    </>
   );
 }

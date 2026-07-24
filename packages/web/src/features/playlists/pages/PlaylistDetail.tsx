@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link } from 'wouter';
-import type { SmartPlaylistRules, UserPreferences } from '@sonarly/shared';
+import { useEffect, useState, type ReactNode } from 'react';
+import { useParams, Link, useLocation } from 'wouter';
+import type { SmartPlaylistRules, Song, UserPreferences } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { cn } from '../../../lib/cn.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
@@ -8,6 +8,10 @@ import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { SmartPlaylistEditor } from '../components/SmartPlaylistEditor.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
+import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js';
+import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
+import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
+import { EditEntityModal } from '../../../components/EditEntityModal.js';
 
 interface PlaylistSong {
   id: string;
@@ -30,16 +34,63 @@ interface Playlist {
   rating?: number;
 }
 
+function PlaylistHeaderContextMenu({
+  playlist,
+  onEdit,
+  onConvert,
+  children,
+}: {
+  playlist: Playlist;
+  onEdit: () => void;
+  onConvert: () => void;
+  children: ReactNode;
+}) {
+  const sections = usePlaylistContextMenu(
+    playlist as unknown as import('@sonarly/shared').Playlist,
+    onEdit,
+    onConvert,
+  );
+  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+}
+
+function PlaylistSongContextMenu({
+  song,
+  onEdit,
+  children,
+}: {
+  song: PlaylistSong;
+  onEdit: () => void;
+  children: ReactNode;
+}) {
+  const fullSong = {
+    ...song,
+    artistName: song.artist,
+    albumName: song.album,
+    filePath: '',
+    mtime: 0,
+    checksum: '',
+  } as unknown as Song;
+  const sections = useSongContextMenu(fullSong, onEdit);
+  const visibleSections = sections
+    .map((section) => ({ ...section, items: section.items.filter((item) => item.id !== 'edit') }))
+    .filter((section) => section.items.length > 0);
+  return <ItemContextMenu sections={visibleSections}>{children}</ItemContextMenu>;
+}
+
 export function PlaylistDetail() {
   const { id } = useParams<{ id: string }>();
+  const [, setLocation] = useLocation();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [savingRules, setSavingRules] = useState(false);
   const { setFavorite, setRating } = useFavoriteActions();
 
-  useEffect(() => {
+  const load = () => {
     if (!id) return;
     setLoading(true);
     Promise.all([
@@ -52,11 +103,15 @@ export function PlaylistDetail() {
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load playlist'))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    load();
   }, [id]);
 
   const saveRules = async (rules: SmartPlaylistRules) => {
     if (!id || !playlist) return;
-    setSaving(true);
+    setSavingRules(true);
     try {
       await api(`/playlists/${id}`, {
         method: 'PUT',
@@ -67,7 +122,7 @@ export function PlaylistDetail() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save rules');
     } finally {
-      setSaving(false);
+      setSavingRules(false);
     }
   };
 
@@ -91,6 +146,46 @@ export function PlaylistDetail() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update rating');
     }
+  };
+
+  const handleSavePlaylist = async (patched: Record<string, unknown>) => {
+    if (!id || !playlist) return;
+    setSaving(true);
+    try {
+      const body: Record<string, unknown> = {
+        name: patched.name,
+        visibility: patched.visibility,
+      };
+      if (playlist.isSmart) {
+        body.rules = patched.rules;
+      }
+      await api(`/playlists/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+      });
+      setEditing(false);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save playlist');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeletePlaylist = async () => {
+    if (!id || !playlist) return;
+    setDeleting(true);
+    try {
+      await api(`/playlists/${id}`, { method: 'DELETE' });
+      setLocation('/playlists');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete playlist');
+      setDeleting(false);
+    }
+  };
+
+  const handleConvert = () => {
+    load();
   };
 
   const columns: TableColumn<PlaylistSong>[] = [
@@ -122,67 +217,100 @@ export function PlaylistDetail() {
   if (error) return <p className="text-sm text-danger">{error}</p>;
   if (!playlist) return <p className="text-sm text-muted">Playlist not found.</p>;
 
+  const header = (
+    <div className="mb-4 flex items-center justify-between">
+      <div>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold">{playlist.name}</h2>
+          <button
+            type="button"
+            onClick={() => handleFavorite(!playlist.starred)}
+            aria-label={playlist.starred ? 'Remove favorite' : 'Add favorite'}
+            title={playlist.starred ? 'Remove favorite' : 'Add favorite'}
+            className={cn(
+              'rounded p-1 transition hover:bg-surface-hover',
+              playlist.starred ? 'text-accent' : 'text-muted hover:text-accent',
+            )}
+          >
+            <Icon name={playlist.starred ? 'mdi-heart' : 'mdi-heart-outline'} size={20} />
+          </button>
+          <span className="inline-flex items-center gap-0.5">
+            {[1, 2, 3, 4, 5].map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => handleRate(value === playlist.rating ? undefined : value)}
+                aria-label={`Rate ${value} stars`}
+                className={cn(
+                  'rounded p-0.5 transition hover:bg-surface-hover',
+                  value <= (playlist.rating ?? 0) ? 'text-accent' : 'text-muted hover:text-accent/70',
+                )}
+              >
+                <Icon
+                  name={value <= (playlist.rating ?? 0) ? 'mdi-star' : 'mdi-star-outline'}
+                  size={18}
+                />
+              </button>
+            ))}
+          </span>
+        </div>
+        <p className="text-sm text-muted">
+          {playlist.visibility}
+          {playlist.isSmart && (
+            <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary">smart</span>
+          )}
+        </p>
+      </div>
+      <Link href="/playlists" className="btn-ghost text-xs">
+        Back
+      </Link>
+    </div>
+  );
+
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold">{playlist.name}</h2>
-            <button
-              type="button"
-              onClick={() => handleFavorite(!playlist.starred)}
-              aria-label={playlist.starred ? 'Remove favorite' : 'Add favorite'}
-              title={playlist.starred ? 'Remove favorite' : 'Add favorite'}
-              className={cn(
-                'rounded p-1 transition hover:bg-surface-hover',
-                playlist.starred ? 'text-accent' : 'text-muted hover:text-accent',
-              )}
-            >
-              <Icon name={playlist.starred ? 'mdi-heart' : 'mdi-heart-outline'} size={20} />
-            </button>
-            <span className="inline-flex items-center gap-0.5">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => handleRate(value === playlist.rating ? undefined : value)}
-                  aria-label={`Rate ${value} stars`}
-                  className={cn(
-                    'rounded p-0.5 transition hover:bg-surface-hover',
-                    value <= (playlist.rating ?? 0) ? 'text-accent' : 'text-muted hover:text-accent/70',
-                  )}
-                >
-                  <Icon
-                    name={value <= (playlist.rating ?? 0) ? 'mdi-star' : 'mdi-star-outline'}
-                    size={18}
-                  />
-                </button>
-              ))}
-            </span>
-          </div>
-          <p className="text-sm text-muted">
-            {playlist.visibility}
-            {playlist.isSmart && (
-              <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary">smart</span>
-            )}
-          </p>
-        </div>
-        <Link href="/playlists" className="btn-ghost text-xs">
-          Back
-        </Link>
-      </div>
+      <PlaylistHeaderContextMenu
+        playlist={playlist}
+        onEdit={() => setEditing(true)}
+        onConvert={handleConvert}
+      >
+        {header}
+      </PlaylistHeaderContextMenu>
 
       {playlist.isSmart && (
         <div className="mb-6 rounded border border-rule p-4">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="text-sm font-medium">Smart rules</h3>
-            {saving && <span className="text-xs text-muted">Saving...</span>}
+            {savingRules && <span className="text-xs text-muted">Saving...</span>}
           </div>
           <SmartPlaylistEditor initialRules={playlist.rules} onChange={saveRules} />
         </div>
       )}
 
-      <Table columns={columns} rows={playlist.entries} rowKey={(s) => s.id} empty="No songs in this playlist." />
+      <Table
+        columns={columns}
+        rows={playlist.entries}
+        rowKey={(s) => s.id}
+        empty="No songs in this playlist."
+        renderRow={(song, row) => (
+          <PlaylistSongContextMenu song={song} onEdit={() => {}}>
+            {row}
+          </PlaylistSongContextMenu>
+        )}
+      />
+
+      {editing && (
+        <EditEntityModal
+          open
+          entityType="playlist"
+          entity={(playlist as unknown) as Record<string, unknown>}
+          onClose={() => setEditing(false)}
+          onSave={handleSavePlaylist}
+          onDelete={handleDeletePlaylist}
+          saving={saving}
+          deleting={deleting}
+        />
+      )}
     </div>
   );
 }

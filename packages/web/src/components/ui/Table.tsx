@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { cn } from '../../lib/cn.js';
 
 export interface TableColumn<T> {
@@ -13,9 +13,10 @@ interface TableProps<T> {
   rows: T[];
   rowKey: (row: T) => string;
   empty?: ReactNode;
+  renderRow?: (row: T, element: ReactNode) => ReactNode;
 }
 
-export function Table<T>({ columns, rows, rowKey, empty }: TableProps<T>) {
+export function Table<T>({ columns, rows, rowKey, empty, renderRow }: TableProps<T>) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
@@ -29,15 +30,22 @@ export function Table<T>({ columns, rows, rowKey, empty }: TableProps<T>) {
           </tr>
         </thead>
         <tbody className="divide-y divide-rule">
-          {rows.map((row) => (
-            <tr key={rowKey(row)}>
-              {columns.map((col) => (
-                <td key={col.key} className={cn('py-2 pr-4', col.className)}>
-                  {col.render(row)}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {rows.map((row) => {
+            const tr = (
+              <tr key={rowKey(row)}>
+                {columns.map((col) => (
+                  <td key={col.key} className={cn('py-2 pr-4', col.className)}>
+                    {col.render(row)}
+                  </td>
+                ))}
+              </tr>
+            );
+            return renderRow ? (
+              <Fragment key={rowKey(row)}>{renderRow(row, tr)}</Fragment>
+            ) : (
+              tr
+            );
+          })}
         </tbody>
       </table>
       {rows.length === 0 && empty !== undefined && (
