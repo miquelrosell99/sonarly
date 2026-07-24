@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { mkdirSync, rmSync, copyFileSync } from 'node:fs';
+import { mkdirSync, rmSync, copyFileSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,8 +8,11 @@ import { migrate } from '../../../src/db/migrate.js';
 import { runOrganizeJob, type OrganizeJobStats } from '../../../src/features/ingest/organize-job.js';
 import { pushJob, markJobRunning } from '../../../src/features/library/queue.js';
 import type { Config } from '../../../src/config.js';
+import * as reader from '../../../src/features/tags/reader.js';
 
 const fixturePath = new URL('../../fixtures/sample.mp3', import.meta.url).pathname;
+
+const originalReadTags = reader.readTags;
 
 describe('runOrganizeJob', () => {
   let db: Database.Database;
@@ -64,5 +67,32 @@ describe('runOrganizeJob', () => {
     const finalStats = JSON.parse(row.stats) as OrganizeJobStats;
     expect(finalStats.moved).toBe(1);
     expect(finalStats.done).toBe(1);
+  });
+
+  it('records malformed files in failedPaths and increments failed', async () => {
+    const badPath = join(libraryPath, 'corrupt.mp3');
+    writeFileSync(badPath, 'not a real mp3');
+
+    const readTagsSpy = vi.spyOn(reader, 'readTags').mockImplementation(async (filePath: string) => {
+      if (filePath === badPath) {
+        throw new Error('Unreadable audio file');
+      }
+      return originalReadTags(filePath);
+    });
+
+    const jobId = pushJob(db, 'organize', '');
+    markJobRunning(db, jobId);
+
+    const stats = await runOrganizeJob(config, db, jobId);
+
+    readTagsSpy.mockRestore();
+
+    expect(stats.failed).toBe(1);
+    expect(stats.failedPaths).toContain(badPath);
+
+    const row = db.prepare('SELECT stats FROM scan_jobs WHERE id = ?').get(jobId) as any;
+    const finalStats = JSON.parse(row.stats) as OrganizeJobStats;
+    expect(finalStats.failed).toBe(1);
+    expect(finalStats.failedPaths).toContain(badPath);
   });
 });
