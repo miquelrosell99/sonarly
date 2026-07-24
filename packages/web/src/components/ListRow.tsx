@@ -21,6 +21,7 @@ interface ListRowProps {
   playLabel?: string;
   favorite?: ListRowActionFavorite;
   rating?: ListRowActionRating;
+  onContextMenu?: (e: React.MouseEvent) => void;
 }
 
 function isInteractiveTarget(target: EventTarget) {
@@ -36,6 +37,7 @@ export function ListRow({
   playLabel,
   favorite,
   rating,
+  onContextMenu,
 }: ListRowProps) {
   const [, setLocation] = useLocation();
 
@@ -47,6 +49,7 @@ export function ListRow({
           setLocation(href);
         }
       }}
+      onContextMenu={onContextMenu}
     >
       <td className="py-2 pr-4">
         <span className="inline-flex items-center text-muted">
