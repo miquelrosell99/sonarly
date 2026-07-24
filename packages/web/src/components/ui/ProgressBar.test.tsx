@@ -12,9 +12,9 @@ describe('ProgressBar', () => {
 
   it('clamps values outside 0-100', () => {
     const { container: over } = render(<ProgressBar value={150} />);
-    expect(over.querySelector('[role="progressbar"]')!.style.width).toBe('100%');
+    expect((over.querySelector('[role="progressbar"]') as HTMLElement).style.width).toBe('100%');
 
     const { container: under } = render(<ProgressBar value={-10} />);
-    expect(under.querySelector('[role="progressbar"]')!.style.width).toBe('0%');
+    expect((under.querySelector('[role="progressbar"]') as HTMLElement).style.width).toBe('0%');
   });
 });
