@@ -1,18 +1,32 @@
-import { useEffect, useState } from 'react';
-import type { User, UserPreferences } from '@sonarly/shared';
+import { useEffect, useState, type ReactNode } from 'react';
+import type { Song as SharedSong, User, UserPreferences } from '@sonarly/shared';
 import { api } from '../../../api.js';
-import { Button } from '../../../components/ui/Button.js';
-import { TagEditor } from '../components/TagEditor.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
+import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
+import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
+import { EditEntityModal } from '../../../components/EditEntityModal.js';
 
-interface Song {
-  id: string;
-  title: string;
+type Song = SharedSong & {
   artistName?: string;
   albumName?: string;
-  trackNumber?: number;
-  duration?: number;
-  explicit?: boolean;
+};
+
+function SongContextMenu({
+  song,
+  onEdit,
+  isAdmin,
+  children,
+}: {
+  song: Song;
+  onEdit: () => void;
+  isAdmin: boolean;
+  children: ReactNode;
+}) {
+  const sections = useSongContextMenu(song, onEdit);
+  const visibleSections = isAdmin
+    ? sections
+    : sections.map((section) => ({ ...section, items: section.items.filter((item) => item.id !== 'edit') })).filter((section) => section.items.length > 0);
+  return <ItemContextMenu sections={visibleSections}>{children}</ItemContextMenu>;
 }
 
 export function Songs({ user }: { user: User }) {
@@ -20,7 +34,9 @@ export function Songs({ user }: { user: User }) {
   const [preferences, setPreferences] = useState<UserPreferences>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editing, setEditing] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Song | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -41,6 +57,37 @@ export function Songs({ user }: { user: User }) {
   }, []);
 
   const blurExplicitTitles = preferences.blurExplicitTitles === true;
+
+  const handleSave = async (patched: Record<string, unknown>) => {
+    if (!editing) return;
+    setSaving(true);
+    try {
+      await api(`/songs/${editing.id}/tags`, {
+        method: 'PUT',
+        body: JSON.stringify(patched),
+      });
+      setEditing(null);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save song');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!editing) return;
+    setDeleting(true);
+    try {
+      await api(`/songs/${editing.id}`, { method: 'DELETE' });
+      setEditing(null);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete song');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const columns: TableColumn<Song>[] = [
     {
@@ -63,18 +110,15 @@ export function Songs({ user }: { user: User }) {
       className: 'w-24',
       render: (s) => (s.duration ? formatDuration(s.duration) : '-'),
     },
-    {
-      key: 'actions',
-      header: '',
-      className: 'w-24 text-right',
-      render: (s) =>
-        user.isAdmin ? (
-          <Button variant="ghost" className="text-xs" onClick={() => setEditing(s.id)}>
-            Edit
-          </Button>
-        ) : null,
-    },
   ];
+
+  const editEntity = editing
+    ? {
+        ...editing,
+        artist: editing.artistName,
+        album: editing.albumName,
+      }
+    : null;
 
   if (loading) return <p className="text-sm text-muted">Loading...</p>;
   if (error) return <p className="text-sm text-danger">{error}</p>;
@@ -82,8 +126,29 @@ export function Songs({ user }: { user: User }) {
   return (
     <div>
       <h2 className="mb-4 text-lg font-semibold">Songs</h2>
-      <Table columns={columns} rows={songs} rowKey={(s) => s.id} empty="No songs." />
-      {editing && <TagEditor songId={editing} onClose={() => setEditing(null)} onSaved={load} />}
+      <Table
+        columns={columns}
+        rows={songs}
+        rowKey={(s) => s.id}
+        empty="No songs."
+        renderRow={(song, row) => (
+          <SongContextMenu song={song} onEdit={() => setEditing(song)} isAdmin={user.isAdmin}>
+            {row}
+          </SongContextMenu>
+        )}
+      />
+      {editEntity && (
+        <EditEntityModal
+          open
+          entityType="song"
+          entity={editEntity}
+          onClose={() => setEditing(null)}
+          onSave={handleSave}
+          onDelete={handleDelete}
+          saving={saving}
+          deleting={deleting}
+        />
+      )}
     </div>
   );
 }
