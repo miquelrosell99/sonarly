@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../../../api.js';
 import { ProgressBar } from '../../../components/ui/ProgressBar.js';
 import { Button } from '../../../components/ui/Button.js';
@@ -13,6 +13,7 @@ interface OrganizeStatus {
     moved?: number;
     skipped?: number;
     failed?: number;
+    failedPaths?: string[];
     currentPath?: string;
     error?: string;
   };
@@ -30,11 +31,20 @@ const CLOSE_DELAY_MS = 800;
 export function RenameProgressModal({ jobId, onClose, onComplete }: RenameProgressModalProps) {
   const [status, setStatus] = useState<OrganizeStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const onCloseRef = useRef(onClose);
+  const onCompleteRef = useRef(onComplete);
+
+  onCloseRef.current = onClose;
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     let cancelled = false;
     let timeoutId: ReturnType<typeof setTimeout>;
     let intervalId: ReturnType<typeof setInterval>;
+
+    const finishPolling = () => {
+      clearInterval(intervalId);
+    };
 
     const fetchStatus = async () => {
       try {
@@ -44,25 +54,26 @@ export function RenameProgressModal({ jobId, onClose, onComplete }: RenameProgre
         setError(null);
 
         if (data.job.status === 'completed' || data.job.status === 'failed') {
-          clearInterval(intervalId);
+          finishPolling();
         }
 
         if (data.job.status === 'completed') {
           const stats = data.job.stats ?? {};
           if ((stats.failed ?? 0) === 0) {
             timeoutId = setTimeout(() => {
-              onComplete({
+              onCompleteRef.current({
                 moved: stats.moved ?? 0,
                 skipped: stats.skipped ?? 0,
                 failed: stats.failed ?? 0,
               });
-              onClose();
+              onCloseRef.current();
             }, CLOSE_DELAY_MS);
           }
         }
       } catch (err) {
         if (cancelled) return;
         setError(err instanceof Error ? err.message : 'Failed to fetch progress');
+        finishPolling();
       }
     };
 
@@ -74,11 +85,12 @@ export function RenameProgressModal({ jobId, onClose, onComplete }: RenameProgre
       clearInterval(intervalId);
       clearTimeout(timeoutId);
     };
-  }, [jobId, onClose, onComplete]);
+  }, [jobId]);
 
   const total = status?.stats?.total ?? 0;
   const done = status?.stats?.done ?? 0;
   const failed = status?.stats?.failed ?? 0;
+  const failedPaths = status?.stats?.failedPaths ?? [];
   const percent = total > 0 ? Math.round((done / total) * 100) : 0;
 
   const isRunning = !status || (status.status !== 'completed' && status.status !== 'failed');
@@ -125,7 +137,13 @@ export function RenameProgressModal({ jobId, onClose, onComplete }: RenameProgre
                 <p className="text-sm font-medium text-red-500">
                   {failed} file{failed === 1 ? '' : 's'} failed
                 </p>
-                <p className="text-xs text-muted">Check server logs for details.</p>
+                <ul className="mt-2 max-h-32 overflow-y-auto text-xs text-muted">
+                  {failedPaths.map((path) => (
+                    <li key={path} className="break-all py-0.5" title={path}>
+                      {path}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
             {(showFailures || isFailed) && (
