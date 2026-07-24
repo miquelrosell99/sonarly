@@ -43,15 +43,22 @@ describe('organize management routes', () => {
     db.close();
   });
 
-  it('POST /api/organize returns a job id', async () => {
+  it('POST /api/organize returns stats synchronously', async () => {
     const res = await app.inject({ method: 'POST', url: '/api/organize' });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.stats).toEqual({ scanned: 0, moved: 0, skipped: 0, failed: 0 });
+  });
+
+  it('POST /api/organize/job returns a job id', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/organize/job' });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body.jobId).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it('GET /api/organize/status/:jobId returns the job', async () => {
-    const post = await app.inject({ method: 'POST', url: '/api/organize' });
+    const post = await app.inject({ method: 'POST', url: '/api/organize/job' });
     const { jobId } = JSON.parse(post.body);
 
     const res = await app.inject({ method: 'GET', url: `/api/organize/status/${jobId}` });
