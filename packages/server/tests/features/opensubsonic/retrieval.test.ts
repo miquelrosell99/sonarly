@@ -64,6 +64,9 @@ describe('OpenSubsonic retrieval endpoints', () => {
     auth = seedUser(db);
     seedSong(db);
     app = Fastify();
+    app.addHook('preHandler', async (request) => {
+      (request as any).session = { userId: 'user-1' };
+    });
     await registerOpenSubsonicRoutes(app, config, db);
   });
 
@@ -80,6 +83,13 @@ describe('OpenSubsonic retrieval endpoints', () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('audio/mpeg');
     expect(res.headers['accept-ranges']).toBe('bytes');
+    expect(res.rawPayload.length).toBe(fixtureBytes.length);
+  });
+
+  it('streams with a valid session cookie when subsonic credentials are omitted', async () => {
+    const res = await app.inject({ method: 'GET', url: '/rest/stream.view?id=song-1&f=json' });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toContain('audio/mpeg');
     expect(res.rawPayload.length).toBe(fixtureBytes.length);
   });
 
@@ -128,7 +138,7 @@ describe('OpenSubsonic retrieval endpoints', () => {
     expect(res.statusCode).toBe(416);
   });
 
-  it('does not record a player for a byte-range request', async () => {
+  it('records a player for a byte-range request', async () => {
     clearActivePlayers();
     const res = await app.inject({
       method: 'GET',
@@ -136,7 +146,7 @@ describe('OpenSubsonic retrieval endpoints', () => {
       headers: { range: 'bytes=0-9' },
     });
     expect(res.statusCode).toBe(206);
-    expect(getActivePlayers()).toHaveLength(0);
+    expect(getActivePlayers()).toHaveLength(1);
   });
 
   it('does not record a player for a HEAD request', async () => {
@@ -182,7 +192,7 @@ describe('OpenSubsonic retrieval endpoints', () => {
     expect(res.statusCode).toBe(404);
   });
 
-  it('returns 500 for cover art when the file cannot be read', async () => {
+  it('returns 404 for cover art when the file cannot be read', async () => {
     upsertSong(db, {
       id: 'song-missing-file',
       filePath: '/data/library/does-not-exist.mp3',
@@ -193,6 +203,6 @@ describe('OpenSubsonic retrieval endpoints', () => {
     });
 
     const res = await app.inject({ method: 'GET', url: query('/rest/getCoverArt.view?id=song-missing-file', 'json') });
-    expect(res.statusCode).toBe(500);
+    expect(res.statusCode).toBe(404);
   });
 });

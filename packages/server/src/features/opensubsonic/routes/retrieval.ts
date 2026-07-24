@@ -5,7 +5,9 @@ import { lookup } from 'mime-types';
 import { parseFile } from 'music-metadata';
 import Database from 'better-sqlite3';
 import { getSongById } from '../../songs/index.js';
+import { getAlbumById } from '../../albums/index.js';
 import { getCoverArtById } from '../../cover-art/index.js';
+import { getSongCoverArtId, getAlbumCoverArtId } from '../../cover-art/index.js';
 import { recordStream } from '../../players/tracker.js';
 
 export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Database): void {
@@ -22,8 +24,9 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
       return reply.header('Accept-Ranges', 'bytes').type(mime).send();
     }
 
+    recordStream(db, request, song);
+
     if (!rangeHeader) {
-      recordStream(db, request, song);
       return reply.header('Accept-Ranges', 'bytes').type(mime).send(createReadStream(song.filePath));
     }
 
@@ -65,19 +68,57 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
       return reply.type(cached.format).send(cached.data);
     }
 
-    const song = getSongById(db, id);
-    if (!song) return reply.status(404).send('Not found');
-
-    try {
-      const metadata = await parseFile(song.filePath, { duration: false });
-      const picture = metadata.common.picture?.[0];
-      if (!picture) {
-        return reply.status(404).send('No cover art');
+    // Try song cover art first
+    const songCoverArtId = getSongCoverArtId(db, id);
+    if (songCoverArtId) {
+      const songCached = getCoverArtById(db, songCoverArtId);
+      if (songCached) {
+        return reply.type(songCached.format).send(songCached.data);
       }
-      return reply.type(picture.format).send(Buffer.from(picture.data));
-    } catch (error) {
-      return reply.status(500).send('Failed to read cover art');
     }
+
+    const song = getSongById(db, id);
+    if (song) {
+      try {
+        const metadata = await parseFile(song.filePath, { duration: false });
+        const picture = metadata.common.picture?.[0];
+        if (picture) {
+          return reply.type(picture.format).send(Buffer.from(picture.data));
+        }
+      } catch {
+        // fall through to 404
+      }
+    }
+
+    // Try album cover art
+    const albumCoverArtId = getAlbumCoverArtId(db, id);
+    if (albumCoverArtId) {
+      const albumCached = getCoverArtById(db, albumCoverArtId);
+      if (albumCached) {
+        return reply.type(albumCached.format).send(albumCached.data);
+      }
+    }
+
+    const album = getAlbumById(db, id);
+    if (album?.id) {
+      const albumSong = db.prepare('SELECT id FROM songs WHERE album_id = ? AND active = 1 ORDER BY disc_number, track_number LIMIT 1').get(album.id) as { id: string } | undefined;
+      if (albumSong) {
+        const firstSong = getSongById(db, albumSong.id);
+        if (firstSong) {
+          try {
+            const metadata = await parseFile(firstSong.filePath, { duration: false });
+            const picture = metadata.common.picture?.[0];
+            if (picture) {
+              return reply.type(picture.format).send(Buffer.from(picture.data));
+            }
+          } catch {
+            // fall through to 404
+          }
+        }
+      }
+    }
+
+    return reply.status(404).send('Not found');
   });
 }
 
