@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import { api } from '../../../api.js';
 import { cn } from '../../../lib/cn.js';
@@ -24,11 +24,31 @@ interface Playlist {
 export function Playlists() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [name, setName] = useState('');
-  const [isSmart, setIsSmart] = useState(false);
+  const [creationMode, setCreationMode] = useState<'normal' | 'smart'>('normal');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [rules, setRules] = useState<SmartPlaylistRules>({ rules: { all: [{ field: 'title', operator: 'contains', value: '' }] } });
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleMouse = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleMouse);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleMouse);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [menuOpen]);
   const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
 
@@ -50,7 +70,7 @@ export function Playlists() {
     setError(null);
     try {
       const body: Record<string, unknown> = { name: name.trim() };
-      if (isSmart) {
+      if (creationMode === 'smart') {
         body.isSmart = true;
         body.rules = rules;
       }
@@ -59,7 +79,7 @@ export function Playlists() {
         body: JSON.stringify(body),
       });
       setName('');
-      setIsSmart(false);
+      setCreationMode('normal');
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create playlist');
@@ -112,19 +132,45 @@ export function Playlists() {
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && create()}
           />
-          <Button onClick={create} disabled={creating || !name.trim()}>
-            Create
-          </Button>
+          <div ref={menuRef} className="relative flex">
+            <Button
+              onClick={create}
+              disabled={creating || !name.trim()}
+              className="rounded-r-none"
+            >
+              {creationMode === 'smart' ? 'Create smart playlist' : 'Create playlist'}
+            </Button>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-label="More create options"
+              className="btn rounded-l-none border-l-0 px-2"
+            >
+              <Icon name="mdi-chevron-down" size={18} className={cn('transition-transform', menuOpen && 'rotate-180')} />
+            </button>
+            {menuOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 top-full z-40 mt-2 w-48 rounded-md border border-rule bg-surface py-1 shadow-lg"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setCreationMode(creationMode === 'normal' ? 'smart' : 'normal');
+                    setMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+                >
+                  {creationMode === 'normal' ? 'Create smart playlist' : 'Create playlist'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={isSmart}
-            onChange={(e) => setIsSmart(e.target.checked)}
-          />
-          Smart playlist (query-based)
-        </label>
-        {isSmart && (
+        {creationMode === 'smart' && (
           <SmartPlaylistEditor initialRules={rules} onChange={setRules} />
         )}
       </div>

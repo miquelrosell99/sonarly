@@ -170,6 +170,44 @@ describe('management song endpoints', () => {
     expect(body.song.albumName).toBe('Test Album');
   });
 
+  it('filters songs by genre', async () => {
+    const src = new URL('../../fixtures/sample.mp3', import.meta.url).pathname;
+    const rockPath = join(config.LIBRARY_PATH, 'rock.mp3');
+    const popPath = join(config.LIBRARY_PATH, 'pop.mp3');
+    copyFileSync(src, rockPath);
+    copyFileSync(src, popPath);
+    upsertSong(db, {
+      id: 'song-rock',
+      filePath: rockPath,
+      title: 'Rock Song',
+      artistId: 'artist-1',
+      albumId: 'album-1',
+      genre: 'Rock',
+      mtime: Date.now(),
+      checksum: 'checksum-rock',
+    });
+    upsertSong(db, {
+      id: 'song-pop',
+      filePath: popPath,
+      title: 'Pop Song',
+      artistId: 'artist-1',
+      albumId: 'album-1',
+      genre: 'Pop',
+      mtime: Date.now(),
+      checksum: 'checksum-pop',
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/songs?genre=Rock',
+      cookies: { sessionId: cookieValue },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body) as { songs: { genre?: string }[] };
+    expect(body.songs.length).toBeGreaterThan(0);
+    expect(body.songs.every((s) => s.genre === 'Rock')).toBe(true);
+  });
+
   it('returns 401 without a session', async () => {
     const res = await app.inject({
       method: 'PUT',

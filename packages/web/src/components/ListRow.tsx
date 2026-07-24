@@ -14,6 +14,7 @@ export interface ListRowActionRating {
 }
 
 interface ListRowProps {
+  href?: string;
   index: number;
   isSelected?: boolean;
   isPlayingTitle?: boolean;
@@ -23,6 +24,7 @@ interface ListRowProps {
   playLabel?: string;
   favorite?: ListRowActionFavorite;
   rating?: ListRowActionRating;
+  onContextMenu?: (e: React.MouseEvent) => void;
   children: ReactNode;
 }
 
@@ -50,6 +52,7 @@ export function ListRow({
   playLabel,
   favorite,
   rating,
+  onContextMenu,
   children,
 }: ListRowProps) {
   const handleClick = (e: MouseEvent) => {
@@ -93,6 +96,7 @@ export function ListRow({
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onKeyDown={handleKeyDown}
+      onContextMenu={onContextMenu}
     >
       <td className="w-12 py-2 pr-4">
         <span className="relative inline-flex h-5 w-6 items-center justify-center text-muted">

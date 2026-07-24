@@ -276,6 +276,25 @@ export function listInactiveSongs(db: Database.Database, userId?: string): Song[
   }));
 }
 
+export function listSongsByArtist(db: Database.Database, artistId: string, userId?: string): Song[] {
+  if (!userId) {
+    const rows = db.prepare(`
+      SELECT * FROM songs
+      WHERE artist_id = ? AND active = 1
+      ORDER BY year, album_id, disc_number, track_number, title
+    `).all(artistId) as DbSong[];
+    return rows.map(toSong);
+  }
+  const rows = db.prepare(`
+    SELECT s.*, us.starred, us.rating
+    FROM songs s
+    LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
+    WHERE s.artist_id = ? AND s.active = 1
+    ORDER BY s.year, s.album_id, s.disc_number, s.track_number, s.title
+  `).all(userId, artistId) as DbSongWithInteractions[];
+  return rows.map(toSongWithInteractions);
+}
+
 export function listSongsByAlbum(db: Database.Database, albumId: string, userId?: string): Song[] {
   if (!userId) {
     const rows = db.prepare('SELECT * FROM songs WHERE album_id = ? AND active = 1 ORDER BY disc_number, track_number, title')

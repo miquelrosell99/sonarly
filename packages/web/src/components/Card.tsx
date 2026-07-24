@@ -27,11 +27,12 @@ interface CardProps {
   favorite?: CardActionFavorite;
   rating?: CardActionRating;
   play?: CardActionPlay;
+  onContextMenu?: (e: React.MouseEvent) => void;
 }
 
-export function Card({ href, children, cover, favorite, rating, play }: CardProps) {
+export function Card({ href, children, cover, favorite, rating, play, onContextMenu }: CardProps) {
   return (
-    <div className="group relative">
+    <div className="group relative" onContextMenu={onContextMenu}>
       <Link
         href={href}
         className="block overflow-hidden rounded-md border border-rule bg-surface transition hover:bg-surface-hover"
