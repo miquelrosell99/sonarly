@@ -6,4 +6,9 @@ export interface Album {
   year?: number;
   genre?: string;
   coverArt?: string;
+  totalSongCount?: number;
+  shownSongCount?: number;
+  active?: boolean;
+  starred?: boolean;
+  rating?: number;
 }

@@ -3,7 +3,15 @@ import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import type { Playlist, PlaylistVisibility } from '@sonarly/shared';
 import { sendSubsonicReply } from '../opensubsonic/responses.js';
-import { getPlaylistById, createPlaylist, updatePlaylist, generateShareToken } from './repository.js';
+import {
+  getPlaylistById,
+  createPlaylist,
+  updatePlaylist,
+  generateShareToken,
+  resolvePlaylistSongIds,
+  resolvePlaylistSongCount,
+} from './repository.js';
+import { getUserPreferences } from '../user-preferences/index.js';
 
 interface SongRow {
   id: string;
@@ -13,6 +21,7 @@ interface SongRow {
   duration: number | null;
   genre: string | null;
   year: number | null;
+  explicit: number;
   mtime: number;
   album_name: string | null;
   artist_name: string | null;
@@ -30,7 +39,7 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
     `).pluck().all(userId, userId) as string[];
     const playlists = rows.map((id) => getPlaylistById(db, id)).filter((p): p is Playlist => p !== undefined);
     sendSubsonicReply(reply, format, {
-      playlists: { playlist: playlists.map((p) => toOpenSubsonicPlaylist(p, false)) },
+      playlists: { playlist: playlists.map((p) => toOpenSubsonicPlaylist(db, p, userId, false)) },
     });
   });
 
@@ -45,7 +54,7 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
     if (!canViewPlaylist(db, playlist, userId, shareToken)) {
       return sendUnauthorized(reply, format);
     }
-    sendSubsonicReply(reply, format, { playlist: toOpenSubsonicPlaylist(playlist, true, db) });
+    sendSubsonicReply(reply, format, { playlist: toOpenSubsonicPlaylist(db, playlist, userId ?? playlist.ownerId, true) });
   });
 
   app.get('/rest/createPlaylist.view', (request: FastifyRequest, reply: FastifyReply) => {
@@ -66,7 +75,7 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
       updatedAt: now,
     };
     createPlaylist(db, playlist);
-    sendSubsonicReply(reply, format, { playlist: toOpenSubsonicPlaylist(playlist, true) });
+    sendSubsonicReply(reply, format, { playlist: toOpenSubsonicPlaylist(db, playlist, ownerId, true) });
   });
 
   app.get('/rest/updatePlaylist.view', (request: FastifyRequest, reply: FastifyReply) => {
@@ -83,6 +92,12 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
 
     if (!canEditOrOwnPlaylist(db, existing, userId)) {
       return sendUnauthorized(reply, format);
+    }
+
+    if (existing.isSmart) {
+      return sendSubsonicReply(reply, format, {
+        error: { code: 50, message: 'Smart playlists cannot be edited through this endpoint' },
+      }, 'failed');
     }
 
     let songIds = existing.songIds.slice();
@@ -189,34 +204,30 @@ function sendUnauthorized(reply: FastifyReply, format: 'json' | 'xml'): FastifyR
 }
 
 function toOpenSubsonicPlaylist(
+  db: Database.Database,
   p: Playlist,
-  includeEntries: false,
-  db?: never,
-): Record<string, unknown>;
-function toOpenSubsonicPlaylist(
-  p: Playlist,
-  includeEntries: true,
-  db?: Database.Database,
-): Record<string, unknown>;
-function toOpenSubsonicPlaylist(
-  p: Playlist,
+  userId: string,
   includeEntries: boolean,
-  db?: Database.Database,
 ): Record<string, unknown> {
+  const preferences = getUserPreferences(db, userId);
+  const hideExplicit = preferences.hideExplicit === true;
+  const songIds = includeEntries ? resolvePlaylistSongIds(db, p, userId) : [];
+  const rawCount = resolvePlaylistSongCount(db, p, userId);
+  const entries = includeEntries ? fetchPlaylistSongs(db, songIds) : [];
+  const visibleEntries = hideExplicit ? entries.filter((s) => s.explicit !== true) : entries;
+  const songCount = includeEntries ? visibleEntries.length : rawCount;
   const base: Record<string, unknown> = {
     id: p.id,
     name: p.name,
     owner: p.ownerId,
     public: p.visibility === 'public' || p.visibility === 'link',
-    songCount: p.songIds.length,
+    songCount,
     created: p.createdAt,
     changed: p.updatedAt,
   };
 
-  if (includeEntries && db) {
-    base.entry = fetchPlaylistSongs(db, p.songIds);
-  } else if (includeEntries) {
-    base.entry = [];
+  if (includeEntries) {
+    base.entry = visibleEntries;
   }
 
   return base;
@@ -229,7 +240,7 @@ function fetchPlaylistSongs(db: Database.Database, songIds: string[]): Record<st
     FROM songs s
     LEFT JOIN albums a ON a.id = s.album_id
     LEFT JOIN artists ar ON ar.id = s.artist_id
-    WHERE s.id IN (${songIds.map(() => '?').join(',')})
+    WHERE s.active = 1 AND s.id IN (${songIds.map(() => '?').join(',')})
   `).all(...songIds) as SongRow[];
   const byId = new Map(rows.map((r) => [r.id, r]));
   return songIds
@@ -244,6 +255,7 @@ function fetchPlaylistSongs(db: Database.Database, songIds: string[]): Record<st
       discNumber: song.disc_number,
       genre: song.genre,
       year: song.year,
+      explicit: song.explicit === 1,
       duration: song.duration,
       type: 'music',
       isDir: false,

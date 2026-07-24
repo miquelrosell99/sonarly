@@ -40,6 +40,21 @@ describe('MutagenWriter', () => {
     expect(meta.common.year).toBe(2024);
   });
 
+  it('writes explicit flag to MP3 and reads it back', async () => {
+    const src = new URL('../../fixtures/sample.mp3', import.meta.url).pathname;
+    const copy = join(tempDir, 'test-explicit.mp3');
+    await copyFile(src, copy);
+
+    await writeTags(copy, {
+      title: 'Explicit Title',
+      explicit: true,
+    });
+
+    const meta = await parseFile(copy);
+    expect(meta.common.title).toBe('Explicit Title');
+    expect(detectExplicitFromNative(meta.native)).toBe(true);
+  });
+
   it('writes tags to a synthetic FLAC file and music-metadata can read them back', async () => {
     const path = join(tempDir, 'test.flac');
     await writeFile(path, createMinimalFlac());
@@ -213,4 +228,20 @@ function u16(n: number): Buffer {
 
 function concatBuffers(buffers: (Buffer | Uint8Array)[]): Buffer {
   return Buffer.concat(buffers as Buffer[]);
+}
+
+function detectExplicitFromNative(native: Record<string, { id: string; value: unknown }[]> | undefined): boolean {
+  if (!native) return false;
+  for (const [tagType, tags] of Object.entries(native)) {
+    for (const tag of tags) {
+      const id = tag.id.toUpperCase();
+      const value = String(Array.isArray(tag.value) ? tag.value[0] : tag.value).trim();
+      if (tagType === 'iTunes' || tagType.startsWith('ID3')) {
+        if (id === 'ITUNESADVISORY' || id === 'TXXX:ITUNESADVISORY' || id === 'TXXX:ITUNES_ADVISORY') {
+          return value === '1';
+        }
+      }
+    }
+  }
+  return false;
 }

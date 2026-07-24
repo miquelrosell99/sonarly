@@ -52,20 +52,20 @@ export function SettingsConflicts() {
     <Settings>
       <div className="max-w-4xl space-y-4">
         <h3 className="text-base font-medium">Conflicting files</h3>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted">
           Files that were renamed with a collision suffix such as " (1)" because another file already occupied the target path.
         </p>
 
-        {loading && <p className="text-sm text-gray-500">Loading...</p>}
+        {loading && <p className="text-sm text-muted">Loading...</p>}
 
         {!loading && conflicts.length === 0 && (
-          <p className="text-sm text-gray-500">No conflicts found.</p>
+          <p className="text-sm text-muted">No conflicts found.</p>
         )}
 
         {conflicts.length > 0 && (
-          <div className="overflow-hidden rounded-md border border-gray-200">
+          <div className="overflow-hidden rounded-md border border-rule">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-gray-50 text-gray-700">
+              <thead className="bg-surface text-fg-primary">
                 <tr>
                   <th className="px-4 py-2 font-medium">File path</th>
                   <th className="px-4 py-2 font-medium">Title</th>
@@ -74,13 +74,13 @@ export function SettingsConflicts() {
                   <th className="px-4 py-2 font-medium">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-rule">
                 {conflicts.map((conflict) => (
                   <tr key={conflict.id}>
-                    <td className="px-4 py-2 break-all font-mono text-xs text-gray-600">{conflict.filePath}</td>
+                    <td className="px-4 py-2 break-all font-mono text-xs text-muted">{conflict.filePath}</td>
                     <td className="px-4 py-2">{conflict.title}</td>
-                    <td className="px-4 py-2 text-gray-600">{conflict.artistName ?? '—'}</td>
-                    <td className="px-4 py-2 text-gray-600">{conflict.albumName ?? '—'}</td>
+                    <td className="px-4 py-2 text-muted">{conflict.artistName ?? '—'}</td>
+                    <td className="px-4 py-2 text-muted">{conflict.albumName ?? '—'}</td>
                     <td className="px-4 py-2">
                       <Button
                         onClick={() => remove(conflict.id)}

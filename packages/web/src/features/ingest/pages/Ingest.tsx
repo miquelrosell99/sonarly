@@ -67,7 +67,7 @@ export function Ingest() {
       </div>
       {error && <p className="mb-4 text-sm text-danger">{error}</p>}
       {loading ? (
-        <p className="text-sm text-gray-500">Loading...</p>
+        <p className="text-sm text-muted">Loading...</p>
       ) : (
         <Table columns={columns} rows={jobs} rowKey={(j) => j.id} empty="No ingest jobs." />
       )}
