@@ -6,6 +6,7 @@ import { Icon } from '../../../components/ui/Icon.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { Card } from '../../../components/Card.js';
+import { CoverArt } from '../../../components/CoverArt.js';
 
 interface HomeData {
   genres: string[];
@@ -57,30 +58,6 @@ function GenreCard({ genre }: { genre: string }) {
 interface AlbumDetail {
   album: Album;
   songs: Song[];
-}
-
-function CoverArt({ coverArt, alt }: { coverArt?: string; alt: string }) {
-  const [failed, setFailed] = useState(false);
-
-  if (!coverArt || failed) {
-    return (
-      <div className="flex aspect-square items-center justify-center rounded-md bg-surface-hover">
-        <Icon name="mdi-album" size={32} className="text-muted" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="aspect-square overflow-hidden rounded-md bg-surface-hover">
-      <img
-        src={`/api/cover-art/${coverArt}`}
-        alt={alt}
-        loading="lazy"
-        className="h-full w-full object-cover"
-        onError={() => setFailed(true)}
-      />
-    </div>
-  );
 }
 
 function AlbumCard({ album: initialAlbum }: { album: Album }) {
@@ -138,12 +115,10 @@ function AlbumCard({ album: initialAlbum }: { album: Album }) {
           label: `Play ${album.name}`,
         }}
       >
-        <div className="mt-3 space-y-1">
-          <div className="text-sm font-medium text-fg-primary line-clamp-1">{album.name}</div>
-          <div className="text-sm text-muted line-clamp-1">
-            {album.artistName ?? '-'}
-            {album.year !== undefined && ` • ${album.year}`}
-          </div>
+        <div className="text-sm font-medium text-fg-primary">{album.name}</div>
+        <div className="text-sm text-muted">
+          {album.artistName ?? '-'}
+          {album.year !== undefined && ` • ${album.year}`}
         </div>
       </Card>
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}
