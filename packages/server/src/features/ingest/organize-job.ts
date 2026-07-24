@@ -15,13 +15,14 @@ export interface OrganizeJobStats {
   moved: number;
   skipped: number;
   failed: number;
+  failedPaths: string[];
   currentPath?: string;
   error?: string;
   [key: string]: unknown;
 }
 
 export async function runOrganizeJob(config: Config, db: Database.Database, jobId: string): Promise<OrganizeJobStats> {
-  const stats: OrganizeJobStats = { total: 0, scanned: 0, done: 0, moved: 0, skipped: 0, failed: 0 };
+  const stats: OrganizeJobStats = { total: 0, scanned: 0, done: 0, moved: 0, skipped: 0, failed: 0, failedPaths: [] };
   const candidates: string[] = [];
 
   for await (const filePath of walkLibraryFiles(config.LIBRARY_PATH)) {
@@ -35,6 +36,7 @@ export async function runOrganizeJob(config: Config, db: Database.Database, jobI
       }
     } catch (err) {
       stats.failed++;
+      stats.failedPaths.push(filePath);
       console.error(`Organize preview failed for ${filePath}`, err);
     }
   }
@@ -55,6 +57,7 @@ export async function runOrganizeJob(config: Config, db: Database.Database, jobI
       }
     } catch (err) {
       stats.failed++;
+      stats.failedPaths.push(filePath);
       console.error(`Organize failed for ${filePath}`, err);
     }
 

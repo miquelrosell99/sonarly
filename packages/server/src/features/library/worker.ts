@@ -5,9 +5,7 @@ import { getDbPath, type Config } from '../../config.js';
 import { migrate } from '../../db/migrate.js';
 import { scanLibrary } from './scanner.js';
 import { popPendingJob, pushJob, markJobRunning, markJobCompleted, markJobFailed } from './queue.js';
-import { processIngestFolder } from '../ingest/index.js';
-import { cleanupReviewFolder } from '../ingest/index.js';
-import { runOrganizeJob } from '../ingest/organize-job.js';
+import { processIngestFolder, cleanupReviewFolder, runOrganizeJob } from '../ingest/index.js';
 import {
   getReviewRetentionDays,
   getSetting,
