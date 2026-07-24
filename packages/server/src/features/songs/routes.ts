@@ -132,6 +132,9 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
     const userId = (request as any).session?.userId as string | undefined;
     const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
 
+    const { genre } = request.query as { genre?: string };
+    const genreFilter = typeof genre === 'string' && genre.length > 0;
+
     const rows = db.prepare(`
       SELECT s.*, ar.name AS artist_name, al.name AS album_name, us.starred, us.rating
       FROM songs s
@@ -140,9 +143,10 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
       WHERE s.active = 1
       ${hideExplicit ? 'AND s.explicit = 0' : ''}
+      ${genreFilter ? 'AND s.genre = ?' : ''}
       ORDER BY s.title
       LIMIT 500
-    `).all(userId ?? null) as SongListRow[];
+    `).all(...(genreFilter ? [userId ?? null, genre] : [userId ?? null])) as SongListRow[];
 
     reply.send({ songs: rows.map(rowToSong) });
   });

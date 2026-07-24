@@ -1,7 +1,8 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
+import { unlink } from 'node:fs/promises';
 import type { SongTags, Album } from '@sonarly/shared';
-import { listSongsByAlbum } from '../songs/index.js';
+import { listSongsByAlbum, deleteSongByPath } from '../songs/index.js';
 import { getUserPreferences } from '../user-preferences/index.js';
 import { writeTags } from '../tags/index.js';
 import { validateSongTags, queueResync } from '../songs/index.js';
@@ -136,5 +137,27 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
       },
       songs: visibleSongs,
     });
+  });
+
+  app.delete('/api/albums/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { isAdmin?: boolean } | undefined;
+    if (!requireAdmin(reply, session)) return;
+
+    const { id } = request.params as { id: string };
+    const album = db.prepare('SELECT * FROM albums WHERE id = ? AND active = 1').get(id) as Album | undefined;
+    if (!album) return reply.status(404).send({ error: 'Album not found' });
+
+    const songs = listSongsByAlbum(db, id);
+    for (const song of songs) {
+      try {
+        await unlink(song.filePath);
+      } catch (err) {
+        request.log.error({ err }, `Failed to delete file ${song.filePath}`);
+      }
+      deleteSongByPath(db, song.filePath);
+    }
+
+    db.prepare('DELETE FROM albums WHERE id = ?').run(id);
+    reply.send({ ok: true });
   });
 }
