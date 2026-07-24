@@ -102,7 +102,7 @@ export function Album() {
             {s.title}
           </Link>
           {s.explicit && (
-            <span className="rounded bg-red-100 px-1 text-[10px] font-bold text-red-700">E</span>
+            <span className="rounded bg-red-500/10 px-1 text-[10px] font-bold text-red-500">E</span>
           )}
         </span>
       ),
@@ -125,9 +125,9 @@ export function Album() {
     },
   ];
 
-  if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
+  if (loading) return <p className="text-sm text-muted">Loading...</p>;
   if (error) return <p className="text-sm text-danger">{error}</p>;
-  if (!detail) return <p className="text-sm text-gray-500">Album not found.</p>;
+  if (!detail) return <p className="text-sm text-muted">Album not found.</p>;
 
   const hasFilteredSongs =
     detail.album.totalSongCount !== undefined &&
@@ -173,7 +173,7 @@ export function Album() {
             ))}
           </span>
         </div>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted">
           {detail.album.artistId ? (
             <Link href={`/artists/${detail.album.artistId}`} className="hover:text-muted">
               {detail.album.artistName}
@@ -184,7 +184,7 @@ export function Album() {
           {detail.album.year !== undefined && detail.album.year !== null && ` • ${detail.album.year}`}
           {detail.album.genre && ` • ${detail.album.genre}`}
           {hasFilteredSongs && (
-            <span className="ml-2 rounded bg-yellow-100 px-1.5 py-0.5 text-xs text-yellow-800">
+            <span className="ml-2 rounded bg-yellow-500/10 px-1.5 py-0.5 text-xs text-yellow-500">
               {detail.album.shownSongCount} of {detail.album.totalSongCount} songs shown
             </span>
           )}

@@ -20,7 +20,7 @@ function AvatarPreview({ user, className }: { user: User; className?: string }) 
     return <img src={user.avatarUrl} alt="" className={`rounded-full object-cover ${className}`} />;
   }
   return (
-    <div className={`flex items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-600 ${className}`}>
+    <div className={`flex items-center justify-center rounded-full bg-surface text-sm font-semibold text-muted ${className}`}>
       {initials}
     </div>
   );
@@ -151,19 +151,19 @@ export function ProfileForm({ user, onUserChange }: ProfileFormProps) {
           >
             {uploading ? 'Uploading…' : 'Change avatar'}
           </Button>
-          <p className="mt-1 text-xs text-gray-500">PNG, JPG, WebP or GIF up to 2 MB.</p>
+          <p className="mt-1 text-xs text-muted">PNG, JPG, WebP or GIF up to 2 MB.</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor="name" className="mb-1 block text-sm font-medium text-gray-700">
+          <label htmlFor="name" className="mb-1 block text-sm font-medium text-fg-primary">
             Name
           </label>
           <Input id="name" value={form.name} onChange={(e) => updateForm({ name: e.target.value })} />
         </div>
         <div>
-          <label htmlFor="surname" className="mb-1 block text-sm font-medium text-gray-700">
+          <label htmlFor="surname" className="mb-1 block text-sm font-medium text-fg-primary">
             Surname
           </label>
           <Input id="surname" value={form.surname} onChange={(e) => updateForm({ surname: e.target.value })} />
@@ -171,7 +171,7 @@ export function ProfileForm({ user, onUserChange }: ProfileFormProps) {
       </div>
 
       <div>
-        <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
+        <label htmlFor="email" className="mb-1 block text-sm font-medium text-fg-primary">
           Email
         </label>
         <Input
@@ -182,10 +182,10 @@ export function ProfileForm({ user, onUserChange }: ProfileFormProps) {
         />
       </div>
 
-      <div className="space-y-3 rounded border border-gray-200 p-4 dark:border-gray-700">
+      <div className="space-y-3 rounded border border-rule p-4">
         <h4 className="text-sm font-medium">Content filters</h4>
         {loadingPreferences ? (
-          <p className="text-sm text-gray-500">Loading preferences…</p>
+          <p className="text-sm text-muted">Loading preferences…</p>
         ) : (
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm">
@@ -217,7 +217,7 @@ export function ProfileForm({ user, onUserChange }: ProfileFormProps) {
       </div>
 
       {error && <p className="text-sm text-danger" role="alert">{error}</p>}
-      {success && <p className="text-sm text-gray-700">Profile saved.</p>}
+      {success && <p className="text-sm text-fg-primary">Profile saved.</p>}
 
       <Button type="submit" disabled={saving}>
         {saving ? 'Saving…' : 'Save profile'}

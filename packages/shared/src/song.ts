@@ -11,8 +11,10 @@ export interface Song {
   year?: number;
   explicit?: boolean;
   coverArt?: string;
+  coverArtMissing?: boolean;
   mtime: number;
   checksum: string;
+  active?: boolean;
   starred?: boolean;
   rating?: number;
 }

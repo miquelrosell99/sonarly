@@ -7,6 +7,9 @@ import { buildApp } from '../../../src/app.js';
 import { migrate } from '../../../src/db/migrate.js';
 import { hashPassword, encryptSubsonicPassword } from '../../../src/features/auth/password.js';
 import { createUser } from '../../../src/features/users/repository.js';
+import { upsertSong } from '../../../src/features/songs/repository.js';
+import { upsertAlbum } from '../../../src/features/albums/repository.js';
+import { upsertArtist } from '../../../src/features/artists/repository.js';
 import type { Config } from '../../../src/config.js';
 
 vi.mock('node:worker_threads', () => {
@@ -73,6 +76,7 @@ describe('management admin endpoints', () => {
   let root: string;
   let config: Config;
   let app: Awaited<ReturnType<typeof buildApp>>;
+  let db: Database.Database;
   let adminCookie: string;
   let userCookie: string;
 
@@ -87,7 +91,7 @@ describe('management admin endpoints', () => {
     };
     mkdirSync(config.LIBRARY_PATH, { recursive: true });
     mkdirSync(config.INGEST_PATH, { recursive: true });
-    const db = new Database(join(root, 'sonarly.db'));
+    db = new Database(join(root, 'sonarly.db'));
     migrate(db);
     await seedUser(db, 'admin', 'adminpass', true);
     await seedUser(db, 'bob', 'bobpass', false);
@@ -169,5 +173,63 @@ describe('management admin endpoints', () => {
       cookies: { sessionId: userCookie },
     });
     expect(res.statusCode).toBe(403);
+  });
+
+  it('lists missing items for admins', async () => {
+    upsertArtist(db, { id: 'artist-1', name: 'Gone Artist', active: false });
+    upsertAlbum(db, { id: 'album-1', name: 'Gone Album', artistId: 'artist-1', artistName: 'Gone Artist', active: false });
+    upsertSong(db, {
+      id: 'song-1',
+      filePath: '/data/library/gone.mp3',
+      title: 'Gone Song',
+      artistId: 'artist-1',
+      albumId: 'album-1',
+      mtime: Date.now(),
+      checksum: 'checksum-1',
+      active: false,
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/admin/missing',
+      cookies: { sessionId: adminCookie },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.songs).toHaveLength(1);
+    expect(body.songs[0].id).toBe('song-1');
+    expect(body.albums).toHaveLength(1);
+    expect(body.albums[0].id).toBe('album-1');
+    expect(body.artists).toHaveLength(1);
+    expect(body.artists[0].id).toBe('artist-1');
+  });
+
+  it('forbids missing items list for non-admins', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/admin/missing',
+      cookies: { sessionId: userCookie },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('allows admins to purge a missing song', async () => {
+    upsertSong(db, {
+      id: 'song-1',
+      filePath: '/data/library/gone.mp3',
+      title: 'Gone Song',
+      mtime: Date.now(),
+      checksum: 'checksum-1',
+      active: false,
+    });
+
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/admin/missing/songs/song-1',
+      cookies: { sessionId: adminCookie },
+    });
+    expect(res.statusCode).toBe(200);
+    const row = db.prepare('SELECT * FROM songs WHERE id = ?').get('song-1');
+    expect(row).toBeUndefined();
   });
 });

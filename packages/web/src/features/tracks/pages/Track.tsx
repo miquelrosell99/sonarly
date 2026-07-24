@@ -60,9 +60,9 @@ export function Track() {
     }
   };
 
-  if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
+  if (loading) return <p className="text-sm text-muted">Loading...</p>;
   if (error) return <p className="text-sm text-danger">{error}</p>;
-  if (!track) return <p className="text-sm text-gray-500">Track not found.</p>;
+  if (!track) return <p className="text-sm text-muted">Track not found.</p>;
 
   return (
     <div>
@@ -100,7 +100,7 @@ export function Track() {
           ))}
         </span>
       </div>
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-muted">
         {track.artistId ? (
           <Link href={`/artists/${track.artistId}`} className="hover:text-muted">
             {track.artistName ?? 'Unknown artist'}

@@ -19,7 +19,7 @@ export function Table<T>({ columns, rows, rowKey, empty }: TableProps<T>) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
-        <thead className="border-b border-gray-200 text-gray-500">
+        <thead className="border-b border-rule text-muted">
           <tr>
             {columns.map((col) => (
               <th key={col.key} className={cn('py-2 pr-4 font-medium', col.className)}>
@@ -28,7 +28,7 @@ export function Table<T>({ columns, rows, rowKey, empty }: TableProps<T>) {
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-rule">
           {rows.map((row) => (
             <tr key={rowKey(row)}>
               {columns.map((col) => (
@@ -41,7 +41,7 @@ export function Table<T>({ columns, rows, rowKey, empty }: TableProps<T>) {
         </tbody>
       </table>
       {rows.length === 0 && empty !== undefined && (
-        <div className="py-8 text-center text-sm text-gray-500">{empty}</div>
+        <div className="py-8 text-center text-sm text-muted">{empty}</div>
       )}
     </div>
   );

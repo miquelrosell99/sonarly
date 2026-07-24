@@ -14,6 +14,7 @@ interface AlbumRow {
   name: string;
   artist_id: string | null;
   artist_name: string | null;
+  cover_art_id: string | null;
 }
 
 interface SongRow {
@@ -26,7 +27,7 @@ interface SongRow {
   genre: string | null;
   year: number | null;
   duration: number | null;
-  cover_art: string | null;
+  cover_art_id: string | null;
   mtime: number;
   album_name: string | null;
   artist_name: string | null;
@@ -43,7 +44,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
 
   app.get('/rest/getIndexes.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
-    const artists = db.prepare('SELECT id, name FROM artists ORDER BY name').all() as ArtistRow[];
+    const artists = db.prepare('SELECT id, name FROM artists WHERE active = 1 ORDER BY name').all() as ArtistRow[];
     sendSubsonicReply(reply, format, {
       indexes: {
         lastModified: Date.now(),
@@ -54,7 +55,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
 
   app.get('/rest/getArtists.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
-    const artists = db.prepare('SELECT id, name FROM artists ORDER BY name').all() as ArtistRow[];
+    const artists = db.prepare('SELECT id, name FROM artists WHERE active = 1 ORDER BY name').all() as ArtistRow[];
     sendSubsonicReply(reply, format, {
       artists: {
         index: groupArtistsByInitial(artists),
@@ -65,7 +66,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
   app.get('/rest/getAlbum.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
     const { id } = request.query as { id: string };
-    const album = db.prepare('SELECT * FROM albums WHERE id = ?').get(id) as AlbumRow | undefined;
+    const album = db.prepare('SELECT * FROM albums WHERE id = ? AND active = 1').get(id) as AlbumRow | undefined;
     if (!album) {
       return sendSubsonicReply(reply, format, {
         error: { code: 70, message: 'Data not found' },
@@ -76,7 +77,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       FROM songs s
       LEFT JOIN albums a ON a.id = s.album_id
       LEFT JOIN artists ar ON ar.id = s.artist_id
-      WHERE s.album_id = ?
+      WHERE s.album_id = ? AND s.active = 1
       ORDER BY s.disc_number, s.track_number
     `).all(id) as SongRow[];
     sendSubsonicReply(reply, format, {
@@ -85,6 +86,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
         name: album.name,
         artist: album.artist_name ?? '',
         artistId: album.artist_id ?? '',
+        coverArt: album.cover_art_id ?? '',
         song: songs.map((s) => toOpenSubsonicSong(s)),
       },
     });
@@ -98,7 +100,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       FROM songs s
       LEFT JOIN albums a ON a.id = s.album_id
       LEFT JOIN artists ar ON ar.id = s.artist_id
-      WHERE s.id = ?
+      WHERE s.id = ? AND s.active = 1
     `).get(id) as SongRow | undefined;
     if (!song) {
       return sendSubsonicReply(reply, format, {
@@ -135,7 +137,7 @@ function toOpenSubsonicSong(song: SongRow): Record<string, unknown> {
     year: song.year,
     duration: song.duration,
     isDir: false,
-    coverArt: song.cover_art,
+    coverArt: song.cover_art_id ?? '',
     created: new Date(song.mtime).toISOString(),
     albumId: song.album_id,
     artistId: song.artist_id,

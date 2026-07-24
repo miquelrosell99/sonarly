@@ -13,26 +13,26 @@ interface SuggestionParams {
 function getSuggestions(db: Database.Database, field: string, query: string, limit: number): string[] {
   const like = `%${query}%`;
   if (field === 'artist') {
-    const rows = db.prepare('SELECT name FROM artists WHERE name LIKE ? COLLATE NOCASE ORDER BY name LIMIT ?')
+    const rows = db.prepare('SELECT name FROM artists WHERE active = 1 AND name LIKE ? COLLATE NOCASE ORDER BY name LIMIT ?')
       .all(like, limit) as { name: string }[];
     return rows.map((r) => r.name);
   }
   if (field === 'album') {
-    const rows = db.prepare('SELECT name FROM albums WHERE name LIKE ? COLLATE NOCASE ORDER BY name LIMIT ?')
+    const rows = db.prepare('SELECT name FROM albums WHERE active = 1 AND name LIKE ? COLLATE NOCASE ORDER BY name LIMIT ?')
       .all(like, limit) as { name: string }[];
     return rows.map((r) => r.name);
   }
   if (field === 'albumArtist') {
-    const rows = db.prepare("SELECT DISTINCT artist_name AS name FROM albums WHERE artist_name IS NOT NULL AND artist_name LIKE ? COLLATE NOCASE ORDER BY artist_name LIMIT ?")
+    const rows = db.prepare("SELECT DISTINCT artist_name AS name FROM albums WHERE active = 1 AND artist_name IS NOT NULL AND artist_name LIKE ? COLLATE NOCASE ORDER BY artist_name LIMIT ?")
       .all(like, limit) as { name: string }[];
     return rows.map((r) => r.name);
   }
   // genre
   const rows = db.prepare(`
     SELECT name FROM (
-      SELECT DISTINCT genre AS name FROM songs WHERE genre IS NOT NULL
+      SELECT DISTINCT genre AS name FROM songs WHERE active = 1 AND genre IS NOT NULL
       UNION
-      SELECT DISTINCT genre AS name FROM albums WHERE genre IS NOT NULL
+      SELECT DISTINCT genre AS name FROM albums WHERE active = 1 AND genre IS NOT NULL
     )
     WHERE name LIKE ? COLLATE NOCASE
     ORDER BY name

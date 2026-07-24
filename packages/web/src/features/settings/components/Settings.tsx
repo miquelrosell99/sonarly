@@ -5,7 +5,9 @@ const sections = [
   { href: '/settings/appearance', label: 'Appearance' },
   { href: '/settings/media', label: 'Media Management' },
   { href: '/settings/ingest', label: 'Ingest' },
+  { href: '/settings/system-tasks', label: 'System Tasks' },
   { href: '/settings/conflicts', label: 'Conflicts' },
+  { href: '/settings/missing', label: 'Missing Items' },
 ];
 
 function isActive(location: string, href: string): boolean {
@@ -25,12 +27,12 @@ export function Settings({ children, actions }: SettingsProps) {
         <h2 className="text-lg font-semibold">Settings</h2>
         {actions}
       </div>
-      <nav className="mb-6 flex gap-2 border-b border-gray-200 pb-2">
+      <nav className="mb-6 flex gap-2 border-b border-rule pb-2">
         {sections.map((section) => (
           <Link
             key={section.href}
             href={section.href}
-            className={`rounded px-3 py-1 text-sm ${isActive(location, section.href) ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+            className={`rounded px-3 py-1 text-sm ${isActive(location, section.href) ? 'bg-fg-primary text-bg-primary' : 'text-fg-primary hover:bg-surface-hover'}`}
           >
             {section.label}
           </Link>

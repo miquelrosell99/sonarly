@@ -61,7 +61,7 @@ function usePlayers() {
 }
 
 function PlayersDropdown() {
-  const { data: players = [], isLoading } = usePlayers();
+  const { data: players = [] } = usePlayers();
   const [open, setOpen] = useState(false);
   const [playingId, setPlayingId] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -99,6 +99,8 @@ function PlayersDropdown() {
     }
   };
 
+  if (players.length === 0) return null;
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -106,16 +108,13 @@ function PlayersDropdown() {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
+        title="Connected devices"
         className={cn(
-          'flex items-center gap-2 rounded-md border border-rule px-3 py-1.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-          open ? 'bg-surface-hover' : 'bg-surface hover:bg-surface-hover',
+          'flex items-center rounded-md p-2 text-fg-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          open ? 'bg-surface-hover' : 'hover:bg-surface-hover',
         )}
       >
-        <Icon name="mdi-cast-audio" size={18} />
-        <span className="hidden sm:inline">
-          {isLoading ? 'Players…' : `${players.length} connected`}
-        </span>
-        <Icon name="mdi-chevron-down" size={16} className={cn('transition-transform', open && 'rotate-180')} />
+        <Icon name="mdi-cast-audio" size={20} />
       </button>
 
       {open && (
@@ -123,26 +122,22 @@ function PlayersDropdown() {
           role="menu"
           className="absolute right-0 top-full z-40 mt-2 w-64 rounded-md border border-rule bg-bg-primary py-1 shadow-lg"
         >
-          {players.length === 0 ? (
-            <p className="px-4 py-2 text-sm text-muted">No connected players</p>
-          ) : (
-            players.map((player) => (
-              <div key={player.id} className="px-4 py-2 text-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-medium text-fg-primary">{player.clientId}</p>
-                  <button
-                    type="button"
-                    onClick={() => playHere(player)}
-                    disabled={playingId === player.id || !player.songId}
-                    className="rounded bg-accent px-2 py-1 text-xs font-medium text-bg-primary transition hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
-                  >
-                    {playingId === player.id ? 'Loading…' : 'Play here'}
-                  </button>
-                </div>
-                <p className="truncate text-xs text-muted">{player.songTitle}</p>
+          {players.map((player) => (
+            <div key={player.id} className="px-4 py-2 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-medium text-fg-primary">{player.clientId}</p>
+                <button
+                  type="button"
+                  onClick={() => playHere(player)}
+                  disabled={playingId === player.id || !player.songId}
+                  className="rounded bg-accent px-2 py-1 text-xs font-medium text-bg-primary transition hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+                >
+                  {playingId === player.id ? 'Loading…' : 'Play here'}
+                </button>
               </div>
-            ))
-          )}
+              <p className="truncate text-xs text-muted">{player.songTitle}</p>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -349,16 +344,16 @@ export function TopBar({ user, onOpenProfile, onLogout }: TopBarProps) {
 
   return (
     <>
-      <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-rule bg-bg-primary px-4">
+      <header className="grid h-16 shrink-0 grid-cols-[1fr_1fr_1fr] items-center gap-4 border-b border-rule bg-bg-primary px-4">
         <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight text-fg-primary hover:text-fg-primary">
           Sonarly
         </Link>
 
-        <div className="flex flex-1 items-center justify-end gap-3">
-          <div className="relative hidden max-w-md flex-1 sm:block">
-            <SearchBox />
-          </div>
+        <div className="relative hidden w-full max-w-2xl justify-self-center sm:block">
+          <SearchBox />
+        </div>
 
+        <div className="flex items-center justify-end gap-3">
           {hasFilters && (
             <button
               type="button"

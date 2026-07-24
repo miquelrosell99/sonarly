@@ -106,16 +106,16 @@ export function SmartPlaylistEditor({ initialRules, onChange }: SmartPlaylistEdi
         <button
           type="button"
           onClick={toggleGroup}
-          className="rounded bg-gray-100 px-2 py-1 text-xs font-medium hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+          className="rounded bg-surface px-2 py-1 text-xs font-medium hover:bg-surface-hover"
         >
           {activeKey === 'all' ? 'ALL' : 'ANY'}
         </button>
-        <span className="text-sm text-gray-500">of the following rules</span>
+        <span className="text-sm text-muted">of the following rules</span>
       </div>
 
       <div className="space-y-2">
         {rulesList.map((rule, index) => (
-          <div key={index} className="flex flex-wrap items-center gap-2 rounded border border-gray-200 p-2 dark:border-gray-700">
+          <div key={index} className="flex flex-wrap items-center gap-2 rounded border border-rule p-2">
             <select
               value={rule.field}
               onChange={(e) => updateRule(activeKey, index, { field: e.target.value })}

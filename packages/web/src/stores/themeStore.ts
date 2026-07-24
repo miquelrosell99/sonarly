@@ -22,7 +22,7 @@ const accentClasses = [
 ];
 
 export const useTheme = create<ThemeState>((set, get) => ({
-  themeMode: 'dark',
+  themeMode: 'auto',
   accentColor: 'monochrome',
   setThemeMode: (themeMode) => {
     set({ themeMode });
