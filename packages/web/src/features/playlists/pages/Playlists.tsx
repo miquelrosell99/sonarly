@@ -153,7 +153,7 @@ export function Playlists() {
             {menuOpen && (
               <div
                 role="menu"
-                className="absolute right-0 top-full z-40 mt-2 w-48 rounded-md border border-rule bg-bg-primary py-1 shadow-lg"
+                className="absolute right-0 top-full z-40 mt-2 w-48 rounded-md border border-rule bg-surface py-1 shadow-lg"
               >
                 <button
                   type="button"
