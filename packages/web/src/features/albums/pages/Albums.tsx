@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
 import type { Album, Song } from '@sonarly/shared';
 import { api } from '../../../api.js';
@@ -6,16 +6,39 @@ import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
+import { useAlbumContextMenu } from '../../../hooks/useAlbumContextMenu.js';
+import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
+import { EditEntityModal } from '../../../components/EditEntityModal.js';
 
 interface AlbumDetail {
   album: Album;
   songs: Song[];
 }
 
+function AlbumContextMenu({
+  album,
+  onEdit,
+  children,
+}: {
+  album: Album;
+  onEdit: () => void;
+  children: ReactNode;
+}) {
+  const sections = useAlbumContextMenu(album);
+  return (
+    <ItemContextMenu sections={[...sections, { items: [{ id: 'edit', label: 'Edit', icon: 'mdi-pencil', onClick: onEdit }] }]}>
+      {children}
+    </ItemContextMenu>
+  );
+}
+
 export function Albums() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Album | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
@@ -94,6 +117,37 @@ export function Albums() {
     }
   };
 
+  const handleSave = async (patched: Record<string, unknown>) => {
+    if (!editing) return;
+    setSaving(true);
+    try {
+      await api(`/albums/${editing.id}/tags`, {
+        method: 'PUT',
+        body: JSON.stringify(patched),
+      });
+      setEditing(null);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save album');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!editing) return;
+    setDeleting(true);
+    try {
+      await api(`/albums/${editing.id}`, { method: 'DELETE' });
+      setEditing(null);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete album');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const columns: LibraryViewColumn<Album>[] = [
     {
       key: 'title',
@@ -115,23 +169,50 @@ export function Albums() {
     { key: 'year', render: (album) => album.year ?? '-' },
   ];
 
+  const editEntity = editing
+    ? {
+        ...editing,
+        title: editing.name,
+        artist: editing.artistName,
+      }
+    : null;
+
   return (
-    <LibraryView
-      title="Albums"
-      data={filteredAlbums}
-      isLoading={loading}
-      error={error}
-      columns={columns}
-      cardFields={cardFields}
-      getId={(album) => album.id}
-      getHref={(album) => `/albums/${album.id}`}
-      onPlay={playAlbum}
-      onShufflePlay={shuffleAlbums}
-      onFavorite={handleFavorite}
-      onRate={handleRate}
-      getFavorite={(album) => album.starred}
-      getRating={(album) => album.rating}
-      emptyMessage="No albums match the current filters."
-    />
+    <>
+      <LibraryView
+        title="Albums"
+        data={filteredAlbums}
+        isLoading={loading}
+        error={error}
+        columns={columns}
+        cardFields={cardFields}
+        getId={(album) => album.id}
+        getHref={(album) => `/albums/${album.id}`}
+        onPlay={playAlbum}
+        onShufflePlay={shuffleAlbums}
+        onFavorite={handleFavorite}
+        onRate={handleRate}
+        getFavorite={(album) => album.starred}
+        getRating={(album) => album.rating}
+        renderContextMenu={(album, children) => (
+          <AlbumContextMenu album={album} onEdit={() => setEditing(album)}>
+            {children}
+          </AlbumContextMenu>
+        )}
+        emptyMessage="No albums match the current filters."
+      />
+      {editEntity && (
+        <EditEntityModal
+          open
+          entityType="album"
+          entity={editEntity}
+          onClose={() => setEditing(null)}
+          onSave={handleSave}
+          onDelete={handleDelete}
+          saving={saving}
+          deleting={deleting}
+        />
+      )}
+    </>
   );
 }
