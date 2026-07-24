@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { SmartPlaylistRules } from '@sonarly/shared';
 import { Button } from './ui/Button.js';
 import { Input } from './ui/Input.js';
-import { SmartPlaylistEditor } from '../features/playlists/components/SmartPlaylistEditor.js';
+import { SmartPlaylistEditor } from '../features/playlists/index.js';
 
 type EntityType = 'song' | 'album' | 'playlist';
 
@@ -102,9 +102,9 @@ export function EditEntityModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="edit-entity-title">
       <div className="w-full max-w-lg border border-rule bg-surface p-6 shadow-lg">
-        <h3 className="mb-4 text-lg font-semibold">Edit {entityType}</h3>
+        <h3 id="edit-entity-title" className="mb-4 text-lg font-semibold">Edit {entityType}</h3>
 
         <div className="space-y-3">
           {entityType === 'playlist' ? (
