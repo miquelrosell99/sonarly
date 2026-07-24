@@ -35,7 +35,7 @@ export function markJobRunning(db: Database.Database, id: string): void {
   db.prepare("UPDATE scan_jobs SET status = 'running', started_at = datetime('now') WHERE id = ?").run(id);
 }
 
-export function markJobCompleted(db: Database.Database, id: string, stats: Record<string, number>): void {
+export function markJobCompleted(db: Database.Database, id: string, stats: Record<string, unknown>): void {
   db.prepare("UPDATE scan_jobs SET status = 'completed', finished_at = datetime('now'), stats = ? WHERE id = ?")
     .run(JSON.stringify(stats), id);
 }
