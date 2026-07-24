@@ -1,11 +1,20 @@
 import { readdir, rmdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import Database from 'better-sqlite3';
+import type { SongTags } from '@sonarly/shared';
 import type { Config } from '../../config.js';
 import { getSongByPath } from '../songs/index.js';
+import { getArtistByName } from '../artists/index.js';
+import { getAlbumByNameAndArtist } from '../albums/index.js';
 import { getOrganizePattern } from '../settings/index.js';
-import { readTags } from '../tags/index.js';
+import { readTags, writeCoverArt } from '../tags/index.js';
 import { buildTargetPath, moveToLibrary } from './organizer.js';
+import {
+  getCoverArtById,
+  getAlbumCoverArtId,
+  getSongCoverArtId,
+  setSongCoverArtId,
+} from '../cover-art/index.js';
 
 const AUDIO_EXTS = new Set(['.mp3', '.flac', '.ogg', '.m4a']);
 
@@ -16,15 +25,21 @@ export interface OrganizeStats {
   failed: number;
 }
 
-export async function getTargetPathForFile(config: Config, db: Database.Database, filePath: string): Promise<string> {
-  const meta = await readTags(filePath);
+export async function getTargetPathForFile(
+  config: Config,
+  db: Database.Database,
+  filePath: string,
+  tags?: SongTags,
+): Promise<string> {
+  const meta = tags ? { tags } : await readTags(filePath);
   const pattern = getOrganizePattern(db, config);
   return buildTargetPath(pattern, config.LIBRARY_PATH, meta.tags, filePath);
 }
 
 export async function organizeSongFile(config: Config, db: Database.Database, filePath: string): Promise<string> {
   const dbSong = getSongByPath(db, filePath);
-  const targetPath = await getTargetPathForFile(config, db, filePath);
+  const meta = await readTags(filePath);
+  const targetPath = await getTargetPathForFile(config, db, filePath, meta.tags);
 
   if (filePath === targetPath) {
     return filePath;
@@ -34,9 +49,33 @@ export async function organizeSongFile(config: Config, db: Database.Database, fi
 
   if (dbSong) {
     db.prepare('UPDATE songs SET file_path = ? WHERE id = ?').run(finalPath, dbSong.id);
+    await syncSongCoverWithAlbum(db, dbSong.id, meta.tags, finalPath);
   }
 
   return finalPath;
+}
+
+async function syncSongCoverWithAlbum(
+  db: Database.Database,
+  songId: string,
+  tags: { album?: string; artist?: string; albumArtist?: string },
+  filePath: string,
+): Promise<void> {
+  if (!tags.album) return;
+  const artistName = tags.artist || tags.albumArtist;
+  const artist = artistName ? getArtistByName(db, artistName) : undefined;
+  const album = getAlbumByNameAndArtist(db, tags.album, artist?.id);
+  if (!album) return;
+
+  const albumCoverId = getAlbumCoverArtId(db, album.id);
+  if (!albumCoverId) return;
+  if (getSongCoverArtId(db, songId) === albumCoverId) return;
+
+  const coverArt = getCoverArtById(db, albumCoverId);
+  if (!coverArt) return;
+
+  await writeCoverArt(filePath, coverArt);
+  setSongCoverArtId(db, songId, albumCoverId);
 }
 
 export async function organizeExistingLibrary(config: Config, db: Database.Database): Promise<OrganizeStats> {
@@ -66,23 +105,6 @@ export async function organizeExistingLibrary(config: Config, db: Database.Datab
   return stats;
 }
 
-export async function* walkLibraryFiles(dir: string): AsyncGenerator<string> {
-  let entries;
-  try {
-    entries = await readdir(dir, { withFileTypes: true });
-  } catch {
-    return;
-  }
-  for (const entry of entries) {
-    const fullPath = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      yield* walkLibraryFiles(fullPath);
-    } else if (AUDIO_EXTS.has(extname(entry.name).toLowerCase())) {
-      yield fullPath;
-    }
-  }
-}
-
 export async function cleanupEmptyDirs(dir: string, root: string): Promise<void> {
   let entries;
   try {
@@ -104,5 +126,22 @@ export async function cleanupEmptyDirs(dir: string, root: string): Promise<void>
     try {
       await rmdir(dir);
     } catch {}
+  }
+}
+
+export async function* walkLibraryFiles(dir: string): AsyncGenerator<string> {
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      yield* walkLibraryFiles(fullPath);
+    } else if (AUDIO_EXTS.has(extname(entry.name).toLowerCase())) {
+      yield fullPath;
+    }
   }
 }

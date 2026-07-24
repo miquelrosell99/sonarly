@@ -32,7 +32,7 @@ interface ScanJobRow {
 }
 
 function getOrganizeJob(db: Database.Database, id: string): OrganizeJobStatus | undefined {
-  const row = db.prepare('SELECT id, type, status, started_at, finished_at, stats FROM scan_jobs WHERE id = ?').get(id) as ScanJobRow | undefined;
+  const row = db.prepare("SELECT id, type, status, started_at, finished_at, stats FROM scan_jobs WHERE id = ? AND type = 'organize'").get(id) as ScanJobRow | undefined;
   if (!row) return undefined;
   return {
     id: row.id,
