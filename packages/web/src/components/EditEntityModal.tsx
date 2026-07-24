@@ -11,10 +11,11 @@ interface EditEntityModalProps {
   entityType: EntityType;
   entity: Record<string, unknown>;
   onClose: () => void;
-  onSave: (patchedEntity: Record<string, unknown>) => void;
-  onDelete: () => void;
+  onSave?: (patchedEntity: Record<string, unknown>) => void;
+  onDelete?: () => void;
   saving?: boolean;
   deleting?: boolean;
+  readOnly?: boolean;
 }
 
 const TAG_FIELDS: { key: string; label: string; type?: string }[] = [
@@ -55,6 +56,7 @@ export function EditEntityModal({
   onDelete,
   saving,
   deleting,
+  readOnly,
 }: EditEntityModalProps) {
   const [values, setValues] = useState<Record<string, string>>(() => {
     if (entityType === 'playlist') {
@@ -76,6 +78,7 @@ export function EditEntityModal({
   if (!open) return null;
 
   const handleSave = () => {
+    if (readOnly || !onSave) return;
     const patched: Record<string, unknown> = { ...entity };
 
     if (entityType === 'playlist') {
@@ -102,6 +105,7 @@ export function EditEntityModal({
   };
 
   const handleDelete = () => {
+    if (!onDelete) return;
     if (window.confirm('Are you sure you want to delete this?')) {
       onDelete();
     }
@@ -114,13 +118,17 @@ export function EditEntityModal({
 
         <div className="space-y-3">
           {entityType === 'artist' ? (
-            <Input
-              id="edit-name"
-              value={values.name ?? ''}
-              onChange={(e) => setValues({ ...values, name: e.target.value })}
-              placeholder="Name"
-              aria-label="Name"
-            />
+            readOnly ? (
+              <p className="text-sm text-muted">{values.name}</p>
+            ) : (
+              <Input
+                id="edit-name"
+                value={values.name ?? ''}
+                onChange={(e) => setValues({ ...values, name: e.target.value })}
+                placeholder="Name"
+                aria-label="Name"
+              />
+            )
           ) : entityType === 'playlist' ? (
             <>
               <Input
@@ -173,7 +181,7 @@ export function EditEntityModal({
         </div>
 
         <div className="mt-6 flex justify-between">
-          {entityType !== 'artist' && (
+          {!readOnly && entityType !== 'artist' && (
             <Button
               variant="ghost"
               onClick={handleDelete}
@@ -185,11 +193,13 @@ export function EditEntityModal({
           )}
           <div className="flex gap-2">
             <Button variant="ghost" onClick={onClose} disabled={saving || deleting}>
-              Cancel
+              {readOnly ? 'Close' : 'Cancel'}
             </Button>
-            <Button onClick={handleSave} disabled={saving || deleting}>
-              Save
-            </Button>
+            {!readOnly && (
+              <Button onClick={handleSave} disabled={saving || deleting}>
+                Save
+              </Button>
+            )}
           </div>
         </div>
       </div>
