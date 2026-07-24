@@ -1,0 +1,4 @@
+ALTER TABLE songs ADD COLUMN bit_rate INTEGER;
+ALTER TABLE songs ADD COLUMN bits_per_sample INTEGER;
+ALTER TABLE songs ADD COLUMN sample_rate INTEGER;
+ALTER TABLE songs ADD COLUMN channels INTEGER;

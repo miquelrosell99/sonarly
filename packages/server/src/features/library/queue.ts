@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import Database from 'better-sqlite3';
 
-export type JobType = 'scan' | 'ingest' | 'resync' | 'cleanup_review' | 'organize';
+export type JobType = 'scan' | 'ingest' | 'resync' | 'cleanup_review' | 'organize' | 'artist_images';
 
 export interface Job {
   id: string;

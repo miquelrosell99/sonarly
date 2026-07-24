@@ -27,6 +27,18 @@ function resolveNames(db: Database.Database, song: Song): { artistName?: string;
   };
 }
 
+function getClientId(request: FastifyRequest): string {
+  const query = (request.query as Record<string, string | string[] | undefined> | undefined) ?? {};
+  const c = query.c;
+  if (typeof c === 'string' && c) return c;
+  const ua = request.headers['user-agent'];
+  if (typeof ua === 'string') {
+    const product = ua.split(' ')[0];
+    if (product) return product;
+  }
+  return request.id;
+}
+
 export function recordStream(db: Database.Database, request: FastifyRequest, song: Song): void {
   const userId = (request as any).subsonicUser ?? (request as any).session?.userId;
   const key = typeof userId === 'string' ? userId : request.id;
@@ -37,7 +49,7 @@ export function recordStream(db: Database.Database, request: FastifyRequest, son
   activePlayers.set(key, {
     id: key,
     userId: typeof userId === 'string' ? userId : undefined,
-    clientId: request.id,
+    clientId: getClientId(request),
     songId: song.id,
     songTitle: song.title,
     artistName: names.artistName,
