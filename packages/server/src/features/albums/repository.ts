@@ -25,6 +25,11 @@ function toAlbum(row: DbAlbum): Album {
   };
 }
 
+export function getAlbumById(db: Database.Database, id: string): Album | undefined {
+  const row = db.prepare('SELECT * FROM albums WHERE id = ?').get(id) as DbAlbum | undefined;
+  return row ? toAlbum(row) : undefined;
+}
+
 export function getAlbumByNameAndArtist(db: Database.Database, name: string, artistId?: string): Album | undefined {
   const row = artistId
     ? db.prepare('SELECT * FROM albums WHERE name = ? COLLATE NOCASE AND artist_id = ?').get(name, artistId) as DbAlbum | undefined

@@ -60,4 +60,12 @@ export function setRating(
     INSERT INTO ${table} (user_id, ${idColumn}, rating) VALUES (?, ?, ?)
     ON CONFLICT(user_id, ${idColumn}) DO UPDATE SET rating = excluded.rating
   `).run(userId, entityId, rating ?? null);
+
+  if (entityType === 'song') {
+    db.prepare(`
+      UPDATE songs
+      SET average_rating = (SELECT AVG(rating) FROM user_songs WHERE song_id = ?)
+      WHERE id = ?
+    `).run(entityId, entityId);
+  }
 }
