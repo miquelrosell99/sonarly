@@ -1,13 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
 import type { Song } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { useGenreContextMenu } from '../../../hooks/useGenreContextMenu.js';
+import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 
 interface Track extends Song {
   artistName?: string;
   albumName?: string;
+}
+
+function GenreContextMenu({
+  genre,
+  tracks,
+  children,
+}: {
+  genre: string;
+  tracks: Track[];
+  children: ReactNode;
+}) {
+  const matchingTracks = tracks.filter((t) => t.genre === genre);
+  const sections = useGenreContextMenu(genre, matchingTracks);
+  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
 
 export function Genres() {
@@ -77,6 +93,11 @@ export function Genres() {
       getHref={(genre) => `/genres/${encodeURIComponent(genre)}`}
       onPlay={playGenre}
       onShufflePlay={shuffleGenres}
+      renderContextMenu={(genre, children) => (
+        <GenreContextMenu genre={genre} tracks={tracks}>
+          {children}
+        </GenreContextMenu>
+      )}
       emptyMessage="No genres found."
     />
   );
