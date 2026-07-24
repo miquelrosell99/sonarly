@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import type { User, UserPreferences } from '@sonarly/shared';
+import type { User, UserPreferences, Song as SharedSong } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { TagEditor } from '../components/TagEditor.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
+import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { usePlayer } from '../../../stores/playerStore.js';
 
 interface Song {
   id: string;
@@ -21,6 +23,8 @@ export function Songs({ user }: { user: User }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
+  const { playSongs } = usePlayActions();
+  const playingId = usePlayer((state) => state.currentSong?.id);
 
   const load = () => {
     setLoading(true);
@@ -41,6 +45,14 @@ export function Songs({ user }: { user: User }) {
   }, []);
 
   const blurExplicitTitles = preferences.blurExplicitTitles === true;
+
+  const handlePlay = (song: Song) => {
+    playSongs([song as SharedSong], 0);
+  };
+
+  const handlePlaySelection = (songs: Song[], startIndex: number) => {
+    playSongs(songs as SharedSong[], startIndex);
+  };
 
   const columns: TableColumn<Song>[] = [
     {
@@ -82,7 +94,15 @@ export function Songs({ user }: { user: User }) {
   return (
     <div>
       <h2 className="mb-4 text-lg font-semibold">Songs</h2>
-      <Table columns={columns} rows={songs} rowKey={(s) => s.id} empty="No songs." />
+      <Table
+        columns={columns}
+        rows={songs}
+        rowKey={(s) => s.id}
+        empty="No songs."
+        onPlay={handlePlay}
+        onPlaySelection={handlePlaySelection}
+        playingId={playingId}
+      />
       {editing && <TagEditor songId={editing} onClose={() => setEditing(null)} onSaved={load} />}
     </div>
   );

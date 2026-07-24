@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'wouter';
-import type { UserPreferences } from '@sonarly/shared';
+import type { UserPreferences, Song as SharedSong } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { cn } from '../../../lib/cn.js';
 import { Button } from '../../../components/ui/Button.js';
@@ -8,6 +8,8 @@ import { Icon } from '../../../components/ui/Icon.js';
 import { TagEditor } from '../../songs/index.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
+import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { usePlayer } from '../../../stores/playerStore.js';
 
 interface Song {
   id: string;
@@ -44,6 +46,8 @@ export function Album() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const { setFavorite, setRating } = useFavoriteActions();
+  const { playSongs } = usePlayActions();
+  const playingId = usePlayer((state) => state.currentSong?.id);
 
   const load = () => {
     if (!id) return;
@@ -66,6 +70,14 @@ export function Album() {
 
   const blurExplicitTitles = preferences.blurExplicitTitles === true;
   const blurExplicitCovers = preferences.blurExplicitCovers === true;
+
+  const handlePlay = (song: Song) => {
+    playSongs([song as SharedSong], 0);
+  };
+
+  const handlePlaySelection = (songs: Song[], startIndex: number) => {
+    playSongs(songs as SharedSong[], startIndex);
+  };
 
   const handleFavorite = async (starred: boolean) => {
     if (!detail) return;
@@ -190,7 +202,15 @@ export function Album() {
           )}
         </p>
       </div>
-      <Table columns={columns} rows={detail.songs} rowKey={(s) => s.id} empty="No songs." />
+      <Table
+        columns={columns}
+        rows={detail.songs}
+        rowKey={(s) => s.id}
+        empty="No songs."
+        onPlay={handlePlay}
+        onPlaySelection={handlePlaySelection}
+        playingId={playingId}
+      />
       {editing && <TagEditor songId={editing} onClose={() => setEditing(null)} onSaved={load} />}
     </div>
   );

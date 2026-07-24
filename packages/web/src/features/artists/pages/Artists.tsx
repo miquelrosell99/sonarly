@@ -101,6 +101,7 @@ export function Artists() {
       getFavorite={(artist) => artist.starred}
       getRating={(artist) => artist.rating}
       emptyMessage="No artists match the current filters."
+      defaultView="grid"
     />
   );
 }

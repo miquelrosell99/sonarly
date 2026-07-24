@@ -6,6 +6,7 @@ import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
+import { usePlayer } from '../../../stores/playerStore.js';
 
 interface Track extends Song {
   artistName?: string;
@@ -22,9 +23,10 @@ export function Tracks() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { playSong, shufflePlay } = usePlayActions();
+  const { playSong, playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
+  const playingId = usePlayer((state) => state.currentSong?.id);
 
   const load = () => {
     setLoading(true);
@@ -58,6 +60,10 @@ export function Tracks() {
 
   const handlePlay = (track: Track) => {
     playSong(track);
+  };
+
+  const handlePlaySelection = (tracks: Track[], startIndex: number) => {
+    playSongs(tracks, startIndex);
   };
 
   const handleShufflePlay = (tracks: Track[]) => {
@@ -123,7 +129,9 @@ export function Tracks() {
       getId={(track) => track.id}
       getHref={(track) => `/tracks/${track.id}`}
       onPlay={handlePlay}
+      onPlaySelection={handlePlaySelection}
       onShufflePlay={handleShufflePlay}
+      playingId={playingId}
       onFavorite={handleFavorite}
       onRate={handleRate}
       getFavorite={(track) => track.starred}

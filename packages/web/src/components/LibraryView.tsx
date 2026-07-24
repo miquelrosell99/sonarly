@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { Card } from './Card.js';
+import { CoverArt } from './CoverArt.js';
 import { ListRow } from './ListRow.js';
 import { ItemContextMenu, type ContextMenuItem } from './ItemContextMenu.js';
 
@@ -28,6 +29,7 @@ interface LibraryViewProps<T> {
   getId: (item: T) => string;
   getHref: (item: T) => string;
   onPlay?: (item: T) => void;
+  onPlaySelection?: (items: T[], startIndex: number) => void;
   onShufflePlay?: (data: T[]) => void;
   onFavorite?: (item: T, starred: boolean) => void;
   onRate?: (item: T, rating?: number) => void;
@@ -35,6 +37,10 @@ interface LibraryViewProps<T> {
   getRating?: (item: T) => number | undefined;
   renderContextMenu?: (item: T) => ContextMenuItem[];
   emptyMessage?: string;
+  defaultView?: 'list' | 'grid';
+  getCover?: (item: T) => string | undefined;
+  getCoverAlt?: (item: T) => string;
+  playingId?: string;
 }
 
 type ViewMode = 'list' | 'grid';
@@ -49,6 +55,7 @@ export function LibraryView<T>({
   getId,
   getHref,
   onPlay,
+  onPlaySelection,
   onShufflePlay,
   onFavorite,
   onRate,
@@ -56,10 +63,80 @@ export function LibraryView<T>({
   getRating,
   renderContextMenu,
   emptyMessage = 'No items found.',
+  defaultView = 'list',
+  getCover,
+  getCoverAlt,
+  playingId,
 }: LibraryViewProps<T>) {
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>(defaultView);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
 
   const errorText = error instanceof Error ? error.message : error ?? null;
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setLastSelectedId(null);
+  };
+
+  const selectOnly = (id: string) => {
+    setSelectedIds(new Set([id]));
+    setLastSelectedId(id);
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+    setLastSelectedId(id);
+  };
+
+  const selectRange = (fromId: string, toId: string) => {
+    const fromIndex = data.findIndex((item) => getId(item) === fromId);
+    const toIndex = data.findIndex((item) => getId(item) === toId);
+    if (fromIndex === -1 || toIndex === -1) return;
+
+    const start = Math.min(fromIndex, toIndex);
+    const end = Math.max(fromIndex, toIndex);
+    const next = new Set<string>();
+    for (let i = start; i <= end; i++) {
+      next.add(getId(data[i]));
+    }
+    setSelectedIds(next);
+    setLastSelectedId(toId);
+  };
+
+  const handleRowSelect = (item: T, e: MouseEvent) => {
+    const id = getId(item);
+    if (e.shiftKey && lastSelectedId) {
+      selectRange(lastSelectedId, id);
+    } else if (e.ctrlKey || e.metaKey) {
+      toggleSelection(id);
+    } else {
+      selectOnly(id);
+    }
+  };
+
+  const handleRowActivate = (item: T) => {
+    if (!onPlaySelection) return;
+    const id = getId(item);
+    const selected = selectedIds.size > 0 ? data.filter((d) => selectedIds.has(getId(d))) : [item];
+    const startIndex = selected.findIndex((d) => getId(d) === id);
+    const safeStart = startIndex === -1 ? 0 : startIndex;
+    onPlaySelection(selected, safeStart);
+  };
+
+  const handleContainerKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      clearSelection();
+    }
+  };
 
   if (isLoading) {
     return (
@@ -89,7 +166,7 @@ export function LibraryView<T>({
   }
 
   const renderList = () => (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" onKeyDown={handleContainerKeyDown} role="grid" aria-multiselectable="true">
       <table className="w-full text-left text-sm">
         <thead className="border-b border-rule text-muted">
           <tr>
@@ -105,14 +182,19 @@ export function LibraryView<T>({
         </thead>
         <tbody className="divide-y divide-rule">
           {data.map((item, index) => {
-            const href = getHref(item);
+            const id = getId(item);
             const contextItems = renderContextMenu ? renderContextMenu(item) : [];
             const starred = getFavorite?.(item);
             const rating = getRating?.(item);
+            const isSelected = selectedIds.has(id);
+            const isPlayingTitle = playingId !== undefined && playingId === id;
             const row = (
               <ListRow
-                href={href}
                 index={index}
+                isSelected={isSelected}
+                isPlayingTitle={isPlayingTitle}
+                onSelect={(e) => handleRowSelect(item, e)}
+                onActivate={() => handleRowActivate(item)}
                 onPlay={onPlay ? () => onPlay(item) : undefined}
                 favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
                 rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
@@ -124,7 +206,7 @@ export function LibraryView<T>({
                 ))}
               </ListRow>
             );
-            return <ItemContextMenu key={getId(item)} items={contextItems}>{row}</ItemContextMenu>;
+            return <ItemContextMenu key={id} items={contextItems}>{row}</ItemContextMenu>;
           })}
         </tbody>
       </table>
@@ -138,26 +220,26 @@ export function LibraryView<T>({
         const contextItems = renderContextMenu ? renderContextMenu(item) : [];
         const starred = getFavorite?.(item);
         const rating = getRating?.(item);
+        const cover = getCover?.(item);
         const card = (
           <Card
             href={href}
+            cover={cover !== undefined ? <CoverArt coverArt={cover} alt={getCoverAlt?.(item) ?? 'Cover art'} /> : undefined}
             favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
             rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
             play={onPlay ? { onClick: () => onPlay(item) } : undefined}
           >
-            <div className="space-y-1">
-              {cardFields.map((field, idx) => (
-                <div
-                  key={field.key}
-                  className={cn(
-                    'text-sm text-fg-primary',
-                    idx === 0 ? 'font-medium' : 'text-muted',
-                  )}
-                >
-                  {field.render(item)}
-                </div>
-              ))}
-            </div>
+            {cardFields.map((field, idx) => (
+              <div
+                key={field.key}
+                className={cn(
+                  'text-sm text-fg-primary',
+                  idx === 0 ? 'font-medium' : 'text-muted',
+                )}
+              >
+                {field.render(item)}
+              </div>
+            ))}
           </Card>
         );
         return <ItemContextMenu key={getId(item)} items={contextItems}>{card}</ItemContextMenu>;
