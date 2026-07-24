@@ -157,6 +157,19 @@ describe('management album endpoints', () => {
     db.prepare = originalPrepare;
   });
 
+  it('deletes an album and its songs recursively', async () => {
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/albums/album-1',
+      cookies: { sessionId: cookieValue },
+    });
+    expect(res.statusCode).toBe(200);
+    const album = db.prepare('SELECT id FROM albums WHERE id = ?').get('album-1');
+    expect(album).toBeUndefined();
+    const songs = db.prepare('SELECT id FROM songs WHERE album_id = ?').all('album-1') as { id: string }[];
+    expect(songs.length).toBe(0);
+  });
+
   it('returns 401 without a session', async () => {
     const res = await app.inject({
       method: 'PUT',
