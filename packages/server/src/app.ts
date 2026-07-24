@@ -77,6 +77,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
     INGEST_PATH: config.INGEST_PATH,
     ORGANIZE_PATTERN: config.ORGANIZE_PATTERN,
     SCAN_INTERVAL_MINUTES: config.SCAN_INTERVAL_MINUTES,
+    ARTIST_IMAGE_INTERVAL_MINUTES: config.ARTIST_IMAGE_INTERVAL_MINUTES,
     REVIEW_RETENTION_DAYS: config.REVIEW_RETENTION_DAYS,
     WATCHER_USE_POLLING: config.WATCHER_USE_POLLING,
     PUID: config.PUID,
@@ -88,6 +89,9 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
     : new Worker(workerPath, { workerData: workerConfig });
 
   pushJob(db, 'scan', config.LIBRARY_PATH);
+  if (config.ARTIST_IMAGE_INTERVAL_MINUTES > 0) {
+    pushJob(db, 'artist_images', '');
+  }
 
   const stopLibraryWatcher = startLibraryWatcher(config, db);
   const stopIngestWatcher = startIngestWatcher(config, db);
