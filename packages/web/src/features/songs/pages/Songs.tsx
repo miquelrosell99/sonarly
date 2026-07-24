@@ -5,6 +5,7 @@ import { Table, TableColumn } from '../../../components/ui/Table.js';
 import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { useNotification } from '../../../contexts/NotificationContext.js';
 
 type Song = SharedSong & {
   artistName?: string;
@@ -37,6 +38,7 @@ export function Songs({ user }: { user: User }) {
   const [editing, setEditing] = useState<Song | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const { notify } = useNotification();
 
   const load = () => {
     setLoading(true);
@@ -69,7 +71,7 @@ export function Songs({ user }: { user: User }) {
       setEditing(null);
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save song');
+      notify(err instanceof Error ? err.message : 'Failed to save song', 'error');
     } finally {
       setSaving(false);
     }
@@ -83,7 +85,7 @@ export function Songs({ user }: { user: User }) {
       setEditing(null);
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete song');
+      notify(err instanceof Error ? err.message : 'Failed to delete song', 'error');
     } finally {
       setDeleting(false);
     }
