@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Song } from '@sonarly/shared';
-import { usePlayer, resetPlayer } from './playerStore.js';
+import { usePlayer, resetPlayer, type PlayerSong } from './playerStore.js';
 
 function createSong(id: string, title = `Song ${id}`): Song {
   return {
@@ -166,5 +166,30 @@ describe('onEnded', () => {
     const state = usePlayer.getState();
     expect(state.queueIndex).toBe(1);
     expect(state.currentSong).toEqual(songs[1]);
+  });
+});
+
+const songA: PlayerSong = { id: 'a', title: 'A', duration: 100 } as PlayerSong;
+const songB: PlayerSong = { id: 'b', title: 'B', duration: 100 } as PlayerSong;
+const songC: PlayerSong = { id: 'c', title: 'C', duration: 100 } as PlayerSong;
+
+describe('playerStore queue actions', () => {
+  beforeEach(() => resetPlayer());
+
+  it('playNext inserts after current index', () => {
+    usePlayer.getState().playQueue([songA, songB], 0);
+    usePlayer.getState().playNext(songC);
+    const state = usePlayer.getState();
+    expect(state.queue.map((s) => s.id)).toEqual(['a', 'c', 'b']);
+    expect(state.queueIndex).toBe(0);
+    expect(state.currentSong?.id).toBe('a');
+  });
+
+  it('addToQueue appends to the end', () => {
+    usePlayer.getState().playQueue([songA], 0);
+    usePlayer.getState().addToQueue([songB, songC]);
+    const state = usePlayer.getState();
+    expect(state.queue.map((s) => s.id)).toEqual(['a', 'b', 'c']);
+    expect(state.queueIndex).toBe(0);
   });
 });
