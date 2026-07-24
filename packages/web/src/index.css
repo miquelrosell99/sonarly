@@ -3,22 +3,62 @@
 @tailwind utilities;
 
 @layer base {
-  body {
-    @apply bg-white text-gray-900;
+  :root,
+  .theme-light {
+    --bg-primary: 0 0% 100%;
+    --fg-primary: 220 13% 9%;
+    --surface: 220 14% 96%;
+    --surface-hover: 220 13% 91%;
+    --rule: 220 13% 85%;
+    --muted: 220 9% 46%;
+    --accent: 220 13% 9%;
   }
+
+  .theme-dark {
+    --bg-primary: 222 47% 6%;
+    --fg-primary: 210 20% 96%;
+    --surface: 222 30% 12%;
+    --surface-hover: 222 25% 18%;
+    --rule: 222 20% 24%;
+    --muted: 220 9% 46%;
+    --accent: 0 0% 100%;
+  }
+
+  .theme-oled {
+    --bg-primary: 0 0% 0%;
+    --fg-primary: 0 0% 100%;
+    --surface: 0 0% 7%;
+    --surface-hover: 0 0% 14%;
+    --rule: 0 0% 18%;
+    --muted: 0 0% 45%;
+    --accent: 0 0% 100%;
+  }
+
+  .accent-brown { --accent: 25 40% 45%; }
+  .accent-green { --accent: 142 71% 45%; }
+  .accent-orange { --accent: 25 95% 53%; }
+  .accent-teal { --accent: 174 72% 43%; }
+  .accent-purple { --accent: 270 60% 55%; }
+  .accent-yellow { --accent: 45 93% 47%; }
+  .accent-monochrome { --accent: var(--fg-primary); }
+
+  body {
+    @apply bg-bg-primary text-fg-primary;
+  }
+
   a {
-    @apply text-black hover:text-gray-600;
+    @apply text-fg-primary hover:text-muted;
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center rounded border border-black bg-black px-3 py-1.5 text-sm font-medium text-white transition hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 disabled:opacity-50;
+    @apply inline-flex items-center justify-center rounded border border-accent bg-accent px-3 py-1.5 text-sm font-medium text-bg-primary transition hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 disabled:opacity-50;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-black transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1;
+    @apply inline-flex items-center justify-center rounded border border-rule bg-surface px-3 py-1.5 text-sm font-medium text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1;
   }
   .input {
-    @apply block w-full rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-black placeholder-gray-400 transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1;
+    @apply block w-full rounded border border-rule bg-surface px-3 py-1.5 text-sm text-fg-primary placeholder-muted transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1;
   }
 }

@@ -43,7 +43,7 @@ export function SettingsIngest() {
   if (loading) {
     return (
       <Settings>
-        <p className="text-sm text-gray-500">Loading...</p>
+        <p className="text-sm text-muted">Loading...</p>
       </Settings>
     );
   }
@@ -62,10 +62,10 @@ export function SettingsIngest() {
         <h3 className="text-base font-medium">Ingest Cleanup</h3>
 
         <div>
-          <label htmlFor="retention" className="mb-1 block text-sm font-medium text-gray-700">
+          <label htmlFor="retention" className="mb-1 block text-sm font-medium text-fg-primary">
             Review folder cleanup
           </label>
-          <p className="mb-2 text-sm text-gray-600">
+          <p className="mb-2 text-sm text-muted">
             Files moved to the ingest review folder are automatically deleted after this many days.
           </p>
           <select

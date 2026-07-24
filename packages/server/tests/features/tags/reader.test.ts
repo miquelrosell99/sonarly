@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { readTags, computeChecksum } from '../../../src/features/tags/reader.js';
+import { writeTags, registerDefaultWriters } from '../../../src/features/tags/index.js';
+import { copyFile } from 'node:fs/promises';
 import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
+registerDefaultWriters();
 
 describe('readTags', () => {
   it('reads tags from a real MP3 fixture', async () => {
@@ -10,6 +14,16 @@ describe('readTags', () => {
     const meta = await readTags(fixture);
     expect(meta.tags.title).toBeDefined();
     expect(meta.duration).toBeGreaterThan(0);
+  });
+
+  it('detects explicit flag from an MP3 with iTunes advisory', async () => {
+    const fixture = new URL('../../fixtures/sample.mp3', import.meta.url).pathname;
+    const copy = join(tmpdir(), `reader-explicit-${Date.now()}.mp3`);
+    await copyFile(fixture, copy);
+    await writeTags(copy, { title: 'Explicit', explicit: true });
+
+    const meta = await readTags(copy);
+    expect(meta.tags.explicit).toBe(true);
   });
 });
 

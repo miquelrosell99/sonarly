@@ -1,24 +1,20 @@
-import { Link, useLocation, useSearch } from 'wouter';
+import { useLocation, useSearch } from 'wouter';
+import { useEffect, useRef } from 'react';
 import type { User } from '@sonarly/shared';
 import { api } from '../api.js';
-import { UserSection, ProfileModal } from '../features/profile/index.js';
+import { ProfileModal } from '../features/profile/index.js';
+import { usePreferences } from '../hooks/usePreferences.js';
+import { usePlaylists } from '../hooks/usePlaylists.js';
+import { useTheme } from '../stores/themeStore.js';
+import { TopBar } from './TopBar.js';
+import { Sidebar } from './Sidebar.js';
+import { PlayerBar } from './PlayerBar.js';
+import { AudioController } from './AudioController.js';
 
 interface LayoutProps {
   user: User;
   onUserChange: (user: User) => void;
   children: React.ReactNode;
-}
-
-const nav = [
-  { href: '/', label: 'Library' },
-  { href: '/songs', label: 'Songs' },
-  { href: '/playlists', label: 'Playlists' },
-];
-
-function isActive(location: string, href: string): boolean {
-  if (location === href) return true;
-  if (href !== '/' && location.startsWith(href)) return true;
-  return false;
 }
 
 function useProfileModal(location: string, search: string, setLocation: (to: string) => void) {
@@ -49,6 +45,27 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
   const [location, setLocation] = useLocation();
   const search = useSearch();
   const { isOpen, open, close, expand } = useProfileModal(location, search, setLocation);
+  const { data: preferences } = usePreferences();
+  const { data: playlists } = usePlaylists();
+  const { themeMode, accentColor, setThemeMode, setAccentColor } = useTheme();
+
+  const themeModeRef = useRef(themeMode);
+  const accentColorRef = useRef(accentColor);
+
+  useEffect(() => {
+    themeModeRef.current = themeMode;
+    accentColorRef.current = accentColor;
+  });
+
+  useEffect(() => {
+    if (!preferences) return;
+    if (preferences.themeMode && preferences.themeMode !== themeModeRef.current) {
+      setThemeMode(preferences.themeMode);
+    }
+    if (preferences.accentColor && preferences.accentColor !== accentColorRef.current) {
+      setAccentColor(preferences.accentColor);
+    }
+  }, [preferences, setThemeMode, setAccentColor]);
 
   const handleLogout = async () => {
     try {
@@ -59,30 +76,19 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
   };
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="flex w-56 flex-col border-r border-gray-200 bg-gray-50 p-4">
-        <h1 className="mb-6 text-xl font-bold tracking-tight">Sonarly</h1>
-        <nav className="space-y-1">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`block rounded px-2 py-1 text-sm ${isActive(location, item.href) ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-200'}`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <UserSection
-          user={user}
-          onSettings={open}
-          onAdmin={() => setLocation('/admin')}
-          onLogout={handleLogout}
-        />
-      </aside>
-      <main className="flex-1 p-6">
-        {children}
-      </main>
+    <div className="flex h-screen flex-col overflow-hidden bg-bg-primary text-fg-primary">
+      <TopBar user={user} onOpenProfile={open} onLogout={handleLogout} />
+
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar config={preferences?.sidebarConfig} playlists={playlists} />
+        <main className="flex-1 overflow-y-auto p-6">
+          {children}
+        </main>
+      </div>
+
+      <PlayerBar />
+      <AudioController />
+
       {isOpen && (
         <ProfileModal
           user={user}

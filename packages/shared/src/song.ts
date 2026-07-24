@@ -9,9 +9,14 @@ export interface Song {
   albumId?: string;
   genre?: string;
   year?: number;
+  explicit?: boolean;
   coverArt?: string;
+  coverArtMissing?: boolean;
   mtime: number;
   checksum: string;
+  active?: boolean;
+  starred?: boolean;
+  rating?: number;
 }
 
 export interface SongTags {
@@ -23,4 +28,5 @@ export interface SongTags {
   discNumber?: number;
   genre?: string;
   year?: number;
+  explicit?: boolean;
 }

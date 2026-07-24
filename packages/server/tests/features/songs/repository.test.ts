@@ -25,7 +25,8 @@ describe('song repository', () => {
     };
     upsertSong(db, song);
     const found = getSongByPath(db, '/music/A/B/track.mp3');
-    expect(found).toEqual(song);
+    expect(found).toMatchObject(song);
+    expect(found?.explicit).toBe(false);
   });
 
   it('lists only collision-suffixed songs', () => {

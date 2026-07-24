@@ -1,3 +1,5 @@
+import type { SmartPlaylistRules } from './smart-playlist.js';
+
 export type PlaylistVisibility = 'private' | 'shared' | 'public' | 'link';
 
 export interface Playlist {
@@ -7,8 +9,12 @@ export interface Playlist {
   visibility: PlaylistVisibility;
   shareToken?: string;
   songIds: string[];
+  isSmart?: boolean;
+  rules?: SmartPlaylistRules;
   createdAt: string;
   updatedAt: string;
+  starred?: boolean;
+  rating?: number;
 }
 
 export interface PlaylistShare {
