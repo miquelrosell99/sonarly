@@ -7,6 +7,7 @@ import {
   markJobRunning,
   markJobCompleted,
   markJobFailed,
+  updateJobStats,
 } from '../../../src/features/library/queue.js';
 
 describe('scan job queue', () => {
@@ -71,5 +72,23 @@ describe('scan job queue', () => {
     const row = db.prepare('SELECT status, stats FROM scan_jobs WHERE id = ?').get(job!.id) as any;
     expect(row.status).toBe('failed');
     expect(JSON.parse(row.stats)).toEqual({ error: 'something went wrong' });
+  });
+
+  it('updates job stats mid-run', () => {
+    pushJob(db, 'organize', '');
+    const job = popPendingJob(db);
+    markJobRunning(db, job!.id);
+
+    updateJobStats(db, job!.id, { total: 5, done: 2, currentPath: '/a.mp3' });
+
+    const row = db.prepare('SELECT stats FROM scan_jobs WHERE id = ?').get(job!.id) as any;
+    expect(JSON.parse(row.stats)).toEqual({ total: 5, done: 2, currentPath: '/a.mp3' });
+  });
+
+  it('pushes an organize job and returns its id', () => {
+    const id = pushJob(db, 'organize', '');
+
+    const row = db.prepare('SELECT id, type FROM scan_jobs WHERE id = ?').get(id) as any;
+    expect(row.type).toBe('organize');
   });
 });
