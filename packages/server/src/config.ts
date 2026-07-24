@@ -19,6 +19,7 @@ const configSchema = z.object({
   INGEST_PATH: z.string().default('/data/ingest'),
   ORGANIZE_PATTERN: z.string().default('{albumArtist}/({year}) {album}/{disc:00}{track:00} - {title}'),
   SCAN_INTERVAL_MINUTES: z.coerce.number().default(60),
+  ARTIST_IMAGE_INTERVAL_MINUTES: z.coerce.number().default(1440),
   REVIEW_RETENTION_DAYS: z.coerce.number().min(1).max(365).default(30),
   WATCHER_USE_POLLING: booleanEnv(false),
   PUID: z.coerce.number().default(1000),
@@ -27,7 +28,7 @@ const configSchema = z.object({
 
 export type Config = z.infer<typeof configSchema>;
 
-export type WorkerConfig = Pick<Config, 'DATA_DIR' | 'LIBRARY_PATH' | 'INGEST_PATH' | 'ORGANIZE_PATTERN' | 'SCAN_INTERVAL_MINUTES' | 'REVIEW_RETENTION_DAYS' | 'WATCHER_USE_POLLING' | 'PUID' | 'PGID'>;
+export type WorkerConfig = Pick<Config, 'DATA_DIR' | 'LIBRARY_PATH' | 'INGEST_PATH' | 'ORGANIZE_PATTERN' | 'SCAN_INTERVAL_MINUTES' | 'ARTIST_IMAGE_INTERVAL_MINUTES' | 'REVIEW_RETENTION_DAYS' | 'WATCHER_USE_POLLING' | 'PUID' | 'PGID'>;
 
 export function loadConfig(): Config {
   return configSchema.parse(process.env);

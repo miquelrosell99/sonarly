@@ -90,21 +90,21 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
     const songsCount = (db.prepare('SELECT COUNT(*) AS count FROM songs').get() as { count: number }).count;
     const albumsCount = (db.prepare('SELECT COUNT(*) AS count FROM albums').get() as { count: number }).count;
     const artistsCount = (db.prepare('SELECT COUNT(*) AS count FROM artists').get() as { count: number }).count;
-    const latestScan = db
-      .prepare('SELECT type, status, started_at, finished_at, stats FROM scan_jobs ORDER BY started_at DESC LIMIT 1')
+    const latestIngest = db
+      .prepare("SELECT type, status, started_at, finished_at, stats FROM scan_jobs WHERE type = 'ingest' ORDER BY started_at DESC LIMIT 1")
       .get() as
       | { type: string; status: string; started_at: string; finished_at: string | null; stats: string | null }
       | undefined;
 
     reply.send({
       counts: { users: usersCount, songs: songsCount, albums: albumsCount, artists: artistsCount },
-      latestScan: latestScan
+      latestIngest: latestIngest
         ? {
-            type: latestScan.type,
-            status: latestScan.status,
-            startedAt: latestScan.started_at,
-            finishedAt: latestScan.finished_at,
-            stats: latestScan.stats ? JSON.parse(latestScan.stats) : undefined,
+            type: latestIngest.type,
+            status: latestIngest.status,
+            startedAt: latestIngest.started_at,
+            finishedAt: latestIngest.finished_at,
+            stats: latestIngest.stats ? JSON.parse(latestIngest.stats) : undefined,
           }
         : null,
     });

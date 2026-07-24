@@ -1,5 +1,6 @@
 import { readdir, stat } from 'node:fs/promises';
 import { join, extname } from 'node:path';
+import { lookup } from 'mime-types';
 import Database from 'better-sqlite3';
 import type { Config } from '../../config.js';
 import { readTags, computeChecksum, writeCoverArt } from '../tags/index.js';
@@ -175,6 +176,22 @@ async function persistSong(
     mtime,
     checksum,
     active: true,
+    bitRate: meta.format?.bitRate,
+    bitsPerSample: meta.format?.bitsPerSample,
+    sampleRate: meta.format?.sampleRate,
+    channels: meta.format?.channels,
+    bpm: meta.bpm,
+    musicBrainzId: meta.musicBrainzId,
+    replayGain: meta.replayGain,
+    comment: meta.comment,
+    sortName: meta.sortName,
+    mood: meta.mood,
+    mediaType: lookup(filePath) || undefined,
+    originalReleaseDate: meta.originalReleaseDate,
+    releaseDate: meta.releaseDate,
+    remixOf: meta.remixOf,
+    displayArtist: meta.displayArtist,
+    displayAlbumArtist: meta.displayAlbumArtist,
   };
   upsertSong(db, song);
 
