@@ -120,7 +120,11 @@ export function RenameProgressModal({ jobId, onClose, onComplete }: RenameProgre
           <div className="space-y-3">
             <ProgressBar value={isRunning && total === 0 ? 0 : percent} />
             <p className="text-sm text-fg-primary">
-              {total === 0 ? 'Scanning…' : `${done} of ${total} files renamed (${percent}%)`}
+              {status?.status === 'completed' && total === 0
+                ? 'Nothing to rename'
+                : total === 0
+                  ? 'Scanning…'
+                  : `${done} of ${total} files renamed (${percent}%)`}
             </p>
             {status?.stats?.currentPath && (
               <p className="break-all text-xs text-muted" title={status.stats.currentPath}>
