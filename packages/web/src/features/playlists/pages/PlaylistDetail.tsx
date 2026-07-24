@@ -12,6 +12,7 @@ import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js
 import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { useNotification } from '../../../contexts/NotificationContext.js';
 
 interface PlaylistSong {
   id: string;
@@ -88,6 +89,7 @@ export function PlaylistDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingRules, setSavingRules] = useState(false);
+  const { notify } = useNotification();
   const { setFavorite, setRating } = useFavoriteActions();
 
   const load = () => {
@@ -120,7 +122,7 @@ export function PlaylistDetail() {
       const refreshed = await api<{ playlist: Playlist }>(`/playlists/${id}`);
       setPlaylist(refreshed.playlist);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save rules');
+      notify(err instanceof Error ? err.message : 'Failed to save rules', 'error');
     } finally {
       setSavingRules(false);
     }
@@ -134,7 +136,7 @@ export function PlaylistDetail() {
       await setFavorite('playlist', playlist.id, starred);
       setPlaylist((prev) => (prev ? { ...prev, starred } : prev));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+      notify(err instanceof Error ? err.message : 'Failed to update favorite', 'error');
     }
   };
 
@@ -144,7 +146,7 @@ export function PlaylistDetail() {
       await setRating('playlist', playlist.id, rating);
       setPlaylist((prev) => (prev ? { ...prev, rating } : prev));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update rating');
+      notify(err instanceof Error ? err.message : 'Failed to update rating', 'error');
     }
   };
 
@@ -166,7 +168,7 @@ export function PlaylistDetail() {
       setEditing(false);
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save playlist');
+      notify(err instanceof Error ? err.message : 'Failed to save playlist', 'error');
     } finally {
       setSaving(false);
     }
@@ -179,7 +181,7 @@ export function PlaylistDetail() {
       await api(`/playlists/${id}`, { method: 'DELETE' });
       setLocation('/playlists');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete playlist');
+      notify(err instanceof Error ? err.message : 'Failed to delete playlist', 'error');
       setDeleting(false);
     }
   };

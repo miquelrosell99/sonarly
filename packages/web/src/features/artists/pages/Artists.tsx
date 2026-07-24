@@ -8,6 +8,7 @@ import { useFilterParams } from '../../../hooks/useFilterParams.js';
 import { useArtistContextMenu } from '../../../hooks/useArtistContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { useNotification } from '../../../contexts/NotificationContext.js';
 
 function ArtistContextMenu({
   artist,
@@ -28,7 +29,7 @@ export function Artists() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Artist | null>(null);
-  const [saving, setSaving] = useState(false);
+  const { notify } = useNotification();
   const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
 
@@ -73,7 +74,7 @@ export function Artists() {
         prev.map((a) => (a.id === artist.id ? { ...a, starred } : a)),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+      notify(err instanceof Error ? err.message : 'Failed to update favorite', 'error');
     }
   };
 
@@ -84,18 +85,7 @@ export function Artists() {
         prev.map((a) => (a.id === artist.id ? { ...a, rating } : a)),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update rating');
-    }
-  };
-
-  const handleSave = async () => {
-    if (!editing) return;
-    setSaving(true);
-    try {
-      // Artist updates are not yet supported by the backend; close the modal.
-      setEditing(null);
-    } finally {
-      setSaving(false);
+      notify(err instanceof Error ? err.message : 'Failed to update rating', 'error');
     }
   };
 
@@ -143,9 +133,7 @@ export function Artists() {
           entityType="artist"
           entity={(editing as unknown) as Record<string, unknown>}
           onClose={() => setEditing(null)}
-          onSave={handleSave}
-          onDelete={() => {}}
-          saving={saving}
+          readOnly
         />
       )}
     </>

@@ -9,6 +9,7 @@ import { useFilterParams } from '../../../hooks/useFilterParams.js';
 import { useAlbumContextMenu } from '../../../hooks/useAlbumContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { useNotification } from '../../../contexts/NotificationContext.js';
 
 interface AlbumDetail {
   album: Album;
@@ -39,6 +40,7 @@ export function Albums() {
   const [editing, setEditing] = useState<Album | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const { notify } = useNotification();
   const { playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
@@ -128,7 +130,7 @@ export function Albums() {
       setEditing(null);
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save album');
+      notify(err instanceof Error ? err.message : 'Failed to save album', 'error');
     } finally {
       setSaving(false);
     }
@@ -142,7 +144,7 @@ export function Albums() {
       setEditing(null);
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete album');
+      notify(err instanceof Error ? err.message : 'Failed to delete album', 'error');
     } finally {
       setDeleting(false);
     }
