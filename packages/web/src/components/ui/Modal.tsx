@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { cn } from '../../lib/cn.js';
 import { Icon } from './Icon.js';
 
@@ -11,11 +12,11 @@ export interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, children, footer, className }: ModalProps) {
-  if (!open) return null;
+  if (!open || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -25,7 +26,7 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
     >
       <div
         className={cn(
-          'flex w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-rule bg-surface shadow-2xl',
+          'flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-rule bg-surface shadow-2xl',
           className,
         )}
       >
@@ -41,7 +42,7 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
           </button>
         </div>
 
-        <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-6 py-5">
           {children}
         </div>
 
@@ -51,6 +52,7 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
