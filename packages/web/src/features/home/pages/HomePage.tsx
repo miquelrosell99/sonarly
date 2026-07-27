@@ -6,6 +6,7 @@ import { Icon } from '../../../components/ui/Icon.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useDominantColor } from '../../../hooks/useDominantColor.js';
+import { ScrollRow } from '../../../components/ScrollRow.js';
 import { Card } from '../../../components/Card.js';
 import { CoverArt } from '../../../components/CoverArt.js';
 
@@ -119,70 +120,6 @@ function AlbumCard({ album: initialAlbum }: { album: Album }) {
       />
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}
     </div>
-  );
-}
-
-interface SectionProps {
-  title: string;
-  children: React.ReactNode;
-}
-
-function Section({ title, children }: SectionProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const updateScrollState = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 0);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
-  };
-
-  useEffect(() => {
-    updateScrollState();
-  }, [children]);
-
-  const scroll = (direction: 'left' | 'right') => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const amount = el.clientWidth * 0.8;
-    el.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
-  };
-
-  return (
-    <section>
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="font-display text-xl font-bold tracking-tight">{title}</h2>
-        <div className="flex items-center">
-          <button
-            type="button"
-            onClick={() => scroll('left')}
-            disabled={!canScrollLeft}
-            aria-label={`Scroll ${title} left`}
-            className="rounded-full p-1 text-fg-secondary transition hover:bg-surface hover:text-fg-primary disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            <Icon name="mdi-chevron-left" size={24} />
-          </button>
-          <button
-            type="button"
-            onClick={() => scroll('right')}
-            disabled={!canScrollRight}
-            aria-label={`Scroll ${title} right`}
-            className="rounded-full p-1 text-fg-secondary transition hover:bg-surface hover:text-fg-primary disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            <Icon name="mdi-chevron-right" size={24} />
-          </button>
-        </div>
-      </div>
-      <div
-        ref={scrollRef}
-        onScroll={updateScrollState}
-        className="flex gap-4 overflow-x-auto scrollbar-hide"
-      >
-        {children}
-      </div>
-    </section>
   );
 }
 
@@ -397,7 +334,7 @@ export function HomePage() {
     <div className="space-y-10 p-6">
       {featuredAlbums.length > 0 && <FeaturedAlbum albums={featuredAlbums} />}
 
-      <Section title="Most played">
+      <ScrollRow title="Most played">
         {data.mostPlayed.length === 0 ? (
           <p className="text-sm text-fg-secondary">No played albums yet.</p>
         ) : (
@@ -407,9 +344,9 @@ export function HomePage() {
             </div>
           ))
         )}
-      </Section>
+      </ScrollRow>
 
-      <Section title="Random albums">
+      <ScrollRow title="Random albums">
         {data.random.length === 0 ? (
           <p className="text-sm text-fg-secondary">No albums found.</p>
         ) : (
@@ -419,9 +356,9 @@ export function HomePage() {
             </div>
           ))
         )}
-      </Section>
+      </ScrollRow>
 
-      <Section title="Recently added">
+      <ScrollRow title="Recently added">
         {data.recentlyAdded.length === 0 ? (
           <p className="text-sm text-fg-secondary">No recently added albums.</p>
         ) : (
@@ -431,9 +368,9 @@ export function HomePage() {
             </div>
           ))
         )}
-      </Section>
+      </ScrollRow>
 
-      <Section title="Recently played">
+      <ScrollRow title="Recently played">
         {data.recentlyPlayed.length === 0 ? (
           <p className="text-sm text-fg-secondary">No recently played albums.</p>
         ) : (
@@ -443,7 +380,7 @@ export function HomePage() {
             </div>
           ))
         )}
-      </Section>
+      </ScrollRow>
     </div>
   );
 }
