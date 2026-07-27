@@ -12,6 +12,7 @@ import { ScrollRow } from '../../../components/ScrollRow.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
+import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { TrackList } from '../../songs/index.js';
 import type { SongWithNames } from '../../../lib/types.js';
 
@@ -45,6 +46,7 @@ export function Artist() {
   const [error, setError] = useState<string | null>(null);
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   useDocumentTitle(artist?.name);
 
@@ -52,8 +54,8 @@ export function Artist() {
     if (!id) return;
     setLoading(true);
     Promise.all([
-      api<{ artist: ArtistDetail }>(`/artists/${id}`),
-      api<{ songs: SongWithNames[] }>('/songs').catch(() => ({ songs: [] })),
+      api<{ artist: ArtistDetail }>(`/artists/${id}${buildLibraryQuery(selectedLibraryId)}`),
+      api<{ songs: SongWithNames[] }>(`/songs${buildLibraryQuery(selectedLibraryId)}`).catch(() => ({ songs: [] })),
       api<{ preferences: UserPreferences }>('/me/preferences').catch(() => ({ preferences: {} })),
     ])
       .then(([artistRes, songsRes, prefsRes]) => {
@@ -63,7 +65,7 @@ export function Artist() {
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load artist'))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, selectedLibraryId]);
 
   const handleFavorite = async (starred: boolean) => {
     if (!artist) return;
@@ -121,7 +123,7 @@ export function Artist() {
 
   const playAlbum = async (album: Album) => {
     try {
-      const detail = await api<{ songs: Song[] }>(`/albums/${album.id}`);
+      const detail = await api<{ songs: Song[] }>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
       playSongs(detail.songs, 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to play album');
@@ -130,7 +132,7 @@ export function Artist() {
 
   const shufflePlayAlbum = async (album: Album) => {
     try {
-      const detail = await api<{ songs: Song[] }>(`/albums/${album.id}`);
+      const detail = await api<{ songs: Song[] }>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
       shufflePlay(detail.songs);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to shuffle play album');

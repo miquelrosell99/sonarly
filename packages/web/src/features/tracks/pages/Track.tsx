@@ -11,6 +11,7 @@ import { formatDuration } from '../../../lib/format.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
+import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import type { SongWithNames } from '../../../lib/types.js';
 
 type TrackDetail = SongWithNames;
@@ -22,13 +23,14 @@ export function Track() {
   const [error, setError] = useState<string | null>(null);
   const { playSong } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   useDocumentTitle(track?.title);
 
   const load = () => {
     if (!id) return;
     setLoading(true);
-    api<{ song: TrackDetail }>(`/songs/${id}`)
+    api<{ song: TrackDetail }>(`/songs/${id}${buildLibraryQuery(selectedLibraryId)}`)
       .then((res) => setTrack(res.song))
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load track'))
       .finally(() => setLoading(false));
@@ -36,7 +38,7 @@ export function Track() {
 
   useEffect(() => {
     load();
-  }, [id]);
+  }, [id, selectedLibraryId]);
 
   const handleFavorite = async (starred: boolean) => {
     if (!track) return;

@@ -6,6 +6,7 @@ import { Icon } from '../../../components/ui/Icon.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useDominantColor } from '../../../hooks/useDominantColor.js';
+import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { ScrollRow } from '../../../components/ScrollRow.js';
 import { Card } from '../../../components/Card.js';
 import { CoverArt } from '../../../components/CoverArt.js';
@@ -27,11 +28,12 @@ function AlbumCard({ album: initialAlbum }: { album: Album }) {
   const { setFavorite, setRating } = useFavoriteActions();
   const [album, setAlbum] = useState(initialAlbum);
   const [error, setError] = useState<string | null>(null);
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   const handlePlay = async () => {
     setError(null);
     try {
-      const detail = await api<AlbumDetail>(`/albums/${album.id}`);
+      const detail = await api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
       playSongs(detail.songs, 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to play album');
@@ -41,7 +43,7 @@ function AlbumCard({ album: initialAlbum }: { album: Album }) {
   const handleShufflePlay = async () => {
     setError(null);
     try {
-      const detail = await api<AlbumDetail>(`/albums/${album.id}`);
+      const detail = await api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
       shufflePlay(detail.songs);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to shuffle play album');
@@ -130,11 +132,12 @@ interface FeaturedAlbumSlideProps {
 function FeaturedAlbumSlide({ album }: FeaturedAlbumSlideProps) {
   const { playSongs } = usePlayActions();
   const [loading, setLoading] = useState(false);
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   const handlePlay = async () => {
     setLoading(true);
     try {
-      const detail = await api<AlbumDetail>(`/albums/${album.id}`);
+      const detail = await api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
       playSongs(detail.songs, 0);
     } finally {
       setLoading(false);
@@ -294,13 +297,14 @@ export function HomePage() {
   const [data, setData] = useState<HomeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   useEffect(() => {
-    api<HomeData>('/home')
+    api<HomeData>(`/home${buildLibraryQuery(selectedLibraryId)}`)
       .then(setData)
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load home'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedLibraryId]);
 
   const featuredAlbums = useMemo(() => {
     if (!data) return [];

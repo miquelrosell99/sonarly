@@ -7,6 +7,7 @@ import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useGenreContextMenu } from '../../../hooks/useGenreContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { GenreCoverGrid } from '../components/GenreCoverGrid.js';
+import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 
 interface GenreItem {
   id: string;
@@ -39,10 +40,14 @@ export function Genres() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   const load = () => {
     setLoading(true);
-    Promise.all([api<{ genres: GenreItem[] }>('/genres'), api<{ songs: Track[] }>('/songs')])
+    Promise.all([
+      api<{ genres: GenreItem[] }>(`/genres${buildLibraryQuery(selectedLibraryId)}`),
+      api<{ songs: Track[] }>(`/songs${buildLibraryQuery(selectedLibraryId)}`),
+    ])
       .then(([genresRes, songsRes]) => {
         setTracks(songsRes.songs);
         setGenres(genresRes.genres.sort((a, b) => a.name.localeCompare(b.name)));
@@ -53,7 +58,7 @@ export function Genres() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [selectedLibraryId]);
 
   const matchingTracks = (genreName: string) => tracks.filter((t) => t.genres?.includes(genreName));
 

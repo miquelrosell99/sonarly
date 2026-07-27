@@ -11,6 +11,7 @@ import { useAdminContextMenu } from '../../../hooks/useAdminContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
+import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 
 interface AlbumDetail {
   album: Album;
@@ -47,10 +48,11 @@ export function Albums() {
   const { playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   const load = () => {
     setLoading(true);
-    api<{ albums: Album[] }>('/albums')
+    api<{ albums: Album[] }>(`/albums${buildLibraryQuery(selectedLibraryId)}`)
       .then((res) => setAlbums(res.albums))
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load albums'))
       .finally(() => setLoading(false));
@@ -58,7 +60,7 @@ export function Albums() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [selectedLibraryId]);
 
   const yearFrom = get('yearFrom');
   const yearTo = get('yearTo');
@@ -81,7 +83,7 @@ export function Albums() {
 
   const playAlbum = async (album: Album) => {
     try {
-      const detail = await api<AlbumDetail>(`/albums/${album.id}`);
+      const detail = await api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
       playSongs(detail.songs, 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to play album');
@@ -92,7 +94,7 @@ export function Albums() {
     if (albums.length === 0) return;
     try {
       const details = await Promise.all(
-        albums.map((album) => api<AlbumDetail>(`/albums/${album.id}`)),
+        albums.map((album) => api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`)),
       );
       shufflePlay(details.flatMap((detail) => detail.songs));
     } catch (err) {
