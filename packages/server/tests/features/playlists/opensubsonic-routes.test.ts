@@ -120,7 +120,7 @@ describe('OpenSubsonic playlist endpoints', () => {
     const playlists = body['subsonic-response'].playlists.playlist;
     expect(playlists).toHaveLength(1);
     expect(playlists[0].name).toBe('Owned');
-    expect(playlists[0].owner).toBe('user-1');
+    expect(playlists[0].owner).toBe('tester');
     expect(playlists[0].songCount).toBe(1);
   });
 
