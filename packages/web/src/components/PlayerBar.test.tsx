@@ -136,9 +136,9 @@ describe('PlayerBar', () => {
 
     fireEvent.contextMenu(djButton);
 
-    expect(screen.getByRole('button', { name: 'Similar' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Random' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Smart' })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Similar' })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Random' })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Smart' })).toBeTruthy();
   });
 
   it('selects a DJ mode and persists the change', () => {
@@ -146,7 +146,7 @@ describe('PlayerBar', () => {
     const djButton = screen.getByRole('button', { name: /auto dj/i });
 
     fireEvent.contextMenu(djButton);
-    fireEvent.click(screen.getByRole('button', { name: 'Random' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Random' }));
 
     expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjMode: 'random' });
   });
