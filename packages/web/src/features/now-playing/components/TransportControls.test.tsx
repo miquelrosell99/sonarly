@@ -29,4 +29,53 @@ describe('TransportControls', () => {
     fireEvent.click(playButton);
     expect(usePlayer.getState().status).toBe('playing');
   });
+
+  it('toggles shuffle and updates its visual state', () => {
+    usePlayer.getState().playQueue([{ id: 's1', title: 'Song' } as any], 0);
+    render(<TransportControls />);
+    const shuffleButton = screen.getByRole('button', { name: 'Shuffle' });
+    expect(shuffleButton.className).not.toContain('text-accent');
+    expect(shuffleButton.className).not.toContain('bg-accent/15');
+
+    fireEvent.click(shuffleButton);
+    expect(usePlayer.getState().shuffle).toBe(true);
+
+    cleanup();
+    render(<TransportControls />);
+    const activeShuffleButton = screen.getByRole('button', { name: 'Shuffle' });
+    expect(activeShuffleButton.className).toContain('text-accent');
+    expect(activeShuffleButton.className).toContain('bg-accent/15');
+  });
+
+  it('cycles repeat mode and updates its icon and visual state', () => {
+    usePlayer.getState().playQueue([{ id: 's1', title: 'Song' } as any], 0);
+    render(<TransportControls />);
+    const repeatButton = screen.getByRole('button', { name: /Repeat:/i });
+    const repeatUse = repeatButton.querySelector('use');
+    expect(repeatButton.className).not.toContain('text-accent');
+    expect(repeatButton.className).not.toContain('bg-accent/15');
+    expect(repeatUse?.getAttribute('href')).toBe('/mdi-sprite.svg#mdi-repeat');
+
+    fireEvent.click(repeatButton);
+    expect(usePlayer.getState().repeat).toBe('all');
+
+    cleanup();
+    render(<TransportControls />);
+    const allRepeatButton = screen.getByRole('button', { name: /Repeat: all/i });
+    const allRepeatUse = allRepeatButton.querySelector('use');
+    expect(allRepeatButton.className).toContain('text-accent');
+    expect(allRepeatButton.className).toContain('bg-accent/15');
+    expect(allRepeatUse?.getAttribute('href')).toBe('/mdi-sprite.svg#mdi-repeat');
+
+    fireEvent.click(allRepeatButton);
+    expect(usePlayer.getState().repeat).toBe('one');
+
+    cleanup();
+    render(<TransportControls />);
+    const oneRepeatButton = screen.getByRole('button', { name: /Repeat: one/i });
+    const oneRepeatUse = oneRepeatButton.querySelector('use');
+    expect(oneRepeatButton.className).toContain('text-accent');
+    expect(oneRepeatButton.className).toContain('bg-accent/15');
+    expect(oneRepeatUse?.getAttribute('href')).toBe('/mdi-sprite.svg#mdi-repeat-once');
+  });
 });
