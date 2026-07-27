@@ -41,6 +41,6 @@ export function markJobCompleted(db: Database.Database, id: string, stats: Recor
 }
 
 export function markJobFailed(db: Database.Database, id: string, error: string): void {
-  db.prepare("UPDATE scan_jobs SET status = 'failed', finished_at = datetime('now'), stats = ? WHERE id = ?")
-    .run(JSON.stringify({ error }), id);
+  db.prepare("UPDATE scan_jobs SET status = 'failed', finished_at = datetime('now'), error = ? WHERE id = ?")
+    .run(error, id);
 }
