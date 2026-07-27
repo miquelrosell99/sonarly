@@ -187,6 +187,7 @@ export function PlayerBar() {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
     const touch = e.touches[0];
     longPressStart.current = { x: touch.clientX, y: touch.clientY };
     longPressTimer.current = setTimeout(() => {
@@ -349,6 +350,7 @@ export function PlayerBar() {
                 onTouchCancel={handleTouchCancel}
                 label={`Auto DJ: ${autoDjEnabled ? 'on' : 'off'}`}
                 active={autoDjEnabled}
+                className="touch-none select-none"
               >
                 <Icon name="mdi-record-player" size={18} />
               </ControlButton>
