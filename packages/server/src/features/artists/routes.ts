@@ -41,13 +41,18 @@ function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | unde
 export function registerArtistManagementRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get('/api/artists', (request: FastifyRequest, reply: FastifyReply) => {
     const userId = (request as any).session?.userId as string | undefined;
+    const { libraryId } = request.query as { libraryId?: string };
+    const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
+
     const rows = db.prepare(`
       SELECT ar.*, ua.starred, ua.rating
       FROM artists ar
       LEFT JOIN user_artists ua ON ua.user_id = ? AND ua.artist_id = ar.id
+      ${libraryFilter ? 'JOIN songs s ON s.artist_id = ar.id AND s.active = 1 AND s.library_id = ?' : ''}
       WHERE ar.active = 1
+      ${libraryFilter ? 'GROUP BY ar.id' : ''}
       ORDER BY ar.name
-    `).all(userId ?? null) as ArtistRow[];
+    `).all(...(libraryFilter ? [userId ?? null, libraryId] : [userId ?? null])) as ArtistRow[];
     reply.send({
       artists: rows.map((r) => ({
         id: r.id,
@@ -66,13 +71,16 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
     const { id } = request.params as { id: string };
     const userId = (request as any).session?.userId as string | undefined;
     const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
+    const { libraryId } = request.query as { libraryId?: string };
+    const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
 
     const artist = db.prepare(`
       SELECT ar.*, ua.starred, ua.rating
       FROM artists ar
       LEFT JOIN user_artists ua ON ua.user_id = ? AND ua.artist_id = ar.id
       WHERE ar.id = ? AND ar.active = 1
-    `).get(userId ?? null, id) as ArtistRow | undefined;
+      ${libraryFilter ? 'AND EXISTS (SELECT 1 FROM songs s WHERE s.artist_id = ar.id AND s.active = 1 AND s.library_id = ?)' : ''}
+    `).get(...(libraryFilter ? [userId ?? null, id, libraryId] : [userId ?? null, id])) as ArtistRow | undefined;
     if (!artist) return reply.status(404).send({ error: 'Artist not found' });
 
     const albums = db.prepare(`
@@ -80,12 +88,12 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
         COUNT(s.id) AS total_song_count,
         SUM(CASE WHEN s.explicit = 0 THEN 1 ELSE 0 END) AS shown_song_count
       FROM albums a
-      LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1
+      LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1 ${libraryFilter ? 'AND s.library_id = ?' : ''}
       LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
       WHERE a.artist_id = ? AND a.active = 1
       ${hideExplicit ? 'GROUP BY a.id HAVING shown_song_count > 0' : 'GROUP BY a.id'}
       ORDER BY a.year, a.name
-    `).all(userId ?? null, id) as (AlbumRow & { total_song_count: number; shown_song_count: number })[];
+    `).all(...(libraryFilter ? [libraryId, userId ?? null, id] : [userId ?? null, id])) as (AlbumRow & { total_song_count: number; shown_song_count: number })[];
 
     reply.send({
       artist: {
@@ -117,11 +125,17 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
     const { id } = request.params as { id: string };
     const userId = (request as any).session?.userId as string | undefined;
     const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
+    const { libraryId } = request.query as { libraryId?: string };
+    const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
 
-    const artist = db.prepare('SELECT id FROM artists WHERE id = ? AND active = 1').get(id) as { id: string } | undefined;
+    const artist = db.prepare(`
+      SELECT id FROM artists ar
+      WHERE ar.id = ? AND ar.active = 1
+      ${libraryFilter ? 'AND EXISTS (SELECT 1 FROM songs s WHERE s.artist_id = ar.id AND s.active = 1 AND s.library_id = ?)' : ''}
+    `).get(...(libraryFilter ? [id, libraryId] : [id])) as { id: string } | undefined;
     if (!artist) return reply.status(404).send({ error: 'Artist not found' });
 
-    const songs = listSongsByArtist(db, id, userId);
+    const songs = listSongsByArtist(db, id, userId, libraryFilter ? libraryId : undefined);
     const visibleSongs = hideExplicit ? songs.filter((s) => !s.explicit) : songs;
     reply.send({ songs: visibleSongs });
   });
