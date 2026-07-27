@@ -164,6 +164,8 @@ describe('search endpoint', () => {
     const body = JSON.parse(res.body);
     expect(body.songs).toHaveLength(6);
     expect(body.songs[0].id).toBe('song-1');
+    expect(body.songs[0].artistName).toBe('Alpha Artist');
+    expect(body.songs[0].albumName).toBe('Alpha Album');
     expect(body.albums).toHaveLength(1);
     expect(body.albums[0].id).toBe('album-1');
     expect(body.artists).toHaveLength(1);

@@ -7,6 +7,8 @@ export interface Song {
   duration?: number;
   artistId?: string;
   albumId?: string;
+  artistName?: string;
+  albumName?: string;
   genre?: string;
   year?: number;
   explicit?: boolean;
