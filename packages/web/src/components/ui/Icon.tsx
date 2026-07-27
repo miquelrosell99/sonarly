@@ -19,7 +19,7 @@ export function Icon({ name, size = 24, className, title }: IconProps) {
       className={cn('inline-block shrink-0', className)}
     >
       {title && <title>{title}</title>}
-      <use href={`/mdi-sprite.svg#${name}`} />
+      <use href={`/mdi-sprite.svg?v=2#${name}`} />
     </svg>
   );
 }
