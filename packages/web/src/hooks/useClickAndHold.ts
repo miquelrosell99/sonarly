@@ -13,6 +13,7 @@ interface UseClickAndHoldResult {
     onPointerUp: (e: React.PointerEvent) => void;
     onPointerLeave: () => void;
     onPointerCancel: () => void;
+    onClick: (e: React.MouseEvent) => void;
   };
 }
 
@@ -24,6 +25,7 @@ export function useClickAndHold({
   const [isHolding, setIsHolding] = useState(false);
   const timerRef = useRef<number | null>(null);
   const holdTriggeredRef = useRef(false);
+  const suppressNextClickRef = useRef(false);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -37,10 +39,21 @@ export function useClickAndHold({
     setIsHolding(false);
   }, [clearTimer]);
 
+  const onClickWrapper = useCallback((e: React.MouseEvent) => {
+    if (suppressNextClickRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      suppressNextClickRef.current = false;
+      return;
+    }
+    onClick();
+  }, [onClick]);
+
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return;
     clearTimer();
     holdTriggeredRef.current = false;
+    suppressNextClickRef.current = false;
     setIsHolding(true);
     timerRef.current = window.setTimeout(() => {
       holdTriggeredRef.current = true;
@@ -55,8 +68,16 @@ export function useClickAndHold({
       clearTimer();
       setIsHolding(false);
       const target = e.target as Node;
-      if (!holdTriggeredRef.current && e.currentTarget.contains(target)) {
-        onClick();
+      if (e.currentTarget.contains(target)) {
+        // Suppress the synthetic click event that follows pointer-based
+        // activation so onClick is not invoked twice for mouse/touch users.
+        suppressNextClickRef.current = true;
+        window.setTimeout(() => {
+          suppressNextClickRef.current = false;
+        }, 0);
+        if (!holdTriggeredRef.current) {
+          onClick();
+        }
       }
     },
     [clearTimer, onClick]
@@ -75,6 +96,7 @@ export function useClickAndHold({
       onPointerUp,
       onPointerLeave: cancelHold,
       onPointerCancel: cancelHold,
+      onClick: onClickWrapper,
     },
   };
 }

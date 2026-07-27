@@ -1,4 +1,4 @@
-import { type PointerEvent, type ReactNode } from 'react';
+import { type PointerEvent, type ReactNode, type MouseEvent } from 'react';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { useClickAndHold } from '../hooks/useClickAndHold.js';
@@ -68,6 +68,7 @@ interface Handlers {
   onPointerUp: (e: PointerEvent<HTMLButtonElement>) => void;
   onPointerLeave: () => void;
   onPointerCancel: () => void;
+  onClick: (e: MouseEvent<HTMLButtonElement>) => void;
 }
 
 function PlayButtonContent({
@@ -80,7 +81,9 @@ function PlayButtonContent({
   isHolding = false,
   handlers,
 }: PlayButtonProps & { isHolding?: boolean; handlers?: Handlers }) {
-  const ariaLabel = label ?? (typeof children === 'string' ? children : 'Play');
+  const ariaLabel = handlers
+    ? (label ? `Play ${label} (hold to shuffle)` : typeof children === 'string' ? `${children} (hold to shuffle)` : 'Play (hold to shuffle)')
+    : (label ?? (typeof children === 'string' ? children : 'Play'));
 
   const baseProps = {
     type: 'button' as const,
@@ -93,6 +96,13 @@ function PlayButtonContent({
     },
   };
 
+  const handleClick = handlers
+    ? handlers.onClick
+    : (e: MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        onPlay();
+      };
+
   if (variant === 'overlay') {
     return (
       <button
@@ -101,7 +111,7 @@ function PlayButtonContent({
           'group relative flex h-11 w-11 items-center justify-center rounded-full bg-accent text-bg-primary shadow-lg shadow-black/30 transition-all duration-200 hover:scale-105 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-40',
           className,
         )}
-        onClick={handlers ? undefined : (e) => { e.stopPropagation(); onPlay(); }}
+        onClick={handleClick}
         {...(handlers ? pointerHandlers(handlers) : {})}
       >
         <ProgressRing isHolding={isHolding} size={44} />
@@ -123,7 +133,7 @@ function PlayButtonContent({
           'group relative inline-flex h-5 w-5 items-center justify-center text-accent transition hover:text-accent/80 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40',
           className,
         )}
-        onClick={handlers ? undefined : (e) => { e.stopPropagation(); onPlay(); }}
+        onClick={handleClick}
         {...(handlers ? pointerHandlers(handlers) : {})}
       >
         <ProgressRing isHolding={isHolding} size={20} />
@@ -144,7 +154,7 @@ function PlayButtonContent({
         'btn group relative inline-flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-40',
         className,
       )}
-      onClick={handlers ? undefined : (e) => { e.stopPropagation(); onPlay(); }}
+      onClick={handleClick}
       {...(handlers ? pointerHandlers(handlers) : {})}
     >
       <span className="relative flex h-5 w-5 items-center justify-center">

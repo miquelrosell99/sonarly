@@ -226,7 +226,7 @@ describe('LibraryView', () => {
     const onShufflePlay = vi.fn();
     renderView({ onPlay, onShufflePlay });
 
-    const playButton = screen.getAllByRole('button', { name: 'Play', hidden: true })[0];
+    const playButton = screen.getAllByRole('button', { name: /Play \(hold to shuffle\)/, hidden: true })[0];
     fireEvent.pointerDown(playButton);
     act(() => {
       vi.advanceTimersByTime(500);
@@ -243,7 +243,7 @@ describe('LibraryView', () => {
     renderView({ onPlay, onShufflePlay });
 
     fireEvent.click(screen.getAllByRole('button', { name: /grid view/i })[0]);
-    const playButton = screen.getAllByRole('button', { name: 'Play', hidden: true })[0];
+    const playButton = screen.getAllByRole('button', { name: /Play \(hold to shuffle\)/, hidden: true })[0];
     fireEvent.pointerDown(playButton);
     act(() => {
       vi.advanceTimersByTime(500);
