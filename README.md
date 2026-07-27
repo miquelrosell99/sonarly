@@ -11,6 +11,9 @@
 [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![pnpm](https://img.shields.io/badge/pnpm-9-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
 [![Vitest](https://img.shields.io/badge/Vitest-2-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/tests-375%20passing-6E9F18?logo=vitest&logoColor=white)]()
+[![OpenSubsonic](https://img.shields.io/badge/OpenSubsonic-1.16.1-FF6B6B?logo=audioboom&logoColor=white)]()
+[![Self-hosted](https://img.shields.io/badge/Self--hosted-✓-2EA043?logo=linux&logoColor=white)]()
 
 ---
 
@@ -21,14 +24,15 @@ Sonarly organizes your music library, serves it through the **OpenSubsonic API**
 
 ## ✨ Features
 
-- 🎵 **OpenSubsonic compatible** — works with Symphonium, Feishin, DSub, Ultrasonic and any other Subsonic/OpenSubsonic client.
+- 🎵 **OpenSubsonic compatible** — works with Feishin, Symphonium, DSub, Ultrasonic and any other Subsonic/OpenSubsonic client.
 - 🖥️ **Modern web UI** — React + Vite + Tailwind, with adaptive player chrome that tints from the current album art.
 - 📁 **Auto-organization** — drop files into the ingest folder and let Sonarly rename them into a clean library pattern.
 - 🎨 **Cover & artist art** — reads embedded artwork, caches album covers, fetches artist images.
 - 🔒 **Self-hosted & containerized** — single Docker image with everything included.
-- 🧪 **Well tested** — 369+ tests covering the backend.
+- 🧪 **Well tested** — 375+ backend tests run on every change.
 - 🏷️ **Tag editing** — write metadata back to files with Python Mutagen.
 - 📱 **Multiple users & permissions** — admin and regular user roles.
+- 🗂️ **Multi-library support** — manage several media folders from the admin panel.
 
 ## 🚀 Quick start (Docker)
 
@@ -79,6 +83,12 @@ Run tests:
 pnpm test
 ```
 
+Trigger a library scan from the host without opening the UI:
+
+```bash
+docker exec sonarly-dev sh -c "cd /app/packages/server && pnpm trigger-scan"
+```
+
 ## 📂 Project structure
 
 ```
@@ -98,13 +108,42 @@ pnpm test
 
 Sonarly implements the OpenSubsonic REST API at `/rest/` and has been tested with:
 
-- ✅ Feishin
-- ✅ Symphonium (Android)
-- 🔄 More coming — open an issue if yours doesn't work.
+| Client | Status | Notes |
+|---|---|---|
+| Feishin | ✅ Working | Desktop/web player. |
+| Symphonium | 🔄 Partial | Connects and syncs; reported cases of 0-track sync are being investigated (see TODO). |
+| DSub | 🔄 Not tested yet | Should work; feedback welcome. |
+| Ultrasonic | 🔄 Not tested yet | Should work; feedback welcome. |
 
-## 📋 TODO / Pending features
+Open an issue if your client doesn't work.
+
+## 🏗️ Architecture at a glance
+
+```
+┌─────────────────────────────────────────────┐
+│  Sonarly container                            │
+│  ┌─────────────┐  ┌─────────────────────┐   │
+│  │ React + Vite │  │ Fastify backend     │   │
+│  │  (dev: 5173) │  │  (port 3000)        │   │
+│  └──────┬───────┘  └──────────┬──────────┘   │
+│         │                      │              │
+│         └──────────┬───────────┘              │
+│                    │                          │
+│              OpenSubsonic /api                │
+│              /rest/ /api/ /*                  │
+└─────────────────────────────────────────────┘
+```
+
+- **Frontend**: React 18 + Vite + Tailwind CSS + wouter + Zustand.
+- **Backend**: Fastify 4 + better-sqlite3 + Zod.
+- **Scanner**: background worker thread with chokidar watchers.
+- **Storage**: SQLite for metadata, filesystem for audio/cover art.
+
+## 📋 TODO / Known limitations
 
 - **OpenSubsonic bookmarks**: `getBookmarks.view` currently returns an empty list. Full bookmark support (save/load playback positions across clients) is not implemented yet.
+- **Symphonium sync**: some users report 0 tracks after sync. Investigation is ongoing; progress is tracked in this repo.
+- **Smart playlists / recommendations**: not implemented yet.
 
 ## 📄 License
 
