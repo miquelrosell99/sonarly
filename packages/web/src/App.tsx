@@ -20,6 +20,7 @@ import { SettingsMissing } from './features/settings/index.js';
 import { Artists, Artist } from './features/artists/index.js';
 import { Albums, Album } from './features/albums/index.js';
 import { Tracks, Track } from './features/tracks/index.js';
+import { SearchResults } from './features/search/index.js';
 import { AlbumArtists } from './features/album-artists/index.js';
 import { Genres, Genre } from './features/genres/index.js';
 import { api } from './api.js';
@@ -93,6 +94,7 @@ export default function App() {
         <Route path="/songs" component={() => <Songs user={user} />} />
         <Route path="/tracks" component={Tracks} />
         <Route path="/tracks/:id" component={Track} />
+        <Route path="/search" component={SearchResults} />
         <Route path="/playlists" component={Playlists} />
         <Route path="/playlists/:id" component={PlaylistDetail} />
         <Route path="/albums" component={Albums} />
