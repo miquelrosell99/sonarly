@@ -11,6 +11,8 @@ export type AccentColor =
   | 'cyan'
   | 'blue';
 
+export type AutoDjMode = 'similar' | 'random' | 'smart';
+
 export interface SidebarLinkItem {
   id: string;
   type: 'link';
@@ -42,6 +44,17 @@ export interface UserPreferences {
   };
   playlistsCollapsed?: boolean;
   viewOptions?: Record<string, unknown>;
+  autoDjEnabled?: boolean;
+  autoDjMode?: AutoDjMode;
+  autoDjTopUpThreshold?: number;
+  autoDjBatchSize?: number;
 }
 
-export const DEFAULT_USER_PREFERENCES: UserPreferences = {};
+export const DEFAULT_USER_PREFERENCES: UserPreferences = {
+  autoDjEnabled: false,
+  autoDjMode: 'smart',
+  autoDjTopUpThreshold: 5,
+  autoDjBatchSize: 10,
+};
+
+export const MAX_EXCLUDE_IDS = 500;

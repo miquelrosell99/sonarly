@@ -7,6 +7,7 @@ export interface ContextMenuItem {
   id: string;
   label: string;
   icon?: string;
+  active?: boolean;
   disabled?: boolean;
   loading?: boolean;
   variant?: 'danger';
@@ -99,10 +100,12 @@ export function ItemContextMenu({ sections, children }: ItemContextMenuProps) {
                 'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none',
                 item.disabled && 'opacity-50 cursor-not-allowed',
                 item.variant === 'danger' && 'text-danger',
+                item.active && 'text-accent',
               )}
             >
               {item.loading ? <span className="animate-spin">⟳</span> : item.icon && <Icon name={item.icon} size={18} />}
               {item.label}
+              {item.active && <Icon name="mdi-check" size={16} className="ml-auto text-accent" />}
             </button>
           ))}
           {sIdx < visibleSections.length - 1 && <hr role="separator" className="my-1 border-rule" />}

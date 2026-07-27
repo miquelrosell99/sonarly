@@ -10,6 +10,7 @@ import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js'
 import { formatDuration } from '../../../lib/format.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
+import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
 import type { SongWithNames } from '../../../lib/types.js';
 
 type TrackDetail = SongWithNames;
@@ -21,6 +22,8 @@ export function Track() {
   const [error, setError] = useState<string | null>(null);
   const { playSong } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
+
+  useDocumentTitle(track?.title);
 
   const load = () => {
     if (!id) return;

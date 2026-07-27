@@ -379,9 +379,11 @@ describe('OpenSubsonic browsing endpoints', () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].artist.name).toBe('Alpha Artist');
-    expect(body['subsonic-response'].artist.albumCount).toBe('1');
+    expect(body['subsonic-response'].artist.albumCount).toBe(1);
     expect(body['subsonic-response'].artist.album).toHaveLength(1);
     expect(body['subsonic-response'].artist.album[0].name).toBe('First Album');
+    expect(body['subsonic-response'].artist.album[0].songCount).toBe(2);
+    expect(body['subsonic-response'].artist.album[0].duration).toBe(380);
   });
 
   it('returns a controlled error for a missing artist', async () => {
@@ -401,6 +403,8 @@ describe('OpenSubsonic browsing endpoints', () => {
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].albumList2.album).toHaveLength(1);
     expect(body['subsonic-response'].albumList2.album[0].name).toBe('First Album');
+    expect(body['subsonic-response'].albumList2.album[0].songCount).toBe(2);
+    expect(body['subsonic-response'].albumList2.album[0].duration).toBe(380);
   });
 
   it('returns genres from getGenres', async () => {
@@ -436,7 +440,7 @@ describe('OpenSubsonic browsing endpoints', () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].searchResult3.artist).toHaveLength(3);
-    expect(body['subsonic-response'].searchResult3.artist[0].albumCount).toBe('1');
+    expect(body['subsonic-response'].searchResult3.artist[0].albumCount).toBe(1);
     expect(body['subsonic-response'].searchResult3.album).toHaveLength(1);
     expect(body['subsonic-response'].searchResult3.song).toHaveLength(2);
   });

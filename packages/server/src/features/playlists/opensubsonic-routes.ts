@@ -211,6 +211,7 @@ function toOpenSubsonicPlaylist(
 ): Record<string, unknown> {
   const viewer = getUserById(db, userId);
   const hideExplicit = viewer?.hideExplicit === true;
+  const owner = getUserById(db, p.ownerId);
   const songIds = includeEntries ? resolvePlaylistSongIds(db, p, userId) : [];
   const rawCount = resolvePlaylistSongCount(db, p, userId);
   const entries = includeEntries ? fetchPlaylistSongs(db, songIds) : [];
@@ -219,7 +220,7 @@ function toOpenSubsonicPlaylist(
   const base: Record<string, unknown> = {
     id: p.id,
     name: p.name,
-    owner: p.ownerId,
+    owner: owner?.username ?? '',
     public: p.visibility === 'public' || p.visibility === 'link',
     songCount,
     created: p.createdAt,

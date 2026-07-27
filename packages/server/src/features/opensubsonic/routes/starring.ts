@@ -4,6 +4,8 @@ import { sendSubsonicReply } from '../responses.js';
 import { scrobbleSong } from '../../songs/index.js';
 import {
   toOpenSubsonicAlbum,
+  toOpenSubsonicArtist,
+  toStarredDate,
   fetchOpenSubsonicSongsByIds,
 } from './browsing.js';
 import { getAlbumArtistEntriesForMany } from '../../albums/repository.js';
@@ -105,20 +107,18 @@ export function registerStarringRoutes(app: FastifyInstance, db: Database.Databa
     const albums = albumRows.map((album) => toOpenSubsonicAlbum(album, [], 0, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id)));
 
     const artistRows = db.prepare(`
-      SELECT ar.*, uar.starred, uar.rating
+      SELECT ar.*, uar.starred, uar.rating,
+        (SELECT COUNT(*)
+         FROM albums a
+         WHERE a.active = 1
+           AND (a.artist_id = ar.id
+                OR EXISTS (SELECT 1 FROM album_artists aa WHERE aa.album_id = a.id AND aa.artist_id = ar.id))
+        ) AS album_count
       FROM artists ar
       JOIN user_artists uar ON uar.artist_id = ar.id AND uar.user_id = ? AND uar.starred = 1
       WHERE ar.active = 1
     `).all(userId) as StarredArtistRow[];
-    const artists = artistRows.map((artist) => ({
-      id: artist.id,
-      name: artist.name,
-      coverArt: artist.id,
-      artistImageUrl: artist.artist_image_url ?? undefined,
-      albumCount: String(artist.album_count ?? 0),
-      ...(artist.starred !== null ? { starred: Boolean(artist.starred) } : {}),
-      ...(artist.rating !== null ? { userRating: artist.rating } : {}),
-    }));
+    const artists = artistRows.map((artist) => toOpenSubsonicArtist(artist, userId));
 
     sendSubsonicReply(reply, format, { starred2: { song: songs, album: albums, artist: artists } });
   });
@@ -153,7 +153,7 @@ interface StarredArtistRow {
   name: string;
   artist_image_url: string | null;
   musicbrainz_artist_ids: string | null;
-  album_count: number | null;
+  album_count: number;
   starred: number | null;
   rating: number | null;
 }
