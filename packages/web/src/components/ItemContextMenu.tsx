@@ -50,10 +50,10 @@ export function ItemContextMenu({ sections, children }: ItemContextMenuProps) {
       }
     };
     document.addEventListener('mousedown', handleMouse);
-    document.addEventListener('keydown', handleKey);
+    document.addEventListener('keydown', handleKey, true);
     return () => {
       document.removeEventListener('mousedown', handleMouse);
-      document.removeEventListener('keydown', handleKey);
+      document.removeEventListener('keydown', handleKey, true);
     };
   }, [open]);
 
