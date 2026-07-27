@@ -75,4 +75,14 @@ describe('QueuePanel', () => {
     expect(screen.getByRole('menuitem', { name: /play now/i })).toBeTruthy();
     expect(screen.getByRole('menuitem', { name: /remove from queue/i })).toBeTruthy();
   });
+
+  it('shows an Auto DJ pill for Auto DJ-added queue items', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'First' } as any,
+      { id: 's2', title: 'Second', addedByAutoDj: true } as any,
+    ], 0);
+
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+    expect(screen.getByText('Auto DJ')).toBeTruthy();
+  });
 });

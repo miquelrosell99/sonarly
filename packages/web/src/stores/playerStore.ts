@@ -5,7 +5,7 @@ import type { Song } from '@sonarly/shared';
 export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 export type RepeatMode = 'off' | 'all' | 'one';
 
-export type PlayerSong = Song & { artistName?: string; albumName?: string };
+export type PlayerSong = Song & { artistName?: string; albumName?: string; addedByAutoDj?: boolean };
 
 interface PlayerState {
   currentSong: PlayerSong | null;
@@ -24,7 +24,8 @@ interface PlayerActions {
   playNow: (song: PlayerSong) => void;
   playQueue: (songs: PlayerSong[], startIndex?: number, shuffle?: boolean) => void;
   playNext: (song: PlayerSong) => void;
-  addToQueue: (songs: PlayerSong[]) => void;
+  addToQueue: (songs: PlayerSong[], options?: { addedByAutoDj?: boolean }) => void;
+  removeAutoDjItems: () => void;
   togglePlay: () => void;
   play: () => void;
   pause: () => void;
@@ -122,15 +123,45 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
         set({ queue: nextQueue, shuffledIndices: nextShuffled });
       },
 
-      addToQueue: (songs) => {
+      addToQueue: (songs, options) => {
         const { queue, shuffle, shuffledIndices } = get();
-        const nextQueue = [...queue, ...songs];
+        const markedSongs = options?.addedByAutoDj
+          ? songs.map((song) => ({ ...song, addedByAutoDj: true as const }))
+          : songs;
+        const nextQueue = [...queue, ...markedSongs];
         let nextShuffled = shuffledIndices;
         if (shuffle) {
           const existingLength = queue.length;
-          const newIndices = songs.map((_, i) => existingLength + i);
+          const newIndices = markedSongs.map((_, i) => existingLength + i);
           nextShuffled = [...shuffledIndices, ...newIndices];
         }
+        set({ queue: nextQueue, shuffledIndices: nextShuffled });
+      },
+
+      removeAutoDjItems: () => {
+        const { queue, queueIndex, shuffle, shuffledIndices } = get();
+        const removedIndices = new Set<number>();
+        const nextQueue = queue.filter((song, index) => {
+          const remove = index > queueIndex && song.addedByAutoDj;
+          if (remove) removedIndices.add(index);
+          return !remove;
+        });
+
+        if (removedIndices.size === 0) return;
+
+        let nextShuffled = shuffledIndices;
+        if (shuffle) {
+          nextShuffled = shuffledIndices
+            .filter((index) => !removedIndices.has(index))
+            .map((index) => {
+              let offset = 0;
+              for (const removed of removedIndices) {
+                if (removed < index) offset += 1;
+              }
+              return index - offset;
+            });
+        }
+
         set({ queue: nextQueue, shuffledIndices: nextShuffled });
       },
 
