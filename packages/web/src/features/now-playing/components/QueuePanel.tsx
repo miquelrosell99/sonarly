@@ -71,7 +71,8 @@ function SortableQueueRow({ song, index, isCurrent, onPlay, onRemove, user }: Qu
         style={style}
         className={cn(
           'group flex items-center gap-3 rounded-lg border-l-4 px-3 py-2 transition',
-          isCurrent ? 'border-accent bg-accent/10' : 'border-transparent hover:bg-surface-hover'
+          isCurrent ? 'border-accent bg-accent/10' : 'border-transparent hover:bg-surface-hover',
+          isDragging && 'z-10 scale-[1.02] shadow-lg'
         )}
       >
         <button
@@ -136,8 +137,12 @@ export function QueuePanel({ user }: { user: User }) {
     const newIndex = store.queue.findIndex((s) => s.id === over.id);
     const nextQueue = arrayMove(store.queue, oldIndex, newIndex);
     let nextIndex = store.queueIndex;
-    if (oldIndex < store.queueIndex && newIndex >= store.queueIndex) nextIndex -= 1;
-    if (oldIndex > store.queueIndex && newIndex <= store.queueIndex) nextIndex += 1;
+    if (oldIndex === store.queueIndex) {
+      nextIndex = newIndex;
+    } else {
+      if (oldIndex < store.queueIndex && newIndex >= store.queueIndex) nextIndex -= 1;
+      if (oldIndex > store.queueIndex && newIndex <= store.queueIndex) nextIndex += 1;
+    }
     usePlayer.setState({ queue: nextQueue, queueIndex: nextIndex });
     setItems(nextQueue);
   };
@@ -157,18 +162,21 @@ export function QueuePanel({ user }: { user: User }) {
         .map((i) => (i > index ? i - 1 : i));
 
     if (isCurrent) {
-      if (nextQueue.length > 0 && index < nextQueue.length) {
-        const nextSong = nextQueue[index];
-        usePlayer.setState({
-          queue: nextQueue,
-          queueIndex: index,
-          currentSong: nextSong,
-          status: 'playing',
-          currentTime: 0,
-          duration: nextSong.duration ?? 0,
-          ...(store.shuffle ? { shuffledIndices: adjustShuffledIndices() } : {}),
-        });
+      let nextIndex: number | null = null;
+      if (store.shuffle) {
+        const position = store.shuffledIndices.indexOf(index);
+        const nextPosition = position + 1;
+        if (nextPosition < store.shuffledIndices.length) {
+          nextIndex = store.shuffledIndices[nextPosition];
+        }
       } else {
+        nextIndex = index + 1;
+        if (nextIndex >= store.queue.length) {
+          nextIndex = null;
+        }
+      }
+
+      if (nextIndex === null || nextQueue.length === 0) {
         usePlayer.setState({
           queue: nextQueue,
           queueIndex: 0,
@@ -176,7 +184,19 @@ export function QueuePanel({ user }: { user: User }) {
           status: 'idle',
           currentTime: 0,
           duration: 0,
-          shuffledIndices: [],
+          shuffledIndices: store.shuffle ? adjustShuffledIndices() : [],
+        });
+      } else {
+        if (nextIndex > index) nextIndex -= 1;
+        const nextSong = nextQueue[nextIndex];
+        usePlayer.setState({
+          queue: nextQueue,
+          queueIndex: nextIndex,
+          currentSong: nextSong,
+          status: 'playing',
+          currentTime: 0,
+          duration: nextSong?.duration ?? 0,
+          ...(store.shuffle ? { shuffledIndices: adjustShuffledIndices() } : {}),
         });
       }
       return;
