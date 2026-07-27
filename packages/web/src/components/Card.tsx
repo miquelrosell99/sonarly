@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'wouter';
 import { cn } from '../lib/cn.js';
-import { Icon } from './ui/Icon.js';
+import { PlayButton } from './PlayButton.js';
 import { FavoriteButton, StarRating } from './ActionButtons.js';
 
 export interface CardActionFavorite {
@@ -16,7 +16,8 @@ export interface CardActionRating {
 }
 
 export interface CardActionPlay {
-  onClick: () => void;
+  onPlay: () => void;
+  onShufflePlay: () => void;
   label?: string;
 }
 
@@ -80,18 +81,14 @@ export function Card({
             </div>
           )}
           {play && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                play.onClick();
-              }}
-              className="pointer-events-none absolute bottom-2 right-2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-accent text-bg-primary opacity-0 shadow-lg shadow-black/30 transition-all duration-200 hover:scale-105 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent group-hover/card:pointer-events-auto group-hover/card:opacity-100"
-              aria-label={play.label ?? 'Play'}
-            >
-              <Icon name="mdi-play" size={22} />
-            </button>
+            <div className="pointer-events-none absolute bottom-2 right-2 z-10 opacity-0 transition-all duration-200 group-hover/card:pointer-events-auto group-hover/card:opacity-100">
+              <PlayButton
+                variant="overlay"
+                onPlay={play.onPlay}
+                onShufflePlay={play.onShufflePlay}
+                label={play.label}
+              />
+            </div>
           )}
         </Link>
       ) : null}
@@ -135,18 +132,14 @@ export function Card({
         </div>
       )}
       {!cover && play && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            play.onClick();
-          }}
-          className="pointer-events-none absolute bottom-2 right-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-accent text-bg-primary opacity-0 shadow-lg transition-opacity hover:bg-accent/90 focus-visible:outline-none group-hover/card:pointer-events-auto group-hover/card:opacity-100"
-          aria-label={play.label ?? 'Play'}
-        >
-          <Icon name="mdi-play" size={20} />
-        </button>
+        <div className="pointer-events-none absolute bottom-2 right-2 z-10 opacity-0 transition-all duration-200 group-hover/card:pointer-events-auto group-hover/card:opacity-100">
+          <PlayButton
+            variant="overlay"
+            onPlay={play.onPlay}
+            onShufflePlay={play.onShufflePlay}
+            label={play.label}
+          />
+        </div>
       )}
     </div>
   );
