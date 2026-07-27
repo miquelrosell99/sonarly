@@ -20,8 +20,18 @@ export function SettingsPlayback() {
 
   const setEnabled = (next: boolean) => updatePreferences.mutate({ autoDjEnabled: next });
   const setMode = (next: AutoDjMode) => updatePreferences.mutate({ autoDjMode: next });
-  const setThreshold = (next: number) => updatePreferences.mutate({ autoDjTopUpThreshold: next });
-  const setBatchSize = (next: number) => updatePreferences.mutate({ autoDjBatchSize: next });
+
+  const clampThreshold = (value: number) => Math.min(20, Math.max(1, value));
+  const clampBatchSize = (value: number) => Math.min(50, Math.max(1, value));
+
+  const setThreshold = (next: number) => {
+    if (!Number.isFinite(next)) return;
+    updatePreferences.mutate({ autoDjTopUpThreshold: clampThreshold(next) });
+  };
+  const setBatchSize = (next: number) => {
+    if (!Number.isFinite(next)) return;
+    updatePreferences.mutate({ autoDjBatchSize: clampBatchSize(next) });
+  };
 
   return (
     <Settings>
@@ -75,6 +85,7 @@ export function SettingsPlayback() {
               max={20}
               value={threshold}
               onChange={(e) => setThreshold(Number(e.target.value))}
+              onBlur={() => setThreshold(clampThreshold(threshold))}
               className="w-full"
             />
           </div>
@@ -87,6 +98,7 @@ export function SettingsPlayback() {
               max={50}
               value={batchSize}
               onChange={(e) => setBatchSize(Number(e.target.value))}
+              onBlur={() => setBatchSize(clampBatchSize(batchSize))}
               className="w-full"
             />
           </div>

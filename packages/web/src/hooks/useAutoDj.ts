@@ -5,27 +5,26 @@ import { api } from '../api.js';
 
 const DEFAULT_THRESHOLD = 5;
 const DEFAULT_BATCH_SIZE = 10;
+const MAX_EXCLUDE_IDS = 500;
 
 export function useAutoDj() {
   const {
     currentSong,
     queue,
     queueIndex,
-    autoDjEnabled,
-    autoDjMode,
     addToQueue,
   } = usePlayer((state) => ({
     currentSong: state.currentSong,
     queue: state.queue,
     queueIndex: state.queueIndex,
-    autoDjEnabled: state.autoDjEnabled,
-    autoDjMode: state.autoDjMode,
     addToQueue: state.addToQueue,
   }));
 
   const { data: preferences } = usePreferences();
   const fetchingRef = useRef(false);
 
+  const autoDjEnabled = preferences?.autoDjEnabled ?? false;
+  const autoDjMode = preferences?.autoDjMode ?? 'smart';
   const threshold = preferences?.autoDjTopUpThreshold ?? DEFAULT_THRESHOLD;
   const batchSize = preferences?.autoDjBatchSize ?? DEFAULT_BATCH_SIZE;
 
@@ -36,7 +35,8 @@ export function useAutoDj() {
     if (remaining > threshold) return;
     if (fetchingRef.current) return;
 
-    const excludeIds = queue.map((song) => song.id);
+    const recentQueueIds = queue.slice(-MAX_EXCLUDE_IDS).map((song) => song.id);
+    const excludeIds = Array.from(new Set([currentSong.id, ...recentQueueIds]));
     const params = new URLSearchParams({
       currentSongId: currentSong.id,
       mode: autoDjMode,
