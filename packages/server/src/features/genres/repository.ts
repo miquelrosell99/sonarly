@@ -284,20 +284,38 @@ export function getRandomAlbumsByGenre(
   genreId: string,
   limit: number,
   hideExplicit: boolean,
+  libraryId?: string,
 ): Album[] {
   const explicitHaving = hideExplicit
     ? 'HAVING SUM(CASE WHEN s.explicit = 0 THEN 1 ELSE 0 END) > 0'
     : '';
+  const libraryFilter = libraryId ? 'AND s.library_id = ?' : '';
+  const libraryParams = libraryId ? [libraryId] : [];
   const rows = db.prepare(`
     SELECT a.*
     FROM albums a
     JOIN album_genres ag ON ag.album_id = a.id
-    LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1
+    LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1 ${libraryFilter}
     WHERE a.active = 1 AND ag.genre_id = ?
     GROUP BY a.id
     ${explicitHaving}
     ORDER BY RANDOM()
     LIMIT ?
-  `).all(genreId, limit) as DbAlbum[];
+  `).all(...libraryParams, genreId, limit) as DbAlbum[];
   return rows.map(toAlbum);
+}
+
+export function getGenreIdsForLibrary(db: Database.Database, libraryId: string): Set<string> {
+  const rows = db.prepare(`
+    SELECT DISTINCT sg.genre_id AS id
+    FROM song_genres sg
+    JOIN songs s ON s.id = sg.song_id
+    WHERE s.active = 1 AND s.library_id = ?
+    UNION
+    SELECT DISTINCT ag.genre_id AS id
+    FROM album_genres ag
+    JOIN songs s ON s.album_id = ag.album_id
+    WHERE s.active = 1 AND s.library_id = ?
+  `).all(libraryId, libraryId) as { id: string }[];
+  return new Set(rows.map((r) => r.id));
 }

@@ -1,22 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
-import { Input } from '../../../components/ui/Input.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { AdminShell } from '../components/AdminShell.js';
 import { RenameProgressModal } from '../../settings/index.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
-
-interface Template {
-  label: string;
-  value: string;
-}
-
-interface MediaSettings {
-  organizePattern: string;
-  templates: Template[];
-}
 
 interface AdminStatusCounts {
   counts: {
@@ -27,97 +16,24 @@ interface AdminStatusCounts {
   };
 }
 
-const sampleTags: Record<string, string> = {
-  artist: 'The Beatles',
-  albumArtist: 'The Beatles',
-  album: 'Abbey Road',
-  title: 'Come Together',
-  track: '3',
-  'track:00': '03',
-  disc: '1',
-  'disc:00': '01',
-  year: '1969',
-  genre: 'Rock',
-};
-
-function sanitize(name: string): string {
-  return name
-    .replace(/[\\/:*?"<>|]/g, '_')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/\.$/, '') || '_';
-}
-
-function buildPreviewPath(pattern: string): string {
-  const patternWithoutExt = pattern.replace(/\{ext\}/g, '');
-  const relativePath = patternWithoutExt.replace(/\{([a-zA-Z0-9:]+)\}/g, (_, token) => {
-    return sampleTags[token] ?? '';
-  });
-  const sanitized = relativePath.split('/').map(sanitize).join('/');
-  return `/library/${sanitized}.mp3`;
-}
-
 interface AdminMediaProps {
   user: User;
 }
 
 export function AdminMedia({ user }: AdminMediaProps) {
   const { notify } = useNotification();
-  const [pattern, setPattern] = useState('');
-  const [initialPattern, setInitialPattern] = useState('');
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [jobId, setJobId] = useState<string | null>(null);
   const [counts, setCounts] = useState<AdminStatusCounts['counts'] | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
   const [triggeringIngest, setTriggeringIngest] = useState(false);
   const [refetchingArtists, setRefetchingArtists] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      api<MediaSettings>('/settings/media'),
-      api<AdminStatusCounts>('/admin/status'),
-    ])
-      .then(([settingsData, statusData]) => {
-        setPattern(settingsData.organizePattern);
-        setInitialPattern(settingsData.organizePattern);
-        setTemplates(settingsData.templates);
-        setSelectedTemplate(settingsData.templates.find((t) => t.value === settingsData.organizePattern)?.value ?? '');
-        setCounts(statusData.counts);
-      })
+    api<AdminStatusCounts>('/admin/status')
+      .then((statusData) => setCounts(statusData.counts))
       .catch((err) => notify(err instanceof Error ? err.message : 'Failed to load settings', 'error'))
       .finally(() => setLoading(false));
   }, [notify]);
-
-  const previewPath = useMemo(() => buildPreviewPath(pattern), [pattern]);
-  const isDirty = pattern !== initialPattern;
-
-  const handlePatternChange = (value: string) => {
-    setPattern(value);
-    setSelectedTemplate(templates.find((t) => t.value === value)?.value ?? '');
-  };
-
-  const handleTemplateSelect = (value: string) => {
-    setSelectedTemplate(value);
-    setPattern(value);
-  };
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      await api<{ organizePattern: string }>('/settings/media', {
-        method: 'PATCH',
-        body: JSON.stringify({ organizePattern: pattern }),
-      });
-      setInitialPattern(pattern);
-      notify('Settings saved.', 'success');
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to save settings', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const forceRename = async () => {
     try {
@@ -168,11 +84,9 @@ export function AdminMedia({ user }: AdminMediaProps) {
       <div className="w-full space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-medium">Media Management</h3>
-          {isDirty && (
-            <Button onClick={save} disabled={saving || !pattern.trim()}>
-              {saving ? 'Saving...' : 'Save changes'}
-            </Button>
-          )}
+          <Button onClick={forceRename} disabled={jobId !== null} variant="ghost">
+            {jobId !== null ? 'Renaming...' : 'Force rename'}
+          </Button>
         </div>
 
         {counts && (
@@ -217,49 +131,12 @@ export function AdminMedia({ user }: AdminMediaProps) {
           </Button>
         </div>
 
-        <div>
-          <label htmlFor="template" className="mb-1 block text-sm font-medium text-fg-primary">
-            Template
-          </label>
-          <select
-            id="template"
-            value={selectedTemplate}
-            onChange={(e) => handleTemplateSelect(e.target.value)}
-            className="input"
-          >
-            <option value="">Select a template</option>
-            {templates.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor="pattern" className="mb-1 block text-sm font-medium text-fg-primary">
-            Organization pattern
-          </label>
-          <div className="flex gap-2">
-            <Input
-              id="pattern"
-              value={pattern}
-              onChange={(e) => handlePatternChange(e.target.value)}
-              placeholder="{albumArtist}/({year}) {album}/{disc:00}{track:00} - {title}"
-              className="flex-1"
-            />
-            <Button onClick={forceRename} disabled={jobId !== null} variant="ghost">
-              {jobId !== null ? 'Renaming...' : 'Force rename'}
-            </Button>
-          </div>
-          <p className="mt-1 text-xs text-muted">
-            Available variables: artist, albumArtist, album, title, track, track:00, disc, disc:00, year, genre. The file extension is always appended.
-          </p>
-        </div>
-
         <div className="rounded-md border border-rule bg-surface p-3">
-          <p className="text-xs font-medium text-muted">Preview</p>
-          <code className="mt-1 block break-all text-sm text-fg-primary">{previewPath}</code>
+          <p className="text-sm text-fg-secondary">
+            The organization pattern is now configured per library. Edit a library from the{' '}
+            <a href="/admin/libraries" className="text-accent hover:underline">Libraries</a>{' '}
+            page to change how uploaded and reorganized files are named.
+          </p>
         </div>
       </div>
 

@@ -9,6 +9,7 @@ import {
   buildGenrePaths,
   updateGenreNameCache,
   getRandomAlbumsByGenre,
+  getGenreIdsForLibrary,
 } from './repository.js';
 import { getUserById } from '../users/index.js';
 
@@ -29,7 +30,7 @@ interface GenreNode {
   children: GenreNode[];
 }
 
-function buildTree(genres: ReturnType<typeof listGenres>): GenreNode[] {
+function buildTree(genres: ReturnType<typeof listGenres>, allowedIds?: Set<string>): GenreNode[] {
   const byId = new Map<string, GenreNode>();
   const roots: GenreNode[] = [];
 
@@ -58,10 +59,20 @@ function buildTree(genres: ReturnType<typeof listGenres>): GenreNode[] {
       setPath(child, node.path);
     }
   }
+
+  function prune(node: GenreNode): boolean {
+    node.children = node.children.filter((child) => prune(child));
+    const keep = !allowedIds || allowedIds.has(node.id) || node.children.length > 0;
+    return keep;
+  }
+
   for (const root of roots) {
     setPath(root, '');
   }
 
+  if (allowedIds) {
+    return roots.filter((root) => prune(root));
+  }
   return roots;
 }
 
@@ -70,15 +81,21 @@ export function registerGenreManagementRoutes(app: FastifyInstance, db: Database
     const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
     if (!session?.userId) return reply.status(401).send({ error: 'Unauthorized' });
 
+    const { libraryId } = request.query as { libraryId?: string };
+    const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
+    const allowedIds = libraryFilter ? getGenreIdsForLibrary(db, libraryId) : undefined;
+
     const genres = listGenres(db);
     const paths = buildGenrePaths(db);
-    const nodes = genres.map((g) => ({
-      id: g.id,
-      name: g.name,
-      parentId: g.parentId,
-      path: paths.get(g.id) ?? g.name,
-      active: g.active,
-    }));
+    const nodes = genres
+      .filter((g) => !allowedIds || allowedIds.has(g.id))
+      .map((g) => ({
+        id: g.id,
+        name: g.name,
+        parentId: g.parentId,
+        path: paths.get(g.id) ?? g.name,
+        active: g.active,
+      }));
     reply.send({ genres: nodes });
   });
 
@@ -86,8 +103,12 @@ export function registerGenreManagementRoutes(app: FastifyInstance, db: Database
     const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
     if (!session?.userId) return reply.status(401).send({ error: 'Unauthorized' });
 
+    const { libraryId } = request.query as { libraryId?: string };
+    const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
+    const allowedIds = libraryFilter ? getGenreIdsForLibrary(db, libraryId) : undefined;
+
     const genres = listGenres(db);
-    reply.send({ tree: buildTree(genres) });
+    reply.send({ tree: buildTree(genres, allowedIds) });
   });
 
   app.post('/api/genres', (request: FastifyRequest, reply: FastifyReply) => {
@@ -164,11 +185,12 @@ export function registerGenreManagementRoutes(app: FastifyInstance, db: Database
     const genre = getGenreById(db, id);
     if (!genre) return reply.status(404).send({ error: 'Genre not found' });
 
-    const query = request.query as { limit?: string };
+    const query = request.query as { limit?: string; libraryId?: string };
     const limit = Math.min(Math.max(parseInt(query.limit ?? '4', 10) || 4, 1), 20);
     const hideExplicit = getUserById(db, session.userId)?.hideExplicit === true;
+    const libraryId = typeof query.libraryId === 'string' && query.libraryId.length > 0 ? query.libraryId : undefined;
 
-    const albums = getRandomAlbumsByGenre(db, id, limit, hideExplicit);
+    const albums = getRandomAlbumsByGenre(db, id, limit, hideExplicit, libraryId);
     reply.send({ albums });
   });
 }

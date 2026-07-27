@@ -3,19 +3,21 @@ import { Link } from 'wouter';
 import type { Album } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
+import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 
 export function Labels() {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   useEffect(() => {
     setLoading(true);
-    api<{ albums: Album[] }>('/albums')
+    api<{ albums: Album[] }>(`/albums${buildLibraryQuery(selectedLibraryId)}`)
       .then((res) => setAlbums(res.albums))
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load labels'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedLibraryId]);
 
   const labels = Array.from(
     new Set(albums.flatMap((album) => album.labels ?? [])),
