@@ -66,4 +66,36 @@ describe('PlayerBar', () => {
     expect(mockSetRating).toHaveBeenCalledWith(3);
     await waitFor(() => expect(mockUpdateCurrentSong).toHaveBeenCalledWith({ rating: 3 }));
   });
+
+  it('renders separate clickable links for each artist', () => {
+    usePlayer.getState().playQueue([
+      {
+        id: 's1',
+        title: 'Now Playing',
+        artistEntries: [
+          { id: 'a1', name: 'Artist One' },
+          { id: 'a2', name: 'Artist Two' },
+        ],
+      } as any,
+    ], 0);
+
+    render(<PlayerBar />);
+    const links = screen.getAllByRole('link');
+    expect(links).toHaveLength(2);
+    expect(links[0].getAttribute('href')).toBe('/artists/a1');
+    expect(screen.getByText('Artist One')).toBeTruthy();
+    expect(links[1].getAttribute('href')).toBe('/artists/a2');
+    expect(screen.getByText('Artist Two')).toBeTruthy();
+  });
+
+  it('falls back to a single artist link when artistEntries is not available', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'Now Playing', artistId: 'a1', artistName: 'Artist One' } as any,
+    ], 0);
+
+    render(<PlayerBar />);
+    const link = screen.getByRole('link');
+    expect(link.getAttribute('href')).toBe('/artists/a1');
+    expect(screen.getByText('Artist One')).toBeTruthy();
+  });
 });
