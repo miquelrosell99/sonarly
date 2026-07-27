@@ -5,7 +5,7 @@ import type Database from 'better-sqlite3';
 import { lookup } from 'mime-types';
 import type { Config } from '../../../config.js';
 import { sendSubsonicReply } from '../responses.js';
-import { getSongArtistEntriesForMany } from '../../songs/repository.js';
+import { getSongArtistEntriesForMany, getAlbumSongStatsForMany } from '../../songs/repository.js';
 import { getAlbumArtistEntriesForMany } from '../../albums/repository.js';
 import {
   getSongGenreNamesForMany,
@@ -103,7 +103,12 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const format = (request as any).subsonicFormat;
     const artists = db.prepare(`
       SELECT ar.id, ar.name, ar.artist_image_url, ar.musicbrainz_artist_ids,
-        (SELECT COUNT(*) FROM albums a WHERE a.artist_id = ar.id AND a.active = 1) AS album_count
+        (SELECT COUNT(*)
+         FROM albums a
+         WHERE a.active = 1
+           AND (a.artist_id = ar.id
+                OR EXISTS (SELECT 1 FROM album_artists aa WHERE aa.album_id = a.id AND aa.artist_id = ar.id))
+        ) AS album_count
       FROM artists ar
       WHERE ar.active = 1
       ORDER BY ar.name
@@ -124,7 +129,12 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const artists = db.prepare(`
       SELECT ar.id, ar.name, ar.artist_image_url, ar.musicbrainz_artist_ids,
         uar.starred, uar.rating,
-        (SELECT COUNT(*) FROM albums a WHERE a.artist_id = ar.id AND a.active = 1) AS album_count
+        (SELECT COUNT(*)
+         FROM albums a
+         WHERE a.active = 1
+           AND (a.artist_id = ar.id
+                OR EXISTS (SELECT 1 FROM album_artists aa WHERE aa.album_id = a.id AND aa.artist_id = ar.id))
+        ) AS album_count
       FROM artists ar
       LEFT JOIN user_artists uar ON uar.user_id = ? AND uar.artist_id = ar.id
       WHERE ar.active = 1
@@ -224,8 +234,10 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       ORDER BY a.year, a.name
     `).all(userId ?? null, id) as (AlbumRow & AlbumInteractions)[];
 
-    const albumArtistMap = getAlbumArtistEntriesForMany(db, albums.map((a) => a.id));
-    const albumGenreMap = getAlbumGenreNamesForMany(db, albums.map((a) => a.id));
+    const albumIds = albums.map((a) => a.id);
+    const albumArtistMap = getAlbumArtistEntriesForMany(db, albumIds);
+    const albumGenreMap = getAlbumGenreNamesForMany(db, albumIds);
+    const albumStatsMap = getAlbumSongStatsForMany(db, albumIds);
     sendSubsonicReply(reply, format, {
       artist: {
         id: artist.id,
@@ -233,8 +245,11 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
         coverArt: artist.id,
         artistImageUrl: artist.artist_image_url ?? undefined,
         musicBrainzIds: artist.musicbrainz_artist_ids ? JSON.parse(artist.musicbrainz_artist_ids) : undefined,
-        albumCount: String(albums.length),
-        album: albums.map((album) => toOpenSubsonicAlbum(album, [], 0, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id))),
+        albumCount: albums.length,
+        album: albums.map((album) => {
+          const stats = albumStatsMap.get(album.id) ?? { songCount: 0, duration: 0 };
+          return toOpenSubsonicAlbum(album, [], stats.duration, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), stats.songCount);
+        }),
         ...(userId ? toArtistInteractions(artist) : {}),
       },
     });
@@ -307,7 +322,12 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const artistParams = term ? [userId ?? null, like, artistCount, artistOffset] : [userId ?? null, artistCount, artistOffset];
     const artists = db.prepare(`
       SELECT ar.*, uar.starred, uar.rating,
-        (SELECT COUNT(*) FROM albums a WHERE a.artist_id = ar.id AND a.active = 1) AS album_count
+        (SELECT COUNT(*)
+         FROM albums a
+         WHERE a.active = 1
+           AND (a.artist_id = ar.id
+                OR EXISTS (SELECT 1 FROM album_artists aa WHERE aa.album_id = a.id AND aa.artist_id = ar.id))
+        ) AS album_count
       FROM artists ar
       LEFT JOIN user_artists uar ON uar.user_id = ? AND uar.artist_id = ar.id
       WHERE ar.active = 1 ${artistWhere}
@@ -318,7 +338,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       result.artist = artists.map((artist) => ({
         id: artist.id,
         name: artist.name,
-        albumCount: String(artist.album_count),
+        albumCount: artist.album_count,
         coverArt: artist.id,
         artistImageUrl: artist.artist_image_url ?? undefined,
         ...(userId ? toArtistInteractions(artist) : {}),
@@ -337,9 +357,14 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       LIMIT ? OFFSET ?
     `).all(...albumParams) as (AlbumRow & AlbumInteractions)[];
     if (albums.length) {
-      const albumArtistMap = getAlbumArtistEntriesForMany(db, albums.map((a) => a.id));
-      const albumGenreMap = getAlbumGenreNamesForMany(db, albums.map((a) => a.id));
-      result.album = albums.map((album) => toOpenSubsonicAlbum(album, [], 0, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id)));
+      const albumIds = albums.map((a) => a.id);
+      const albumArtistMap = getAlbumArtistEntriesForMany(db, albumIds);
+      const albumGenreMap = getAlbumGenreNamesForMany(db, albumIds);
+      const albumStatsMap = getAlbumSongStatsForMany(db, albumIds);
+      result.album = albums.map((album) => {
+        const stats = albumStatsMap.get(album.id) ?? { songCount: 0, duration: 0 };
+        return toOpenSubsonicAlbum(album, [], stats.duration, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), stats.songCount);
+      });
     }
 
     const songWhere = term ? "AND (s.title LIKE ? ESCAPE '\\' OR ar.name LIKE ? ESCAPE '\\' OR a.name LIKE ? ESCAPE '\\')" : '';
@@ -525,10 +550,13 @@ export function toOpenSubsonicAlbum(
   userId?: string,
   artistEntries?: { id: string; name: string }[],
   genreNames?: string[],
+  songCount?: number,
 ): Record<string, unknown> {
   const artists = artistEntries && artistEntries.length > 0
     ? artistEntries
     : album.artist_id ? [{ id: album.artist_id, name: album.artist_name ?? '' }] : [];
+  const genreName = (genreNames?.[0] ?? album.genre) || undefined;
+  const genres = (genreNames ?? (album.genre ? [album.genre] : [])).map((name) => ({ name }));
   const result: Record<string, unknown> = {
     id: album.id,
     name: album.name,
@@ -541,14 +569,22 @@ export function toOpenSubsonicAlbum(
     isDir: true,
     isVideo: false,
     parent: artists[0]?.id ?? album.artist_id ?? '',
-    songCount: songs.length,
-    duration,
+    songCount: songCount ?? songs.length,
+    duration: Math.round(duration),
     created: new Date().toISOString(),
-    year: album.year,
-    genre: genreNames?.[0] ?? album.genre,
-    genres: (genreNames ?? (album.genre ? [album.genre] : [])).map((name) => ({ name })),
-    song: songs,
   };
+  if (album.year !== null && album.year !== undefined) {
+    result.year = album.year;
+  }
+  if (genreName) {
+    result.genre = genreName;
+  }
+  if (genres.length) {
+    result.genres = genres;
+  }
+  if (songs.length) {
+    result.song = songs;
+  }
 
   if (album.average_rating !== undefined && album.average_rating !== null) {
     result.averageRating = album.average_rating;
@@ -581,15 +617,18 @@ export function toOpenSubsonicAlbum(
     result.musicBrainzArtistIds = JSON.parse(album.musicbrainz_album_artist_ids);
   }
   if (album.total_tracks !== null && album.total_tracks !== undefined) {
-    result.trackCount = album.total_tracks;
+    const trackCount = parseInt(String(album.total_tracks), 10);
+    if (!Number.isNaN(trackCount)) result.trackCount = trackCount;
   }
   if (album.total_discs !== null && album.total_discs !== undefined) {
-    result.discCount = album.total_discs;
+    const discCount = parseInt(String(album.total_discs), 10);
+    if (!Number.isNaN(discCount)) result.discCount = discCount;
   }
 
   if (userId) {
-    if (album.starred !== undefined && album.starred !== null) {
-      result.starred = Boolean(album.starred);
+    const starredDate = toStarredDate(album.starred);
+    if (starredDate !== undefined) {
+      result.starred = starredDate;
     }
     if (album.rating !== undefined && album.rating !== null) {
       result.userRating = album.rating;
@@ -601,8 +640,9 @@ export function toOpenSubsonicAlbum(
 
 function toArtistInteractions(artist: ArtistRow & Partial<ArtistInteractions>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
-  if (artist.starred !== undefined && artist.starred !== null) {
-    result.starred = Boolean(artist.starred);
+  const starredDate = toStarredDate(artist.starred);
+  if (starredDate !== undefined) {
+    result.starred = starredDate;
   }
   if (artist.rating !== undefined && artist.rating !== null) {
     result.userRating = artist.rating;
@@ -623,7 +663,7 @@ function groupArtistsByInitial(artists: Record<string, unknown>[]): { name: stri
     .map(([name, artist]) => ({ name, artist }));
 }
 
-function toOpenSubsonicArtist(
+export function toOpenSubsonicArtist(
   artist: ArtistRow & Partial<ArtistInteractions> & { album_count?: number },
   userId?: string,
 ): Record<string, unknown> {
@@ -631,7 +671,7 @@ function toOpenSubsonicArtist(
     id: artist.id,
     name: artist.name,
     coverArt: artist.id,
-    albumCount: String(artist.album_count ?? 0),
+    albumCount: artist.album_count ?? 0,
   };
   if (artist.artist_image_url) {
     result.artistImageUrl = artist.artist_image_url;
@@ -640,8 +680,9 @@ function toOpenSubsonicArtist(
     result.musicBrainzIds = JSON.parse(artist.musicbrainz_artist_ids);
   }
   if (userId) {
-    if (artist.starred !== undefined && artist.starred !== null) {
-      result.starred = Boolean(artist.starred);
+    const starredDate = toStarredDate(artist.starred);
+    if (starredDate !== undefined) {
+      result.starred = starredDate;
     }
     if (artist.rating !== undefined && artist.rating !== null) {
       result.userRating = artist.rating;
@@ -675,6 +716,29 @@ interface ArtistInteractions {
   rating: number | null;
 }
 
+export function toStarredDate(starred: number | null | undefined): string | undefined {
+  return starred === 1 ? '1970-01-01T00:00:00.000Z' : undefined;
+}
+
+function isValidDateString(value: string | null | undefined): boolean {
+  if (!value) return false;
+  if (value === '0000' || value === '0000-00-00' || value === '0000-00-00T00:00:00') return false;
+  const date = new Date(value);
+  return !Number.isNaN(date.getTime()) && date.getFullYear() > 0;
+}
+
+function parseStringArray(value: string): string[] {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item): item is string => typeof item === 'string' && item.length > 0);
+    }
+  } catch {
+    // ignore invalid JSON
+  }
+  return [];
+}
+
 export function toOpenSubsonicSong(
   song: SongRow & Partial<SongInteractions>,
   userId?: string,
@@ -690,6 +754,8 @@ export function toOpenSubsonicSong(
   const displayArtist = song.display_artist ?? artists.map((a) => a.name).join(' / ') ?? '';
   const displayAlbumArtist = song.display_album_artist ?? artists.map((a) => a.name).join(' / ') ?? '';
 
+  const songGenreName = (genreNames?.[0] ?? song.genre) || undefined;
+  const songGenres = (genreNames ?? (song.genre ? [song.genre] : [])).map((name) => ({ name }));
   const result: Record<string, unknown> = {
     id: song.id,
     parent: song.album_id ?? '',
@@ -703,12 +769,7 @@ export function toOpenSubsonicSong(
     displayArtist,
     displayAlbumArtist,
     displayTitle: song.sort_name ?? song.title,
-    track: song.track_number,
-    discNumber: song.disc_number,
-    genre: genreNames?.[0] ?? song.genre,
-    genres: (genreNames ?? (song.genre ? [song.genre] : [])).map((name) => ({ name })),
-    year: song.year,
-    duration: song.duration,
+    duration: Math.max(1, Math.round(song.duration ?? 0)),
     isDir: false,
     isVideo: false,
     coverArt: song.cover_art_id ?? song.album_id ?? '',
@@ -719,23 +780,38 @@ export function toOpenSubsonicSong(
     contentType,
     type: 'music',
   };
-
-  if (song.bit_rate !== null && song.bit_rate !== undefined) {
-    result.bitRate = song.bit_rate;
+  if (song.track_number !== null && song.track_number !== undefined) {
+    result.track = song.track_number;
   }
-  if (song.bits_per_sample !== null && song.bits_per_sample !== undefined) {
+  if (song.disc_number !== null && song.disc_number !== undefined) {
+    result.discNumber = song.disc_number;
+  }
+  if (song.year !== null && song.year !== undefined) {
+    result.year = song.year;
+  }
+  if (songGenreName) {
+    result.genre = songGenreName;
+  }
+  if (songGenres.length) {
+    result.genres = songGenres;
+  }
+
+  if (song.bit_rate !== null && song.bit_rate !== undefined && song.bit_rate > 0) {
+    result.bitRate = Math.round(song.bit_rate);
+  }
+  if (song.bits_per_sample !== null && song.bits_per_sample !== undefined && song.bits_per_sample > 0) {
     result.bitDepth = song.bits_per_sample;
   }
-  if (song.sample_rate !== null && song.sample_rate !== undefined) {
+  if (song.sample_rate !== null && song.sample_rate !== undefined && song.sample_rate > 0) {
     result.samplingRate = song.sample_rate;
   }
-  if (song.channels !== null && song.channels !== undefined) {
+  if (song.channels !== null && song.channels !== undefined && song.channels > 0) {
     result.channelCount = song.channels;
   }
-  if (song.bpm !== null && song.bpm !== undefined) {
-    result.bpm = song.bpm;
+  if (song.bpm !== null && song.bpm !== undefined && song.bpm > 0) {
+    result.bpm = Math.round(song.bpm);
   }
-  if (song.music_brainz_id !== null && song.music_brainz_id !== undefined) {
+  if (song.music_brainz_id) {
     result.musicBrainzId = song.music_brainz_id;
   }
   if (song.replay_gain !== null && song.replay_gain !== undefined) {
@@ -744,67 +820,73 @@ export function toOpenSubsonicSong(
   if (song.average_rating !== null && song.average_rating !== undefined) {
     result.averageRating = song.average_rating;
   }
-  if (song.comment !== null && song.comment !== undefined) {
+  if (song.comment) {
     result.comment = song.comment;
   }
-  if (song.sort_name !== null && song.sort_name !== undefined) {
+  if (song.sort_name) {
     result.sortName = song.sort_name;
   }
-  if (song.mood !== null && song.mood !== undefined) {
+  if (song.mood) {
     result.mood = song.mood;
   }
-  if (song.media_type !== null && song.media_type !== undefined) {
+  if (song.media_type) {
     result.mediaType = song.media_type;
   }
-  if (song.original_release_date !== null && song.original_release_date !== undefined) {
+  if (isValidDateString(song.original_release_date)) {
     result.originalReleaseDate = song.original_release_date;
   }
-  if (song.release_date !== null && song.release_date !== undefined) {
+  if (isValidDateString(song.release_date)) {
     result.releaseDate = song.release_date;
   }
-  if (song.remix_of !== null && song.remix_of !== undefined) {
+  if (song.remix_of) {
     result.remixOf = song.remix_of;
   }
-  if (song.musicbrainz_track_id !== null && song.musicbrainz_track_id !== undefined) {
+  if (song.musicbrainz_track_id) {
     result.musicBrainzTrackId = song.musicbrainz_track_id;
   }
-  if (song.musicbrainz_work_id !== null && song.musicbrainz_work_id !== undefined) {
+  if (song.musicbrainz_work_id) {
     result.musicBrainzWorkId = song.musicbrainz_work_id;
   }
-  if (song.musicbrainz_disc_id !== null && song.musicbrainz_disc_id !== undefined) {
+  if (song.musicbrainz_disc_id) {
     result.musicBrainzDiscId = song.musicbrainz_disc_id;
   }
   if (song.composers) {
-    result.composers = JSON.parse(song.composers);
+    const composers = parseStringArray(song.composers);
+    if (composers.length) result.composers = composers;
   }
   if (song.producers) {
-    result.producers = JSON.parse(song.producers);
+    const producers = parseStringArray(song.producers);
+    if (producers.length) result.producers = producers;
   }
   if (song.isrcs) {
-    result.isrcs = JSON.parse(song.isrcs);
+    const isrcs = parseStringArray(song.isrcs);
+    if (isrcs.length) result.isrcs = isrcs;
   }
   if (song.original_year !== null && song.original_year !== undefined) {
     result.originalYear = song.original_year;
   }
-  if (song.original_artist !== null && song.original_artist !== undefined) {
+  if (song.original_artist) {
     result.originalArtist = song.original_artist;
   }
   if (song.gapless === 1) {
     result.gapless = true;
   }
   if (song.total_tracks !== null && song.total_tracks !== undefined) {
-    result.trackCount = song.total_tracks;
+    const trackCount = parseInt(String(song.total_tracks), 10);
+    if (!Number.isNaN(trackCount)) result.trackCount = trackCount;
   }
   if (song.total_discs !== null && song.total_discs !== undefined) {
-    result.discCount = song.total_discs;
+    const discCount = parseInt(String(song.total_discs), 10);
+    if (!Number.isNaN(discCount)) result.discCount = discCount;
   }
 
   if (userId) {
     if (song.play_count !== undefined && song.play_count !== null) {
       result.playCount = song.play_count;
     }
-    if (song.starred !== undefined && song.starred !== null) {
-      result.starred = Boolean(song.starred);
+    const starredDate = toStarredDate(song.starred);
+    if (starredDate !== undefined) {
+      result.starred = starredDate;
     }
     if (song.rating !== undefined && song.rating !== null) {
       result.userRating = song.rating;
@@ -924,9 +1006,14 @@ function fetchAlbumList(
   params.push(size, offset);
 
   const albums = db.prepare(sql).all(...params) as (AlbumRow & AlbumInteractions)[];
-  const albumArtistMap = getAlbumArtistEntriesForMany(db, albums.map((a) => a.id));
-  const albumGenreMap = getAlbumGenreNamesForMany(db, albums.map((a) => a.id));
-  return albums.map((album) => toOpenSubsonicAlbum(album, [], 0, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id)));
+  const albumIds = albums.map((a) => a.id);
+  const albumArtistMap = getAlbumArtistEntriesForMany(db, albumIds);
+  const albumGenreMap = getAlbumGenreNamesForMany(db, albumIds);
+  const albumStatsMap = getAlbumSongStatsForMany(db, albumIds);
+  return albums.map((album) => {
+    const stats = albumStatsMap.get(album.id) ?? { songCount: 0, duration: 0 };
+    return toOpenSubsonicAlbum(album, [], stats.duration, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), stats.songCount);
+  });
 }
 
 function fetchSongsByGenre(
