@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import type { Song } from '@sonarly/shared';
-import { DbSong } from '../songs/repository.js';
+import type { DbSong } from '../songs/repository.js';
 
 interface CandidateRow extends DbSong {
   artist_name: string | null;
@@ -172,16 +172,18 @@ export function getSimilarCandidates(
     rows = db.prepare(sql).all(...params) as CandidateRow[];
   }
 
-  if (rows.length < count) {
-    const more = getRandomCandidates(db, userId, count - rows.length, [
+  const songs = rows.map(rowToSong);
+
+  if (songs.length < count) {
+    const more = getRandomCandidates(db, userId, count - songs.length, [
       ...excludeIds,
-      ...rows.map((r) => r.id),
+      ...songs.map((s) => s.id),
       ...(context ? [context.id] : []),
     ]);
-    rows = [...rows, ...more] as CandidateRow[];
+    songs.push(...more);
   }
 
-  return rows.map(rowToSong);
+  return songs;
 }
 
 export function getRandomCandidates(
@@ -202,7 +204,7 @@ export function getRandomCandidates(
       AND (us.last_played IS NULL OR us.last_played < datetime('now', '-24 hours'))
     ORDER BY RANDOM()
     LIMIT ?
-  `).all(userId ?? null, ...exclude.params, count) as CandidateRow[];
+  `).all(userId, ...exclude.params, count) as CandidateRow[];
 
   if (rows.length < count) {
     const fallbackExclude = buildExcludeClause([...excludeIds, ...rows.map((r) => r.id)]);
@@ -216,7 +218,7 @@ export function getRandomCandidates(
         ${fallbackExclude.sql}
       ORDER BY RANDOM()
       LIMIT ?
-    `).all(userId ?? null, ...fallbackExclude.params, count - rows.length) as CandidateRow[];
+    `).all(userId, ...fallbackExclude.params, count - rows.length) as CandidateRow[];
     rows = [...rows, ...more];
   }
 
