@@ -4,6 +4,7 @@ import { FavoriteButton, StarRating } from './ActionButtons.js';
 import { ControlButton, PlayButton, Slider } from './PlayerControls.js';
 import { usePlayer } from '../stores/playerStore.js';
 import { useSongInteraction } from '../hooks/useSongInteraction.js';
+import { useNowPlaying } from '../features/now-playing/index.js';
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
@@ -34,6 +35,8 @@ export function PlayerBar() {
     currentSong?.id,
     { starred: currentSong?.starred, rating: currentSong?.rating },
   );
+
+  const openNowPlaying = useNowPlaying((state) => state.open);
 
   const isPlaying = status === 'playing';
   const hasTrack = currentSong !== null;
@@ -66,13 +69,18 @@ export function PlayerBar() {
         <div className="flex min-w-0 items-center gap-3">
           {hasTrack ? (
             <>
-              <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md shadow-md">
+              <button
+                type="button"
+                onClick={openNowPlaying}
+                aria-label="Open Now Playing"
+                className="h-14 w-14 shrink-0 overflow-hidden rounded-md shadow-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
                 <CoverArt
                   coverArt={currentSong.coverArt}
                   alt={`Cover art for ${currentSong.title}`}
                   iconSize={20}
                 />
-              </div>
+              </button>
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold text-fg-primary">
                   {currentSong.title}

@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import type { User } from '@sonarly/shared';
 import { api } from '../api.js';
 import { ProfileModal } from '../features/profile/index.js';
+import { NowPlaying } from '../features/now-playing/index.js';
 import { usePreferences } from '../hooks/usePreferences.js';
 import { usePlaylists } from '../hooks/usePlaylists.js';
 import { useTheme } from '../stores/themeStore.js';
@@ -91,6 +92,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
 
       <PlayerBar />
       <AudioController />
+      <NowPlaying user={user} />
 
       {isOpen && (
         <ProfileModal
