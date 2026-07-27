@@ -341,10 +341,10 @@ export function TopBar({ user, onLogout }: TopBarProps) {
             type="button"
             onClick={() => setUploadOpen(true)}
             title="Upload"
-            className="flex h-10 items-center gap-2 rounded-full bg-accent px-4 text-sm font-medium text-bg-primary transition hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            aria-label="Upload"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
-            <Icon name="mdi-upload" size={18} />
-            <span className="hidden sm:inline">Upload</span>
+            <Icon name="mdi-upload" size={20} />
           </button>
         )}
         <PlayersDropdown />
