@@ -45,7 +45,7 @@ export function Songs({ user }: { user: User }) {
   const [cleaningUp, setCleaningUp] = useState(false);
   const { notify } = useNotification();
   const coverInputRef = useRef<HTMLInputElement>(null);
-  const { playSongs } = usePlayActions();
+  const { playSongs, shufflePlay } = usePlayActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
 
   const load = () => {
@@ -70,6 +70,10 @@ export function Songs({ user }: { user: User }) {
 
   const handlePlaySelection = (songs: SongListItem[], startIndex: number) => {
     playSongs(songs as SharedSong[], startIndex);
+  };
+
+  const handleShufflePlay = (_song: SongListItem) => {
+    shufflePlay(songs as SharedSong[]);
   };
 
   const handleSave = async (patched: Record<string, unknown>) => {
@@ -185,6 +189,7 @@ export function Songs({ user }: { user: User }) {
         playingId={playingId}
         blurExplicit={blurExplicitTitles}
         onPlay={handlePlay}
+        onShufflePlay={handleShufflePlay}
         onPlaySelection={handlePlaySelection}
         renderRow={(song, row) => (
           <SongContextMenu song={song as Song} onEdit={() => setEditing(song as Song)} isAdmin={user.isAdmin}>
