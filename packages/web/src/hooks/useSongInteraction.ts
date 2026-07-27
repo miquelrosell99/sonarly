@@ -25,6 +25,8 @@ export function useSongInteraction(
 
   useEffect(() => {
     if (!songId) return;
+    setStarred(fallback.starred);
+    setRating(fallback.rating);
     let cancelled = false;
     api<{ song: Song }>(`/songs/${songId}`)
       .then((res) => {

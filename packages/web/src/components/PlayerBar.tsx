@@ -233,7 +233,7 @@ export function PlayerBar() {
         {/* Right: rating + DJ placeholder / favorite + volume */}
         <div className="flex min-w-0 flex-col items-end justify-center gap-1">
           <div className="flex items-center gap-2">
-            <fieldset disabled={!hasTrack} className="m-0 border-0 p-0 disabled:cursor-not-allowed disabled:opacity-40">
+            <fieldset disabled={!hasTrack} aria-label="Rating" className="m-0 border-0 p-0 disabled:cursor-not-allowed disabled:opacity-40">
               <StarRating
                 rating={rating}
                 onRate={hasTrack ? handleRate : () => {}}
