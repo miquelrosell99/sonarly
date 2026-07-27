@@ -69,9 +69,9 @@ describe('scan job queue', () => {
     markJobRunning(db, job!.id);
     markJobFailed(db, job!.id, 'something went wrong');
 
-    const row = db.prepare('SELECT status, stats FROM scan_jobs WHERE id = ?').get(job!.id) as any;
+    const row = db.prepare('SELECT status, error FROM scan_jobs WHERE id = ?').get(job!.id) as any;
     expect(row.status).toBe('failed');
-    expect(JSON.parse(row.stats)).toEqual({ error: 'something went wrong' });
+    expect(row.error).toBe('something went wrong');
   });
 
   it('updates job stats mid-run', () => {
