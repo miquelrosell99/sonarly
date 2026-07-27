@@ -94,7 +94,7 @@ export function NowPlaying({ user }: NowPlayingProps) {
   }, [isOpen, close]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && currentSong) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -102,7 +102,7 @@ export function NowPlaying({ user }: NowPlayingProps) {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen]);
+  }, [isOpen, currentSong]);
 
   if (!isOpen && !closing) return null;
   if (!currentSong) return null;

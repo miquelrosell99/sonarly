@@ -188,17 +188,17 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
               duration={currentSong.duration}
               onClose={() => setEditorOpen(false)}
               onSaved={() => {
-              setEditorOpen(false);
-              if (songId) {
-                queryClient.invalidateQueries({ queryKey: ['lyrics', songId] });
-              }
-            }}
+                setEditorOpen(false);
+                if (songId) {
+                  queryClient.invalidateQueries({ queryKey: ['lyrics', songId] });
+                }
+              }}
             />
           )}
         </div>
       ) : (
         <div ref={containerRef} className="flex-1 overflow-y-auto whitespace-pre-wrap px-2 text-center text-fg-primary">
-          {plainLyrics}
+          {plainLyrics || syncedLyrics?.map((line) => line.text).join('\n')}
         </div>
       )}
     </div>
