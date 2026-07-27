@@ -3,6 +3,7 @@ import type { Song as SharedSong, User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { usePlayer } from '../../../stores/playerStore.js';
+import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
@@ -47,10 +48,11 @@ export function Songs({ user }: { user: User }) {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const { playSongs, shufflePlay } = usePlayActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   const load = () => {
     setLoading(true);
-    api<{ songs: Song[] }>('/songs')
+    api<{ songs: Song[] }>(`/songs${buildLibraryQuery(selectedLibraryId)}`)
       .then((songsRes) => {
         setSongs(songsRes.songs);
       })
@@ -60,7 +62,7 @@ export function Songs({ user }: { user: User }) {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [selectedLibraryId]);
 
   const blurExplicitTitles = user.blurExplicitTitles === true;
 

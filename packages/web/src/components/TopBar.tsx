@@ -7,6 +7,9 @@ import { Icon } from './ui/Icon.js';
 import { api } from '../api.js';
 import { Avatar } from './Avatar.js';
 import { SearchBox } from './SearchBox.js';
+import { LibrarySelector } from './LibrarySelector.js';
+import { UploadModal } from './UploadModal.js';
+import { useLibraryStore, buildLibraryQuery } from '../stores/libraryStore.js';
 import type { FilterDefinition } from './FilterPanel.js';
 import type { PlayerInfo } from '@sonarly/shared';
 
@@ -212,18 +215,20 @@ function useFilterData(location: string) {
   const tracksEnabled = location === '/tracks' || location.startsWith('/tracks/');
   const artistsEnabled = location === '/artists' || location.startsWith('/artists/');
   const playlistsEnabled = location === '/playlists' || location.startsWith('/playlists/');
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const libraryQuery = buildLibraryQuery(selectedLibraryId);
 
   const albumsQuery = useQuery<{ albums: Album[] }, Error, Album[]>({
-    queryKey: ['albums'],
-    queryFn: () => api('/albums'),
+    queryKey: ['albums', selectedLibraryId],
+    queryFn: () => api(`/albums${libraryQuery}`),
     select: (data) => data.albums,
     enabled: albumsEnabled,
     staleTime: 60_000,
   });
 
   const songsQuery = useQuery<{ songs: SongListItem[] }, Error, SongListItem[]>({
-    queryKey: ['songs'],
-    queryFn: () => api('/songs'),
+    queryKey: ['songs', selectedLibraryId],
+    queryFn: () => api(`/songs${libraryQuery}`),
     select: (data) => data.songs,
     enabled: tracksEnabled || artistsEnabled,
     staleTime: 60_000,
@@ -298,16 +303,29 @@ function useFilterDefinitions(location: string): FilterDefinition[] {
 export function TopBar({ user, onLogout }: TopBarProps) {
   const [location] = useLocation();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const filters = useFilterDefinitions(location);
+  const { libraries, selectedLibraryId, setSelectedLibraryId, loadLibraries } = useLibraryStore();
+
+  useEffect(() => {
+    loadLibraries().catch(() => undefined);
+  }, [loadLibraries]);
 
   return (
     <header className="relative z-50 grid h-16 shrink-0 grid-cols-[1fr_2fr_1fr] items-center gap-4 bg-bg-primary/80 px-6 backdrop-blur-md">
-      <Link
-        href="/"
-        className="flex items-center gap-2 text-xl font-bold tracking-tight text-fg-primary hover:text-fg-primary"
-      >
-        <span className="font-display">Sonarly</span>
-      </Link>
+      <div className="flex items-center gap-2">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-xl font-bold tracking-tight text-fg-primary hover:text-fg-primary"
+        >
+          <span className="font-display">Sonarly</span>
+        </Link>
+        <LibrarySelector
+          libraries={libraries}
+          selectedLibraryId={selectedLibraryId}
+          onSelect={setSelectedLibraryId}
+        />
+      </div>
 
       <div className="relative hidden w-full max-w-xl justify-self-center sm:block">
         <SearchBox
@@ -318,9 +336,27 @@ export function TopBar({ user, onLogout }: TopBarProps) {
       </div>
 
       <div className="flex items-center justify-end gap-2">
+        {user.isAdmin && (
+          <button
+            type="button"
+            onClick={() => setUploadOpen(true)}
+            title="Upload"
+            className="flex h-10 items-center gap-2 rounded-full bg-accent px-4 text-sm font-medium text-bg-primary transition hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <Icon name="mdi-upload" size={18} />
+            <span className="hidden sm:inline">Upload</span>
+          </button>
+        )}
         <PlayersDropdown />
         <UserMenu user={user} onLogout={onLogout} />
       </div>
+
+      <UploadModal
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        libraries={libraries}
+        currentLibraryId={selectedLibraryId}
+      />
     </header>
   );
 }

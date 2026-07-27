@@ -33,6 +33,7 @@ import {
   registerIngestManagementRoutes,
   registerOrganizeManagementRoutes,
 } from './features/ingest/index.js';
+import { registerUploadRoutes } from './features/uploads/index.js';
 import { registerSettingsManagementRoutes } from './features/settings/index.js';
 import { registerConflictManagementRoutes } from './features/conflicts/index.js';
 import { registerSuggestionRoutes } from './features/suggestions/index.js';
@@ -116,14 +117,14 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
     },
     store: createSessionStore(db),
   });
-  await app.register(multipart, { limits: { fileSize: 2 * 1024 * 1024 } });
+  await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024 } });
 
   await registerOpenSubsonicRoutes(app, config, db);
 
   app.addHook('preHandler', async (request, reply) => {
     const url = request.raw.url ?? '';
     if (!url.startsWith('/api/')) return;
-    const exempt = ['/api/login', '/api/logout', '/api/setup', '/api/me', '/api/avatars'];
+    const exempt = ['/api/login', '/api/logout', '/api/setup', '/api/me', '/api/avatars', '/api/libraries'];
     if (exempt.some((p) => url === p || url.startsWith(`${p}/`) || url.startsWith(`${p}?`))) return;
 
     if (request.method === 'GET' && request.routeOptions.url === '/api/playlists/:id') {
@@ -147,6 +148,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   registerScanManagementRoutes(app, config, db);
   registerIngestManagementRoutes(app, db);
   registerOrganizeManagementRoutes(app, config, db);
+  registerUploadRoutes(app, config, db);
   registerAdminRoutes(app, db, config.SESSION_SECRET, config);
   registerLibraryAdminRoutes(app, db, () => { libraryWatcher.restart().catch((err) => console.error('Library watcher restart failed', err)); });
   registerSettingsManagementRoutes(app, config, db);

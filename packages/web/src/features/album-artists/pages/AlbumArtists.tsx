@@ -4,6 +4,7 @@ import type { Album } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { ArtistImage } from '../../../components/ArtistImage.js';
+import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 
 interface AlbumArtist {
   id: string;
@@ -14,10 +15,11 @@ export function AlbumArtists() {
   const [artists, setArtists] = useState<AlbumArtist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   const load = () => {
     setLoading(true);
-    api<{ albums: Album[] }>('/albums')
+    api<{ albums: Album[] }>(`/albums${buildLibraryQuery(selectedLibraryId)}`)
       .then((res) => {
         const map = new Map<string, AlbumArtist>();
         for (const album of res.albums) {
@@ -35,7 +37,7 @@ export function AlbumArtists() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [selectedLibraryId]);
 
   const columns: LibraryViewColumn<AlbumArtist>[] = [
     {

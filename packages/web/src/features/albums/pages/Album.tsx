@@ -16,6 +16,7 @@ import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { usePlayer } from '../../../stores/playerStore.js';
+import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 import { SongTable } from '../../songs/index.js';
 import type { SongListItem } from '../../songs/components/SongTable.js';
@@ -70,13 +71,14 @@ export function Album({ user }: { user: User }) {
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   useDocumentTitle(detail?.album.name);
 
   const load = () => {
     if (!id) return;
     setLoading(true);
-    api<AlbumDetail>(`/albums/${id}`)
+    api<AlbumDetail>(`/albums/${id}${buildLibraryQuery(selectedLibraryId)}`)
       .then((detailRes) => {
         setDetail(detailRes);
       })
@@ -86,7 +88,7 @@ export function Album({ user }: { user: User }) {
 
   useEffect(() => {
     load();
-  }, [id]);
+  }, [id, selectedLibraryId]);
 
   const blurExplicitTitles = user.blurExplicitTitles === true;
   const blurExplicitCovers = user.blurExplicitCovers === true;

@@ -13,7 +13,7 @@ import {
 } from '../settings/index.js';
 import { ScanScheduler, ArtistImageScheduler } from './scheduler.js';
 import { syncMissingArtistImages, syncMissingArtistMetadata } from '../artists/index.js';
-import { ensureDefaultLibrary } from '../libraries/index.js';
+import { ensureDefaultLibrary, getLibraryById } from '../libraries/index.js';
 import { registerDefaultWriters } from '../tags/index.js';
 
 registerDefaultWriters();
@@ -77,7 +77,14 @@ async function loop(): Promise<void> {
         const stats = await scanLibrary(config, db);
         markJobCompleted(db, job.id, stats);
       } else if (job.type === 'ingest') {
-        const stats = await processIngestFolder(config, db);
+        let payload: { sourcePath?: string; libraryId?: string } = {};
+        try {
+          payload = JSON.parse(job.payload || '{}');
+        } catch {
+          payload = {};
+        }
+        const library = payload.libraryId ? getLibraryById(db, payload.libraryId) : undefined;
+        const stats = await processIngestFolder(config, db, payload.sourcePath, library);
         markJobCompleted(db, job.id, stats);
       } else if (job.type === 'cleanup_review') {
         const retentionDays = getReviewRetentionDays(db, config.REVIEW_RETENTION_DAYS);

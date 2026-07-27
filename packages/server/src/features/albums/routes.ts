@@ -86,9 +86,10 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
     const userId = (request as any).session?.userId as string | undefined;
     const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
 
-    const { genre } = request.query as { genre?: string };
+    const { genre, libraryId } = request.query as { genre?: string; libraryId?: string };
     const resolvedGenre = typeof genre === 'string' && genre.length > 0 ? resolveGenreForFilter(db, genre) : undefined;
     const genreFilter = resolvedGenre !== undefined;
+    const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
 
     if (typeof genre === 'string' && genre.length > 0 && !genreFilter) {
       return reply.send({ albums: [] });
@@ -102,14 +103,17 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
         COUNT(s.id) AS total_song_count,
         SUM(CASE WHEN s.explicit = 0 THEN 1 ELSE 0 END) AS shown_song_count
       FROM albums a
-      LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1
+      ${libraryFilter ? 'JOIN songs s ON s.album_id = a.id AND s.active = 1 AND s.library_id = ?' : 'LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1'}
       LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
       WHERE a.active = 1
       ${genreFilter ? 'AND EXISTS (SELECT 1 FROM album_genres ag WHERE ag.album_id = a.id AND ag.genre_id = ?)' : ''}
       ${hideExplicit ? 'GROUP BY a.id HAVING shown_song_count > 0' : 'GROUP BY a.id'}
       ORDER BY a.name
       LIMIT 500
-    `).all(...(genreFilter ? [userId ?? null, resolvedGenre.id] : [userId ?? null])) as (AlbumRow & { total_song_count: number; shown_song_count: number })[];
+    `).all(...(libraryFilter
+      ? (genreFilter ? [libraryId, userId ?? null, resolvedGenre.id] : [libraryId, userId ?? null])
+      : (genreFilter ? [userId ?? null, resolvedGenre.id] : [userId ?? null]))
+    ) as (AlbumRow & { total_song_count: number; shown_song_count: number })[];
 
     const albums = rows.map((row) => ({
       ...rowToAlbum(row),
@@ -179,16 +183,19 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
     const { id } = request.params as { id: string };
     const userId = (request as any).session?.userId as string | undefined;
     const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
+    const { libraryId } = request.query as { libraryId?: string };
+    const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
 
     const row = db.prepare(`
       SELECT a.*, ua.starred, ua.rating
       FROM albums a
       LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
       WHERE a.id = ? AND a.active = 1
-    `).get(userId ?? null, id) as AlbumRow | undefined;
+      ${libraryFilter ? 'AND EXISTS (SELECT 1 FROM songs s WHERE s.album_id = a.id AND s.active = 1 AND s.library_id = ?)' : ''}
+    `).get(...(libraryFilter ? [userId ?? null, id, libraryId] : [userId ?? null, id])) as AlbumRow | undefined;
     if (!row) return reply.status(404).send({ error: 'Album not found' });
 
-    const songs = listSongsByAlbum(db, id, userId);
+    const songs = listSongsByAlbum(db, id, userId, libraryFilter ? libraryId : undefined);
     const visibleSongs = hideExplicit ? songs.filter((s) => !s.explicit) : songs;
 
     const album = {

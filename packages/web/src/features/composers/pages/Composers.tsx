@@ -4,20 +4,22 @@ import type { Song } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 
 export function Composers() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   useEffect(() => {
     setLoading(true);
-    api<{ songs: Song[] }>('/songs')
+    api<{ songs: Song[] }>(`/songs${buildLibraryQuery(selectedLibraryId)}`)
       .then((res) => setSongs(res.songs))
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load composers'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedLibraryId]);
 
   const composers = Array.from(
     new Set(songs.flatMap((song) => song.composers ?? [])),

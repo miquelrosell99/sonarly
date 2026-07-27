@@ -6,6 +6,7 @@ import { Button } from '../../../components/ui/Button.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
+import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { TrackList } from '../../songs/index.js';
 import { AlbumList } from '../../albums/index.js';
 import type { SongWithNames } from '../../../lib/types.js';
@@ -25,13 +26,14 @@ export function Year() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   const load = () => {
     if (Number.isNaN(year)) return;
     setLoading(true);
     Promise.all([
-      api<{ songs: SongWithNames[] }>('/songs'),
-      api<{ albums: AlbumWithArtist[] }>('/albums'),
+      api<{ songs: SongWithNames[] }>(`/songs${buildLibraryQuery(selectedLibraryId)}`),
+      api<{ albums: AlbumWithArtist[] }>(`/albums${buildLibraryQuery(selectedLibraryId)}`),
     ])
       .then(([songsRes, albumsRes]) => {
         setTracks(songsRes.songs.filter((s) => s.year === year));
@@ -43,7 +45,7 @@ export function Year() {
 
   useEffect(() => {
     load();
-  }, [year]);
+  }, [year, selectedLibraryId]);
 
   if (Number.isNaN(year)) return <p className="text-sm text-danger">Invalid year.</p>;
   if (loading) return <p className="text-sm text-muted">Loading...</p>;

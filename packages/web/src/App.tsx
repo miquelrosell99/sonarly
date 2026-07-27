@@ -73,6 +73,26 @@ export default function App() {
     return () => document.removeEventListener('contextmenu', handler);
   }, []);
 
+  useEffect(() => {
+    const isInsideDropZone = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      return target.closest('[data-upload-drop-zone]') !== null;
+    };
+
+    const preventDefault = (e: DragEvent) => {
+      if (isInsideDropZone(e.target)) return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    document.addEventListener('dragover', preventDefault);
+    document.addEventListener('drop', preventDefault);
+    return () => {
+      document.removeEventListener('dragover', preventDefault);
+      document.removeEventListener('drop', preventDefault);
+    };
+  }, []);
+
   if (user === undefined || needsSetup === undefined) {
     return (
       <div className="flex h-screen items-center justify-center bg-bg-primary text-fg-secondary">

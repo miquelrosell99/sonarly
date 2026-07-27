@@ -2,6 +2,7 @@ import { readdir, rename, mkdir, stat, rmdir } from 'node:fs/promises';
 import { extname, join, dirname, basename, parse } from 'node:path';
 import Database from 'better-sqlite3';
 import type { Config } from '../../config.js';
+import type { Library } from '@sonarly/shared';
 import { validateIngestFile } from './validator.js';
 import { getOrganizePattern } from '../settings/index.js';
 import { buildTargetPath, moveToLibrary } from './organizer.js';
@@ -18,15 +19,23 @@ export interface IngestStats extends Record<string, number> {
   failed: number;
 }
 
-export async function processIngestFolder(config: Config, db: Database.Database): Promise<IngestStats> {
+export async function processIngestFolder(
+  config: Config,
+  db: Database.Database,
+  sourcePath?: string,
+  targetLibrary?: Library,
+): Promise<IngestStats> {
+  const root = sourcePath ?? config.INGEST_PATH;
+  const libraryPath = targetLibrary?.path ?? config.LIBRARY_PATH;
+  const pattern = targetLibrary?.organizePattern ?? getOrganizePattern(db, config);
   const stats: IngestStats = { processed: 0, imported: 0, needsReview: 0, failed: 0 };
-  const reviewDir = join(config.INGEST_PATH, 'review');
+  const reviewDir = join(root, 'review');
   await mkdir(reviewDir, { recursive: true });
 
   const importedSourceDirs = new Map<string, string>();
   const reviewSourceDirs = new Set<string>();
 
-  for await (const filePath of walkIngestFiles(config.INGEST_PATH)) {
+  for await (const filePath of walkIngestFiles(root)) {
     stats.processed++;
     const sourceDir = dirname(filePath);
     const jobId = createIngestJob(db, filePath);
@@ -36,17 +45,16 @@ export async function processIngestFolder(config: Config, db: Database.Database)
         await moveToReview(filePath, reviewDir);
         updateIngestJob(db, jobId, 'needs_review', undefined, validation.reason);
         stats.needsReview++;
-        if (sourceDir !== config.INGEST_PATH && !importedSourceDirs.has(sourceDir)) {
+        if (sourceDir !== root && !importedSourceDirs.has(sourceDir)) {
           reviewSourceDirs.add(sourceDir);
         }
         continue;
       }
-      const pattern = getOrganizePattern(db, config);
-      const targetPath = buildTargetPath(pattern, config.LIBRARY_PATH, validation.tags!, filePath);
+      const targetPath = buildTargetPath(pattern, libraryPath, validation.tags!, filePath);
       const finalPath = await moveToLibrary(filePath, targetPath);
       updateIngestJob(db, jobId, 'imported', finalPath);
       stats.imported++;
-      if (sourceDir !== config.INGEST_PATH) {
+      if (sourceDir !== root) {
         importedSourceDirs.set(sourceDir, dirname(finalPath));
         reviewSourceDirs.delete(sourceDir);
       }
@@ -75,7 +83,7 @@ export async function processIngestFolder(config: Config, db: Database.Database)
   }
 
   // Remove empty directories left behind in the ingest folder.
-  await cleanupEmptyDirs(config.INGEST_PATH, config.INGEST_PATH, reviewDir);
+  await cleanupEmptyDirs(root, root, reviewDir);
 
   return stats;
 }

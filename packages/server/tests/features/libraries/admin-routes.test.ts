@@ -96,6 +96,17 @@ describe('library admin endpoints', () => {
     const body = JSON.parse(res.body);
     expect(body.libraries).toHaveLength(1);
     expect(body.libraries[0].path).toBe(config.LIBRARY_PATH);
+    expect(body.libraries[0].organizePattern).toBeDefined();
+  });
+
+  it('lists libraries publicly without admin', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/libraries',
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.libraries).toHaveLength(1);
   });
 
   it('creates a library', async () => {
@@ -105,7 +116,7 @@ describe('library admin endpoints', () => {
       method: 'POST',
       url: '/api/admin/libraries',
       cookies: { sessionId: adminCookie },
-      payload: { name: 'Music', path },
+      payload: { name: 'Music', path, organizePattern: '{artist}/{title}' },
     });
     expect(res.statusCode).toBe(201);
 
@@ -116,7 +127,9 @@ describe('library admin endpoints', () => {
     });
     const libraries = JSON.parse(list.body).libraries;
     expect(libraries).toHaveLength(2);
-    expect(libraries.some((l: { name: string }) => l.name === 'Music')).toBe(true);
+    const created = libraries.find((l: { name: string }) => l.name === 'Music');
+    expect(created).toBeDefined();
+    expect(created.organizePattern).toBe('{artist}/{title}');
   });
 
   it('updates a library', async () => {
@@ -131,7 +144,7 @@ describe('library admin endpoints', () => {
       method: 'PUT',
       url: `/api/admin/libraries/${id}`,
       cookies: { sessionId: adminCookie },
-      payload: { name: 'Renamed' },
+      payload: { name: 'Renamed', organizePattern: '{album}/{title}' },
     });
     expect(res.statusCode).toBe(200);
 
@@ -140,7 +153,9 @@ describe('library admin endpoints', () => {
       url: '/api/admin/libraries',
       cookies: { sessionId: adminCookie },
     });
-    expect(JSON.parse(updated.body).libraries[0].name).toBe('Renamed');
+    const library = JSON.parse(updated.body).libraries[0];
+    expect(library.name).toBe('Renamed');
+    expect(library.organizePattern).toBe('{album}/{title}');
   });
 
   it('deletes a library', async () => {

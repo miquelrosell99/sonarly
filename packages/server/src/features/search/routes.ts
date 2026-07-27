@@ -9,6 +9,7 @@ const searchQuerySchema = z.object({
   q: z.string().default(''),
   type: z.enum(['songs', 'albums', 'artists', 'playlists']).optional(),
   limit: z.coerce.number().int().positive().optional(),
+  libraryId: z.string().optional(),
 });
 
 interface SongSearchRow {
@@ -148,8 +149,11 @@ function fetchSongs(
   pattern: string,
   hideExplicit: boolean,
   limit?: number,
+  libraryId?: string,
 ): Song[] {
   const limitClause = limit !== undefined ? `LIMIT ${limit}` : '';
+  const libraryFilter = libraryId ? 'AND s.library_id = ?' : '';
+  const libraryParams = libraryId ? [libraryId] : [];
   const rows = db.prepare(`
     SELECT
       s.*,
@@ -166,10 +170,11 @@ function fetchSongs(
       OR LOWER(ar.name) LIKE LOWER(?)
       OR LOWER(al.name) LIKE LOWER(?)
     )
+    ${libraryFilter}
     ${hideExplicit ? 'AND s.explicit = 0' : ''}
     ORDER BY s.title
     ${limitClause}
-  `).all(userId ?? null, pattern, pattern, pattern) as SongSearchRow[];
+  `).all(userId ?? null, ...libraryParams, pattern, pattern, pattern) as SongSearchRow[];
   return rows.map(rowToSong);
 }
 
@@ -178,8 +183,11 @@ function fetchAlbums(
   userId: string | undefined,
   pattern: string,
   limit?: number,
+  libraryId?: string,
 ): Album[] {
   const limitClause = limit !== undefined ? `LIMIT ${limit}` : '';
+  const libraryFilter = libraryId ? 'AND EXISTS (SELECT 1 FROM songs s WHERE s.album_id = a.id AND s.active = 1 AND s.library_id = ?)' : '';
+  const libraryParams = libraryId ? [libraryId] : [];
   const rows = db.prepare(`
     SELECT
       a.*,
@@ -188,9 +196,10 @@ function fetchAlbums(
     FROM albums a
     LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
     WHERE a.active = 1 AND LOWER(a.name) LIKE LOWER(?)
+    ${libraryFilter}
     ORDER BY a.name
     ${limitClause}
-  `).all(userId ?? null, pattern) as AlbumSearchRow[];
+  `).all(userId ?? null, ...libraryParams, pattern) as AlbumSearchRow[];
   return rows.map(rowToAlbum);
 }
 
@@ -199,8 +208,11 @@ function fetchArtists(
   userId: string | undefined,
   pattern: string,
   limit?: number,
+  libraryId?: string,
 ): Artist[] {
   const limitClause = limit !== undefined ? `LIMIT ${limit}` : '';
+  const libraryFilter = libraryId ? 'AND EXISTS (SELECT 1 FROM songs s WHERE s.artist_id = ar.id AND s.active = 1 AND s.library_id = ?)' : '';
+  const libraryParams = libraryId ? [libraryId] : [];
   const rows = db.prepare(`
     SELECT
       ar.*,
@@ -209,9 +221,10 @@ function fetchArtists(
     FROM artists ar
     LEFT JOIN user_artists ua ON ua.user_id = ? AND ua.artist_id = ar.id
     WHERE ar.active = 1 AND LOWER(ar.name) LIKE LOWER(?)
+    ${libraryFilter}
     ORDER BY ar.name
     ${limitClause}
-  `).all(userId ?? null, pattern) as ArtistSearchRow[];
+  `).all(userId ?? null, ...libraryParams, pattern) as ArtistSearchRow[];
   return rows.map(rowToArtist);
 }
 
@@ -270,16 +283,19 @@ export function registerSearchRoutes(app: FastifyInstance, db: Database.Database
     const categoryLimit = type
       ? Math.min(limit ?? MAX_CATEGORY_RESULTS, MAX_CATEGORY_RESULTS)
       : (limit ?? 5) + 1;
+    const libraryId = typeof parseResult.data.libraryId === 'string' && parseResult.data.libraryId.length > 0
+      ? parseResult.data.libraryId
+      : undefined;
 
     const songs = !type || type === 'songs'
-      ? fetchSongs(db, userId, pattern, hideExplicit, categoryLimit)
+      ? fetchSongs(db, userId, pattern, hideExplicit, categoryLimit, libraryId)
       : [];
     attachSongArtistEntries(db, songs);
     const albums = !type || type === 'albums'
-      ? fetchAlbums(db, userId, pattern, categoryLimit)
+      ? fetchAlbums(db, userId, pattern, categoryLimit, libraryId)
       : [];
     const artists = !type || type === 'artists'
-      ? fetchArtists(db, userId, pattern, categoryLimit)
+      ? fetchArtists(db, userId, pattern, categoryLimit, libraryId)
       : [];
     const playlists = !type || type === 'playlists'
       ? fetchPlaylists(db, userId, pattern, categoryLimit)
