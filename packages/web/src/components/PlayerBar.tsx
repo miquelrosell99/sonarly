@@ -1,8 +1,13 @@
+import React, { type ReactNode } from 'react';
+import { Link } from 'wouter';
+import type { AutoDjMode } from '@sonarly/shared';
 import { Icon } from './ui/Icon.js';
 import { CoverArt } from './CoverArt.js';
 import { FavoriteButton, StarRating } from './ActionButtons.js';
+import { ItemContextMenu } from './ItemContextMenu.js';
 import { usePlayer } from '../stores/playerStore.js';
 import { useSongInteraction } from '../hooks/useSongInteraction.js';
+import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
@@ -16,13 +21,15 @@ function ControlButton({
   active,
   disabled,
   onClick,
+  onContextMenu,
   label,
   className,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   active?: boolean;
   disabled?: boolean;
   onClick: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
   label: string;
   className?: string;
 }) {
@@ -30,6 +37,7 @@ function ControlButton({
     <button
       type="button"
       onClick={onClick}
+      onContextMenu={onContextMenu}
       disabled={disabled}
       aria-label={label}
       className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-40 ${active ? 'text-accent' : ''} ${className ?? ''}`}
@@ -129,6 +137,15 @@ export function PlayerBar() {
     { starred: currentSong?.starred, rating: currentSong?.rating },
   );
 
+  const { data: preferences } = usePreferences();
+  const autoDjEnabled = preferences?.autoDjEnabled ?? false;
+  const autoDjMode = preferences?.autoDjMode ?? 'smart';
+  const updatePreferences = useUpdatePreferences();
+
+  const handleToggleAutoDj = () => {
+    updatePreferences.mutate({ autoDjEnabled: !autoDjEnabled });
+  };
+
   const isPlaying = status === 'playing';
   const hasTrack = currentSong !== null;
   const displayDuration = duration || currentSong?.duration || 0;
@@ -143,6 +160,12 @@ export function PlayerBar() {
     await setRating(nextRating);
     updateCurrentSong({ rating: nextRating });
   };
+
+  const djModeItems: { id: AutoDjMode; label: string; icon: string }[] = [
+    { id: 'similar', label: 'Similar', icon: 'mdi-account-music' },
+    { id: 'random', label: 'Random', icon: 'mdi-shuffle' },
+    { id: 'smart', label: 'Smart', icon: 'mdi-brain' },
+  ];
 
   return (
     <footer className="relative shrink-0 overflow-hidden border-t border-rule/50 bg-surface">
@@ -171,8 +194,43 @@ export function PlayerBar() {
                 <div className="truncate text-sm font-semibold text-fg-primary">
                   {currentSong.title}
                 </div>
+                {currentSong.albumName && (
+                  <div className="truncate text-xs text-fg-secondary">
+                    {currentSong.albumId ? (
+                      <Link
+                        href={`/albums/${currentSong.albumId}`}
+                        className="hover:text-accent"
+                      >
+                        {currentSong.albumName}
+                      </Link>
+                    ) : (
+                      currentSong.albumName
+                    )}
+                  </div>
+                )}
                 <div className="truncate text-xs text-fg-secondary">
-                  {currentSong.artistName || 'Unknown artist'}
+                  {currentSong.artistEntries && currentSong.artistEntries.length > 0 ? (
+                    currentSong.artistEntries.map((artist, index) => (
+                      <span key={artist.id}>
+                        <Link
+                          href={`/artists/${artist.id}`}
+                          className="hover:text-accent"
+                        >
+                          {artist.name}
+                        </Link>
+                        {index < currentSong.artistEntries!.length - 1 && ', '}
+                      </span>
+                    ))
+                  ) : currentSong.artistId ? (
+                    <Link
+                      href={`/artists/${currentSong.artistId}`}
+                      className="hover:text-accent"
+                    >
+                      {currentSong.artistName || 'Unknown artist'}
+                    </Link>
+                  ) : (
+                    currentSong.artistName || 'Unknown artist'
+                  )}
                 </div>
               </div>
             </>
@@ -230,7 +288,7 @@ export function PlayerBar() {
           </div>
         </div>
 
-        {/* Right: rating + DJ placeholder / favorite + volume */}
+        {/* Right: rating + DJ + favorite + volume */}
         <div className="flex min-w-0 flex-col items-end justify-center gap-1">
           <div className="flex items-center gap-2">
             <fieldset disabled={!hasTrack} aria-label="Rating" className="m-0 border-0 p-0 disabled:cursor-not-allowed disabled:opacity-40">
@@ -239,9 +297,28 @@ export function PlayerBar() {
                 onRate={hasTrack ? handleRate : () => {}}
               />
             </fieldset>
-            <ControlButton onClick={() => {}} label="DJ Mode (coming soon)" disabled>
-              <Icon name="mdi-turntable" size={18} />
-            </ControlButton>
+            <ItemContextMenu
+              sections={[
+                {
+                  items: djModeItems.map((mode) => ({
+                    id: mode.id,
+                    label: mode.label,
+                    icon: mode.icon,
+                    active: autoDjMode === mode.id,
+                    onClick: () => updatePreferences.mutate({ autoDjMode: mode.id }),
+                  })),
+                },
+              ]}
+            >
+              <ControlButton
+                onClick={handleToggleAutoDj}
+                label={`Auto DJ: ${autoDjEnabled ? 'on' : 'off'}`}
+                active={autoDjEnabled}
+                className={autoDjEnabled ? '' : 'opacity-50'}
+              >
+                <Icon name="mdi-record-player" size={18} />
+              </ControlButton>
+            </ItemContextMenu>
           </div>
           <div className="flex items-center gap-2">
             <FavoriteButton
@@ -263,7 +340,7 @@ export function PlayerBar() {
               value={volume}
               onChange={setVolume}
               ariaLabel="Volume"
-              className="w-24"
+              className="w-14"
             />
           </div>
         </div>

@@ -32,6 +32,7 @@ export function CoverArt({ coverArt, alt, iconSize = 32, className }: CoverArtPr
         src={`/api/cover-art/${coverArt}`}
         alt={alt}
         loading="lazy"
+        draggable={false}
         className={cn(
           'h-full w-full object-cover transition-all duration-700 ease-out',
           loaded ? 'opacity-100 blur-0 scale-100' : 'opacity-0 blur-sm scale-105',

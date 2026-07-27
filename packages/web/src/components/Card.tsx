@@ -55,45 +55,43 @@ export function Card({
       {cover ? (
         <Link
           href={href}
+          draggable={false}
+          onDragStart={(e) => e.preventDefault()}
           className="relative block overflow-hidden rounded-xl shadow-md outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
         >
           <div className="transition duration-300 group-hover/card:scale-105">{cover}</div>
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20 opacity-0 transition-opacity group-hover/card:opacity-100" />
-          {(favorite || rating) && (
-            <div className="pointer-events-none absolute left-2 right-2 top-2 z-10 flex items-start justify-between opacity-0 transition-opacity group-hover/card:pointer-events-auto group-hover/card:opacity-100">
-              {favorite ? (
-                <span className="rounded-full bg-black/50 p-1 backdrop-blur-sm">
+          <div className="pointer-events-none absolute inset-0 flex flex-col justify-between bg-black/50 opacity-0 transition-opacity group-hover/card:opacity-100">
+            {(favorite || rating) && (
+              <div className="pointer-events-auto flex items-start justify-between p-2">
+                {favorite ? (
                   <FavoriteButton
                     starred={favorite.starred}
                     onClick={favorite.onClick}
                     label={favorite.label}
                     variant="overlay"
                   />
-                </span>
-              ) : (
-                <span />
-              )}
-              {rating && (
-                <span className="rounded-full bg-black/50 px-1.5 py-1 backdrop-blur-sm">
+                ) : (
+                  <span />
+                )}
+                {rating && (
                   <StarRating rating={rating.value} onRate={rating.onRate} variant="overlay" />
-                </span>
-              )}
-            </div>
-          )}
-          {play && (
-            <span className="pointer-events-none absolute bottom-2 right-2 z-10 opacity-0 transition-all duration-200 group-hover/card:pointer-events-auto group-hover/card:opacity-100">
+                )}
+              </div>
+            )}
+            {play && (
               <PlayButton
                 variant="overlay"
                 onPlay={play.onPlay}
                 onShufflePlay={play.onShufflePlay}
                 label={play.label}
+                className="pointer-events-auto m-2 self-end"
               />
-            </span>
-          )}
+            )}
+          </div>
         </Link>
       ) : null}
       <div className={cn('space-y-0.5 px-1', !cover && 'rounded-xl border border-rule bg-surface p-3')}>
-        <Link href={href} className="block line-clamp-1 text-sm font-medium text-fg-primary hover:text-muted">
+        <Link href={href} className="line-clamp-2 break-words text-sm font-medium text-fg-primary hover:text-muted">
           {title}
         </Link>
         {fields?.map((field, idx) => {

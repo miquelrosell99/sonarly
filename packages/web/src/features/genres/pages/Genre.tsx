@@ -5,6 +5,7 @@ import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
 import { TrackList } from '../../songs/index.js';
 import { AlbumList } from '../../albums/index.js';
 import type { SongWithNames } from '../../../lib/types.js';
@@ -16,6 +17,9 @@ interface AlbumWithArtist extends Album {
 export function Genre() {
   const { genre: encodedGenre } = useParams<{ genre: string }>();
   const genre = encodedGenre ? decodeURIComponent(encodedGenre) : '';
+
+  useDocumentTitle(genre);
+
   const [tracks, setTracks] = useState<SongWithNames[]>([]);
   const [albums, setAlbums] = useState<AlbumWithArtist[]>([]);
   const [loading, setLoading] = useState(true);

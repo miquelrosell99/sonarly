@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { api } from '../api.js';
 import { useNotification } from '../contexts/NotificationContext.js';
 import { usePlayer } from '../stores/playerStore.js';
+import { useAutoDj } from '../hooks/useAutoDj.js';
 
 export function AudioController() {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -18,6 +19,8 @@ export function AudioController() {
   const setDuration = usePlayer((state) => state.setDuration);
   const setCurrentTime = usePlayer((state) => state.setCurrentTime);
   const onEnded = usePlayer((state) => state.onEnded);
+
+  useAutoDj();
 
   useEffect(() => {
     lastScrobbledRef.current = null;
