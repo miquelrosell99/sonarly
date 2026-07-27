@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'wouter';
 import type { Library } from '@sonarly/shared';
 import { cn } from '../lib/cn.js';
 import { Button } from './ui/Button.js';
 import { Icon } from './ui/Icon.js';
 import { Modal } from './ui/Modal.js';
 import { useUpload, type UploadFile } from '../hooks/useUpload.js';
+import { useLibraryStore } from '../stores/libraryStore.js';
 
 interface UploadModalProps {
   open: boolean;
@@ -81,13 +83,16 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId }: Uplo
   const [selectedLibraryId, setSelectedLibraryId] = useState<string>(currentLibraryId ?? '');
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [isDone, setIsDone] = useState(false);
   const { progress, isUploading, error, uploadFiles } = useUpload();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     if (open) {
       setSelectedLibraryId(currentLibraryId ?? '');
       setFiles([]);
+      setIsDone(false);
     }
   }, [open, currentLibraryId]);
 
@@ -147,13 +152,19 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId }: Uplo
     if (!selectedLibraryId || files.length === 0) return;
     try {
       await uploadFiles(files, selectedLibraryId);
-      onClose();
+      setIsDone(true);
     } catch {
       // Error is already captured in hook state.
     }
-  }, [files, selectedLibraryId, uploadFiles, onClose]);
+  }, [files, selectedLibraryId, uploadFiles]);
 
-  const canUpload = selectedLibraryId.length > 0 && files.length > 0 && !isUploading;
+  const handleOpenLibrary = useCallback(() => {
+    useLibraryStore.getState().setSelectedLibraryId(selectedLibraryId);
+    onClose();
+    setLocation('/songs');
+  }, [selectedLibraryId, onClose, setLocation]);
+
+  const canUpload = selectedLibraryId.length > 0 && files.length > 0 && !isUploading && !isDone;
 
   const footer = (
     <div className="flex items-center justify-between gap-4">
@@ -230,6 +241,26 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId }: Uplo
         </div>
 
         {error && <p className="text-sm text-danger" role="alert">{error}</p>}
+
+        {isDone && (
+          <div className="space-y-3 rounded-md bg-success/10 p-4 text-sm">
+            <div className="flex items-center gap-2 text-success">
+              <Icon name="mdi-check-circle-outline" size={18} />
+              <span className="font-medium">Upload complete</span>
+            </div>
+            <p className="text-fg-secondary">
+              {files.length} file{files.length === 1 ? '' : 's'} uploaded. They will be processed and appear in the library shortly.
+            </p>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" onClick={onClose} className="flex-1">
+                Close
+              </Button>
+              <Button onClick={handleOpenLibrary} className="flex-1">
+                Open elements
+              </Button>
+            </div>
+          </div>
+        )}
 
         {files.length > 0 && (
           <div className="space-y-2">
