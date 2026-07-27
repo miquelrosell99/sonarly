@@ -17,7 +17,7 @@ describe('useClickAndHold', () => {
     const { result } = renderHook(() => useClickAndHold({ onClick, onHold }));
 
     act(() => {
-      result.current.handlers.onPointerDown({} as React.PointerEvent);
+      result.current.handlers.onPointerDown({ button: 0 } as React.PointerEvent);
     });
     act(() => {
       const button = document.createElement('button');
@@ -34,7 +34,7 @@ describe('useClickAndHold', () => {
     const { result } = renderHook(() => useClickAndHold({ onClick, onHold, threshold: 500 }));
 
     act(() => {
-      result.current.handlers.onPointerDown({} as React.PointerEvent);
+      result.current.handlers.onPointerDown({ button: 0 } as React.PointerEvent);
     });
     act(() => {
       vi.advanceTimersByTime(500);
@@ -55,7 +55,7 @@ describe('useClickAndHold', () => {
     const { result } = renderHook(() => useClickAndHold({ onClick, onHold }));
 
     act(() => {
-      result.current.handlers.onPointerDown({} as React.PointerEvent);
+      result.current.handlers.onPointerDown({ button: 0 } as React.PointerEvent);
     });
     act(() => {
       result.current.handlers.onPointerLeave();
@@ -74,7 +74,7 @@ describe('useClickAndHold', () => {
     const { result, unmount } = renderHook(() => useClickAndHold({ onClick, onHold }));
 
     act(() => {
-      result.current.handlers.onPointerDown({} as React.PointerEvent);
+      result.current.handlers.onPointerDown({ button: 0 } as React.PointerEvent);
     });
 
     unmount();
@@ -85,5 +85,24 @@ describe('useClickAndHold', () => {
 
     expect(onHold).not.toHaveBeenCalled();
     expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('cancels when pointer is cancelled before threshold', () => {
+    const onClick = vi.fn();
+    const onHold = vi.fn();
+    const { result } = renderHook(() => useClickAndHold({ onClick, onHold }));
+
+    act(() => {
+      result.current.handlers.onPointerDown({ button: 0 } as React.PointerEvent);
+    });
+    act(() => {
+      result.current.handlers.onPointerCancel();
+    });
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    expect(onClick).not.toHaveBeenCalled();
+    expect(onHold).not.toHaveBeenCalled();
   });
 });
