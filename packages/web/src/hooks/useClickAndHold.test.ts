@@ -21,7 +21,7 @@ describe('useClickAndHold', () => {
     });
     act(() => {
       const button = document.createElement('button');
-      result.current.handlers.onPointerUp({ currentTarget: button, target: button } as unknown as React.PointerEvent);
+      result.current.handlers.onPointerUp({ button: 0, currentTarget: button, target: button } as unknown as React.PointerEvent);
     });
 
     expect(onClick).toHaveBeenCalledTimes(1);
@@ -43,7 +43,7 @@ describe('useClickAndHold', () => {
     expect(onHold).toHaveBeenCalledTimes(1);
 
     act(() => {
-      result.current.handlers.onPointerUp({ currentTarget: document.createElement('button'), target: document.createElement('button') } as unknown as React.PointerEvent);
+      result.current.handlers.onPointerUp({ button: 0, currentTarget: document.createElement('button'), target: document.createElement('button') } as unknown as React.PointerEvent);
     });
 
     expect(onClick).not.toHaveBeenCalled();
@@ -100,6 +100,23 @@ describe('useClickAndHold', () => {
     });
     act(() => {
       vi.advanceTimersByTime(500);
+    });
+
+    expect(onClick).not.toHaveBeenCalled();
+    expect(onHold).not.toHaveBeenCalled();
+  });
+
+  it('ignores non-primary pointer down and up', () => {
+    const onClick = vi.fn();
+    const onHold = vi.fn();
+    const { result } = renderHook(() => useClickAndHold({ onClick, onHold }));
+
+    act(() => {
+      result.current.handlers.onPointerDown({ button: 2 } as React.PointerEvent);
+    });
+    act(() => {
+      const button = document.createElement('button');
+      result.current.handlers.onPointerUp({ button: 2, currentTarget: button, target: button } as unknown as React.PointerEvent);
     });
 
     expect(onClick).not.toHaveBeenCalled();

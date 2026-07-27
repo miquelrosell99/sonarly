@@ -93,4 +93,17 @@ describe('PlayButton', () => {
     expect(onPlay).not.toHaveBeenCalled();
     expect(onShufflePlay).not.toHaveBeenCalled();
   });
+
+  it('does not call anything on non-primary pointer up', () => {
+    const onPlay = vi.fn();
+    const onShufflePlay = vi.fn();
+    render(<PlayButton onPlay={onPlay} onShufflePlay={onShufflePlay} label="Play" />);
+
+    const button = screen.getByRole('button', { name: /Play/ });
+    fireEvent.pointerDown(button, { button: 2 });
+    fireEvent.pointerUp(button, { button: 2 });
+
+    expect(onPlay).not.toHaveBeenCalled();
+    expect(onShufflePlay).not.toHaveBeenCalled();
+  });
 });

@@ -51,6 +51,7 @@ export function useClickAndHold({
 
   const onPointerUp = useCallback(
     (e: React.PointerEvent) => {
+      if (e.button !== 0) return;
       clearTimer();
       setIsHolding(false);
       const target = e.target as Node;
