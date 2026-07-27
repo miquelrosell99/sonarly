@@ -19,6 +19,7 @@ import {
 } from './features/admin/index.js';
 import { SettingsProfile } from './features/settings/index.js';
 import { SettingsAppearance } from './features/settings/index.js';
+import { SettingsPlayback } from './features/settings/index.js';
 import { Artists, Artist } from './features/artists/index.js';
 import { Albums, Album } from './features/albums/index.js';
 import { Tracks, Track } from './features/tracks/index.js';
@@ -136,6 +137,7 @@ export default function App() {
         <Route path="/settings" component={() => <Redirect to="/settings/profile" />} />
         <Route path="/settings/profile" component={() => <SettingsProfile user={user} onUserChange={setUser} />} />
         <Route path="/settings/appearance" component={SettingsAppearance} />
+        <Route path="/settings/playback" component={SettingsPlayback} />
         <Route path="/users" component={() => <Redirect to="/admin/users" />} />
         <Route path="*" component={() => <Redirect to="/" />} />
       </Layout>

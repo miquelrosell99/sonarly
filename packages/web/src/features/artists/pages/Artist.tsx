@@ -9,6 +9,7 @@ import { EntityHeader } from '../../../components/EntityHeader.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
 import { TrackList } from '../../songs/index.js';
 import type { SongWithNames } from '../../../lib/types.js';
 
@@ -42,6 +43,8 @@ export function Artist() {
   const [error, setError] = useState<string | null>(null);
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
+
+  useDocumentTitle(artist?.name);
 
   useEffect(() => {
     if (!id) return;

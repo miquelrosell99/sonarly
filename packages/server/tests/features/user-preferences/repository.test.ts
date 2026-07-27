@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
+import { DEFAULT_USER_PREFERENCES } from '@sonarly/shared';
 import { migrate } from '../../../src/db/migrate.js';
 import { createUser } from '../../../src/features/users/repository.js';
 import { getUserPreferences, updateUserPreferences } from '../../../src/features/user-preferences/repository.js';
@@ -24,9 +25,9 @@ describe('user preferences repository', () => {
     db.close();
   });
 
-  it('returns empty preferences when none exist', () => {
+  it('returns default preferences when none exist', () => {
     const prefs = getUserPreferences(db, 'user-1');
-    expect(prefs).toEqual({});
+    expect(prefs).toEqual(DEFAULT_USER_PREFERENCES);
   });
 
   it('updates and merges preferences', () => {

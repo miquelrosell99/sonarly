@@ -13,6 +13,7 @@ import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
@@ -69,6 +70,8 @@ export function Album({ user }: { user: User }) {
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
+
+  useDocumentTitle(detail?.album.name);
 
   const load = () => {
     if (!id) return;
