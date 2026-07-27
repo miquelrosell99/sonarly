@@ -10,6 +10,7 @@ import { useArtistContextMenu } from '../../../hooks/useArtistContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
+import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 
 function ArtistContextMenu({
   artist,
@@ -33,12 +34,13 @@ export function Artists() {
   const { notify } = useNotification();
   const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   const load = () => {
     setLoading(true);
     Promise.all([
-      api<{ artists: Artist[] }>('/artists'),
-      api<{ songs: Song[] }>('/songs'),
+      api<{ artists: Artist[] }>(`/artists${buildLibraryQuery(selectedLibraryId)}`),
+      api<{ songs: Song[] }>(`/songs${buildLibraryQuery(selectedLibraryId)}`),
     ])
       .then(([artistsRes, songsRes]) => {
         setArtists(artistsRes.artists);
@@ -50,7 +52,7 @@ export function Artists() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [selectedLibraryId]);
 
   const artistGenres = useMemo(() => {
     const map = new Map<string, Set<string>>();

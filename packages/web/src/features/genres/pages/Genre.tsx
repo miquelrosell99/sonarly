@@ -6,6 +6,7 @@ import { Button } from '../../../components/ui/Button.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
+import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { TrackList } from '../../songs/index.js';
 import { AlbumList } from '../../albums/index.js';
 import type { SongWithNames } from '../../../lib/types.js';
@@ -25,13 +26,16 @@ export function Genre() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const libraryQuery = buildLibraryQuery(selectedLibraryId);
+  const libraryParam = libraryQuery ? `&${libraryQuery.slice(1)}` : '';
 
   const load = () => {
     if (!genre) return;
     setLoading(true);
     Promise.all([
-      api<{ songs: SongWithNames[] }>(`/songs?genre=${encodeURIComponent(genre)}`),
-      api<{ albums: AlbumWithArtist[] }>(`/albums?genre=${encodeURIComponent(genre)}`),
+      api<{ songs: SongWithNames[] }>(`/songs?genre=${encodeURIComponent(genre)}${libraryParam}`),
+      api<{ albums: AlbumWithArtist[] }>(`/albums?genre=${encodeURIComponent(genre)}${libraryParam}`),
     ])
       .then(([songsRes, albumsRes]) => {
         setTracks(songsRes.songs);
@@ -43,7 +47,7 @@ export function Genre() {
 
   useEffect(() => {
     load();
-  }, [genre]);
+  }, [genre, selectedLibraryId]);
 
   if (loading) return <p className="text-sm text-muted">Loading...</p>;
   if (error) return <p className="text-sm text-danger">{error}</p>;

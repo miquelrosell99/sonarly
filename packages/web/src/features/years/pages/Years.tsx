@@ -4,6 +4,7 @@ import type { Song, Album } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 
 interface Track extends Song {
   artistName?: string;
@@ -21,13 +22,14 @@ export function Years() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   const load = () => {
     setLoading(true);
     Promise.all([
-      api<{ years: number[] }>('/years'),
-      api<{ songs: Track[] }>('/songs'),
-      api<{ albums: AlbumWithArtist[] }>('/albums'),
+      api<{ years: number[] }>(`/years${buildLibraryQuery(selectedLibraryId)}`),
+      api<{ songs: Track[] }>(`/songs${buildLibraryQuery(selectedLibraryId)}`),
+      api<{ albums: AlbumWithArtist[] }>(`/albums${buildLibraryQuery(selectedLibraryId)}`),
     ])
       .then(([yearsRes, songsRes, albumsRes]) => {
         setYears(yearsRes.years);
@@ -40,7 +42,7 @@ export function Years() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [selectedLibraryId]);
 
   const playYear = (year: number) => {
     const matching = tracks.filter((t) => t.year === year);
