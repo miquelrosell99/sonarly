@@ -26,11 +26,12 @@ export function ControlButton({
       disabled={disabled}
       aria-label={label}
       className={cn(
-        'inline-flex h-9 w-9 items-center justify-center rounded-full text-fg-secondary transition',
-        'hover:bg-surface-hover hover:text-fg-primary',
+        'inline-flex h-9 w-9 items-center justify-center rounded-full transition',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary',
         'disabled:cursor-not-allowed disabled:opacity-40',
-        active && 'text-accent',
+        active
+          ? 'bg-accent/15 text-accent hover:bg-accent/25'
+          : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
         className,
       )}
     >
