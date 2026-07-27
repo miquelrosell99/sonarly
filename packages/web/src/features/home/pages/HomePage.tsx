@@ -114,7 +114,7 @@ function AlbumCard({ album: initialAlbum }: { album: Album }) {
         play={{
           onPlay: handlePlay,
           onShufflePlay: handleShufflePlay,
-          label: `Play ${album.name}`,
+          label: album.name,
         }}
       />
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}

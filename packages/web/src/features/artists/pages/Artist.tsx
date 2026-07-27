@@ -208,7 +208,7 @@ export function Artist() {
                 play={{
                   onPlay: () => playAlbum(album),
                   onShufflePlay: () => shufflePlayAlbum(album),
-                  label: `Play ${album.name}`,
+                  label: album.name,
                 }}
               />
             );
