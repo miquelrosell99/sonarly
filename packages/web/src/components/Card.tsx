@@ -81,14 +81,20 @@ export function Card({
             </div>
           )}
           {play && (
-            <div className="pointer-events-none absolute bottom-2 right-2 z-10 opacity-0 transition-all duration-200 group-hover/card:pointer-events-auto group-hover/card:opacity-100">
+            <span
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              className="pointer-events-none absolute bottom-2 right-2 z-10 opacity-0 transition-all duration-200 group-hover/card:pointer-events-auto group-hover/card:opacity-100"
+            >
               <PlayButton
                 variant="overlay"
                 onPlay={play.onPlay}
                 onShufflePlay={play.onShufflePlay}
                 label={play.label}
               />
-            </div>
+            </span>
           )}
         </Link>
       ) : null}
@@ -132,14 +138,20 @@ export function Card({
         </div>
       )}
       {!cover && play && (
-        <div className="pointer-events-none absolute bottom-2 right-2 z-10 opacity-0 transition-all duration-200 group-hover/card:pointer-events-auto group-hover/card:opacity-100">
+        <span
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          className="pointer-events-none absolute bottom-2 right-2 z-10 opacity-0 transition-all duration-200 group-hover/card:pointer-events-auto group-hover/card:opacity-100"
+        >
           <PlayButton
             variant="overlay"
             onPlay={play.onPlay}
             onShufflePlay={play.onShufflePlay}
             label={play.label}
           />
-        </div>
+        </span>
       )}
     </div>
   );

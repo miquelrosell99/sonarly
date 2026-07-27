@@ -22,7 +22,7 @@ interface AlbumDetail {
 }
 
 function AlbumCard({ album: initialAlbum }: { album: Album }) {
-  const { playSongs } = usePlayActions();
+  const { playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
   const [album, setAlbum] = useState(initialAlbum);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +34,16 @@ function AlbumCard({ album: initialAlbum }: { album: Album }) {
       playSongs(detail.songs, 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to play album');
+    }
+  };
+
+  const handleShufflePlay = async () => {
+    setError(null);
+    try {
+      const detail = await api<AlbumDetail>(`/albums/${album.id}`);
+      shufflePlay(detail.songs);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to shuffle play album');
     }
   };
 
@@ -102,7 +112,8 @@ function AlbumCard({ album: initialAlbum }: { album: Album }) {
           onRate: handleRate,
         }}
         play={{
-          onClick: handlePlay,
+          onPlay: handlePlay,
+          onShufflePlay: handleShufflePlay,
           label: `Play ${album.name}`,
         }}
       />

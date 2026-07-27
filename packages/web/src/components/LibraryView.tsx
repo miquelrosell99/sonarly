@@ -248,7 +248,7 @@ export function LibraryView<T>({
             cover={coverElement}
             favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
             rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
-            play={onPlay ? { onClick: () => onPlay(item) } : undefined}
+            play={onPlay ? { onPlay: () => onPlay(item), onShufflePlay: () => onShufflePlay?.([item]) } : undefined}
           />
         );
         return (
