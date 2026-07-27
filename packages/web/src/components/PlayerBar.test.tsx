@@ -121,10 +121,13 @@ describe('PlayerBar', () => {
     expect(screen.getByText('Artist One')).toBeTruthy();
   });
 
-  it('toggles Auto DJ on click and persists the change', () => {
+  it('toggles Auto DJ on click, persists the change, and updates its visual state', () => {
     render(<PlayerBar />);
     const djButton = screen.getByRole('button', { name: /auto dj/i });
     expect(djButton).toBeTruthy();
+    expect(djButton.className).toContain('text-fg-secondary');
+    expect(djButton.className).not.toContain('text-accent');
+    expect(djButton.className).not.toContain('bg-accent/15');
 
     fireEvent.click(djButton);
     expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjEnabled: true });
@@ -132,7 +135,11 @@ describe('PlayerBar', () => {
     mockPreferences.autoDjEnabled = true;
     cleanup();
     render(<PlayerBar />);
-    fireEvent.click(screen.getByRole('button', { name: /auto dj/i }));
+    const activeDjButton = screen.getByRole('button', { name: /auto dj/i });
+    expect(activeDjButton.className).toContain('text-accent');
+    expect(activeDjButton.className).toContain('bg-accent/15');
+
+    fireEvent.click(activeDjButton);
     expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjEnabled: false });
   });
 
@@ -200,5 +207,60 @@ describe('PlayerBar', () => {
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: /queue/i })).toBeFalsy();
     });
+  });
+
+  it('toggles shuffle and updates its visual state', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'Now Playing', artistName: 'Artist' } as any,
+    ], 0);
+
+    render(<PlayerBar />);
+    const shuffleButton = screen.getByRole('button', { name: 'Shuffle' });
+    expect(shuffleButton.className).not.toContain('text-accent');
+    expect(shuffleButton.className).not.toContain('bg-accent/15');
+
+    fireEvent.click(shuffleButton);
+    expect(usePlayer.getState().shuffle).toBe(true);
+
+    cleanup();
+    render(<PlayerBar />);
+    const activeShuffleButton = screen.getByRole('button', { name: 'Shuffle' });
+    expect(activeShuffleButton.className).toContain('text-accent');
+    expect(activeShuffleButton.className).toContain('bg-accent/15');
+  });
+
+  it('cycles repeat mode and updates its icon and visual state', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'Now Playing', artistName: 'Artist' } as any,
+    ], 0);
+
+    render(<PlayerBar />);
+    const repeatButton = screen.getByRole('button', { name: /Repeat:/i });
+    const repeatUse = repeatButton.querySelector('use');
+    expect(repeatButton.className).not.toContain('text-accent');
+    expect(repeatButton.className).not.toContain('bg-accent/15');
+    expect(repeatUse?.getAttribute('href')).toBe('/mdi-sprite.svg#mdi-repeat');
+
+    fireEvent.click(repeatButton);
+    expect(usePlayer.getState().repeat).toBe('all');
+
+    cleanup();
+    render(<PlayerBar />);
+    const allRepeatButton = screen.getByRole('button', { name: /Repeat: all/i });
+    const allRepeatUse = allRepeatButton.querySelector('use');
+    expect(allRepeatButton.className).toContain('text-accent');
+    expect(allRepeatButton.className).toContain('bg-accent/15');
+    expect(allRepeatUse?.getAttribute('href')).toBe('/mdi-sprite.svg#mdi-repeat');
+
+    fireEvent.click(allRepeatButton);
+    expect(usePlayer.getState().repeat).toBe('one');
+
+    cleanup();
+    render(<PlayerBar />);
+    const oneRepeatButton = screen.getByRole('button', { name: /Repeat: one/i });
+    const oneRepeatUse = oneRepeatButton.querySelector('use');
+    expect(oneRepeatButton.className).toContain('text-accent');
+    expect(oneRepeatButton.className).toContain('bg-accent/15');
+    expect(oneRepeatUse?.getAttribute('href')).toBe('/mdi-sprite.svg#mdi-repeat-once');
   });
 });

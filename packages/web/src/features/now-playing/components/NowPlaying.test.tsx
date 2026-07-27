@@ -66,10 +66,7 @@ describe('NowPlaying', () => {
       0,
     );
     render(<NowPlaying user={mockUser} />, { wrapper: Wrapper });
-    const row = screen.getByText('Next').closest('[role="menuitem"]') ?? screen.getByText('Next').closest('div');
-    if (row) {
-      fireEvent.contextMenu(row);
-    }
+    fireEvent.contextMenu(screen.getByText('Next'));
     expect(screen.queryByRole('menu')).toBeTruthy();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(useNowPlaying.getState().isOpen).toBe(true);
