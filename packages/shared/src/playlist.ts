@@ -6,6 +6,7 @@ export interface Playlist {
   id: string;
   name: string;
   ownerId: string;
+  ownerUsername?: string;
   visibility: PlaylistVisibility;
   shareToken?: string;
   songIds: string[];
@@ -13,6 +14,7 @@ export interface Playlist {
   rules?: SmartPlaylistRules;
   createdAt: string;
   updatedAt: string;
+  songCount?: number;
   starred?: boolean;
   rating?: number;
 }
