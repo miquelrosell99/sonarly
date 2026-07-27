@@ -62,7 +62,7 @@ describe('useSongInteraction', () => {
 
     await result.current.setFavorite(false);
 
-    expect(result.current.starred).toBe(false);
+    await waitFor(() => expect(result.current.starred).toBe(false));
     expect(mockSetFavorite).toHaveBeenCalledWith('song', 'song-1', false);
   });
 
@@ -72,7 +72,7 @@ describe('useSongInteraction', () => {
     await waitFor(() => expect(result.current.starred).toBe(true));
 
     await expect(result.current.setFavorite(false)).rejects.toThrow('Failed');
-    expect(result.current.starred).toBe(true);
+    await waitFor(() => expect(result.current.starred).toBe(true));
   });
 
   it('updates rating optimistically and calls the api', async () => {
@@ -81,7 +81,7 @@ describe('useSongInteraction', () => {
 
     await result.current.setRating(5);
 
-    expect(result.current.rating).toBe(5);
+    await waitFor(() => expect(result.current.rating).toBe(5));
     expect(mockSetRating).toHaveBeenCalledWith('song', 'song-1', 5);
   });
 
@@ -91,7 +91,7 @@ describe('useSongInteraction', () => {
     await waitFor(() => expect(result.current.rating).toBe(4));
 
     await expect(result.current.setRating(2)).rejects.toThrow('Failed');
-    expect(result.current.rating).toBe(4);
+    await waitFor(() => expect(result.current.rating).toBe(4));
   });
 
   it('does nothing when songId is undefined', async () => {

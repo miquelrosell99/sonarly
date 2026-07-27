@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { flushSync } from 'react-dom';
 import type { Song } from '@sonarly/shared';
 import { api } from '../api.js';
 import { useFavoriteActions } from './useFavoriteActions.js';
@@ -41,15 +40,11 @@ export function useSongInteraction(
     async (nextStarred: boolean) => {
       if (!songId) return;
       const previousStarred = starred;
-      flushSync(() => {
-        setStarred(nextStarred);
-      });
+      setStarred(nextStarred);
       try {
         await setFavoriteApi('song', songId, nextStarred);
       } catch (err) {
-        flushSync(() => {
-          setStarred(previousStarred);
-        });
+        setStarred(previousStarred);
         console.error('Failed to update favorite', err);
         throw err;
       }
@@ -61,15 +56,11 @@ export function useSongInteraction(
     async (nextRating?: number) => {
       if (!songId) return;
       const previousRating = rating;
-      flushSync(() => {
-        setRating(nextRating);
-      });
+      setRating(nextRating);
       try {
         await setRatingApi('song', songId, nextRating);
       } catch (err) {
-        flushSync(() => {
-          setRating(previousRating);
-        });
+        setRating(previousRating);
         console.error('Failed to update rating', err);
         throw err;
       }
