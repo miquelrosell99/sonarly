@@ -217,3 +217,38 @@
     display: none;
   }
 }
+
+@keyframes now-playing-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes now-playing-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.now-playing-enter {
+  animation: now-playing-enter 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.now-playing-content {
+  animation: now-playing-slide-up 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .now-playing-enter,
+  .now-playing-content {
+    animation: none;
+  }
+}
