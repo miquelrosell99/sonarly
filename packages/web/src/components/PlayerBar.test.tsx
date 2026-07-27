@@ -8,6 +8,8 @@ const mockSetRating = vi.hoisted(() => vi.fn());
 
 const mockUpdateCurrentSong = vi.hoisted(() => vi.fn());
 
+const mockUpdatePreferencesMutate = vi.hoisted(() => vi.fn());
+
 vi.mock('../hooks/useSongInteraction.js', () => ({
   useSongInteraction: (songId: string | undefined, fallback: { starred?: boolean; rating?: number }) => ({
     starred: fallback?.starred ?? false,
@@ -15,6 +17,10 @@ vi.mock('../hooks/useSongInteraction.js', () => ({
     setFavorite: mockSetFavorite,
     setRating: mockSetRating,
   }),
+}));
+
+vi.mock('../hooks/usePreferences.js', () => ({
+  useUpdatePreferences: () => ({ mutate: mockUpdatePreferencesMutate }),
 }));
 
 beforeEach(() => {
@@ -65,5 +71,41 @@ describe('PlayerBar', () => {
     fireEvent.click(screen.getByRole('button', { name: /rate 3 stars/i }));
     expect(mockSetRating).toHaveBeenCalledWith(3);
     await waitFor(() => expect(mockUpdateCurrentSong).toHaveBeenCalledWith({ rating: 3 }));
+  });
+
+  it('toggles Auto DJ on click and persists the change', () => {
+    render(<PlayerBar />);
+    const djButton = screen.getByRole('button', { name: /auto dj/i });
+    expect(djButton).toBeTruthy();
+
+    fireEvent.click(djButton);
+    expect(usePlayer.getState().autoDjEnabled).toBe(true);
+    expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjEnabled: true });
+
+    fireEvent.click(djButton);
+    expect(usePlayer.getState().autoDjEnabled).toBe(false);
+    expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjEnabled: false });
+  });
+
+  it('opens the DJ mode menu on right click', () => {
+    render(<PlayerBar />);
+    const djButton = screen.getByRole('button', { name: /auto dj/i });
+
+    fireEvent.contextMenu(djButton);
+
+    expect(screen.getByRole('button', { name: 'Similar' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Random' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Smart' })).toBeTruthy();
+  });
+
+  it('selects a DJ mode and persists the change', () => {
+    render(<PlayerBar />);
+    const djButton = screen.getByRole('button', { name: /auto dj/i });
+
+    fireEvent.contextMenu(djButton);
+    fireEvent.click(screen.getByRole('button', { name: 'Random' }));
+
+    expect(usePlayer.getState().autoDjMode).toBe('random');
+    expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjMode: 'random' });
   });
 });
