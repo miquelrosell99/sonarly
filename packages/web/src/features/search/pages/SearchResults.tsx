@@ -84,35 +84,38 @@ export function SearchResults() {
       .finally(() => setLoading(false));
   }, [query, type]);
 
-  const updateItem = (
+  function updateItem<T extends { id: string }>(
     prev: SearchResponse | null,
     key: SearchType,
     id: string,
-    patch: Record<string, unknown>,
-  ): SearchResponse | null => {
+    patch: Partial<T>,
+  ): SearchResponse | null {
     if (!prev) return prev;
-    const list = prev[key];
-    return { ...prev, [key]: list.map((item) => (item.id === id ? { ...item, ...patch } : item)) };
-  };
+    const list = prev[key] as unknown as T[];
+    return {
+      ...prev,
+      [key]: list.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+    } as SearchResponse;
+  }
 
-  const handleFavorite = async (
+  const handleFavorite = async <T extends { id: string; starred?: boolean }>(
     entityType: FavoriteEntityType,
     id: string,
     starred: boolean,
-    update: (patch: Partial<{ starred?: boolean; rating?: number }>) => void,
+    update: (patch: Partial<T>) => void,
   ) => {
     await setFavorite(entityType, id, starred);
-    update({ starred });
+    update({ starred } as Partial<T>);
   };
 
-  const handleRate = async (
+  const handleRate = async <T extends { id: string; rating?: number }>(
     entityType: FavoriteEntityType,
     id: string,
     rating: number | undefined,
-    update: (patch: Partial<{ starred?: boolean; rating?: number }>) => void,
+    update: (patch: Partial<T>) => void,
   ) => {
     await setRating(entityType, id, rating);
-    update({ rating });
+    update({ rating } as Partial<T>);
   };
 
   const playAlbum = async (album: Album) => {
@@ -179,12 +182,12 @@ export function SearchResults() {
         onPlaySelection={playSongs}
         onShufflePlay={shufflePlay}
         onFavorite={(song, starred) =>
-          handleFavorite('song', song.id, starred, (patch) =>
+          handleFavorite<Song>('song', song.id, starred, (patch) =>
             setData((prev) => updateItem(prev, 'songs', song.id, patch)),
           )
         }
         onRate={(song, rating) =>
-          handleRate('song', song.id, rating, (patch) =>
+          handleRate<Song>('song', song.id, rating, (patch) =>
             setData((prev) => updateItem(prev, 'songs', song.id, patch)),
           )
         }
@@ -232,12 +235,12 @@ export function SearchResults() {
         onPlay={playAlbum}
         onShufflePlay={shuffleAlbums}
         onFavorite={(album, starred) =>
-          handleFavorite('album', album.id, starred, (patch) =>
+          handleFavorite<Album>('album', album.id, starred, (patch) =>
             setData((prev) => updateItem(prev, 'albums', album.id, patch)),
           )
         }
         onRate={(album, rating) =>
-          handleRate('album', album.id, rating, (patch) =>
+          handleRate<Album>('album', album.id, rating, (patch) =>
             setData((prev) => updateItem(prev, 'albums', album.id, patch)),
           )
         }
@@ -277,12 +280,12 @@ export function SearchResults() {
         getHref={(artist) => `/artists/${artist.id}`}
         onPlay={playArtist}
         onFavorite={(artist, starred) =>
-          handleFavorite('artist', artist.id, starred, (patch) =>
+          handleFavorite<Artist>('artist', artist.id, starred, (patch) =>
             setData((prev) => updateItem(prev, 'artists', artist.id, patch)),
           )
         }
         onRate={(artist, rating) =>
-          handleRate('artist', artist.id, rating, (patch) =>
+          handleRate<Artist>('artist', artist.id, rating, (patch) =>
             setData((prev) => updateItem(prev, 'artists', artist.id, patch)),
           )
         }
@@ -328,12 +331,12 @@ export function SearchResults() {
         onPlay={playPlaylist}
         onShufflePlay={shufflePlaylists}
         onFavorite={(playlist, starred) =>
-          handleFavorite('playlist', playlist.id, starred, (patch) =>
+          handleFavorite<Playlist>('playlist', playlist.id, starred, (patch) =>
             setData((prev) => updateItem(prev, 'playlists', playlist.id, patch)),
           )
         }
         onRate={(playlist, rating) =>
-          handleRate('playlist', playlist.id, rating, (patch) =>
+          handleRate<Playlist>('playlist', playlist.id, rating, (patch) =>
             setData((prev) => updateItem(prev, 'playlists', playlist.id, patch)),
           )
         }
