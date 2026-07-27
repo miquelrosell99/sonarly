@@ -94,6 +94,12 @@ function SortableQueueRow({ song, index, isCurrent, onPlay, onRemove, user }: Qu
           </span>
           <span className="truncate text-xs text-fg-secondary">{song.artistName || 'Unknown artist'}</span>
         </button>
+        {song.addedByAutoDj && (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+            <Icon name="mdi-robot" size={12} />
+            Auto DJ
+          </span>
+        )}
         <span className="text-xs tabular-nums text-fg-secondary">{formatTime(song.duration ?? 0)}</span>
         <button
           type="button"

@@ -192,6 +192,35 @@ describe('playerStore queue actions', () => {
     expect(state.queue.map((s) => s.id)).toEqual(['a', 'b', 'c']);
     expect(state.queueIndex).toBe(0);
   });
+
+  it('marks songs as added by Auto DJ when requested', () => {
+    usePlayer.getState().playQueue([songA], 0);
+    usePlayer.getState().addToQueue([songB], { addedByAutoDj: true });
+    const state = usePlayer.getState();
+    expect(state.queue.map((s) => s.id)).toEqual(['a', 'b']);
+    expect(state.queue[1]?.addedByAutoDj).toBe(true);
+    expect(state.queue[0]?.addedByAutoDj).toBeUndefined();
+  });
+
+  it('removeAutoDjItems removes only unplayed Auto DJ items', () => {
+    const autoA: PlayerSong = { ...songB, addedByAutoDj: true };
+    const autoB: PlayerSong = { ...songC, addedByAutoDj: true };
+    usePlayer.getState().playQueue([songA, autoA, autoB], 0);
+    usePlayer.getState().removeAutoDjItems();
+    const state = usePlayer.getState();
+    expect(state.queue.map((s) => s.id)).toEqual(['a']);
+    expect(state.queueIndex).toBe(0);
+  });
+
+  it('removeAutoDjItems keeps the current song even if it was added by Auto DJ', () => {
+    const autoCurrent: PlayerSong = { ...songA, addedByAutoDj: true };
+    const autoNext: PlayerSong = { ...songB, addedByAutoDj: true };
+    usePlayer.getState().playQueue([autoCurrent, autoNext], 0);
+    usePlayer.getState().removeAutoDjItems();
+    const state = usePlayer.getState();
+    expect(state.queue.map((s) => s.id)).toEqual(['a']);
+    expect(state.queueIndex).toBe(0);
+  });
 });
 
 describe('updateCurrentSong', () => {
