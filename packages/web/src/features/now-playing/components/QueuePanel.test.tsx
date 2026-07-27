@@ -61,4 +61,27 @@ describe('QueuePanel', () => {
     expect(usePlayer.getState().queue).toHaveLength(1);
     expect(usePlayer.getState().queue[0].id).toBe('s1');
   });
+
+  it('shows a context menu with play and remove actions', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'First' } as any,
+      { id: 's2', title: 'Second' } as any,
+    ], 0);
+
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+    fireEvent.contextMenu(screen.getByText('First'));
+    expect(screen.getByRole('menuitem', { name: /play now/i })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: /remove from queue/i })).toBeTruthy();
+  });
+
+  it('renders a drag handle for reordering each queue item', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'First' } as any,
+      { id: 's2', title: 'Second' } as any,
+    ], 0);
+
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+    const dragHandles = screen.getAllByRole('button', { name: /drag to reorder/i });
+    expect(dragHandles).toHaveLength(2);
+  });
 });
