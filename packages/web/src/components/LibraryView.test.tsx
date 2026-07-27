@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import { Router, Link, useLocation } from 'wouter';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from './LibraryView.js';
 
@@ -26,8 +26,13 @@ const cardFields: LibraryViewCardField<Item>[] = [
   { key: 'artist', render: (item) => item.artist },
 ];
 
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
 });
 
 function LocationDisplay() {
@@ -216,5 +221,38 @@ describe('LibraryView', () => {
 
     const alphaTitle = screen.getByText('Alpha');
     expect(alphaTitle.className).not.toContain('text-accent');
+  });
+
+  it('calls onShufflePlay with the full data array when the row play button is held', () => {
+    const onPlay = vi.fn();
+    const onShufflePlay = vi.fn();
+    renderView({ onPlay, onShufflePlay });
+
+    const playButton = screen.getAllByRole('button', { name: 'Play (hold to shuffle)', hidden: true })[0];
+    fireEvent.pointerDown(playButton);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    fireEvent.pointerUp(playButton);
+
+    expect(onShufflePlay).toHaveBeenCalledTimes(1);
+    expect(onShufflePlay).toHaveBeenCalledWith(items);
+  });
+
+  it('calls onShufflePlay with the full data array when the grid card play button is held', () => {
+    const onPlay = vi.fn();
+    const onShufflePlay = vi.fn();
+    renderView({ onPlay, onShufflePlay });
+
+    fireEvent.click(screen.getAllByRole('button', { name: /grid view/i })[0]);
+    const playButton = screen.getAllByRole('button', { name: 'Play (hold to shuffle)', hidden: true })[0];
+    fireEvent.pointerDown(playButton);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    fireEvent.pointerUp(playButton);
+
+    expect(onShufflePlay).toHaveBeenCalledTimes(1);
+    expect(onShufflePlay).toHaveBeenCalledWith(items);
   });
 });
