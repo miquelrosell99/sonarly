@@ -250,4 +250,48 @@ describe('search endpoint', () => {
     });
     expect(res.statusCode).toBe(400);
   });
+
+  it('caps full-category search results at 250 by default', async () => {
+    for (let i = 8; i <= 260; i++) {
+      upsertSong(db, {
+        id: `song-${i}`,
+        filePath: `/data/library/song${i}.mp3`,
+        title: `Alpha Song ${i}`,
+        artistId: 'artist-1',
+        albumId: 'album-1',
+        mtime: Date.now(),
+        checksum: `c${i}`,
+      });
+    }
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/search?q=alpha&type=songs',
+      cookies: { sessionId: cookieValue },
+    });
+    const body = JSON.parse(res.body);
+    expect(body.songs.length).toBe(250);
+  });
+
+  it('caps an explicit limit above 250 for full-category search', async () => {
+    for (let i = 8; i <= 260; i++) {
+      upsertSong(db, {
+        id: `song-${i}`,
+        filePath: `/data/library/song${i}.mp3`,
+        title: `Alpha Song ${i}`,
+        artistId: 'artist-1',
+        albumId: 'album-1',
+        mtime: Date.now(),
+        checksum: `c${i}`,
+      });
+    }
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/search?q=alpha&type=songs&limit=300',
+      cookies: { sessionId: cookieValue },
+    });
+    const body = JSON.parse(res.body);
+    expect(body.songs.length).toBe(250);
+  });
 });
