@@ -123,6 +123,15 @@ export function Artist() {
     }
   };
 
+  const shufflePlayAlbum = async (album: Album) => {
+    try {
+      const detail = await api<{ songs: Song[] }>(`/albums/${album.id}`);
+      shufflePlay(detail.songs);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to shuffle play album');
+    }
+  };
+
   const playTrack = (track: SongWithNames) => {
     playSongs([track as Song], 0);
   };
@@ -197,7 +206,8 @@ export function Artist() {
                   onRate: (rating) => handleAlbumRate(album, rating || undefined),
                 }}
                 play={{
-                  onClick: () => playAlbum(album),
+                  onPlay: () => playAlbum(album),
+                  onShufflePlay: () => shufflePlayAlbum(album),
                   label: `Play ${album.name}`,
                 }}
               />
