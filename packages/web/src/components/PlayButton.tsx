@@ -82,7 +82,7 @@ function PlayButtonContent({
   handlers,
 }: PlayButtonProps & { isHolding?: boolean; handlers?: Handlers }) {
   const ariaLabel = handlers
-    ? (label ? `Play ${label} (hold to shuffle)` : typeof children === 'string' ? `${children} (hold to shuffle)` : 'Play (hold to shuffle)')
+    ? (label ? `${label} (hold to shuffle)` : typeof children === 'string' ? `${children} (hold to shuffle)` : 'Play (hold to shuffle)')
     : (label ?? (typeof children === 'string' ? children : 'Play'));
 
   const baseProps = {
