@@ -10,6 +10,7 @@ import { useArtistContextMenu } from '../../../hooks/useArtistContextMenu.js';
 import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { usePlayer } from '../../../stores/playerStore.js';
+import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 
 type SearchType = 'songs' | 'albums' | 'artists' | 'playlists';
 
@@ -68,6 +69,9 @@ export function SearchResults() {
   const { playSong, playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const libraryQuery = buildLibraryQuery(selectedLibraryId);
+  const libraryParam = libraryQuery ? `&${libraryQuery.slice(1)}` : '';
 
   useEffect(() => {
     if (!query.trim()) {
@@ -78,11 +82,11 @@ export function SearchResults() {
     }
     setLoading(true);
     setError(null);
-    api<SearchResponse>(`/search?q=${encodeURIComponent(query)}&type=${type}`)
+    api<SearchResponse>(`/search?q=${encodeURIComponent(query)}&type=${type}${libraryParam}`)
       .then(setData)
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load search results'))
       .finally(() => setLoading(false));
-  }, [query, type]);
+  }, [query, type, selectedLibraryId]);
 
   function updateItem<T extends { id: string }>(
     prev: SearchResponse | null,
@@ -119,17 +123,17 @@ export function SearchResults() {
   };
 
   const playAlbum = async (album: Album) => {
-    const detail = await api<AlbumDetail>(`/albums/${album.id}`);
+    const detail = await api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
     playSongs(detail.songs, 0);
   };
 
   const shuffleAlbums = async (albums: Album[]) => {
-    const details = await Promise.all(albums.map((a) => api<AlbumDetail>(`/albums/${a.id}`)));
+    const details = await Promise.all(albums.map((a) => api<AlbumDetail>(`/albums/${a.id}${buildLibraryQuery(selectedLibraryId)}`)));
     shufflePlay(details.flatMap((d) => d.songs));
   };
 
   const playArtist = async (artist: Artist) => {
-    const { songs } = await api<{ songs: Song[] }>(`/artists/${artist.id}/songs`);
+    const { songs } = await api<{ songs: Song[] }>(`/artists/${artist.id}/songs${buildLibraryQuery(selectedLibraryId)}`);
     playSongs(songs, 0);
   };
 
