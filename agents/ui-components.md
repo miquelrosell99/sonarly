@@ -36,6 +36,16 @@ Shared components live in `packages/web/src/components/`. Use them for consisten
 
 When adding, removing, or significantly changing a shared component, update this table.
 
+### Reusable widgets
+
+Small UI patterns that should be reused instead of reimplemented:
+
+| Widget | Path | Use for |
+|--------|------|---------|
+| `Checkbox` | `components/ui/Checkbox.tsx` | All boolean settings. Replace native `<input type="checkbox">` with this styled control. |
+| `ItemContextMenu` | `components/ItemContextMenu.tsx` | Right-click or long-press menus. It portals the menu to `document.body` so it is not clipped by ancestor `overflow` rules. |
+| Card selector | `features/settings/pages/SettingsPlayback.tsx` | Mutually exclusive choices with an icon, title, and short description. Use as a horizontal row of cards that stack vertically on small screens. |
+
 ### PlayerBar artist links
 
 `PlayerBar` renders the current track's artists as separate clickable links. When a song has `artistEntries` (populated from the `song_artists` junction table), each entry gets its own link to `/artists/<id>`. If only the legacy single `artistId`/`artistName` fields are present, it falls back to one link. This ensures multi-artist tracks are navigable from the playbar.
