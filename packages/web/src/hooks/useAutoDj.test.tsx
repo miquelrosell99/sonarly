@@ -6,7 +6,14 @@ import type { PlayerSong } from '../stores/playerStore.js';
 import type { UserPreferences, AutoDjMode } from '@sonarly/shared';
 
 const mockApi = vi.hoisted(() => vi.fn(((_path: string) => Promise.resolve({ songs: [] as PlayerSong[] }))));
-const mockAddToQueue = vi.hoisted(() => vi.fn<(songs: PlayerSong[]) => void>());
+const mockAddToQueue = vi.hoisted(() => vi.fn<(songs: PlayerSong[], options?: { addedByAutoDj?: boolean }) => void>());
+const mockRemoveAutoDjItems = vi.hoisted(() => vi.fn(() => {
+  const { queue, queueIndex } = mockUsePlayerData.current;
+  mockUsePlayerData.current.queue = queue.filter(
+    (song, index) => !(index > queueIndex && song.addedByAutoDj),
+  );
+}));
+const mockNotify = vi.hoisted(() => vi.fn());
 const mockUsePreferencesData = vi.hoisted(() => ({ current: { preferences: null as UserPreferences | null } }));
 const mockUsePlayerData = vi.hoisted(() => ({
   current: {
@@ -15,23 +22,39 @@ const mockUsePlayerData = vi.hoisted(() => ({
     queueIndex: 0,
   },
 }));
+const usePlayerMock = vi.hoisted(() => {
+  const fn = (selector: (state: unknown) => unknown) =>
+    selector({
+      currentSong: mockUsePlayerData.current.currentSong,
+      queue: mockUsePlayerData.current.queue,
+      queueIndex: mockUsePlayerData.current.queueIndex,
+      addToQueue: mockAddToQueue,
+      removeAutoDjItems: mockRemoveAutoDjItems,
+    });
+  fn.getState = () => ({
+    currentSong: mockUsePlayerData.current.currentSong,
+    queue: mockUsePlayerData.current.queue,
+    queueIndex: mockUsePlayerData.current.queueIndex,
+    addToQueue: mockAddToQueue,
+    removeAutoDjItems: mockRemoveAutoDjItems,
+  });
+  return fn;
+});
 
 vi.mock('./usePreferences.js', () => ({
   usePreferences: () => ({ data: mockUsePreferencesData.current.preferences }),
 }));
 
 vi.mock('../stores/playerStore.js', () => ({
-  usePlayer: (selector: (state: unknown) => unknown) =>
-    selector({
-      currentSong: mockUsePlayerData.current.currentSong,
-      queue: mockUsePlayerData.current.queue,
-      queueIndex: mockUsePlayerData.current.queueIndex,
-      addToQueue: mockAddToQueue,
-    }),
+  usePlayer: usePlayerMock,
 }));
 
 vi.mock('../api.js', () => ({
   api: mockApi,
+}));
+
+vi.mock('../contexts/NotificationContext.js', () => ({
+  useNotification: () => ({ notify: mockNotify }),
 }));
 
 function TestComponent() {
@@ -72,6 +95,10 @@ function song(id: string): PlayerSong {
     checksum: id,
     active: true,
   };
+}
+
+function autoDjSong(id: string): PlayerSong {
+  return { ...song(id), addedByAutoDj: true };
 }
 
 function preferences(partial: Partial<UserPreferences> = {}): UserPreferences {
@@ -181,7 +208,7 @@ describe('useAutoDj', () => {
       />,
     );
 
-    await waitFor(() => expect(mockAddToQueue).toHaveBeenCalledWith(fetched));
+    await waitFor(() => expect(mockAddToQueue).toHaveBeenCalledWith(fetched, { addedByAutoDj: true }));
   });
 
   it('does not duplicate-add songs already in the queue', async () => {
@@ -204,5 +231,92 @@ describe('useAutoDj', () => {
     const excludeIds = params.get('excludeIds')?.split(',') ?? [];
     expect(excludeIds).toContain('current');
     expect(excludeIds).toContain('existing');
+  });
+
+  it('marks fetched songs as added by Auto DJ', async () => {
+    const fetched = [song('new1')];
+    mockApi.mockResolvedValueOnce({ songs: fetched });
+
+    render(
+      <ControlledTestComponent
+        preferences={preferences()}
+        currentSong={song('current')}
+        queue={[song('q1')]}
+        queueIndex={0}
+      />,
+    );
+
+    await waitFor(() => expect(mockAddToQueue).toHaveBeenCalled());
+    const [, options] = mockAddToQueue.mock.calls[0];
+    expect(options).toEqual({ addedByAutoDj: true });
+  });
+
+  it('shows a notification stating how many songs were added', async () => {
+    const fetched = [song('new1'), song('new2')];
+    mockApi.mockResolvedValueOnce({ songs: fetched });
+
+    render(
+      <ControlledTestComponent
+        preferences={preferences()}
+        currentSong={song('current')}
+        queue={[song('q1')]}
+        queueIndex={0}
+      />,
+    );
+
+    await waitFor(() => expect(mockNotify).toHaveBeenCalledWith('2 songs added to the queue', 'info'));
+  });
+
+  it('removes pending Auto DJ items when Auto DJ is disabled', async () => {
+    const { rerender } = render(
+      <ControlledTestComponent
+        preferences={preferences()}
+        currentSong={song('current')}
+        queue={[song('current'), autoDjSong('auto1'), autoDjSong('auto2')]}
+        queueIndex={0}
+      />,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    rerender(
+      <ControlledTestComponent
+        preferences={preferences({ autoDjEnabled: false })}
+        currentSong={song('current')}
+        queue={[song('current'), autoDjSong('auto1'), autoDjSong('auto2')]}
+        queueIndex={0}
+      />,
+    );
+
+    await waitFor(() => expect(mockRemoveAutoDjItems).toHaveBeenCalled());
+  });
+
+  it('removes unplayed Auto DJ items and refills when the DJ mode changes', async () => {
+    mockApi.mockResolvedValue({ songs: [song('refill1')] });
+
+    const { rerender } = render(
+      <ControlledTestComponent
+        preferences={preferences({ autoDjMode: 'smart' })}
+        currentSong={song('current')}
+        queue={[song('current'), autoDjSong('auto1'), autoDjSong('auto2'), song('user1')]}
+        queueIndex={0}
+      />,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const fetchCountBeforeModeChange = mockApi.mock.calls.length;
+
+    rerender(
+      <ControlledTestComponent
+        preferences={preferences({ autoDjMode: 'random' as AutoDjMode })}
+        currentSong={song('current')}
+        queue={[song('current'), autoDjSong('auto1'), autoDjSong('auto2'), song('user1')]}
+        queueIndex={0}
+      />,
+    );
+
+    await waitFor(() => expect(mockRemoveAutoDjItems).toHaveBeenCalled());
+    await waitFor(() => expect(mockApi.mock.calls.length).toBeGreaterThan(fetchCountBeforeModeChange));
+    expect(mockApi.mock.calls.some(([url]) => (url as string).includes('mode=random'))).toBe(true);
   });
 });

@@ -84,4 +84,14 @@ describe('QueuePanel', () => {
     const dragHandles = screen.getAllByRole('button', { name: /drag to reorder/i });
     expect(dragHandles).toHaveLength(2);
   });
+
+  it('shows an Auto DJ pill for Auto DJ-added queue items', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'First' } as any,
+      { id: 's2', title: 'Second', addedByAutoDj: true } as any,
+    ], 0);
+
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+    expect(screen.getByText('Auto DJ')).toBeTruthy();
+  });
 });
