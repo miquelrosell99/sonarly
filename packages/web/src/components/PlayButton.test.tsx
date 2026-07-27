@@ -117,6 +117,12 @@ describe('PlayButton', () => {
     expect(screen.getByRole('button', { name: 'Play all (hold to shuffle)' })).toBeTruthy();
   });
 
+  it('uses the provided label verbatim as the accessible name', () => {
+    render(<PlayButton onPlay={vi.fn()} onShufflePlay={vi.fn()} label="Alpha" />);
+
+    expect(screen.getByRole('button', { name: 'Alpha (hold to shuffle)' })).toBeTruthy();
+  });
+
   it('falls back to a simple button without hold behavior when onShufflePlay is absent', () => {
     const onPlay = vi.fn();
     render(<PlayButton onPlay={onPlay}>Play all</PlayButton>);
