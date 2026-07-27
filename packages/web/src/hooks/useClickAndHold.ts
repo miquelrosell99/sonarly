@@ -37,7 +37,8 @@ export function useClickAndHold({
     setIsHolding(false);
   }, [clearTimer]);
 
-  const onPointerDown = useCallback(() => {
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.button !== 0) return;
     clearTimer();
     holdTriggeredRef.current = false;
     setIsHolding(true);

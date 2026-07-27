@@ -77,4 +77,20 @@ describe('PlayButton', () => {
     expect(parentPointerDown).not.toHaveBeenCalled();
     expect(parentPointerUp).not.toHaveBeenCalled();
   });
+
+  it('does not call anything when pointer is cancelled before threshold', () => {
+    const onPlay = vi.fn();
+    const onShufflePlay = vi.fn();
+    render(<PlayButton onPlay={onPlay} onShufflePlay={onShufflePlay} label="Play" />);
+
+    const button = screen.getByRole('button', { name: /Play/ });
+    fireEvent.pointerDown(button);
+    fireEvent.pointerCancel(button);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    expect(onPlay).not.toHaveBeenCalled();
+    expect(onShufflePlay).not.toHaveBeenCalled();
+  });
 });
