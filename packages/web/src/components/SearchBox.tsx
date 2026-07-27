@@ -28,7 +28,7 @@ function useDebounce<T>(value: T, delay: number): T {
 function useSearch(query: string) {
   return useQuery<SearchResponse, Error>({
     queryKey: ['search', query],
-    queryFn: () => api(`/search?q=${encodeURIComponent(query)}`),
+    queryFn: () => api(`/search?q=${encodeURIComponent(query)}&limit=5`),
     enabled: query.length > 0,
     staleTime: 60_000,
   });
@@ -39,7 +39,10 @@ interface ResultItem {
   href: string;
   label: string;
   groupLabel: string;
+  isMore?: boolean;
 }
+
+const PREVIEW_LIMIT = 5;
 
 interface SearchBoxProps {
   filters?: FilterDefinition[];
@@ -61,20 +64,41 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
   const items = useMemo<ResultItem[]>(() => {
     if (!data) return [];
     const next: ResultItem[] = [];
-    data.songs.forEach((song) =>
-      next.push({ id: `song-${song.id}`, href: `/tracks/${song.id}`, label: song.title, groupLabel: 'Songs' }),
-    );
-    data.albums.forEach((album) =>
-      next.push({ id: `album-${album.id}`, href: `/albums/${album.id}`, label: album.name, groupLabel: 'Albums' }),
-    );
-    data.artists.forEach((artist) =>
-      next.push({ id: `artist-${artist.id}`, href: `/artists/${artist.id}`, label: artist.name, groupLabel: 'Artists' }),
-    );
-    data.playlists.forEach((playlist) =>
-      next.push({ id: `playlist-${playlist.id}`, href: `/playlists/${playlist.id}`, label: playlist.name, groupLabel: 'Playlists' }),
-    );
+
+    function addCategory<T extends { id: string }>(
+      items: T[],
+      label: string,
+      typeKey: string,
+      getLabel: (item: T) => string,
+      getHref: (item: T) => string,
+    ) {
+      const prefix = typeKey.slice(0, -1);
+      items.slice(0, PREVIEW_LIMIT).forEach((item) => {
+        next.push({
+          id: `${prefix}-${item.id}`,
+          href: getHref(item),
+          label: getLabel(item),
+          groupLabel: label,
+        });
+      });
+      if (items.length > PREVIEW_LIMIT) {
+        next.push({
+          id: `more-${typeKey}`,
+          href: `/search?q=${encodeURIComponent(debouncedQuery)}&type=${typeKey}`,
+          label: `More ${label.toLowerCase()}`,
+          groupLabel: label,
+          isMore: true,
+        });
+      }
+    }
+
+    addCategory(data.songs, 'Songs', 'songs', (song) => song.title, (song) => `/tracks/${song.id}`);
+    addCategory(data.albums, 'Albums', 'albums', (album) => album.name, (album) => `/albums/${album.id}`);
+    addCategory(data.artists, 'Artists', 'artists', (artist) => artist.name, (artist) => `/artists/${artist.id}`);
+    addCategory(data.playlists, 'Playlists', 'playlists', (playlist) => playlist.name, (playlist) => `/playlists/${playlist.id}`);
+
     return next;
-  }, [data]);
+  }, [data, debouncedQuery]);
 
   useEffect(() => {
     setHighlightedIndex(-1);
@@ -251,9 +275,11 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
                           onMouseEnter={() => setHighlightedIndex(index)}
                           className={cn(
                             'w-full px-4 py-2 text-left text-sm transition focus-visible:outline-none',
-                            isHighlighted
-                              ? 'bg-surface-hover text-fg-primary'
-                              : 'text-fg-primary hover:bg-surface-hover',
+                            item.isMore
+                              ? 'text-muted hover:bg-surface-hover hover:text-fg-primary'
+                              : isHighlighted
+                                ? 'bg-surface-hover text-fg-primary'
+                                : 'text-fg-primary hover:bg-surface-hover',
                           )}
                           role="option"
                           aria-selected={isHighlighted}
