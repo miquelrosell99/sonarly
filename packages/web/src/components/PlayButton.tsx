@@ -1,3 +1,4 @@
+import { type PointerEvent } from 'react';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { useClickAndHold } from '../hooks/useClickAndHold.js';
@@ -55,6 +56,19 @@ export function PlayButton({
     threshold: 500,
   });
 
+  const pointerHandlers = {
+    onPointerDown: (e: PointerEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      handlers.onPointerDown(e);
+    },
+    onPointerUp: (e: PointerEvent<HTMLButtonElement>) => {
+      e.stopPropagation();
+      handlers.onPointerUp(e);
+    },
+    onPointerLeave: handlers.onPointerLeave,
+    onPointerCancel: handlers.onPointerCancel,
+  };
+
   const ariaLabel = label ? `Play ${label} (hold to shuffle)` : 'Play (hold to shuffle)';
 
   if (variant === 'overlay') {
@@ -68,7 +82,7 @@ export function PlayButton({
           className,
         )}
         style={{ touchAction: 'none' }}
-        {...handlers}
+        {...pointerHandlers}
       >
         <ProgressRing isHolding={isHolding} size={44} />
         <Icon name="mdi-play" size={22} className="relative z-10" />
@@ -90,7 +104,7 @@ export function PlayButton({
           className,
         )}
         style={{ touchAction: 'none' }}
-        {...handlers}
+        {...pointerHandlers}
       >
         <ProgressRing isHolding={isHolding} size={24} />
         <Icon name="mdi-play" size={18} className="relative z-10" />
@@ -111,7 +125,7 @@ export function PlayButton({
         className,
       )}
       style={{ touchAction: 'none' }}
-      {...handlers}
+      {...pointerHandlers}
     >
       <span className="relative flex h-5 w-5 items-center justify-center">
         <ProgressRing isHolding={isHolding} size={20} />

@@ -1,6 +1,6 @@
 import { Children, type MouseEvent, type KeyboardEvent, type ReactNode, cloneElement, isValidElement } from 'react';
 import { cn } from '../lib/cn.js';
-import { Icon } from './ui/Icon.js';
+import { PlayButton } from './PlayButton.js';
 import { FavoriteButton, StarRating } from './ActionButtons.js';
 
 export interface ListRowActionFavorite {
@@ -21,6 +21,7 @@ interface ListRowProps {
   onSelect?: (e: MouseEvent) => void;
   onActivate?: () => void;
   onPlay?: () => void;
+  onShufflePlay?: () => void;
   playLabel?: string;
   favorite?: ListRowActionFavorite;
   rating?: ListRowActionRating;
@@ -49,6 +50,7 @@ export function ListRow({
   onSelect,
   onActivate,
   onPlay,
+  onShufflePlay,
   playLabel,
   favorite,
   rating,
@@ -102,17 +104,13 @@ export function ListRow({
         <span className="relative inline-flex h-5 w-6 items-center justify-center text-muted">
           <span className="group-hover:opacity-0">{index + 1}</span>
           {onPlay && (
-            <button
-              type="button"
-              className="absolute inset-0 inline-flex items-center justify-center text-accent opacity-0 hover:text-accent/80 focus-visible:outline-none group-hover:opacity-100"
-              onClick={(e) => {
-                e.stopPropagation();
-                onPlay();
-              }}
-              aria-label={playLabel ?? 'Play'}
-            >
-              <Icon name="mdi-play" size={18} />
-            </button>
+            <PlayButton
+              variant="inline"
+              onPlay={onPlay}
+              onShufflePlay={onShufflePlay ?? onPlay}
+              label={playLabel}
+              className="absolute inset-0 inline-flex opacity-0 group-hover:opacity-100"
+            />
           )}
         </span>
       </td>
