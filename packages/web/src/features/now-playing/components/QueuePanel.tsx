@@ -80,7 +80,7 @@ function SortableQueueRow({ song, index, isCurrent, onPlay, onRemove, user }: Qu
           {...attributes}
           {...listeners}
           aria-label="Drag to reorder"
-          className="cursor-grab text-fg-secondary opacity-0 transition hover:text-fg-primary group-hover:opacity-100 active:cursor-grabbing"
+          className="cursor-grab text-fg-secondary opacity-0 transition hover:text-fg-primary group-hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing"
         >
           <Icon name="mdi-drag-vertical" size={18} />
         </button>
@@ -99,7 +99,7 @@ function SortableQueueRow({ song, index, isCurrent, onPlay, onRemove, user }: Qu
           type="button"
           onClick={() => onRemove(index)}
           aria-label="Remove from queue"
-          className="text-fg-secondary opacity-0 transition hover:text-danger group-hover:opacity-100"
+          className="text-fg-secondary opacity-0 transition hover:text-danger group-hover:opacity-100 focus-visible:opacity-100"
         >
           <Icon name="mdi-delete" size={18} />
         </button>
