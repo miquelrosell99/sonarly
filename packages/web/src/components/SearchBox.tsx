@@ -84,7 +84,7 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
       if (items.length > PREVIEW_LIMIT) {
         next.push({
           id: `more-${typeKey}`,
-          href: `/search?q=${encodeURIComponent(inputValue)}&type=${typeKey}`,
+          href: `/search?q=${encodeURIComponent(debouncedQuery)}&type=${typeKey}`,
           label: `More ${label.toLowerCase()}`,
           groupLabel: label,
           isMore: true,
@@ -98,7 +98,7 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
     addCategory(data.playlists, 'Playlists', 'playlists', (playlist) => playlist.name, (playlist) => `/playlists/${playlist.id}`);
 
     return next;
-  }, [data, inputValue]);
+  }, [data, debouncedQuery]);
 
   useEffect(() => {
     setHighlightedIndex(-1);
@@ -172,7 +172,7 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
     }
   }, [debouncedQuery]);
 
-  const navigate = (href: string, isMore?: boolean) => {
+  const navigate = (href: string) => {
     setIsOpen(false);
     setInputValue('');
     setHighlightedIndex(-1);
@@ -271,7 +271,7 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
                         <button
                           type="button"
                           id={item.id}
-                          onClick={() => navigate(item.href, item.isMore)}
+                          onClick={() => navigate(item.href)}
                           onMouseEnter={() => setHighlightedIndex(index)}
                           className={cn(
                             'w-full px-4 py-2 text-left text-sm transition focus-visible:outline-none',
