@@ -82,6 +82,8 @@ function rowToSong(row: SongSearchRow): Song {
     duration: row.duration ?? undefined,
     artistId: row.artist_id ?? undefined,
     albumId: row.album_id ?? undefined,
+    artistName: row.artist_name ?? undefined,
+    albumName: row.album_name ?? undefined,
     genre: row.genre ?? undefined,
     year: row.year ?? undefined,
     explicit: row.explicit === 1,
