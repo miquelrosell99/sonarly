@@ -216,6 +216,7 @@ export function getRandomCandidates(
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
       WHERE s.active = 1
         ${fallbackExclude.sql}
+        AND (us.last_played IS NULL OR us.last_played < datetime('now', '-24 hours'))
       ORDER BY RANDOM()
       LIMIT ?
     `).all(userId, ...fallbackExclude.params, count - rows.length) as CandidateRow[];
