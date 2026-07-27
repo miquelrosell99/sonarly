@@ -76,6 +76,17 @@ async function seedDb(db: Database.Database) {
     mtime: Date.now(),
     checksum: 'c1',
   });
+  for (let i = 2; i <= 7; i++) {
+    upsertSong(db, {
+      id: `song-${i}`,
+      filePath: `/data/library/song${i}.mp3`,
+      title: `Alpha Song ${i}`,
+      artistId: 'artist-1',
+      albumId: 'album-1',
+      mtime: Date.now(),
+      checksum: `c${i}`,
+    });
+  }
   createPlaylist(db, {
     id: 'playlist-1',
     name: 'Alpha Playlist',
@@ -151,7 +162,7 @@ describe('search endpoint', () => {
     });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body.songs).toHaveLength(1);
+    expect(body.songs).toHaveLength(6);
     expect(body.songs[0].id).toBe('song-1');
     expect(body.albums).toHaveLength(1);
     expect(body.albums[0].id).toBe('album-1');
@@ -191,5 +202,50 @@ describe('search endpoint', () => {
       url: '/api/search?q=alpha',
     });
     expect(res.statusCode).toBe(401);
+  });
+
+  it('limits each category to 5 results by default', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/search?q=alpha',
+      cookies: { sessionId: cookieValue },
+    });
+    const body = JSON.parse(res.body);
+    expect(body.songs.length).toBeLessThanOrEqual(6);
+    expect(body.albums.length).toBeLessThanOrEqual(6);
+    expect(body.artists.length).toBeLessThanOrEqual(6);
+    expect(body.playlists.length).toBeLessThanOrEqual(6);
+  });
+
+  it('returns up to limit + 1 results when limit is provided', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/search?q=alpha&limit=2',
+      cookies: { sessionId: cookieValue },
+    });
+    const body = JSON.parse(res.body);
+    expect(body.songs.length).toBeLessThanOrEqual(3);
+  });
+
+  it('filters to a single category when type is provided', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/search?q=alpha&type=songs',
+      cookies: { sessionId: cookieValue },
+    });
+    const body = JSON.parse(res.body);
+    expect(body.songs.length).toBeGreaterThan(0);
+    expect(body.albums).toEqual([]);
+    expect(body.artists).toEqual([]);
+    expect(body.playlists).toEqual([]);
+  });
+
+  it('returns 400 for invalid type', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/search?q=alpha&type=invalid',
+      cookies: { sessionId: cookieValue },
+    });
+    expect(res.statusCode).toBe(400);
   });
 });
