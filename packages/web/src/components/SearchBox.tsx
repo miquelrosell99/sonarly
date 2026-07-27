@@ -6,6 +6,7 @@ import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { api } from '../api.js';
 import { useDebounce } from '../hooks/useDebounce.js';
+import { useLibraryStore, buildLibraryQuery } from '../stores/libraryStore.js';
 import { FilterPanel, type FilterDefinition } from './FilterPanel.js';
 
 interface SearchResponse {
@@ -15,10 +16,10 @@ interface SearchResponse {
   playlists: Playlist[];
 }
 
-function useSearch(query: string) {
+function useSearch(query: string, libraryId: string | null) {
   return useQuery<SearchResponse, Error>({
-    queryKey: ['search', query],
-    queryFn: () => api(`/search?q=${encodeURIComponent(query)}&limit=5`),
+    queryKey: ['search', query, libraryId],
+    queryFn: () => api(`/search?q=${encodeURIComponent(query)}&limit=5${libraryId ? `&libraryId=${encodeURIComponent(libraryId)}` : ''}`),
     enabled: query.length > 0,
     staleTime: 60_000,
   });
@@ -49,7 +50,8 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const debouncedQuery = useDebounce(inputValue, 200);
-  const { data } = useSearch(debouncedQuery);
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const { data } = useSearch(debouncedQuery, selectedLibraryId);
 
   const items = useMemo<ResultItem[]>(() => {
     if (!data) return [];

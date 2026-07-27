@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { listLibraries, getLibraryById, createLibrary, updateLibrary, deleteLibraryById } from './repository.js';
+import { listLibraries, getLibraryById, createLibrary, updateLibrary, deleteLibraryById, getDefaultOrganizePattern } from './repository.js';
 import type { CreateLibraryInput, UpdateLibraryInput } from '@sonarly/shared';
 
 function requireAdmin(session: { userId: string; isAdmin: boolean } | undefined, reply: FastifyReply): boolean {
@@ -16,11 +16,13 @@ function requireAdmin(session: { userId: string; isAdmin: boolean } | undefined,
 const createSchema = z.object({
   name: z.string().min(1),
   path: z.string().min(1),
+  organizePattern: z.string().min(1).optional(),
 });
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
   path: z.string().min(1).optional(),
+  organizePattern: z.string().min(1).optional(),
 });
 
 export function registerLibraryAdminRoutes(
@@ -28,6 +30,10 @@ export function registerLibraryAdminRoutes(
   db: Database.Database,
   restartWatcher?: () => void,
 ): void {
+  app.get('/api/libraries', async (_request: FastifyRequest, reply: FastifyReply) => {
+    reply.send({ libraries: listLibraries(db) });
+  });
+
   app.get('/api/admin/libraries', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
     if (!requireAdmin(session, reply)) return;
@@ -49,6 +55,7 @@ export function registerLibraryAdminRoutes(
         id: randomUUID(),
         name: input.name,
         path: input.path,
+        organizePattern: input.organizePattern ?? getDefaultOrganizePattern(db),
         createdAt: now,
         updatedAt: now,
       });

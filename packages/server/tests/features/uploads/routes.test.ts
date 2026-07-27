@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdirSync, rmSync } from 'node:fs';
+import { mkdirSync, rmSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import Database from 'better-sqlite3';
@@ -7,6 +7,7 @@ import { buildApp } from '../../../src/app.js';
 import { migrate } from '../../../src/db/migrate.js';
 import { hashPassword, encryptSubsonicPassword } from '../../../src/features/auth/password.js';
 import { createUser } from '../../../src/features/users/repository.js';
+import { createLibrary } from '../../../src/features/libraries/repository.js';
 import type { Config } from '../../../src/config.js';
 
 vi.mock('node:worker_threads', () => {
@@ -43,15 +44,16 @@ const baseConfig: Config = {
   PGID: 1000,
 };
 
-describe('library admin endpoints', () => {
+describe('upload routes', () => {
   let root: string;
   let config: Config;
   let db: Database.Database;
   let app: Awaited<ReturnType<typeof buildApp>>;
   let adminCookie: string;
+  let libraryId: string;
 
   beforeEach(async () => {
-    root = join(tmpdir(), `sonarly-library-admin-${Date.now()}`);
+    root = join(tmpdir(), `sonarly-upload-${Date.now()}`);
     mkdirSync(root, { recursive: true });
     config = {
       ...baseConfig,
@@ -71,6 +73,15 @@ describe('library admin endpoints', () => {
       isAdmin: true,
       createdAt: new Date().toISOString(),
     });
+    libraryId = '550e8400-e29b-41d4-a716-446655440000';
+    createLibrary(db, {
+      id: libraryId,
+      name: 'Music',
+      path: config.LIBRARY_PATH,
+      organizePattern: '{artist}/{title}',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
     app = await buildApp(config, db);
 
     const login = await app.inject({
@@ -86,99 +97,62 @@ describe('library admin endpoints', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('lists libraries including the default library', async () => {
-    const res = await app.inject({
-      method: 'GET',
-      url: '/api/admin/libraries',
-      cookies: { sessionId: adminCookie },
-    });
-    expect(res.statusCode).toBe(200);
-    const body = JSON.parse(res.body);
-    expect(body.libraries).toHaveLength(1);
-    expect(body.libraries[0].path).toBe(config.LIBRARY_PATH);
-    expect(body.libraries[0].organizePattern).toBeDefined();
-  });
-
-  it('lists libraries publicly without admin', async () => {
-    const res = await app.inject({
-      method: 'GET',
-      url: '/api/libraries',
-    });
-    expect(res.statusCode).toBe(200);
-    const body = JSON.parse(res.body);
-    expect(body.libraries).toHaveLength(1);
-  });
-
-  it('creates a library', async () => {
-    const path = join(root, 'media', 'music');
-    mkdirSync(path, { recursive: true });
+  it('creates an upload session', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/admin/libraries',
+      url: '/api/upload/sessions',
       cookies: { sessionId: adminCookie },
-      payload: { name: 'Music', path, organizePattern: '{artist}/{title}' },
+      payload: { libraryId },
     });
     expect(res.statusCode).toBe(201);
-
-    const list = await app.inject({
-      method: 'GET',
-      url: '/api/admin/libraries',
-      cookies: { sessionId: adminCookie },
-    });
-    const libraries = JSON.parse(list.body).libraries;
-    expect(libraries).toHaveLength(2);
-    const created = libraries.find((l: { name: string }) => l.name === 'Music');
-    expect(created).toBeDefined();
-    expect(created.organizePattern).toBe('{artist}/{title}');
+    const body = JSON.parse(res.body);
+    expect(body.sessionId).toBeDefined();
+    expect(body.libraryId).toBe(libraryId);
   });
 
-  it('updates a library', async () => {
-    const list = await app.inject({
-      method: 'GET',
-      url: '/api/admin/libraries',
+  it('uploads a file in chunks and reassembles it', async () => {
+    const session = await app.inject({
+      method: 'POST',
+      url: '/api/upload/sessions',
       cookies: { sessionId: adminCookie },
+      payload: { libraryId },
     });
-    const id = JSON.parse(list.body).libraries[0].id;
+    const { sessionId } = JSON.parse(session.body);
+    const content = Buffer.from('hello world audio content');
 
-    const res = await app.inject({
-      method: 'PUT',
-      url: `/api/admin/libraries/${id}`,
+    const boundary = '----FormBoundary' + Date.now();
+    const chunkBody = Buffer.concat([
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="chunk.bin"\r\nContent-Type: application/octet-stream\r\n\r\n`),
+      content,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const chunk = await app.inject({
+      method: 'POST',
+      url: `/api/upload/sessions/${sessionId}/files/file-1/chunks/0`,
       cookies: { sessionId: adminCookie },
-      payload: { name: 'Renamed', organizePattern: '{album}/{title}' },
+      payload: chunkBody,
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
     });
-    expect(res.statusCode).toBe(200);
+    expect(chunk.statusCode).toBe(200);
 
-    const updated = await app.inject({
-      method: 'GET',
-      url: '/api/admin/libraries',
+    const complete = await app.inject({
+      method: 'POST',
+      url: `/api/upload/sessions/${sessionId}/files/file-1/complete`,
       cookies: { sessionId: adminCookie },
+      payload: { totalChunks: 1, relativePath: 'song.mp3' },
     });
-    const library = JSON.parse(updated.body).libraries[0];
-    expect(library.name).toBe('Renamed');
-    expect(library.organizePattern).toBe('{album}/{title}');
-  });
+    expect(complete.statusCode).toBe(200);
 
-  it('deletes a library', async () => {
-    const list = await app.inject({
-      method: 'GET',
-      url: '/api/admin/libraries',
+    const finish = await app.inject({
+      method: 'POST',
+      url: `/api/upload/sessions/${sessionId}/complete`,
       cookies: { sessionId: adminCookie },
     });
-    const id = JSON.parse(list.body).libraries[0].id;
+    expect(finish.statusCode).toBe(200);
 
-    const res = await app.inject({
-      method: 'DELETE',
-      url: `/api/admin/libraries/${id}`,
-      cookies: { sessionId: adminCookie },
-    });
-    expect(res.statusCode).toBe(200);
-
-    const updated = await app.inject({
-      method: 'GET',
-      url: '/api/admin/libraries',
-      cookies: { sessionId: adminCookie },
-    });
-    expect(JSON.parse(updated.body).libraries).toHaveLength(0);
+    const ingestFile = join(config.INGEST_PATH, 'uploads', libraryId, 'song.mp3');
+    expect(existsSync(ingestFile)).toBe(true);
+    expect(readFileSync(ingestFile).toString()).toBe(content.toString());
   });
 
   it('forbids non-admins', async () => {
@@ -198,9 +172,10 @@ describe('library admin endpoints', () => {
     const userCookie = login.cookies.find((c) => c.name === 'sessionId')!.value;
 
     const res = await app.inject({
-      method: 'GET',
-      url: '/api/admin/libraries',
+      method: 'POST',
+      url: '/api/upload/sessions',
       cookies: { sessionId: userCookie },
+      payload: { libraryId },
     });
     expect(res.statusCode).toBe(403);
   });
