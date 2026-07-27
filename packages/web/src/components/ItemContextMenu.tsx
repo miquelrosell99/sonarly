@@ -1,4 +1,4 @@
-import { Children, cloneElement, isValidElement, useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { Children, cloneElement, isValidElement, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
@@ -22,13 +22,44 @@ export interface ContextMenuSection {
 interface ItemContextMenuProps {
   sections: ContextMenuSection[];
   children: ReactNode;
+  anchorToTrigger?: boolean;
+  placement?: 'top-end' | 'bottom-start';
 }
 
-function clamp(value: number, max: number) {
-  return Math.max(8, Math.min(value, max - 8));
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(value, max));
 }
 
-export function ItemContextMenu({ sections, children }: ItemContextMenuProps) {
+function clampPointer(value: number, max: number) {
+  return clamp(value, 8, max - 8);
+}
+
+function computeAnchorPosition(
+  trigger: HTMLElement,
+  menu: HTMLElement,
+  placement: 'top-end' | 'bottom-start',
+) {
+  const triggerRect = trigger.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  const margin = 8;
+  let top: number;
+  let left: number;
+
+  if (placement === 'top-end') {
+    top = triggerRect.top - menuRect.height - margin;
+    left = triggerRect.right - menuRect.width;
+  } else {
+    top = triggerRect.bottom + margin;
+    left = triggerRect.left;
+  }
+
+  left = clamp(left, margin, window.innerWidth - menuRect.width - margin);
+  top = clamp(top, margin, window.innerHeight - menuRect.height - margin);
+
+  return { top, left };
+}
+
+export function ItemContextMenu({ sections, children, anchorToTrigger = false, placement = 'top-end' }: ItemContextMenuProps) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const childRef = useRef<HTMLElement | null>(null);
@@ -58,6 +89,15 @@ export function ItemContextMenu({ sections, children }: ItemContextMenuProps) {
     };
   }, [open]);
 
+  useLayoutEffect(() => {
+    if (!open || !anchorToTrigger) return;
+    const trigger = childRef.current;
+    const menu = menuRef.current;
+    if (!trigger || !menu) return;
+    const { top, left } = computeAnchorPosition(trigger, menu, placement);
+    setPos({ x: left, y: top });
+  }, [open, anchorToTrigger, placement]);
+
   const visibleSections = sections?.filter((section) => section.items.length > 0) ?? [];
   if (visibleSections.length === 0) {
     return <>{children}</>;
@@ -66,8 +106,12 @@ export function ItemContextMenu({ sections, children }: ItemContextMenuProps) {
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     childRef.current = e.currentTarget as HTMLElement;
-    const x = clamp(e.clientX, window.innerWidth);
-    const y = clamp(e.clientY, window.innerHeight);
+    if (anchorToTrigger) {
+      setOpen(true);
+      return;
+    }
+    const x = clampPointer(e.clientX, window.innerWidth);
+    const y = clampPointer(e.clientY, window.innerHeight);
     setPos({ x, y });
     setOpen(true);
   };

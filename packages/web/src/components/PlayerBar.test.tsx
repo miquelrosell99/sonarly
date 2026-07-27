@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import type { User } from '@sonarly/shared';
 import { PlayerBar } from './PlayerBar.js';
 import { usePlayer, resetPlayer } from '../stores/playerStore.js';
 import { useNowPlaying, resetNowPlaying } from '../features/now-playing/index.js';
+import { NotificationProvider } from '../contexts/NotificationContext.js';
 
 const mockSetFavorite = vi.hoisted(() => vi.fn());
 const mockSetRating = vi.hoisted(() => vi.fn());
@@ -17,6 +19,8 @@ const mockPreferences = vi.hoisted(() => ({
   autoDjTopUpThreshold: 5,
   autoDjBatchSize: 10,
 }));
+
+const mockUser = { id: 'u1', username: 'test', isAdmin: false } as User;
 
 vi.mock('../hooks/useSongInteraction.js', () => ({
   useSongInteraction: (songId: string | undefined, fallback: { starred?: boolean; rating?: number }) => ({
@@ -161,5 +165,40 @@ describe('PlayerBar', () => {
     render(<PlayerBar />);
     fireEvent.click(screen.getByRole('button', { name: /open now playing/i }));
     expect(useNowPlaying.getState().isOpen).toBe(true);
+  });
+
+  it('renders the queue button when a user is provided', () => {
+    render(<PlayerBar user={mockUser} />, { wrapper: NotificationProvider });
+    expect(screen.getByRole('button', { name: /queue/i })).toBeTruthy();
+  });
+
+  it('opens a floating queue modal and plays a queued track when clicked', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'Now Playing', artistName: 'Artist' } as any,
+      { id: 's2', title: 'Up Next', artistName: 'Artist' } as any,
+    ], 0);
+
+    render(<PlayerBar user={mockUser} />, { wrapper: NotificationProvider });
+    fireEvent.click(screen.getByRole('button', { name: /queue/i }));
+
+    expect(screen.getByRole('dialog', { name: /queue/i })).toBeTruthy();
+    fireEvent.click(screen.getByText('Up Next'));
+    expect(usePlayer.getState().currentSong?.id).toBe('s2');
+  });
+
+  it('closes the floating queue modal when the close button is clicked', async () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'Now Playing', artistName: 'Artist' } as any,
+      { id: 's2', title: 'Up Next', artistName: 'Artist' } as any,
+    ], 0);
+
+    render(<PlayerBar user={mockUser} />, { wrapper: NotificationProvider });
+    fireEvent.click(screen.getByRole('button', { name: /queue/i }));
+    expect(screen.getByRole('dialog', { name: /queue/i })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: /close queue/i }));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog', { name: /queue/i })).toBeFalsy();
+    });
   });
 });
