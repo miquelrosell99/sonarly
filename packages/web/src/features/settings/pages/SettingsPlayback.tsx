@@ -2,12 +2,34 @@ import { useState, useEffect } from 'react';
 import { Settings } from '../components/Settings.js';
 import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferences.js';
 import { Input } from '../../../components/ui/Input.js';
+import { Checkbox } from '../../../components/ui/Checkbox.js';
+import { Icon } from '../../../components/ui/Icon.js';
 import type { AutoDjMode } from '@sonarly/shared';
 
-const modeOptions: { value: AutoDjMode; label: string }[] = [
-  { value: 'similar', label: 'Similar — same artist, album, or genre' },
-  { value: 'random', label: 'Random — anything from your library' },
-  { value: 'smart', label: 'Smart — match mood, tempo, and taste' },
+const modeOptions: {
+  value: AutoDjMode;
+  label: string;
+  description: string;
+  icon: string;
+}[] = [
+  {
+    value: 'similar',
+    label: 'Similar',
+    description: 'Same artist, album, or genre',
+    icon: 'mdi-account-music',
+  },
+  {
+    value: 'random',
+    label: 'Random',
+    description: 'Anything from your library',
+    icon: 'mdi-shuffle',
+  },
+  {
+    value: 'smart',
+    label: 'Smart',
+    description: 'Match mood, tempo, and taste',
+    icon: 'mdi-brain',
+  },
 ];
 
 export function SettingsPlayback() {
@@ -63,40 +85,38 @@ export function SettingsPlayback() {
       <div className="w-full max-w-xl space-y-8">
         <section>
           <h3 className="mb-4 text-base font-medium">Auto DJ</h3>
-          <label className="flex cursor-pointer items-center gap-3">
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={(e) => setEnabled(e.target.checked)}
-              className="h-4 w-4 accent-accent"
-            />
-            <span className="text-sm">Automatically add songs when the queue runs low</span>
-          </label>
+          <Checkbox
+            id="auto-dj-enabled"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+            label="Automatically add songs when the queue runs low"
+          />
         </section>
 
         <section>
           <h3 className="mb-4 text-base font-medium">DJ mode</h3>
-          <div className="space-y-2">
-            {modeOptions.map((option) => (
-              <label
-                key={option.value}
-                className={`flex cursor-pointer items-center gap-3 rounded-md border px-4 py-3 transition ${
-                  mode === option.value
-                    ? 'border-accent bg-surface-hover'
-                    : 'border-rule bg-surface hover:bg-surface-hover'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="auto-dj-mode"
-                  value={option.value}
-                  checked={mode === option.value}
-                  onChange={() => setMode(option.value)}
-                  className="h-4 w-4 accent-accent"
-                />
-                <span className="text-sm">{option.label}</span>
-              </label>
-            ))}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {modeOptions.map((option) => {
+              const selected = mode === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setMode(option.value)}
+                  className={`flex flex-col items-center gap-2 rounded-md border px-4 py-4 text-center transition ${
+                    selected
+                      ? 'border-accent bg-surface-hover text-accent'
+                      : 'border-rule bg-surface text-fg-secondary hover:bg-surface-hover hover:text-fg-primary'
+                  }`}
+                >
+                  <Icon name={option.icon} size={24} />
+                  <div>
+                    <div className="text-sm font-medium">{option.label}</div>
+                    <div className="text-xs opacity-80">{option.description}</div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </section>
 
