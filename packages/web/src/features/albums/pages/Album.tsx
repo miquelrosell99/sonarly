@@ -4,9 +4,9 @@ import type { Song as SharedSong, User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { cn } from '../../../lib/cn.js';
 import { Button } from '../../../components/ui/Button.js';
-import { Icon } from '../../../components/ui/Icon.js';
 import { CoverArt } from '../../../components/CoverArt.js';
 import { EntityHeader } from '../../../components/EntityHeader.js';
+import { PlayButton } from '../../../components/PlayButton.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
@@ -67,7 +67,7 @@ export function Album({ user }: { user: User }) {
   const { notify } = useNotification();
   const coverInputRef = useRef<HTMLInputElement>(null);
   const { setFavorite, setRating } = useFavoriteActions();
-  const { playSongs } = usePlayActions();
+  const { playSongs, shufflePlay } = usePlayActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
 
   const load = () => {
@@ -99,6 +99,11 @@ export function Album({ user }: { user: User }) {
   const handlePlayAlbum = () => {
     if (!detail) return;
     playSongs(detail.songs as SharedSong[], 0);
+  };
+
+  const handleShuffleAlbum = () => {
+    if (!detail) return;
+    shufflePlay(detail.songs as SharedSong[]);
   };
 
   const handleFavorite = async (starred: boolean) => {
@@ -234,10 +239,9 @@ export function Album({ user }: { user: User }) {
         metadata={metadata}
         actions={
           <>
-            <Button onClick={handlePlayAlbum} className="gap-2">
-              <Icon name="mdi-play" size={18} />
+            <PlayButton variant="default" onPlay={handlePlayAlbum} onShufflePlay={handleShuffleAlbum}>
               Play
-            </Button>
+            </PlayButton>
             <FavoriteRatingGroup
               starred={detail.album.starred}
               onToggleFavorite={() => handleFavorite(!detail.album.starred)}
