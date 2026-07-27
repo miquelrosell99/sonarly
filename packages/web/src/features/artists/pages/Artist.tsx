@@ -7,6 +7,7 @@ import { CoverArt } from '../../../components/CoverArt.js';
 import { ArtistImage } from '../../../components/ArtistImage.js';
 import { EntityHeader } from '../../../components/EntityHeader.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
+import { PlayButton } from '../../../components/PlayButton.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
@@ -158,12 +159,22 @@ export function Artist() {
           />
         }
         actions={
-          <FavoriteRatingGroup
-            starred={artist.starred}
-            onToggleFavorite={() => handleFavorite(!artist.starred)}
-            rating={artist.rating}
-            onRate={handleRate}
-          />
+          <>
+            <PlayButton
+              variant="default"
+              onPlay={() => playSongs(topTracks as Song[], 0)}
+              onShufflePlay={() => shufflePlay(topTracks as Song[])}
+              disabled={topTracks.length === 0}
+            >
+              Play
+            </PlayButton>
+            <FavoriteRatingGroup
+              starred={artist.starred}
+              onToggleFavorite={() => handleFavorite(!artist.starred)}
+              rating={artist.rating}
+              onRate={handleRate}
+            />
+          </>
         }
       />
 

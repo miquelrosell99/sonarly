@@ -19,6 +19,7 @@ export function FavoriteButton({ starred, onClick, label, className, variant = '
       type="button"
       disabled={disabled}
       onClick={(e) => {
+        e.preventDefault();
         e.stopPropagation();
         onClick();
       }}
@@ -64,6 +65,7 @@ export function StarRating({ rating = 0, onRate, className, variant = 'default' 
           key={value}
           type="button"
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation();
             onRate(value === rating ? 0 : value);
           }}
