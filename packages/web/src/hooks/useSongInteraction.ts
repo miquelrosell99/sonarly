@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Song } from '@sonarly/shared';
 import { api } from '../api.js';
 import { useFavoriteActions } from './useFavoriteActions.js';
@@ -17,6 +17,11 @@ export function useSongInteraction(
   const [starred, setStarred] = useState<boolean | undefined>(fallback.starred);
   const [rating, setRating] = useState<number | undefined>(fallback.rating);
   const { setFavorite: setFavoriteApi, setRating: setRatingApi } = useFavoriteActions();
+  const songIdRef = useRef(songId);
+
+  useEffect(() => {
+    songIdRef.current = songId;
+  }, [songId]);
 
   useEffect(() => {
     if (!songId) return;
@@ -39,12 +44,15 @@ export function useSongInteraction(
   const setFavorite = useCallback(
     async (nextStarred: boolean) => {
       if (!songId) return;
+      const targetId = songId;
       const previousStarred = starred;
       setStarred(nextStarred);
       try {
         await setFavoriteApi('song', songId, nextStarred);
       } catch (err) {
-        setStarred(previousStarred);
+        if (songIdRef.current === targetId) {
+          setStarred(previousStarred);
+        }
         console.error('Failed to update favorite', err);
         throw err;
       }
@@ -55,12 +63,15 @@ export function useSongInteraction(
   const setRatingValue = useCallback(
     async (nextRating?: number) => {
       if (!songId) return;
+      const targetId = songId;
       const previousRating = rating;
       setRating(nextRating);
       try {
         await setRatingApi('song', songId, nextRating);
       } catch (err) {
-        setRating(previousRating);
+        if (songIdRef.current === targetId) {
+          setRating(previousRating);
+        }
         console.error('Failed to update rating', err);
         throw err;
       }
