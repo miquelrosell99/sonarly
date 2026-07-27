@@ -1,0 +1,209 @@
+import { useEffect, useRef, useState } from 'react';
+import type { User } from '@sonarly/shared';
+import { cn } from '../../../lib/cn.js';
+import { Icon } from '../../../components/ui/Icon.js';
+import { useNowPlaying } from '../stores/nowPlayingStore.js';
+import { usePlayer } from '../../../stores/playerStore.js';
+import { useDominantColor } from '../../../hooks/useDominantColor.js';
+import { NowPlayingCover } from './NowPlayingCover.js';
+import { TransportControls } from './TransportControls.js';
+import { QueuePanel } from './QueuePanel.js';
+import { LyricsPanel } from './LyricsPanel.js';
+
+interface NowPlayingProps {
+  user: User;
+}
+
+function GradientBackground({ coverArtUrl }: { coverArtUrl?: string }) {
+  const dominantColor = useDominantColor(coverArtUrl);
+  return (
+    <div
+      className="absolute inset-0 transition-colors duration-700"
+      style={{
+        background: dominantColor
+          ? `radial-gradient(circle at 30% 40%, ${dominantColor} 0%, transparent 50%), radial-gradient(circle at 80% 20%, ${dominantColor} 0%, transparent 40%), hsl(var(--bg-primary))`
+          : 'hsl(var(--bg-primary))',
+      }}
+    />
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  label,
+  icon,
+  id,
+  ariaControls,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  icon: string;
+  id: string;
+  ariaControls: string;
+}) {
+  return (
+    <button
+      type="button"
+      id={id}
+      onClick={onClick}
+      aria-pressed={active}
+      aria-controls={ariaControls}
+      className={cn(
+        'inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition',
+        active ? 'bg-accent text-bg-primary' : 'text-fg-secondary hover:bg-surface-hover'
+      )}
+    >
+      <Icon name={icon} size={16} />
+      {label}
+    </button>
+  );
+}
+
+export function NowPlaying({ user }: NowPlayingProps) {
+  const isOpen = useNowPlaying((state) => state.isOpen);
+  const activeTab = useNowPlaying((state) => state.activeTab);
+  const close = useNowPlaying((state) => state.close);
+  const setActiveTab = useNowPlaying((state) => state.setActiveTab);
+
+  const currentSong = usePlayer((state) => state.currentSong);
+  const coverArtUrl = currentSong?.coverArt ? `/api/cover-art/${currentSong.coverArt}` : undefined;
+
+  const [closing, setClosing] = useState(false);
+  const wasOpenRef = useRef(isOpen);
+
+  useEffect(() => {
+    if (isOpen) {
+      setClosing(false);
+    } else if (wasOpenRef.current) {
+      const prefersReducedMotion =
+        typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) {
+        setClosing(false);
+      } else {
+        setClosing(true);
+        const timer = setTimeout(() => setClosing(false), 250);
+        return () => clearTimeout(timer);
+      }
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [isOpen, close]);
+
+  useEffect(() => {
+    if (isOpen && currentSong) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, currentSong]);
+
+  if (!isOpen && !closing) return null;
+  if (!currentSong) return null;
+
+  const panelId = `now-playing-panel-${activeTab}`;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Now Playing"
+      className={cn(
+        'fixed inset-0 z-50 flex',
+        closing ? 'now-playing-exit' : 'now-playing-enter'
+      )}
+    >
+      {/* Gradient background */}
+      <GradientBackground coverArtUrl={coverArtUrl} />
+      <div className="absolute inset-0 bg-bg-primary/90 backdrop-blur-xl" />
+
+      {/* Close button */}
+      <button
+        type="button"
+        onClick={close}
+        aria-label="Close Now Playing"
+        className="absolute right-6 top-6 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      >
+        <Icon name="mdi-chevron-down" size={24} />
+      </button>
+
+      {/* Content */}
+      <div
+        className={cn(
+          'relative z-0 mx-auto flex w-full max-w-7xl items-center p-6 md:p-12',
+          closing ? 'now-playing-content-exit' : 'now-playing-content'
+        )}
+      >
+        <div className="grid w-full grid-cols-1 gap-8 md:grid-cols-[1fr_1.2fr] md:gap-12">
+          {/* Left: cover + metadata */}
+          <div className="flex flex-col items-center justify-center gap-6 text-center">
+            <NowPlayingCover
+              coverArt={currentSong.coverArt}
+              alt={`Cover art for ${currentSong.title}`}
+            />
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold text-fg-primary">{currentSong.title}</h2>
+              <p className="text-lg text-fg-secondary">{currentSong.artistName || 'Unknown artist'}</p>
+              {currentSong.albumName && (
+                <p className="text-sm text-fg-secondary/70">{currentSong.albumName}</p>
+              )}
+              <div className="flex items-center justify-center gap-2 pt-1 text-xs text-fg-secondary">
+                {currentSong.year && <span>{currentSong.year}</span>}
+                {currentSong.genre && <span>• {currentSong.genre}</span>}
+              </div>
+            </div>
+            <TransportControls />
+          </div>
+
+          {/* Right: card with tabs */}
+          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-rule/50 bg-surface/80 backdrop-blur-xl">
+            <div className="flex items-center justify-between border-b border-rule/50 px-4 py-3">
+              <div className="flex items-center gap-2" role="tablist" aria-label="Now playing panels">
+                <TabButton
+                  id="now-playing-tab-queue"
+                  active={activeTab === 'queue'}
+                  onClick={() => setActiveTab('queue')}
+                  label="Queue"
+                  icon="mdi-playlist-music"
+                  ariaControls="now-playing-panel-queue"
+                />
+                <TabButton
+                  id="now-playing-tab-lyrics"
+                  active={activeTab === 'lyrics'}
+                  onClick={() => setActiveTab('lyrics')}
+                  label="Lyrics"
+                  icon="mdi-text"
+                  ariaControls="now-playing-panel-lyrics"
+                />
+              </div>
+            </div>
+            <div
+              id={panelId}
+              role="tabpanel"
+              aria-labelledby={`now-playing-tab-${activeTab}`}
+              className="flex-1 min-h-0 p-4"
+            >
+              {activeTab === 'queue' ? (
+                <QueuePanel user={user} />
+              ) : (
+                <LyricsPanel user={user} activeTab={activeTab} />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
