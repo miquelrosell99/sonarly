@@ -38,6 +38,7 @@ interface PlayerActions {
   setCurrentTime: (time: number) => void;
   setStatus: (status: PlayerStatus) => void;
   onEnded: () => void;
+  updateCurrentSong: (patch: Partial<PlayerSong>) => void;
 }
 
 const initialState: PlayerState = {
@@ -254,6 +255,16 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
         } else {
           get().next();
         }
+      },
+
+      updateCurrentSong: (patch) => {
+        const { currentSong, queue } = get();
+        if (!currentSong) return;
+        const updated = { ...currentSong, ...patch };
+        set({
+          currentSong: updated,
+          queue: queue.map((song) => (song.id === updated.id ? { ...song, ...patch } : song)),
+        });
       },
     }),
     {

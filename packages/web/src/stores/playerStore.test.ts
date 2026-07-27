@@ -169,7 +169,7 @@ describe('onEnded', () => {
   });
 });
 
-const songA: PlayerSong = { id: 'a', title: 'A', duration: 100 } as PlayerSong;
+const songA: PlayerSong = { id: 'a', title: 'A', duration: 100, starred: false, rating: 0 } as PlayerSong;
 const songB: PlayerSong = { id: 'b', title: 'B', duration: 100 } as PlayerSong;
 const songC: PlayerSong = { id: 'c', title: 'C', duration: 100 } as PlayerSong;
 
@@ -191,5 +191,26 @@ describe('playerStore queue actions', () => {
     const state = usePlayer.getState();
     expect(state.queue.map((s) => s.id)).toEqual(['a', 'b', 'c']);
     expect(state.queueIndex).toBe(0);
+  });
+});
+
+describe('updateCurrentSong', () => {
+  beforeEach(() => resetPlayer());
+
+  it('patches the current song and the matching queue item', () => {
+    usePlayer.getState().playQueue([songA, songB], 0);
+    usePlayer.getState().updateCurrentSong({ starred: true, rating: 5 });
+
+    const state = usePlayer.getState();
+    expect(state.currentSong).toEqual(expect.objectContaining({ id: 'a', starred: true, rating: 5 }));
+    expect(state.queue[0]).toEqual(expect.objectContaining({ id: 'a', starred: true, rating: 5 }));
+    expect(state.queue[1]).toEqual(expect.objectContaining({ id: 'b' }));
+    expect(state.queue[1]).not.toHaveProperty('starred');
+    expect(state.queue[1]).not.toHaveProperty('rating');
+  });
+
+  it('does nothing when no song is playing', () => {
+    usePlayer.getState().updateCurrentSong({ starred: true });
+    expect(usePlayer.getState().currentSong).toBeNull();
   });
 });
