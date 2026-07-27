@@ -1,8 +1,11 @@
+import { useState, useEffect, useRef } from 'react';
+import type { AutoDjMode } from '@sonarly/shared';
 import { Icon } from './ui/Icon.js';
 import { CoverArt } from './CoverArt.js';
 import { FavoriteButton, StarRating } from './ActionButtons.js';
 import { usePlayer } from '../stores/playerStore.js';
 import { useSongInteraction } from '../hooks/useSongInteraction.js';
+import { useUpdatePreferences } from '../hooks/usePreferences.js';
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
@@ -16,6 +19,9 @@ function ControlButton({
   active,
   disabled,
   onClick,
+  onContextMenu,
+  onTouchStart,
+  onTouchEnd,
   label,
   className,
 }: {
@@ -23,6 +29,9 @@ function ControlButton({
   active?: boolean;
   disabled?: boolean;
   onClick: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
+  onTouchStart?: () => void;
+  onTouchEnd?: () => void;
   label: string;
   className?: string;
 }) {
@@ -30,6 +39,9 @@ function ControlButton({
     <button
       type="button"
       onClick={onClick}
+      onContextMenu={onContextMenu}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
       disabled={disabled}
       aria-label={label}
       className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-40 ${active ? 'text-accent' : ''} ${className ?? ''}`}
@@ -128,6 +140,64 @@ export function PlayerBar() {
     currentSong?.id,
     { starred: currentSong?.starred, rating: currentSong?.rating },
   );
+
+  const autoDjEnabled = usePlayer((state) => state.autoDjEnabled);
+  const autoDjMode = usePlayer((state) => state.autoDjMode);
+  const setAutoDjEnabled = usePlayer((state) => state.setAutoDjEnabled);
+  const setAutoDjMode = usePlayer((state) => state.setAutoDjMode);
+  const updatePreferences = useUpdatePreferences();
+
+  const [djMenuOpen, setDjMenuOpen] = useState(false);
+  const djMenuRef = useRef<HTMLDivElement>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const modeLabels: Record<AutoDjMode, string> = {
+    similar: 'Similar',
+    random: 'Random',
+    smart: 'Smart',
+  };
+
+  const handleToggleAutoDj = () => {
+    const next = !autoDjEnabled;
+    setAutoDjEnabled(next);
+    updatePreferences.mutate({ autoDjEnabled: next });
+  };
+
+  const handleSetMode = (mode: AutoDjMode) => {
+    setAutoDjMode(mode);
+    updatePreferences.mutate({ autoDjMode: mode });
+    setDjMenuOpen(false);
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDjMenuOpen(true);
+  };
+
+  const handleTouchStart = () => {
+    longPressTimer.current = setTimeout(() => {
+      setDjMenuOpen(true);
+    }, 600);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  useEffect(() => {
+    if (!djMenuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (!djMenuRef.current?.contains(e.target as Node)) {
+        setDjMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [djMenuOpen]);
 
   const isPlaying = status === 'playing';
   const hasTrack = currentSong !== null;
@@ -239,9 +309,36 @@ export function PlayerBar() {
                 onRate={hasTrack ? handleRate : () => {}}
               />
             </fieldset>
-            <ControlButton onClick={() => {}} label="DJ Mode (coming soon)" disabled>
-              <Icon name="mdi-turntable" size={18} />
-            </ControlButton>
+            <div className="relative" ref={djMenuRef}>
+              <ControlButton
+                onClick={handleToggleAutoDj}
+                onContextMenu={handleContextMenu}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                label={`Auto DJ: ${autoDjEnabled ? 'on' : 'off'}`}
+                active={autoDjEnabled}
+              >
+                <Icon name="mdi-record-player" size={18} />
+              </ControlButton>
+
+              {djMenuOpen && (
+                <div className="absolute bottom-full right-0 z-50 mb-2 min-w-[10rem] rounded-md border border-rule bg-bg-primary py-1 shadow-lg">
+                  {(['similar', 'random', 'smart'] as AutoDjMode[]).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => handleSetMode(mode)}
+                      className="flex w-full items-center justify-between px-3 py-2 text-left text-sm transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+                    >
+                      <span>{modeLabels[mode]}</span>
+                      {autoDjMode === mode && (
+                        <Icon name="mdi-check" size={16} className="text-accent" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <FavoriteButton
