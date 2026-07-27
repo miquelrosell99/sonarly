@@ -265,7 +265,9 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId }: Uplo
         {files.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium text-fg-primary">Files to upload</h4>
+              <h4 className="text-sm font-medium text-fg-primary">
+                Files to upload <span className="text-fg-secondary">({files.length})</span>
+              </h4>
               <Button variant="ghost" onClick={clearFiles} disabled={isUploading} className="h-auto px-2 py-1 text-xs">
                 Clear
               </Button>
