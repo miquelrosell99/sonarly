@@ -14,8 +14,9 @@ interface LyricsPanelProps {
 }
 
 function findActiveLine(lines: { time: number; text: string }[], currentTime: number): number {
+  if (lines.length === 0 || lines[0].time > currentTime) return -1;
   let index = 0;
-  for (let i = 0; i < lines.length; i++) {
+  for (let i = 1; i < lines.length; i++) {
     if (lines[i].time <= currentTime) {
       index = i;
     } else {
@@ -130,6 +131,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
           type="button"
           onClick={() => setMode('dynamic')}
           aria-label="Dynamic lyrics"
+          aria-pressed={mode === 'dynamic'}
           className={cn(
             'inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-medium transition',
             mode === 'dynamic' ? 'bg-accent text-bg-primary' : 'text-fg-secondary hover:bg-surface-hover'
@@ -142,6 +144,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
           type="button"
           onClick={() => setMode('static')}
           aria-label="Static lyrics"
+          aria-pressed={mode === 'static'}
           className={cn(
             'inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-medium transition',
             mode === 'static' ? 'bg-accent text-bg-primary' : 'text-fg-secondary hover:bg-surface-hover'

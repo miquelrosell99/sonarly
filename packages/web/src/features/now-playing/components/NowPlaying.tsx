@@ -77,9 +77,15 @@ export function NowPlaying({ user }: NowPlayingProps) {
     if (isOpen) {
       setClosing(false);
     } else if (wasOpenRef.current) {
-      setClosing(true);
-      const timer = setTimeout(() => setClosing(false), 250);
-      return () => clearTimeout(timer);
+      const prefersReducedMotion =
+        typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) {
+        setClosing(false);
+      } else {
+        setClosing(true);
+        const timer = setTimeout(() => setClosing(false), 250);
+        return () => clearTimeout(timer);
+      }
     }
     wasOpenRef.current = isOpen;
   }, [isOpen]);
