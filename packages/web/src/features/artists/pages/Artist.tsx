@@ -8,6 +8,7 @@ import { ArtistImage } from '../../../components/ArtistImage.js';
 import { EntityHeader } from '../../../components/EntityHeader.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { PlayButton } from '../../../components/PlayButton.js';
+import { ScrollRow } from '../../../components/ScrollRow.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
@@ -178,58 +179,61 @@ export function Artist() {
         }
       />
 
-      <h3 className="mb-3 text-sm font-medium text-fg-secondary">Albums</h3>
       {artist.albums.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <ScrollRow title="Albums">
           {artist.albums.map((album) => {
             const hasFilteredSongs =
               album.totalSongCount !== undefined &&
               album.shownSongCount !== undefined &&
               album.totalSongCount > album.shownSongCount;
             return (
-              <Card
-                key={album.id}
-                href={`/albums/${album.id}`}
-                title={album.name}
-                cover={<CoverArt coverArt={album.coverArt} alt={`Cover art for ${album.name}`} />}
-                fields={[
-                  {
-                    content: (
-                      <span>
-                        {album.year !== undefined && album.year !== null && (
-                          <Link href={`/years/${album.year}`} className="hover:text-muted">
-                            {album.year}
-                          </Link>
-                        )}
-                        {hasFilteredSongs && (
-                          <span className="ml-2 rounded bg-yellow-500/10 px-1.5 py-0.5 text-xs text-yellow-500">
-                            {album.shownSongCount} of {album.totalSongCount}
-                          </span>
-                        )}
-                      </span>
-                    ),
-                  },
-                ]}
-                favorite={{
-                  starred: album.starred,
-                  onClick: () => handleAlbumFavorite(album, !album.starred),
-                  label: album.starred ? 'Remove favorite' : 'Add favorite',
-                }}
-                rating={{
-                  value: album.rating,
-                  onRate: (rating) => handleAlbumRate(album, rating || undefined),
-                }}
-                play={{
-                  onPlay: () => playAlbum(album),
-                  onShufflePlay: () => shufflePlayAlbum(album),
-                  label: album.name,
-                }}
-              />
+              <div key={album.id} className="w-40 flex-none sm:w-44">
+                <Card
+                  href={`/albums/${album.id}`}
+                  title={album.name}
+                  cover={<CoverArt coverArt={album.coverArt} alt={`Cover art for ${album.name}`} />}
+                  fields={[
+                    {
+                      content: (
+                        <span>
+                          {album.year !== undefined && album.year !== null && (
+                            <Link href={`/years/${album.year}`} className="hover:text-muted">
+                              {album.year}
+                            </Link>
+                          )}
+                          {hasFilteredSongs && (
+                            <span className="ml-2 rounded bg-yellow-500/10 px-1.5 py-0.5 text-xs text-yellow-500">
+                              {album.shownSongCount} of {album.totalSongCount}
+                            </span>
+                          )}
+                        </span>
+                      ),
+                    },
+                  ]}
+                  favorite={{
+                    starred: album.starred,
+                    onClick: () => handleAlbumFavorite(album, !album.starred),
+                    label: album.starred ? 'Remove favorite' : 'Add favorite',
+                  }}
+                  rating={{
+                    value: album.rating,
+                    onRate: (rating) => handleAlbumRate(album, rating || undefined),
+                  }}
+                  play={{
+                    onPlay: () => playAlbum(album),
+                    onShufflePlay: () => shufflePlayAlbum(album),
+                    label: album.name,
+                  }}
+                />
+              </div>
             );
           })}
-        </div>
+        </ScrollRow>
       ) : (
-        <p className="py-4 text-sm text-muted">No albums found.</p>
+        <>
+          <h3 className="mb-3 text-sm font-medium text-fg-secondary">Albums</h3>
+          <p className="py-4 text-sm text-muted">No albums found.</p>
+        </>
       )}
 
       <h3 className="mb-2 mt-8 text-sm font-medium text-fg-secondary">Top tracks</h3>
