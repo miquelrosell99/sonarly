@@ -100,4 +100,25 @@ describe('useSongInteraction', () => {
     expect(result.current.rating).toBe(3);
     expect(mockApi).not.toHaveBeenCalled();
   });
+
+  it('resets to fallback values when songId changes', async () => {
+    mockApi.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve({ song }), 10)),
+    );
+    const { result, rerender } = renderHook(
+      ({ id, fallback }: { id: string; fallback: { starred?: boolean; rating?: number } }) =>
+        useSongInteraction(id, fallback),
+      { initialProps: { id: 'song-1', fallback: { starred: false, rating: 2 } } },
+    );
+
+    await waitFor(() => expect(result.current.starred).toBe(true));
+
+    rerender({ id: 'song-2', fallback: { starred: true, rating: 5 } });
+
+    expect(result.current.starred).toBe(true);
+    expect(result.current.rating).toBe(5);
+
+    await waitFor(() => expect(result.current.rating).toBe(4));
+    expect(result.current.starred).toBe(true);
+  });
 });
