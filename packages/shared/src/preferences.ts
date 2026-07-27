@@ -56,3 +56,5 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   autoDjTopUpThreshold: 5,
   autoDjBatchSize: 10,
 };
+
+export const MAX_EXCLUDE_IDS = 500;

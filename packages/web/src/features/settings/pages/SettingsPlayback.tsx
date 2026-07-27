@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Settings } from '../components/Settings.js';
 import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferences.js';
 import { Input } from '../../../components/ui/Input.js';
@@ -18,19 +19,43 @@ export function SettingsPlayback() {
   const threshold = preferences?.autoDjTopUpThreshold ?? 5;
   const batchSize = preferences?.autoDjBatchSize ?? 10;
 
+  const [thresholdInput, setThresholdInput] = useState(String(threshold));
+  const [batchSizeInput, setBatchSizeInput] = useState(String(batchSize));
+
+  useEffect(() => {
+    setThresholdInput(String(threshold));
+  }, [threshold]);
+
+  useEffect(() => {
+    setBatchSizeInput(String(batchSize));
+  }, [batchSize]);
+
   const setEnabled = (next: boolean) => updatePreferences.mutate({ autoDjEnabled: next });
   const setMode = (next: AutoDjMode) => updatePreferences.mutate({ autoDjMode: next });
 
   const clampThreshold = (value: number) => Math.min(20, Math.max(1, value));
   const clampBatchSize = (value: number) => Math.min(50, Math.max(1, value));
 
-  const setThreshold = (next: number) => {
-    if (!Number.isFinite(next)) return;
-    updatePreferences.mutate({ autoDjTopUpThreshold: clampThreshold(next) });
+  const commitThreshold = () => {
+    const next = Number(thresholdInput);
+    if (!Number.isFinite(next)) {
+      setThresholdInput(String(threshold));
+      return;
+    }
+    const clamped = clampThreshold(next);
+    setThresholdInput(String(clamped));
+    updatePreferences.mutate({ autoDjTopUpThreshold: clamped });
   };
-  const setBatchSize = (next: number) => {
-    if (!Number.isFinite(next)) return;
-    updatePreferences.mutate({ autoDjBatchSize: clampBatchSize(next) });
+
+  const commitBatchSize = () => {
+    const next = Number(batchSizeInput);
+    if (!Number.isFinite(next)) {
+      setBatchSizeInput(String(batchSize));
+      return;
+    }
+    const clamped = clampBatchSize(next);
+    setBatchSizeInput(String(clamped));
+    updatePreferences.mutate({ autoDjBatchSize: clamped });
   };
 
   return (
@@ -83,9 +108,9 @@ export function SettingsPlayback() {
               type="number"
               min={1}
               max={20}
-              value={threshold}
-              onChange={(e) => setThreshold(Number(e.target.value))}
-              onBlur={() => setThreshold(clampThreshold(threshold))}
+              value={thresholdInput}
+              onChange={(e) => setThresholdInput(e.target.value)}
+              onBlur={commitThreshold}
               className="w-full"
             />
           </div>
@@ -96,9 +121,9 @@ export function SettingsPlayback() {
               type="number"
               min={1}
               max={50}
-              value={batchSize}
-              onChange={(e) => setBatchSize(Number(e.target.value))}
-              onBlur={() => setBatchSize(clampBatchSize(batchSize))}
+              value={batchSizeInput}
+              onChange={(e) => setBatchSizeInput(e.target.value)}
+              onBlur={commitBatchSize}
               className="w-full"
             />
           </div>

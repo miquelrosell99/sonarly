@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import type { Song } from '@sonarly/shared';
+import { MAX_EXCLUDE_IDS } from '@sonarly/shared';
 import type { DbSong } from '../songs/repository.js';
 
 interface CandidateRow extends DbSong {
@@ -79,8 +80,6 @@ function rowToSong(row: CandidateRow): Song & { artistName?: string; albumName?:
     rating: row.rating ?? undefined,
   };
 }
-
-const MAX_EXCLUDE_IDS = 500;
 
 function buildExcludeClause(excludeIds: string[]): { sql: string; params: string[] } {
   if (excludeIds.length === 0) return { sql: '', params: [] };

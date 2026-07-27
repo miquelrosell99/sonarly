@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
+import { MAX_EXCLUDE_IDS } from '@sonarly/shared';
 import { usePlayer, type PlayerSong } from '../stores/playerStore.js';
 import { usePreferences } from './usePreferences.js';
 import { api } from '../api.js';
 
 const DEFAULT_THRESHOLD = 5;
 const DEFAULT_BATCH_SIZE = 10;
-const MAX_EXCLUDE_IDS = 500;
 
 export function useAutoDj() {
   const {
