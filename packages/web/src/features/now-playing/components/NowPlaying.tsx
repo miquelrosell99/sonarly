@@ -142,11 +142,11 @@ export function NowPlaying({ user }: NowPlayingProps) {
       {/* Content */}
       <div
         className={cn(
-          'relative z-0 mx-auto flex w-full max-w-7xl items-center p-6 md:p-12',
+          'relative z-0 mx-auto flex h-full min-h-0 w-full max-w-7xl items-center p-6 md:p-12',
           closing ? 'now-playing-content-exit' : 'now-playing-content'
         )}
       >
-        <div className="grid w-full grid-cols-1 gap-8 md:grid-cols-[1fr_1.2fr] md:gap-12">
+        <div className="grid h-full min-h-0 w-full grid-cols-1 gap-8 md:grid-cols-[1fr_1.2fr] md:gap-12">
           {/* Left: cover + metadata */}
           <div className="flex flex-col items-center justify-center gap-6 text-center">
             <NowPlayingCover
@@ -193,7 +193,7 @@ export function NowPlaying({ user }: NowPlayingProps) {
               id={panelId}
               role="tabpanel"
               aria-labelledby={`now-playing-tab-${activeTab}`}
-              className="flex-1 min-h-0 p-4"
+              className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4"
             >
               {activeTab === 'queue' ? (
                 <QueuePanel user={user} />

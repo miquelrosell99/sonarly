@@ -224,7 +224,6 @@ export function PlayerBar() {
                 onClick={handleToggleAutoDj}
                 label={`Auto DJ: ${autoDjEnabled ? 'on' : 'off'}`}
                 active={autoDjEnabled}
-                className={autoDjEnabled ? '' : 'opacity-50'}
               >
                 <Icon name="mdi-record-player" size={18} />
               </ControlButton>
