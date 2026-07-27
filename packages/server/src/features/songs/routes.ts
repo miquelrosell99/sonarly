@@ -3,7 +3,7 @@ import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import { unlink } from 'node:fs/promises';
 import type { Song, SongTags, ScrobbleDetails } from '@sonarly/shared';
-import { getSongById, deleteSongByPath, scrobbleSong, getSongArtistNamesForMany, getSongArtistNames } from './repository.js';
+import { getSongById, deleteSongByPath, scrobbleSong, attachSongArtistEntries } from './repository.js';
 import { getSongGenreNamesForMany, getSongGenreNames } from '../genres/repository.js';
 import { getUserById } from '../users/index.js';
 import { writeTags, writeCoverArt } from '../tags/index.js';
@@ -294,11 +294,9 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
     `).all(...(genreFilter ? [userId ?? null, resolvedGenre.id] : [userId ?? null])) as SongListRow[];
 
     const songs = rows.map(rowToSong);
-    const artistMap = getSongArtistNamesForMany(db, songs.map((s) => s.id));
+    attachSongArtistEntries(db, songs);
     const genreMap = getSongGenreNamesForMany(db, songs.map((s) => s.id));
     for (const song of songs) {
-      const artists = artistMap.get(song.id);
-      if (artists) song.artists = artists;
       const genres = genreMap.get(song.id);
       if (genres) song.genres = genres;
     }
@@ -371,8 +369,7 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
     }
 
     const song = rowToSong(row);
-    const artists = getSongArtistNames(db, song.id);
-    if (artists.length) song.artists = artists;
+    attachSongArtistEntries(db, [song]);
     const genres = getSongGenreNames(db, song.id);
     if (genres.length) song.genres = genres;
     reply.send({ song });

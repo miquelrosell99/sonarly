@@ -314,7 +314,9 @@ export function listInactiveSongs(db: Database.Database, userId?: string): Song[
       WHERE s.active = 0
       ORDER BY s.title
     `).all() as (DbSong & { artist_name: string | null; album_name: string | null })[];
-    return rows.map((row) => ({ ...toSong(row), artistName: row.artist_name ?? undefined, albumName: row.album_name ?? undefined }));
+    const songs = rows.map((row) => ({ ...toSong(row), artistName: row.artist_name ?? undefined, albumName: row.album_name ?? undefined }));
+    attachSongArtistEntries(db, songs);
+    return songs;
   }
   const rows = db.prepare(`
     SELECT s.*, ar.name AS artist_name, al.name AS album_name, us.starred, us.rating
@@ -325,11 +327,13 @@ export function listInactiveSongs(db: Database.Database, userId?: string): Song[
     WHERE s.active = 0
     ORDER BY s.title
   `).all(userId) as (DbSongWithInteractions & { artist_name: string | null; album_name: string | null })[];
-  return rows.map((row) => ({
+  const songs = rows.map((row) => ({
     ...toSongWithInteractions(row),
     artistName: row.artist_name ?? undefined,
     albumName: row.album_name ?? undefined,
   }));
+  attachSongArtistEntries(db, songs);
+  return songs;
 }
 
 export function listSongsByArtist(db: Database.Database, artistId: string, userId?: string): Song[] {
@@ -339,7 +343,9 @@ export function listSongsByArtist(db: Database.Database, artistId: string, userI
       WHERE artist_id = ? AND active = 1
       ORDER BY year, album_id, disc_number, track_number, title
     `).all(artistId) as DbSong[];
-    return rows.map(toSong);
+    const songs = rows.map(toSong);
+    attachSongArtistEntries(db, songs);
+    return songs;
   }
   const rows = db.prepare(`
     SELECT s.*, us.starred, us.rating
@@ -348,7 +354,9 @@ export function listSongsByArtist(db: Database.Database, artistId: string, userI
     WHERE s.artist_id = ? AND s.active = 1
     ORDER BY s.year, s.album_id, s.disc_number, s.track_number, s.title
   `).all(userId, artistId) as DbSongWithInteractions[];
-  return rows.map(toSongWithInteractions);
+  const songs = rows.map(toSongWithInteractions);
+  attachSongArtistEntries(db, songs);
+  return songs;
 }
 
 export function listSongsByAlbum(db: Database.Database, albumId: string, userId?: string): Song[] {
@@ -375,16 +383,20 @@ export function listSongsByAlbum(db: Database.Database, albumId: string, userId?
   });
   if (!userId) {
     const rows = db.prepare(`${baseSelect} ${baseFrom}`).all(albumId) as (DbSong & NamesRow)[];
-    return rows.map(mapRow);
+    const songs = rows.map(mapRow);
+    attachSongArtistEntries(db, songs);
+    return songs;
   }
   const rows = db.prepare(`${baseSelect}, us.starred, us.rating ${baseFrom.replace('WHERE', 'LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id WHERE')}`)
     .all(userId, albumId) as (DbSongWithInteractions & NamesRow)[];
-  return rows.map((row) => ({
+  const songs = rows.map((row) => ({
     ...toSongWithInteractions(row),
     artistName: row.artist_name ?? undefined,
     albumName: row.album_name ?? undefined,
     albumArtistName: row.album_artist_name ?? undefined,
   }));
+  attachSongArtistEntries(db, songs);
+  return songs;
 }
 
 const COLLISION_SUFFIX_REGEX = / \(\d+\)\.[a-z0-9]+$/i;
@@ -480,6 +492,41 @@ export function getSongArtistEntriesForMany(
     const list = map.get(row.song_id) ?? [];
     list.push({ id: row.id, name: row.name });
     map.set(row.song_id, list);
+  }
+  return map;
+}
+
+export function attachSongArtistEntries(db: Database.Database, songs: Song[]): void {
+  if (songs.length === 0) return;
+  const entries = getSongArtistEntriesForMany(db, songs.map((s) => s.id));
+  for (const song of songs) {
+    const list = entries.get(song.id);
+    if (list && list.length > 0) {
+      song.artistEntries = list;
+    }
+  }
+}
+
+export interface AlbumSongStats {
+  songCount: number;
+  duration: number;
+}
+
+export function getAlbumSongStatsForMany(
+  db: Database.Database,
+  albumIds: string[],
+): Map<string, AlbumSongStats> {
+  if (albumIds.length === 0) return new Map();
+  const placeholders = albumIds.map(() => '?').join(',');
+  const rows = db.prepare(`
+    SELECT album_id, COUNT(*) AS song_count, COALESCE(SUM(duration), 0) AS duration
+    FROM songs
+    WHERE album_id IN (${placeholders}) AND active = 1
+    GROUP BY album_id
+  `).all(...albumIds) as { album_id: string; song_count: number; duration: number }[];
+  const map = new Map<string, AlbumSongStats>();
+  for (const row of rows) {
+    map.set(row.album_id, { songCount: row.song_count, duration: row.duration });
   }
   return map;
 }
