@@ -83,11 +83,13 @@ describe('LibraryView', () => {
     expect(container.querySelector('.grid')).toBeFalsy();
   });
 
-  it('calls onPlay when the row play button is clicked', () => {
+  it('calls onPlay when the row play button is pressed', () => {
     const onPlay = vi.fn();
     renderView({ onPlay });
 
-    fireEvent.click(screen.getAllByRole('button', { name: /play/i })[0]);
+    const playButton = screen.getAllByRole('button', { name: /play/i })[0];
+    fireEvent.pointerDown(playButton);
+    fireEvent.pointerUp(playButton);
     expect(onPlay).toHaveBeenCalledWith(items[0]);
   });
 

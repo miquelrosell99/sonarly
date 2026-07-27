@@ -56,4 +56,25 @@ describe('PlayButton', () => {
     expect(onPlay).not.toHaveBeenCalled();
     expect(onShufflePlay).not.toHaveBeenCalled();
   });
+
+  it('stops pointer event propagation so parent click handlers are not triggered', () => {
+    const onPlay = vi.fn();
+    const onShufflePlay = vi.fn();
+    const parentPointerDown = vi.fn();
+    const parentPointerUp = vi.fn();
+
+    render(
+      <div onPointerDown={parentPointerDown} onPointerUp={parentPointerUp}>
+        <PlayButton onPlay={onPlay} onShufflePlay={onShufflePlay} label="Play" />
+      </div>,
+    );
+
+    const button = screen.getByRole('button', { name: /Play/ });
+    fireEvent.pointerDown(button);
+    fireEvent.pointerUp(button);
+
+    expect(onPlay).toHaveBeenCalledTimes(1);
+    expect(parentPointerDown).not.toHaveBeenCalled();
+    expect(parentPointerUp).not.toHaveBeenCalled();
+  });
 });
