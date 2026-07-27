@@ -73,7 +73,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
 
   return (
     <div
-      className="relative flex h-screen flex-col overflow-hidden bg-bg-primary text-fg-primary"
+      className="relative flex h-screen select-none flex-col overflow-hidden bg-bg-primary text-fg-primary"
       style={
         dominantColor
           ? ({ '--now-playing-color': dominantColor } as React.CSSProperties)

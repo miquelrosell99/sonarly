@@ -1,3 +1,4 @@
+import { Link } from 'wouter';
 import { Icon } from './ui/Icon.js';
 import { CoverArt } from './CoverArt.js';
 import { FavoriteButton, StarRating } from './ActionButtons.js';
@@ -171,8 +172,43 @@ export function PlayerBar() {
                 <div className="truncate text-sm font-semibold text-fg-primary">
                   {currentSong.title}
                 </div>
+                {currentSong.albumName && (
+                  <div className="truncate text-xs text-fg-secondary">
+                    {currentSong.albumId ? (
+                      <Link
+                        href={`/albums/${currentSong.albumId}`}
+                        className="hover:text-accent"
+                      >
+                        {currentSong.albumName}
+                      </Link>
+                    ) : (
+                      currentSong.albumName
+                    )}
+                  </div>
+                )}
                 <div className="truncate text-xs text-fg-secondary">
-                  {currentSong.artistName || 'Unknown artist'}
+                  {currentSong.artistEntries && currentSong.artistEntries.length > 0 ? (
+                    currentSong.artistEntries.map((artist, index) => (
+                      <span key={artist.id}>
+                        <Link
+                          href={`/artists/${artist.id}`}
+                          className="hover:text-accent"
+                        >
+                          {artist.name}
+                        </Link>
+                        {index < currentSong.artistEntries!.length - 1 && ', '}
+                      </span>
+                    ))
+                  ) : currentSong.artistId ? (
+                    <Link
+                      href={`/artists/${currentSong.artistId}`}
+                      className="hover:text-accent"
+                    >
+                      {currentSong.artistName || 'Unknown artist'}
+                    </Link>
+                  ) : (
+                    currentSong.artistName || 'Unknown artist'
+                  )}
                 </div>
               </div>
             </>
@@ -240,7 +276,7 @@ export function PlayerBar() {
               />
             </fieldset>
             <ControlButton onClick={() => {}} label="DJ Mode (coming soon)" disabled>
-              <Icon name="mdi-turntable" size={18} />
+              <Icon name="mdi-record-player" size={18} />
             </ControlButton>
           </div>
           <div className="flex items-center gap-2">
@@ -263,7 +299,7 @@ export function PlayerBar() {
               value={volume}
               onChange={setVolume}
               ariaLabel="Volume"
-              className="w-24"
+              className="w-14"
             />
           </div>
         </div>
