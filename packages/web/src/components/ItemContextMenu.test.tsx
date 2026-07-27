@@ -93,4 +93,23 @@ describe('ItemContextMenu', () => {
     Object.defineProperty(window, 'innerWidth', { value: originalWidth, configurable: true });
     Object.defineProperty(window, 'innerHeight', { value: originalHeight, configurable: true });
   });
+
+  it('closes on Escape without letting the event bubble', () => {
+    const outerHandler = vi.fn();
+    document.addEventListener('keydown', outerHandler);
+
+    render(
+      <ItemContextMenu sections={[{ items: [{ id: 'play', label: 'Play', onClick: vi.fn() }] }]}>
+        <div data-testid="target">Right click me</div>
+      </ItemContextMenu>,
+    );
+    fireEvent.contextMenu(screen.getByTestId('target'));
+    expect(screen.getByRole('menu')).toBeTruthy();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('menu')).toBeFalsy();
+    expect(outerHandler).not.toHaveBeenCalled();
+
+    document.removeEventListener('keydown', outerHandler);
+  });
 });

@@ -55,4 +55,24 @@ describe('NowPlaying', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(useNowPlaying.getState().isOpen).toBe(false);
   });
+
+  it('does not close when a queue context menu is open and Escape is pressed', () => {
+    useNowPlaying.getState().open();
+    usePlayer.getState().playQueue(
+      [
+        { id: 's1', title: 'Current', artistName: 'Artist' } as any,
+        { id: 's2', title: 'Next', artistName: 'Artist' } as any,
+      ],
+      0,
+    );
+    render(<NowPlaying user={mockUser} />, { wrapper: Wrapper });
+    const row = screen.getByText('Next').closest('[role="menuitem"]') ?? screen.getByText('Next').closest('div');
+    if (row) {
+      fireEvent.contextMenu(row);
+    }
+    expect(screen.queryByRole('menu')).toBeTruthy();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(useNowPlaying.getState().isOpen).toBe(true);
+    expect(screen.queryByRole('menu')).toBeFalsy();
+  });
 });
