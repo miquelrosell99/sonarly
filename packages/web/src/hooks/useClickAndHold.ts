@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseClickAndHoldOptions {
   onClick: () => void;
@@ -32,7 +32,13 @@ export function useClickAndHold({
     }
   }, []);
 
+  const cancelHold = useCallback(() => {
+    clearTimer();
+    setIsHolding(false);
+  }, [clearTimer]);
+
   const onPointerDown = useCallback(() => {
+    clearTimer();
     holdTriggeredRef.current = false;
     setIsHolding(true);
     timerRef.current = window.setTimeout(() => {
@@ -40,7 +46,7 @@ export function useClickAndHold({
       setIsHolding(false);
       onHold();
     }, threshold);
-  }, [onHold, threshold]);
+  }, [clearTimer, onHold, threshold]);
 
   const onPointerUp = useCallback(
     (e: React.PointerEvent) => {
@@ -54,18 +60,19 @@ export function useClickAndHold({
     [clearTimer, onClick]
   );
 
-  const onPointerLeave = useCallback(() => {
-    clearTimer();
-    setIsHolding(false);
-  }, [clearTimer]);
-
-  const onPointerCancel = useCallback(() => {
-    clearTimer();
-    setIsHolding(false);
+  useEffect(() => {
+    return () => {
+      clearTimer();
+    };
   }, [clearTimer]);
 
   return {
     isHolding,
-    handlers: { onPointerDown, onPointerUp, onPointerLeave, onPointerCancel },
+    handlers: {
+      onPointerDown,
+      onPointerUp,
+      onPointerLeave: cancelHold,
+      onPointerCancel: cancelHold,
+    },
   };
 }
