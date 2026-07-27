@@ -5,4 +5,6 @@ node_modules/
 dist/
 .env
 config/
-docs/superpowers/
+docs/superpowers/*
+!docs/superpowers/specs/
+!docs/superpowers/plans/
