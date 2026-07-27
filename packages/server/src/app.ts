@@ -123,7 +123,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   app.addHook('preHandler', async (request, reply) => {
     const url = request.raw.url ?? '';
     if (!url.startsWith('/api/')) return;
-    const exempt = ['/api/login', '/api/logout', '/api/setup', '/api/me', '/api/avatars'];
+    const exempt = ['/api/login', '/api/logout', '/api/setup', '/api/me', '/api/avatars', '/api/libraries'];
     if (exempt.some((p) => url === p || url.startsWith(`${p}/`) || url.startsWith(`${p}?`))) return;
 
     if (request.method === 'GET' && request.routeOptions.url === '/api/playlists/:id') {
