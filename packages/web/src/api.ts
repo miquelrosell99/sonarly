@@ -2,7 +2,7 @@ const API_BASE = '/api';
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {};
-  if (options.body !== undefined) {
+  if (options.body !== undefined && !(options.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
   const res = await fetch(`${API_BASE}${path}`, {

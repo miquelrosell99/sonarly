@@ -28,9 +28,9 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function createHarness(song: Song, onEdit: () => void) {
+function createHarness(song: Song, onEdit: () => void, isAdmin = true) {
   return function SongMenuHarness() {
-    const sections = useSongContextMenu(song, onEdit);
+    const sections = useSongContextMenu(song, onEdit, isAdmin);
     return React.createElement(
       'div',
       { 'data-testid': 'menu' },
@@ -108,5 +108,13 @@ describe('useSongContextMenu', () => {
 
     fireEvent.click(screen.getByTestId('edit'));
     expect(onEdit).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides Edit item for non-admin users', () => {
+    const Harness = createHarness(song, vi.fn(), false);
+    render(React.createElement(Harness));
+
+    expect(screen.queryByTestId('edit')).toBeFalsy();
+    expect(screen.getByTestId('play')).toBeTruthy();
   });
 });

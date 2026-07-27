@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import type { Album } from '@sonarly/shared';
-import { getUserPreferences } from '../user-preferences/index.js';
+import { getUserById } from '../users/index.js';
 import { getCoverArtById } from '../cover-art/index.js';
 
 interface AlbumRow {
@@ -41,13 +41,13 @@ const ALBUM_COLUMNS = `
 export function registerHomeRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get('/api/home', (request: FastifyRequest, reply: FastifyReply) => {
     const userId = (request as any).session?.userId as string | undefined;
-    const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
+    const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
 
     const genres = db.prepare(`
       SELECT name FROM (
-        SELECT DISTINCT genre AS name FROM songs WHERE active = 1 AND genre IS NOT NULL
+        SELECT DISTINCT genre AS name FROM songs WHERE active = 1 AND genre IS NOT NULL AND genre != ''
         UNION
-        SELECT DISTINCT genre AS name FROM albums WHERE active = 1 AND genre IS NOT NULL
+        SELECT DISTINCT genre AS name FROM albums WHERE active = 1 AND genre IS NOT NULL AND genre != ''
       )
       ORDER BY name
     `).pluck().all() as string[];

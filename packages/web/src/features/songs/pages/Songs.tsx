@@ -1,17 +1,20 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import type { Song as SharedSong, User, UserPreferences } from '@sonarly/shared';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import type { Song as SharedSong, User } from '@sonarly/shared';
 import { api } from '../../../api.js';
-import { Table, TableColumn } from '../../../components/ui/Table.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
+import { Button } from '../../../components/ui/Button.js';
+import { SyncedLyricsEditor } from '../components/SyncedLyricsEditor.js';
+import { SongTable, type SongListItem } from '../components/SongTable.js';
 
 type Song = SharedSong & {
   artistName?: string;
   albumName?: string;
+  albumArtistName?: string;
 };
 
 function SongContextMenu({
@@ -25,34 +28,31 @@ function SongContextMenu({
   isAdmin: boolean;
   children: ReactNode;
 }) {
-  const sections = useSongContextMenu(song, onEdit);
-  const visibleSections = isAdmin
-    ? sections
-    : sections.map((section) => ({ ...section, items: section.items.filter((item) => item.id !== 'edit') })).filter((section) => section.items.length > 0);
-  return <ItemContextMenu sections={visibleSections}>{children}</ItemContextMenu>;
+  const sections = useSongContextMenu(song, onEdit, isAdmin);
+  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
 
 export function Songs({ user }: { user: User }) {
   const [songs, setSongs] = useState<Song[]>([]);
-  const [preferences, setPreferences] = useState<UserPreferences>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Song | null>(null);
+  const [syncEditing, setSyncEditing] = useState<Song | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [coverArtBusy, setCoverArtBusy] = useState(false);
+  const [orphanedEntities, setOrphanedEntities] = useState<{ type: 'artist' | 'album'; id: string; name: string }[] | null>(null);
+  const [cleaningUp, setCleaningUp] = useState(false);
   const { notify } = useNotification();
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const { playSongs } = usePlayActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
 
   const load = () => {
     setLoading(true);
-    Promise.all([
-      api<{ songs: Song[] }>('/songs'),
-      api<{ preferences: UserPreferences }>('/me/preferences').catch(() => ({ preferences: {} })),
-    ])
-      .then(([songsRes, prefsRes]) => {
+    api<{ songs: Song[] }>('/songs')
+      .then((songsRes) => {
         setSongs(songsRes.songs);
-        setPreferences(prefsRes.preferences);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load songs'))
       .finally(() => setLoading(false));
@@ -62,13 +62,13 @@ export function Songs({ user }: { user: User }) {
     load();
   }, []);
 
-  const blurExplicitTitles = preferences.blurExplicitTitles === true;
+  const blurExplicitTitles = user.blurExplicitTitles === true;
 
-  const handlePlay = (song: Song) => {
+  const handlePlay = (song: SongListItem) => {
     playSongs([song as SharedSong], 0);
   };
 
-  const handlePlaySelection = (songs: Song[], startIndex: number) => {
+  const handlePlaySelection = (songs: SongListItem[], startIndex: number) => {
     playSongs(songs as SharedSong[], startIndex);
   };
 
@@ -76,17 +76,41 @@ export function Songs({ user }: { user: User }) {
     if (!editing) return;
     setSaving(true);
     try {
-      await api(`/songs/${editing.id}/tags`, {
+      const result = await api<{ ok: boolean; orphanedEntities?: { type: 'artist' | 'album'; id: string; name: string }[] }>(`/songs/${editing.id}/tags`, {
         method: 'PUT',
         body: JSON.stringify(patched),
       });
       setEditing(null);
-      load();
+      if (result.orphanedEntities && result.orphanedEntities.length > 0) {
+        setOrphanedEntities(result.orphanedEntities);
+      } else {
+        load();
+      }
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to save song', 'error');
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleCleanup = async (deleteOrphans: boolean) => {
+    if (!orphanedEntities) return;
+    if (deleteOrphans) {
+      setCleaningUp(true);
+      try {
+        await Promise.all(
+          orphanedEntities.map((entity) =>
+            api(`/${entity.type === 'artist' ? 'artists' : 'albums'}/${entity.id}`, { method: 'DELETE' }),
+          ),
+        );
+      } catch (err) {
+        notify(err instanceof Error ? err.message : 'Failed to clean up empty items', 'error');
+      } finally {
+        setCleaningUp(false);
+      }
+    }
+    setOrphanedEntities(null);
+    load();
   };
 
   const handleDelete = async () => {
@@ -103,34 +127,50 @@ export function Songs({ user }: { user: User }) {
     }
   };
 
-  const columns: TableColumn<Song>[] = [
-    {
-      key: 'title',
-      header: 'Title',
-      render: (s) => (
-        <span className={`inline-flex items-center gap-2 ${s.explicit && blurExplicitTitles ? 'blur-sm' : ''}`}>
-          {s.title}
-          {s.explicit && (
-            <span className="rounded bg-red-500/10 px-1 text-[10px] font-bold text-red-500">E</span>
-          )}
-        </span>
-      ),
-    },
-    { key: 'artist', header: 'Artist', render: (s) => s.artistName ?? '-' },
-    { key: 'album', header: 'Album', render: (s) => s.albumName ?? '-' },
-    {
-      key: 'duration',
-      header: 'Duration',
-      className: 'w-24',
-      render: (s) => (s.duration ? formatDuration(s.duration) : '-'),
-    },
-  ];
+  const handleEditCoverArt = () => {
+    coverInputRef.current?.click();
+  };
+
+  const handleCoverArtFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editing) return;
+    setCoverArtBusy(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      await api(`/songs/${editing.id}/cover-art`, {
+        method: 'POST',
+        body: formData,
+      });
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to update cover art', 'error');
+    } finally {
+      setCoverArtBusy(false);
+      if (coverInputRef.current) coverInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteCoverArt = async () => {
+    if (!editing) return;
+    if (!window.confirm('Are you sure you want to remove the cover art?')) return;
+    setCoverArtBusy(true);
+    try {
+      await api(`/songs/${editing.id}/cover-art`, { method: 'DELETE' });
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to remove cover art', 'error');
+    } finally {
+      setCoverArtBusy(false);
+    }
+  };
 
   const editEntity = editing
     ? {
         ...editing,
         artist: editing.artistName,
         album: editing.albumName,
+        albumArtist: editing.albumArtistName,
       }
     : null;
 
@@ -140,19 +180,18 @@ export function Songs({ user }: { user: User }) {
   return (
     <div>
       <h2 className="mb-4 text-lg font-semibold">Songs</h2>
-      <Table
-        columns={columns}
-        rows={songs}
-        rowKey={(s) => s.id}
-        empty="No songs."
+      <SongTable
+        songs={songs}
+        playingId={playingId}
+        blurExplicit={blurExplicitTitles}
         onPlay={handlePlay}
         onPlaySelection={handlePlaySelection}
-        playingId={playingId}
         renderRow={(song, row) => (
-          <SongContextMenu song={song} onEdit={() => setEditing(song)} isAdmin={user.isAdmin}>
+          <SongContextMenu song={song as Song} onEdit={() => setEditing(song as Song)} isAdmin={user.isAdmin}>
             {row}
           </SongContextMenu>
         )}
+        empty="No songs."
       />
       {editEntity && (
         <EditEntityModal
@@ -162,16 +201,105 @@ export function Songs({ user }: { user: User }) {
           onClose={() => setEditing(null)}
           onSave={handleSave}
           onDelete={handleDelete}
+          onEditCoverArt={user.isAdmin ? handleEditCoverArt : undefined}
+          onDeleteCoverArt={user.isAdmin ? handleDeleteCoverArt : undefined}
+          onEditSyncedLyrics={() => editing && setSyncEditing(editing)}
           saving={saving}
           deleting={deleting}
+          coverArtBusy={coverArtBusy}
+        />
+      )}
+      <input
+        ref={coverInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleCoverArtFileChange}
+      />
+      {syncEditing && (
+        <SyncedLyricsEditor
+          songId={syncEditing.id}
+          title={syncEditing.title}
+          artistName={syncEditing.artistName}
+          duration={syncEditing.duration}
+          onClose={() => setSyncEditing(null)}
+          onSaved={() => {
+            setSyncEditing(null);
+            load();
+          }}
+        />
+      )}
+      {orphanedEntities && orphanedEntities.length > 0 && (
+        <CleanupModal
+          entities={orphanedEntities}
+          loading={cleaningUp}
+          onClose={() => handleCleanup(false)}
+          onConfirm={() => handleCleanup(true)}
         />
       )}
     </div>
   );
 }
 
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
+function CleanupModal({
+  entities,
+  loading,
+  onClose,
+  onConfirm,
+}: {
+  entities: { type: 'artist' | 'album'; id: string; name: string }[];
+  loading: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cleanup-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !loading) onClose();
+      }}
+    >
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-rule bg-surface shadow-2xl">
+        <div className="border-b border-rule/60 px-6 py-4">
+          <h3 id="cleanup-title" className="text-lg font-semibold">Empty items</h3>
+        </div>
+        <div className="px-6 py-5">
+          <p className="mb-3 text-sm text-fg-secondary">
+            The following items no longer have any songs. Delete them?
+          </p>
+          <ul className="space-y-2">
+            {entities.map((entity) => (
+              <li
+                key={`${entity.type}-${entity.id}`}
+                className="flex items-center gap-3 rounded-lg border border-rule bg-surface-hover px-3 py-2"
+              >
+                <span className="text-xs font-medium uppercase text-fg-secondary">{entity.type}</span>
+                <span className="text-sm font-medium text-fg-primary">{entity.name}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="flex justify-end gap-2 border-t border-rule/60 px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="btn-ghost"
+          >
+            Keep
+          </button>
+          <Button
+            onClick={onConfirm}
+            disabled={loading}
+            variant="danger"
+          >
+            Delete
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }

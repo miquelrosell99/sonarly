@@ -73,7 +73,7 @@ describe('management auth endpoints', () => {
     mkdirSync(config.LIBRARY_PATH, { recursive: true });
     mkdirSync(config.INGEST_PATH, { recursive: true });
     const db = new Database(join(root, 'sonarly.db'));
-    migrate(db);
+    await migrate(db);
     await seedAdminUser(db);
     app = await buildApp(config, db);
   });
@@ -168,7 +168,7 @@ describe('management auth endpoints', () => {
     mkdirSync(emptyConfig.LIBRARY_PATH, { recursive: true });
     mkdirSync(emptyConfig.INGEST_PATH, { recursive: true });
     const db = new Database(join(emptyRoot, 'sonarly.db'));
-    migrate(db);
+    await migrate(db);
     const emptyApp = await buildApp(emptyConfig, db);
 
     const setupCheck = await emptyApp.inject({ method: 'GET', url: '/api/setup' });

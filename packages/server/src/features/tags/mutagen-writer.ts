@@ -24,14 +24,24 @@ def parse_num_pair(value):
     except ValueError:
         return None
 
+def serialize_lrc(synced):
+    def fmt(t):
+        m = int(t // 60)
+        s = int(t % 60)
+        cs = int(round((t % 1) * 100))
+        return f'{m:02d}:{s:02d}.{cs:02d}'
+    return '\\n'.join([f'[{fmt(item["time"])}] {item["text"]}' for item in synced])
+
 def write_tags(path, tags):
     ext = path.lower().rsplit('.', 1)[-1] if '.' in path else ''
     explicit = tags.get('explicit')
+    lyrics = tags.get('lyrics')
+    synced_lyrics = tags.get('syncedLyrics')
 
     if ext == 'mp3':
         from mutagen.mp3 import MP3
         from mutagen.easyid3 import EasyID3
-        from mutagen.id3 import ID3, TXXX
+        from mutagen.id3 import ID3, TXXX, USLT, SYLT
         audio = MP3(path, ID3=EasyID3)
         if audio.tags is None:
             audio.add_tags(EasyID3)
@@ -58,11 +68,16 @@ def write_tags(path, tags):
                 audio.tags[mutagen_key] = str(value)
         audio.save()
 
-        # EasyID3 does not support custom TXXX frames; write explicit via raw ID3.
+        # EasyID3 does not support custom TXXX frames or lyrics; write via raw ID3.
+        id3 = ID3(path)
         if explicit is not None:
-            id3 = ID3(path)
             id3['TXXX:ITUNESADVISORY'] = TXXX(encoding=0, desc='ITUNESADVISORY', text='1' if explicit else '0')
-            id3.save()
+        if lyrics:
+            id3['USLT:eng:'] = USLT(encoding=3, lang='eng', desc='', text=lyrics)
+        if synced_lyrics:
+            items = [(int(item['time'] * 1000), item['text']) for item in synced_lyrics]
+            id3['SYLT'] = SYLT(encoding=3, lang='eng', format=2, type=1, text=items)
+        id3.save()
 
     elif ext in ('flac', 'ogg'):
         from mutagen.flac import FLAC
@@ -94,6 +109,10 @@ def write_tags(path, tags):
                 audio.tags[mutagen_key] = str(value)
         if explicit is not None:
             audio.tags['ITUNESADVISORY'] = '1' if explicit else '0'
+        if lyrics:
+            audio.tags['LYRICS'] = lyrics
+        if synced_lyrics:
+            audio.tags['SYNCEDLYRICS'] = serialize_lrc(synced_lyrics)
         audio.save()
 
     elif ext in ('m4a', 'mp4'):
@@ -122,6 +141,10 @@ def write_tags(path, tags):
                 audio[mutagen_key] = [str(value)]
         if explicit is not None:
             audio['rtng'] = [(1 if explicit else 0)]
+        if lyrics:
+            audio['\\xa9lyr'] = [lyrics]
+        if synced_lyrics:
+            audio['----:com.sonarl:y:syncedLyrics'] = serialize_lrc(synced_lyrics).encode('utf-8')
         audio.save()
 
     else:

@@ -1,7 +1,8 @@
 import { useFilterParams } from '../hooks/useFilterParams.js';
 import { cn } from '../lib/cn.js';
+import { Checkbox } from './ui/Checkbox.js';
 
-export type FilterType = 'text' | 'select' | 'boolean';
+export type FilterType = 'text' | 'number' | 'select' | 'boolean';
 
 export interface FilterOption {
   value: string;
@@ -42,6 +43,15 @@ export function FilterPanel({ filters, className }: FilterPanelProps) {
                   className="input"
                 />
               )}
+              {filter.type === 'number' && (
+                <input
+                  id={`filter-${filter.key}`}
+                  type="number"
+                  value={value}
+                  onChange={(e) => set(filter.key, e.target.value)}
+                  className="input"
+                />
+              )}
               {filter.type === 'select' && (
                 <select
                   id={`filter-${filter.key}`}
@@ -58,16 +68,12 @@ export function FilterPanel({ filters, className }: FilterPanelProps) {
                 </select>
               )}
               {filter.type === 'boolean' && (
-                <label className="flex items-center gap-2 text-sm text-fg-primary">
-                  <input
-                    id={`filter-${filter.key}`}
-                    type="checkbox"
-                    checked={value === 'true'}
-                    onChange={(e) => set(filter.key, e.target.checked ? 'true' : null)}
-                    className="h-4 w-4 rounded border-rule text-accent focus:ring-accent"
-                  />
-                  {filter.label}
-                </label>
+                <Checkbox
+                  id={`filter-${filter.key}`}
+                  label={filter.label}
+                  checked={value === 'true'}
+                  onChange={(e) => set(filter.key, e.target.checked ? 'true' : null)}
+                />
               )}
             </div>
           );

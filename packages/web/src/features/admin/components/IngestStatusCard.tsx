@@ -12,6 +12,9 @@ interface IngestStatus {
 
 interface IngestStatusCardProps {
   ingest: IngestStatus;
+  onOpenIngest?: () => void;
+  onOpenConflicts?: () => void;
+  onOpenMissing?: () => void;
 }
 
 const statLabels: Record<string, string> = {
@@ -30,21 +33,10 @@ const statLabels: Record<string, string> = {
   deleted: 'Deleted',
 };
 
-const statRoutes: Record<string, string> = {
-  scanned: '/songs',
-  added: '/songs',
-  updated: '/songs',
-  moved: '/songs',
-  imported: '/songs',
-  processed: '/admin/ingest',
-  done: '/admin/ingest',
-  total: '/admin/ingest',
-  skipped: '/admin/ingest',
-  failed: '/admin/ingest',
-  needsReview: '/settings/conflicts',
-  removed: '/settings/missing',
-  deleted: '/settings/missing',
-};
+const songStatKeys = new Set(['scanned', 'added', 'updated', 'moved', 'imported']);
+const ingestStatKeys = new Set(['processed', 'done', 'total', 'skipped', 'failed']);
+const conflictsStatKeys = new Set(['needsReview']);
+const missingStatKeys = new Set(['removed', 'deleted']);
 
 function formatDateTime(value: string): string {
   return new Date(value).toLocaleString();
@@ -76,18 +68,58 @@ function getNumericStats(stats: Record<string, unknown> | undefined): { key: str
     .map(([key, value]) => ({ key, value: value as number }));
 }
 
-function StatCard({ statKey, value }: { statKey: string; value: number }) {
+function StatCard({
+  statKey,
+  value,
+  onOpenIngest,
+  onOpenConflicts,
+  onOpenMissing,
+}: {
+  statKey: string;
+  value: number;
+  onOpenIngest?: () => void;
+  onOpenConflicts?: () => void;
+  onOpenMissing?: () => void;
+}) {
   const label = statLabels[statKey] ?? statKey;
-  const route = statRoutes[statKey];
   const className =
     'rounded border border-rule bg-bg-primary p-3 text-center transition-colors hover:bg-surface-hover';
 
-  return route ? (
-    <Link href={route} className={className}>
-      <p className="text-2xl font-semibold">{value}</p>
-      <p className="text-xs text-muted">{label}</p>
-    </Link>
-  ) : (
+  if (songStatKeys.has(statKey)) {
+    return (
+      <Link
+        href="/songs"
+        className={className}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="text-2xl font-semibold">{value}</p>
+        <p className="text-xs text-muted">{label}</p>
+      </Link>
+    );
+  }
+
+  let onClick: (() => void) | undefined;
+  if (ingestStatKeys.has(statKey)) onClick = onOpenIngest;
+  else if (conflictsStatKeys.has(statKey)) onClick = onOpenConflicts;
+  else if (missingStatKeys.has(statKey)) onClick = onOpenMissing;
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        className={`${className} w-full`}
+      >
+        <p className="text-2xl font-semibold">{value}</p>
+        <p className="text-xs text-muted">{label}</p>
+      </button>
+    );
+  }
+
+  return (
     <div className={className}>
       <p className="text-2xl font-semibold">{value}</p>
       <p className="text-xs text-muted">{label}</p>
@@ -95,12 +127,28 @@ function StatCard({ statKey, value }: { statKey: string; value: number }) {
   );
 }
 
-export function IngestStatusCard({ ingest }: IngestStatusCardProps) {
+export function IngestStatusCard({
+  ingest,
+  onOpenIngest,
+  onOpenConflicts,
+  onOpenMissing,
+}: IngestStatusCardProps) {
   const duration = getDuration(ingest);
   const stats = getNumericStats(ingest.stats);
 
   return (
-    <div className="rounded border border-rule bg-surface p-4 shadow-sm">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpenIngest}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onOpenIngest?.();
+        }
+      }}
+      className="w-full cursor-pointer rounded border border-rule bg-surface p-4 text-left shadow-sm transition-colors hover:bg-surface-hover"
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Latest ingest</p>
@@ -141,7 +189,14 @@ export function IngestStatusCard({ ingest }: IngestStatusCardProps) {
       {stats.length > 0 && (
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {stats.map((stat) => (
-            <StatCard key={stat.key} statKey={stat.key} value={stat.value} />
+            <StatCard
+              key={stat.key}
+              statKey={stat.key}
+              value={stat.value}
+              onOpenIngest={onOpenIngest}
+              onOpenConflicts={onOpenConflicts}
+              onOpenMissing={onOpenMissing}
+            />
           ))}
         </div>
       )}

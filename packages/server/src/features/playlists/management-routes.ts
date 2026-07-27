@@ -12,7 +12,8 @@ import {
   resolvePlaylistSongIds,
   resolvePlaylistSongCount,
 } from '../playlists/index.js';
-import { getUserPreferences } from '../user-preferences/index.js';
+import { getUserById } from '../users/index.js';
+import { DbAlbum, toAlbum } from '../albums/repository.js';
 
 const VISIBILITIES: PlaylistVisibility[] = ['private', 'shared', 'public', 'link'];
 
@@ -167,7 +168,7 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
     if (!canViewPlaylist(db, playlist, userId, shareToken)) return reply.status(403).send({ error: 'Forbidden' });
 
     const effectiveUserId = userId ?? playlist.ownerId;
-    const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
+    const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
     const songIds = resolvePlaylistSongIds(db, playlist, effectiveUserId);
     const entries = fetchPlaylistSongs(db, songIds);
     const visibleEntries = hideExplicit ? entries.filter((s) => !(s as { explicit?: boolean }).explicit) : entries;
@@ -322,5 +323,40 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
 
     db.prepare('DELETE FROM playlist_shares WHERE playlist_id = ? AND user_id = ?').run(id, targetUserId);
     reply.send({ ok: true });
+  });
+
+  app.get('/api/playlists/:id/albums', async (request: FastifyRequest, reply: FastifyReply) => {
+    const userId = (request as any).session?.userId as string | undefined;
+    const { id } = request.params as { id: string };
+    const { shareToken } = request.query as { shareToken?: string };
+    const playlist = getPlaylistById(db, id);
+    if (!playlist) return reply.status(404).send({ error: 'Playlist not found' });
+    if (!canViewPlaylist(db, playlist, userId, shareToken)) return reply.status(403).send({ error: 'Forbidden' });
+
+    const effectiveUserId = userId ?? playlist.ownerId;
+    const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
+    const songIds = resolvePlaylistSongIds(db, playlist, effectiveUserId);
+    if (songIds.length === 0) return reply.send({ albums: [] });
+
+    const query = request.query as { limit?: string };
+    const limit = Math.min(Math.max(parseInt(query.limit ?? '4', 10) || 4, 1), 20);
+
+    const placeholders = songIds.map(() => '?').join(',');
+    const explicitFilter = hideExplicit
+      ? 'AND EXISTS (SELECT 1 FROM songs s2 WHERE s2.album_id = a.id AND s2.active = 1 AND s2.explicit = 0)'
+      : '';
+
+    const rows = db.prepare(`
+      SELECT a.*
+      FROM albums a
+      JOIN songs s ON s.album_id = a.id
+      WHERE s.id IN (${placeholders}) AND a.active = 1
+      ${explicitFilter}
+      GROUP BY a.id
+      ORDER BY RANDOM()
+      LIMIT ?
+    `).all(...songIds, limit) as DbAlbum[];
+
+    reply.send({ albums: rows.map(toAlbum) });
   });
 }

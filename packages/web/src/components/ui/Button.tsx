@@ -5,9 +5,10 @@ export function Button({
   variant = 'primary',
   className,
   ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'ghost' }) {
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'ghost' | 'danger' }) {
+  const variantClass = variant === 'primary' ? 'btn' : variant === 'danger' ? 'btn-danger' : 'btn-ghost';
   return (
-    <button className={cn(variant === 'primary' ? 'btn' : 'btn-ghost', className)} {...props}>
+    <button className={cn(variantClass, className)} {...props}>
       {children}
     </button>
   );

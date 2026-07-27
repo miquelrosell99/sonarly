@@ -31,13 +31,13 @@ export function registerOpenSubsonicAuth(app: FastifyInstance, db: Database.Data
     if (apiKey) {
       const userId = verifyApiKey(db, apiKey);
       if (!userId) {
-        return sendSubsonicReply(reply.status(401), format, {
+        return sendSubsonicReply(reply, format, {
           error: { code: 40, message: 'Wrong username or password' },
         }, 'failed');
       }
       const user = getUserById(db, userId);
       if (!user) {
-        return sendSubsonicReply(reply.status(401), format, {
+        return sendSubsonicReply(reply, format, {
           error: { code: 40, message: 'Wrong username or password' },
         }, 'failed');
       }
@@ -72,7 +72,7 @@ export function registerOpenSubsonicAuth(app: FastifyInstance, db: Database.Data
     }
 
     const missingAuth = (!u || (!t && !p) || (t && !s));
-    return sendSubsonicReply(reply.status(401), format, {
+    return sendSubsonicReply(reply, format, {
       error: { code: missingAuth ? 10 : 40, message: missingAuth ? 'Missing authentication' : 'Wrong username or password' },
     }, 'failed');
   });

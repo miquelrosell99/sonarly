@@ -130,7 +130,9 @@ describe('management song endpoints', () => {
       payload: { title: 'New Title', artist: 'New Artist', trackNumber: 2 },
     });
     expect(res.statusCode).toBe(200);
-    expect(JSON.parse(res.body)).toEqual({ ok: true });
+    const body = JSON.parse(res.body);
+    expect(body.ok).toBe(true);
+    expect(body.orphanedEntities).toEqual([{ type: 'artist', id: 'artist-1', name: 'Test Artist' }]);
 
     const job = db.prepare("SELECT * FROM scan_jobs WHERE type = 'resync'").get() as any;
     expect(job).toBeDefined();
@@ -176,6 +178,7 @@ describe('management song endpoints', () => {
     const popPath = join(config.LIBRARY_PATH, 'pop.mp3');
     copyFileSync(src, rockPath);
     copyFileSync(src, popPath);
+    db.prepare("INSERT INTO genres (id, name, active) VALUES ('genre-rock', 'Rock', 1), ('genre-pop', 'Pop', 1)").run();
     upsertSong(db, {
       id: 'song-rock',
       filePath: rockPath,
@@ -183,6 +186,7 @@ describe('management song endpoints', () => {
       artistId: 'artist-1',
       albumId: 'album-1',
       genre: 'Rock',
+      genreId: 'genre-rock',
       mtime: Date.now(),
       checksum: 'checksum-rock',
     });
@@ -193,9 +197,15 @@ describe('management song endpoints', () => {
       artistId: 'artist-1',
       albumId: 'album-1',
       genre: 'Pop',
+      genreId: 'genre-pop',
       mtime: Date.now(),
       checksum: 'checksum-pop',
     });
+    db.prepare(`
+      INSERT INTO song_genres (song_id, genre_id, position)
+      VALUES ('song-rock', 'genre-rock', 0), ('song-pop', 'genre-pop', 0)
+      ON CONFLICT(song_id, genre_id) DO NOTHING
+    `).run();
 
     const res = await app.inject({
       method: 'GET',
@@ -283,6 +293,89 @@ describe('management song endpoints', () => {
       method: 'DELETE',
       url: '/api/songs/song-1',
       cookies: { sessionId: regularCookie },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('uploads cover art for a song', async () => {
+    const boundary = '----FormBoundary' + Date.now();
+    const imageBuffer = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+    const body = Buffer.concat([
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="cover.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`),
+      imageBuffer,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/songs/song-1/cover-art',
+      cookies: { sessionId: cookieValue },
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+    expect(res.statusCode).toBe(200);
+    const { coverArt } = JSON.parse(res.body) as { coverArt: string };
+    expect(coverArt).toBeTruthy();
+    const row = db.prepare('SELECT cover_art_id FROM songs WHERE id = ?').get('song-1') as { cover_art_id: string };
+    expect(row.cover_art_id).toBe(coverArt);
+  });
+
+  it('removes cover art for a song', async () => {
+    db.prepare("INSERT INTO cover_arts (id, format, data, hash) VALUES ('cover-1', 'image/jpeg', X'', 'hash-1')").run();
+    db.prepare("UPDATE songs SET cover_art_id = 'cover-1' WHERE id = ?").run('song-1');
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/songs/song-1/cover-art',
+      cookies: { sessionId: cookieValue },
+    });
+    expect(res.statusCode).toBe(200);
+    const row = db.prepare('SELECT cover_art_id FROM songs WHERE id = ?').get('song-1') as { cover_art_id: string | null };
+    expect(row.cover_art_id).toBeNull();
+  });
+
+  it('rejects invalid cover art formats', async () => {
+    const boundary = '----FormBoundary' + Date.now();
+    const body = Buffer.concat([
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="cover.gif"\r\nContent-Type: image/gif\r\n\r\nGIF89a\r\n--${boundary}--\r\n`),
+    ]);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/songs/song-1/cover-art',
+      cookies: { sessionId: cookieValue },
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body).error).toBe('Invalid image format');
+  });
+
+  it('forbids cover art upload for non-admins', async () => {
+    createUser(db, {
+      id: 'user-4',
+      username: 'regular3',
+      passwordHash: await hashPassword('pass'),
+      subsonicPasswordEncrypted: encryptSubsonicPassword('pass', baseConfig.SESSION_SECRET),
+      isAdmin: false,
+      createdAt: new Date().toISOString(),
+    });
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/login',
+      payload: { username: 'regular3', password: 'pass' },
+    });
+    const regularCookie = login.cookies.find((c) => c.name === 'sessionId')!.value;
+    const boundary = '----FormBoundary' + Date.now();
+    const imageBuffer = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+    const body = Buffer.concat([
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="cover.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`),
+      imageBuffer,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/songs/song-1/cover-art',
+      cookies: { sessionId: regularCookie },
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
     });
     expect(res.statusCode).toBe(403);
   });

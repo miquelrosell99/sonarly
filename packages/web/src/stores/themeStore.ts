@@ -1,7 +1,17 @@
 import { create } from 'zustand';
 
 export type ThemeMode = 'light' | 'dark' | 'oled' | 'auto';
-export type AccentColor = 'monochrome' | 'brown' | 'green' | 'orange' | 'teal' | 'purple' | 'yellow';
+export type AccentColor =
+  | 'auto'
+  | 'monochrome'
+  | 'brown'
+  | 'green'
+  | 'orange'
+  | 'teal'
+  | 'purple'
+  | 'yellow'
+  | 'cyan'
+  | 'blue';
 
 interface ThemeState {
   themeMode: ThemeMode;
@@ -12,6 +22,7 @@ interface ThemeState {
 }
 
 const accentClasses = [
+  'accent-auto',
   'accent-monochrome',
   'accent-brown',
   'accent-green',
@@ -19,11 +30,18 @@ const accentClasses = [
   'accent-teal',
   'accent-purple',
   'accent-yellow',
+  'accent-cyan',
+  'accent-blue',
 ];
+
+function resolveAccent(accentColor: AccentColor, resolvedMode: 'light' | 'dark' | 'oled'): string {
+  if (accentColor !== 'auto') return accentColor;
+  return resolvedMode === 'light' ? 'blue' : 'cyan';
+}
 
 export const useTheme = create<ThemeState>((set, get) => ({
   themeMode: 'auto',
-  accentColor: 'monochrome',
+  accentColor: 'auto',
   setThemeMode: (themeMode) => {
     set({ themeMode });
     get().apply();
@@ -46,6 +64,8 @@ export const useTheme = create<ThemeState>((set, get) => ({
           : 'light'
         : themeMode;
 
-    html.classList.add(`theme-${resolvedMode}`, `accent-${accentColor}`);
+    const resolvedAccent = resolveAccent(accentColor, resolvedMode);
+
+    html.classList.add(`theme-${resolvedMode}`, `accent-${resolvedAccent}`);
   },
 }));

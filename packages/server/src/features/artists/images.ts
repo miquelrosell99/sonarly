@@ -1,4 +1,7 @@
 import Database from 'better-sqlite3';
+import { writeFile, unlink, mkdir } from 'node:fs/promises';
+import { join, extname } from 'node:path';
+import { updateArtistImageUrl } from './repository.js';
 
 interface DeezerArtist {
   id: number;
@@ -16,6 +19,39 @@ interface DeezerSearchResult {
 
 const FETCH_TIMEOUT_MS = 10_000;
 const RATE_LIMIT_DELAY_MS = 200;
+
+const EXTENSION_BY_CONTENT_TYPE: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/jpg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+};
+
+function getArtistImagesDir(dataDir: string): string {
+  return join(dataDir, 'artist-images');
+}
+
+async function ensureArtistImagesDir(dataDir: string): Promise<void> {
+  await mkdir(getArtistImagesDir(dataDir), { recursive: true });
+}
+
+function extensionFromUrl(url: string): string {
+  const ext = extname(new URL(url).pathname).toLowerCase();
+  if (ext === '.jpeg' || ext === '.jpg') return '.jpg';
+  if (ext === '.png') return '.png';
+  if (ext === '.webp') return '.webp';
+  if (ext === '.gif') return '.gif';
+  return '';
+}
+
+function extensionFromResponse(response: Response, url: string): string {
+  const contentType = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+  if (contentType && EXTENSION_BY_CONTENT_TYPE[contentType]) {
+    return EXTENSION_BY_CONTENT_TYPE[contentType];
+  }
+  return extensionFromUrl(url) || '.jpg';
+}
 
 async function fetchWithTimeout(url: string): Promise<Response> {
   const controller = new AbortController();
@@ -45,18 +81,24 @@ export interface ArtistImageSyncStats {
   failed: number;
 }
 
+export interface SyncMissingArtistImagesOptions {
+  limit?: number;
+  refetchExisting?: boolean;
+}
+
 export async function syncMissingArtistImages(
   db: Database.Database,
-  options: { limit?: number; refetchExisting?: boolean } = {},
+  dataDir: string,
+  options: SyncMissingArtistImagesOptions = {},
 ): Promise<ArtistImageSyncStats> {
   const stats: ArtistImageSyncStats = { scanned: 0, updated: 0, failed: 0 };
 
   let sql = `
-    SELECT id, name FROM artists
+    SELECT id, name, artist_image_url, artist_image_local_path FROM artists
     WHERE active = 1 AND name != '' AND name IS NOT NULL
   `;
   if (!options.refetchExisting) {
-    sql += " AND (artist_image_url IS NULL OR artist_image_url = '')";
+    sql += " AND (artist_image_local_path IS NULL OR artist_image_local_path = '')";
   }
   sql += ' ORDER BY name';
   if (options.limit) {
@@ -65,18 +107,50 @@ export async function syncMissingArtistImages(
 
   const rows = (options.limit
     ? db.prepare(sql).all(options.limit)
-    : db.prepare(sql).all()) as { id: string; name: string }[];
+    : db.prepare(sql).all()) as {
+    id: string;
+    name: string;
+    artist_image_url: string | null;
+    artist_image_local_path: string | null;
+  }[];
 
-  const updateStmt = db.prepare('UPDATE artists SET artist_image_url = ? WHERE id = ?');
+  await ensureArtistImagesDir(dataDir);
+  const imagesDir = getArtistImagesDir(dataDir);
 
   for (const row of rows) {
     stats.scanned++;
     try {
       const imageUrl = await fetchArtistImageUrl(row.name);
-      if (imageUrl) {
-        updateStmt.run(imageUrl, row.id);
-        stats.updated++;
+      if (!imageUrl) continue;
+
+      const imageResponse = await fetchWithTimeout(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`Image download returned ${imageResponse.status}`);
       }
+      const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+      if (imageBuffer.length === 0) {
+        throw new Error('Downloaded image is empty');
+      }
+
+      const extension = extensionFromResponse(imageResponse, imageUrl);
+      const localPath = join(imagesDir, `${row.id}${extension}`);
+
+      if (row.artist_image_local_path && row.artist_image_local_path !== localPath) {
+        try {
+          await unlink(row.artist_image_local_path);
+        } catch {
+          // Ignore cleanup errors.
+        }
+      }
+
+      await writeFile(localPath, imageBuffer);
+      db.prepare('UPDATE artists SET artist_image_url = ?, artist_image_local_path = ? WHERE id = ?').run(
+        imageUrl,
+        localPath,
+        row.id,
+      );
+      stats.updated++;
+
       if (RATE_LIMIT_DELAY_MS > 0) {
         await new Promise((r) => setTimeout(r, RATE_LIMIT_DELAY_MS));
       }
@@ -87,4 +161,11 @@ export async function syncMissingArtistImages(
   }
 
   return stats;
+}
+
+export function getArtistImageLocalPath(db: Database.Database, artistId: string): string | undefined {
+  const row = db
+    .prepare('SELECT artist_image_local_path FROM artists WHERE id = ? AND active = 1')
+    .get(artistId) as { artist_image_local_path: string | null } | undefined;
+  return row?.artist_image_local_path ?? undefined;
 }

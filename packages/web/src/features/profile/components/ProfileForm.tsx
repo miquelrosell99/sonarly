@@ -1,29 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
-import type { User, UserPreferences } from '@sonarly/shared';
+import type { User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
+import { Avatar } from '../../../components/Avatar.js';
 
 interface ProfileFormProps {
   user: User;
   onUserChange: (user: User) => void;
-}
-
-function AvatarPreview({ user, className }: { user: User; className?: string }) {
-  const initials = user.name && user.surname
-    ? `${user.name[0]}${user.surname[0]}`.toUpperCase()
-    : user.name
-      ? user.name[0].toUpperCase()
-      : user.username[0].toUpperCase();
-
-  if (user.avatarUrl) {
-    return <img src={user.avatarUrl} alt="" className={`rounded-full object-cover ${className}`} />;
-  }
-  return (
-    <div className={`flex items-center justify-center rounded-full bg-surface text-sm font-semibold text-muted ${className}`}>
-      {initials}
-    </div>
-  );
 }
 
 export function ProfileForm({ user, onUserChange }: ProfileFormProps) {
@@ -32,8 +16,6 @@ export function ProfileForm({ user, onUserChange }: ProfileFormProps) {
     surname: user.surname ?? '',
     email: user.email ?? '',
   });
-  const [preferences, setPreferences] = useState<UserPreferences>({});
-  const [loadingPreferences, setLoadingPreferences] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,21 +30,8 @@ export function ProfileForm({ user, onUserChange }: ProfileFormProps) {
     });
   }, [user]);
 
-  useEffect(() => {
-    api<{ preferences: UserPreferences }>('/me/preferences')
-      .then((r) => setPreferences(r.preferences))
-      .catch(() => setPreferences({}))
-      .finally(() => setLoadingPreferences(false));
-  }, []);
-
   const updateForm = (patch: Partial<typeof form>) => {
     setForm((prev) => ({ ...prev, ...patch }));
-    setSuccess(false);
-    setError(null);
-  };
-
-  const updatePreference = <K extends keyof UserPreferences>(key: K, value: UserPreferences[K]) => {
-    setPreferences((prev) => ({ ...prev, [key]: value }));
     setSuccess(false);
     setError(null);
   };
@@ -81,14 +50,6 @@ export function ProfileForm({ user, onUserChange }: ProfileFormProps) {
       const { user: updated } = await api<{ user: User }>('/me', {
         method: 'PATCH',
         body: JSON.stringify(payload),
-      });
-      await api<{ preferences: UserPreferences }>('/me/preferences', {
-        method: 'PATCH',
-        body: JSON.stringify({
-          hideExplicit: preferences.hideExplicit,
-          blurExplicitTitles: preferences.blurExplicitTitles,
-          blurExplicitCovers: preferences.blurExplicitCovers,
-        }),
       });
       onUserChange(updated);
       setSuccess(true);
@@ -134,7 +95,7 @@ export function ProfileForm({ user, onUserChange }: ProfileFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center gap-4">
-        <AvatarPreview user={user} className="h-16 w-16" />
+        <Avatar user={user} className="h-16 w-16" variant="surface" />
         <div>
           <input
             ref={fileRef}
@@ -180,40 +141,6 @@ export function ProfileForm({ user, onUserChange }: ProfileFormProps) {
           value={form.email}
           onChange={(e) => updateForm({ email: e.target.value })}
         />
-      </div>
-
-      <div className="space-y-3 rounded border border-rule p-4">
-        <h4 className="text-sm font-medium">Content filters</h4>
-        {loadingPreferences ? (
-          <p className="text-sm text-muted">Loading preferences…</p>
-        ) : (
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={preferences.hideExplicit === true}
-                onChange={(e) => updatePreference('hideExplicit', e.target.checked)}
-              />
-              Hide explicit songs from library views
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={preferences.blurExplicitTitles === true}
-                onChange={(e) => updatePreference('blurExplicitTitles', e.target.checked)}
-              />
-              Blur explicit song titles instead of hiding
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={preferences.blurExplicitCovers === true}
-                onChange={(e) => updatePreference('blurExplicitCovers', e.target.checked)}
-              />
-              Blur album covers for albums with explicit content
-            </label>
-          </div>
-        )}
       </div>
 
       {error && <p className="text-sm text-danger" role="alert">{error}</p>}

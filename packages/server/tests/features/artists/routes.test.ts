@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdirSync, rmSync, mkdtempSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import Database from 'better-sqlite3';
@@ -164,5 +165,83 @@ describe('management artist endpoints', () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body) as { songs: { id: string }[] };
     expect(body.songs.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('serves a local artist image', async () => {
+    const imagesDir = join(root, 'artist-images');
+    mkdirSync(imagesDir, { recursive: true });
+    const imagePath = join(imagesDir, 'artist-1.jpg');
+    await writeFile(imagePath, Buffer.from('fake-image'));
+    db.prepare('UPDATE artists SET artist_image_local_path = ? WHERE id = ?').run(imagePath, 'artist-1');
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/artist-images/artist-1',
+      cookies: { sessionId: cookieValue },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toBe('image/jpeg');
+    expect(res.body).toBe('fake-image');
+  });
+
+  it('returns 404 when artist has no local image', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/artist-images/artist-1',
+      cookies: { sessionId: cookieValue },
+    });
+    expect(res.statusCode).toBe(404);
+    expect(JSON.parse(res.body)).toEqual({ error: 'Artist image not found' });
+  });
+
+  it('deletes an empty artist and their empty albums', async () => {
+    db.prepare("UPDATE songs SET artist_id = NULL, album_id = NULL WHERE id = 'song-1'").run();
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/artists/artist-1',
+      cookies: { sessionId: cookieValue },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.ok).toBe(true);
+    expect(body.deletedAlbums).toBe(1);
+
+    const artist = db.prepare('SELECT * FROM artists WHERE id = ?').get('artist-1');
+    expect(artist).toBeUndefined();
+    const album = db.prepare('SELECT * FROM albums WHERE id = ?').get('album-1');
+    expect(album).toBeUndefined();
+  });
+
+  it('refuses to delete an artist with active songs', async () => {
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/artists/artist-1',
+      cookies: { sessionId: cookieValue },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(JSON.parse(res.body).error).toBe('Cannot delete artist with active songs');
+  });
+
+  it('returns 403 when a non-admin deletes an artist', async () => {
+    createUser(db, {
+      id: 'user-2',
+      username: 'regular',
+      passwordHash: await hashPassword('pass'),
+      subsonicPasswordEncrypted: encryptSubsonicPassword('pass', baseConfig.SESSION_SECRET),
+      isAdmin: false,
+      createdAt: new Date().toISOString(),
+    });
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/login',
+      payload: { username: 'regular', password: 'pass' },
+    });
+    const regularCookie = login.cookies.find((c) => c.name === 'sessionId')!.value;
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/artists/artist-1',
+      cookies: { sessionId: regularCookie },
+    });
+    expect(res.statusCode).toBe(403);
   });
 });

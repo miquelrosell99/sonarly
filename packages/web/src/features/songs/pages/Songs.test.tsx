@@ -56,9 +56,6 @@ describe('Songs', () => {
           ],
         };
       }
-      if (path === '/me/preferences') {
-        return { preferences: {} };
-      }
       return {};
     });
   });

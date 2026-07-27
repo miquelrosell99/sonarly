@@ -7,7 +7,7 @@ import { createUser } from '../../../src/features/users/repository.js';
 import { upsertSong } from '../../../src/features/songs/repository.js';
 import { buildSubsonicToken } from '../../../src/features/auth/token.js';
 import { encryptSubsonicPassword } from '../../../src/features/auth/password.js';
-import { sharePlaylistWithUser } from '../../../src/features/playlists/repository.js';
+import { sharePlaylistWithUser, createPlaylist } from '../../../src/features/playlists/repository.js';
 import type { Config } from '../../../src/config.js';
 
 const config: Config = {
@@ -343,7 +343,7 @@ describe('OpenSubsonic playlist endpoints', () => {
     expect(row).toBeDefined();
 
     const noToken = await app.inject({ method: 'GET', url: `/rest/getPlaylist.view?id=${id}&f=json` });
-    expect(noToken.statusCode).toBe(401);
+    expect(noToken.statusCode).toBe(200);
 
     const withToken = await app.inject({
       method: 'GET',
@@ -353,5 +353,61 @@ describe('OpenSubsonic playlist endpoints', () => {
     const body = JSON.parse(withToken.body);
     expect(body['subsonic-response'].status).toBe('ok');
     expect(body['subsonic-response'].playlist.name).toBe('Link');
+  });
+
+  it('resolves a smart playlist dynamically via getPlaylist', async () => {
+    const smart: Parameters<typeof createPlaylist>[1] = {
+      id: 'smart-1',
+      name: 'Smart Duration',
+      ownerId: auth.id,
+      visibility: 'private',
+      songIds: [],
+      isSmart: true,
+      rules: {
+        rules: {
+          all: [{ field: 'duration', operator: 'gt', value: 190 }],
+        },
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    createPlaylist(db, smart);
+
+    const res = await app.inject({ method: 'GET', url: query(`/rest/getPlaylist.view?id=${smart.id}`, 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('ok');
+    const playlist = body['subsonic-response'].playlist;
+    expect(playlist.name).toBe('Smart Duration');
+    expect(playlist.songCount).toBe(2);
+    expect(playlist.entry.map((e: { id: string }) => e.id)).toEqual(['song-2', 'song-3']);
+  });
+
+  it('includes a smart playlist in getPlaylists', async () => {
+    const smart: Parameters<typeof createPlaylist>[1] = {
+      id: 'smart-2',
+      name: 'Smart All',
+      ownerId: auth.id,
+      visibility: 'private',
+      songIds: [],
+      isSmart: true,
+      rules: {
+        rules: {
+          all: [{ field: 'title', operator: 'contains', value: 'Track' }],
+        },
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    createPlaylist(db, smart);
+
+    const res = await app.inject({ method: 'GET', url: query('/rest/getPlaylists.view?', 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    const playlists = body['subsonic-response'].playlists.playlist;
+    const found = playlists.find((p: { id: string }) => p.id === smart.id);
+    expect(found).toBeDefined();
+    expect(found.name).toBe('Smart All');
+    expect(found.songCount).toBe(3);
   });
 });

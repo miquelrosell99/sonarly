@@ -2,6 +2,12 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { sendSubsonicReply } from '../responses.js';
 import { scrobbleSong } from '../../songs/index.js';
+import {
+  toOpenSubsonicAlbum,
+  fetchOpenSubsonicSongsByIds,
+} from './browsing.js';
+import { getAlbumArtistEntriesForMany } from '../../albums/repository.js';
+import { getAlbumGenreNamesForMany } from '../../genres/repository.js';
 
 export function registerStarringRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get('/rest/star.view', (request: FastifyRequest, reply: FastifyReply) => {
@@ -79,6 +85,77 @@ export function registerStarringRoutes(app: FastifyInstance, db: Database.Databa
     }
     sendSubsonicReply(reply, format, {});
   });
+
+  app.get('/rest/getStarred2.view', (request: FastifyRequest, reply: FastifyReply) => {
+    const format = (request as any).subsonicFormat;
+    const userId = (request as any).subsonicUser as string;
+
+    const songIds = db.prepare('SELECT song_id FROM user_songs WHERE user_id = ? AND starred = 1').pluck().all(userId) as string[];
+    const songs = fetchOpenSubsonicSongsByIds(db, userId, songIds);
+
+    const albumRows = db.prepare(`
+      SELECT a.*, ua.starred, ua.rating,
+        (SELECT AVG(rating) FROM user_albums WHERE album_id = a.id) AS average_rating
+      FROM albums a
+      JOIN user_albums ua ON ua.album_id = a.id AND ua.user_id = ? AND ua.starred = 1
+      WHERE a.active = 1
+    `).all(userId) as AlbumRow[];
+    const albumArtistMap = getAlbumArtistEntriesForMany(db, albumRows.map((a) => a.id));
+    const albumGenreMap = getAlbumGenreNamesForMany(db, albumRows.map((a) => a.id));
+    const albums = albumRows.map((album) => toOpenSubsonicAlbum(album, [], 0, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id)));
+
+    const artistRows = db.prepare(`
+      SELECT ar.*, uar.starred, uar.rating
+      FROM artists ar
+      JOIN user_artists uar ON uar.artist_id = ar.id AND uar.user_id = ? AND uar.starred = 1
+      WHERE ar.active = 1
+    `).all(userId) as StarredArtistRow[];
+    const artists = artistRows.map((artist) => ({
+      id: artist.id,
+      name: artist.name,
+      coverArt: artist.id,
+      artistImageUrl: artist.artist_image_url ?? undefined,
+      albumCount: String(artist.album_count ?? 0),
+      ...(artist.starred !== null ? { starred: Boolean(artist.starred) } : {}),
+      ...(artist.rating !== null ? { userRating: artist.rating } : {}),
+    }));
+
+    sendSubsonicReply(reply, format, { starred2: { song: songs, album: albums, artist: artists } });
+  });
+}
+
+interface AlbumRow {
+  id: string;
+  name: string;
+  artist_id: string | null;
+  artist_name: string | null;
+  cover_art_id: string | null;
+  year: number | null;
+  genre: string | null;
+  labels: string | null;
+  catalog_numbers: string | null;
+  barcode: string | null;
+  asin: string | null;
+  musicbrainz_album_id: string | null;
+  musicbrainz_release_group_id: string | null;
+  musicbrainz_album_artist_ids: string | null;
+  original_year: number | null;
+  compilation: number | null;
+  total_tracks: string | null;
+  total_discs: string | null;
+  starred: number | null;
+  rating: number | null;
+  average_rating: number | null;
+}
+
+interface StarredArtistRow {
+  id: string;
+  name: string;
+  artist_image_url: string | null;
+  musicbrainz_artist_ids: string | null;
+  album_count: number | null;
+  starred: number | null;
+  rating: number | null;
 }
 
 function normalizeIds(value: string | string[] | undefined): string[] {

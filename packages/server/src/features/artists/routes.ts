@@ -1,7 +1,12 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
-import { getUserPreferences } from '../user-preferences/index.js';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
+import mime from 'mime-types';
+import { getUserById } from '../users/index.js';
 import { listSongsByArtist } from '../songs/index.js';
+import { deleteArtistById } from './repository.js';
+import { deleteAlbumById } from '../albums/repository.js';
 
 interface ArtistRow {
   id: string;
@@ -9,6 +14,10 @@ interface ArtistRow {
   active: number;
   starred: number | null;
   rating: number | null;
+  artist_image_local_path: string | null;
+  musicbrainz_artist_ids: string | null;
+  bio: string | null;
+  external_urls: string | null;
 }
 
 interface AlbumRow {
@@ -18,6 +27,15 @@ interface AlbumRow {
   genre: string | null;
   starred: number | null;
   rating: number | null;
+  cover_art_id: string | null;
+}
+
+function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | undefined): boolean {
+  if (!session?.isAdmin) {
+    reply.status(403).send({ error: 'Forbidden' });
+    return false;
+  }
+  return true;
 }
 
 export function registerArtistManagementRoutes(app: FastifyInstance, db: Database.Database): void {
@@ -37,6 +55,9 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
         active: r.active === 1,
         starred: r.starred === 1,
         rating: r.rating ?? undefined,
+        musicBrainzArtistIds: r.musicbrainz_artist_ids ? JSON.parse(r.musicbrainz_artist_ids) : undefined,
+        bio: r.bio ?? undefined,
+        externalUrls: r.external_urls ? JSON.parse(r.external_urls) : undefined,
       })),
     });
   });
@@ -44,7 +65,7 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
   app.get('/api/artists/:id', (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const userId = (request as any).session?.userId as string | undefined;
-    const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
+    const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
 
     const artist = db.prepare(`
       SELECT ar.*, ua.starred, ua.rating
@@ -55,7 +76,7 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
     if (!artist) return reply.status(404).send({ error: 'Artist not found' });
 
     const albums = db.prepare(`
-      SELECT a.id, a.name, a.year, a.genre, ua.starred, ua.rating,
+      SELECT a.id, a.name, a.year, a.genre, a.cover_art_id, ua.starred, ua.rating,
         COUNT(s.id) AS total_song_count,
         SUM(CASE WHEN s.explicit = 0 THEN 1 ELSE 0 END) AS shown_song_count
       FROM albums a
@@ -73,11 +94,16 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
         active: artist.active === 1,
         starred: artist.starred === 1,
         rating: artist.rating ?? undefined,
+        musicBrainzArtistIds: artist.musicbrainz_artist_ids ? JSON.parse(artist.musicbrainz_artist_ids) : undefined,
+        bio: artist.bio ?? undefined,
+        externalUrls: artist.external_urls ? JSON.parse(artist.external_urls) : undefined,
+        artistImageUrl: artist.artist_image_local_path ? `/api/artist-images/${artist.id}` : undefined,
         albums: albums.map((a) => ({
           id: a.id,
           name: a.name,
           year: a.year ?? undefined,
           genre: a.genre ?? undefined,
+          coverArt: a.cover_art_id ?? undefined,
           totalSongCount: a.total_song_count,
           shownSongCount: a.shown_song_count,
           starred: a.starred === 1,
@@ -90,7 +116,7 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
   app.get('/api/artists/:id/songs', (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const userId = (request as any).session?.userId as string | undefined;
-    const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
+    const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
 
     const artist = db.prepare('SELECT id FROM artists WHERE id = ? AND active = 1').get(id) as { id: string } | undefined;
     if (!artist) return reply.status(404).send({ error: 'Artist not found' });
@@ -98,5 +124,55 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
     const songs = listSongsByArtist(db, id, userId);
     const visibleSongs = hideExplicit ? songs.filter((s) => !s.explicit) : songs;
     reply.send({ songs: visibleSongs });
+  });
+
+  app.get('/api/artist-images/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const row = db
+      .prepare('SELECT artist_image_local_path FROM artists WHERE id = ? AND active = 1')
+      .get(id) as { artist_image_local_path: string | null } | undefined;
+    if (!row?.artist_image_local_path) {
+      return reply.status(404).send({ error: 'Artist image not found' });
+    }
+
+    try {
+      const fileStat = await stat(row.artist_image_local_path);
+      if (!fileStat.isFile()) {
+        return reply.status(404).send({ error: 'Artist image not found' });
+      }
+    } catch {
+      return reply.status(404).send({ error: 'Artist image not found' });
+    }
+
+    const contentType = mime.lookup(row.artist_image_local_path) || 'application/octet-stream';
+    reply.header('Content-Type', contentType);
+    return reply.send(createReadStream(row.artist_image_local_path));
+  });
+
+  app.delete('/api/artists/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { isAdmin?: boolean } | undefined;
+    if (!requireAdmin(reply, session)) return;
+
+    const { id } = request.params as { id: string };
+    const artist = db.prepare('SELECT id FROM artists WHERE id = ? AND active = 1').get(id) as { id: string } | undefined;
+    if (!artist) return reply.status(404).send({ error: 'Artist not found' });
+
+    const songs = listSongsByArtist(db, id);
+    if (songs.length > 0) {
+      return reply.status(409).send({ error: 'Cannot delete artist with active songs' });
+    }
+
+    const emptyAlbums = db.prepare(`
+      SELECT a.id
+      FROM albums a
+      LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1
+      WHERE a.artist_id = ? AND a.active = 1 AND s.id IS NULL
+    `).all(id) as { id: string }[];
+    for (const album of emptyAlbums) {
+      deleteAlbumById(db, album.id);
+    }
+
+    deleteArtistById(db, id);
+    reply.send({ ok: true, deletedAlbums: emptyAlbums.length });
   });
 }

@@ -2,11 +2,14 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import { unlink } from 'node:fs/promises';
-import type { SongTags, ScrobbleDetails } from '@sonarly/shared';
-import { getSongById, deleteSongByPath, scrobbleSong } from '../songs/index.js';
-import { getUserPreferences } from '../user-preferences/index.js';
-import { writeTags } from '../tags/index.js';
+import type { Song, SongTags, ScrobbleDetails } from '@sonarly/shared';
+import { getSongById, deleteSongByPath, scrobbleSong, getSongArtistNamesForMany, getSongArtistNames } from './repository.js';
+import { getSongGenreNamesForMany, getSongGenreNames } from '../genres/repository.js';
+import { getUserById } from '../users/index.js';
+import { writeTags, writeCoverArt } from '../tags/index.js';
+import { createCoverArt, deleteCoverArt, setSongCoverArtId, getSongCoverArtId } from '../cover-art/index.js';
 import { organizeSongFile } from '../ingest/index.js';
+import { resolveGenreForTagWrite, resolveGenreForFilter } from '../genres/index.js';
 import type { Config } from '../../config.js';
 
 const ALLOWED_TAG_KEYS = new Set<keyof SongTags>([
@@ -19,7 +22,62 @@ const ALLOWED_TAG_KEYS = new Set<keyof SongTags>([
   'genre',
   'year',
   'explicit',
+  'lyrics',
 ]);
+
+const ALLOWED_COVER_ART_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const MAX_COVER_ART_BYTES = 2 * 1024 * 1024;
+
+function cleanupOrphanCoverArt(db: Database.Database, coverArtId: string): void {
+  const inUse = db.prepare("SELECT 1 FROM songs WHERE cover_art_id = ? UNION ALL SELECT 1 FROM albums WHERE cover_art_id = ? LIMIT 1").get(coverArtId, coverArtId);
+  if (!inUse) {
+    deleteCoverArt(db, coverArtId);
+  }
+}
+
+interface OrphanedEntity {
+  type: 'artist' | 'album';
+  id: string;
+  name: string;
+}
+
+function normalizeName(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function findOrphanedEntities(
+  db: Database.Database,
+  song: { id: string; artistId?: string; albumId?: string },
+  tags: SongTags,
+): OrphanedEntity[] {
+  const orphaned: OrphanedEntity[] = [];
+
+  const newArtist = normalizeName(tags.artist);
+  if (song.artistId && newArtist !== undefined) {
+    const artist = db.prepare('SELECT name FROM artists WHERE id = ?').get(song.artistId) as { name: string } | undefined;
+    if (artist && newArtist.toLowerCase() !== artist.name.toLowerCase()) {
+      const count = db.prepare('SELECT COUNT(*) AS count FROM songs WHERE artist_id = ? AND id != ? AND active = 1').get(song.artistId, song.id) as { count: number };
+      if (count.count === 0) {
+        orphaned.push({ type: 'artist', id: song.artistId, name: artist.name });
+      }
+    }
+  }
+
+  const newAlbum = normalizeName(tags.album);
+  if (song.albumId && newAlbum !== undefined) {
+    const album = db.prepare('SELECT name FROM albums WHERE id = ?').get(song.albumId) as { name: string } | undefined;
+    if (album && newAlbum.toLowerCase() !== album.name.toLowerCase()) {
+      const count = db.prepare('SELECT COUNT(*) AS count FROM songs WHERE album_id = ? AND id != ? AND active = 1').get(song.albumId, song.id) as { count: number };
+      if (count.count === 0) {
+        orphaned.push({ type: 'album', id: song.albumId, name: album.name });
+      }
+    }
+  }
+
+  return orphaned;
+}
 
 function parseScrobbleBody(body: unknown): ScrobbleDetails | undefined {
   if (body === undefined || body === null) return undefined;
@@ -83,6 +141,9 @@ export function validateSongTags(body: unknown): SongTags {
   if ('explicit' in input && typeof input.explicit !== 'boolean') {
     throw new Error('explicit must be a boolean');
   }
+  if ('lyrics' in input && typeof input.lyrics !== 'string') {
+    throw new Error('lyrics must be a string');
+  }
   return input as unknown as SongTags;
 }
 
@@ -117,8 +178,21 @@ interface SongDetailRow {
   active: number;
   artist_name: string | null;
   album_name: string | null;
+  album_artist_name: string | null;
   starred: number | null;
   rating: number | null;
+  lyrics: string | null;
+  musicbrainz_track_id: string | null;
+  musicbrainz_work_id: string | null;
+  musicbrainz_disc_id: string | null;
+  composers: string | null;
+  producers: string | null;
+  isrcs: string | null;
+  original_year: number | null;
+  original_artist: string | null;
+  gapless: number | null;
+  total_tracks: string | null;
+  total_discs: string | null;
 }
 
 interface SongListRow {
@@ -139,11 +213,24 @@ interface SongListRow {
   active: number;
   artist_name: string | null;
   album_name: string | null;
+  album_artist_name: string | null;
   starred: number | null;
   rating: number | null;
+  lyrics: string | null;
+  musicbrainz_track_id: string | null;
+  musicbrainz_work_id: string | null;
+  musicbrainz_disc_id: string | null;
+  composers: string | null;
+  producers: string | null;
+  isrcs: string | null;
+  original_year: number | null;
+  original_artist: string | null;
+  gapless: number | null;
+  total_tracks: string | null;
+  total_discs: string | null;
 }
 
-function rowToSong(row: SongDetailRow | SongListRow) {
+function rowToSong(row: SongDetailRow | SongListRow): Song & { artistName?: string; albumName?: string; albumArtistName?: string } {
   return {
     id: row.id,
     filePath: row.file_path,
@@ -162,33 +249,60 @@ function rowToSong(row: SongDetailRow | SongListRow) {
     active: row.active === 1,
     artistName: row.artist_name ?? undefined,
     albumName: row.album_name ?? undefined,
+    albumArtistName: row.album_artist_name ?? undefined,
     starred: row.starred === 1,
     rating: row.rating ?? undefined,
+    lyrics: row.lyrics ?? undefined,
+    musicBrainzTrackId: row.musicbrainz_track_id ?? undefined,
+    musicBrainzWorkId: row.musicbrainz_work_id ?? undefined,
+    musicBrainzDiscId: row.musicbrainz_disc_id ?? undefined,
+    composers: row.composers ? JSON.parse(row.composers) : undefined,
+    producers: row.producers ? JSON.parse(row.producers) : undefined,
+    isrcs: row.isrcs ? JSON.parse(row.isrcs) : undefined,
+    originalYear: row.original_year ?? undefined,
+    originalArtist: row.original_artist ?? undefined,
+    gapless: row.gapless === 1,
+    totalTracks: row.total_tracks ?? undefined,
+    totalDiscs: row.total_discs ?? undefined,
   };
 }
 
 export function registerSongManagementRoutes(app: FastifyInstance, config: Config, db: Database.Database): void {
   app.get('/api/songs', (request: FastifyRequest, reply: FastifyReply) => {
     const userId = (request as any).session?.userId as string | undefined;
-    const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
+    const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
 
     const { genre } = request.query as { genre?: string };
-    const genreFilter = typeof genre === 'string' && genre.length > 0;
+    const resolvedGenre = typeof genre === 'string' && genre.length > 0 ? resolveGenreForFilter(db, genre) : undefined;
+    const genreFilter = resolvedGenre !== undefined;
+
+    if (typeof genre === 'string' && genre.length > 0 && !genreFilter) {
+      return reply.send({ songs: [] });
+    }
 
     const rows = db.prepare(`
-      SELECT s.*, ar.name AS artist_name, al.name AS album_name, us.starred, us.rating
+      SELECT s.*, ar.name AS artist_name, al.name AS album_name, al.artist_name AS album_artist_name, us.starred, us.rating
       FROM songs s
       LEFT JOIN artists ar ON ar.id = s.artist_id
       LEFT JOIN albums al ON al.id = s.album_id
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
       WHERE s.active = 1
       ${hideExplicit ? 'AND s.explicit = 0' : ''}
-      ${genreFilter ? 'AND s.genre = ?' : ''}
+      ${genreFilter ? 'AND EXISTS (SELECT 1 FROM song_genres sg WHERE sg.song_id = s.id AND sg.genre_id = ?)' : ''}
       ORDER BY s.title
       LIMIT 500
-    `).all(...(genreFilter ? [userId ?? null, genre] : [userId ?? null])) as SongListRow[];
+    `).all(...(genreFilter ? [userId ?? null, resolvedGenre.id] : [userId ?? null])) as SongListRow[];
 
-    reply.send({ songs: rows.map(rowToSong) });
+    const songs = rows.map(rowToSong);
+    const artistMap = getSongArtistNamesForMany(db, songs.map((s) => s.id));
+    const genreMap = getSongGenreNamesForMany(db, songs.map((s) => s.id));
+    for (const song of songs) {
+      const artists = artistMap.get(song.id);
+      if (artists) song.artists = artists;
+      const genres = genreMap.get(song.id);
+      if (genres) song.genres = genres;
+    }
+    reply.send({ songs });
   });
 
   app.put('/api/songs/:id/tags', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -204,6 +318,16 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
       tags = validateSongTags(request.body);
     } catch (err) {
       return reply.status(400).send({ error: err instanceof Error ? err.message : 'Invalid tags' });
+    }
+
+    if (typeof tags.genre === 'string') {
+      const trimmed = tags.genre.trim();
+      if (trimmed.length > 0) {
+        const resolved = resolveGenreForTagWrite(db, tags.genre);
+        db.prepare('UPDATE songs SET genre_id = ?, genre = ? WHERE id = ?').run(resolved.id, resolved.name, id);
+      } else {
+        db.prepare('UPDATE songs SET genre_id = NULL, genre = NULL WHERE id = ?').run(id);
+      }
     }
 
     await writeTags(song.filePath, tags);
@@ -222,16 +346,18 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
       request.log.error({ err }, 'Failed to queue resync job after tag write');
       return reply.status(500).send({ error: 'Tags saved and file reorganized, but resync queue failed' });
     }
-    return reply.send({ ok: true });
+
+    const orphaned = findOrphanedEntities(db, song, tags);
+    return reply.send({ ok: true, orphanedEntities: orphaned.length > 0 ? orphaned : undefined });
   });
 
   app.get('/api/songs/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const userId = (request as any).session?.userId as string | undefined;
-    const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
+    const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
 
     const row = db.prepare(`
-      SELECT s.*, ar.name AS artist_name, al.name AS album_name, us.starred, us.rating
+      SELECT s.*, ar.name AS artist_name, al.name AS album_name, al.artist_name AS album_artist_name, us.starred, us.rating
       FROM songs s
       LEFT JOIN artists ar ON ar.id = s.artist_id
       LEFT JOIN albums al ON al.id = s.album_id
@@ -244,7 +370,12 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
       return reply.status(404).send({ error: 'Song not found' });
     }
 
-    reply.send({ song: rowToSong(row) });
+    const song = rowToSong(row);
+    const artists = getSongArtistNames(db, song.id);
+    if (artists.length) song.artists = artists;
+    const genres = getSongGenreNames(db, song.id);
+    if (genres.length) song.genres = genres;
+    reply.send({ song });
   });
 
   app.post('/api/songs/:id/scrobble', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -276,6 +407,55 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
     }
 
     deleteSongByPath(db, song.filePath);
+    reply.send({ ok: true });
+  });
+
+  app.post('/api/songs/:id/cover-art', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { isAdmin?: boolean } | undefined;
+    if (!requireAdmin(reply, session)) return;
+
+    const { id } = request.params as { id: string };
+    const song = getSongById(db, id);
+    if (!song) return reply.status(404).send({ error: 'Song not found' });
+
+    const data = await request.file();
+    if (!data) return reply.status(400).send({ error: 'No file uploaded' });
+
+    if (!ALLOWED_COVER_ART_TYPES.has(data.mimetype)) {
+      await data.toBuffer().catch(() => undefined);
+      return reply.status(400).send({ error: 'Invalid image format' });
+    }
+
+    const buffer = await data.toBuffer();
+    if (buffer.length > MAX_COVER_ART_BYTES) {
+      return reply.status(400).send({ error: 'Cover art must be smaller than 2 MB' });
+    }
+
+    try {
+      await writeCoverArt(song.filePath, { data: buffer, format: data.mimetype });
+      const coverArtId = createCoverArt(db, buffer, data.mimetype);
+      const oldCoverArtId = getSongCoverArtId(db, id);
+      setSongCoverArtId(db, id, coverArtId);
+      if (oldCoverArtId) cleanupOrphanCoverArt(db, oldCoverArtId);
+      queueResync(db, song.filePath);
+      reply.send({ coverArt: coverArtId });
+    } catch (err) {
+      request.log.error({ err }, `Failed to write cover art for ${song.filePath}`);
+      return reply.status(500).send({ error: 'Failed to save cover art' });
+    }
+  });
+
+  app.delete('/api/songs/:id/cover-art', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { isAdmin?: boolean } | undefined;
+    if (!requireAdmin(reply, session)) return;
+
+    const { id } = request.params as { id: string };
+    const song = getSongById(db, id);
+    if (!song) return reply.status(404).send({ error: 'Song not found' });
+
+    const oldCoverArtId = getSongCoverArtId(db, id);
+    setSongCoverArtId(db, id, null);
+    if (oldCoverArtId) cleanupOrphanCoverArt(db, oldCoverArtId);
     reply.send({ ok: true });
   });
 }

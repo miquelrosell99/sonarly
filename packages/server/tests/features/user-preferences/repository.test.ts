@@ -24,25 +24,23 @@ describe('user preferences repository', () => {
     db.close();
   });
 
-  it('returns defaults when no preferences exist', () => {
+  it('returns empty preferences when none exist', () => {
     const prefs = getUserPreferences(db, 'user-1');
-    expect(prefs.hideExplicit).toBe(false);
-    expect(prefs.blurExplicitTitles).toBe(false);
-    expect(prefs.blurExplicitCovers).toBe(false);
+    expect(prefs).toEqual({});
   });
 
   it('updates and merges preferences', () => {
-    updateUserPreferences(db, 'user-1', { hideExplicit: true });
+    updateUserPreferences(db, 'user-1', { themeMode: 'dark' });
     const prefs = getUserPreferences(db, 'user-1');
-    expect(prefs.hideExplicit).toBe(true);
-    expect(prefs.blurExplicitCovers).toBe(false);
+    expect(prefs.themeMode).toBe('dark');
+    expect(prefs.accentColor).toBeUndefined();
   });
 
   it('merges subsequent updates without losing existing values', () => {
-    updateUserPreferences(db, 'user-1', { hideExplicit: true });
-    updateUserPreferences(db, 'user-1', { blurExplicitCovers: true });
+    updateUserPreferences(db, 'user-1', { themeMode: 'dark' });
+    updateUserPreferences(db, 'user-1', { accentColor: 'cyan' });
     const prefs = getUserPreferences(db, 'user-1');
-    expect(prefs.hideExplicit).toBe(true);
-    expect(prefs.blurExplicitCovers).toBe(true);
+    expect(prefs.themeMode).toBe('dark');
+    expect(prefs.accentColor).toBe('cyan');
   });
 });

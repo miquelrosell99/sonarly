@@ -16,6 +16,7 @@ import {
   startIngestWatcher,
   pushJob,
 } from './features/library/index.js';
+import { ensureDefaultLibrary, registerLibraryAdminRoutes } from './features/libraries/index.js';
 import { registerOpenSubsonicRoutes } from './features/opensubsonic/index.js';
 import { createSessionStore } from './features/auth/index.js';
 import {
@@ -23,7 +24,7 @@ import {
   registerProfileManagementRoutes,
   registerAdminRoutes,
 } from './features/users/index.js';
-import { registerSongManagementRoutes } from './features/songs/index.js';
+import { registerSongManagementRoutes, registerLyricsRoutes } from './features/songs/index.js';
 import { registerArtistManagementRoutes } from './features/artists/index.js';
 import { registerAlbumManagementRoutes } from './features/albums/index.js';
 import { registerPlaylistManagementRoutes } from './features/playlists/index.js';
@@ -40,6 +41,9 @@ import { registerFavoritesRoutes } from './features/favorites/index.js';
 import { registerSearchRoutes } from './features/search/index.js';
 import { registerPlayersRoutes } from './features/players/index.js';
 import { registerHomeRoutes } from './features/home/index.js';
+import { registerYearRoutes } from './features/years/index.js';
+import { registerGenreManagementRoutes } from './features/genres/index.js';
+import { registerStatisticsRoutes } from './features/statistics/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -70,6 +74,7 @@ function createTsxWorkerScript(workerPath: string): string {
 export async function buildApp(config: Config, providedDb?: Database.Database) {
   const db = providedDb ?? getDb(config);
   migrate(db);
+  ensureDefaultLibrary(db, config.LIBRARY_PATH);
 
   const workerConfig: WorkerConfig = {
     DATA_DIR: config.DATA_DIR,
@@ -88,12 +93,12 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
     ? new Worker(createTsxWorkerScript(workerPath), { eval: true, workerData: workerConfig })
     : new Worker(workerPath, { workerData: workerConfig });
 
-  pushJob(db, 'scan', config.LIBRARY_PATH);
+  pushJob(db, 'scan', '');
   if (config.ARTIST_IMAGE_INTERVAL_MINUTES > 0) {
     pushJob(db, 'artist_images', '');
   }
 
-  const stopLibraryWatcher = startLibraryWatcher(config, db);
+  const libraryWatcher = startLibraryWatcher(config, db);
   const stopIngestWatcher = startIngestWatcher(config, db);
 
   const app = Fastify({ logger: true });
@@ -134,13 +139,15 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   registerAuthManagementRoutes(app, db, config.SESSION_SECRET);
   registerProfileManagementRoutes(app, db, config);
   registerSongManagementRoutes(app, config, db);
+  registerLyricsRoutes(app, config, db);
   registerArtistManagementRoutes(app, db);
   registerAlbumManagementRoutes(app, config, db);
   registerPlaylistManagementRoutes(app, db);
   registerScanManagementRoutes(app, config, db);
   registerIngestManagementRoutes(app, db);
   registerOrganizeManagementRoutes(app, config, db);
-  registerAdminRoutes(app, db, config.SESSION_SECRET);
+  registerAdminRoutes(app, db, config.SESSION_SECRET, config);
+  registerLibraryAdminRoutes(app, db, () => { libraryWatcher.restart().catch((err) => console.error('Library watcher restart failed', err)); });
   registerSettingsManagementRoutes(app, config, db);
   registerConflictManagementRoutes(app, db);
   registerSuggestionRoutes(app, db);
@@ -149,6 +156,9 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   registerSearchRoutes(app, db);
   registerPlayersRoutes(app, db);
   registerHomeRoutes(app, db);
+  registerYearRoutes(app, db);
+  registerGenreManagementRoutes(app, db);
+  registerStatisticsRoutes(app, db, config);
 
   const webDist = join(__dirname, '..', 'web-dist');
   if (existsSync(webDist)) {
@@ -176,7 +186,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
     if (worker.threadId !== -1) {
       await worker.terminate();
     }
-    await stopLibraryWatcher();
+    await libraryWatcher.stop();
     await stopIngestWatcher();
     closeDb();
   });
