@@ -1,15 +1,8 @@
+import { forwardRef } from 'react';
 import { Icon } from './ui/Icon.js';
 import { cn } from '../lib/cn.js';
 
-export function ControlButton({
-  children,
-  active,
-  disabled,
-  onClick,
-  onContextMenu,
-  label,
-  className,
-}: {
+export const ControlButton = forwardRef<HTMLButtonElement, {
   children: React.ReactNode;
   active?: boolean;
   disabled?: boolean;
@@ -17,9 +10,18 @@ export function ControlButton({
   onContextMenu?: (e: React.MouseEvent) => void;
   label: string;
   className?: string;
-}) {
+}>(({
+  children,
+  active,
+  disabled,
+  onClick,
+  onContextMenu,
+  label,
+  className,
+}, ref) => {
   return (
     <button
+      ref={ref}
       type="button"
       onClick={onClick}
       onContextMenu={onContextMenu}
@@ -37,7 +39,9 @@ export function ControlButton({
       {children}
     </button>
   );
-}
+});
+
+ControlButton.displayName = 'ControlButton';
 
 export function PlayButton({
   isPlaying,

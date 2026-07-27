@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import type { AutoDjMode } from '@sonarly/shared';
+import type { AutoDjMode, User } from '@sonarly/shared';
 import { Icon } from './ui/Icon.js';
 import { CoverArt } from './CoverArt.js';
 import { FavoriteButton, StarRating } from './ActionButtons.js';
@@ -8,7 +8,7 @@ import { ControlButton, PlayButton, Slider } from './PlayerControls.js';
 import { usePlayer } from '../stores/playerStore.js';
 import { useSongInteraction } from '../hooks/useSongInteraction.js';
 import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
-import { useNowPlaying } from '../features/now-playing/index.js';
+import { useNowPlaying, QueueModal } from '../features/now-playing/index.js';
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
@@ -17,7 +17,11 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-export function PlayerBar() {
+interface PlayerBarProps {
+  user?: User;
+}
+
+export function PlayerBar({ user }: PlayerBarProps) {
   const currentSong = usePlayer((state) => state.currentSong);
   const status = usePlayer((state) => state.status);
   const currentTime = usePlayer((state) => state.currentTime);
@@ -219,6 +223,8 @@ export function PlayerBar() {
                   })),
                 },
               ]}
+              anchorToTrigger
+              placement="top-end"
             >
               <ControlButton
                 onClick={handleToggleAutoDj}
@@ -229,6 +235,7 @@ export function PlayerBar() {
                 <Icon name="mdi-record-player" size={18} />
               </ControlButton>
             </ItemContextMenu>
+            {user && <QueueModal user={user} />}
           </div>
           <div className="flex items-center gap-2">
             <FavoriteButton

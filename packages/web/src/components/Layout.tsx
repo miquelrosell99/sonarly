@@ -90,7 +90,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
         </main>
       </div>
 
-      <PlayerBar />
+      <PlayerBar user={user} />
       <AudioController />
       <NowPlaying user={user} />
 
