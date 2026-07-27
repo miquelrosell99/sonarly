@@ -340,13 +340,20 @@ export function listInactiveSongs(db: Database.Database, userId?: string): Song[
   return songs;
 }
 
-export function listSongsByArtist(db: Database.Database, artistId: string, userId?: string): Song[] {
+export function listSongsByArtist(
+  db: Database.Database,
+  artistId: string,
+  userId?: string,
+  libraryId?: string,
+): Song[] {
+  const libraryFilter = libraryId ? 'AND s.library_id = ?' : '';
+  const libraryParams = libraryId ? [libraryId] : [];
   if (!userId) {
     const rows = db.prepare(`
-      SELECT * FROM songs
-      WHERE artist_id = ? AND active = 1
-      ORDER BY year, album_id, disc_number, track_number, title
-    `).all(artistId) as DbSong[];
+      SELECT * FROM songs s
+      WHERE s.artist_id = ? AND s.active = 1 ${libraryFilter}
+      ORDER BY s.year, s.album_id, s.disc_number, s.track_number, s.title
+    `).all(artistId, ...libraryParams) as DbSong[];
     const songs = rows.map(toSong);
     attachSongArtistEntries(db, songs);
     return songs;
@@ -355,15 +362,22 @@ export function listSongsByArtist(db: Database.Database, artistId: string, userI
     SELECT s.*, us.starred, us.rating
     FROM songs s
     LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
-    WHERE s.artist_id = ? AND s.active = 1
+    WHERE s.artist_id = ? AND s.active = 1 ${libraryFilter}
     ORDER BY s.year, s.album_id, s.disc_number, s.track_number, s.title
-  `).all(userId, artistId) as DbSongWithInteractions[];
+  `).all(userId, artistId, ...libraryParams) as DbSongWithInteractions[];
   const songs = rows.map(toSongWithInteractions);
   attachSongArtistEntries(db, songs);
   return songs;
 }
 
-export function listSongsByAlbum(db: Database.Database, albumId: string, userId?: string): Song[] {
+export function listSongsByAlbum(
+  db: Database.Database,
+  albumId: string,
+  userId?: string,
+  libraryId?: string,
+): Song[] {
+  const libraryFilter = libraryId ? 'AND s.library_id = ?' : '';
+  const libraryParams = libraryId ? [libraryId] : [];
   const baseSelect = `
     SELECT s.*, ar.name AS artist_name, al.name AS album_name, al.artist_name AS album_artist_name
   `;
@@ -371,7 +385,7 @@ export function listSongsByAlbum(db: Database.Database, albumId: string, userId?
     FROM songs s
     LEFT JOIN artists ar ON ar.id = s.artist_id
     LEFT JOIN albums al ON al.id = s.album_id
-    WHERE s.album_id = ? AND s.active = 1
+    WHERE s.album_id = ? AND s.active = 1 ${libraryFilter}
     ORDER BY s.disc_number, s.track_number, s.title
   `;
   interface NamesRow {
@@ -386,13 +400,13 @@ export function listSongsByAlbum(db: Database.Database, albumId: string, userId?
     albumArtistName: row.album_artist_name ?? undefined,
   });
   if (!userId) {
-    const rows = db.prepare(`${baseSelect} ${baseFrom}`).all(albumId) as (DbSong & NamesRow)[];
+    const rows = db.prepare(`${baseSelect} ${baseFrom}`).all(albumId, ...libraryParams) as (DbSong & NamesRow)[];
     const songs = rows.map(mapRow);
     attachSongArtistEntries(db, songs);
     return songs;
   }
   const rows = db.prepare(`${baseSelect}, us.starred, us.rating ${baseFrom.replace('WHERE', 'LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id WHERE')}`)
-    .all(userId, albumId) as (DbSongWithInteractions & NamesRow)[];
+    .all(userId, albumId, ...libraryParams) as (DbSongWithInteractions & NamesRow)[];
   const songs = rows.map((row) => ({
     ...toSongWithInteractions(row),
     artistName: row.artist_name ?? undefined,
