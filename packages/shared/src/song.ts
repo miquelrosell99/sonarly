@@ -50,6 +50,7 @@ export interface Song {
   lyrics?: string;
   syncedLyrics?: SyncedLyricLine[];
   artists?: string[];
+  artistEntries?: { id: string; name: string }[];
   composers?: string[];
   producers?: string[];
   isrcs?: string[];
