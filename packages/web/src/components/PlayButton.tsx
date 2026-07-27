@@ -35,7 +35,7 @@ function ProgressRing({ isHolding, size = 40 }: { isHolding: boolean; size?: num
         strokeLinecap="round"
         strokeDasharray={circumference}
         strokeDashoffset={isHolding ? 0 : circumference}
-        className="text-accent transition-[stroke-dashoffset] duration-500 ease-linear"
+        className={cn('text-accent', isHolding && 'transition-[stroke-dashoffset] duration-500 ease-linear')}
       />
     </svg>
   );
@@ -82,6 +82,10 @@ export function PlayButton({
           className,
         )}
         style={{ touchAction: 'none' }}
+        onContextMenu={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
         {...pointerHandlers}
       >
         <ProgressRing isHolding={isHolding} size={44} />
@@ -100,14 +104,18 @@ export function PlayButton({
         disabled={disabled}
         aria-label={ariaLabel}
         className={cn(
-          'group relative inline-flex h-6 w-6 items-center justify-center text-accent transition hover:text-accent/80 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40',
+          'group relative inline-flex h-5 w-5 items-center justify-center text-accent transition hover:text-accent/80 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40',
           className,
         )}
         style={{ touchAction: 'none' }}
+        onContextMenu={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
         {...pointerHandlers}
       >
-        <ProgressRing isHolding={isHolding} size={24} />
-        <Icon name="mdi-play" size={18} className="relative z-10" />
+        <ProgressRing isHolding={isHolding} size={20} />
+        <Icon name="mdi-play" size={16} className="relative z-10" />
         <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-bg-primary px-2 py-1 text-xs text-fg-primary opacity-0 shadow ring-1 ring-rule transition-opacity delay-700 duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
           Hold to shuffle
         </span>
@@ -125,6 +133,10 @@ export function PlayButton({
         className,
       )}
       style={{ touchAction: 'none' }}
+      onContextMenu={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+      }}
       {...pointerHandlers}
     >
       <span className="relative flex h-5 w-5 items-center justify-center">

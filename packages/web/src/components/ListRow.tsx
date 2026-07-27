@@ -107,7 +107,7 @@ export function ListRow({
             <PlayButton
               variant="inline"
               onPlay={onPlay}
-              onShufflePlay={onShufflePlay ?? onPlay}
+              onShufflePlay={onShufflePlay ?? (() => {})}
               label={playLabel}
               className="absolute inset-0 inline-flex opacity-0 group-hover:opacity-100"
             />
