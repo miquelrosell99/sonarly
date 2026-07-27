@@ -78,6 +78,26 @@ describe('PlayButton', () => {
     expect(parentPointerUp).not.toHaveBeenCalled();
   });
 
+  it('stops click event propagation for keyboard activation with onShufflePlay', () => {
+    const onPlay = vi.fn();
+    const onShufflePlay = vi.fn();
+    const parentClick = vi.fn();
+
+    render(
+      <div onClick={parentClick}>
+        <PlayButton onPlay={onPlay} onShufflePlay={onShufflePlay} label="Play" />
+      </div>,
+    );
+
+    const button = screen.getByRole('button', { name: /Play/ });
+    fireEvent.keyDown(button, { key: 'Enter' });
+    fireEvent.click(button);
+
+    expect(onPlay).toHaveBeenCalledTimes(1);
+    expect(onShufflePlay).not.toHaveBeenCalled();
+    expect(parentClick).not.toHaveBeenCalled();
+  });
+
   it('does not call anything when pointer is cancelled before threshold', () => {
     const onPlay = vi.fn();
     const onShufflePlay = vi.fn();
