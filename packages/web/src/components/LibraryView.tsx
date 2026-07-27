@@ -202,6 +202,7 @@ export function LibraryView<T>({
                 onSelect={(e) => handleRowSelect(item, e)}
                 onActivate={() => handleRowActivate(item)}
                 onPlay={onPlay ? () => onPlay(item) : undefined}
+                onShufflePlay={onShufflePlay ? () => onShufflePlay(data) : undefined}
                 favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
                 rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
               >
@@ -248,7 +249,7 @@ export function LibraryView<T>({
             cover={coverElement}
             favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
             rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
-            play={onPlay ? { onPlay: () => onPlay(item), onShufflePlay: () => onShufflePlay?.([item]) } : undefined}
+            play={onPlay ? { onPlay: () => onPlay(item), onShufflePlay: onShufflePlay ? () => onShufflePlay(data) : () => {} } : undefined}
           />
         );
         return (
