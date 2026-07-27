@@ -5,7 +5,6 @@ import { createUser } from '../../../src/features/users/repository.js';
 import { upsertSong } from '../../../src/features/songs/repository.js';
 import { upsertArtist } from '../../../src/features/artists/repository.js';
 import { upsertAlbum } from '../../../src/features/albums/repository.js';
-import { setSongGenres } from '../../../src/features/genres/repository.js';
 import { getCandidates } from '../../../src/features/auto-dj/service.js';
 
 function seedArtistAlbum(db: Database.Database) {
@@ -100,7 +99,7 @@ describe('auto-dj service', () => {
     expect(ids).not.toContain('s1');
   });
 
-  it('random mode excludes recently played songs', () => {
+  it('random mode excludes recently played songs, falling back to them only when needed', () => {
     insertSong(db, 's1', 'One');
     insertSong(db, 's2', 'Two');
     insertSong(db, 's3', 'Three');
@@ -109,7 +108,8 @@ describe('auto-dj service', () => {
     const result = getCandidates(db, 'user-1', 's1', 'random', 10, ['s1']);
     expect(result.map((s) => s.id)).toContain('s3');
     expect(result.map((s) => s.id)).not.toContain('s1');
-    expect(result.map((s) => s.id)).not.toContain('s2');
+    // Only s3 is non-recent, so the fallback fills the remainder with s2.
+    expect(result.map((s) => s.id)).toContain('s2');
   });
 
   it('smart mode scores by shared artist and penalizes same album', () => {
