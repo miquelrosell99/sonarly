@@ -10,6 +10,13 @@ const mockUpdateCurrentSong = vi.hoisted(() => vi.fn());
 
 const mockUpdatePreferencesMutate = vi.hoisted(() => vi.fn());
 
+const mockPreferences = vi.hoisted(() => ({
+  autoDjEnabled: false,
+  autoDjMode: 'smart' as const,
+  autoDjTopUpThreshold: 5,
+  autoDjBatchSize: 10,
+}));
+
 vi.mock('../hooks/useSongInteraction.js', () => ({
   useSongInteraction: (songId: string | undefined, fallback: { starred?: boolean; rating?: number }) => ({
     starred: fallback?.starred ?? false,
@@ -20,12 +27,15 @@ vi.mock('../hooks/useSongInteraction.js', () => ({
 }));
 
 vi.mock('../hooks/usePreferences.js', () => ({
+  usePreferences: () => ({ data: mockPreferences }),
   useUpdatePreferences: () => ({ mutate: mockUpdatePreferencesMutate }),
 }));
 
 beforeEach(() => {
   resetPlayer();
   usePlayer.setState({ updateCurrentSong: mockUpdateCurrentSong } as any);
+  mockPreferences.autoDjEnabled = false;
+  mockPreferences.autoDjMode = 'smart';
 });
 
 afterEach(() => {
@@ -79,11 +89,12 @@ describe('PlayerBar', () => {
     expect(djButton).toBeTruthy();
 
     fireEvent.click(djButton);
-    expect(usePlayer.getState().autoDjEnabled).toBe(true);
     expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjEnabled: true });
 
-    fireEvent.click(djButton);
-    expect(usePlayer.getState().autoDjEnabled).toBe(false);
+    mockPreferences.autoDjEnabled = true;
+    cleanup();
+    render(<PlayerBar />);
+    fireEvent.click(screen.getByRole('button', { name: /auto dj/i }));
     expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjEnabled: false });
   });
 
@@ -105,7 +116,6 @@ describe('PlayerBar', () => {
     fireEvent.contextMenu(djButton);
     fireEvent.click(screen.getByRole('button', { name: 'Random' }));
 
-    expect(usePlayer.getState().autoDjMode).toBe('random');
     expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjMode: 'random' });
   });
 });

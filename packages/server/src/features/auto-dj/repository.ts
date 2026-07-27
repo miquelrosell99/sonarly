@@ -80,10 +80,13 @@ function rowToSong(row: CandidateRow): Song & { artistName?: string; albumName?:
   };
 }
 
+const MAX_EXCLUDE_IDS = 500;
+
 function buildExcludeClause(excludeIds: string[]): { sql: string; params: string[] } {
   if (excludeIds.length === 0) return { sql: '', params: [] };
-  const placeholders = excludeIds.map(() => '?').join(',');
-  return { sql: `AND s.id NOT IN (${placeholders})`, params: excludeIds };
+  const capped = excludeIds.slice(0, MAX_EXCLUDE_IDS);
+  const placeholders = capped.map(() => '?').join(',');
+  return { sql: `AND s.id NOT IN (${placeholders})`, params: capped };
 }
 
 export function getSongContext(

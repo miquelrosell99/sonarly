@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Song, AutoDjMode } from '@sonarly/shared';
+import type { Song } from '@sonarly/shared';
 
 export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 export type RepeatMode = 'off' | 'all' | 'one';
@@ -18,8 +18,6 @@ interface PlayerState {
   shuffle: boolean;
   repeat: RepeatMode;
   shuffledIndices: number[];
-  autoDjEnabled: boolean;
-  autoDjMode: AutoDjMode;
 }
 
 interface PlayerActions {
@@ -41,8 +39,6 @@ interface PlayerActions {
   setStatus: (status: PlayerStatus) => void;
   onEnded: () => void;
   updateCurrentSong: (patch: Partial<PlayerSong>) => void;
-  setAutoDjEnabled: (enabled: boolean) => void;
-  setAutoDjMode: (mode: AutoDjMode) => void;
 }
 
 const initialState: PlayerState = {
@@ -56,8 +52,6 @@ const initialState: PlayerState = {
   shuffle: false,
   repeat: 'off',
   shuffledIndices: [],
-  autoDjEnabled: false,
-  autoDjMode: 'smart',
 };
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -272,9 +266,6 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
           queue: queue.map((song) => (song.id === updated.id ? { ...song, ...patch } : song)),
         });
       },
-
-      setAutoDjEnabled: (enabled) => set({ autoDjEnabled: enabled }),
-      setAutoDjMode: (mode) => set({ autoDjMode: mode }),
     }),
     {
       name: 'sonarly-player',
@@ -295,8 +286,6 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
         shuffle: state.shuffle,
         repeat: state.repeat,
         shuffledIndices: state.shuffledIndices,
-        autoDjEnabled: state.autoDjEnabled,
-        autoDjMode: state.autoDjMode,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;

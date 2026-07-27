@@ -5,7 +5,7 @@ import { CoverArt } from './CoverArt.js';
 import { FavoriteButton, StarRating } from './ActionButtons.js';
 import { usePlayer } from '../stores/playerStore.js';
 import { useSongInteraction } from '../hooks/useSongInteraction.js';
-import { useUpdatePreferences } from '../hooks/usePreferences.js';
+import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
@@ -21,7 +21,9 @@ function ControlButton({
   onClick,
   onContextMenu,
   onTouchStart,
+  onTouchMove,
   onTouchEnd,
+  onTouchCancel,
   label,
   className,
 }: {
@@ -30,8 +32,10 @@ function ControlButton({
   disabled?: boolean;
   onClick: () => void;
   onContextMenu?: (e: React.MouseEvent) => void;
-  onTouchStart?: () => void;
+  onTouchStart?: (e: React.TouchEvent) => void;
+  onTouchMove?: (e: React.TouchEvent) => void;
   onTouchEnd?: () => void;
+  onTouchCancel?: () => void;
   label: string;
   className?: string;
 }) {
@@ -41,7 +45,9 @@ function ControlButton({
       onClick={onClick}
       onContextMenu={onContextMenu}
       onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchCancel}
       disabled={disabled}
       aria-label={label}
       className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-40 ${active ? 'text-accent' : ''} ${className ?? ''}`}
@@ -141,15 +147,15 @@ export function PlayerBar() {
     { starred: currentSong?.starred, rating: currentSong?.rating },
   );
 
-  const autoDjEnabled = usePlayer((state) => state.autoDjEnabled);
-  const autoDjMode = usePlayer((state) => state.autoDjMode);
-  const setAutoDjEnabled = usePlayer((state) => state.setAutoDjEnabled);
-  const setAutoDjMode = usePlayer((state) => state.setAutoDjMode);
+  const { data: preferences } = usePreferences();
+  const autoDjEnabled = preferences?.autoDjEnabled ?? false;
+  const autoDjMode = preferences?.autoDjMode ?? 'smart';
   const updatePreferences = useUpdatePreferences();
 
   const [djMenuOpen, setDjMenuOpen] = useState(false);
   const djMenuRef = useRef<HTMLDivElement>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressStart = useRef<{ x: number; y: number } | null>(null);
 
   const modeLabels: Record<AutoDjMode, string> = {
     similar: 'Similar',
@@ -158,13 +164,10 @@ export function PlayerBar() {
   };
 
   const handleToggleAutoDj = () => {
-    const next = !autoDjEnabled;
-    setAutoDjEnabled(next);
-    updatePreferences.mutate({ autoDjEnabled: next });
+    updatePreferences.mutate({ autoDjEnabled: !autoDjEnabled });
   };
 
   const handleSetMode = (mode: AutoDjMode) => {
-    setAutoDjMode(mode);
     updatePreferences.mutate({ autoDjMode: mode });
     setDjMenuOpen(false);
   };
@@ -175,18 +178,45 @@ export function PlayerBar() {
     setDjMenuOpen(true);
   };
 
-  const handleTouchStart = () => {
+  const clearLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    longPressStart.current = null;
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    longPressStart.current = { x: touch.clientX, y: touch.clientY };
     longPressTimer.current = setTimeout(() => {
       setDjMenuOpen(true);
     }, 600);
   };
 
-  const handleTouchEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!longPressStart.current) return;
+    const touch = e.touches[0];
+    const dx = Math.abs(touch.clientX - longPressStart.current.x);
+    const dy = Math.abs(touch.clientY - longPressStart.current.y);
+    if (dx > 10 || dy > 10) {
+      clearLongPress();
     }
   };
+
+  const handleTouchEnd = () => {
+    clearLongPress();
+  };
+
+  const handleTouchCancel = () => {
+    clearLongPress();
+  };
+
+  useEffect(() => {
+    return () => {
+      clearLongPress();
+    };
+  }, []);
 
   useEffect(() => {
     if (!djMenuOpen) return;
@@ -314,7 +344,9 @@ export function PlayerBar() {
                 onClick={handleToggleAutoDj}
                 onContextMenu={handleContextMenu}
                 onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchCancel}
                 label={`Auto DJ: ${autoDjEnabled ? 'on' : 'off'}`}
                 active={autoDjEnabled}
               >

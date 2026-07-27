@@ -72,6 +72,6 @@ function getSmartCandidates(
     return { candidate, score };
   });
 
-  scored.sort((a, b) => b.score - a.score || Math.random() - 0.5);
+  scored.sort((a, b) => b.score - a.score || a.candidate.song.id.localeCompare(b.candidate.song.id));
   return scored.slice(0, count).map((s) => s.candidate.song);
 }
