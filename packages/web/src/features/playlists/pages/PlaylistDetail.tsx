@@ -14,6 +14,7 @@ import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
+import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
 import { SongTable, type SongListItem } from '../../songs/components/SongTable.js';
 
 interface PlaylistSong {
@@ -95,6 +96,8 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs } = usePlayActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
+
+  useDocumentTitle(playlist?.name);
 
   const load = () => {
     if (!id) return;
