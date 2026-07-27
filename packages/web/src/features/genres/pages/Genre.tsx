@@ -3,6 +3,7 @@ import { useParams } from 'wouter';
 import type { Song, Album } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
+import { PlayButton } from '../../../components/PlayButton.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { TrackList } from '../../songs/index.js';
 import { AlbumList } from '../../albums/index.js';
@@ -50,7 +51,9 @@ export function Genre() {
           <h2 className="text-lg font-semibold">{genre}</h2>
           {tracks.length > 0 && (
             <div className="flex gap-2">
-              <Button onClick={() => playSongs(tracks as Song[], 0)}>Play all</Button>
+              <PlayButton variant="default" onPlay={() => playSongs(tracks as Song[], 0)} onShufflePlay={() => shufflePlay(tracks as Song[])}>
+                Play all
+              </PlayButton>
               <Button variant="ghost" onClick={() => shufflePlay(tracks as Song[])}>
                 Shuffle
               </Button>
