@@ -10,12 +10,14 @@ interface FavoriteButtonProps {
   label?: string;
   className?: string;
   variant?: ActionVariant;
+  disabled?: boolean;
 }
 
-export function FavoriteButton({ starred, onClick, label, className, variant = 'default' }: FavoriteButtonProps) {
+export function FavoriteButton({ starred, onClick, label, className, variant = 'default', disabled }: FavoriteButtonProps) {
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
