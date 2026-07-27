@@ -67,4 +67,23 @@ describe('useClickAndHold', () => {
     expect(onClick).not.toHaveBeenCalled();
     expect(onHold).not.toHaveBeenCalled();
   });
+
+  it('clears the timer on unmount so onHold is not called later', () => {
+    const onClick = vi.fn();
+    const onHold = vi.fn();
+    const { result, unmount } = renderHook(() => useClickAndHold({ onClick, onHold }));
+
+    act(() => {
+      result.current.handlers.onPointerDown({} as React.PointerEvent);
+    });
+
+    unmount();
+
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    expect(onHold).not.toHaveBeenCalled();
+    expect(onClick).not.toHaveBeenCalled();
+  });
 });
