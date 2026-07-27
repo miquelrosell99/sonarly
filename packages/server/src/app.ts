@@ -44,6 +44,7 @@ import { registerHomeRoutes } from './features/home/index.js';
 import { registerYearRoutes } from './features/years/index.js';
 import { registerGenreManagementRoutes } from './features/genres/index.js';
 import { registerStatisticsRoutes } from './features/statistics/index.js';
+import { registerAutoDjRoutes } from './features/auto-dj/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -159,6 +160,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   registerYearRoutes(app, db);
   registerGenreManagementRoutes(app, db);
   registerStatisticsRoutes(app, db, config);
+  registerAutoDjRoutes(app, db);
 
   const webDist = join(__dirname, '..', 'web-dist');
   if (existsSync(webDist)) {
