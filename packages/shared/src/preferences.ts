@@ -1,5 +1,15 @@
 export type ThemeMode = 'light' | 'dark' | 'oled' | 'auto';
-export type AccentColor = 'monochrome' | 'brown' | 'green' | 'orange' | 'teal' | 'purple' | 'yellow';
+export type AccentColor =
+  | 'auto'
+  | 'monochrome'
+  | 'brown'
+  | 'green'
+  | 'orange'
+  | 'teal'
+  | 'purple'
+  | 'yellow'
+  | 'cyan'
+  | 'blue';
 
 export interface SidebarLinkItem {
   id: string;
@@ -17,9 +27,6 @@ export interface SidebarPlaylistsItem {
 export type SidebarItem = SidebarLinkItem | SidebarPlaylistsItem;
 
 export interface UserPreferences {
-  hideExplicit?: boolean;
-  blurExplicitTitles?: boolean;
-  blurExplicitCovers?: boolean;
   sidebar?: {
     items?: string[];
     collapsedSections?: string[];
@@ -33,11 +40,8 @@ export interface UserPreferences {
   sidebarConfig?: {
     items: SidebarItem[];
   };
+  playlistsCollapsed?: boolean;
   viewOptions?: Record<string, unknown>;
 }
 
-export const DEFAULT_USER_PREFERENCES: UserPreferences = {
-  hideExplicit: false,
-  blurExplicitTitles: false,
-  blurExplicitCovers: false,
-};
+export const DEFAULT_USER_PREFERENCES: UserPreferences = {};

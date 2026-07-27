@@ -6,6 +6,8 @@ import { ProfileModal } from '../features/profile/index.js';
 import { usePreferences } from '../hooks/usePreferences.js';
 import { usePlaylists } from '../hooks/usePlaylists.js';
 import { useTheme } from '../stores/themeStore.js';
+import { usePlayer } from '../stores/playerStore.js';
+import { useDominantColor } from '../hooks/useDominantColor.js';
 import { TopBar } from './TopBar.js';
 import { Sidebar } from './Sidebar.js';
 import { PlayerBar } from './PlayerBar.js';
@@ -21,12 +23,6 @@ function useProfileModal(location: string, search: string, setLocation: (to: str
   const params = new URLSearchParams(search);
   const isOpen = params.get('profile') === 'open';
 
-  const open = () => {
-    const next = new URLSearchParams(search);
-    next.set('profile', 'open');
-    setLocation(`${location}?${next.toString()}`);
-  };
-
   const close = () => {
     const next = new URLSearchParams(search);
     next.delete('profile');
@@ -34,20 +30,17 @@ function useProfileModal(location: string, search: string, setLocation: (to: str
     setLocation(query ? `${location}?${query}` : location);
   };
 
-  const expand = () => {
-    setLocation('/settings/profile');
-  };
-
-  return { isOpen, open, close, expand };
+  return { isOpen, close };
 }
 
 export function Layout({ user, onUserChange, children }: LayoutProps) {
   const [location, setLocation] = useLocation();
   const search = useSearch();
-  const { isOpen, open, close, expand } = useProfileModal(location, search, setLocation);
+  const { isOpen, close } = useProfileModal(location, search, setLocation);
   const { data: preferences } = usePreferences();
   const { data: playlists } = usePlaylists();
   const { themeMode, accentColor, setThemeMode, setAccentColor } = useTheme();
+  const currentSong = usePlayer((state) => state.currentSong);
 
   const themeModeRef = useRef(themeMode);
   const accentColorRef = useRef(accentColor);
@@ -75,13 +68,23 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
     }
   };
 
-  return (
-    <div className="flex h-screen flex-col overflow-hidden bg-bg-primary text-fg-primary">
-      <TopBar user={user} onOpenProfile={open} onLogout={handleLogout} />
+  const coverUrl = currentSong?.coverArt ? `/api/cover-art/${currentSong.coverArt}` : undefined;
+  const dominantColor = useDominantColor(coverUrl);
 
-      <div className="flex flex-1 overflow-hidden">
+  return (
+    <div
+      className="relative flex h-screen flex-col overflow-hidden bg-bg-primary text-fg-primary"
+      style={
+        dominantColor
+          ? ({ '--now-playing-color': dominantColor } as React.CSSProperties)
+          : undefined
+      }
+    >
+      <TopBar user={user} onLogout={handleLogout} />
+
+      <div className="flex flex-1 min-h-0">
         <Sidebar config={preferences?.sidebarConfig} playlists={playlists} />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="relative flex-1 overflow-y-auto scroll-smooth p-6">
           {children}
         </main>
       </div>
@@ -94,7 +97,6 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
           user={user}
           onUserChange={onUserChange}
           onClose={close}
-          onExpand={expand}
         />
       )}
     </div>

@@ -9,8 +9,8 @@ services:
       - "${SONARLY_DEV_API_PORT:-3001}:3000"
     volumes:
       - ./config/sonarly/data:/data/db
-      - ./config/sonarly/library:/data/library
-      - ./config/sonarly/ingest:/data/ingest
+      - ${SONARLY_INGEST_PATH:-./config/sonarly/ingest}:/data/ingest
+      - ${LIBRARY_MUSIC:-./config/sonarly/library}:/media/music
       - ./packages/server:/app/packages/server
       - /app/packages/server/node_modules
       - ./packages/web:/app/packages/web
@@ -23,8 +23,8 @@ services:
       - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET is required}
       - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-false}
       - DATA_DIR=/data/db
-      - LIBRARY_PATH=/data/library
       - INGEST_PATH=/data/ingest
+      - LIBRARY_PATH=/media/music
       - SCAN_INTERVAL_MINUTES=60
       - WATCHER_USE_POLLING=${WATCHER_USE_POLLING:-false}
       - SONARLY_DEV_ALLOWED_HOSTS=${SONARLY_DEV_ALLOWED_HOSTS:-}

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import type { Song, Album, Artist } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
+import { Modal } from '../../../components/ui/Modal.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
-import { Settings } from '../components/Settings.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 
 interface MissingSong extends Song {
@@ -19,7 +19,12 @@ interface MissingData {
 
 type Tab = 'songs' | 'albums' | 'artists';
 
-export function SettingsMissing() {
+interface MissingModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function MissingModal({ open, onClose }: MissingModalProps) {
   const { notify } = useNotification();
   const [data, setData] = useState<MissingData>({ songs: [], albums: [], artists: [] });
   const [loading, setLoading] = useState(true);
@@ -41,8 +46,10 @@ export function SettingsMissing() {
   };
 
   useEffect(() => {
-    load();
-  }, []);
+    if (open) {
+      load();
+    }
+  }, [open]);
 
   const purge = async (kind: keyof MissingData, id: string) => {
     setPurging((prev) => ({ ...prev, [`${kind}-${id}`]: true }));
@@ -125,58 +132,56 @@ export function SettingsMissing() {
   ];
 
   return (
-    <Settings>
-      <div className="max-w-4xl space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-medium">Missing items</h3>
-          <Button variant="ghost" onClick={load} disabled={loading}>
-            {loading ? 'Loading...' : 'Refresh'}
-          </Button>
-        </div>
-
+    <Modal open={open} onClose={onClose} title="Missing items" className="max-w-5xl">
+      <div className="space-y-4">
         <p className="text-sm text-muted">
           These songs, albums, or artists no longer have a matching file on disk. They are hidden from the rest of the app. You can purge them permanently here.
         </p>
 
         {error && <p className="text-sm text-danger" role="alert">{error}</p>}
+        {loading && <p className="text-sm text-muted">Loading...</p>}
 
-        <nav className="flex gap-2 border-b border-rule pb-2">
-          {tabs.map(({ key, label, count }) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`rounded px-3 py-1 text-sm ${tab === key ? 'bg-fg-primary text-bg-primary' : 'text-fg-primary hover:bg-surface-hover'}`}
-            >
-              {label} ({count})
-            </button>
-          ))}
-        </nav>
+        {!loading && (
+          <>
+            <nav className="flex gap-2 border-b border-rule pb-2">
+              {tabs.map(({ key, label, count }) => (
+                <button
+                  key={key}
+                  onClick={() => setTab(key)}
+                  className={`rounded px-3 py-1 text-sm ${tab === key ? 'bg-fg-primary text-bg-primary' : 'text-fg-primary hover:bg-surface-hover'}`}
+                >
+                  {label} ({count})
+                </button>
+              ))}
+            </nav>
 
-        {tab === 'songs' && (
-          <Table<MissingSong>
-            columns={songColumns}
-            rows={data.songs}
-            rowKey={(s) => s.id}
-            empty="No missing songs."
-          />
-        )}
-        {tab === 'albums' && (
-          <Table<Album>
-            columns={albumColumns}
-            rows={data.albums}
-            rowKey={(a) => a.id}
-            empty="No missing albums."
-          />
-        )}
-        {tab === 'artists' && (
-          <Table<Artist>
-            columns={artistColumns}
-            rows={data.artists}
-            rowKey={(a) => a.id}
-            empty="No missing artists."
-          />
+            {tab === 'songs' && (
+              <Table<MissingSong>
+                columns={songColumns}
+                rows={data.songs}
+                rowKey={(s) => s.id}
+                empty="No missing songs."
+              />
+            )}
+            {tab === 'albums' && (
+              <Table<Album>
+                columns={albumColumns}
+                rows={data.albums}
+                rowKey={(a) => a.id}
+                empty="No missing albums."
+              />
+            )}
+            {tab === 'artists' && (
+              <Table<Artist>
+                columns={artistColumns}
+                rows={data.artists}
+                rowKey={(a) => a.id}
+                empty="No missing artists."
+              />
+            )}
+          </>
         )}
       </div>
-    </Settings>
+    </Modal>
   );
 }

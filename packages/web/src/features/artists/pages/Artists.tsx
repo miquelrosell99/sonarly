@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import type { Artist, Song } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
+import { ArtistImage } from '../../../components/ArtistImage.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
 import { useArtistContextMenu } from '../../../hooks/useArtistContextMenu.js';
@@ -54,9 +55,11 @@ export function Artists() {
   const artistGenres = useMemo(() => {
     const map = new Map<string, Set<string>>();
     songs.forEach((song) => {
-      if (!song.artistId || !song.genre) return;
+      if (!song.artistId || !song.genres) return;
       const set = map.get(song.artistId) ?? new Set<string>();
-      set.add(song.genre);
+      for (const g of song.genres) {
+        set.add(g);
+      }
       map.set(song.artistId, set);
     });
     return map;
@@ -120,6 +123,7 @@ export function Artists() {
         onRate={handleRate}
         getFavorite={(artist) => artist.starred}
         getRating={(artist) => artist.rating}
+        renderCover={(artist) => <ArtistImage artistId={artist.id} alt={artist.name} className="h-full w-full" />}
         renderContextMenu={(artist, children) => (
           <ArtistContextMenu artist={artist} onEdit={() => setEditing(artist)}>
             {children}

@@ -26,6 +26,9 @@ function serializeUser(user: ReturnType<typeof getUserById>) {
     surname: user.surname,
     email: user.email,
     avatarUrl: user.avatarUrl ? buildAvatarUrl(user.id) : undefined,
+    hideExplicit: user.hideExplicit,
+    blurExplicitTitles: user.blurExplicitTitles,
+    blurExplicitCovers: user.blurExplicitCovers,
   };
 }
 

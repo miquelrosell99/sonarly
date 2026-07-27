@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { User, UpdateProfileInput } from '@sonarly/shared';
+import type { User, UpdateProfileInput, UpdateUserContentFiltersInput } from '@sonarly/shared';
 
 export interface DbUser {
   id: string;
@@ -12,6 +12,11 @@ export interface DbUser {
   surname: string | null;
   email: string | null;
   avatar_path: string | null;
+  max_bitrate_kbps: number | null;
+  transcode_format: string | null;
+  hide_explicit: number;
+  blur_explicit_titles: number;
+  blur_explicit_covers: number;
 }
 
 function toUser(row: DbUser): User {
@@ -24,6 +29,11 @@ function toUser(row: DbUser): User {
     surname: row.surname ?? undefined,
     email: row.email ?? undefined,
     avatarUrl: row.avatar_path ?? undefined,
+    maxBitrateKbps: row.max_bitrate_kbps ?? undefined,
+    transcodeFormat: (row.transcode_format as User['transcodeFormat']) ?? undefined,
+    hideExplicit: row.hide_explicit === 1,
+    blurExplicitTitles: row.blur_explicit_titles === 1,
+    blurExplicitCovers: row.blur_explicit_covers === 1,
   };
 }
 
@@ -50,7 +60,7 @@ export function createUser(
   user: User & { passwordHash: string; subsonicPasswordEncrypted: string },
 ): void {
   db.prepare(
-    'INSERT INTO users (id, username, password_hash, subsonic_password_encrypted, is_admin, name, surname, email) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO users (id, username, password_hash, subsonic_password_encrypted, is_admin, name, surname, email, max_bitrate_kbps, transcode_format) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
   ).run(
     user.id,
     user.username,
@@ -60,6 +70,8 @@ export function createUser(
     user.name ?? null,
     user.surname ?? null,
     user.email ?? null,
+    user.maxBitrateKbps ?? null,
+    user.transcodeFormat ?? null,
   );
 }
 
@@ -76,7 +88,85 @@ export function updateAvatar(db: Database.Database, id: string, avatarPath: stri
   db.prepare('UPDATE users SET avatar_path = ? WHERE id = ?').run(avatarPath, id);
 }
 
+export function updateUserTranscoding(
+  db: Database.Database,
+  id: string,
+  input: { maxBitrateKbps?: number; transcodeFormat?: User['transcodeFormat'] },
+): void {
+  db.prepare('UPDATE users SET max_bitrate_kbps = ?, transcode_format = ? WHERE id = ?').run(
+    input.maxBitrateKbps ?? null,
+    input.transcodeFormat ?? null,
+    id,
+  );
+}
+
 export function listUsers(db: Database.Database): User[] {
   const rows = db.prepare('SELECT * FROM users ORDER BY created_at DESC').all() as DbUser[];
   return rows.map(toUser);
+}
+
+export function updateUserContentFilters(
+  db: Database.Database,
+  id: string,
+  input: UpdateUserContentFiltersInput,
+): void {
+  const existing = getUserById(db, id);
+  if (!existing) return;
+  db.prepare(
+    'UPDATE users SET hide_explicit = ?, blur_explicit_titles = ?, blur_explicit_covers = ? WHERE id = ?',
+  ).run(
+    input.hideExplicit === true ? 1 : 0,
+    input.blurExplicitTitles === true ? 1 : 0,
+    input.blurExplicitCovers === true ? 1 : 0,
+    id,
+  );
+}
+
+export interface UpdateUserAdminInput {
+  name?: string | null;
+  surname?: string | null;
+  email?: string | null;
+  passwordHash?: string;
+  subsonicPasswordEncrypted?: string;
+}
+
+export function updateUserAdminFields(
+  db: Database.Database,
+  id: string,
+  input: UpdateUserAdminInput,
+): void {
+  const existing = getUserById(db, id);
+  if (!existing) return;
+
+  const updates: string[] = [];
+  const values: unknown[] = [];
+
+  if (input.name !== undefined) {
+    updates.push('name = ?');
+    values.push(input.name ?? null);
+  }
+  if (input.surname !== undefined) {
+    updates.push('surname = ?');
+    values.push(input.surname ?? null);
+  }
+  if (input.email !== undefined) {
+    updates.push('email = ?');
+    values.push(input.email ?? null);
+  }
+  if (input.passwordHash !== undefined) {
+    updates.push('password_hash = ?');
+    values.push(input.passwordHash);
+  }
+  if (input.subsonicPasswordEncrypted !== undefined) {
+    updates.push('subsonic_password_encrypted = ?');
+    values.push(input.subsonicPasswordEncrypted);
+  }
+
+  if (updates.length === 0) return;
+  values.push(id);
+  db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+}
+
+export function deleteUserById(db: Database.Database, id: string): void {
+  db.prepare('DELETE FROM users WHERE id = ?').run(id);
 }

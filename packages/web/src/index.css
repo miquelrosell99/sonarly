@@ -5,60 +5,215 @@
 @layer base {
   :root,
   .theme-light {
-    --bg-primary: 0 0% 100%;
-    --fg-primary: 220 13% 9%;
-    --surface: 220 14% 96%;
-    --surface-hover: 220 13% 91%;
-    --rule: 220 13% 85%;
-    --muted: 220 9% 46%;
-    --accent: 220 13% 9%;
+    --bg-primary: 0 0% 97%;
+    --fg-primary: 0 0% 4%;
+    --fg-secondary: 0 0% 42%;
+    --surface: 0 0% 100%;
+    --surface-hover: 0 0% 94%;
+    --rule: 0 0% 90%;
+    --muted: 0 0% 42%;
+    --accent: 217 100% 50%;
+
+    /* Data palette */
+    --chart-1: 217 91% 60%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 270 60% 55%;
+    --chart-5: 192 91% 53%;
+    --chart-6: 0 84% 60%;
+    --chart-7: 330 80% 60%;
+    --chart-8: 142 71% 45%;
+    --chart-9: 25 95% 53%;
+    --chart-10: 210 80% 60%;
+
+    /* Semantic palette */
+    --danger: 0 84% 60%;
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+    --info: 217 91% 60%;
   }
 
   .theme-dark {
-    --bg-primary: 222 47% 6%;
-    --fg-primary: 210 20% 96%;
-    --surface: 222 30% 12%;
-    --surface-hover: 222 25% 18%;
-    --rule: 222 20% 24%;
-    --muted: 220 9% 46%;
-    --accent: 0 0% 100%;
+    --bg-primary: 0 0% 4%;
+    --fg-primary: 0 0% 100%;
+    --fg-secondary: 0 0% 65%;
+    --surface: 0 0% 7%;
+    --surface-hover: 0 0% 10%;
+    --rule: 0 0% 15%;
+    --muted: 0 0% 65%;
+    --accent: 192 100% 50%;
+
+    /* Data palette */
+    --chart-1: 217 91% 60%;
+    --chart-2: 160 84% 45%;
+    --chart-3: 38 92% 55%;
+    --chart-4: 270 70% 65%;
+    --chart-5: 192 91% 55%;
+    --chart-6: 0 84% 65%;
+    --chart-7: 330 80% 65%;
+    --chart-8: 142 71% 50%;
+    --chart-9: 25 95% 58%;
+    --chart-10: 210 80% 65%;
+
+    /* Semantic palette */
+    --danger: 0 84% 65%;
+    --success: 142 71% 50%;
+    --warning: 38 92% 55%;
+    --info: 217 91% 60%;
   }
 
   .theme-oled {
     --bg-primary: 0 0% 0%;
     --fg-primary: 0 0% 100%;
-    --surface: 0 0% 7%;
-    --surface-hover: 0 0% 14%;
-    --rule: 0 0% 18%;
-    --muted: 0 0% 45%;
-    --accent: 0 0% 100%;
+    --fg-secondary: 0 0% 70%;
+    --surface: 0 0% 4%;
+    --surface-hover: 0 0% 8%;
+    --rule: 0 0% 12%;
+    --muted: 0 0% 70%;
+    --accent: 192 100% 50%;
+
+    /* Data palette */
+    --chart-1: 217 91% 60%;
+    --chart-2: 160 84% 45%;
+    --chart-3: 38 92% 55%;
+    --chart-4: 270 70% 65%;
+    --chart-5: 192 91% 55%;
+    --chart-6: 0 84% 65%;
+    --chart-7: 330 80% 65%;
+    --chart-8: 142 71% 50%;
+    --chart-9: 25 95% 58%;
+    --chart-10: 210 80% 65%;
+
+    /* Semantic palette */
+    --danger: 0 84% 65%;
+    --success: 142 71% 50%;
+    --warning: 38 92% 55%;
+    --info: 217 91% 60%;
   }
 
-  .accent-brown { --accent: 25 40% 45%; }
-  .accent-green { --accent: 142 71% 45%; }
-  .accent-orange { --accent: 25 95% 53%; }
-  .accent-teal { --accent: 174 72% 43%; }
-  .accent-purple { --accent: 270 60% 55%; }
-  .accent-yellow { --accent: 45 93% 47%; }
+  :root {
+    --accent-brown: 25 40% 45%;
+    --accent-green: 142 71% 45%;
+    --accent-orange: 25 95% 53%;
+    --accent-teal: 174 72% 43%;
+    --accent-purple: 270 60% 55%;
+    --accent-yellow: 45 93% 47%;
+    --accent-cyan: 192 100% 50%;
+    --accent-blue: 217 100% 50%;
+  }
+
+  .accent-brown { --accent: var(--accent-brown); }
+  .accent-green { --accent: var(--accent-green); }
+  .accent-orange { --accent: var(--accent-orange); }
+  .accent-teal { --accent: var(--accent-teal); }
+  .accent-purple { --accent: var(--accent-purple); }
+  .accent-yellow { --accent: var(--accent-yellow); }
+  .accent-cyan { --accent: var(--accent-cyan); }
+  .accent-blue { --accent: var(--accent-blue); }
   .accent-monochrome { --accent: var(--fg-primary); }
 
   body {
-    @apply bg-bg-primary text-fg-primary;
+    @apply bg-bg-primary font-sans text-fg-primary antialiased;
   }
 
   a {
-    @apply text-fg-primary hover:text-muted;
+    @apply text-fg-primary transition hover:text-accent;
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center rounded border border-accent bg-accent px-3 py-1.5 text-sm font-medium text-bg-primary transition hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 disabled:opacity-50;
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-full border border-accent bg-accent px-5 text-sm font-semibold text-bg-primary transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded border border-rule bg-surface px-3 py-1.5 text-sm font-medium text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1;
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-full border border-rule bg-surface px-5 text-sm font-semibold text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary;
+  }
+  .btn-ghost:hover {
+    border-color: hsl(var(--fg-secondary));
+  }
+  .btn-danger {
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-full border border-rule bg-surface px-5 text-sm font-semibold text-danger transition hover:border-danger hover:bg-danger hover:text-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-50;
   }
   .input {
-    @apply block w-full rounded border border-rule bg-surface px-3 py-1.5 text-sm text-fg-primary placeholder-muted transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1;
+    @apply block h-10 w-full rounded-lg border border-rule bg-surface px-3 text-sm text-fg-primary transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-1 focus:ring-offset-bg-primary disabled:cursor-default disabled:border-transparent disabled:bg-transparent disabled:px-0;
+  }
+  .input::placeholder {
+    color: hsl(var(--fg-secondary));
+  }
+
+  /* Remove number input spinners */
+  input[type='number'].input::-webkit-outer-spin-button,
+  input[type='number'].input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'].input {
+    -moz-appearance: textfield;
+  }
+
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 9999px;
+    outline: none;
+  }
+
+  .slider::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 9999px;
+  }
+
+  .slider::-moz-range-track {
+    height: 4px;
+    border-radius: 9999px;
+    background-color: hsl(var(--fg-primary) / 0.1);
+  }
+
+  .slider::-moz-range-progress {
+    height: 4px;
+    border-radius: 9999px;
+    background-color: hsl(var(--accent));
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 0;
+    width: 0;
+    border-radius: 50%;
+    background: currentColor;
+    margin-top: -4px;
+    transition: all 0.15s ease;
+  }
+
+  .slider::-moz-range-thumb {
+    height: 0;
+    width: 0;
+    border: none;
+    border-radius: 50%;
+    background: currentColor;
+    transition: all 0.15s ease;
+  }
+
+  .slider-progress:hover::-webkit-slider-thumb {
+    height: 12px;
+    width: 12px;
+    margin-top: -4px;
+  }
+
+  .slider-progress:hover::-moz-range-thumb {
+    height: 12px;
+    width: 12px;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

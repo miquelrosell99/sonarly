@@ -7,6 +7,7 @@ import { createUser } from '../../../src/features/users/repository.js';
 import { upsertArtist } from '../../../src/features/artists/repository.js';
 import { upsertAlbum } from '../../../src/features/albums/repository.js';
 import { upsertSong } from '../../../src/features/songs/repository.js';
+import { getOrCreateGenreByName } from '../../../src/features/genres/repository.js';
 import { buildSubsonicToken } from '../../../src/features/auth/token.js';
 import { encryptSubsonicPassword, hashPassword } from '../../../src/features/auth/password.js';
 import { generateApiKey, storeApiKey } from '../../../src/features/auth/api-keys.js';
@@ -43,6 +44,7 @@ function seedCatalog(db: Database.Database) {
   upsertArtist(db, { id: 'artist-1', name: 'Alpha Artist' });
   upsertArtist(db, { id: 'artist-2', name: 'Another Artist' });
   upsertArtist(db, { id: 'artist-3', name: 'Beta Band' });
+  const rockId = getOrCreateGenreByName(db, 'Rock');
   upsertAlbum(db, {
     id: 'album-1',
     name: 'First Album',
@@ -50,6 +52,7 @@ function seedCatalog(db: Database.Database) {
     artistName: 'Alpha Artist',
     year: 2024,
     genre: 'Rock',
+    genreId: rockId,
   });
   upsertSong(db, {
     id: 'song-1',
@@ -61,6 +64,7 @@ function seedCatalog(db: Database.Database) {
     artistId: 'artist-1',
     albumId: 'album-1',
     genre: 'Rock',
+    genreId: rockId,
     year: 2024,
     mtime: Date.now(),
     checksum: 'checksum-1',
@@ -75,10 +79,21 @@ function seedCatalog(db: Database.Database) {
     artistId: 'artist-1',
     albumId: 'album-1',
     genre: 'Rock',
+    genreId: rockId,
     year: 2024,
     mtime: Date.now(),
     checksum: 'checksum-2',
   });
+  db.prepare(`
+    INSERT INTO album_genres (album_id, genre_id, position)
+    VALUES ('album-1', ?, 0)
+    ON CONFLICT(album_id, genre_id) DO NOTHING
+  `).run(rockId);
+  db.prepare(`
+    INSERT INTO song_genres (song_id, genre_id, position)
+    VALUES ('song-1', ?, 0), ('song-2', ?, 0)
+    ON CONFLICT(song_id, genre_id) DO NOTHING
+  `).run(rockId, rockId);
 }
 
 describe('OpenSubsonic system endpoints', () => {
@@ -124,7 +139,7 @@ describe('OpenSubsonic system endpoints', () => {
 
   it('rejects requests without authentication', async () => {
     const res = await app.inject({ method: 'GET', url: '/rest/ping.view?f=json' });
-    expect(res.statusCode).toBe(401);
+    expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].status).toBe('failed');
     expect(body['subsonic-response'].version).toBe('1.16.1');
@@ -139,7 +154,7 @@ describe('OpenSubsonic system endpoints', () => {
       method: 'GET',
       url: `/rest/ping.view?u=${auth.username}&t=bad&s=${auth.salt}&f=json`,
     });
-    expect(res.statusCode).toBe(401);
+    expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].status).toBe('failed');
     expect(body['subsonic-response'].error.code).toBe(40);
@@ -169,7 +184,7 @@ describe('OpenSubsonic system endpoints', () => {
 
   it('rejects an invalid API key', async () => {
     const res = await app.inject({ method: 'GET', url: '/rest/ping.view?apiKey=sk_invalid&f=json' });
-    expect(res.statusCode).toBe(401);
+    expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].status).toBe('failed');
     expect(body['subsonic-response'].error.code).toBe(40);
@@ -251,6 +266,21 @@ describe('OpenSubsonic browsing endpoints', () => {
     expect(body['subsonic-response'].musicFolders.musicFolder).toEqual([{ id: 0, name: 'library' }]);
   });
 
+  it('returns libraries from the database when configured', async () => {
+    db.prepare("INSERT INTO libraries (id, name, path, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+      .run('lib-1', 'Music', '/media/music', '2024-01-01', '2024-01-01');
+    db.prepare("INSERT INTO libraries (id, name, path, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+      .run('lib-2', 'Audiobooks', '/media/audiobooks', '2024-01-01', '2024-01-01');
+
+    const res = await app.inject({ method: 'GET', url: query('/rest/getMusicFolders.view?', 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].musicFolders.musicFolder).toEqual([
+      { id: 0, name: 'Audiobooks' },
+      { id: 1, name: 'Music' },
+    ]);
+  });
+
   it('returns indexes grouped by artist initial', async () => {
     const res = await app.inject({ method: 'GET', url: query('/rest/getIndexes.view?', 'json') });
     expect(res.statusCode).toBe(200);
@@ -263,6 +293,8 @@ describe('OpenSubsonic browsing endpoints', () => {
     expect(indexA).toBeDefined();
     expect(indexA.artist).toHaveLength(2);
     expect(indexA.artist.map((a: { name: string }) => a.name).sort()).toEqual(['Alpha Artist', 'Another Artist']);
+    expect(indexA.artist[0]).toHaveProperty('coverArt');
+    expect(indexA.artist[0]).toHaveProperty('albumCount');
     expect(indexB).toBeDefined();
     expect(indexB.artist).toHaveLength(1);
     expect(indexB.artist[0].name).toBe('Beta Band');
@@ -275,6 +307,8 @@ describe('OpenSubsonic browsing endpoints', () => {
     expect(body['subsonic-response'].artists.index).toHaveLength(2);
     const indexA = body['subsonic-response'].artists.index.find((i: { name: string }) => i.name === 'A');
     expect(indexA.artist).toHaveLength(2);
+    expect(indexA.artist[0]).toHaveProperty('coverArt');
+    expect(indexA.artist[0]).toHaveProperty('albumCount');
   });
 
   it('returns an album with its songs', async () => {
@@ -377,6 +411,13 @@ describe('OpenSubsonic browsing endpoints', () => {
     expect(body['subsonic-response'].genres.genre[0].value).toBe('Rock');
   });
 
+  it('returns empty bookmarks from getBookmarks', async () => {
+    const res = await app.inject({ method: 'GET', url: query('/rest/getBookmarks.view?', 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].bookmarks.bookmark).toHaveLength(0);
+  });
+
   it('returns search results from search3', async () => {
     const res = await app.inject({
       method: 'GET',
@@ -384,6 +425,31 @@ describe('OpenSubsonic browsing endpoints', () => {
     });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].searchResult3.song).toHaveLength(2);
+  });
+
+  it('returns all results from search3 with an empty query', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: query('/rest/search3.view?query=&artistCount=10&albumCount=10&songCount=10', 'json'),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].searchResult3.artist).toHaveLength(3);
+    expect(body['subsonic-response'].searchResult3.artist[0].albumCount).toBe('1');
+    expect(body['subsonic-response'].searchResult3.album).toHaveLength(1);
+    expect(body['subsonic-response'].searchResult3.song).toHaveLength(2);
+  });
+
+  it('treats a quoted empty query as a request for all results', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: query('/rest/search3.view?query=%22%22&artistCount=10&albumCount=10&songCount=10', 'json'),
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].searchResult3.artist).toHaveLength(3);
+    expect(body['subsonic-response'].searchResult3.album).toHaveLength(1);
     expect(body['subsonic-response'].searchResult3.song).toHaveLength(2);
   });
 });

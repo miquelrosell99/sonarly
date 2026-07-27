@@ -10,7 +10,7 @@ interface SettingsProfileProps {
 export function SettingsProfile({ user, onUserChange }: SettingsProfileProps) {
   return (
     <Settings>
-      <div className="max-w-2xl">
+      <div className="w-full">
         <h3 className="mb-4 text-base font-medium">Profile</h3>
         <ProfileForm user={user} onUserChange={onUserChange} />
       </div>

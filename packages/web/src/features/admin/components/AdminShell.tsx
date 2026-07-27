@@ -3,8 +3,11 @@ import type { User } from '@sonarly/shared';
 
 const tabs = [
   { href: '/admin/status', label: 'Status' },
-  { href: '/admin/ingest', label: 'Ingest' },
+  { href: '/admin/libraries', label: 'Libraries' },
+  { href: '/admin/media', label: 'Media' },
   { href: '/admin/users', label: 'Users' },
+  { href: '/admin/system-tasks', label: 'System Tasks' },
+  { href: '/admin/genres', label: 'Genres' },
 ];
 
 function isActive(location: string, href: string): boolean {
@@ -21,7 +24,7 @@ export function AdminShell({ user, children }: AdminShellProps) {
 
   if (!user.isAdmin) {
     return (
-      <div className="max-w-2xl">
+      <div className="w-full">
         <h2 className="text-lg font-semibold">Admin panel</h2>
         <p className="mt-2 text-sm text-muted">You do not have permission to view this page.</p>
       </div>
@@ -29,9 +32,9 @@ export function AdminShell({ user, children }: AdminShellProps) {
   }
 
   return (
-    <div className="max-w-4xl">
+    <div className="w-full">
       <h2 className="text-lg font-semibold">Admin panel</h2>
-      <nav className="mb-6 mt-4 flex gap-2 border-b border-rule pb-2">
+      <nav className="mb-6 mt-4 flex flex-wrap gap-2 border-b border-rule pb-2">
         {tabs.map((tab) => (
           <Link
             key={tab.href}

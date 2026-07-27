@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
 import { api } from '../../../api.js';
 import { cn } from '../../../lib/cn.js';
@@ -9,6 +9,10 @@ import type { SmartPlaylistRules } from '@sonarly/shared';
 import { SmartPlaylistEditor } from '../components/SmartPlaylistEditor.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
+import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
+import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js';
+import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
+import { PlaylistCoverGrid } from '../components/PlaylistCoverGrid.js';
 
 interface Playlist {
   id: string;
@@ -21,6 +25,21 @@ interface Playlist {
   rating?: number;
 }
 
+function PlaylistContextMenu({
+  playlist,
+  onEdit,
+  onConvert,
+  children,
+}: {
+  playlist: Playlist;
+  onEdit: () => void;
+  onConvert: () => void;
+  children: ReactNode;
+}) {
+  const sections = usePlaylistContextMenu(playlist as any, onEdit, onConvert);
+  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+}
+
 export function Playlists() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [name, setName] = useState('');
@@ -31,6 +50,8 @@ export function Playlists() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { setFavorite, setRating } = useFavoriteActions();
+  const { get } = useFilterParams();
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -49,8 +70,6 @@ export function Playlists() {
       document.removeEventListener('keydown', handleKey);
     };
   }, [menuOpen]);
-  const { setFavorite, setRating } = useFavoriteActions();
-  const { get } = useFilterParams();
 
   const load = () => {
     setLoading(true);
@@ -119,12 +138,42 @@ export function Playlists() {
     }
   };
 
-  if (loading) return <p className="text-sm text-muted">Loading...</p>;
+  const columns: LibraryViewColumn<Playlist>[] = [
+    {
+      key: 'name',
+      header: 'Name',
+      render: (playlist) => (
+        <Link href={`/playlists/${playlist.id}`} className="hover:text-muted">
+          {playlist.name}
+        </Link>
+      ),
+    },
+    {
+      key: 'owner',
+      header: 'Owner',
+      render: (playlist) => playlist.ownerUsername,
+    },
+    {
+      key: 'visibility',
+      header: 'Visibility',
+      render: (playlist) => playlist.visibility,
+    },
+    {
+      key: 'songs',
+      header: 'Songs',
+      render: (playlist) => playlist.songCount,
+      className: 'w-20 text-right',
+    },
+  ];
+
+  const cardFields: LibraryViewCardField<Playlist>[] = [
+    { key: 'name', render: (playlist) => playlist.name },
+    { key: 'meta', render: (playlist) => `${playlist.ownerUsername} • ${playlist.songCount} songs` },
+  ];
 
   return (
-    <div>
-      <h2 className="mb-4 text-lg font-semibold">Playlists</h2>
-      <div className="mb-6 space-y-3 rounded border border-rule p-4">
+    <div className="space-y-4">
+      <div className="space-y-3 rounded border border-rule p-4">
         <div className="flex gap-2">
           <Input
             placeholder="New playlist name"
@@ -174,59 +223,32 @@ export function Playlists() {
           <SmartPlaylistEditor initialRules={rules} onChange={setRules} />
         )}
       </div>
-      {error && <p className="mb-4 text-sm text-danger">{error}</p>}
-      <ul className="divide-y divide-rule">
-        {filteredPlaylists.map((p) => (
-          <li key={p.id}>
-            <div className="flex items-center justify-between py-2 text-sm hover:bg-surface-hover">
-              <Link
-                href={`/playlists/${p.id}`}
-                className="flex items-center gap-2"
-              >
-                {p.name}
-                {p.isSmart && (
-                  <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary">smart</span>
-                )}
-              </Link>
-              <span className="inline-flex items-center gap-2 text-muted">
-                {p.songCount} {p.songCount === 1 ? 'song' : 'songs'} • {p.ownerUsername} • {p.visibility}
-                <button
-                  type="button"
-                  onClick={() => handleFavorite(p, !p.starred)}
-                  aria-label={p.starred ? 'Remove favorite' : 'Add favorite'}
-                  title={p.starred ? 'Remove favorite' : 'Add favorite'}
-                  className={cn(
-                    'rounded p-1 transition hover:bg-surface-hover',
-                    p.starred ? 'text-accent' : 'text-muted hover:text-accent',
-                  )}
-                >
-                  <Icon name={p.starred ? 'mdi-heart' : 'mdi-heart-outline'} size={18} />
-                </button>
-                <span className="inline-flex items-center gap-0.5">
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => handleRate(p, value === p.rating ? undefined : value)}
-                      aria-label={`Rate ${value} stars`}
-                      className={cn(
-                        'rounded p-0.5 transition hover:bg-surface-hover',
-                        value <= (p.rating ?? 0) ? 'text-accent' : 'text-muted hover:text-accent/70',
-                      )}
-                    >
-                      <Icon
-                        name={value <= (p.rating ?? 0) ? 'mdi-star' : 'mdi-star-outline'}
-                        size={14}
-                      />
-                    </button>
-                  ))}
-                </span>
-              </span>
-            </div>
-          </li>
-        ))}
-      </ul>
-      {filteredPlaylists.length === 0 && <p className="py-4 text-sm text-muted">No playlists match the current filters.</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
+      <LibraryView
+        title="Playlists"
+        data={filteredPlaylists}
+        isLoading={loading}
+        columns={columns}
+        cardFields={cardFields}
+        getId={(playlist) => playlist.id}
+        getHref={(playlist) => `/playlists/${playlist.id}`}
+        onFavorite={handleFavorite}
+        onRate={handleRate}
+        getFavorite={(playlist) => playlist.starred}
+        getRating={(playlist) => playlist.rating}
+        renderCover={(playlist) => <PlaylistCoverGrid playlistId={playlist.id} />}
+        renderContextMenu={(playlist, children) => (
+          <PlaylistContextMenu
+            playlist={playlist}
+            onEdit={() => { /* edit happens on the playlist detail page */ }}
+            onConvert={() => load()}
+          >
+            {children}
+          </PlaylistContextMenu>
+        )}
+        emptyMessage="No playlists match the current filters."
+        defaultView="list"
+      />
     </div>
   );
 }

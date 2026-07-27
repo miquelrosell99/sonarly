@@ -182,17 +182,23 @@ describe('OpenSubsonic retrieval endpoints', () => {
     expect(res.statusCode).toBe(404);
   });
 
-  it('returns 404 for cover art when the file has none', async () => {
+  it('returns a Subsonic error for cover art when the file has none', async () => {
     const res = await app.inject({ method: 'GET', url: query('/rest/getCoverArt.view?id=song-1', 'json') });
-    expect(res.statusCode).toBe(404);
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(70);
   });
 
-  it('returns 404 for cover art of a missing song', async () => {
+  it('returns a Subsonic error for cover art of a missing song', async () => {
     const res = await app.inject({ method: 'GET', url: query('/rest/getCoverArt.view?id=missing', 'json') });
-    expect(res.statusCode).toBe(404);
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(70);
   });
 
-  it('returns 404 for cover art when the file cannot be read', async () => {
+  it('returns a Subsonic error for cover art when the file cannot be read', async () => {
     upsertSong(db, {
       id: 'song-missing-file',
       filePath: '/data/library/does-not-exist.mp3',
@@ -203,6 +209,9 @@ describe('OpenSubsonic retrieval endpoints', () => {
     });
 
     const res = await app.inject({ method: 'GET', url: query('/rest/getCoverArt.view?id=song-missing-file', 'json') });
-    expect(res.statusCode).toBe(404);
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(70);
   });
 });

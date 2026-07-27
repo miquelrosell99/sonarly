@@ -16,6 +16,7 @@ export interface LibraryViewCardField<T> {
   key: string;
   label?: ReactNode;
   render: (item: T) => ReactNode;
+  getHref?: (item: T) => string | undefined;
 }
 
 interface LibraryViewProps<T> {
@@ -37,8 +38,10 @@ interface LibraryViewProps<T> {
   renderContextMenu?: (item: T, children: ReactNode) => ReactNode;
   emptyMessage?: string;
   defaultView?: 'list' | 'grid';
+  availableViews?: ViewMode[];
   getCover?: (item: T) => string | undefined;
   getCoverAlt?: (item: T) => string;
+  renderCover?: (item: T) => ReactNode;
   playingId?: string;
 }
 
@@ -63,11 +66,14 @@ export function LibraryView<T>({
   renderContextMenu,
   emptyMessage = 'No items found.',
   defaultView = 'list',
+  availableViews = ['list', 'grid'],
   getCover,
   getCoverAlt,
+  renderCover,
   playingId,
 }: LibraryViewProps<T>) {
-  const [viewMode, setViewMode] = useState<ViewMode>(defaultView);
+  const effectiveDefaultView = availableViews.includes(defaultView) ? defaultView : availableViews[0];
+  const [viewMode, setViewMode] = useState<ViewMode>(effectiveDefaultView);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
 
@@ -223,27 +229,27 @@ export function LibraryView<T>({
         const href = getHref(item);
         const starred = getFavorite?.(item);
         const rating = getRating?.(item);
-        const cover = getCover?.(item);
+        const coverId = getCover?.(item);
+        const customCover = renderCover?.(item);
+        const [titleField, ...extraFields] = cardFields;
+        const coverElement =
+          customCover ??
+          (coverId !== undefined ? (
+            <CoverArt coverArt={coverId} alt={getCoverAlt?.(item) ?? 'Cover art'} />
+          ) : undefined);
         const card = (
           <Card
             href={href}
-            cover={cover !== undefined ? <CoverArt coverArt={cover} alt={getCoverAlt?.(item) ?? 'Cover art'} /> : undefined}
+            title={titleField.render(item)}
+            fields={extraFields.map((field) => ({
+              content: field.render(item),
+              href: field.getHref?.(item),
+            }))}
+            cover={coverElement}
             favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
             rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
             play={onPlay ? { onClick: () => onPlay(item) } : undefined}
-          >
-            {cardFields.map((field, idx) => (
-              <div
-                key={field.key}
-                className={cn(
-                  'text-sm text-fg-primary',
-                  idx === 0 ? 'font-medium' : 'text-muted',
-                )}
-              >
-                {field.render(item)}
-              </div>
-            ))}
-          </Card>
+          />
         );
         return (
           <Fragment key={getId(item)}>
@@ -270,30 +276,36 @@ export function LibraryView<T>({
               <Icon name="mdi-shuffle" size={20} />
             </button>
           )}
-          <div className="flex items-center rounded-md border border-rule bg-surface p-1">
-            <button
-              type="button"
-              aria-label="List view"
-              onClick={() => setViewMode('list')}
-              className={cn(
-                'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                viewMode === 'list' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
+          {availableViews.length > 1 && (
+            <div className="flex items-center rounded-md border border-rule bg-surface p-1">
+              {availableViews.includes('list') && (
+                <button
+                  type="button"
+                  aria-label="List view"
+                  onClick={() => setViewMode('list')}
+                  className={cn(
+                    'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                    viewMode === 'list' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
+                  )}
+                >
+                  <Icon name="mdi-format-list-bulleted" size={20} />
+                </button>
               )}
-            >
-              <Icon name="mdi-format-list-bulleted" size={20} />
-            </button>
-            <button
-              type="button"
-              aria-label="Grid view"
-              onClick={() => setViewMode('grid')}
-              className={cn(
-                'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                viewMode === 'grid' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
+              {availableViews.includes('grid') && (
+                <button
+                  type="button"
+                  aria-label="Grid view"
+                  onClick={() => setViewMode('grid')}
+                  className={cn(
+                    'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                    viewMode === 'grid' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
+                  )}
+                >
+                  <Icon name="mdi-view-grid-outline" size={20} />
+                </button>
               )}
-            >
-              <Icon name="mdi-view-grid-outline" size={20} />
-            </button>
-          </div>
+            </div>
+          )}
         </div>
       </div>
       {viewMode === 'list' ? renderList() : renderGrid()}

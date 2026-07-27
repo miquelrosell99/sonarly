@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { z } from 'zod';
 import type { Song, Album, Artist, Playlist } from '@sonarly/shared';
-import { getUserPreferences } from '../user-preferences/index.js';
+import { getUserById } from '../users/index.js';
 
 const searchQuerySchema = z.object({
   q: z.string().default(''),
@@ -264,7 +264,7 @@ export function registerSearchRoutes(app: FastifyInstance, db: Database.Database
       return reply.send({ songs: [], albums: [], artists: [], playlists: [] });
     }
 
-    const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
+    const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
     const pattern = likePattern(query);
     const categoryLimit = type
       ? Math.min(limit ?? MAX_CATEGORY_RESULTS, MAX_CATEGORY_RESULTS)

@@ -5,13 +5,13 @@ import type { User, Song as BaseSong, Album } from '@sonarly/shared';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { api } from '../api.js';
+import { Avatar } from './Avatar.js';
 import { SearchBox } from './SearchBox.js';
 import type { FilterDefinition } from './FilterPanel.js';
 import type { PlayerInfo } from '@sonarly/shared';
 
 interface TopBarProps {
   user: User;
-  onOpenProfile: () => void;
   onLogout: () => void;
 }
 
@@ -25,29 +25,6 @@ interface PlaylistListItem {
 interface SongListItem extends BaseSong {
   artistName?: string;
   albumName?: string;
-}
-
-function Avatar({ user, className }: { user: User; className?: string }) {
-  const initials = user.name && user.surname
-    ? `${user.name[0]}${user.surname[0]}`.toUpperCase()
-    : user.name
-      ? user.name[0].toUpperCase()
-      : user.username[0].toUpperCase();
-
-  if (user.avatarUrl) {
-    return (
-      <img
-        src={user.avatarUrl}
-        alt=""
-        className={cn('rounded-full object-cover', className)}
-      />
-    );
-  }
-  return (
-    <div className={cn('flex items-center justify-center rounded-full bg-surface-hover text-xs font-semibold text-muted', className)}>
-      {initials}
-    </div>
-  );
 }
 
 function usePlayers() {
@@ -93,12 +70,12 @@ function PlayersDropdown() {
         aria-expanded={open}
         title={`Connected devices (${players.length})`}
         className={cn(
-          'relative flex items-center rounded-md p-2 text-fg-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-          open ? 'bg-surface-hover' : 'hover:bg-surface-hover',
+          'relative flex h-10 w-10 items-center justify-center rounded-full text-fg-secondary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          open ? 'bg-surface-hover text-fg-primary' : 'hover:bg-surface-hover hover:text-fg-primary',
         )}
       >
         <Icon name="mdi-cast-audio" size={20} />
-        <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-semibold text-bg-primary">
+        <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-bg-primary">
           {players.length}
         </span>
       </button>
@@ -106,12 +83,12 @@ function PlayersDropdown() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-40 mt-2 w-64 rounded-md border border-rule bg-bg-primary py-1 shadow-lg"
+          className="absolute right-0 top-full z-40 mt-2 w-64 rounded-xl border border-rule bg-surface p-1 shadow-xl"
         >
           {players.map((player) => (
-            <div key={player.id} className="px-4 py-2 text-sm">
+            <div key={player.id} className="px-3 py-2 text-sm">
               <p className="font-medium text-fg-primary">{player.clientId}</p>
-              <p className="truncate text-xs text-muted">{player.songTitle}</p>
+              <p className="truncate text-xs text-fg-secondary">{player.songTitle}</p>
             </div>
           ))}
         </div>
@@ -120,7 +97,7 @@ function PlayersDropdown() {
   );
 }
 
-function UserMenu({ user, onOpenProfile, onLogout }: TopBarProps) {
+function UserMenu({ user, onLogout }: TopBarProps) {
   const [open, setOpen] = useState(false);
   const [, setLocation] = useLocation();
   const ref = useRef<HTMLDivElement>(null);
@@ -157,34 +134,40 @@ function UserMenu({ user, onOpenProfile, onLogout }: TopBarProps) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex items-center gap-2 rounded-md p-1.5 text-left transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="flex items-center gap-2 rounded-full p-1 pr-3 text-left transition hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
         <Avatar user={user} className="h-8 w-8" />
-        <span className="hidden max-w-[8rem] truncate text-sm font-medium md:block">{displayName}</span>
-        <Icon name="mdi-chevron-down" size={16} className={cn('transition-transform', open && 'rotate-180')} />
+        <span className="hidden max-w-[8rem] truncate text-sm font-medium md:block">
+          {displayName}
+        </span>
+        <Icon
+          name="mdi-chevron-down"
+          size={16}
+          className={cn('hidden text-fg-secondary transition-transform md:block', open && 'rotate-180')}
+        />
       </button>
 
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-40 mt-2 w-48 rounded-md border border-rule bg-bg-primary py-1 shadow-lg"
+          className="absolute right-0 top-full z-40 mt-2 w-52 rounded-xl border border-rule bg-surface p-1 shadow-xl"
         >
           <button
             type="button"
             role="menuitem"
-            onClick={() => { setOpen(false); onOpenProfile(); }}
-            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+            onClick={() => navigate('/statistics')}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
           >
-            <Icon name="mdi-account" size={18} />
-            Profile
+            <Icon name="mdi-chart-bar" size={18} className="text-fg-secondary" />
+            Statistics
           </button>
           <button
             type="button"
             role="menuitem"
             onClick={() => navigate('/settings/profile')}
-            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
           >
-            <Icon name="mdi-cog" size={18} />
+            <Icon name="mdi-cog" size={18} className="text-fg-secondary" />
             Settings
           </button>
           {user.isAdmin && (
@@ -192,9 +175,9 @@ function UserMenu({ user, onOpenProfile, onLogout }: TopBarProps) {
               type="button"
               role="menuitem"
               onClick={() => navigate('/admin')}
-              className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
             >
-              <Icon name="mdi-account-group" size={18} />
+              <Icon name="mdi-account-group" size={18} className="text-fg-secondary" />
               Admin
             </button>
           )}
@@ -203,9 +186,9 @@ function UserMenu({ user, onOpenProfile, onLogout }: TopBarProps) {
             type="button"
             role="menuitem"
             onClick={() => { setOpen(false); onLogout(); }}
-            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
           >
-            <Icon name="mdi-logout" size={18} />
+            <Icon name="mdi-logout" size={18} className="text-fg-secondary" />
             Log out
           </button>
         </div>
@@ -267,8 +250,8 @@ function useFilterDefinitions(location: string): FilterDefinition[] {
   return useMemo(() => {
     if (location === '/albums' || location.startsWith('/albums/')) {
       return [
-        { key: 'yearFrom', label: 'Year from', type: 'text' },
-        { key: 'yearTo', label: 'Year to', type: 'text' },
+        { key: 'yearFrom', label: 'Year from', type: 'number' },
+        { key: 'yearTo', label: 'Year to', type: 'number' },
         { key: 'genre', label: 'Genre', type: 'select', options: uniqueSortedOptions(albums.map((a) => a.genre)) },
         { key: 'favorites', label: 'Favorites only', type: 'boolean' },
       ];
@@ -312,31 +295,32 @@ function useFilterDefinitions(location: string): FilterDefinition[] {
   }, [location, albums, songs, playlists]);
 }
 
-export function TopBar({ user, onOpenProfile, onLogout }: TopBarProps) {
+export function TopBar({ user, onLogout }: TopBarProps) {
   const [location] = useLocation();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filters = useFilterDefinitions(location);
 
   return (
-    <>
-      <header className="grid h-16 shrink-0 grid-cols-[1fr_1fr_1fr] items-center gap-4 border-b border-rule bg-bg-primary px-4">
-        <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight text-fg-primary hover:text-fg-primary">
-          Sonarly
-        </Link>
+    <header className="relative z-50 grid h-16 shrink-0 grid-cols-[1fr_2fr_1fr] items-center gap-4 bg-bg-primary/80 px-6 backdrop-blur-md">
+      <Link
+        href="/"
+        className="flex items-center gap-2 text-xl font-bold tracking-tight text-fg-primary hover:text-fg-primary"
+      >
+        <span className="font-display">Sonarly</span>
+      </Link>
 
-        <div className="relative hidden w-full max-w-2xl justify-self-center sm:block">
-          <SearchBox
-            filters={filters}
-            filtersOpen={filtersOpen}
-            onToggleFilters={() => setFiltersOpen((v) => !v)}
-          />
-        </div>
+      <div className="relative hidden w-full max-w-xl justify-self-center sm:block">
+        <SearchBox
+          filters={filters}
+          filtersOpen={filtersOpen}
+          onToggleFilters={() => setFiltersOpen((v) => !v)}
+        />
+      </div>
 
-        <div className="flex items-center justify-end gap-3">
-          <PlayersDropdown />
-          <UserMenu user={user} onOpenProfile={onOpenProfile} onLogout={onLogout} />
-        </div>
-      </header>
-    </>
+      <div className="flex items-center justify-end gap-2">
+        <PlayersDropdown />
+        <UserMenu user={user} onLogout={onLogout} />
+      </div>
+    </header>
   );
 }

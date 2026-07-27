@@ -202,4 +202,71 @@ describe('management album endpoints', () => {
     });
     expect(res.statusCode).toBe(403);
   });
+
+  it('uploads cover art for an album', async () => {
+    const boundary = '----FormBoundary' + Date.now();
+    const imageBuffer = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+    const body = Buffer.concat([
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="cover.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`),
+      imageBuffer,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/albums/album-1/cover-art',
+      cookies: { sessionId: cookieValue },
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+    expect(res.statusCode).toBe(200);
+    const { coverArt } = JSON.parse(res.body) as { coverArt: string };
+    expect(coverArt).toBeTruthy();
+    const row = db.prepare('SELECT cover_art_id FROM albums WHERE id = ?').get('album-1') as { cover_art_id: string };
+    expect(row.cover_art_id).toBe(coverArt);
+  });
+
+  it('removes cover art for an album', async () => {
+    db.prepare("INSERT INTO cover_arts (id, format, data, hash) VALUES ('cover-1', 'image/jpeg', X'', 'hash-1')").run();
+    db.prepare("UPDATE albums SET cover_art_id = 'cover-1' WHERE id = ?").run('album-1');
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/albums/album-1/cover-art',
+      cookies: { sessionId: cookieValue },
+    });
+    expect(res.statusCode).toBe(200);
+    const row = db.prepare('SELECT cover_art_id FROM albums WHERE id = ?').get('album-1') as { cover_art_id: string | null };
+    expect(row.cover_art_id).toBeNull();
+  });
+
+  it('forbids album cover art upload for non-admins', async () => {
+    createUser(db, {
+      id: 'user-3',
+      username: 'regular2',
+      passwordHash: await hashPassword('pass'),
+      subsonicPasswordEncrypted: encryptSubsonicPassword('pass', baseConfig.SESSION_SECRET),
+      isAdmin: false,
+      createdAt: new Date().toISOString(),
+    });
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/login',
+      payload: { username: 'regular2', password: 'pass' },
+    });
+    const regularCookie = login.cookies.find((c) => c.name === 'sessionId')!.value;
+    const boundary = '----FormBoundary' + Date.now();
+    const imageBuffer = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+    const body = Buffer.concat([
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="cover.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`),
+      imageBuffer,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/albums/album-1/cover-art',
+      cookies: { sessionId: regularCookie },
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      payload: body,
+    });
+    expect(res.statusCode).toBe(403);
+  });
 });

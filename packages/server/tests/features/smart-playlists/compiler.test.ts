@@ -5,6 +5,7 @@ import { createUser } from '../../../src/features/users/repository.js';
 import { upsertSong } from '../../../src/features/songs/repository.js';
 import { upsertAlbum } from '../../../src/features/albums/repository.js';
 import { upsertArtist } from '../../../src/features/artists/repository.js';
+import { getOrCreateGenreByName } from '../../../src/features/genres/repository.js';
 import { compileSmartPlaylist } from '../../../src/features/smart-playlists/compiler.js';
 import type { SmartPlaylistRules, User, Song, Album, Artist } from '@sonarly/shared';
 
@@ -85,6 +86,10 @@ describe('smart playlist compiler', () => {
     for (const song of songs) {
       upsertSong(db, song);
     }
+
+    const genreId = getOrCreateGenreByName(db, 'Alternative Rock');
+    db.prepare('UPDATE songs SET genre_id = ? WHERE genre = ?').run(genreId, 'Alternative Rock');
+    db.prepare('UPDATE albums SET genre_id = ? WHERE id = ?').run(genreId, 'album-1');
 
     db.prepare(`
       INSERT INTO user_songs (user_id, song_id, starred, rating, play_count, last_played)

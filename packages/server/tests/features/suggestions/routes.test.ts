@@ -88,6 +88,9 @@ describe('suggestion endpoints', () => {
     upsertArtist(db, { id: 'artist-2', name: 'Beta Artist' });
     upsertAlbum(db, { id: 'album-1', name: 'Alpha Album', artistName: 'Alpha Artist', genre: 'Rock' });
     upsertAlbum(db, { id: 'album-2', name: 'Beta Album', artistName: 'Beta Artist', genre: 'Pop' });
+    db.prepare("INSERT INTO genres (id, name, active) VALUES ('genre-rock', 'Rock', 1), ('genre-pop', 'Pop', 1)").run();
+    db.prepare("UPDATE albums SET genre_id = 'genre-rock' WHERE id = 'album-1'").run();
+    db.prepare("UPDATE albums SET genre_id = 'genre-pop' WHERE id = 'album-2'").run();
 
     app = await buildApp(config, db);
 

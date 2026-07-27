@@ -5,11 +5,9 @@ import { getSetting, setSetting } from '../settings/index.js';
 
 export class ScanScheduler {
   private readonly intervalMs: number;
-  private readonly libraryPath: string;
 
   constructor(config: Config) {
     this.intervalMs = config.SCAN_INTERVAL_MINUTES > 0 ? config.SCAN_INTERVAL_MINUTES * 60 * 1000 : 0;
-    this.libraryPath = config.LIBRARY_PATH;
   }
 
   tick(db: Database.Database, now = Date.now()): void {
@@ -30,7 +28,7 @@ export class ScanScheduler {
     if (now - last < this.intervalMs) return;
     if (this.hasPendingOrRunningScan(db)) return;
 
-    pushJob(db, 'scan', this.libraryPath);
+    pushJob(db, 'scan', '');
     setSetting(db, 'last_periodic_scan', new Date(now).toISOString());
   }
 
@@ -67,7 +65,7 @@ export class ArtistImageScheduler {
     if (now - last < this.intervalMs) return;
     if (this.hasPendingOrRunningSync(db)) return;
 
-    pushJob(db, 'artist_images', '');
+    pushJob(db, 'artist_images', JSON.stringify({ refetchExisting: true }));
     setSetting(db, 'last_artist_image_sync', new Date(now).toISOString());
   }
 

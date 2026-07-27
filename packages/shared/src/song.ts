@@ -1,3 +1,8 @@
+export interface SyncedLyricLine {
+  time: number;
+  text: string;
+}
+
 export interface Song {
   id: string;
   filePath: string;
@@ -10,6 +15,9 @@ export interface Song {
   artistName?: string;
   albumName?: string;
   genre?: string;
+  genreId?: string;
+  genres?: string[];
+  genreIds?: string[];
   year?: number;
   explicit?: boolean;
   coverArt?: string;
@@ -25,6 +33,9 @@ export interface Song {
   channels?: number;
   bpm?: number;
   musicBrainzId?: string;
+  musicBrainzTrackId?: string;
+  musicBrainzWorkId?: string;
+  musicBrainzDiscId?: string;
   replayGain?: number;
   averageRating?: number;
   comment?: string;
@@ -36,6 +47,17 @@ export interface Song {
   remixOf?: string;
   displayArtist?: string;
   displayAlbumArtist?: string;
+  lyrics?: string;
+  syncedLyrics?: SyncedLyricLine[];
+  artists?: string[];
+  composers?: string[];
+  producers?: string[];
+  isrcs?: string[];
+  originalYear?: number;
+  originalArtist?: string;
+  gapless?: boolean;
+  totalTracks?: string;
+  totalDiscs?: string;
 }
 
 export interface SongTags {
@@ -48,4 +70,6 @@ export interface SongTags {
   genre?: string;
   year?: number;
   explicit?: boolean;
+  lyrics?: string;
+  syncedLyrics?: SyncedLyricLine[];
 }

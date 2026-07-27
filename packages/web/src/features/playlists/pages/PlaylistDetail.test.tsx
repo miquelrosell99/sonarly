@@ -38,10 +38,16 @@ afterEach(() => {
 
 function renderPlaylistDetail() {
   window.history.pushState({}, '', '/playlists/playlist-1');
+  const user = {
+    id: 'user-1',
+    username: 'user',
+    isAdmin: false,
+    createdAt: new Date().toISOString(),
+  };
   return render(
     <Router>
       <NotificationProvider>
-        <Route path="/playlists/:id" component={PlaylistDetail} />
+        <Route path="/playlists/:id" component={() => <PlaylistDetail user={user} />} />
       </NotificationProvider>
     </Router>,
   );
@@ -65,9 +71,6 @@ describe('PlaylistDetail', () => {
             starred: false,
           },
         };
-      }
-      if (path === '/me/preferences') {
-        return { preferences: {} };
       }
       return {};
     });

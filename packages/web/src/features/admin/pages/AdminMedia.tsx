@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
-import { Settings } from '../components/Settings.js';
-import { RenameProgressModal } from '../components/RenameProgressModal.js';
+import { Icon } from '../../../components/ui/Icon.js';
+import { AdminShell } from '../components/AdminShell.js';
+import { RenameProgressModal } from '../../settings/index.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 
 interface Template {
@@ -14,6 +16,15 @@ interface Template {
 interface MediaSettings {
   organizePattern: string;
   templates: Template[];
+}
+
+interface AdminStatusCounts {
+  counts: {
+    users: number;
+    songs: number;
+    albums: number;
+    artists: number;
+  };
 }
 
 const sampleTags: Record<string, string> = {
@@ -46,7 +57,11 @@ function buildPreviewPath(pattern: string): string {
   return `/library/${sanitized}.mp3`;
 }
 
-export function SettingsMedia() {
+interface AdminMediaProps {
+  user: User;
+}
+
+export function AdminMedia({ user }: AdminMediaProps) {
   const { notify } = useNotification();
   const [pattern, setPattern] = useState('');
   const [initialPattern, setInitialPattern] = useState('');
@@ -55,14 +70,21 @@ export function SettingsMedia() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
+  const [counts, setCounts] = useState<AdminStatusCounts['counts'] | null>(null);
+  const [triggeringIngest, setTriggeringIngest] = useState(false);
+  const [refetchingArtists, setRefetchingArtists] = useState(false);
 
   useEffect(() => {
-    api<MediaSettings>('/settings/media')
-      .then((data) => {
-        setPattern(data.organizePattern);
-        setInitialPattern(data.organizePattern);
-        setTemplates(data.templates);
-        setSelectedTemplate(data.templates.find((t) => t.value === data.organizePattern)?.value ?? '');
+    Promise.all([
+      api<MediaSettings>('/settings/media'),
+      api<AdminStatusCounts>('/admin/status'),
+    ])
+      .then(([settingsData, statusData]) => {
+        setPattern(settingsData.organizePattern);
+        setInitialPattern(settingsData.organizePattern);
+        setTemplates(settingsData.templates);
+        setSelectedTemplate(settingsData.templates.find((t) => t.value === settingsData.organizePattern)?.value ?? '');
+        setCounts(statusData.counts);
       })
       .catch((err) => notify(err instanceof Error ? err.message : 'Failed to load settings', 'error'))
       .finally(() => setLoading(false));
@@ -109,26 +131,91 @@ export function SettingsMedia() {
     }
   };
 
+  const triggerIngest = async () => {
+    setTriggeringIngest(true);
+    try {
+      await api('/ingest/trigger', { method: 'POST' });
+      notify('Ingest triggered.', 'success');
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to trigger ingest', 'error');
+    } finally {
+      setTriggeringIngest(false);
+    }
+  };
+
+  const refetchArtists = async () => {
+    setRefetchingArtists(true);
+    try {
+      await api('/admin/artists/refetch', { method: 'POST' });
+      notify('Artist image and metadata refetch started.', 'success');
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to refetch artist data', 'error');
+    } finally {
+      setRefetchingArtists(false);
+    }
+  };
+
   if (loading) {
     return (
-      <Settings>
+      <AdminShell user={user}>
         <p className="text-sm text-muted">Loading...</p>
-      </Settings>
+      </AdminShell>
     );
   }
 
   return (
-    <Settings
-      actions={
-        isDirty ? (
-          <Button onClick={save} disabled={saving || !pattern.trim()}>
-            {saving ? 'Saving...' : 'Save changes'}
+    <AdminShell user={user}>
+      <div className="w-full space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-base font-medium">Media Management</h3>
+          {isDirty && (
+            <Button onClick={save} disabled={saving || !pattern.trim()}>
+              {saving ? 'Saving...' : 'Save changes'}
+            </Button>
+          )}
+        </div>
+
+        {counts && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-xl border border-rule bg-surface p-3">
+              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-surface-hover text-accent">
+                <Icon name="mdi-music" size={18} />
+              </div>
+              <p className="font-display text-2xl font-bold text-fg-primary">{counts.songs.toLocaleString()}</p>
+              <p className="text-xs text-fg-secondary">Songs</p>
+            </div>
+            <div className="rounded-xl border border-rule bg-surface p-3">
+              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-surface-hover text-accent">
+                <Icon name="mdi-album" size={18} />
+              </div>
+              <p className="font-display text-2xl font-bold text-fg-primary">{counts.albums.toLocaleString()}</p>
+              <p className="text-xs text-fg-secondary">Albums</p>
+            </div>
+            <div className="rounded-xl border border-rule bg-surface p-3">
+              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-surface-hover text-accent">
+                <Icon name="mdi-account-music" size={18} />
+              </div>
+              <p className="font-display text-2xl font-bold text-fg-primary">{counts.artists.toLocaleString()}</p>
+              <p className="text-xs text-fg-secondary">Artists</p>
+            </div>
+            <div className="rounded-xl border border-rule bg-surface p-3">
+              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-surface-hover text-accent">
+                <Icon name="mdi-account-group" size={18} />
+              </div>
+              <p className="font-display text-2xl font-bold text-fg-primary">{counts.users.toLocaleString()}</p>
+              <p className="text-xs text-fg-secondary">Users</p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={triggerIngest} disabled={triggeringIngest}>
+            {triggeringIngest ? 'Triggering...' : 'Trigger ingest'}
           </Button>
-        ) : null
-      }
-    >
-      <div className="max-w-2xl space-y-4">
-        <h3 className="text-base font-medium">Media Management</h3>
+          <Button onClick={refetchArtists} disabled={refetchingArtists} variant="ghost">
+            {refetchingArtists ? 'Refetching...' : 'Refetch artist images & data'}
+          </Button>
+        </div>
 
         <div>
           <label htmlFor="template" className="mb-1 block text-sm font-medium text-fg-primary">
@@ -185,6 +272,6 @@ export function SettingsMedia() {
           }
         />
       )}
-    </Settings>
+    </AdminShell>
   );
 }

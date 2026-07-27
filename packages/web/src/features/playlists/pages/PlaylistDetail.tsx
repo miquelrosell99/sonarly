@@ -1,9 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { useParams, Link, useLocation } from 'wouter';
-import type { SmartPlaylistRules, Song, UserPreferences } from '@sonarly/shared';
+import { useParams, useLocation } from 'wouter';
+import type { SmartPlaylistRules, Song, User } from '@sonarly/shared';
 import { api } from '../../../api.js';
-import { cn } from '../../../lib/cn.js';
-import { Table, TableColumn } from '../../../components/ui/Table.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { SmartPlaylistEditor } from '../components/SmartPlaylistEditor.js';
@@ -14,7 +12,9 @@ import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js
 import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
+import { SongTable, type SongListItem } from '../../songs/components/SongTable.js';
 
 interface PlaylistSong {
   id: string;
@@ -36,6 +36,11 @@ interface Playlist {
   starred?: boolean;
   rating?: number;
 }
+
+type DisplaySong = PlaylistSong & {
+  artistName?: string;
+  albumName?: string;
+};
 
 function PlaylistHeaderContextMenu({
   playlist,
@@ -61,33 +66,28 @@ function PlaylistSongContextMenu({
   onEdit,
   children,
 }: {
-  song: PlaylistSong;
+  song: SongListItem;
   onEdit: () => void;
   children: ReactNode;
 }) {
-  const fullSong = {
-    ...song,
-    artistName: song.artist,
-    albumName: song.album,
-    filePath: '',
-    mtime: 0,
-    checksum: '',
-  } as unknown as Song;
-  const sections = useSongContextMenu(fullSong, onEdit);
+  const sections = useSongContextMenu(song as unknown as Song, onEdit, false);
   const visibleSections = sections
     .map((section) => ({ ...section, items: section.items.filter((item) => item.id !== 'edit') }))
     .filter((section) => section.items.length > 0);
   return <ItemContextMenu sections={visibleSections}>{children}</ItemContextMenu>;
 }
 
-export function PlaylistDetail() {
+interface PlaylistDetailProps {
+  user: User;
+}
+
+export function PlaylistDetail({ user }: PlaylistDetailProps) {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [preferences, setPreferences] = useState<UserPreferences>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingRules, setSavingRules] = useState(false);
@@ -99,13 +99,9 @@ export function PlaylistDetail() {
   const load = () => {
     if (!id) return;
     setLoading(true);
-    Promise.all([
-      api<{ playlist: Playlist }>(`/playlists/${id}`),
-      api<{ preferences: UserPreferences }>('/me/preferences').catch(() => ({ preferences: {} })),
-    ])
-      .then(([playlistRes, prefsRes]) => {
+    api<{ playlist: Playlist }>(`/playlists/${id}`)
+      .then((playlistRes) => {
         setPlaylist(playlistRes.playlist);
-        setPreferences(prefsRes.preferences);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load playlist'))
       .finally(() => setLoading(false));
@@ -132,13 +128,19 @@ export function PlaylistDetail() {
     }
   };
 
-  const blurExplicitTitles = preferences.blurExplicitTitles === true;
+  const blurExplicitTitles = user.blurExplicitTitles === true;
 
-  const handlePlay = (song: PlaylistSong) => {
+  const displayEntries: DisplaySong[] = playlist?.entries.map((entry) => ({
+    ...entry,
+    artistName: entry.artist,
+    albumName: entry.album,
+  })) ?? [];
+
+  const handlePlay = (song: SongListItem) => {
     playSongs([song as unknown as Song], 0);
   };
 
-  const handlePlaySelection = (songs: PlaylistSong[], startIndex: number) => {
+  const handlePlaySelection = (songs: SongListItem[], startIndex: number) => {
     playSongs(songs as unknown as Song[], startIndex);
   };
 
@@ -202,31 +204,6 @@ export function PlaylistDetail() {
     load();
   };
 
-  const columns: TableColumn<PlaylistSong>[] = [
-    {
-      key: 'title',
-      header: 'Title',
-      render: (s) => (
-        <span className={`inline-flex items-center gap-2 ${s.explicit && blurExplicitTitles ? 'blur-sm' : ''}`}>
-          <Link href={`/tracks/${s.id}`} className="hover:text-muted">
-            {s.title}
-          </Link>
-          {s.explicit && (
-            <span className="rounded bg-red-500/10 px-1 text-[10px] font-bold text-red-500">E</span>
-          )}
-        </span>
-      ),
-    },
-    { key: 'artist', header: 'Artist', render: (s) => s.artist || '-' },
-    { key: 'album', header: 'Album', render: (s) => s.album || '-' },
-    {
-      key: 'duration',
-      header: 'Duration',
-      className: 'w-24',
-      render: (s) => (s.duration ? formatDuration(s.duration) : '-'),
-    },
-  ];
-
   if (loading) return <p className="text-sm text-muted">Loading...</p>;
   if (error) return <p className="text-sm text-danger">{error}</p>;
   if (!playlist) return <p className="text-sm text-muted">Playlist not found.</p>;
@@ -236,37 +213,13 @@ export function PlaylistDetail() {
       <div>
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold">{playlist.name}</h2>
-          <button
-            type="button"
-            onClick={() => handleFavorite(!playlist.starred)}
-            aria-label={playlist.starred ? 'Remove favorite' : 'Add favorite'}
-            title={playlist.starred ? 'Remove favorite' : 'Add favorite'}
-            className={cn(
-              'rounded p-1 transition hover:bg-surface-hover',
-              playlist.starred ? 'text-accent' : 'text-muted hover:text-accent',
-            )}
-          >
-            <Icon name={playlist.starred ? 'mdi-heart' : 'mdi-heart-outline'} size={20} />
-          </button>
-          <span className="inline-flex items-center gap-0.5">
-            {[1, 2, 3, 4, 5].map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => handleRate(value === playlist.rating ? undefined : value)}
-                aria-label={`Rate ${value} stars`}
-                className={cn(
-                  'rounded p-0.5 transition hover:bg-surface-hover',
-                  value <= (playlist.rating ?? 0) ? 'text-accent' : 'text-muted hover:text-accent/70',
-                )}
-              >
-                <Icon
-                  name={value <= (playlist.rating ?? 0) ? 'mdi-star' : 'mdi-star-outline'}
-                  size={18}
-                />
-              </button>
-            ))}
-          </span>
+          <FavoriteRatingGroup
+            starred={playlist.starred}
+            onToggleFavorite={() => handleFavorite(!playlist.starred)}
+            rating={playlist.rating}
+            onRate={(rating) => handleRate(rating || undefined)}
+            favoriteLabel={playlist.name}
+          />
         </div>
         <p className="text-sm text-muted">
           {playlist.visibility}
@@ -275,9 +228,9 @@ export function PlaylistDetail() {
           )}
         </p>
       </div>
-      <Link href="/playlists" className="btn-ghost text-xs">
+      <Button variant="ghost" onClick={() => setLocation('/playlists')}>
         Back
-      </Link>
+      </Button>
     </div>
   );
 
@@ -301,19 +254,18 @@ export function PlaylistDetail() {
         </div>
       )}
 
-      <Table
-        columns={columns}
-        rows={playlist.entries}
-        rowKey={(s) => s.id}
-        empty="No songs in this playlist."
+      <SongTable
+        songs={displayEntries}
+        playingId={playingId}
+        blurExplicit={blurExplicitTitles}
         onPlay={handlePlay}
         onPlaySelection={handlePlaySelection}
-        playingId={playingId}
         renderRow={(song, row) => (
           <PlaylistSongContextMenu song={song} onEdit={() => {}}>
             {row}
           </PlaylistSongContextMenu>
         )}
+        empty="No songs in this playlist."
       />
 
       {editing && (
@@ -330,10 +282,4 @@ export function PlaylistDetail() {
       )}
     </div>
   );
-}
-
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
 }

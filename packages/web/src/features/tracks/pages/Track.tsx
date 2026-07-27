@@ -1,23 +1,18 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'wouter';
+import { useParams } from 'wouter';
 import type { Song } from '@sonarly/shared';
 import { api } from '../../../api.js';
-import { cn } from '../../../lib/cn.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
+import { CoverArt } from '../../../components/CoverArt.js';
+import { EntityHeader } from '../../../components/EntityHeader.js';
+import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
+import { formatDuration } from '../../../lib/format.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
+import type { SongWithNames } from '../../../lib/types.js';
 
-interface TrackDetail extends Song {
-  artistName?: string;
-  albumName?: string;
-}
-
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
+type TrackDetail = SongWithNames;
 
 export function Track() {
   const { id } = useParams<{ id: string }>();
@@ -64,65 +59,34 @@ export function Track() {
   if (error) return <p className="text-sm text-danger">{error}</p>;
   if (!track) return <p className="text-sm text-muted">Track not found.</p>;
 
+  const metadata = [
+    { label: track.artistName ?? 'Unknown artist', href: track.artistId ? `/artists/${track.artistId}` : undefined },
+    { label: track.albumName ?? 'Unknown album', href: track.albumId ? `/albums/${track.albumId}` : undefined },
+    { label: track.year !== undefined && track.year !== null ? String(track.year) : '', href: track.year !== undefined ? `/years/${track.year}` : undefined },
+    { label: track.genre ?? '', href: track.genre ? `/genres/${encodeURIComponent(track.genre)}` : undefined },
+    { label: track.duration !== undefined ? formatDuration(track.duration) : '' },
+  ];
+
   return (
-    <div>
-      <div className="flex items-center gap-3">
-        <h2 className="text-lg font-semibold">{track.title}</h2>
-        <button
-          type="button"
-          onClick={() => handleFavorite(!track.starred)}
-          aria-label={track.starred ? 'Remove favorite' : 'Add favorite'}
-          title={track.starred ? 'Remove favorite' : 'Add favorite'}
-          className={cn(
-            'rounded p-1 transition hover:bg-surface-hover',
-            track.starred ? 'text-accent' : 'text-muted hover:text-accent',
-          )}
-        >
-          <Icon name={track.starred ? 'mdi-heart' : 'mdi-heart-outline'} size={20} />
-        </button>
-        <span className="inline-flex items-center gap-0.5">
-          {[1, 2, 3, 4, 5].map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => handleRate(value === track.rating ? undefined : value)}
-              aria-label={`Rate ${value} stars`}
-              className={cn(
-                'rounded p-0.5 transition hover:bg-surface-hover',
-                value <= (track.rating ?? 0) ? 'text-accent' : 'text-muted hover:text-accent/70',
-              )}
-            >
-              <Icon
-                name={value <= (track.rating ?? 0) ? 'mdi-star' : 'mdi-star-outline'}
-                size={18}
-              />
-            </button>
-          ))}
-        </span>
-      </div>
-      <p className="text-sm text-muted">
-        {track.artistId ? (
-          <Link href={`/artists/${track.artistId}`} className="hover:text-muted">
-            {track.artistName ?? 'Unknown artist'}
-          </Link>
-        ) : (
-          track.artistName ?? 'Unknown artist'
-        )}
-        {' • '}
-        {track.albumId ? (
-          <Link href={`/albums/${track.albumId}`} className="hover:text-muted">
-            {track.albumName ?? 'Unknown album'}
-          </Link>
-        ) : (
-          track.albumName ?? 'Unknown album'
-        )}
-        {track.year !== undefined && track.year !== null && ` • ${track.year}`}
-        {track.genre && ` • ${track.genre}`}
-        {track.duration !== undefined && ` • ${formatDuration(track.duration)}`}
-      </p>
-      <Button onClick={() => playSong(track)} className="mt-4">
-        Play
-      </Button>
-    </div>
+    <EntityHeader
+      type="Song"
+      title={track.title}
+      cover={<CoverArt coverArt={track.coverArt} alt={`Cover art for ${track.title}`} className="h-48 w-48 sm:h-56 sm:w-56" iconSize={64} />}
+      metadata={metadata}
+      actions={
+        <>
+          <Button onClick={() => playSong(track)} className="gap-2">
+            <Icon name="mdi-play" size={18} />
+            Play
+          </Button>
+          <FavoriteRatingGroup
+            starred={track.starred}
+            onToggleFavorite={() => handleFavorite(!track.starred)}
+            rating={track.rating}
+            onRate={handleRate}
+          />
+        </>
+      }
+    />
   );
 }

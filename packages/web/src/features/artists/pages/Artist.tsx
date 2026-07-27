@@ -1,55 +1,54 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'wouter';
-import type { UserPreferences } from '@sonarly/shared';
+import type { Song, UserPreferences } from '@sonarly/shared';
 import { api } from '../../../api.js';
-import { cn } from '../../../lib/cn.js';
-import { Icon } from '../../../components/ui/Icon.js';
+import { Card } from '../../../components/Card.js';
+import { CoverArt } from '../../../components/CoverArt.js';
+import { ArtistImage } from '../../../components/ArtistImage.js';
+import { EntityHeader } from '../../../components/EntityHeader.js';
+import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
+import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { TrackList } from '../../songs/index.js';
+import type { SongWithNames } from '../../../lib/types.js';
 
 interface Album {
   id: string;
   name: string;
   year?: number;
+  genre?: string;
+  coverArt?: string;
   totalSongCount?: number;
   shownSongCount?: number;
-}
-
-interface Track {
-  id: string;
-  title: string;
-  duration?: number;
-  artistId?: string;
+  starred?: boolean;
+  rating?: number;
 }
 
 interface ArtistDetail {
   id: string;
   name: string;
+  artistImageUrl?: string;
   albums: Album[];
   starred?: boolean;
   rating?: number;
 }
 
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
 export function Artist() {
   const { id } = useParams<{ id: string }>();
   const [artist, setArtist] = useState<ArtistDetail | null>(null);
-  const [topTracks, setTopTracks] = useState<Track[]>([]);
+  const [topTracks, setTopTracks] = useState<SongWithNames[]>([]);
   const [preferences, setPreferences] = useState<UserPreferences>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { setFavorite, setRating } = useFavoriteActions();
+  const { playSongs, shufflePlay } = usePlayActions();
 
   useEffect(() => {
     if (!id) return;
     setLoading(true);
     Promise.all([
       api<{ artist: ArtistDetail }>(`/artists/${id}`),
-      api<{ songs: Track[] }>('/songs').catch(() => ({ songs: [] })),
+      api<{ songs: SongWithNames[] }>('/songs').catch(() => ({ songs: [] })),
       api<{ preferences: UserPreferences }>('/me/preferences').catch(() => ({ preferences: {} })),
     ])
       .then(([artistRes, songsRes, prefsRes]) => {
@@ -81,91 +80,136 @@ export function Artist() {
     }
   };
 
+  const handleAlbumFavorite = async (album: Album, starred: boolean) => {
+    if (!artist) return;
+    try {
+      await setFavorite('album', album.id, starred);
+      setArtist((prev) =>
+        prev
+          ? {
+              ...prev,
+              albums: prev.albums.map((a) => (a.id === album.id ? { ...a, starred } : a)),
+            }
+          : prev,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+    }
+  };
+
+  const handleAlbumRate = async (album: Album, rating?: number) => {
+    if (!artist) return;
+    try {
+      await setRating('album', album.id, rating);
+      setArtist((prev) =>
+        prev
+          ? {
+              ...prev,
+              albums: prev.albums.map((a) => (a.id === album.id ? { ...a, rating } : a)),
+            }
+          : prev,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update rating');
+    }
+  };
+
+  const playAlbum = async (album: Album) => {
+    try {
+      const detail = await api<{ songs: Song[] }>(`/albums/${album.id}`);
+      playSongs(detail.songs, 0);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to play album');
+    }
+  };
+
+  const playTrack = (track: SongWithNames) => {
+    playSongs([track as Song], 0);
+  };
+
   if (loading) return <p className="text-sm text-muted">Loading...</p>;
   if (error) return <p className="text-sm text-danger">{error}</p>;
   if (!artist) return <p className="text-sm text-muted">Artist not found.</p>;
 
   return (
     <div>
-      <div className="mb-4 flex items-center gap-3">
-        <h2 className="text-lg font-semibold">{artist.name}</h2>
-        <button
-          type="button"
-          onClick={() => handleFavorite(!artist.starred)}
-          aria-label={artist.starred ? 'Remove favorite' : 'Add favorite'}
-          title={artist.starred ? 'Remove favorite' : 'Add favorite'}
-          className={cn(
-            'rounded p-1 transition hover:bg-surface-hover',
-            artist.starred ? 'text-accent' : 'text-muted hover:text-accent',
-          )}
-        >
-          <Icon name={artist.starred ? 'mdi-heart' : 'mdi-heart-outline'} size={20} />
-        </button>
-        <span className="inline-flex items-center gap-0.5">
-          {[1, 2, 3, 4, 5].map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => handleRate(value === artist.rating ? undefined : value)}
-              aria-label={`Rate ${value} stars`}
-              className={cn(
-                'rounded p-0.5 transition hover:bg-surface-hover',
-                value <= (artist.rating ?? 0) ? 'text-accent' : 'text-muted hover:text-accent/70',
-              )}
-            >
-              <Icon
-                name={value <= (artist.rating ?? 0) ? 'mdi-star' : 'mdi-star-outline'}
-                size={18}
-              />
-            </button>
-          ))}
-        </span>
-      </div>
-      <h3 className="mb-2 text-sm font-medium text-muted">Albums</h3>
-      <ul className="divide-y divide-rule">
-        {artist.albums.map((album) => {
-          const hasFilteredSongs =
-            album.totalSongCount !== undefined &&
-            album.shownSongCount !== undefined &&
-            album.totalSongCount > album.shownSongCount;
-          return (
-            <li key={album.id}>
-              <Link
-                href={`/albums/${album.id}`}
-                className="flex items-center justify-between py-2 text-sm hover:bg-surface-hover"
-              >
-                <span className="inline-flex items-center gap-2">
-                  {album.name}
-                  {hasFilteredSongs && (
-                    <span className="rounded bg-yellow-500/10 px-1.5 py-0.5 text-xs text-yellow-500">
-                      {album.shownSongCount} of {album.totalSongCount} songs
-                    </span>
-                  )}
-                </span>
-                {album.year !== undefined && album.year !== null && <span className="text-muted">{album.year}</span>}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-      {artist.albums.length === 0 && <p className="py-4 text-sm text-muted">No albums found.</p>}
+      <EntityHeader
+        type="Artist"
+        title={artist.name}
+        cover={
+          <ArtistImage
+            artistId={artist.id}
+            alt={`Image for ${artist.name}`}
+            className="h-48 w-48 sm:h-56 sm:w-56"
+            iconSize={64}
+            shape="rounded"
+          />
+        }
+        actions={
+          <FavoriteRatingGroup
+            starred={artist.starred}
+            onToggleFavorite={() => handleFavorite(!artist.starred)}
+            rating={artist.rating}
+            onRate={handleRate}
+          />
+        }
+      />
 
-      <h3 className="mb-2 mt-6 text-sm font-medium text-muted">Top tracks</h3>
-      <ul className="divide-y divide-rule">
-        {topTracks.map((track) => (
-          <li key={track.id}>
-            <Link
-              href={`/tracks/${track.id}`}
-              className="flex items-center justify-between py-2 text-sm hover:bg-surface-hover"
-            >
-              <span>{track.title}</span>
-              {track.duration !== undefined && (
-                <span className="text-muted">{formatDuration(track.duration)}</span>
-              )}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <h3 className="mb-3 text-sm font-medium text-fg-secondary">Albums</h3>
+      {artist.albums.length > 0 ? (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {artist.albums.map((album) => {
+            const hasFilteredSongs =
+              album.totalSongCount !== undefined &&
+              album.shownSongCount !== undefined &&
+              album.totalSongCount > album.shownSongCount;
+            return (
+              <Card
+                key={album.id}
+                href={`/albums/${album.id}`}
+                title={album.name}
+                cover={<CoverArt coverArt={album.coverArt} alt={`Cover art for ${album.name}`} />}
+                fields={[
+                  {
+                    content: (
+                      <span>
+                        {album.year !== undefined && album.year !== null && (
+                          <Link href={`/years/${album.year}`} className="hover:text-muted">
+                            {album.year}
+                          </Link>
+                        )}
+                        {hasFilteredSongs && (
+                          <span className="ml-2 rounded bg-yellow-500/10 px-1.5 py-0.5 text-xs text-yellow-500">
+                            {album.shownSongCount} of {album.totalSongCount}
+                          </span>
+                        )}
+                      </span>
+                    ),
+                  },
+                ]}
+                favorite={{
+                  starred: album.starred,
+                  onClick: () => handleAlbumFavorite(album, !album.starred),
+                  label: album.starred ? 'Remove favorite' : 'Add favorite',
+                }}
+                rating={{
+                  value: album.rating,
+                  onRate: (rating) => handleAlbumRate(album, rating || undefined),
+                }}
+                play={{
+                  onClick: () => playAlbum(album),
+                  label: `Play ${album.name}`,
+                }}
+              />
+            );
+          })}
+        </div>
+      ) : (
+        <p className="py-4 text-sm text-muted">No albums found.</p>
+      )}
+
+      <h3 className="mb-2 mt-8 text-sm font-medium text-fg-secondary">Top tracks</h3>
+      <TrackList tracks={topTracks} onItemClick={playTrack} showArtist={false} showAlbum />
       {topTracks.length === 0 && <p className="py-4 text-sm text-muted">No tracks found.</p>}
     </div>
   );
