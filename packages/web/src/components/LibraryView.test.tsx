@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import { Router, Link } from 'wouter';
+import { Router, Link, useLocation } from 'wouter';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from './LibraryView.js';
 
 interface Item {
@@ -30,9 +30,15 @@ afterEach(() => {
   cleanup();
 });
 
+function LocationDisplay() {
+  const [location] = useLocation();
+  return <div data-testid="location">{location}</div>;
+}
+
 function renderView(props: Partial<React.ComponentProps<typeof LibraryView<Item>>> = {}) {
   return render(
     <Router>
+      <LocationDisplay />
       <LibraryView<Item>
         title="Test Library"
         data={items}
@@ -85,13 +91,16 @@ describe('LibraryView', () => {
     expect(onPlay).toHaveBeenCalledWith(items[0]);
   });
 
-  it('calls onPlay when the grid card play button is clicked', () => {
+  it('calls onPlay when the grid card play button is clicked without navigating', () => {
     const onPlay = vi.fn();
     const { container } = renderView({ onPlay });
 
     fireEvent.click(screen.getAllByRole('button', { name: /grid view/i })[0]);
-    fireEvent.click(screen.getAllByRole('button', { name: /play/i })[0]);
+    const playButton = screen.getAllByRole('button', { name: /play/i })[0];
+    fireEvent.pointerDown(playButton);
+    fireEvent.pointerUp(playButton);
     expect(onPlay).toHaveBeenCalledWith(items[0]);
+    expect(screen.getByTestId('location').textContent).toBe('/');
     expect(container.querySelector('.grid')).toBeTruthy();
   });
 
