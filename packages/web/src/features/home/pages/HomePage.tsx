@@ -301,7 +301,7 @@ function FeaturedAlbum({ albums }: { albums: Album[] }) {
 
   return (
     <section
-      className="relative mb-10 overflow-hidden rounded-3xl px-6 pb-10 pt-10"
+      className="relative mb-8 overflow-hidden rounded-3xl px-6 pb-6 pt-6"
       style={
         dominantColor
           ? ({
