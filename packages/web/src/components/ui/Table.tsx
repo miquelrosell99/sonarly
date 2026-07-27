@@ -1,6 +1,6 @@
 import { Children, Fragment, useState, type MouseEvent, type KeyboardEvent, type ReactNode, type ReactElement, cloneElement, isValidElement } from 'react';
 import { cn } from '../../lib/cn.js';
-import { Icon } from './Icon.js';
+import { PlayButton } from '../PlayButton.js';
 
 export interface TableColumn<T> {
   key: string;
@@ -15,6 +15,7 @@ interface TableProps<T> {
   rowKey: (row: T) => string;
   empty?: ReactNode;
   onPlay?: (row: T) => void;
+  onShufflePlay?: (row: T) => void;
   onPlaySelection?: (rows: T[], startIndex: number) => void;
   playingId?: string;
   renderRow?: (row: T, element: ReactNode) => ReactNode;
@@ -40,6 +41,7 @@ export function Table<T>({
   rowKey,
   empty,
   onPlay,
+  onShufflePlay,
   onPlaySelection,
   playingId,
   renderRow,
@@ -175,17 +177,12 @@ export function Table<T>({
                   <td className="w-12 py-2 pr-4">
                     <span className="relative inline-flex h-5 w-6 items-center justify-center text-muted">
                       <span className="group-hover:opacity-0">{index + 1}</span>
-                      <button
-                        type="button"
-                        className="absolute inset-0 inline-flex items-center justify-center text-accent opacity-0 hover:text-accent/80 focus-visible:outline-none group-hover:opacity-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onPlay(row);
-                        }}
-                        aria-label="Play"
-                      >
-                        <Icon name="mdi-play" size={18} />
-                      </button>
+                      <PlayButton
+                        variant="inline"
+                        onPlay={() => onPlay(row)}
+                        onShufflePlay={onShufflePlay ? () => onShufflePlay(row) : undefined}
+                        className="absolute inset-0 inline-flex opacity-0 group-hover:opacity-100"
+                      />
                     </span>
                   </td>
                 )}

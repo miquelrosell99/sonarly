@@ -17,7 +17,7 @@ export interface CardActionRating {
 
 export interface CardActionPlay {
   onPlay: () => void;
-  onShufflePlay: () => void;
+  onShufflePlay?: () => void;
   label?: string;
 }
 

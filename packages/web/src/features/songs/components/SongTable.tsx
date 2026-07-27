@@ -21,6 +21,7 @@ interface SongTableProps {
   showArtist?: boolean;
   showAlbum?: boolean;
   onPlay?: (song: SongListItem) => void;
+  onShufflePlay?: (song: SongListItem) => void;
   onPlaySelection?: (songs: SongListItem[], startIndex: number) => void;
   renderRow?: (song: SongListItem, row: React.ReactNode) => React.ReactNode;
   empty?: React.ReactNode;
@@ -33,6 +34,7 @@ export function SongTable({
   showArtist = true,
   showAlbum = true,
   onPlay,
+  onShufflePlay,
   onPlaySelection,
   renderRow,
   empty,
@@ -103,6 +105,7 @@ export function SongTable({
       rowKey={(s) => s.id}
       empty={empty}
       onPlay={onPlay}
+      onShufflePlay={onShufflePlay}
       onPlaySelection={onPlaySelection}
       playingId={playingId}
       renderRow={renderRow}

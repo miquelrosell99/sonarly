@@ -106,4 +106,38 @@ describe('PlayButton', () => {
     expect(onPlay).not.toHaveBeenCalled();
     expect(onShufflePlay).not.toHaveBeenCalled();
   });
+
+  it('uses the visible text as the accessible name when label is absent', () => {
+    render(
+      <PlayButton onPlay={vi.fn()} onShufflePlay={vi.fn()}>
+        Play all
+      </PlayButton>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Play all' })).toBeTruthy();
+  });
+
+  it('falls back to a simple button without hold behavior when onShufflePlay is absent', () => {
+    const onPlay = vi.fn();
+    render(<PlayButton onPlay={onPlay}>Play all</PlayButton>);
+
+    const button = screen.getByRole('button', { name: 'Play all' });
+    fireEvent.click(button);
+
+    expect(onPlay).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not trigger shuffle when onShufflePlay is absent', () => {
+    const onPlay = vi.fn();
+    render(<PlayButton onPlay={onPlay} label="Play" />);
+
+    const button = screen.getByRole('button', { name: 'Play' });
+    fireEvent.pointerDown(button);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    fireEvent.pointerUp(button);
+
+    expect(onPlay).not.toHaveBeenCalled();
+  });
 });

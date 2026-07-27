@@ -20,7 +20,7 @@ export function Years() {
   const [albums, setAlbums] = useState<AlbumWithArtist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { playSongs } = usePlayActions();
+  const { playSongs, shufflePlay } = usePlayActions();
 
   const load = () => {
     setLoading(true);
@@ -46,6 +46,13 @@ export function Years() {
     const matching = tracks.filter((t) => t.year === year);
     if (matching.length > 0) {
       playSongs(matching, 0);
+    }
+  };
+
+  const shuffleYears = (selectedYears: number[]) => {
+    const matching = tracks.filter((t) => t.year !== undefined && selectedYears.includes(t.year));
+    if (matching.length > 0) {
+      shufflePlay(matching);
     }
   };
 
@@ -76,6 +83,7 @@ export function Years() {
       getId={(year) => String(year)}
       getHref={(year) => `/years/${year}`}
       onPlay={playYear}
+      onShufflePlay={shuffleYears}
       emptyMessage="No years found."
       defaultView="list"
       availableViews={['list']}
