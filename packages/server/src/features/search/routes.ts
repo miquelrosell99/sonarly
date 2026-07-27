@@ -1,7 +1,14 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
+import { z } from 'zod';
 import type { Song, Album, Artist, Playlist } from '@sonarly/shared';
 import { getUserPreferences } from '../user-preferences/index.js';
+
+const searchQuerySchema = z.object({
+  q: z.string().default(''),
+  type: z.enum(['songs', 'albums', 'artists', 'playlists']).optional(),
+  limit: z.coerce.number().int().positive().optional(),
+});
 
 interface SongSearchRow {
   id: string;
@@ -117,106 +124,159 @@ function rowToPlaylist(row: PlaylistSearchRow): Playlist {
     id: row.id,
     name: row.name,
     ownerId: row.owner_id,
+    ownerUsername: row.owner_username,
     visibility: row.visibility,
     shareToken: row.share_token ?? undefined,
     songIds: [],
     isSmart: row.is_smart === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    songCount: row.song_count,
     starred: row.starred === 1,
     rating: row.rating ?? undefined,
   };
 }
 
+function fetchSongs(
+  db: Database.Database,
+  userId: string | undefined,
+  pattern: string,
+  hideExplicit: boolean,
+  limit?: number,
+): Song[] {
+  const limitClause = limit !== undefined ? `LIMIT ${limit + 1}` : '';
+  const rows = db.prepare(`
+    SELECT
+      s.*,
+      ar.name AS artist_name,
+      al.name AS album_name,
+      us.starred,
+      us.rating
+    FROM songs s
+    LEFT JOIN artists ar ON ar.id = s.artist_id
+    LEFT JOIN albums al ON al.id = s.album_id
+    LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
+    WHERE s.active = 1 AND (
+      LOWER(s.title) LIKE LOWER(?)
+      OR LOWER(ar.name) LIKE LOWER(?)
+      OR LOWER(al.name) LIKE LOWER(?)
+    )
+    ${hideExplicit ? 'AND s.explicit = 0' : ''}
+    ORDER BY s.title
+    ${limitClause}
+  `).all(userId ?? null, pattern, pattern, pattern) as SongSearchRow[];
+  return rows.map(rowToSong);
+}
+
+function fetchAlbums(
+  db: Database.Database,
+  userId: string | undefined,
+  pattern: string,
+  limit?: number,
+): Album[] {
+  const limitClause = limit !== undefined ? `LIMIT ${limit + 1}` : '';
+  const rows = db.prepare(`
+    SELECT
+      a.*,
+      ua.starred,
+      ua.rating
+    FROM albums a
+    LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
+    WHERE a.active = 1 AND LOWER(a.name) LIKE LOWER(?)
+    ORDER BY a.name
+    ${limitClause}
+  `).all(userId ?? null, pattern) as AlbumSearchRow[];
+  return rows.map(rowToAlbum);
+}
+
+function fetchArtists(
+  db: Database.Database,
+  userId: string | undefined,
+  pattern: string,
+  limit?: number,
+): Artist[] {
+  const limitClause = limit !== undefined ? `LIMIT ${limit + 1}` : '';
+  const rows = db.prepare(`
+    SELECT
+      ar.*,
+      ua.starred,
+      ua.rating
+    FROM artists ar
+    LEFT JOIN user_artists ua ON ua.user_id = ? AND ua.artist_id = ar.id
+    WHERE ar.active = 1 AND LOWER(ar.name) LIKE LOWER(?)
+    ORDER BY ar.name
+    ${limitClause}
+  `).all(userId ?? null, pattern) as ArtistSearchRow[];
+  return rows.map(rowToArtist);
+}
+
+function fetchPlaylists(
+  db: Database.Database,
+  userId: string | undefined,
+  pattern: string,
+  limit?: number,
+): Playlist[] {
+  const limitClause = limit !== undefined ? `LIMIT ${limit + 1}` : '';
+  const rows = db.prepare(`
+    SELECT
+      p.id,
+      p.name,
+      p.owner_id,
+      u.username AS owner_username,
+      p.visibility,
+      p.share_token,
+      p.is_smart,
+      p.created_at,
+      p.updated_at,
+      (SELECT COUNT(*) FROM playlist_songs ps WHERE ps.playlist_id = p.id) AS song_count,
+      up.starred,
+      up.rating
+    FROM playlists p
+    JOIN users u ON u.id = p.owner_id
+    LEFT JOIN user_playlists up ON up.user_id = ? AND up.playlist_id = p.id
+    WHERE LOWER(p.name) LIKE LOWER(?)
+      AND (
+        p.owner_id = ?
+        OR p.visibility IN ('public', 'link')
+        OR EXISTS (SELECT 1 FROM playlist_shares ps WHERE ps.playlist_id = p.id AND ps.user_id = ?)
+      )
+    ORDER BY p.updated_at DESC
+    ${limitClause}
+  `).all(userId ?? null, pattern, userId ?? '', userId ?? '') as PlaylistSearchRow[];
+  return rows.map(rowToPlaylist);
+}
+
 export function registerSearchRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get('/api/search', (request: FastifyRequest, reply: FastifyReply) => {
     const userId = (request as any).session?.userId as string | undefined;
-    const { q } = request.query as { q?: string };
-    const query = typeof q === 'string' ? q.trim() : '';
+    const parseResult = searchQuerySchema.safeParse(request.query);
+    if (!parseResult.success) {
+      return reply.status(400).send({ error: 'Invalid query parameters' });
+    }
+
+    const { q, type, limit } = parseResult.data;
+    const query = q.trim();
     if (query.length === 0) {
       return reply.send({ songs: [], albums: [], artists: [], playlists: [] });
     }
 
     const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
     const pattern = likePattern(query);
+    const categoryLimit = type ? undefined : (limit ?? 5);
 
-    const songRows = db.prepare(`
-      SELECT
-        s.*,
-        ar.name AS artist_name,
-        al.name AS album_name,
-        us.starred,
-        us.rating
-      FROM songs s
-      LEFT JOIN artists ar ON ar.id = s.artist_id
-      LEFT JOIN albums al ON al.id = s.album_id
-      LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
-      WHERE s.active = 1 AND (
-        LOWER(s.title) LIKE LOWER(?)
-        OR LOWER(ar.name) LIKE LOWER(?)
-        OR LOWER(al.name) LIKE LOWER(?)
-      )
-      ${hideExplicit ? 'AND s.explicit = 0' : ''}
-      ORDER BY s.title
-      LIMIT 50
-    `).all(userId ?? null, pattern, pattern, pattern) as SongSearchRow[];
+    const songs = !type || type === 'songs'
+      ? fetchSongs(db, userId, pattern, hideExplicit, categoryLimit)
+      : [];
+    const albums = !type || type === 'albums'
+      ? fetchAlbums(db, userId, pattern, categoryLimit)
+      : [];
+    const artists = !type || type === 'artists'
+      ? fetchArtists(db, userId, pattern, categoryLimit)
+      : [];
+    const playlists = !type || type === 'playlists'
+      ? fetchPlaylists(db, userId, pattern, categoryLimit)
+      : [];
 
-    const albumRows = db.prepare(`
-      SELECT
-        a.*,
-        ua.starred,
-        ua.rating
-      FROM albums a
-      LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
-      WHERE a.active = 1 AND LOWER(a.name) LIKE LOWER(?)
-      ORDER BY a.name
-      LIMIT 50
-    `).all(userId ?? null, pattern) as AlbumSearchRow[];
-
-    const artistRows = db.prepare(`
-      SELECT
-        ar.*,
-        ua.starred,
-        ua.rating
-      FROM artists ar
-      LEFT JOIN user_artists ua ON ua.user_id = ? AND ua.artist_id = ar.id
-      WHERE ar.active = 1 AND LOWER(ar.name) LIKE LOWER(?)
-      ORDER BY ar.name
-      LIMIT 50
-    `).all(userId ?? null, pattern) as ArtistSearchRow[];
-
-    const playlistRows = db.prepare(`
-      SELECT
-        p.id,
-        p.name,
-        p.owner_id,
-        u.username AS owner_username,
-        p.visibility,
-        p.share_token,
-        p.is_smart,
-        p.created_at,
-        p.updated_at,
-        (SELECT COUNT(*) FROM playlist_songs ps WHERE ps.playlist_id = p.id) AS song_count,
-        up.starred,
-        up.rating
-      FROM playlists p
-      JOIN users u ON u.id = p.owner_id
-      LEFT JOIN user_playlists up ON up.user_id = ? AND up.playlist_id = p.id
-      WHERE LOWER(p.name) LIKE LOWER(?)
-        AND (
-          p.owner_id = ?
-          OR p.visibility IN ('public', 'link')
-          OR EXISTS (SELECT 1 FROM playlist_shares ps WHERE ps.playlist_id = p.id AND ps.user_id = ?)
-        )
-      ORDER BY p.updated_at DESC
-      LIMIT 50
-    `).all(userId ?? null, pattern, userId ?? '', userId ?? '') as PlaylistSearchRow[];
-
-    reply.send({
-      songs: songRows.map(rowToSong),
-      albums: albumRows.map(rowToAlbum),
-      artists: artistRows.map(rowToArtist),
-      playlists: playlistRows.map(rowToPlaylist),
-    });
+    reply.send({ songs, albums, artists, playlists });
   });
 }
