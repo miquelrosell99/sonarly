@@ -25,12 +25,12 @@ export function FavoriteButton({ starred, onClick, label, className, variant = '
       aria-label={label ?? (starred ? 'Remove favorite' : 'Add favorite')}
       title={label ?? (starred ? 'Remove favorite' : 'Add favorite')}
       className={cn(
-        'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        'flex h-8 w-8 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         starred
-          ? 'text-accent'
+          ? 'text-accent hover:bg-accent/10'
           : variant === 'overlay'
-            ? 'text-white/80 hover:text-white'
-            : 'text-muted hover:text-accent',
+            ? 'text-white/80 hover:bg-white/20 hover:text-white'
+            : 'text-muted hover:bg-fg-primary/10 hover:text-accent',
         className,
       )}
     >

@@ -54,45 +54,44 @@ export function Card({
       {cover ? (
         <Link
           href={href}
+          draggable={false}
+          onDragStart={(e) => e.preventDefault()}
           className="relative block overflow-hidden rounded-xl shadow-md outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
         >
           <div className="transition duration-300 group-hover/card:scale-105">{cover}</div>
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20 opacity-0 transition-opacity group-hover/card:opacity-100" />
-          {(favorite || rating) && (
-            <div className="pointer-events-none absolute left-2 right-2 top-2 z-10 flex items-start justify-between opacity-0 transition-opacity group-hover/card:pointer-events-auto group-hover/card:opacity-100">
-              {favorite ? (
-                <span className="rounded-full bg-black/50 p-1 backdrop-blur-sm">
+          <div className="pointer-events-none absolute inset-0 flex flex-col justify-between bg-black/50 opacity-0 transition-opacity group-hover/card:opacity-100">
+            {(favorite || rating) && (
+              <div className="pointer-events-auto flex items-start justify-between p-2">
+                {favorite ? (
                   <FavoriteButton
                     starred={favorite.starred}
                     onClick={favorite.onClick}
                     label={favorite.label}
                     variant="overlay"
                   />
-                </span>
-              ) : (
-                <span />
-              )}
-              {rating && (
-                <span className="rounded-full bg-black/50 px-1.5 py-1 backdrop-blur-sm">
+                ) : (
+                  <span />
+                )}
+                {rating && (
                   <StarRating rating={rating.value} onRate={rating.onRate} variant="overlay" />
-                </span>
-              )}
-            </div>
-          )}
-          {play && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                play.onClick();
-              }}
-              className="pointer-events-none absolute bottom-2 right-2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-accent text-bg-primary opacity-0 shadow-lg shadow-black/30 transition-all duration-200 hover:scale-105 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent group-hover/card:pointer-events-auto group-hover/card:opacity-100"
-              aria-label={play.label ?? 'Play'}
-            >
-              <Icon name="mdi-play" size={22} />
-            </button>
-          )}
+                )}
+              </div>
+            )}
+            {play && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  play.onClick();
+                }}
+                className="pointer-events-auto m-2 flex h-11 w-11 items-center justify-center self-end rounded-full bg-accent text-bg-primary shadow-lg shadow-black/30 transition-all duration-200 hover:scale-105 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                aria-label={play.label ?? 'Play'}
+              >
+                <Icon name="mdi-play" size={22} />
+              </button>
+            )}
+          </div>
         </Link>
       ) : null}
       <div className={cn('space-y-0.5 px-1', !cover && 'rounded-xl border border-rule bg-surface p-3')}>
