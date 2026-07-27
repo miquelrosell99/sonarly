@@ -3,10 +3,14 @@ import Database from 'better-sqlite3';
 import { unlink } from 'node:fs/promises';
 import type { SongTags, Album } from '@sonarly/shared';
 import { listSongsByAlbum, deleteSongByPath } from '../songs/index.js';
-import { getUserPreferences } from '../user-preferences/index.js';
-import { writeTags } from '../tags/index.js';
+import { getAlbumArtistNamesForMany, getAlbumArtistNames } from './repository.js';
+import { getAlbumGenreNamesForMany, getAlbumGenreNames } from '../genres/repository.js';
+import { getUserById } from '../users/index.js';
+import { writeTags, writeCoverArt } from '../tags/index.js';
 import { validateSongTags, queueResync } from '../songs/index.js';
+import { createCoverArt, deleteCoverArt, setAlbumCoverArtId, getAlbumCoverArtId } from '../cover-art/index.js';
 import { organizeSongFile } from '../ingest/index.js';
+import { resolveGenreForTagWrite, resolveGenreForFilter } from '../genres/index.js';
 import type { Config } from '../../config.js';
 
 interface AlbumRow {
@@ -20,6 +24,17 @@ interface AlbumRow {
   active: number;
   starred: number | null;
   rating: number | null;
+  labels: string | null;
+  catalog_numbers: string | null;
+  barcode: string | null;
+  asin: string | null;
+  musicbrainz_album_id: string | null;
+  musicbrainz_release_group_id: string | null;
+  musicbrainz_album_artist_ids: string | null;
+  original_year: number | null;
+  compilation: number | null;
+  total_tracks: string | null;
+  total_discs: string | null;
 }
 
 function rowToAlbum(row: AlbumRow): Album {
@@ -34,6 +49,17 @@ function rowToAlbum(row: AlbumRow): Album {
     active: row.active === 1,
     starred: row.starred === 1,
     rating: row.rating ?? undefined,
+    labels: row.labels ? JSON.parse(row.labels) : undefined,
+    catalogNumbers: row.catalog_numbers ? JSON.parse(row.catalog_numbers) : undefined,
+    barcode: row.barcode ?? undefined,
+    asin: row.asin ?? undefined,
+    musicBrainzAlbumId: row.musicbrainz_album_id ?? undefined,
+    musicBrainzReleaseGroupId: row.musicbrainz_release_group_id ?? undefined,
+    musicBrainzAlbumArtistIds: row.musicbrainz_album_artist_ids ? JSON.parse(row.musicbrainz_album_artist_ids) : undefined,
+    originalYear: row.original_year ?? undefined,
+    compilation: row.compilation === 1,
+    totalTracks: row.total_tracks ?? undefined,
+    totalDiscs: row.total_discs ?? undefined,
   };
 }
 
@@ -45,10 +71,28 @@ function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | unde
   return true;
 }
 
+const ALLOWED_COVER_ART_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const MAX_COVER_ART_BYTES = 2 * 1024 * 1024;
+
+function cleanupOrphanCoverArt(db: Database.Database, coverArtId: string): void {
+  const inUse = db.prepare("SELECT 1 FROM songs WHERE cover_art_id = ? UNION ALL SELECT 1 FROM albums WHERE cover_art_id = ? LIMIT 1").get(coverArtId, coverArtId);
+  if (!inUse) {
+    deleteCoverArt(db, coverArtId);
+  }
+}
+
 export function registerAlbumManagementRoutes(app: FastifyInstance, config: Config, db: Database.Database): void {
   app.get('/api/albums', (request: FastifyRequest, reply: FastifyReply) => {
     const userId = (request as any).session?.userId as string | undefined;
-    const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
+    const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
+
+    const { genre } = request.query as { genre?: string };
+    const resolvedGenre = typeof genre === 'string' && genre.length > 0 ? resolveGenreForFilter(db, genre) : undefined;
+    const genreFilter = resolvedGenre !== undefined;
+
+    if (typeof genre === 'string' && genre.length > 0 && !genreFilter) {
+      return reply.send({ albums: [] });
+    }
 
     const rows = db.prepare(`
       SELECT
@@ -61,18 +105,26 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
       LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1
       LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
       WHERE a.active = 1
+      ${genreFilter ? 'AND EXISTS (SELECT 1 FROM album_genres ag WHERE ag.album_id = a.id AND ag.genre_id = ?)' : ''}
       ${hideExplicit ? 'GROUP BY a.id HAVING shown_song_count > 0' : 'GROUP BY a.id'}
       ORDER BY a.name
       LIMIT 500
-    `).all(userId ?? null) as (AlbumRow & { total_song_count: number; shown_song_count: number })[];
+    `).all(...(genreFilter ? [userId ?? null, resolvedGenre.id] : [userId ?? null])) as (AlbumRow & { total_song_count: number; shown_song_count: number })[];
 
-    reply.send({
-      albums: rows.map((row) => ({
-        ...rowToAlbum(row),
-        totalSongCount: row.total_song_count,
-        shownSongCount: row.shown_song_count,
-      })),
-    });
+    const albums = rows.map((row) => ({
+      ...rowToAlbum(row),
+      totalSongCount: row.total_song_count,
+      shownSongCount: row.shown_song_count,
+    }));
+    const artistMap = getAlbumArtistNamesForMany(db, albums.map((a) => a.id));
+    const genreMap = getAlbumGenreNamesForMany(db, albums.map((a) => a.id));
+    for (const album of albums) {
+      const artists = artistMap.get(album.id);
+      if (artists) album.artists = artists;
+      const genres = genreMap.get(album.id);
+      if (genres) album.genres = genres;
+    }
+    reply.send({ albums });
   });
 
   app.put('/api/albums/:id/tags', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -110,13 +162,23 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
       }
     }
 
+    if (typeof tags.genre === 'string') {
+      const trimmed = tags.genre.trim();
+      if (trimmed.length > 0) {
+        const resolved = resolveGenreForTagWrite(db, tags.genre);
+        db.prepare('UPDATE albums SET genre_id = ?, genre = ? WHERE id = ?').run(resolved.id, resolved.name, id);
+      } else {
+        db.prepare('UPDATE albums SET genre_id = NULL, genre = NULL WHERE id = ?').run(id);
+      }
+    }
+
     reply.send({ updated: songs.length });
   });
 
   app.get('/api/albums/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const userId = (request as any).session?.userId as string | undefined;
-    const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
+    const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
 
     const row = db.prepare(`
       SELECT a.*, ua.starred, ua.rating
@@ -129,14 +191,16 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
     const songs = listSongsByAlbum(db, id, userId);
     const visibleSongs = hideExplicit ? songs.filter((s) => !s.explicit) : songs;
 
-    reply.send({
-      album: {
-        ...rowToAlbum(row),
-        totalSongCount: songs.length,
-        shownSongCount: visibleSongs.length,
-      },
-      songs: visibleSongs,
-    });
+    const album = {
+      ...rowToAlbum(row),
+      totalSongCount: songs.length,
+      shownSongCount: visibleSongs.length,
+    };
+    const artists = getAlbumArtistNames(db, album.id);
+    if (artists.length) album.artists = artists;
+    const genres = getAlbumGenreNames(db, album.id);
+    if (genres.length) album.genres = genres;
+    reply.send({ album, songs: visibleSongs });
   });
 
   app.delete('/api/albums/:id', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -158,6 +222,58 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
     }
 
     db.prepare('DELETE FROM albums WHERE id = ?').run(id);
+    reply.send({ ok: true });
+  });
+
+  app.post('/api/albums/:id/cover-art', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { isAdmin?: boolean } | undefined;
+    if (!requireAdmin(reply, session)) return;
+
+    const { id } = request.params as { id: string };
+    const album = db.prepare('SELECT * FROM albums WHERE id = ? AND active = 1').get(id) as Album | undefined;
+    if (!album) return reply.status(404).send({ error: 'Album not found' });
+
+    const data = await request.file();
+    if (!data) return reply.status(400).send({ error: 'No file uploaded' });
+
+    if (!ALLOWED_COVER_ART_TYPES.has(data.mimetype)) {
+      await data.toBuffer().catch(() => undefined);
+      return reply.status(400).send({ error: 'Invalid image format' });
+    }
+
+    const buffer = await data.toBuffer();
+    if (buffer.length > MAX_COVER_ART_BYTES) {
+      return reply.status(400).send({ error: 'Cover art must be smaller than 2 MB' });
+    }
+
+    try {
+      const songs = listSongsByAlbum(db, id);
+      for (const song of songs) {
+        await writeCoverArt(song.filePath, { data: buffer, format: data.mimetype });
+        queueResync(db, song.filePath);
+      }
+      const coverArtId = createCoverArt(db, buffer, data.mimetype);
+      const oldCoverArtId = getAlbumCoverArtId(db, id);
+      setAlbumCoverArtId(db, id, coverArtId);
+      if (oldCoverArtId) cleanupOrphanCoverArt(db, oldCoverArtId);
+      reply.send({ coverArt: coverArtId });
+    } catch (err) {
+      request.log.error({ err }, `Failed to write album cover art for ${id}`);
+      return reply.status(500).send({ error: 'Failed to save cover art' });
+    }
+  });
+
+  app.delete('/api/albums/:id/cover-art', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { isAdmin?: boolean } | undefined;
+    if (!requireAdmin(reply, session)) return;
+
+    const { id } = request.params as { id: string };
+    const album = db.prepare('SELECT * FROM albums WHERE id = ? AND active = 1').get(id) as Album | undefined;
+    if (!album) return reply.status(404).send({ error: 'Album not found' });
+
+    const oldCoverArtId = getAlbumCoverArtId(db, id);
+    setAlbumCoverArtId(db, id, null);
+    if (oldCoverArtId) cleanupOrphanCoverArt(db, oldCoverArtId);
     reply.send({ ok: true });
   });
 }

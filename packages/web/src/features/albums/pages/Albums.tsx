@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
 import type { Album, Song } from '@sonarly/shared';
 import { api } from '../../../api.js';
@@ -7,6 +7,7 @@ import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
 import { useAlbumContextMenu } from '../../../hooks/useAlbumContextMenu.js';
+import { useAdminContextMenu } from '../../../hooks/useAdminContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
@@ -40,7 +41,9 @@ export function Albums() {
   const [editing, setEditing] = useState<Album | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [coverArtBusy, setCoverArtBusy] = useState(false);
   const { notify } = useNotification();
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const { playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
@@ -150,6 +153,44 @@ export function Albums() {
     }
   };
 
+  const handleEditCoverArt = () => {
+    coverInputRef.current?.click();
+  };
+
+  const handleCoverArtFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editing) return;
+    setCoverArtBusy(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      await api(`/albums/${editing.id}/cover-art`, {
+        method: 'POST',
+        body: formData,
+      });
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to update cover art', 'error');
+    } finally {
+      setCoverArtBusy(false);
+      if (coverInputRef.current) coverInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteCoverArt = async () => {
+    if (!editing) return;
+    if (!window.confirm('Are you sure you want to remove the cover art?')) return;
+    setCoverArtBusy(true);
+    try {
+      await api(`/albums/${editing.id}/cover-art`, { method: 'DELETE' });
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to remove cover art', 'error');
+    } finally {
+      setCoverArtBusy(false);
+    }
+  };
+
   const columns: LibraryViewColumn<Album>[] = [
     {
       key: 'title',
@@ -168,9 +209,37 @@ export function Albums() {
   const cardFields: LibraryViewCardField<Album>[] = [
     { key: 'title', render: (album) => album.name },
     {
-      key: 'artist',
+      key: 'artist-year',
+      render: (album) => (
+        <span>
+          {album.artistId ? (
+            <Link href={`/artists/${album.artistId}`} className="hover:text-muted">
+              {album.artistName ?? 'Unknown artist'}
+            </Link>
+          ) : (
+            album.artistName ?? '-'
+          )}
+          {album.year !== undefined && album.year !== null && (
+            <>
+              {' • '}
+              <Link href={`/years/${album.year}`} className="hover:text-muted">
+                {album.year}
+              </Link>
+            </>
+          )}
+        </span>
+      ),
+    },
+    {
+      key: 'genre',
       render: (album) =>
-        `${album.artistName ?? '-'}${album.year !== undefined ? ` • ${album.year}` : ''}`,
+        album.genre ? (
+          <Link href={`/genres/${encodeURIComponent(album.genre)}`} className="hover:text-muted">
+            {album.genre}
+          </Link>
+        ) : (
+          '-'
+        ),
     },
   ];
 
@@ -179,6 +248,7 @@ export function Albums() {
         ...editing,
         title: editing.name,
         artist: editing.artistName,
+        albumArtist: editing.artistName,
       }
     : null;
 
@@ -217,10 +287,20 @@ export function Albums() {
           onClose={() => setEditing(null)}
           onSave={handleSave}
           onDelete={handleDelete}
+          onEditCoverArt={handleEditCoverArt}
+          onDeleteCoverArt={handleDeleteCoverArt}
           saving={saving}
           deleting={deleting}
+          coverArtBusy={coverArtBusy}
         />
       )}
+      <input
+        ref={coverInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleCoverArtFileChange}
+      />
     </>
   );
 }

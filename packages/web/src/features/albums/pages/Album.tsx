@@ -1,24 +1,24 @@
-import { useEffect, useState } from 'react';
-import { useParams, Link } from 'wouter';
-import type { UserPreferences, Song as SharedSong } from '@sonarly/shared';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useParams } from 'wouter';
+import type { Song as SharedSong, User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { cn } from '../../../lib/cn.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
-import { TagEditor } from '../../songs/index.js';
-import { Table, TableColumn } from '../../../components/ui/Table.js';
+import { CoverArt } from '../../../components/CoverArt.js';
+import { EntityHeader } from '../../../components/EntityHeader.js';
+import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
+import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
+import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { useNotification } from '../../../contexts/NotificationContext.js';
 import { usePlayer } from '../../../stores/playerStore.js';
-
-interface Song {
-  id: string;
-  title: string;
-  trackNumber?: number;
-  duration?: number;
-  artistName?: string;
-  explicit?: boolean;
-}
+import { SyncedLyricsEditor } from '../../songs/index.js';
+import { SongTable } from '../../songs/index.js';
+import type { SongListItem } from '../../songs/components/SongTable.js';
+import type { SongWithNames } from '../../../lib/types.js';
 
 interface Album {
   id: string;
@@ -27,6 +27,7 @@ interface Album {
   artistName?: string;
   year?: number;
   genre?: string;
+  coverArt?: string;
   totalSongCount?: number;
   shownSongCount?: number;
   starred?: boolean;
@@ -35,16 +36,36 @@ interface Album {
 
 interface AlbumDetail {
   album: Album;
-  songs: Song[];
+  songs: SongWithNames[];
 }
 
-export function Album() {
+function SongContextMenu({
+  song,
+  onEdit,
+  isAdmin,
+  children,
+}: {
+  song: SongListItem;
+  onEdit: () => void;
+  isAdmin: boolean;
+  children: ReactNode;
+}) {
+  const sections = useSongContextMenu(song as SharedSong, onEdit, isAdmin);
+  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+}
+
+export function Album({ user }: { user: User }) {
   const { id } = useParams<{ id: string }>();
   const [detail, setDetail] = useState<AlbumDetail | null>(null);
-  const [preferences, setPreferences] = useState<UserPreferences>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editing, setEditing] = useState<string | null>(null);
+  const [editing, setEditing] = useState<SongWithNames | null>(null);
+  const [syncEditing, setSyncEditing] = useState<SongWithNames | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [coverArtBusy, setCoverArtBusy] = useState(false);
+  const { notify } = useNotification();
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs } = usePlayActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
@@ -52,13 +73,9 @@ export function Album() {
   const load = () => {
     if (!id) return;
     setLoading(true);
-    Promise.all([
-      api<AlbumDetail>(`/albums/${id}`),
-      api<{ preferences: UserPreferences }>('/me/preferences').catch(() => ({ preferences: {} })),
-    ])
-      .then(([detailRes, prefsRes]) => {
+    api<AlbumDetail>(`/albums/${id}`)
+      .then((detailRes) => {
         setDetail(detailRes);
-        setPreferences(prefsRes.preferences);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load album'))
       .finally(() => setLoading(false));
@@ -68,15 +85,20 @@ export function Album() {
     load();
   }, [id]);
 
-  const blurExplicitTitles = preferences.blurExplicitTitles === true;
-  const blurExplicitCovers = preferences.blurExplicitCovers === true;
+  const blurExplicitTitles = user.blurExplicitTitles === true;
+  const blurExplicitCovers = user.blurExplicitCovers === true;
 
-  const handlePlay = (song: Song) => {
+  const handlePlay = (song: SongListItem) => {
     playSongs([song as SharedSong], 0);
   };
 
-  const handlePlaySelection = (songs: Song[], startIndex: number) => {
+  const handlePlaySelection = (songs: SongListItem[], startIndex: number) => {
     playSongs(songs as SharedSong[], startIndex);
+  };
+
+  const handlePlayAlbum = () => {
+    if (!detail) return;
+    playSongs(detail.songs as SharedSong[], 0);
   };
 
   const handleFavorite = async (starred: boolean) => {
@@ -103,39 +125,74 @@ export function Album() {
     }
   };
 
-  const columns: TableColumn<Song>[] = [
-    { key: 'track', header: '#', className: 'w-12', render: (s) => s.trackNumber ?? '-' },
-    {
-      key: 'title',
-      header: 'Title',
-      render: (s) => (
-        <span className={`inline-flex items-center gap-2 ${s.explicit && blurExplicitTitles ? 'blur-sm' : ''}`}>
-          <Link href={`/tracks/${s.id}`} className="hover:text-muted">
-            {s.title}
-          </Link>
-          {s.explicit && (
-            <span className="rounded bg-red-500/10 px-1 text-[10px] font-bold text-red-500">E</span>
-          )}
-        </span>
-      ),
-    },
-    {
-      key: 'duration',
-      header: 'Duration',
-      className: 'w-24',
-      render: (s) => (s.duration ? formatDuration(s.duration) : '-'),
-    },
-    {
-      key: 'actions',
-      header: '',
-      className: 'w-24 text-right',
-      render: (s) => (
-        <Button variant="ghost" className="text-xs" onClick={() => setEditing(s.id)}>
-          Edit
-        </Button>
-      ),
-    },
-  ];
+  const handleSave = async (patched: Record<string, unknown>) => {
+    if (!editing) return;
+    setSaving(true);
+    try {
+      await api(`/songs/${editing.id}/tags`, {
+        method: 'PUT',
+        body: JSON.stringify(patched),
+      });
+      setEditing(null);
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to save song', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!editing) return;
+    setDeleting(true);
+    try {
+      await api(`/songs/${editing.id}`, { method: 'DELETE' });
+      setEditing(null);
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to delete song', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleEditCoverArt = () => {
+    coverInputRef.current?.click();
+  };
+
+  const handleCoverArtFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editing) return;
+    setCoverArtBusy(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      await api(`/songs/${editing.id}/cover-art`, {
+        method: 'POST',
+        body: formData,
+      });
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to update cover art', 'error');
+    } finally {
+      setCoverArtBusy(false);
+      if (coverInputRef.current) coverInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteCoverArt = async () => {
+    if (!editing) return;
+    if (!window.confirm('Are you sure you want to remove the cover art?')) return;
+    setCoverArtBusy(true);
+    try {
+      await api(`/songs/${editing.id}/cover-art`, { method: 'DELETE' });
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to remove cover art', 'error');
+    } finally {
+      setCoverArtBusy(false);
+    }
+  };
 
   if (loading) return <p className="text-sm text-muted">Loading...</p>;
   if (error) return <p className="text-sm text-danger">{error}</p>;
@@ -146,78 +203,101 @@ export function Album() {
     detail.album.shownSongCount !== undefined &&
     detail.album.totalSongCount > detail.album.shownSongCount;
 
+  const metadata = [
+    { label: detail.album.artistName ?? 'Unknown artist', href: detail.album.artistId ? `/artists/${detail.album.artistId}` : undefined },
+    { label: detail.album.year !== undefined && detail.album.year !== null ? String(detail.album.year) : '', href: detail.album.year !== undefined ? `/years/${detail.album.year}` : undefined },
+    { label: detail.album.genre ?? '', href: detail.album.genre ? `/genres/${encodeURIComponent(detail.album.genre)}` : undefined },
+  ];
+
+  const editEntity = editing
+    ? {
+        ...editing,
+        artist: editing.artistName,
+        album: editing.albumName,
+        albumArtist: editing.albumArtistName,
+      }
+    : null;
+
   return (
     <div>
-      <div className="mb-4">
-        <div className="flex items-center gap-3">
-          <h2 className={`text-lg font-semibold ${blurExplicitCovers && hasFilteredSongs ? 'blur-sm' : ''}`}>
-            {detail.album.name}
-          </h2>
-          <button
-            type="button"
-            onClick={() => handleFavorite(!detail.album.starred)}
-            aria-label={detail.album.starred ? 'Remove favorite' : 'Add favorite'}
-            title={detail.album.starred ? 'Remove favorite' : 'Add favorite'}
-            className={cn(
-              'rounded p-1 transition hover:bg-surface-hover',
-              detail.album.starred ? 'text-accent' : 'text-muted hover:text-accent',
-            )}
-          >
-            <Icon name={detail.album.starred ? 'mdi-heart' : 'mdi-heart-outline'} size={20} />
-          </button>
-          <span className="inline-flex items-center gap-0.5">
-            {[1, 2, 3, 4, 5].map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => handleRate(value === detail.album.rating ? undefined : value)}
-                aria-label={`Rate ${value} stars`}
-                className={cn(
-                  'rounded p-0.5 transition hover:bg-surface-hover',
-                  value <= (detail.album.rating ?? 0) ? 'text-accent' : 'text-muted hover:text-accent/70',
-                )}
-              >
-                <Icon
-                  name={value <= (detail.album.rating ?? 0) ? 'mdi-star' : 'mdi-star-outline'}
-                  size={18}
-                />
-              </button>
-            ))}
-          </span>
-        </div>
-        <p className="text-sm text-muted">
-          {detail.album.artistId ? (
-            <Link href={`/artists/${detail.album.artistId}`} className="hover:text-muted">
-              {detail.album.artistName}
-            </Link>
-          ) : (
-            detail.album.artistName
-          )}
-          {detail.album.year !== undefined && detail.album.year !== null && ` • ${detail.album.year}`}
-          {detail.album.genre && ` • ${detail.album.genre}`}
-          {hasFilteredSongs && (
-            <span className="ml-2 rounded bg-yellow-500/10 px-1.5 py-0.5 text-xs text-yellow-500">
-              {detail.album.shownSongCount} of {detail.album.totalSongCount} songs shown
-            </span>
-          )}
-        </p>
-      </div>
-      <Table
-        columns={columns}
-        rows={detail.songs}
-        rowKey={(s) => s.id}
-        empty="No songs."
+      <EntityHeader
+        type="Album"
+        title={detail.album.name}
+        cover={
+          <CoverArt
+            coverArt={detail.album.coverArt}
+            alt={`Cover art for ${detail.album.name}`}
+            className={cn('h-48 w-48 sm:h-56 sm:w-56', blurExplicitCovers && hasFilteredSongs && 'blur-sm')}
+            iconSize={64}
+          />
+        }
+        metadata={metadata}
+        actions={
+          <>
+            <Button onClick={handlePlayAlbum} className="gap-2">
+              <Icon name="mdi-play" size={18} />
+              Play
+            </Button>
+            <FavoriteRatingGroup
+              starred={detail.album.starred}
+              onToggleFavorite={() => handleFavorite(!detail.album.starred)}
+              rating={detail.album.rating}
+              onRate={handleRate}
+            />
+          </>
+        }
+      />
+
+      <SongTable
+        songs={detail.songs}
+        playingId={playingId}
+        blurExplicit={blurExplicitTitles}
         onPlay={handlePlay}
         onPlaySelection={handlePlaySelection}
-        playingId={playingId}
+        renderRow={(song, row) => (
+          <SongContextMenu song={song} onEdit={() => setEditing(song as SongWithNames)} isAdmin={user.isAdmin}>
+            {row}
+          </SongContextMenu>
+        )}
+        empty="No songs."
       />
-      {editing && <TagEditor songId={editing} onClose={() => setEditing(null)} onSaved={load} />}
+
+      {editEntity && (
+        <EditEntityModal
+          open
+          entityType="song"
+          entity={editEntity}
+          onClose={() => setEditing(null)}
+          onSave={handleSave}
+          onDelete={handleDelete}
+          onEditCoverArt={user.isAdmin ? handleEditCoverArt : undefined}
+          onDeleteCoverArt={user.isAdmin ? handleDeleteCoverArt : undefined}
+          onEditSyncedLyrics={() => editing && setSyncEditing(editing)}
+          saving={saving}
+          deleting={deleting}
+          coverArtBusy={coverArtBusy}
+        />
+      )}
+      <input
+        ref={coverInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleCoverArtFileChange}
+      />
+      {syncEditing && (
+        <SyncedLyricsEditor
+          songId={syncEditing.id}
+          title={syncEditing.title}
+          artistName={syncEditing.artistName}
+          duration={syncEditing.duration}
+          onClose={() => setSyncEditing(null)}
+          onSaved={() => {
+            setSyncEditing(null);
+            load();
+          }}
+        />
+      )}
     </div>
   );
-}
-
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
 }

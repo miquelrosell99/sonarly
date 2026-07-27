@@ -5,6 +5,7 @@ import type { Song, Album, Artist, Playlist } from '@sonarly/shared';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { api } from '../api.js';
+import { useDebounce } from '../hooks/useDebounce.js';
 import { FilterPanel, type FilterDefinition } from './FilterPanel.js';
 
 interface SearchResponse {
@@ -12,17 +13,6 @@ interface SearchResponse {
   albums: Album[];
   artists: Artist[];
   playlists: Playlist[];
-}
-
-function useDebounce<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return debounced;
 }
 
 function useSearch(query: string) {
@@ -208,7 +198,7 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
             if (debouncedQuery.length > 0) setIsOpen(true);
           }}
           placeholder="Search…"
-          className={cn('input w-full pl-9', hasFilters ? 'pr-10' : 'pr-9')}
+          className={cn('input w-full pl-9 focus:ring-0 focus:ring-offset-0', hasFilters ? 'pr-10' : 'pr-9')}
           aria-label="Search"
           aria-expanded={isOpen || filtersOpen}
           aria-autocomplete="list"

@@ -1,11 +1,12 @@
 import type { Song } from '@sonarly/shared';
 import type { ContextMenuSection } from '../components/ItemContextMenu.js';
 import { usePlayActions } from './usePlayActions.js';
+import { useAdminContextMenu } from './useAdminContextMenu.js';
 
-export function useSongContextMenu(song: Song, onEdit: () => void): ContextMenuSection[] {
+export function useSongContextMenu(song: Song, onEdit: () => void, isAdmin?: boolean): ContextMenuSection[] {
   const { playSong, playNext, addToQueue } = usePlayActions();
 
-  return [
+  const sections: ContextMenuSection[] = [
     {
       title: 'Playback',
       items: [
@@ -18,4 +19,6 @@ export function useSongContextMenu(song: Song, onEdit: () => void): ContextMenuS
       items: [{ id: 'edit', label: 'Edit', icon: 'mdi-pencil', onClick: onEdit }],
     },
   ];
+
+  return useAdminContextMenu(sections, isAdmin ?? true);
 }

@@ -6,15 +6,61 @@ import { parseFile } from 'music-metadata';
 import Database from 'better-sqlite3';
 import { getSongById } from '../../songs/index.js';
 import { getAlbumById } from '../../albums/index.js';
+import { getUserById } from '../../users/index.js';
+import { getArtistImageLocalPath } from '../../artists/index.js';
 import { getCoverArtById } from '../../cover-art/index.js';
 import { getSongCoverArtId, getAlbumCoverArtId } from '../../cover-art/index.js';
 import { recordStream } from '../../players/tracker.js';
+import { sendSubsonicReply } from '../responses.js';
+import { decideTranscode, spawnFfmpegTranscode, transcodeContentType } from '../../transcode/service.js';
 
 export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get('/rest/stream.view', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { id } = request.query as { id: string };
+    const query = request.query as { id: string; maxBitRate?: string };
+    const { id } = query;
     const song = getSongById(db, id);
     if (!song) return reply.status(404).send('Not found');
+
+    const userId = ((request as any).subsonicUser as string | undefined) ?? ((request as any).session?.userId as string | undefined);
+    const user = userId ? getUserById(db, userId) : undefined;
+    const requestedMaxBitRate = query.maxBitRate ? Number.parseInt(query.maxBitRate, 10) : undefined;
+    const decision = decideTranscode(song, user, requestedMaxBitRate);
+
+    if (decision.shouldTranscode && decision.format) {
+      if (request.method === 'HEAD') {
+        return reply.header('Accept-Ranges', 'none').type(transcodeContentType(decision.format)).send();
+      }
+
+      recordStream(db, request, song);
+
+      try {
+        const proc = spawnFfmpegTranscode({
+          filePath: song.filePath,
+          format: decision.format,
+          maxBitrateKbps: decision.maxBitrateKbps,
+        });
+
+        proc.on('error', (err) => {
+          console.error('ffmpeg transcode error:', err);
+          if (!reply.sent) {
+            reply.status(500).send('Transcode failed');
+          }
+        });
+
+        proc.stderr?.on('data', (data) => {
+          console.error(`ffmpeg stderr: ${data}`);
+        });
+
+        request.raw.on('close', () => {
+          proc.kill('SIGKILL');
+        });
+
+        return reply.header('Accept-Ranges', 'none').type(transcodeContentType(decision.format)).send(proc.stdout);
+      } catch (err) {
+        console.error('Failed to spawn ffmpeg:', err);
+        // Fall through to direct file serving if ffmpeg is unavailable.
+      }
+    }
 
     const mime = lookup(song.filePath) || 'application/octet-stream';
     const { size } = statSync(song.filePath);
@@ -61,6 +107,7 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
   });
 
   app.get('/rest/getCoverArt.view', async (request: FastifyRequest, reply: FastifyReply) => {
+    const format = (request as any).subsonicFormat as 'json' | 'xml';
     const { id } = request.query as { id: string };
 
     const cached = getCoverArtById(db, id);
@@ -86,7 +133,7 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
           return reply.type(picture.format).send(Buffer.from(picture.data));
         }
       } catch {
-        // fall through to 404
+        // fall through
       }
     }
 
@@ -112,13 +159,55 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
               return reply.type(picture.format).send(Buffer.from(picture.data));
             }
           } catch {
-            // fall through to 404
+            // fall through
           }
         }
       }
     }
 
-    return reply.status(404).send('Not found');
+    // Try artist cover art
+    const artistLocalPath = getArtistImageLocalPath(db, id);
+    if (artistLocalPath) {
+      try {
+        const fileStat = statSync(artistLocalPath);
+        if (fileStat.isFile()) {
+          const contentType = lookup(artistLocalPath) || 'application/octet-stream';
+          return reply.type(contentType).send(createReadStream(artistLocalPath));
+        }
+      } catch {
+        // fall through
+      }
+    }
+
+    const artistRow = db.prepare('SELECT artist_image_url FROM artists WHERE id = ? AND active = 1').get(id) as { artist_image_url: string | null } | undefined;
+    if (artistRow?.artist_image_url) {
+      return reply.redirect(artistRow.artist_image_url);
+    }
+
+    return sendSubsonicReply(reply, format, {
+      error: { code: 70, message: 'Cover art not found' },
+    }, 'failed');
+  });
+
+  app.get('/rest/getLyrics.view', async (request: FastifyRequest, reply: FastifyReply) => {
+    const format = (request as any).subsonicFormat as 'json' | 'xml';
+    const { id, artist, title } = request.query as { id?: string; artist?: string; title?: string };
+    let lyrics = '';
+
+    if (id) {
+      const song = getSongById(db, id);
+      lyrics = song?.lyrics ?? '';
+    } else if (artist && title) {
+      const row = db.prepare(`
+        SELECT s.lyrics FROM songs s
+        JOIN artists a ON a.id = s.artist_id
+        WHERE a.name = ? COLLATE NOCASE AND s.title = ? COLLATE NOCASE AND s.active = 1
+        LIMIT 1
+      `).get(artist, title) as { lyrics: string | null } | undefined;
+      lyrics = row?.lyrics ?? '';
+    }
+
+    sendSubsonicReply(reply, format, { lyrics });
   });
 }
 

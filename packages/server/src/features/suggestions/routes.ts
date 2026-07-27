@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
+import { buildGenrePaths } from '../genres/repository.js';
 
 const ALLOWED_FIELDS = new Set(['artist', 'album', 'genre', 'albumArtist']);
 const MAX_LIMIT = 50;
@@ -12,6 +13,7 @@ interface SuggestionParams {
 
 function getSuggestions(db: Database.Database, field: string, query: string, limit: number): string[] {
   const like = `%${query}%`;
+  const lowerQuery = query.toLowerCase();
   if (field === 'artist') {
     const rows = db.prepare('SELECT name FROM artists WHERE active = 1 AND name LIKE ? COLLATE NOCASE ORDER BY name LIMIT ?')
       .all(like, limit) as { name: string }[];
@@ -27,18 +29,12 @@ function getSuggestions(db: Database.Database, field: string, query: string, lim
       .all(like, limit) as { name: string }[];
     return rows.map((r) => r.name);
   }
-  // genre
-  const rows = db.prepare(`
-    SELECT name FROM (
-      SELECT DISTINCT genre AS name FROM songs WHERE active = 1 AND genre IS NOT NULL
-      UNION
-      SELECT DISTINCT genre AS name FROM albums WHERE active = 1 AND genre IS NOT NULL
-    )
-    WHERE name LIKE ? COLLATE NOCASE
-    ORDER BY name
-    LIMIT ?
-  `).all(like, limit) as { name: string }[];
-  return rows.map((r) => r.name);
+  // genre: return full paths from the genres table, filtered case-insensitively
+  const paths = buildGenrePaths(db);
+  return Array.from(paths.values())
+    .filter((path) => path.toLowerCase().includes(lowerQuery))
+    .sort()
+    .slice(0, limit);
 }
 
 function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | undefined): boolean {

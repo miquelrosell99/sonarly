@@ -7,16 +7,11 @@ import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
 import { usePlayer } from '../../../stores/playerStore.js';
+import { formatDuration } from '../../../lib/format.js';
 
 interface Track extends Song {
   artistName?: string;
   albumName?: string;
-}
-
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 export function Tracks() {
@@ -45,12 +40,14 @@ export function Tracks() {
   const genre = get('genre');
   const favorites = get('favorites');
   const rating = get('rating');
+  const unrated = get('unrated') === 'true';
 
   const filteredTracks = tracks.filter((track) => {
     if (artist && track.artistName !== artist) return false;
     if (album && track.albumName !== album) return false;
     if (genre && track.genre !== genre) return false;
     if (favorites === 'true' && !track.starred) return false;
+    if (unrated) return track.rating === undefined || track.rating === null;
     if (rating !== null && rating !== '') {
       const r = Number(rating);
       if (!Number.isNaN(r) && track.rating !== r) return false;
@@ -114,8 +111,16 @@ export function Tracks() {
 
   const cardFields: LibraryViewCardField<Track>[] = [
     { key: 'title', render: (track) => track.title },
-    { key: 'artist', render: (track) => track.artistName ?? '-' },
-    { key: 'album', render: (track) => track.albumName ?? '-' },
+    {
+      key: 'artist',
+      render: (track) => track.artistName ?? '-',
+      getHref: (track) => (track.artistId ? `/artists/${track.artistId}` : undefined),
+    },
+    {
+      key: 'album',
+      render: (track) => track.albumName ?? '-',
+      getHref: (track) => (track.albumId ? `/albums/${track.albumId}` : undefined),
+    },
   ];
 
   return (

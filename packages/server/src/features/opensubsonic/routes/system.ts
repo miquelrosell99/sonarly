@@ -7,6 +7,7 @@ import { registerBrowsingRoutes } from './browsing.js';
 import { registerRetrievalRoutes } from './retrieval.js';
 import { registerPlaylistRoutes } from '../../playlists/index.js';
 import { registerStarringRoutes } from './starring.js';
+import { registerNowPlayingRoutes } from './now-playing.js';
 import { getUserById } from '../../users/index.js';
 
 export async function registerOpenSubsonicRoutes(app: FastifyInstance, config: Config, db: Database.Database): Promise<void> {
@@ -15,6 +16,7 @@ export async function registerOpenSubsonicRoutes(app: FastifyInstance, config: C
   registerRetrievalRoutes(app, db);
   registerPlaylistRoutes(app, db);
   registerStarringRoutes(app, db);
+  registerNowPlayingRoutes(app, db);
 
   app.get('/rest/ping.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
@@ -35,14 +37,14 @@ export async function registerOpenSubsonicRoutes(app: FastifyInstance, config: C
     const format = (request as any).subsonicFormat;
     const userId = (request as any).subsonicUser as string | undefined;
     if (!userId) {
-      return sendSubsonicReply(reply.status(401), format, {
+      return sendSubsonicReply(reply, format, {
         error: { code: 40, message: 'Wrong username or password' },
       }, 'failed');
     }
 
     const user = getUserById(db, userId);
     if (!user) {
-      return sendSubsonicReply(reply.status(401), format, {
+      return sendSubsonicReply(reply, format, {
         error: { code: 40, message: 'Wrong username or password' },
       }, 'failed');
     }
@@ -63,6 +65,8 @@ export async function registerOpenSubsonicRoutes(app: FastifyInstance, config: C
         shareRole: false,
         streamRole: true,
         uploadRole: user.isAdmin,
+        ...(user.maxBitrateKbps !== undefined ? { maxBitRate: user.maxBitrateKbps } : {}),
+        ...(user.transcodeFormat !== undefined ? { transcodeFormat: user.transcodeFormat } : {}),
       },
     });
   });

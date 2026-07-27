@@ -23,6 +23,25 @@ describe('EditEntityModal', () => {
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'New Title' }));
   });
 
+  it('renders lyrics field and synced lyrics button for songs', () => {
+    const onEditSyncedLyrics = vi.fn();
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '1', title: 'Track', lyrics: 'Line 1', syncedLyrics: [{ time: 1, text: 'Line 1' }] }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+        onEditSyncedLyrics={onEditSyncedLyrics}
+      />,
+    );
+    expect(screen.getByLabelText(/lyrics/i)).toBeTruthy();
+    expect(screen.getByText('1 synced lines')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /edit synced lyrics/i }));
+    expect(onEditSyncedLyrics).toHaveBeenCalledTimes(1);
+  });
+
   it('renders album tag fields and calls onSave', () => {
     const onSave = vi.fn();
     render(
@@ -189,7 +208,69 @@ describe('EditEntityModal', () => {
     expect(screen.getByText('Read Only Artist')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /save/i })).toBeFalsy();
     expect(screen.queryByRole('button', { name: /delete/i })).toBeFalsy();
-    fireEvent.click(screen.getByRole('button', { name: /close/i }));
+    const closeButtons = screen.getAllByRole('button', { name: /close/i });
+    const footerClose = closeButtons.find((b) => b.textContent === 'Close');
+    expect(footerClose).toBeTruthy();
+    fireEvent.click(footerClose!);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows cover art edit and delete buttons on hover', () => {
+    const onEditCoverArt = vi.fn();
+    const onDeleteCoverArt = vi.fn();
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '12', title: 'Track', coverArt: 'cover-1' }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+        onEditCoverArt={onEditCoverArt}
+        onDeleteCoverArt={onDeleteCoverArt}
+      />,
+    );
+    const cover = screen.getByAltText(/cover art/i).parentElement;
+    expect(cover).toBeTruthy();
+    fireEvent.mouseEnter(cover!);
+    fireEvent.click(screen.getByRole('button', { name: /change cover art/i }));
+    expect(onEditCoverArt).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: /remove cover art/i }));
+    expect(onDeleteCoverArt).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides cover art edit controls in read-only mode', () => {
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '13', title: 'Track', coverArt: 'cover-1' }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+        onEditCoverArt={vi.fn()}
+        onDeleteCoverArt={vi.fn()}
+        readOnly
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /change cover art/i })).toBeFalsy();
+    expect(screen.queryByRole('button', { name: /remove cover art/i })).toBeFalsy();
+  });
+
+  it('hides cover art delete button when there is no cover art', () => {
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '14', title: 'Track' }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+        onEditCoverArt={vi.fn()}
+        onDeleteCoverArt={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /remove cover art/i })).toBeFalsy();
+    expect(screen.getByRole('button', { name: /change cover art/i })).toBeTruthy();
   });
 });

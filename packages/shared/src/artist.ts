@@ -5,4 +5,7 @@ export interface Artist {
   starred?: boolean;
   rating?: number;
   artistImageUrl?: string;
+  musicBrainzArtistIds?: string[];
+  bio?: string;
+  externalUrls?: Record<string, string>;
 }

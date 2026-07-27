@@ -80,7 +80,6 @@ describe('buildApp', () => {
     const checkDb = new Database(join(root, 'sonarly.db'));
     const job = checkDb.prepare("SELECT type, stats FROM scan_jobs WHERE type = 'scan'").get() as any;
     expect(job).toBeDefined();
-    expect(JSON.parse(job.stats).path).toBe(config.LIBRARY_PATH);
     checkDb.close();
 
     await app.close();

@@ -57,7 +57,7 @@ function fieldColumn(field: string): { expr: string; needsJoin: string | null; i
     case 'albumArtist':
       return { expr: 'aar.name', needsJoin: 'albumArtist', isUserField: false };
     case 'genre':
-      return { expr: 's.genre', needsJoin: null, isUserField: false };
+      return { expr: 'g.name', needsJoin: 'genre', isUserField: false };
     case 'year':
       return { expr: 's.year', needsJoin: null, isUserField: false };
     case 'duration':
@@ -236,6 +236,9 @@ function buildJoins(joins: Set<string>): string {
   }
   if (joins.has('userSongs')) {
     clauses.push('LEFT JOIN user_songs us ON us.song_id = s.id AND us.user_id = ?');
+  }
+  if (joins.has('genre')) {
+    clauses.push('LEFT JOIN genres g ON g.id = s.genre_id');
   }
   return clauses.join(' ');
 }

@@ -11,7 +11,7 @@ import {
   resolvePlaylistSongIds,
   resolvePlaylistSongCount,
 } from './repository.js';
-import { getUserPreferences } from '../user-preferences/index.js';
+import { getUserById } from '../users/index.js';
 
 interface SongRow {
   id: string;
@@ -209,8 +209,8 @@ function toOpenSubsonicPlaylist(
   userId: string,
   includeEntries: boolean,
 ): Record<string, unknown> {
-  const preferences = getUserPreferences(db, userId);
-  const hideExplicit = preferences.hideExplicit === true;
+  const viewer = getUserById(db, userId);
+  const hideExplicit = viewer?.hideExplicit === true;
   const songIds = includeEntries ? resolvePlaylistSongIds(db, p, userId) : [];
   const rawCount = resolvePlaylistSongCount(db, p, userId);
   const entries = includeEntries ? fetchPlaylistSongs(db, songIds) : [];

@@ -95,13 +95,14 @@ export function getGenreDistribution(
 
   const rows = db.prepare(`
     SELECT
-      COALESCE(NULLIF(s.genre, ''), 'Unknown') AS genre,
+      COALESCE(NULLIF(g.name, ''), 'Unknown') AS genre,
       COUNT(*) AS plays,
       COALESCE(SUM(lh.duration_listened), 0) AS total_duration_listened
     FROM listening_history lh
     JOIN songs s ON s.id = lh.song_id
+    LEFT JOIN genres g ON g.id = s.genre_id
     ${whereClause}
-    GROUP BY genre
+    GROUP BY g.name
     ORDER BY plays DESC
   `).all(...params) as { genre: string; plays: number; total_duration_listened: number }[];
 
@@ -139,12 +140,13 @@ export function getMonthlyGenrePlays(
   const rows = db.prepare(`
     SELECT
       strftime('%Y-%m', lh.played_at) AS month,
-      COALESCE(NULLIF(s.genre, ''), 'Unknown') AS genre,
+      COALESCE(NULLIF(g.name, ''), 'Unknown') AS genre,
       COUNT(*) AS plays
     FROM listening_history lh
     JOIN songs s ON s.id = lh.song_id
+    LEFT JOIN genres g ON g.id = s.genre_id
     ${whereClause}
-    GROUP BY month, genre
+    GROUP BY month, g.name
     ORDER BY month DESC, plays DESC
   `).all(...params) as { month: string; genre: string; plays: number }[];
 

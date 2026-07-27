@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
-import { Settings } from '../components/Settings.js';
+import { Modal } from '../../../components/ui/Modal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 
 interface Conflict {
@@ -12,7 +12,12 @@ interface Conflict {
   albumName?: string;
 }
 
-export function SettingsConflicts() {
+interface ConflictsModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function ConflictsModal({ open, onClose }: ConflictsModalProps) {
   const { notify } = useNotification();
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,8 +36,10 @@ export function SettingsConflicts() {
   };
 
   useEffect(() => {
-    load();
-  }, []);
+    if (open) {
+      load();
+    }
+  }, [open]);
 
   const remove = async (id: string) => {
     if (!confirm('Delete this file from the library? This cannot be undone.')) return;
@@ -49,9 +56,8 @@ export function SettingsConflicts() {
   };
 
   return (
-    <Settings>
-      <div className="max-w-4xl space-y-4">
-        <h3 className="text-base font-medium">Conflicting files</h3>
+    <Modal open={open} onClose={onClose} title="Conflicting files" className="max-w-4xl">
+      <div className="space-y-4">
         <p className="text-sm text-muted">
           Files that were renamed with a collision suffix such as " (1)" because another file already occupied the target path.
         </p>
@@ -85,7 +91,7 @@ export function SettingsConflicts() {
                       <Button
                         onClick={() => remove(conflict.id)}
                         disabled={deleting === conflict.id}
-                        variant="ghost"
+                        variant="danger"
                       >
                         {deleting === conflict.id ? 'Deleting...' : 'Delete'}
                       </Button>
@@ -97,6 +103,6 @@ export function SettingsConflicts() {
           </div>
         )}
       </div>
-    </Settings>
+    </Modal>
   );
 }

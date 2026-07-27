@@ -75,6 +75,41 @@ describe('MutagenWriter', () => {
     expect(meta.common.year).toBe(2023);
   });
 
+  it('writes plain lyrics to MP3 and reads them back', async () => {
+    const src = new URL('../../fixtures/sample.mp3', import.meta.url).pathname;
+    const copy = join(tempDir, 'test-lyrics.mp3');
+    await copyFile(src, copy);
+
+    await writeTags(copy, {
+      title: 'Lyrics Title',
+      lyrics: 'These are the lyrics',
+    });
+
+    const meta = await parseFile(copy);
+    expect(meta.common.title).toBe('Lyrics Title');
+    expect(meta.common.lyrics?.[0]).toBe('These are the lyrics');
+  });
+
+  it('writes synced lyrics to FLAC and reads them back as LRC', async () => {
+    const path = join(tempDir, 'test-synced.flac');
+    await writeFile(path, createMinimalFlac());
+
+    await writeTags(path, {
+      title: 'Synced Title',
+      syncedLyrics: [
+        { time: 12.34, text: 'First line' },
+        { time: 15.67, text: 'Second line' },
+      ],
+    });
+
+    const meta = await parseFile(path);
+    expect(meta.common.title).toBe('Synced Title');
+    const synced = meta.native?.vorbis?.find((tag) => tag.id.toUpperCase() === 'SYNCEDLYRICS');
+    expect(synced).toBeDefined();
+    expect(String(synced?.value)).toContain('[00:12.34] First line');
+    expect(String(synced?.value)).toContain('[00:15.67] Second line');
+  });
+
   it('writes tags to a synthetic M4A file without error and preserves them', async () => {
     const path = join(tempDir, 'test.m4a');
     await writeFile(path, createMinimalM4a());

@@ -12,7 +12,11 @@ import {
   setSetting,
 } from '../settings/index.js';
 import { ScanScheduler, ArtistImageScheduler } from './scheduler.js';
-import { syncMissingArtistImages } from '../artists/index.js';
+import { syncMissingArtistImages, syncMissingArtistMetadata } from '../artists/index.js';
+import { ensureDefaultLibrary } from '../libraries/index.js';
+import { registerDefaultWriters } from '../tags/index.js';
+
+registerDefaultWriters();
 
 interface WorkerMessage {
   type: 'shutdown';
@@ -23,6 +27,7 @@ if (!parentPort) throw new Error('worker.ts must run inside a Worker');
 const config = workerData as Config;
 const db = new Database(getDbPath(config));
 migrate(db);
+ensureDefaultLibrary(db, config.LIBRARY_PATH);
 
 let running = true;
 let activeJobId: string | null = null;
@@ -84,11 +89,23 @@ async function loop(): Promise<void> {
         const stats = await runOrganizeJob(config, db, job.id);
         markJobCompleted(db, job.id, stats);
       } else if (job.type === 'artist_images') {
-        const stats = await syncMissingArtistImages(db);
+        let options: { refetchExisting?: boolean } = {};
+        try {
+          options = JSON.parse(job.payload || '{}');
+        } catch {
+          options = {};
+        }
+        const refetch = options.refetchExisting === true;
+        const imageStats = await syncMissingArtistImages(db, config.DATA_DIR, {
+          refetchExisting: refetch,
+        });
+        const metadataStats = await syncMissingArtistMetadata(db, {
+          refetchExisting: refetch,
+        });
         markJobCompleted(db, job.id, {
-          scanned: stats.scanned,
-          updated: stats.updated,
-          failed: stats.failed,
+          scanned: imageStats.scanned + metadataStats.scanned,
+          updated: imageStats.updated + metadataStats.updated,
+          failed: imageStats.failed + metadataStats.failed,
         });
       }
     } catch (err) {

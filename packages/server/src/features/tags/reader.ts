@@ -1,6 +1,8 @@
 import { parseFile } from 'music-metadata';
+import type { IAudioMetadata } from 'music-metadata';
 import path from 'node:path';
-import type { SongTags } from '@sonarly/shared';
+import type { SongTags, SyncedLyricLine } from '@sonarly/shared';
+import { parseLrc } from './lrc.js';
 export { computeChecksum } from './checksum.js';
 
 export interface CoverArtPicture {
@@ -25,6 +27,13 @@ export interface AudioMetadata {
   coverArt?: CoverArtPicture;
   bpm?: number;
   musicBrainzId?: string;
+  musicBrainzTrackId?: string;
+  musicBrainzWorkId?: string;
+  musicBrainzDiscId?: string;
+  musicBrainzAlbumId?: string;
+  musicBrainzReleaseGroupId?: string;
+  musicBrainzArtistIds?: string[];
+  musicBrainzAlbumArtistIds?: string[];
   replayGain?: number;
   comment?: string;
   sortName?: string;
@@ -34,6 +43,24 @@ export interface AudioMetadata {
   remixOf?: string;
   displayArtist?: string;
   displayAlbumArtist?: string;
+  lyrics?: string;
+  syncedLyrics?: SyncedLyricLine[];
+  genres?: string[];
+  artists?: string[];
+  albumArtists?: string[];
+  composers?: string[];
+  producers?: string[];
+  labels?: string[];
+  catalogNumbers?: string[];
+  isrcs?: string[];
+  barcode?: string;
+  asin?: string;
+  originalYear?: number;
+  originalArtist?: string;
+  compilation?: boolean;
+  gapless?: boolean;
+  totalTracks?: string;
+  totalDiscs?: string;
 }
 
 /**
@@ -54,7 +81,7 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
       albumArtist: common.albumartist,
       trackNumber: common.track.no ?? undefined,
       discNumber: common.disk.no ?? undefined,
-      genre: common.genre?.[0],
+      genre: common.genre?.filter(Boolean)[0] ?? common.genre?.filter(Boolean).join(' / '),
       year: common.year,
       explicit: detectExplicit(metadata.native),
     },
@@ -67,8 +94,16 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
     },
     hasCoverArt: picture !== undefined,
     coverArt: picture ? { data: Buffer.from(picture.data), format: picture.format } : undefined,
+    genres: common.genre?.filter(Boolean).length ? common.genre.filter(Boolean) : undefined,
     bpm: common.bpm ?? undefined,
     musicBrainzId: common.musicbrainz_recordingid ?? undefined,
+    musicBrainzTrackId: common.musicbrainz_trackid ?? undefined,
+    musicBrainzWorkId: common.musicbrainz_workid ?? undefined,
+    musicBrainzDiscId: common.musicbrainz_discid ?? undefined,
+    musicBrainzAlbumId: common.musicbrainz_albumid ?? undefined,
+    musicBrainzReleaseGroupId: common.musicbrainz_releasegroupid ?? undefined,
+    musicBrainzArtistIds: common.musicbrainz_artistid?.length ? common.musicbrainz_artistid : undefined,
+    musicBrainzAlbumArtistIds: common.musicbrainz_albumartistid?.length ? common.musicbrainz_albumartistid : undefined,
     replayGain: typeof replayGain === 'number' ? replayGain : undefined,
     comment: common.comment?.[0] ?? undefined,
     sortName: common.titlesort ?? undefined,
@@ -78,7 +113,62 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
     remixOf: common.remixer?.join(', ') ?? undefined,
     displayArtist: common.artist ?? undefined,
     displayAlbumArtist: common.albumartist ?? undefined,
+    lyrics: extractPlainLyrics(metadata),
+    syncedLyrics: extractSyncedLyrics(metadata),
+    artists: common.artists?.length
+      ? common.artists.flatMap(splitArtists)
+      : (common.artist ? splitArtists(common.artist) : undefined),
+    albumArtists: common.albumartist ? splitArtists(common.albumartist) : undefined,
+    composers: common.composer?.length ? common.composer : undefined,
+    producers: common.producer?.length ? common.producer : undefined,
+    labels: common.label?.length ? common.label : undefined,
+    catalogNumbers: common.catalognumber?.length ? common.catalognumber : undefined,
+    isrcs: common.isrc?.length ? common.isrc : undefined,
+    barcode: common.barcode ?? undefined,
+    asin: common.asin ?? undefined,
+    originalYear: common.originalyear ?? undefined,
+    originalArtist: common.originalartist ?? undefined,
+    compilation: common.compilation ?? undefined,
+    gapless: common.gapless ?? undefined,
+    totalTracks: common.track.of?.toString() ?? common.totaltracks ?? undefined,
+    totalDiscs: common.disk.of?.toString() ?? common.totaldiscs ?? undefined,
   };
+}
+
+function extractPlainLyrics(metadata: IAudioMetadata): string | undefined {
+  const value = metadata.common.lyrics?.[0];
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function extractSyncedLyrics(metadata: IAudioMetadata): SyncedLyricLine[] | undefined {
+  const native = metadata.native;
+  if (!native) return undefined;
+
+  for (const [tagType, tags] of Object.entries(native)) {
+    for (const tag of tags) {
+      const id = tag.id.toUpperCase();
+      const raw = Array.isArray(tag.value) ? tag.value[0] : tag.value;
+
+      if ((tagType === 'ID3v2.3' || tagType === 'ID3v2.4') && id === 'SYLT') {
+        if (Array.isArray(tag.value)) {
+          const parsed = tag.value
+            .filter((item): item is [number, string] =>
+              Array.isArray(item) && item.length === 2 && typeof item[0] === 'number' && typeof item[1] === 'string'
+            )
+            .map(([time, text]) => ({ time: time / 1000, text }));
+          if (parsed.length) return parsed;
+        }
+      }
+
+      const value = String(raw);
+      if (id.includes('SYNCEDLYRICS') || id.includes('SYNCED_LYRICS') || (id.includes('LYRICS') && /\[\d{2}:\d{2}/.test(value))) {
+        const parsed = parseLrc(value);
+        if (parsed.length) return parsed;
+      }
+    }
+  }
+
+  return undefined;
 }
 
 /** Backward-compatible alias for {@link readMetadata}. */
@@ -86,6 +176,13 @@ export const readTags = readMetadata;
 
 function getFilenameFallback(filePath: string): string {
   return path.basename(filePath).replace(/\.[^.]+$/, '');
+}
+
+const ARTIST_SPLIT_REGEX = /\s*[,;\/]\s*|\s+&\s+|\s+feat\.\s+|\s+featuring\s+|\s+ft\.\s+/i;
+
+function splitArtists(value: string): string[] {
+  const parts = value.split(ARTIST_SPLIT_REGEX).map((p) => p.trim()).filter(Boolean);
+  return parts.length > 0 ? parts : [value.trim()];
 }
 
 function detectExplicit(native: Record<string, { id: string; value: unknown }[]> | undefined): boolean | undefined {

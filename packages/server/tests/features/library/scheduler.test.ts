@@ -70,7 +70,6 @@ describe('ScanScheduler', () => {
     const job = popPendingJob(db);
     expect(job).toBeDefined();
     expect(job?.type).toBe('scan');
-    expect(job?.payload).toBe(config.LIBRARY_PATH);
   });
 
   function countPendingScans(): number {

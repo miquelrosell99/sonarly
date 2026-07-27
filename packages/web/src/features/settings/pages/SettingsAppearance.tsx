@@ -1,9 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Settings } from '../components/Settings.js';
 import { useTheme } from '../../../stores/themeStore.js';
 import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferences.js';
 import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
+import { Button } from '../../../components/ui/Button.js';
+import {
+  DEFAULT_SIDEBAR_ITEMS,
+  SIDEBAR_ITEM_DEFINITIONS,
+  SIDEBAR_LABELS,
+  mergeSidebarItems,
+} from '../../../lib/sidebar.js';
 import type { ThemeMode, AccentColor, SidebarItem } from '@sonarly/shared';
 
 const themeModes: { value: ThemeMode; label: string }[] = [
@@ -14,34 +21,21 @@ const themeModes: { value: ThemeMode; label: string }[] = [
 ];
 
 const accentColors: { value: AccentColor; label: string; className: string }[] = [
+  { value: 'auto', label: 'Auto', className: 'bg-gradient-to-br from-[hsl(var(--accent-blue))] to-[hsl(var(--accent-cyan))]' },
   { value: 'monochrome', label: 'Monochrome', className: 'bg-fg-primary' },
-  { value: 'brown', label: 'Brown', className: 'bg-[hsl(25,40%,45%)]' },
-  { value: 'green', label: 'Green', className: 'bg-[hsl(142,71%,45%)]' },
-  { value: 'orange', label: 'Orange', className: 'bg-[hsl(25,95%,53%)]' },
-  { value: 'teal', label: 'Teal', className: 'bg-[hsl(174,72%,43%)]' },
-  { value: 'purple', label: 'Purple', className: 'bg-[hsl(270,60%,55%)]' },
-  { value: 'yellow', label: 'Yellow', className: 'bg-[hsl(45,93%,47%)]' },
+  { value: 'brown', label: 'Brown', className: 'bg-[hsl(var(--accent-brown))]' },
+  { value: 'green', label: 'Green', className: 'bg-[hsl(var(--accent-green))]' },
+  { value: 'orange', label: 'Orange', className: 'bg-[hsl(var(--accent-orange))]' },
+  { value: 'teal', label: 'Teal', className: 'bg-[hsl(var(--accent-teal))]' },
+  { value: 'purple', label: 'Purple', className: 'bg-[hsl(var(--accent-purple))]' },
+  { value: 'yellow', label: 'Yellow', className: 'bg-[hsl(var(--accent-yellow))]' },
+  { value: 'cyan', label: 'Cyan', className: 'bg-[hsl(var(--accent-cyan))]' },
+  { value: 'blue', label: 'Blue', className: 'bg-[hsl(var(--accent-blue))]' },
 ];
 
-const DEFAULT_SIDEBAR_ITEMS: SidebarItem[] = [
-  { id: 'home', type: 'link', visible: true },
-  { id: 'albums', type: 'link', visible: true },
-  { id: 'tracks', type: 'link', visible: true },
-  { id: 'album-artists', type: 'link', visible: true },
-  { id: 'artists', type: 'link', visible: true },
-  { id: 'genres', type: 'link', visible: true },
-  { id: 'playlists', type: 'playlists', visible: true, collapsed: false },
-];
-
-const SIDEBAR_LABELS: Record<string, string> = {
-  home: 'Home',
-  albums: 'Albums',
-  tracks: 'Tracks',
-  'album-artists': 'Album Artists',
-  artists: 'Artists',
-  genres: 'Genres',
-  playlists: 'Playlists section',
-};
+function createSidebarItem(def: (typeof SIDEBAR_ITEM_DEFINITIONS)[number]): SidebarItem {
+  return { id: def.id, type: 'link', visible: true };
+}
 
 export function SettingsAppearance() {
   const { themeMode, accentColor, setThemeMode, setAccentColor } = useTheme();
@@ -76,7 +70,7 @@ export function SettingsAppearance() {
     updatePreferences.mutate({ accentColor: color });
   };
 
-  const sidebarItems = preferences?.sidebarConfig?.items ?? DEFAULT_SIDEBAR_ITEMS;
+  const sidebarItems = mergeSidebarItems(preferences?.sidebarConfig);
 
   const updateSidebarItems = (next: SidebarItem[]) => {
     updatePreferences.mutate({ sidebarConfig: { items: next } });
@@ -90,24 +84,48 @@ export function SettingsAppearance() {
     updateSidebarItems(next);
   };
 
-  const toggleVisible = (index: number) => {
-    const next = [...sidebarItems];
-    const item = next[index];
-    if (!item) return;
-    next[index] = { ...item, visible: !item.visible };
+  const removeItem = (index: number) => {
+    const next = sidebarItems.filter((_, i) => i !== index);
     updateSidebarItems(next);
   };
 
-  const togglePlaylistsCollapsed = () => {
-    const next = sidebarItems.map((item) =>
-      item.type === 'playlists' ? { ...item, collapsed: !item.collapsed } : item,
-    );
+  const addItem = (def: (typeof SIDEBAR_ITEM_DEFINITIONS)[number]) => {
+    const next = [...sidebarItems, createSidebarItem(def)];
     updateSidebarItems(next);
+    setAddOpen(false);
   };
+
+  const resetSidebar = () => {
+    updateSidebarItems(DEFAULT_SIDEBAR_ITEMS);
+  };
+
+  const [addOpen, setAddOpen] = useState(false);
+  const addButtonRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!addOpen) return;
+    const handleMouse = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const inside = addButtonRef.current?.contains(target) ?? false;
+      if (!inside) setAddOpen(false);
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAddOpen(false);
+    };
+    document.addEventListener('mousedown', handleMouse);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleMouse);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [addOpen]);
+
+  const currentIds = new Set(sidebarItems.map((item) => item.id));
+  const availableItems = SIDEBAR_ITEM_DEFINITIONS.filter((def) => !currentIds.has(def.id));
 
   return (
     <Settings>
-      <div className="max-w-2xl space-y-8">
+      <div className="w-full space-y-8">
         <section>
           <h3 className="mb-4 text-base font-medium">Theme</h3>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -137,60 +155,76 @@ export function SettingsAppearance() {
                 key={color.value}
                 type="button"
                 onClick={() => handleAccentColor(color.value)}
-                className={cn(
-                  'flex flex-col items-center gap-2 rounded-md border p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                  accentColor === color.value
-                    ? 'border-accent bg-surface-hover'
-                    : 'border-rule bg-surface hover:bg-surface-hover',
-                )}
+                aria-label={color.label}
                 title={color.label}
-              >
-                <span className={cn('h-8 w-8 rounded-full border border-rule', color.className)} />
-                <span className="text-xs text-muted">{color.label}</span>
-              </button>
+                className={cn(
+                  'h-10 w-10 rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
+                  color.className,
+                  accentColor === color.value
+                    ? 'ring-2 ring-fg-primary ring-offset-2 ring-offset-bg-primary'
+                    : 'hover:scale-105',
+                )}
+              />
             ))}
           </div>
         </section>
 
         <section>
-          <h3 className="mb-4 text-base font-medium">Sidebar</h3>
-          <p className="mb-4 text-sm text-muted">
-            Show, hide, and reorder library navigation items.
-          </p>
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-medium">Sidebar</h3>
+              <p className="text-sm text-muted">Add, remove, and reorder library navigation sections.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div ref={addButtonRef} className="relative">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setAddOpen((open) => !open)}
+                  disabled={availableItems.length === 0}
+                  className="pl-4 pr-3"
+                >
+                  <Icon name="mdi-plus" size={18} />
+                  Add section
+                </Button>
+                {addOpen && availableItems.length > 0 && (
+                  <div className="absolute right-0 top-full z-50 mt-2 min-w-[12rem] rounded-md border border-rule bg-bg-primary py-1 shadow-lg">
+                    {availableItems.map((def) => (
+                      <button
+                        key={def.id}
+                        type="button"
+                        onClick={() => addItem(def)}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+                      >
+                        <Icon name="mdi-plus" size={16} className="text-muted" />
+                        {def.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={resetSidebar}
+                title="Reset to default"
+                className="px-3"
+              >
+                <Icon name="mdi-refresh" size={18} />
+              </Button>
+            </div>
+          </div>
+
           <ul className="space-y-2">
             {sidebarItems.map((item, index) => {
               const label = SIDEBAR_LABELS[item.id] ?? item.id;
-              const isPlaylists = item.type === 'playlists';
               return (
                 <li
                   key={item.id}
                   className="flex items-center justify-between rounded-md border border-rule bg-surface px-3 py-2"
                 >
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={item.visible}
-                      onChange={() => toggleVisible(index)}
-                      aria-label={`Show ${label}`}
-                      className="h-4 w-4 accent-accent"
-                    />
-                    <span className="text-sm">{label}</span>
-                  </div>
+                  <span className="text-sm">{label}</span>
                   <div className="flex items-center gap-1">
-                    {isPlaylists && (
-                      <button
-                        type="button"
-                        onClick={togglePlaylistsCollapsed}
-                        title={item.collapsed ? 'Expand playlists section' : 'Collapse playlists section'}
-                        className="rounded p-1 text-muted transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                      >
-                        <Icon
-                          name="mdi-chevron-down"
-                          size={18}
-                          className={cn('transition-transform', item.collapsed && '-rotate-90')}
-                        />
-                      </button>
-                    )}
                     <button
                       type="button"
                       onClick={() => moveItem(index, -1)}
@@ -209,10 +243,24 @@ export function SettingsAppearance() {
                     >
                       <Icon name="mdi-chevron-down" size={18} />
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(index)}
+                      title="Remove"
+                      aria-label={`Remove ${label}`}
+                      className="rounded p-1 text-muted transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    >
+                      <Icon name="mdi-delete" size={18} />
+                    </button>
                   </div>
                 </li>
               );
             })}
+            {sidebarItems.length === 0 && (
+              <li className="rounded-md border border-dashed border-rule bg-surface px-3 py-6 text-center text-sm text-muted">
+                No sections added. Use <strong>Add section</strong> to build your sidebar.
+              </li>
+            )}
           </ul>
         </section>
       </div>

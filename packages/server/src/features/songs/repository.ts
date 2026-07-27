@@ -12,6 +12,7 @@ export interface DbSong {
   artist_id: string | null;
   album_id: string | null;
   genre: string | null;
+  genre_id: string | null;
   year: number | null;
   explicit: number;
   cover_art_id: string | null;
@@ -25,6 +26,9 @@ export interface DbSong {
   channels: number | null;
   bpm: number | null;
   music_brainz_id: string | null;
+  musicbrainz_track_id: string | null;
+  musicbrainz_work_id: string | null;
+  musicbrainz_disc_id: string | null;
   replay_gain: number | null;
   average_rating: number | null;
   comment: string | null;
@@ -36,6 +40,16 @@ export interface DbSong {
   remix_of: string | null;
   display_artist: string | null;
   display_album_artist: string | null;
+  lyrics: string | null;
+  synced_lyrics: string | null;
+  composers: string | null;
+  producers: string | null;
+  isrcs: string | null;
+  original_year: number | null;
+  original_artist: string | null;
+  gapless: number | null;
+  total_tracks: string | null;
+  total_discs: string | null;
 }
 
 interface DbSongWithInteractions extends DbSong {
@@ -54,6 +68,7 @@ function toSong(row: DbSong): Song {
     artistId: row.artist_id ?? undefined,
     albumId: row.album_id ?? undefined,
     genre: row.genre ?? undefined,
+    genreId: row.genre_id ?? undefined,
     year: row.year ?? undefined,
     explicit: row.explicit === 1,
     coverArt: row.cover_art_id ?? undefined,
@@ -67,6 +82,9 @@ function toSong(row: DbSong): Song {
     channels: row.channels ?? undefined,
     bpm: row.bpm ?? undefined,
     musicBrainzId: row.music_brainz_id ?? undefined,
+    musicBrainzTrackId: row.musicbrainz_track_id ?? undefined,
+    musicBrainzWorkId: row.musicbrainz_work_id ?? undefined,
+    musicBrainzDiscId: row.musicbrainz_disc_id ?? undefined,
     replayGain: row.replay_gain ?? undefined,
     averageRating: row.average_rating ?? undefined,
     comment: row.comment ?? undefined,
@@ -78,6 +96,16 @@ function toSong(row: DbSong): Song {
     remixOf: row.remix_of ?? undefined,
     displayArtist: row.display_artist ?? undefined,
     displayAlbumArtist: row.display_album_artist ?? undefined,
+    lyrics: row.lyrics ?? undefined,
+    syncedLyrics: row.synced_lyrics ? JSON.parse(row.synced_lyrics) : undefined,
+    composers: row.composers ? JSON.parse(row.composers) : undefined,
+    producers: row.producers ? JSON.parse(row.producers) : undefined,
+    isrcs: row.isrcs ? JSON.parse(row.isrcs) : undefined,
+    originalYear: row.original_year ?? undefined,
+    originalArtist: row.original_artist ?? undefined,
+    gapless: row.gapless === 1,
+    totalTracks: row.total_tracks ?? undefined,
+    totalDiscs: row.total_discs ?? undefined,
   };
 }
 
@@ -146,8 +174,8 @@ export function scrobbleSong(
 
 export function upsertSong(db: Database.Database, song: Song): void {
   const stmt = db.prepare(`
-    INSERT INTO songs (id, file_path, title, track_number, disc_number, duration, artist_id, album_id, genre, year, explicit, cover_art_id, cover_art_missing, mtime, checksum, active, bit_rate, bits_per_sample, sample_rate, channels, bpm, music_brainz_id, replay_gain, average_rating, comment, sort_name, mood, media_type, original_release_date, release_date, remix_of, display_artist, display_album_artist)
-    VALUES (@id, @filePath, @title, @trackNumber, @discNumber, @duration, @artistId, @albumId, @genre, @year, @explicit, @coverArt, @coverArtMissing, @mtime, @checksum, @active, @bitRate, @bitsPerSample, @sampleRate, @channels, @bpm, @musicBrainzId, @replayGain, @averageRating, @comment, @sortName, @mood, @mediaType, @originalReleaseDate, @releaseDate, @remixOf, @displayArtist, @displayAlbumArtist)
+    INSERT INTO songs (id, file_path, title, track_number, disc_number, duration, artist_id, album_id, genre, genre_id, year, explicit, cover_art_id, cover_art_missing, mtime, checksum, active, bit_rate, bits_per_sample, sample_rate, channels, bpm, music_brainz_id, musicbrainz_track_id, musicbrainz_work_id, musicbrainz_disc_id, replay_gain, average_rating, comment, sort_name, mood, media_type, original_release_date, release_date, remix_of, display_artist, display_album_artist, lyrics, synced_lyrics, composers, producers, isrcs, original_year, original_artist, gapless, total_tracks, total_discs)
+    VALUES (@id, @filePath, @title, @trackNumber, @discNumber, @duration, @artistId, @albumId, @genre, @genreId, @year, @explicit, @coverArt, @coverArtMissing, @mtime, @checksum, @active, @bitRate, @bitsPerSample, @sampleRate, @channels, @bpm, @musicBrainzId, @musicBrainzTrackId, @musicBrainzWorkId, @musicBrainzDiscId, @replayGain, @averageRating, @comment, @sortName, @mood, @mediaType, @originalReleaseDate, @releaseDate, @remixOf, @displayArtist, @displayAlbumArtist, @lyrics, @syncedLyrics, @composers, @producers, @isrcs, @originalYear, @originalArtist, @gapless, @totalTracks, @totalDiscs)
     ON CONFLICT(id) DO UPDATE SET
       file_path = excluded.file_path,
       title = excluded.title,
@@ -157,6 +185,7 @@ export function upsertSong(db: Database.Database, song: Song): void {
       artist_id = excluded.artist_id,
       album_id = excluded.album_id,
       genre = excluded.genre,
+      genre_id = excluded.genre_id,
       year = excluded.year,
       explicit = excluded.explicit,
       cover_art_id = excluded.cover_art_id,
@@ -170,6 +199,9 @@ export function upsertSong(db: Database.Database, song: Song): void {
       channels = excluded.channels,
       bpm = excluded.bpm,
       music_brainz_id = excluded.music_brainz_id,
+      musicbrainz_track_id = excluded.musicbrainz_track_id,
+      musicbrainz_work_id = excluded.musicbrainz_work_id,
+      musicbrainz_disc_id = excluded.musicbrainz_disc_id,
       replay_gain = excluded.replay_gain,
       average_rating = excluded.average_rating,
       comment = excluded.comment,
@@ -180,7 +212,17 @@ export function upsertSong(db: Database.Database, song: Song): void {
       release_date = excluded.release_date,
       remix_of = excluded.remix_of,
       display_artist = excluded.display_artist,
-      display_album_artist = excluded.display_album_artist
+      display_album_artist = excluded.display_album_artist,
+      lyrics = excluded.lyrics,
+      synced_lyrics = excluded.synced_lyrics,
+      composers = excluded.composers,
+      producers = excluded.producers,
+      isrcs = excluded.isrcs,
+      original_year = excluded.original_year,
+      original_artist = excluded.original_artist,
+      gapless = excluded.gapless,
+      total_tracks = excluded.total_tracks,
+      total_discs = excluded.total_discs
   `);
   stmt.run({
     id: song.id,
@@ -192,6 +234,7 @@ export function upsertSong(db: Database.Database, song: Song): void {
     artistId: song.artistId ?? null,
     albumId: song.albumId ?? null,
     genre: song.genre ?? null,
+    genreId: song.genreId ?? null,
     year: song.year ?? null,
     explicit: song.explicit ? 1 : 0,
     coverArt: song.coverArt ?? null,
@@ -205,6 +248,9 @@ export function upsertSong(db: Database.Database, song: Song): void {
     channels: song.channels ?? null,
     bpm: song.bpm ?? null,
     musicBrainzId: song.musicBrainzId ?? null,
+    musicBrainzTrackId: song.musicBrainzTrackId ?? null,
+    musicBrainzWorkId: song.musicBrainzWorkId ?? null,
+    musicBrainzDiscId: song.musicBrainzDiscId ?? null,
     replayGain: song.replayGain ?? null,
     averageRating: song.averageRating ?? null,
     comment: song.comment ?? null,
@@ -216,6 +262,16 @@ export function upsertSong(db: Database.Database, song: Song): void {
     remixOf: song.remixOf ?? null,
     displayArtist: song.displayArtist ?? null,
     displayAlbumArtist: song.displayAlbumArtist ?? null,
+    lyrics: song.lyrics ?? null,
+    syncedLyrics: song.syncedLyrics ? JSON.stringify(song.syncedLyrics) : null,
+    composers: song.composers ? JSON.stringify(song.composers) : null,
+    producers: song.producers ? JSON.stringify(song.producers) : null,
+    isrcs: song.isrcs ? JSON.stringify(song.isrcs) : null,
+    originalYear: song.originalYear ?? null,
+    originalArtist: song.originalArtist ?? null,
+    gapless: song.gapless ? 1 : 0,
+    totalTracks: song.totalTracks ?? null,
+    totalDiscs: song.totalDiscs ?? null,
   });
 }
 
@@ -296,19 +352,39 @@ export function listSongsByArtist(db: Database.Database, artistId: string, userI
 }
 
 export function listSongsByAlbum(db: Database.Database, albumId: string, userId?: string): Song[] {
-  if (!userId) {
-    const rows = db.prepare('SELECT * FROM songs WHERE album_id = ? AND active = 1 ORDER BY disc_number, track_number, title')
-      .all(albumId) as DbSong[];
-    return rows.map(toSong);
-  }
-  const rows = db.prepare(`
-    SELECT s.*, us.starred, us.rating
+  const baseSelect = `
+    SELECT s.*, ar.name AS artist_name, al.name AS album_name, al.artist_name AS album_artist_name
+  `;
+  const baseFrom = `
     FROM songs s
-    LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
+    LEFT JOIN artists ar ON ar.id = s.artist_id
+    LEFT JOIN albums al ON al.id = s.album_id
     WHERE s.album_id = ? AND s.active = 1
     ORDER BY s.disc_number, s.track_number, s.title
-  `).all(userId, albumId) as DbSongWithInteractions[];
-  return rows.map(toSongWithInteractions);
+  `;
+  interface NamesRow {
+    artist_name: string | null;
+    album_name: string | null;
+    album_artist_name: string | null;
+  }
+  const mapRow = (row: DbSong & NamesRow) => ({
+    ...toSong(row),
+    artistName: row.artist_name ?? undefined,
+    albumName: row.album_name ?? undefined,
+    albumArtistName: row.album_artist_name ?? undefined,
+  });
+  if (!userId) {
+    const rows = db.prepare(`${baseSelect} ${baseFrom}`).all(albumId) as (DbSong & NamesRow)[];
+    return rows.map(mapRow);
+  }
+  const rows = db.prepare(`${baseSelect}, us.starred, us.rating ${baseFrom.replace('WHERE', 'LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id WHERE')}`)
+    .all(userId, albumId) as (DbSongWithInteractions & NamesRow)[];
+  return rows.map((row) => ({
+    ...toSongWithInteractions(row),
+    artistName: row.artist_name ?? undefined,
+    albumName: row.album_name ?? undefined,
+    albumArtistName: row.album_artist_name ?? undefined,
+  }));
 }
 
 const COLLISION_SUFFIX_REGEX = / \(\d+\)\.[a-z0-9]+$/i;
@@ -317,4 +393,93 @@ export function listCollisionSongs(db: Database.Database): Song[] {
   const rows = db.prepare("SELECT * FROM songs WHERE active = 1 AND file_path LIKE '% (%)%'")
     .all() as DbSong[];
   return rows.filter((row) => COLLISION_SUFFIX_REGEX.test(row.file_path)).map(toSong);
+}
+
+export function setSongArtists(
+  db: Database.Database,
+  songId: string,
+  artistIds: string[],
+): void {
+  db.transaction(() => {
+    db.prepare('DELETE FROM song_artists WHERE song_id = ?').run(songId);
+    const insert = db.prepare(
+      'INSERT INTO song_artists (song_id, artist_id, position) VALUES (?, ?, ?)'
+    );
+    for (const [position, artistId] of artistIds.entries()) {
+      insert.run(songId, artistId, position);
+    }
+  })();
+}
+
+export function getSongArtistIds(db: Database.Database, songId: string): string[] {
+  return db.prepare(
+    'SELECT artist_id FROM song_artists WHERE song_id = ? ORDER BY position'
+  ).pluck().all(songId) as string[];
+}
+
+export function getSongArtistNames(db: Database.Database, songId: string): string[] {
+  return db.prepare(`
+    SELECT ar.name
+    FROM song_artists sa
+    JOIN artists ar ON ar.id = sa.artist_id
+    WHERE sa.song_id = ?
+    ORDER BY sa.position
+  `).pluck().all(songId) as string[];
+}
+
+export function getSongArtistNamesForMany(
+  db: Database.Database,
+  songIds: string[],
+): Map<string, string[]> {
+  if (songIds.length === 0) return new Map();
+  const placeholders = songIds.map(() => '?').join(',');
+  const rows = db.prepare(`
+    SELECT sa.song_id, ar.name
+    FROM song_artists sa
+    JOIN artists ar ON ar.id = sa.artist_id
+    WHERE sa.song_id IN (${placeholders})
+    ORDER BY sa.song_id, sa.position
+  `).all(...songIds) as { song_id: string; name: string }[];
+  const map = new Map<string, string[]>();
+  for (const row of rows) {
+    const list = map.get(row.song_id) ?? [];
+    list.push(row.name);
+    map.set(row.song_id, list);
+  }
+  return map;
+}
+
+export function getSongArtistEntries(
+  db: Database.Database,
+  songId: string,
+): { id: string; name: string }[] {
+  return db.prepare(`
+    SELECT ar.id, ar.name
+    FROM song_artists sa
+    JOIN artists ar ON ar.id = sa.artist_id
+    WHERE sa.song_id = ?
+    ORDER BY sa.position
+  `).all(songId) as { id: string; name: string }[];
+}
+
+export function getSongArtistEntriesForMany(
+  db: Database.Database,
+  songIds: string[],
+): Map<string, { id: string; name: string }[]> {
+  if (songIds.length === 0) return new Map();
+  const placeholders = songIds.map(() => '?').join(',');
+  const rows = db.prepare(`
+    SELECT sa.song_id, ar.id, ar.name
+    FROM song_artists sa
+    JOIN artists ar ON ar.id = sa.artist_id
+    WHERE sa.song_id IN (${placeholders})
+    ORDER BY sa.song_id, sa.position
+  `).all(...songIds) as { song_id: string; id: string; name: string }[];
+  const map = new Map<string, { id: string; name: string }[]>();
+  for (const row of rows) {
+    const list = map.get(row.song_id) ?? [];
+    list.push({ id: row.id, name: row.name });
+    map.set(row.song_id, list);
+  }
+  return map;
 }

@@ -9,9 +9,32 @@ import { fileURLToPath } from 'node:url';
 import { pushJob } from '../../../src/features/library/queue.js';
 import { migrate } from '../../../src/db/migrate.js';
 import type { Config } from '../../../src/config.js';
+import NodeID3 from 'node-id3';
 
 const workerUrl = new URL('../../../dist/features/library/worker.js', import.meta.url);
 const fixture = new URL('../../fixtures/sample.mp3', import.meta.url).pathname;
+
+// Minimal 1x1 transparent PNG used to trigger the cover-art sync path.
+const MINI_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64'
+);
+
+function createMp3WithCover(targetPath: string): void {
+  copyFileSync(fixture, targetPath);
+  NodeID3.write(
+    {
+      title: 'Song With Cover',
+      APIC: {
+        mime: 'image/png',
+        type: { id: 3, name: 'front cover' },
+        description: 'cover',
+        imageBuffer: MINI_PNG,
+      },
+    },
+    targetPath
+  );
+}
 
 function buildProject(): void {
   execSync('npm run build', {
@@ -102,6 +125,24 @@ describe('scanner worker thread', () => {
     const stats = JSON.parse(row.stats);
     expect(stats.scanned).toBe(1);
     expect(stats.added).toBe(1);
+  });
+
+  it('registers tag writers in the worker so cover-art sync does not fail', async () => {
+    createMp3WithCover(join(libraryPath, 'SongWithCover.mp3'));
+
+    pushJob(db, 'scan', libraryPath);
+
+    await waitFor(() => {
+      const row = db.prepare("SELECT status, stats FROM scan_jobs WHERE type = 'scan'").get() as any;
+      return row?.status === 'completed' && row?.stats && JSON.parse(row.stats).scanned === 1;
+    });
+
+    const row = db.prepare("SELECT status, stats FROM scan_jobs WHERE type = 'scan'").get() as any;
+    expect(row.status).toBe('completed');
+    const stats = JSON.parse(row.stats);
+    expect(stats.scanned).toBe(1);
+    expect(stats.added).toBe(1);
+    expect(stats.failed).toBe(0);
   });
 
   it('processes an ingest job', async () => {

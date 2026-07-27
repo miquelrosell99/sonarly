@@ -10,7 +10,7 @@ import { createUser } from '../../../src/features/users/repository.js';
 import { upsertSong } from '../../../src/features/songs/repository.js';
 import { upsertAlbum } from '../../../src/features/albums/repository.js';
 import { upsertArtist } from '../../../src/features/artists/repository.js';
-import { updateUserPreferences } from '../../../src/features/user-preferences/repository.js';
+import { updateUserContentFilters } from '../../../src/features/users/repository.js';
 import type { Config } from '../../../src/config.js';
 
 vi.mock('node:worker_threads', () => {
@@ -132,7 +132,7 @@ describe('explicit content filtering endpoints', () => {
   });
 
   it('hides explicit songs when user preference is enabled', async () => {
-    updateUserPreferences(db, 'user-1', { hideExplicit: true });
+    updateUserContentFilters(db, 'user-1', { hideExplicit: true });
 
     const res = await app.inject({
       method: 'GET',
@@ -169,7 +169,7 @@ describe('explicit content filtering endpoints', () => {
       mtime: Date.now(),
       checksum: 'c3',
     });
-    updateUserPreferences(db, 'user-1', { hideExplicit: true });
+    updateUserContentFilters(db, 'user-1', { hideExplicit: true });
 
     const res = await app.inject({
       method: 'GET',
@@ -184,7 +184,7 @@ describe('explicit content filtering endpoints', () => {
   });
 
   it('returns 404 for explicit song detail when hidden', async () => {
-    updateUserPreferences(db, 'user-1', { hideExplicit: true });
+    updateUserContentFilters(db, 'user-1', { hideExplicit: true });
 
     const res = await app.inject({
       method: 'GET',
