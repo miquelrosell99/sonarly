@@ -54,7 +54,7 @@ describe('TransportControls', () => {
     const repeatUse = repeatButton.querySelector('use');
     expect(repeatButton.className).not.toContain('text-accent');
     expect(repeatButton.className).not.toContain('bg-accent/15');
-    expect(repeatUse?.getAttribute('href')).toBe('/mdi-sprite.svg#mdi-repeat');
+    expect(repeatUse?.getAttribute('href')).toBe('/mdi-sprite.svg?v=2#mdi-repeat');
 
     fireEvent.click(repeatButton);
     expect(usePlayer.getState().repeat).toBe('all');
@@ -65,7 +65,7 @@ describe('TransportControls', () => {
     const allRepeatUse = allRepeatButton.querySelector('use');
     expect(allRepeatButton.className).toContain('text-accent');
     expect(allRepeatButton.className).toContain('bg-accent/15');
-    expect(allRepeatUse?.getAttribute('href')).toBe('/mdi-sprite.svg#mdi-repeat');
+    expect(allRepeatUse?.getAttribute('href')).toBe('/mdi-sprite.svg?v=2#mdi-repeat');
 
     fireEvent.click(allRepeatButton);
     expect(usePlayer.getState().repeat).toBe('one');
@@ -76,6 +76,6 @@ describe('TransportControls', () => {
     const oneRepeatUse = oneRepeatButton.querySelector('use');
     expect(oneRepeatButton.className).toContain('text-accent');
     expect(oneRepeatButton.className).toContain('bg-accent/15');
-    expect(oneRepeatUse?.getAttribute('href')).toBe('/mdi-sprite.svg#mdi-repeat-once');
+    expect(oneRepeatUse?.getAttribute('href')).toBe('/mdi-sprite.svg?v=2#mdi-repeat-once');
   });
 });
