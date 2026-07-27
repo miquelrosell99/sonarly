@@ -97,7 +97,13 @@ function PlayButtonContent({
   };
 
   const handleClick = handlers
-    ? handlers.onClick
+    ? (e: MouseEvent<HTMLButtonElement>) => {
+        handlers.onClick(e);
+        // Always stop propagation regardless of whether the hook consumed
+        // the synthetic click after a pointer gesture or invoked onPlay for
+        // keyboard/screen-reader activation.
+        e.stopPropagation();
+      }
     : (e: MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();
         onPlay();
