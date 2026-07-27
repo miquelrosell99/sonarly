@@ -112,4 +112,33 @@ describe('ItemContextMenu', () => {
 
     document.removeEventListener('keydown', outerHandler);
   });
+
+  it('anchors the menu to the trigger with top-end placement', () => {
+    render(
+      <ItemContextMenu
+        sections={[{ items: [{ id: 'play', label: 'Play', onClick: vi.fn() }] }]}
+        anchorToTrigger
+        placement="top-end"
+      >
+        <div data-testid="target">Right click me</div>
+      </ItemContextMenu>,
+    );
+    const target = screen.getByTestId('target');
+    vi.spyOn(target, 'getBoundingClientRect').mockReturnValue({
+      top: 200,
+      right: 300,
+      bottom: 220,
+      left: 280,
+      width: 20,
+      height: 20,
+      x: 280,
+      y: 200,
+      toJSON: () => {},
+    } as DOMRect);
+
+    fireEvent.contextMenu(target);
+    const menu = screen.getByRole('menu');
+    expect(parseInt(menu.style.left, 10)).toBe(300);
+    expect(parseInt(menu.style.top, 10)).toBe(192);
+  });
 });
