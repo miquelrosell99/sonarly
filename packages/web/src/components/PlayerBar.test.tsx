@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { PlayerBar } from './PlayerBar.js';
 import { usePlayer, resetPlayer } from '../stores/playerStore.js';
 
 const mockSetFavorite = vi.hoisted(() => vi.fn());
 const mockSetRating = vi.hoisted(() => vi.fn());
+
+const mockUpdateCurrentSong = vi.hoisted(() => vi.fn());
 
 vi.mock('../hooks/useSongInteraction.js', () => ({
   useSongInteraction: (songId: string | undefined, fallback: { starred?: boolean; rating?: number }) => ({
@@ -17,6 +19,7 @@ vi.mock('../hooks/useSongInteraction.js', () => ({
 
 beforeEach(() => {
   resetPlayer();
+  usePlayer.setState({ updateCurrentSong: mockUpdateCurrentSong } as any);
 });
 
 afterEach(() => {
@@ -42,7 +45,7 @@ describe('PlayerBar', () => {
     expect((screen.getByRole('button', { name: /remove favorite/i }) as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it('calls setFavorite when the favorite button is clicked', () => {
+  it('calls setFavorite when the favorite button is clicked', async () => {
     usePlayer.getState().playQueue([
       { id: 's1', title: 'Now Playing', artistName: 'Artist', starred: false, rating: 0 } as any,
     ], 0);
@@ -50,9 +53,10 @@ describe('PlayerBar', () => {
     render(<PlayerBar />);
     fireEvent.click(screen.getByRole('button', { name: /add favorite/i }));
     expect(mockSetFavorite).toHaveBeenCalledWith(true);
+    await waitFor(() => expect(mockUpdateCurrentSong).toHaveBeenCalledWith({ starred: true }));
   });
 
-  it('calls setRating when a star is clicked', () => {
+  it('calls setRating when a star is clicked', async () => {
     usePlayer.getState().playQueue([
       { id: 's1', title: 'Now Playing', artistName: 'Artist', starred: false, rating: 0 } as any,
     ], 0);
@@ -60,5 +64,6 @@ describe('PlayerBar', () => {
     render(<PlayerBar />);
     fireEvent.click(screen.getByRole('button', { name: /rate 3 stars/i }));
     expect(mockSetRating).toHaveBeenCalledWith(3);
+    await waitFor(() => expect(mockUpdateCurrentSong).toHaveBeenCalledWith({ rating: 3 }));
   });
 });

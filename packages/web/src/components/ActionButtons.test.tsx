@@ -9,7 +9,7 @@ afterEach(() => {
 describe('FavoriteButton', () => {
   it('is disabled when the disabled prop is true', () => {
     render(<FavoriteButton starred={false} onClick={vi.fn()} disabled />);
-    expect(screen.getByRole('button').disabled).toBe(true);
+    expect((screen.getByRole('button') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('does not call onClick when disabled', () => {
