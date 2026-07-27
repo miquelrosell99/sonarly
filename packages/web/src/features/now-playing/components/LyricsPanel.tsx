@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { User } from '@sonarly/shared';
 import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { api } from '../../../api.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
+import type { NowPlayingTab } from '../stores/nowPlayingStore.js';
 
 interface LyricsPanelProps {
   user: User;
+  activeTab?: NowPlayingTab;
 }
 
 function findActiveLine(lines: { time: number; text: string }[], currentTime: number): number {
@@ -23,22 +25,23 @@ function findActiveLine(lines: { time: number; text: string }[], currentTime: nu
   return index;
 }
 
-export function LyricsPanel({ user }: LyricsPanelProps) {
+export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
   const currentSong = usePlayer((state) => state.currentSong);
   const currentTime = usePlayer((state) => state.currentTime);
   const [mode, setMode] = useState<'dynamic' | 'static'>('dynamic');
   const [editorOpen, setEditorOpen] = useState(false);
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   const songId = currentSong?.id;
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['lyrics', songId],
     queryFn: async () => {
       const res = await api<{ lyrics?: string; syncedLyrics?: { time: number; text: string }[] }>(`/songs/${songId}/lyrics`);
       return res;
     },
-    enabled: !!songId,
+    enabled: activeTab === 'lyrics' && !!songId,
     staleTime: 60_000,
   });
 
@@ -59,7 +62,9 @@ export function LyricsPanel({ user }: LyricsPanelProps) {
       const lineRect = line.getBoundingClientRect();
       const desired = container.scrollTop + lineRect.top - containerRect.top - containerRect.height / 2 + lineRect.height / 2;
       if (typeof container.scrollTo === 'function') {
-        container.scrollTo({ top: desired, behavior: 'smooth' });
+        const prefersReducedMotion =
+          typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        container.scrollTo({ top: desired, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
       }
     }
   }, [activeIndex, mode]);
@@ -78,7 +83,7 @@ export function LyricsPanel({ user }: LyricsPanelProps) {
         <p className="text-sm">Could not load lyrics.</p>
         <button
           type="button"
-          onClick={() => window.location.reload()}
+          onClick={() => refetch()}
           className="btn-ghost text-xs"
         >
           Retry
@@ -106,7 +111,12 @@ export function LyricsPanel({ user }: LyricsPanelProps) {
             artistName={currentSong.artistName}
             duration={currentSong.duration}
             onClose={() => setEditorOpen(false)}
-            onSaved={() => {}}
+            onSaved={() => {
+              setEditorOpen(false);
+              if (songId) {
+                queryClient.invalidateQueries({ queryKey: ['lyrics', songId] });
+              }
+            }}
           />
         )}
       </div>
@@ -177,7 +187,12 @@ export function LyricsPanel({ user }: LyricsPanelProps) {
               artistName={currentSong.artistName}
               duration={currentSong.duration}
               onClose={() => setEditorOpen(false)}
-              onSaved={() => {}}
+              onSaved={() => {
+              setEditorOpen(false);
+              if (songId) {
+                queryClient.invalidateQueries({ queryKey: ['lyrics', songId] });
+              }
+            }}
             />
           )}
         </div>

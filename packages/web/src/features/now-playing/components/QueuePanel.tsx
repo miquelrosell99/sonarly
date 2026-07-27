@@ -21,11 +21,11 @@ import { CSS } from '@dnd-kit/utilities';
 import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
-import { usePlayer } from '../../../stores/playerStore.js';
+import { usePlayer, type PlayerSong } from '../../../stores/playerStore.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 
 interface QueueRowProps {
-  song: any;
+  song: PlayerSong;
   index: number;
   isCurrent: boolean;
   onPlay: (index: number) => void;
@@ -148,15 +148,50 @@ export function QueuePanel({ user }: { user: User }) {
 
   const handleRemove = (index: number) => {
     const store = usePlayer.getState();
-    if (index === store.queueIndex) {
-      store.next();
-    }
+    const isCurrent = index === store.queueIndex;
     const nextQueue = store.queue.filter((_, i) => i !== index);
+
+    const adjustShuffledIndices = () =>
+      store.shuffledIndices
+        .filter((i) => i !== index)
+        .map((i) => (i > index ? i - 1 : i));
+
+    if (isCurrent) {
+      if (nextQueue.length > 0 && index < nextQueue.length) {
+        const nextSong = nextQueue[index];
+        usePlayer.setState({
+          queue: nextQueue,
+          queueIndex: index,
+          currentSong: nextSong,
+          status: 'playing',
+          currentTime: 0,
+          duration: nextSong.duration ?? 0,
+          ...(store.shuffle ? { shuffledIndices: adjustShuffledIndices() } : {}),
+        });
+      } else {
+        usePlayer.setState({
+          queue: nextQueue,
+          queueIndex: 0,
+          currentSong: null,
+          status: 'idle',
+          currentTime: 0,
+          duration: 0,
+          shuffledIndices: [],
+        });
+      }
+      return;
+    }
+
     let nextIndex = store.queueIndex;
     if (index < store.queueIndex) {
       nextIndex = Math.max(0, nextIndex - 1);
     }
-    usePlayer.setState({ queue: nextQueue, queueIndex: nextIndex });
+    nextIndex = Math.min(nextIndex, Math.max(0, nextQueue.length - 1));
+    usePlayer.setState({
+      queue: nextQueue,
+      queueIndex: nextIndex,
+      ...(store.shuffle ? { shuffledIndices: adjustShuffledIndices() } : {}),
+    });
   };
 
   if (queue.length === 0) {
@@ -164,6 +199,15 @@ export function QueuePanel({ user }: { user: User }) {
       <div className="flex h-full flex-col items-center justify-center gap-2 text-fg-secondary">
         <Icon name="mdi-playlist-music" size={48} />
         <p className="text-sm">The queue is empty.</p>
+      </div>
+    );
+  }
+
+  if (queue.length === 1) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-2 text-fg-secondary">
+        <Icon name="mdi-playlist-music" size={48} />
+        <p className="text-sm">Playing the last track. Add more from the library.</p>
       </div>
     );
   }
