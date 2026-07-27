@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import type { Config } from '../../config.js';
+import { listLibraries } from '../libraries/index.js';
 import { updateJobStats } from '../library/queue.js';
 import {
   cleanupEmptyDirs,
@@ -25,19 +26,24 @@ export async function runOrganizeJob(config: Config, db: Database.Database, jobI
   const stats: OrganizeJobStats = { total: 0, scanned: 0, done: 0, moved: 0, skipped: 0, failed: 0, failedPaths: [] };
   const candidates: string[] = [];
 
-  for await (const filePath of walkLibraryFiles(config.LIBRARY_PATH)) {
-    stats.scanned++;
-    try {
-      const targetPath = await getTargetPathForFile(config, db, filePath);
-      if (targetPath !== filePath) {
-        candidates.push(filePath);
-      } else {
-        stats.skipped++;
+  const libraries = listLibraries(db);
+  const pathsToOrganize = libraries.length > 0 ? libraries.map((l) => l.path) : [config.LIBRARY_PATH];
+
+  for (const libraryPath of pathsToOrganize) {
+    for await (const filePath of walkLibraryFiles(libraryPath)) {
+      stats.scanned++;
+      try {
+        const targetPath = await getTargetPathForFile(config, db, filePath);
+        if (targetPath !== filePath) {
+          candidates.push(filePath);
+        } else {
+          stats.skipped++;
+        }
+      } catch (err) {
+        stats.failed++;
+        stats.failedPaths.push(filePath);
+        console.error(`Organize preview failed for ${filePath}`, err);
       }
-    } catch (err) {
-      stats.failed++;
-      stats.failedPaths.push(filePath);
-      console.error(`Organize preview failed for ${filePath}`, err);
     }
   }
 
@@ -67,10 +73,12 @@ export async function runOrganizeJob(config: Config, db: Database.Database, jobI
 
   delete stats.currentPath;
 
-  try {
-    await cleanupEmptyDirs(config.LIBRARY_PATH, config.LIBRARY_PATH);
-  } catch (err) {
-    console.error('Failed to clean up empty directories after organizing', err);
+  for (const libraryPath of pathsToOrganize) {
+    try {
+      await cleanupEmptyDirs(libraryPath, libraryPath);
+    } catch (err) {
+      console.error('Failed to clean up empty directories after organizing', err);
+    }
   }
 
   return stats;

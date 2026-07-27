@@ -3,6 +3,7 @@ import { extname, join } from 'node:path';
 import Database from 'better-sqlite3';
 import type { SongTags } from '@sonarly/shared';
 import type { Config } from '../../config.js';
+import { listLibraries, getLibraryById } from '../libraries/index.js';
 import { getSongByPath } from '../songs/index.js';
 import { getArtistByName } from '../artists/index.js';
 import { getAlbumByNameAndArtist } from '../albums/index.js';
@@ -25,6 +26,16 @@ export interface OrganizeStats {
   failed: number;
 }
 
+function resolveLibraryIdForPath(db: Database.Database, filePath: string): string | undefined {
+  const row = db.prepare(`
+    SELECT id FROM libraries
+    WHERE ? LIKE path || '%'
+    ORDER BY length(path) DESC
+    LIMIT 1
+  `).get(filePath) as { id: string } | undefined;
+  return row?.id;
+}
+
 export async function getTargetPathForFile(
   config: Config,
   db: Database.Database,
@@ -32,8 +43,11 @@ export async function getTargetPathForFile(
   tags?: SongTags,
 ): Promise<string> {
   const meta = tags ? { tags } : await readTags(filePath);
-  const pattern = getOrganizePattern(db, config);
-  return buildTargetPath(pattern, config.LIBRARY_PATH, meta.tags, filePath);
+  const libraryId = resolveLibraryIdForPath(db, filePath);
+  const library = libraryId ? getLibraryById(db, libraryId) : undefined;
+  const pattern = library?.organizePattern ?? getOrganizePattern(db, config);
+  const libraryPath = library?.path ?? config.LIBRARY_PATH;
+  return buildTargetPath(pattern, libraryPath, meta.tags, filePath);
 }
 
 export async function organizeSongFile(config: Config, db: Database.Database, filePath: string): Promise<string> {
@@ -80,26 +94,32 @@ async function syncSongCoverWithAlbum(
 
 export async function organizeExistingLibrary(config: Config, db: Database.Database): Promise<OrganizeStats> {
   const stats: OrganizeStats = { scanned: 0, moved: 0, skipped: 0, failed: 0 };
+  const libraries = listLibraries(db);
+  const pathsToOrganize = libraries.length > 0 ? libraries.map((l) => l.path) : [config.LIBRARY_PATH];
 
-  for await (const filePath of walkLibraryFiles(config.LIBRARY_PATH)) {
-    stats.scanned++;
-    try {
-      const finalPath = await organizeSongFile(config, db, filePath);
-      if (finalPath === filePath) {
-        stats.skipped++;
-      } else {
-        stats.moved++;
+  for (const libraryPath of pathsToOrganize) {
+    for await (const filePath of walkLibraryFiles(libraryPath)) {
+      stats.scanned++;
+      try {
+        const finalPath = await organizeSongFile(config, db, filePath);
+        if (finalPath === filePath) {
+          stats.skipped++;
+        } else {
+          stats.moved++;
+        }
+      } catch (err) {
+        stats.failed++;
+        console.error(`Organize failed for ${filePath}`, err);
       }
-    } catch (err) {
-      stats.failed++;
-      console.error(`Organize failed for ${filePath}`, err);
     }
   }
 
-  try {
-    await cleanupEmptyDirs(config.LIBRARY_PATH, config.LIBRARY_PATH);
-  } catch (err) {
-    console.error('Failed to clean up empty directories after organizing', err);
+  for (const libraryPath of pathsToOrganize) {
+    try {
+      await cleanupEmptyDirs(libraryPath, libraryPath);
+    } catch (err) {
+      console.error('Failed to clean up empty directories after organizing', err);
+    }
   }
 
   return stats;
