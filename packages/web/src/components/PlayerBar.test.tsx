@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { PlayerBar } from './PlayerBar.js';
 import { usePlayer, resetPlayer } from '../stores/playerStore.js';
+import { useNowPlaying, resetNowPlaying } from '../features/now-playing/index.js';
 
 const mockSetFavorite = vi.hoisted(() => vi.fn());
 const mockSetRating = vi.hoisted(() => vi.fn());
@@ -19,6 +20,7 @@ vi.mock('../hooks/useSongInteraction.js', () => ({
 
 beforeEach(() => {
   resetPlayer();
+  resetNowPlaying();
   usePlayer.setState({ updateCurrentSong: mockUpdateCurrentSong } as any);
 });
 
@@ -65,5 +67,15 @@ describe('PlayerBar', () => {
     fireEvent.click(screen.getByRole('button', { name: /rate 3 stars/i }));
     expect(mockSetRating).toHaveBeenCalledWith(3);
     await waitFor(() => expect(mockUpdateCurrentSong).toHaveBeenCalledWith({ rating: 3 }));
+  });
+
+  it('opens the Now Playing overlay when the cover art is clicked', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'Now Playing', artistName: 'Artist', coverArt: 'cover-1' } as any,
+    ], 0);
+
+    render(<PlayerBar />);
+    fireEvent.click(screen.getByRole('button', { name: /open now playing/i }));
+    expect(useNowPlaying.getState().isOpen).toBe(true);
   });
 });
