@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import { z } from 'zod';
 import type { Song, Album, Artist, Playlist } from '@sonarly/shared';
 import { getUserById } from '../users/index.js';
+import { attachSongArtistEntries } from '../songs/index.js';
 
 const searchQuerySchema = z.object({
   q: z.string().default(''),
@@ -273,6 +274,7 @@ export function registerSearchRoutes(app: FastifyInstance, db: Database.Database
     const songs = !type || type === 'songs'
       ? fetchSongs(db, userId, pattern, hideExplicit, categoryLimit)
       : [];
+    attachSongArtistEntries(db, songs);
     const albums = !type || type === 'albums'
       ? fetchAlbums(db, userId, pattern, categoryLimit)
       : [];
