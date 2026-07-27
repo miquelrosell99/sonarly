@@ -139,6 +139,8 @@ function rowToPlaylist(row: PlaylistSearchRow): Playlist {
   };
 }
 
+const MAX_CATEGORY_RESULTS = 250;
+
 function fetchSongs(
   db: Database.Database,
   userId: string | undefined,
@@ -146,7 +148,7 @@ function fetchSongs(
   hideExplicit: boolean,
   limit?: number,
 ): Song[] {
-  const limitClause = limit !== undefined ? `LIMIT ${limit + 1}` : '';
+  const limitClause = limit !== undefined ? `LIMIT ${limit}` : '';
   const rows = db.prepare(`
     SELECT
       s.*,
@@ -176,7 +178,7 @@ function fetchAlbums(
   pattern: string,
   limit?: number,
 ): Album[] {
-  const limitClause = limit !== undefined ? `LIMIT ${limit + 1}` : '';
+  const limitClause = limit !== undefined ? `LIMIT ${limit}` : '';
   const rows = db.prepare(`
     SELECT
       a.*,
@@ -197,7 +199,7 @@ function fetchArtists(
   pattern: string,
   limit?: number,
 ): Artist[] {
-  const limitClause = limit !== undefined ? `LIMIT ${limit + 1}` : '';
+  const limitClause = limit !== undefined ? `LIMIT ${limit}` : '';
   const rows = db.prepare(`
     SELECT
       ar.*,
@@ -218,7 +220,7 @@ function fetchPlaylists(
   pattern: string,
   limit?: number,
 ): Playlist[] {
-  const limitClause = limit !== undefined ? `LIMIT ${limit + 1}` : '';
+  const limitClause = limit !== undefined ? `LIMIT ${limit}` : '';
   const rows = db.prepare(`
     SELECT
       p.id,
@@ -264,7 +266,9 @@ export function registerSearchRoutes(app: FastifyInstance, db: Database.Database
 
     const hideExplicit = userId ? getUserPreferences(db, userId).hideExplicit === true : false;
     const pattern = likePattern(query);
-    const categoryLimit = type ? undefined : (limit ?? 5);
+    const categoryLimit = type
+      ? Math.min(limit ?? MAX_CATEGORY_RESULTS, MAX_CATEGORY_RESULTS)
+      : (limit ?? 5) + 1;
 
     const songs = !type || type === 'songs'
       ? fetchSongs(db, userId, pattern, hideExplicit, categoryLimit)
