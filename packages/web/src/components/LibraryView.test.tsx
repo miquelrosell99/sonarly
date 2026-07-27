@@ -88,13 +88,12 @@ describe('LibraryView', () => {
     expect(container.querySelector('.grid')).toBeFalsy();
   });
 
-  it('calls onPlay when the row play button is pressed', () => {
+  it('calls onPlay when the row play button is clicked', () => {
     const onPlay = vi.fn();
     renderView({ onPlay });
 
     const playButton = screen.getAllByRole('button', { name: /play/i })[0];
-    fireEvent.pointerDown(playButton);
-    fireEvent.pointerUp(playButton);
+    fireEvent.click(playButton);
     expect(onPlay).toHaveBeenCalledWith(items[0]);
   });
 
@@ -104,8 +103,7 @@ describe('LibraryView', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: /grid view/i })[0]);
     const playButton = screen.getAllByRole('button', { name: /play/i })[0];
-    fireEvent.pointerDown(playButton);
-    fireEvent.pointerUp(playButton);
+    fireEvent.click(playButton);
     expect(onPlay).toHaveBeenCalledWith(items[0]);
     expect(screen.getByTestId('location').textContent).toBe('/');
     expect(container.querySelector('.grid')).toBeTruthy();
@@ -228,7 +226,7 @@ describe('LibraryView', () => {
     const onShufflePlay = vi.fn();
     renderView({ onPlay, onShufflePlay });
 
-    const playButton = screen.getAllByRole('button', { name: 'Play (hold to shuffle)', hidden: true })[0];
+    const playButton = screen.getAllByRole('button', { name: 'Play', hidden: true })[0];
     fireEvent.pointerDown(playButton);
     act(() => {
       vi.advanceTimersByTime(500);
@@ -245,7 +243,7 @@ describe('LibraryView', () => {
     renderView({ onPlay, onShufflePlay });
 
     fireEvent.click(screen.getAllByRole('button', { name: /grid view/i })[0]);
-    const playButton = screen.getAllByRole('button', { name: 'Play (hold to shuffle)', hidden: true })[0];
+    const playButton = screen.getAllByRole('button', { name: 'Play', hidden: true })[0];
     fireEvent.pointerDown(playButton);
     act(() => {
       vi.advanceTimersByTime(500);

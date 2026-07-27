@@ -93,7 +93,7 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
   const [savingRules, setSavingRules] = useState(false);
   const { notify } = useNotification();
   const { setFavorite, setRating } = useFavoriteActions();
-  const { playSongs } = usePlayActions();
+  const { playSongs, shufflePlay } = usePlayActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
 
   const load = () => {
@@ -142,6 +142,10 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
 
   const handlePlaySelection = (songs: SongListItem[], startIndex: number) => {
     playSongs(songs as unknown as Song[], startIndex);
+  };
+
+  const handleShufflePlay = (_song: SongListItem) => {
+    shufflePlay(displayEntries as unknown as Song[]);
   };
 
   const handleFavorite = async (starred: boolean) => {
@@ -259,6 +263,7 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
         playingId={playingId}
         blurExplicit={blurExplicitTitles}
         onPlay={handlePlay}
+        onShufflePlay={handleShufflePlay}
         onPlaySelection={handlePlaySelection}
         renderRow={(song, row) => (
           <PlaylistSongContextMenu song={song} onEdit={() => {}}>

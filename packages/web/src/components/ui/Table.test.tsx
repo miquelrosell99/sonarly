@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import { Table, type TableColumn } from './Table.js';
 
 interface Item {
@@ -134,6 +134,25 @@ describe('Table', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: /play/i })[0]);
     expect(onPlay).toHaveBeenCalledWith(items[0]);
+  });
+
+  it('calls onShufflePlay when the hover play button is held', () => {
+    const onPlay = vi.fn();
+    const onShufflePlay = vi.fn();
+    vi.useFakeTimers();
+    renderTable({ onPlay, onShufflePlay, onPlaySelection: vi.fn() });
+
+    const playButton = screen.getAllByRole('button', { name: /play/i })[0];
+    fireEvent.pointerDown(playButton);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    fireEvent.pointerUp(playButton);
+
+    expect(onShufflePlay).toHaveBeenCalledTimes(1);
+    expect(onShufflePlay).toHaveBeenCalledWith(items[0]);
+    expect(onPlay).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it('highlights the title cell of the currently playing row', () => {
