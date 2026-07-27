@@ -3,6 +3,7 @@ import { Link, useLocation } from 'wouter';
 const sections = [
   { href: '/settings/profile', label: 'Profile' },
   { href: '/settings/appearance', label: 'Appearance' },
+  { href: '/settings/playback', label: 'Playback' },
 ];
 
 function isActive(location: string, href: string): boolean {
