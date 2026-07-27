@@ -101,12 +101,7 @@ export function Album({ user }: { user: User }) {
     playSongs(detail.songs as SharedSong[], 0);
   };
 
-  const handleShuffleAlbum = () => {
-    if (!detail) return;
-    shufflePlay(detail.songs as SharedSong[]);
-  };
-
-  const handleShuffleSongs = () => {
+  const handleShuffleAlbumSongs = () => {
     if (!detail) return;
     shufflePlay(detail.songs as SharedSong[]);
   };
@@ -244,7 +239,7 @@ export function Album({ user }: { user: User }) {
         metadata={metadata}
         actions={
           <>
-            <PlayButton variant="default" onPlay={handlePlayAlbum} onShufflePlay={handleShuffleAlbum}>
+            <PlayButton variant="default" onPlay={handlePlayAlbum} onShufflePlay={handleShuffleAlbumSongs}>
               Play
             </PlayButton>
             <FavoriteRatingGroup
@@ -262,7 +257,7 @@ export function Album({ user }: { user: User }) {
         playingId={playingId}
         blurExplicit={blurExplicitTitles}
         onPlay={handlePlay}
-        onShufflePlay={handleShuffleSongs}
+        onShufflePlay={handleShuffleAlbumSongs}
         onPlaySelection={handlePlaySelection}
         renderRow={(song, row) => (
           <SongContextMenu song={song} onEdit={() => setEditing(song as SongWithNames)} isAdmin={user.isAdmin}>
