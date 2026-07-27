@@ -52,6 +52,16 @@ export interface ScanStats extends Record<string, number | ScanFailure[]> {
   failures: ScanFailure[];
 }
 
+function resolveLibraryId(db: Database.Database, filePath: string): string | undefined {
+  const row = db.prepare(`
+    SELECT id FROM libraries
+    WHERE ? LIKE path || '%'
+    ORDER BY length(path) DESC
+    LIMIT 1
+  `).get(filePath) as { id: string } | undefined;
+  return row?.id;
+}
+
 export async function scanLibrary(config: Config, db: Database.Database): Promise<ScanStats> {
   const stats: ScanStats = { scanned: 0, added: 0, updated: 0, removed: 0, moved: 0, failed: 0, failures: [] };
   const foundPaths = new Set<string>();
@@ -70,6 +80,7 @@ export async function scanLibrary(config: Config, db: Database.Database): Promis
       const mtime = (await stat(filePath)).mtimeMs;
       const unchanged = existing && existing.active && existing.mtime === mtime;
       const needsCover = existing ? needsCoverSync(db, existing) : false;
+      const libraryId = resolveLibraryId(db, filePath);
 
       if (unchanged && !needsCover) continue;
 
@@ -77,7 +88,7 @@ export async function scanLibrary(config: Config, db: Database.Database): Promis
 
       if (unchanged && needsCover) {
         // File metadata is unchanged; only reconcile cover art.
-        await persistSongCoverOnly(db, filePath, meta, existing!);
+        await persistSongCoverOnly(db, filePath, meta, existing!, libraryId);
         stats.updated++;
         continue;
       }
@@ -90,17 +101,17 @@ export async function scanLibrary(config: Config, db: Database.Database): Promis
           ?? findMovedSong(db, checksum, foundPaths)
           ?? findReplacedSong(db, meta.tags, meta.artists?.[0], meta.albumArtists?.[0]);
         if (movedFrom) {
-          const song = await persistSong(db, filePath, meta, mtime, checksum, movedFrom.id);
+          const song = await persistSong(db, filePath, meta, mtime, checksum, libraryId, movedFrom.id);
           checksumToSong.set(checksum, song);
           movedFromPaths.add(movedFrom.filePath);
           stats.moved++;
         } else {
-          const song = await persistSong(db, filePath, meta, mtime, checksum);
+          const song = await persistSong(db, filePath, meta, mtime, checksum, libraryId);
           checksumToSong.set(checksum, song);
           stats.added++;
         }
       } else {
-        await persistSong(db, filePath, meta, mtime, checksum, existing.id);
+        await persistSong(db, filePath, meta, mtime, checksum, libraryId, existing.id);
         stats.updated++;
       }
     } catch (err) {
@@ -181,6 +192,7 @@ async function persistSong(
   meta: Awaited<ReturnType<typeof readTags>>,
   mtime: number,
   checksum: string,
+  libraryId: string | undefined,
   existingId?: string,
 ): Promise<Song> {
   const tags = meta.tags;
@@ -233,6 +245,7 @@ async function persistSong(
     albumId,
     genre: tags.genre,
     genreId,
+    libraryId,
     year: tags.year,
     explicit: tags.explicit,
     coverArt: existingId ? getSongCoverArtId(db, existingId) ?? undefined : undefined,
@@ -322,6 +335,7 @@ async function persistSongCoverOnly(
   filePath: string,
   meta: Awaited<ReturnType<typeof readTags>>,
   existing: Song,
+  libraryId: string | undefined,
 ): Promise<void> {
   const tags = meta.tags;
   const artistNames = meta.artists ?? (tags.artist ? [tags.artist] : undefined);
@@ -342,7 +356,7 @@ async function persistSongCoverOnly(
 
   await syncSongCoverWithAlbum(db, existing.id, albumId, filePath);
 
-  db.prepare('UPDATE songs SET cover_art_missing = ? WHERE id = ?').run(meta.coverArt ? 0 : 1, existing.id);
+  db.prepare('UPDATE songs SET cover_art_missing = ?, library_id = ? WHERE id = ?').run(meta.coverArt ? 0 : 1, libraryId ?? null, existing.id);
 }
 
 function recomputeAlbumAndArtistActivity(db: Database.Database): void {

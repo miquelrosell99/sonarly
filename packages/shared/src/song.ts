@@ -16,6 +16,7 @@ export interface Song {
   albumName?: string;
   genre?: string;
   genreId?: string;
+  libraryId?: string;
   genres?: string[];
   genreIds?: string[];
   year?: number;

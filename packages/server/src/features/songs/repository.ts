@@ -13,6 +13,7 @@ export interface DbSong {
   album_id: string | null;
   genre: string | null;
   genre_id: string | null;
+  library_id: string | null;
   year: number | null;
   explicit: number;
   cover_art_id: string | null;
@@ -69,6 +70,7 @@ function toSong(row: DbSong): Song {
     albumId: row.album_id ?? undefined,
     genre: row.genre ?? undefined,
     genreId: row.genre_id ?? undefined,
+    libraryId: row.library_id ?? undefined,
     year: row.year ?? undefined,
     explicit: row.explicit === 1,
     coverArt: row.cover_art_id ?? undefined,
@@ -174,8 +176,8 @@ export function scrobbleSong(
 
 export function upsertSong(db: Database.Database, song: Song): void {
   const stmt = db.prepare(`
-    INSERT INTO songs (id, file_path, title, track_number, disc_number, duration, artist_id, album_id, genre, genre_id, year, explicit, cover_art_id, cover_art_missing, mtime, checksum, active, bit_rate, bits_per_sample, sample_rate, channels, bpm, music_brainz_id, musicbrainz_track_id, musicbrainz_work_id, musicbrainz_disc_id, replay_gain, average_rating, comment, sort_name, mood, media_type, original_release_date, release_date, remix_of, display_artist, display_album_artist, lyrics, synced_lyrics, composers, producers, isrcs, original_year, original_artist, gapless, total_tracks, total_discs)
-    VALUES (@id, @filePath, @title, @trackNumber, @discNumber, @duration, @artistId, @albumId, @genre, @genreId, @year, @explicit, @coverArt, @coverArtMissing, @mtime, @checksum, @active, @bitRate, @bitsPerSample, @sampleRate, @channels, @bpm, @musicBrainzId, @musicBrainzTrackId, @musicBrainzWorkId, @musicBrainzDiscId, @replayGain, @averageRating, @comment, @sortName, @mood, @mediaType, @originalReleaseDate, @releaseDate, @remixOf, @displayArtist, @displayAlbumArtist, @lyrics, @syncedLyrics, @composers, @producers, @isrcs, @originalYear, @originalArtist, @gapless, @totalTracks, @totalDiscs)
+    INSERT INTO songs (id, file_path, title, track_number, disc_number, duration, artist_id, album_id, genre, genre_id, library_id, year, explicit, cover_art_id, cover_art_missing, mtime, checksum, active, bit_rate, bits_per_sample, sample_rate, channels, bpm, music_brainz_id, musicbrainz_track_id, musicbrainz_work_id, musicbrainz_disc_id, replay_gain, average_rating, comment, sort_name, mood, media_type, original_release_date, release_date, remix_of, display_artist, display_album_artist, lyrics, synced_lyrics, composers, producers, isrcs, original_year, original_artist, gapless, total_tracks, total_discs)
+    VALUES (@id, @filePath, @title, @trackNumber, @discNumber, @duration, @artistId, @albumId, @genre, @genreId, @libraryId, @year, @explicit, @coverArt, @coverArtMissing, @mtime, @checksum, @active, @bitRate, @bitsPerSample, @sampleRate, @channels, @bpm, @musicBrainzId, @musicBrainzTrackId, @musicBrainzWorkId, @musicBrainzDiscId, @replayGain, @averageRating, @comment, @sortName, @mood, @mediaType, @originalReleaseDate, @releaseDate, @remixOf, @displayArtist, @displayAlbumArtist, @lyrics, @syncedLyrics, @composers, @producers, @isrcs, @originalYear, @originalArtist, @gapless, @totalTracks, @totalDiscs)
     ON CONFLICT(id) DO UPDATE SET
       file_path = excluded.file_path,
       title = excluded.title,
@@ -186,6 +188,7 @@ export function upsertSong(db: Database.Database, song: Song): void {
       album_id = excluded.album_id,
       genre = excluded.genre,
       genre_id = excluded.genre_id,
+      library_id = excluded.library_id,
       year = excluded.year,
       explicit = excluded.explicit,
       cover_art_id = excluded.cover_art_id,
@@ -235,6 +238,7 @@ export function upsertSong(db: Database.Database, song: Song): void {
     albumId: song.albumId ?? null,
     genre: song.genre ?? null,
     genreId: song.genreId ?? null,
+    libraryId: song.libraryId ?? null,
     year: song.year ?? null,
     explicit: song.explicit ? 1 : 0,
     coverArt: song.coverArt ?? null,
