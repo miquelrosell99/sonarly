@@ -96,4 +96,39 @@ describe('QueuePanel', () => {
     const dragHandles = screen.getAllByRole('button', { name: /drag to reorder/i });
     expect(dragHandles).toHaveLength(2);
   });
+
+  it('styles past, current, and future songs differently', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'Past' } as any,
+      { id: 's2', title: 'Current' } as any,
+      { id: 's3', title: 'Future' } as any,
+    ], 1);
+
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+    const pastRow = screen.getByText('Past').closest('tr');
+    const currentRow = screen.getByText('Current').closest('tr');
+    const futureRow = screen.getByText('Future').closest('tr');
+
+    expect(pastRow?.className).toContain('opacity-50');
+    expect(currentRow?.className).toContain('bg-accent/10');
+    expect(futureRow?.className).not.toContain('opacity-50');
+    expect(futureRow?.className).not.toContain('bg-accent/10');
+  });
+
+  it('displays songs in shuffled order when shuffle is enabled', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'First' } as any,
+      { id: 's2', title: 'Second' } as any,
+      { id: 's3', title: 'Third' } as any,
+    ], 0);
+    usePlayer.setState({ shuffle: true, shuffledIndices: [0, 2, 1] });
+
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+    const rows = screen.getAllByRole('row');
+    const titles = rows
+      .map((row) => row.textContent)
+      .filter((text) => text?.includes('First') || text?.includes('Second') || text?.includes('Third'))
+      .map((text) => text?.replace(/^\d+/, '').replace(/Unknown artist\d+:\d+$/, '').trim());
+    expect(titles).toEqual(['First', 'Third', 'Second']);
+  });
 });

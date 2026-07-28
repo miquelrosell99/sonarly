@@ -61,6 +61,7 @@ interface LibraryViewProps<T> {
   playingId?: string;
   sortable?: boolean;
   onReorder?: (items: T[]) => void;
+  getRowClassName?: (item: T) => string;
 }
 
 type ViewMode = 'list' | 'grid';
@@ -79,6 +80,7 @@ function SortableLibraryRow<T>({
   favorite,
   rating,
   renderContextMenu,
+  rowClassName,
 }: {
   item: T;
   getId: (item: T) => string;
@@ -93,6 +95,7 @@ function SortableLibraryRow<T>({
   favorite?: { starred?: boolean; onClick: () => void };
   rating?: { value?: number; onRate: (value: number) => void };
   renderContextMenu?: (children: ReactNode) => ReactNode;
+  rowClassName?: string;
 }) {
   const {
     attributes,
@@ -124,6 +127,7 @@ function SortableLibraryRow<T>({
       sortableStyle={style}
       isDragging={isDragging}
       dragHandleProps={{ ...attributes, ...listeners }}
+      className={rowClassName}
     >
       {columns.map((col) => (
         <td key={col.key} className={cn('py-2 pr-4', col.className)}>
@@ -162,6 +166,7 @@ export function LibraryView<T>({
   playingId,
   sortable = false,
   onReorder,
+  getRowClassName,
 }: LibraryViewProps<T>) {
   const effectiveDefaultView = availableViews.includes(defaultView) ? defaultView : availableViews[0];
   const [viewMode, setViewMode] = useState<ViewMode>(effectiveDefaultView);
@@ -321,6 +326,7 @@ export function LibraryView<T>({
                   favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
                   rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
                   renderContextMenu={renderContextMenu ? (children) => renderContextMenu(item, children) : undefined}
+                  rowClassName={getRowClassName?.(item)}
                 />
               );
             }
@@ -337,6 +343,7 @@ export function LibraryView<T>({
                 onShufflePlay={onShufflePlay ? () => onShufflePlay(data) : undefined}
                 favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
                 rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
+                className={getRowClassName?.(item)}
               >
                 {columns.map((col) => (
                   <td key={col.key} className={cn('py-2 pr-4', col.className)}>

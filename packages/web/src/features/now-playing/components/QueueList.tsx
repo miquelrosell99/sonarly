@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
 import type { User } from '@sonarly/shared';
 import { LibraryView, type LibraryViewColumn } from '../../../components/LibraryView.js';
@@ -14,6 +14,15 @@ interface QueueListProps {
   className?: string;
 }
 
+type QueueItemStatus = 'past' | 'current' | 'future';
+
+interface QueueDisplayItem {
+  id: string;
+  song: PlayerSong;
+  originalIndex: number;
+  status: QueueItemStatus;
+}
+
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
   const mins = Math.floor(seconds / 60);
@@ -21,87 +30,129 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-const columns: LibraryViewColumn<PlayerSong>[] = [
-  {
-    key: 'title',
-    header: 'Title',
-    render: (song) => (
-      <span className="flex items-center gap-2">
-        <span className="truncate">{song.title}</span>
-        {song.addedByAutoDj && (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent/70">
-            <Icon name="mdi-robot" size={12} />
-            Auto DJ
-          </span>
-        )}
-      </span>
-    ),
-  },
-  {
-    key: 'artist',
-    header: 'Artist',
-    render: (song) => <span className="truncate text-fg-secondary">{song.artistName || 'Unknown artist'}</span>,
-  },
-  {
-    key: 'duration',
-    header: '',
-    className: 'w-16 text-right',
-    render: (song) => <span className="tabular-nums text-fg-secondary">{formatTime(song.duration ?? 0)}</span>,
-  },
-];
+function buildDisplayItems(
+  queue: PlayerSong[],
+  queueIndex: number,
+  shuffle: boolean,
+  shuffledIndices: number[],
+): QueueDisplayItem[] {
+  const withStatus = (originalIndex: number, position: number): QueueDisplayItem => {
+    const song = queue[originalIndex];
+    let status: QueueItemStatus;
+    if (originalIndex === queueIndex) {
+      status = 'current';
+    } else if (shuffle) {
+      const currentPosition = shuffledIndices.indexOf(queueIndex);
+      status = position < currentPosition ? 'past' : 'future';
+    } else {
+      status = originalIndex < queueIndex ? 'past' : 'future';
+    }
+    return { id: `${song.id}-${originalIndex}`, song, originalIndex, status };
+  };
+
+  if (shuffle && shuffledIndices.length > 0) {
+    return shuffledIndices.map((originalIndex, position) => withStatus(originalIndex, position));
+  }
+
+  return queue.map((_, originalIndex) => withStatus(originalIndex, originalIndex));
+}
 
 export function QueueList({ user, title, showHeader = true, className }: QueueListProps) {
   const [, setLocation] = useLocation();
   const queue = usePlayer((state) => state.queue);
   const queueIndex = usePlayer((state) => state.queueIndex);
   const currentSong = usePlayer((state) => state.currentSong);
+  const shuffle = usePlayer((state) => state.shuffle);
+  const shuffledIndices = usePlayer((state) => state.shuffledIndices);
   const playQueue = usePlayer((state) => state.playQueue);
   const toggleShuffle = usePlayer((state) => state.toggleShuffle);
   const { notify } = useNotification();
 
-  const [items, setItems] = useState(queue);
-  useEffect(() => setItems(queue), [queue]);
+  const displayItems = useMemo(
+    () => buildDisplayItems(queue, queueIndex, shuffle, shuffledIndices),
+    [queue, queueIndex, shuffle, shuffledIndices],
+  );
 
-  const handlePlay = (song: PlayerSong) => {
-    const index = queue.findIndex((s) => s.id === song.id);
-    if (index !== -1) {
-      playQueue(queue, index);
+  const [items, setItems] = useState(displayItems);
+  useEffect(() => setItems(displayItems), [displayItems]);
+
+  const columns: LibraryViewColumn<QueueDisplayItem>[] = [
+    {
+      key: 'title',
+      header: 'Title',
+      render: (item) => (
+        <span className="flex items-center gap-2">
+          <span className="truncate">{item.song.title}</span>
+          {item.song.addedByAutoDj && (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent/70">
+              <Icon name="mdi-robot" size={12} />
+              Auto DJ
+            </span>
+          )}
+        </span>
+      ),
+    },
+    {
+      key: 'artist',
+      header: 'Artist',
+      render: (item) => <span className="truncate text-fg-secondary">{item.song.artistName || 'Unknown artist'}</span>,
+    },
+    {
+      key: 'duration',
+      header: '',
+      className: 'w-16 text-right',
+      render: (item) => <span className="tabular-nums text-fg-secondary">{formatTime(item.song.duration ?? 0)}</span>,
+    },
+  ];
+
+  const getRowClassName = (item: QueueDisplayItem) => {
+    switch (item.status) {
+      case 'past':
+        return 'opacity-50';
+      case 'current':
+        return 'bg-accent/10';
+      default:
+        return '';
     }
   };
 
-  const handlePlaySelection = (selected: PlayerSong[], startIndex: number) => {
-    playQueue(selected, startIndex);
+  const handlePlay = (item: QueueDisplayItem) => {
+    playQueue(queue, item.originalIndex);
   };
 
-  const handleReorder = (nextItems: PlayerSong[]) => {
+  const handlePlaySelection = (selected: QueueDisplayItem[], startIndex: number) => {
+    const selectedSongs = selected.map((item) => item.song);
+    const originalStartIndex = selected[startIndex]?.originalIndex ?? 0;
+    playQueue(selectedSongs, originalStartIndex);
+  };
+
+  const handleReorder = (nextItems: QueueDisplayItem[]) => {
     const store = usePlayer.getState();
-    const activeId = nextItems.find((song, i) => store.queue[i]?.id !== song.id)?.id;
-    if (!activeId) return;
-    const oldIndex = store.queue.findIndex((s) => s.id === activeId);
-    const newIndex = nextItems.findIndex((s) => s.id === activeId);
-    if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
+    const activeItem = nextItems.find((item, i) => items[i]?.id !== item.id);
+    if (!activeItem) return;
+
+    const oldPosition = items.findIndex((item) => item.id === activeItem.id);
+    const newPosition = nextItems.findIndex((item) => item.id === activeItem.id);
+    if (oldPosition === -1 || newPosition === -1 || oldPosition === newPosition) return;
 
     if (store.shuffle) {
-      toggleShuffle();
-      notify('Shuffle turned off to keep your queue order.', 'info');
+      const nextShuffled = nextItems.map((item) => item.originalIndex);
+      usePlayer.setState({ shuffledIndices: nextShuffled });
+      setItems(nextItems);
+      return;
     }
 
-    let nextQueueIndex = store.queueIndex;
-    if (oldIndex === store.queueIndex) {
-      nextQueueIndex = newIndex;
-    } else {
-      if (oldIndex < store.queueIndex && newIndex >= store.queueIndex) nextQueueIndex -= 1;
-      if (oldIndex > store.queueIndex && newIndex <= store.queueIndex) nextQueueIndex += 1;
-    }
+    const nextQueue = nextItems.map((item) => item.song);
+    const nextQueueIndex = nextItems.findIndex((item) => item.originalIndex === store.queueIndex);
 
-    usePlayer.setState({ queue: nextItems, queueIndex: nextQueueIndex });
+    usePlayer.setState({ queue: nextQueue, queueIndex: nextQueueIndex });
     setItems(nextItems);
   };
 
-  const handleRemove = (song: PlayerSong) => {
+  const handleRemove = (item: QueueDisplayItem) => {
     const store = usePlayer.getState();
-    const index = store.queue.findIndex((s) => s.id === song.id);
-    if (index === -1) return;
+    const index = item.originalIndex;
+    if (index < 0 || index >= store.queue.length) return;
     const isCurrent = index === store.queueIndex;
     const nextQueue = store.queue.filter((_, i) => i !== index);
 
@@ -163,13 +214,13 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
     });
   };
 
-  const renderContextMenu = (song: PlayerSong, children: React.ReactNode) => {
-    const index = queue.findIndex((s) => s.id === song.id);
+  const renderContextMenu = (item: QueueDisplayItem, children: React.ReactNode) => {
+    const song = item.song;
     const menuSections = [
       {
         items: [
-          { id: 'play', label: 'Play now', icon: 'mdi-play', onClick: () => handlePlay(song) },
-          { id: 'remove', label: 'Remove from queue', icon: 'mdi-delete', variant: 'danger' as const, onClick: () => handleRemove(song) },
+          { id: 'play', label: 'Play now', icon: 'mdi-play', onClick: () => handlePlay(item) },
+          { id: 'remove', label: 'Remove from queue', icon: 'mdi-delete', variant: 'danger' as const, onClick: () => handleRemove(item) },
         ],
       },
       {
@@ -180,7 +231,7 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
       },
     ];
     return (
-      <ItemContextMenu key={song.id} sections={menuSections}>
+      <ItemContextMenu key={item.id} sections={menuSections}>
         {children as React.ReactElement}
       </ItemContextMenu>
     );
@@ -196,22 +247,23 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
   }
 
   return (
-    <LibraryView<PlayerSong>
+    <LibraryView<QueueDisplayItem>
       title={showHeader ? (title ?? 'Up next') : undefined}
       data={items}
       columns={columns}
       cardFields={[]}
-      getId={(song) => song.id}
+      getId={(item) => item.id}
       getHref={() => ''}
       onPlay={handlePlay}
       onPlaySelection={handlePlaySelection}
       renderContextMenu={renderContextMenu}
       availableViews={['list']}
       defaultView="list"
-      playingId={currentSong?.id}
+      playingId={currentSong ? `${currentSong.id}-${queueIndex}` : undefined}
       emptyMessage="The queue is empty."
       sortable
       onReorder={handleReorder}
+      getRowClassName={getRowClassName}
     />
   );
 }

@@ -32,6 +32,7 @@ interface ListRowProps {
   sortableStyle?: React.CSSProperties;
   isDragging?: boolean;
   dragHandleProps?: Record<string, unknown>;
+  className?: string;
   children: ReactNode;
 }
 
@@ -66,6 +67,7 @@ export function ListRow({
   sortableStyle,
   isDragging = false,
   dragHandleProps,
+  className,
   children,
 }: ListRowProps) {
   const handleClick = (e: MouseEvent) => {
@@ -108,6 +110,7 @@ export function ListRow({
         'group cursor-pointer select-none transition outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
         isSelected ? 'bg-surface-hover' : 'hover:bg-surface-hover',
         isDragging && 'z-10 scale-[1.02] shadow-lg',
+        className,
       )}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
