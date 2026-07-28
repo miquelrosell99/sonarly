@@ -164,7 +164,7 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
                 {playlist.visibility}
               </span>
               {playlist.isSmart && (
-                <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">Smart</span>
+                <span className="rounded bg-surface-hover px-2 py-0.5 text-xs font-medium text-fg-secondary">Smart</span>
               )}
             </div>
             {playlist.description && (
