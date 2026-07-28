@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'wouter';
 import type { Library, User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
@@ -75,6 +76,7 @@ function validatePattern(pattern: string): string | undefined {
 }
 
 export function AdminLibraries({ user }: AdminLibrariesProps) {
+  const [, setLocation] = useLocation();
   const { notify } = useNotification();
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
@@ -335,6 +337,10 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
                   <td className="px-4 py-2 font-mono text-xs text-fg-secondary">{library.path}</td>
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-2">
+                      <Button variant="ghost" onClick={() => setLocation(`/admin/libraries/${library.id}/users`)}>
+                        <Icon name="mdi-account-multiple" size={16} className="mr-1" />
+                        Users
+                      </Button>
                       <Button variant="ghost" onClick={() => openEdit(library)}>
                         <Icon name="mdi-pencil" size={16} className="mr-1" />
                         Edit

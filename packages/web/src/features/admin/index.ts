@@ -5,3 +5,4 @@ export { AdminUsers } from './pages/AdminUsers.js';
 export { AdminSystemTasks } from './pages/AdminSystemTasks.js';
 export { AdminGenres } from './pages/AdminGenres.js';
 export { AdminLibraries } from './pages/AdminLibraries.js';
+export { LibraryUsers } from './pages/LibraryUsers.js';

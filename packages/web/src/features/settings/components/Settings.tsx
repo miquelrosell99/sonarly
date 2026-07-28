@@ -4,6 +4,7 @@ const sections = [
   { href: '/settings/profile', label: 'Profile' },
   { href: '/settings/appearance', label: 'Appearance' },
   { href: '/settings/playback', label: 'Playback' },
+  { href: '/settings/sidebar', label: 'Sidebar' },
 ];
 
 function isActive(location: string, href: string): boolean {
