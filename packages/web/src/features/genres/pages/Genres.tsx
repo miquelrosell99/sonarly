@@ -65,7 +65,7 @@ export function Genres() {
   const playGenre = (genre: GenreItem) => {
     const matching = matchingTracks(genre.name);
     if (matching.length > 0) {
-      playSongs(matching, 0);
+      playSongs(matching);
     }
   };
 

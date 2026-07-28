@@ -124,7 +124,7 @@ export function SearchResults() {
 
   const playAlbum = async (album: Album) => {
     const detail = await api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
-    playSongs(detail.songs, 0);
+    playSongs(detail.songs);
   };
 
   const shuffleAlbums = async (albums: Album[]) => {
@@ -134,12 +134,12 @@ export function SearchResults() {
 
   const playArtist = async (artist: Artist) => {
     const { songs } = await api<{ songs: Song[] }>(`/artists/${artist.id}/songs${buildLibraryQuery(selectedLibraryId)}`);
-    playSongs(songs, 0);
+    playSongs(songs);
   };
 
   const playPlaylist = async (playlist: Playlist) => {
     const detail = await api<PlaylistDetail>(`/playlists/${playlist.id}`);
-    playSongs(detail.playlist.entries, 0);
+    playSongs(detail.playlist.entries);
   };
 
   const shufflePlaylists = async (playlists: Playlist[]) => {

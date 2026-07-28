@@ -47,7 +47,7 @@ export function Years() {
   const playYear = (year: number) => {
     const matching = tracks.filter((t) => t.year === year);
     if (matching.length > 0) {
-      playSongs(matching, 0);
+      playSongs(matching);
     }
   };
 

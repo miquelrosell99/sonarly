@@ -29,15 +29,13 @@ export function useArtistContextMenu(artist: Artist, onEdit: () => void): Contex
 
   const handlePlay = useCallback(async () => {
     await withSongs('play', (songs) => {
-      playSongs(songs, 0);
+      playSongs(songs);
     });
   }, [withSongs, playSongs]);
 
   const handlePlayNext = useCallback(async () => {
     await withSongs('play-next', (songs) => {
-      for (let i = songs.length - 1; i >= 0; i--) {
-        playNext(songs[i]);
-      }
+      playNext(songs);
     });
   }, [withSongs, playNext]);
 

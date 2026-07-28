@@ -124,7 +124,7 @@ export function Artist() {
   const playAlbum = async (album: Album) => {
     try {
       const detail = await api<{ songs: Song[] }>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
-      playSongs(detail.songs, 0);
+      playSongs(detail.songs);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to play album');
     }
@@ -165,7 +165,7 @@ export function Artist() {
           <>
             <PlayButton
               variant="default"
-              onPlay={() => playSongs(topTracks as Song[], 0)}
+              onPlay={() => playSongs(topTracks as Song[])}
               onShufflePlay={() => shufflePlay(topTracks as Song[])}
               disabled={topTracks.length === 0}
             >

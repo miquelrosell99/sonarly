@@ -34,7 +34,7 @@ function AlbumCard({ album: initialAlbum }: { album: Album }) {
     setError(null);
     try {
       const detail = await api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
-      playSongs(detail.songs, 0);
+      playSongs(detail.songs);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to play album');
     }
@@ -138,7 +138,7 @@ function FeaturedAlbumSlide({ album }: FeaturedAlbumSlideProps) {
     setLoading(true);
     try {
       const detail = await api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
-      playSongs(detail.songs, 0);
+      playSongs(detail.songs);
     } finally {
       setLoading(false);
     }
