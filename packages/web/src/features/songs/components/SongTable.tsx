@@ -98,6 +98,8 @@ export function SongTable({
     render: (s) => (s.duration ? formatDuration(s.duration) : '-'),
   });
 
+  const indexPad = Math.max(2, String(songs.length).length);
+
   return (
     <Table
       columns={columns}
@@ -109,6 +111,7 @@ export function SongTable({
       onPlaySelection={onPlaySelection}
       playingId={playingId}
       renderRow={renderRow}
+      indexPad={indexPad}
     />
   );
 }

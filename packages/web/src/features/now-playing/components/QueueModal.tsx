@@ -18,12 +18,13 @@ function computePosition(trigger: HTMLElement, panel: HTMLElement) {
   const triggerRect = trigger.getBoundingClientRect();
   const panelRect = panel.getBoundingClientRect();
   const margin = 8;
+  const playBarHeight = 96;
   const maxLeft = window.innerWidth - panelRect.width - margin;
   const left = clamp(triggerRect.right - panelRect.width, margin, maxLeft);
   const top = clamp(
     triggerRect.top - panelRect.height - margin,
     margin,
-    window.innerHeight - panelRect.height - margin,
+    window.innerHeight - panelRect.height - margin - playBarHeight,
   );
   return { top, left };
 }

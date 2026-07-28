@@ -19,6 +19,7 @@ interface TableProps<T> {
   onPlaySelection?: (rows: T[], startIndex: number) => void;
   playingId?: string;
   renderRow?: (row: T, element: ReactNode) => ReactNode;
+  indexPad?: number;
 }
 
 function isInteractiveTarget(target: EventTarget, currentTarget: EventTarget) {
@@ -45,6 +46,7 @@ export function Table<T>({
   onPlaySelection,
   playingId,
   renderRow,
+  indexPad,
 }: TableProps<T>) {
   const selectable = Boolean(onPlaySelection);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -176,7 +178,9 @@ export function Table<T>({
                 {onPlay && (
                   <td className="w-12 py-2 pr-4">
                     <span className="relative inline-flex h-5 w-6 items-center justify-center text-muted">
-                      <span className="group-hover:opacity-0">{index + 1}</span>
+                      <span className="group-hover:opacity-0">
+                        {indexPad ? (index + 1).toString().padStart(indexPad, '0') : index + 1}
+                      </span>
                       <PlayButton
                         variant="inline"
                         onPlay={() => onPlay(row)}
