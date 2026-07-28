@@ -17,7 +17,7 @@ export function PlaylistCoverGrid({ playlistId }: PlaylistCoverGridProps) {
     setLoading(true);
     api<{ albums: Album[] }>(`/playlists/${encodeURIComponent(playlistId)}/albums?limit=4`)
       .then((res) => {
-        if (!cancelled) setAlbums(res.albums);
+        if (!cancelled) setAlbums(res.albums ?? []);
       })
       .catch(() => {
         // ignore: the grid falls back to placeholders

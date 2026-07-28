@@ -2,7 +2,7 @@
 
 Sonarly uses **SQLite** (via `better-sqlite3`). The database file is created at `${DATA_DIR}/sonarly.db` (default `/data/sonarly.db`). Migrations run automatically on startup from `packages/server/src/db/migrations/`.
 
-This document reflects the schema produced by migrations `001` through `024`.
+This document reflects the schema produced by migrations `001` through `040`.
 
 ## Conventions
 
@@ -222,6 +222,7 @@ User-created playlists (manual or smart).
 |--------|------|-------|
 | `id` | `TEXT` | Primary key (UUID) |
 | `name` | `TEXT` | Playlist name |
+| `description` | `TEXT` | Optional playlist description |
 | `owner_id` | `TEXT` | FK → `users(id)` `ON DELETE CASCADE` |
 | `visibility` | `TEXT` | `private` (default), `shared`, `public`, or `link` |
 | `share_token` | `TEXT` | Unique token for `link` visibility |

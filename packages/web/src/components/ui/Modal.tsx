@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/cn.js';
 import { Icon } from './Icon.js';
@@ -12,6 +13,17 @@ export interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, children, footer, className }: ModalProps) {
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
   if (!open || typeof document === 'undefined') return null;
 
   return createPortal(

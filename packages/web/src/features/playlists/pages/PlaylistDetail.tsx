@@ -3,6 +3,8 @@ import { useParams } from 'wouter';
 import type { SmartPlaylistRules, Song, User } from '@sonarly/shared';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
+import { EntityHeader } from '../../../components/EntityHeader.js';
+import { PlaylistCoverGrid } from '../components/PlaylistCoverGrid.js';
 import { SmartPlaylistEditor } from '../components/SmartPlaylistEditor.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
@@ -136,11 +138,24 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
   if (error) return <p className="text-sm text-danger">{error.message}</p>;
   if (!playlist) return <p className="text-sm text-muted">Playlist not found.</p>;
 
+  const metadata = [
+    { label: `${playlist.songCount} song${playlist.songCount === 1 ? '' : 's'}` },
+    { label: playlist.visibility },
+    ...(playlist.isSmart ? [{ label: 'smart' }] : []),
+  ];
+
   const header = (
-    <div className="mb-4 flex items-center justify-between">
-      <div>
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-semibold">{playlist.name}</h2>
+    <EntityHeader
+      type="Playlist"
+      title={playlist.name}
+      cover={
+        <div className="h-48 w-48 sm:h-56 sm:w-56">
+          <PlaylistCoverGrid playlistId={playlist.id} />
+        </div>
+      }
+      metadata={metadata}
+      actions={
+        <>
           <FavoriteRatingGroup
             starred={playlist.starred}
             onToggleFavorite={() => handleFavorite(!playlist.starred)}
@@ -148,21 +163,17 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
             onRate={(rating) => handleRate(rating || undefined)}
             favoriteLabel={playlist.name}
           />
-        </div>
-        <p className="text-sm text-muted">
-          {playlist.visibility}
-          {playlist.isSmart && (
-            <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary">smart</span>
-          )}
-        </p>
-      </div>
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" onClick={() => openForEdit(playlist.id)}>
-          <Icon name="mdi-pencil" size={18} className="mr-1.5" />
-          Edit
-        </Button>
-      </div>
-    </div>
+          <Button variant="ghost" onClick={() => openForEdit(playlist.id)}>
+            <Icon name="mdi-pencil" size={18} className="mr-1.5" />
+            Edit
+          </Button>
+        </>
+      }
+    >
+      {playlist.description && (
+        <p className="max-w-prose whitespace-pre-line text-sm text-fg-secondary">{playlist.description}</p>
+      )}
+    </EntityHeader>
   );
 
   return (
