@@ -121,6 +121,35 @@ describe('PlayerBar', () => {
     expect(screen.getByText('Artist One')).toBeTruthy();
   });
 
+  it('renders a clickable year next to the album separated by a dot', () => {
+    usePlayer.getState().playQueue([
+      {
+        id: 's1',
+        title: 'Now Playing',
+        albumName: 'Album',
+        albumId: 'alb1',
+        year: 2020,
+      } as any,
+    ], 0);
+
+    render(<PlayerBar />);
+    const albumLink = screen.getByRole('link', { name: 'Album' });
+    const yearLink = screen.getByRole('link', { name: '2020' });
+    expect(albumLink.getAttribute('href')).toBe('/albums/alb1');
+    expect(yearLink.getAttribute('href')).toBe('/years/2020');
+    expect(albumLink.parentElement?.textContent).toContain('·');
+  });
+
+  it('renders a clickable year when no album is present', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'Now Playing', year: 1999 } as any,
+    ], 0);
+
+    render(<PlayerBar />);
+    const yearLink = screen.getByRole('link', { name: '1999' });
+    expect(yearLink.getAttribute('href')).toBe('/years/1999');
+  });
+
   it('toggles Auto DJ on click, persists the change, and updates its visual state', () => {
     render(<PlayerBar />);
     const djButton = screen.getByRole('button', { name: /auto dj/i });
