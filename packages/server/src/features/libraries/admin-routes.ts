@@ -2,7 +2,17 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { listLibraries, getLibraryById, createLibrary, updateLibrary, deleteLibraryById, getDefaultOrganizePattern } from './repository.js';
+import {
+  listLibraries,
+  getLibraryById,
+  createLibrary,
+  updateLibrary,
+  deleteLibraryById,
+  getDefaultOrganizePattern,
+  getLibraryUsers,
+  assignUsersToLibrary,
+  removeUserFromLibrary,
+} from './repository.js';
 import type { CreateLibraryInput, UpdateLibraryInput } from '@sonarly/shared';
 
 function requireAdmin(session: { userId: string; isAdmin: boolean } | undefined, reply: FastifyReply): boolean {
@@ -23,6 +33,10 @@ const updateSchema = z.object({
   name: z.string().min(1).optional(),
   path: z.string().min(1).optional(),
   organizePattern: z.string().min(1).optional(),
+});
+
+const assignUsersSchema = z.object({
+  userIds: z.array(z.string().min(1)),
 });
 
 export function registerLibraryAdminRoutes(
@@ -104,6 +118,46 @@ export function registerLibraryAdminRoutes(
 
     deleteLibraryById(db, id);
     restartWatcher?.();
+    reply.send({ ok: true });
+  });
+
+  app.get('/api/admin/libraries/:id/users', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    const { id } = request.params as { id: string };
+    const existing = getLibraryById(db, id);
+    if (!existing) return reply.status(404).send({ error: 'Library not found' });
+
+    reply.send({ users: getLibraryUsers(db, id) });
+  });
+
+  app.post('/api/admin/libraries/:id/users', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    const { id } = request.params as { id: string };
+    const existing = getLibraryById(db, id);
+    if (!existing) return reply.status(404).send({ error: 'Library not found' });
+
+    const parseResult = assignUsersSchema.safeParse(request.body);
+    if (!parseResult.success) {
+      return reply.status(400).send({ error: 'Invalid input' });
+    }
+
+    assignUsersToLibrary(db, id, parseResult.data.userIds);
+    reply.send({ ok: true });
+  });
+
+  app.delete('/api/admin/libraries/:id/users/:userId', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    const { id, userId } = request.params as { id: string; userId: string };
+    const existing = getLibraryById(db, id);
+    if (!existing) return reply.status(404).send({ error: 'Library not found' });
+
+    removeUserFromLibrary(db, id, userId);
     reply.send({ ok: true });
   });
 }
