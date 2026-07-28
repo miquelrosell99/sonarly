@@ -87,6 +87,7 @@ async function loop(): Promise<void> {
         const library = payload.libraryId ? getLibraryById(db, payload.libraryId) : undefined;
         const stats = await processIngestFolder(config, db, payload.sourcePath, library, {
           duplicateStrategy: payload.duplicateStrategy,
+          runId: job.id,
         });
         markJobCompleted(db, job.id, stats);
       } else if (job.type === 'cleanup_review') {
