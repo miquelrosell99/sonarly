@@ -8,7 +8,7 @@ import {
   toStarredDate,
   fetchOpenSubsonicSongsByIds,
 } from './browsing.js';
-import { getAlbumArtistEntriesForMany } from '../../albums/repository.js';
+import { getAlbumArtistEntriesForMany, getAlbumLabelEntriesForMany } from '../../albums/repository.js';
 import { getAlbumGenreNamesForMany } from '../../genres/repository.js';
 
 export function registerStarringRoutes(app: FastifyInstance, db: Database.Database): void {
@@ -103,8 +103,9 @@ export function registerStarringRoutes(app: FastifyInstance, db: Database.Databa
       WHERE a.active = 1
     `).all(userId) as AlbumRow[];
     const albumArtistMap = getAlbumArtistEntriesForMany(db, albumRows.map((a) => a.id));
+    const albumLabelMap = getAlbumLabelEntriesForMany(db, albumRows.map((a) => a.id));
     const albumGenreMap = getAlbumGenreNamesForMany(db, albumRows.map((a) => a.id));
-    const albums = albumRows.map((album) => toOpenSubsonicAlbum(album, [], 0, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id)));
+    const albums = albumRows.map((album) => toOpenSubsonicAlbum(album, [], 0, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), albumLabelMap.get(album.id)));
 
     const artistRows = db.prepare(`
       SELECT ar.*, uar.starred, uar.rating,
@@ -132,7 +133,6 @@ interface AlbumRow {
   cover_art_id: string | null;
   year: number | null;
   genre: string | null;
-  labels: string | null;
   catalog_numbers: string | null;
   barcode: string | null;
   asin: string | null;
@@ -167,8 +167,8 @@ function parseRating(value: string | string[] | undefined): number | undefined {
   if (value === undefined || value === '') return undefined;
   const raw = Array.isArray(value) ? value[0] : value;
   if (raw === undefined || raw === '') return undefined;
-  if (!/^\d+$/.test(raw)) return undefined;
-  const num = parseInt(raw, 10);
+  if (!/^\d+(\.5)?$/.test(raw)) return undefined;
+  const num = parseFloat(raw);
   if (num < 0 || num > 5) return undefined;
   return num;
 }

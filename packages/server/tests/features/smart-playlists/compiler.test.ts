@@ -95,6 +95,11 @@ describe('smart playlist compiler', () => {
       INSERT INTO user_songs (user_id, song_id, starred, rating, play_count, last_played)
       VALUES (?, ?, ?, ?, ?, ?)
     `).run('user-1', 'song-1', 1, 5, 10, new Date().toISOString());
+
+    db.prepare(`
+      INSERT INTO user_songs (user_id, song_id, starred, rating, play_count, last_played)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run('user-1', 'song-2', 0, 3.5, 0, new Date().toISOString());
   });
 
   afterEach(() => {
@@ -182,6 +187,41 @@ describe('smart playlist compiler', () => {
     const compiled = compileSmartPlaylist(db, rules, 'user-1');
     const ids = db.prepare(compiled.sql).pluck().all(...compiled.params) as string[];
     expect(ids).toEqual(['song-1']);
+  });
+
+  it('filters by half-star rating', () => {
+    const rules: SmartPlaylistRules = {
+      rules: {
+        all: [{ field: 'rating', operator: 'is', value: 3.5 }],
+      },
+    };
+    const compiled = compileSmartPlaylist(db, rules, 'user-1');
+    const ids = db.prepare(compiled.sql).pluck().all(...compiled.params) as string[];
+    expect(ids).toEqual(['song-2']);
+  });
+
+  it('filters by greater than or equal', () => {
+    const rules: SmartPlaylistRules = {
+      rules: {
+        all: [{ field: 'rating', operator: 'gte', value: 3.5 }],
+      },
+    };
+    const compiled = compileSmartPlaylist(db, rules, 'user-1');
+    const ids = db.prepare(compiled.sql).pluck().all(...compiled.params) as string[];
+    expect(ids).toContain('song-1');
+    expect(ids).toContain('song-2');
+    expect(ids).not.toContain('song-3');
+  });
+
+  it('filters by less than or equal', () => {
+    const rules: SmartPlaylistRules = {
+      rules: {
+        all: [{ field: 'rating', operator: 'lte', value: 4 }],
+      },
+    };
+    const compiled = compileSmartPlaylist(db, rules, 'user-1');
+    const ids = db.prepare(compiled.sql).pluck().all(...compiled.params) as string[];
+    expect(ids).toEqual(['song-2']);
   });
 
   it('filters by playcount greater than', () => {

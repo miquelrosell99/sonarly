@@ -43,7 +43,6 @@ export interface DbSong {
   display_album_artist: string | null;
   lyrics: string | null;
   synced_lyrics: string | null;
-  composers: string | null;
   producers: string | null;
   isrcs: string | null;
   original_year: number | null;
@@ -100,7 +99,6 @@ function toSong(row: DbSong): Song {
     displayAlbumArtist: row.display_album_artist ?? undefined,
     lyrics: row.lyrics ?? undefined,
     syncedLyrics: row.synced_lyrics ? JSON.parse(row.synced_lyrics) : undefined,
-    composers: row.composers ? JSON.parse(row.composers) : undefined,
     producers: row.producers ? JSON.parse(row.producers) : undefined,
     isrcs: row.isrcs ? JSON.parse(row.isrcs) : undefined,
     originalYear: row.original_year ?? undefined,
@@ -176,8 +174,8 @@ export function scrobbleSong(
 
 export function upsertSong(db: Database.Database, song: Song): void {
   const stmt = db.prepare(`
-    INSERT INTO songs (id, file_path, title, track_number, disc_number, duration, artist_id, album_id, genre, genre_id, library_id, year, explicit, cover_art_id, cover_art_missing, mtime, checksum, active, bit_rate, bits_per_sample, sample_rate, channels, bpm, music_brainz_id, musicbrainz_track_id, musicbrainz_work_id, musicbrainz_disc_id, replay_gain, average_rating, comment, sort_name, mood, media_type, original_release_date, release_date, remix_of, display_artist, display_album_artist, lyrics, synced_lyrics, composers, producers, isrcs, original_year, original_artist, gapless, total_tracks, total_discs)
-    VALUES (@id, @filePath, @title, @trackNumber, @discNumber, @duration, @artistId, @albumId, @genre, @genreId, @libraryId, @year, @explicit, @coverArt, @coverArtMissing, @mtime, @checksum, @active, @bitRate, @bitsPerSample, @sampleRate, @channels, @bpm, @musicBrainzId, @musicBrainzTrackId, @musicBrainzWorkId, @musicBrainzDiscId, @replayGain, @averageRating, @comment, @sortName, @mood, @mediaType, @originalReleaseDate, @releaseDate, @remixOf, @displayArtist, @displayAlbumArtist, @lyrics, @syncedLyrics, @composers, @producers, @isrcs, @originalYear, @originalArtist, @gapless, @totalTracks, @totalDiscs)
+    INSERT INTO songs (id, file_path, title, track_number, disc_number, duration, artist_id, album_id, genre, genre_id, library_id, year, explicit, cover_art_id, cover_art_missing, mtime, checksum, active, bit_rate, bits_per_sample, sample_rate, channels, bpm, music_brainz_id, musicbrainz_track_id, musicbrainz_work_id, musicbrainz_disc_id, replay_gain, average_rating, comment, sort_name, mood, media_type, original_release_date, release_date, remix_of, display_artist, display_album_artist, lyrics, synced_lyrics, producers, isrcs, original_year, original_artist, gapless, total_tracks, total_discs)
+    VALUES (@id, @filePath, @title, @trackNumber, @discNumber, @duration, @artistId, @albumId, @genre, @genreId, @libraryId, @year, @explicit, @coverArt, @coverArtMissing, @mtime, @checksum, @active, @bitRate, @bitsPerSample, @sampleRate, @channels, @bpm, @musicBrainzId, @musicBrainzTrackId, @musicBrainzWorkId, @musicBrainzDiscId, @replayGain, @averageRating, @comment, @sortName, @mood, @mediaType, @originalReleaseDate, @releaseDate, @remixOf, @displayArtist, @displayAlbumArtist, @lyrics, @syncedLyrics, @producers, @isrcs, @originalYear, @originalArtist, @gapless, @totalTracks, @totalDiscs)
     ON CONFLICT(id) DO UPDATE SET
       file_path = excluded.file_path,
       title = excluded.title,
@@ -218,7 +216,6 @@ export function upsertSong(db: Database.Database, song: Song): void {
       display_album_artist = excluded.display_album_artist,
       lyrics = excluded.lyrics,
       synced_lyrics = excluded.synced_lyrics,
-      composers = excluded.composers,
       producers = excluded.producers,
       isrcs = excluded.isrcs,
       original_year = excluded.original_year,
@@ -268,7 +265,6 @@ export function upsertSong(db: Database.Database, song: Song): void {
     displayAlbumArtist: song.displayAlbumArtist ?? null,
     lyrics: song.lyrics ?? null,
     syncedLyrics: song.syncedLyrics ? JSON.stringify(song.syncedLyrics) : null,
-    composers: song.composers ? JSON.stringify(song.composers) : null,
     producers: song.producers ? JSON.stringify(song.producers) : null,
     isrcs: song.isrcs ? JSON.stringify(song.isrcs) : null,
     originalYear: song.originalYear ?? null,
@@ -320,6 +316,7 @@ export function listInactiveSongs(db: Database.Database, userId?: string): Song[
     `).all() as (DbSong & { artist_name: string | null; album_name: string | null })[];
     const songs = rows.map((row) => ({ ...toSong(row), artistName: row.artist_name ?? undefined, albumName: row.album_name ?? undefined }));
     attachSongArtistEntries(db, songs);
+    attachSongComposerEntries(db, songs);
     return songs;
   }
   const rows = db.prepare(`
@@ -337,6 +334,7 @@ export function listInactiveSongs(db: Database.Database, userId?: string): Song[
     albumName: row.album_name ?? undefined,
   }));
   attachSongArtistEntries(db, songs);
+  attachSongComposerEntries(db, songs);
   return songs;
 }
 
@@ -356,6 +354,7 @@ export function listSongsByArtist(
     `).all(artistId, ...libraryParams) as DbSong[];
     const songs = rows.map(toSong);
     attachSongArtistEntries(db, songs);
+    attachSongComposerEntries(db, songs);
     return songs;
   }
   const rows = db.prepare(`
@@ -367,6 +366,7 @@ export function listSongsByArtist(
   `).all(userId, artistId, ...libraryParams) as DbSongWithInteractions[];
   const songs = rows.map(toSongWithInteractions);
   attachSongArtistEntries(db, songs);
+  attachSongComposerEntries(db, songs);
   return songs;
 }
 
@@ -403,6 +403,7 @@ export function listSongsByAlbum(
     const rows = db.prepare(`${baseSelect} ${baseFrom}`).all(albumId, ...libraryParams) as (DbSong & NamesRow)[];
     const songs = rows.map(mapRow);
     attachSongArtistEntries(db, songs);
+    attachSongComposerEntries(db, songs);
     return songs;
   }
   const rows = db.prepare(`${baseSelect}, us.starred, us.rating ${baseFrom.replace('WHERE', 'LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id WHERE')}`)
@@ -414,6 +415,7 @@ export function listSongsByAlbum(
     albumArtistName: row.album_artist_name ?? undefined,
   }));
   attachSongArtistEntries(db, songs);
+  attachSongComposerEntries(db, songs);
   return songs;
 }
 
@@ -521,6 +523,84 @@ export function attachSongArtistEntries(db: Database.Database, songs: Song[]): v
     const list = entries.get(song.id);
     if (list && list.length > 0) {
       song.artistEntries = list;
+    }
+  }
+}
+
+export function setSongComposers(
+  db: Database.Database,
+  songId: string,
+  artistIds: string[],
+): void {
+  db.transaction(() => {
+    db.prepare('DELETE FROM song_composers WHERE song_id = ?').run(songId);
+    const insert = db.prepare(
+      'INSERT INTO song_composers (song_id, artist_id, position) VALUES (?, ?, ?)'
+    );
+    for (const [position, artistId] of artistIds.entries()) {
+      insert.run(songId, artistId, position);
+    }
+  })();
+}
+
+export function getSongComposerIds(db: Database.Database, songId: string): string[] {
+  return db.prepare(
+    'SELECT artist_id FROM song_composers WHERE song_id = ? ORDER BY position'
+  ).pluck().all(songId) as string[];
+}
+
+export function getSongComposerNames(db: Database.Database, songId: string): string[] {
+  return db.prepare(`
+    SELECT ar.name
+    FROM song_composers sc
+    JOIN artists ar ON ar.id = sc.artist_id
+    WHERE sc.song_id = ?
+    ORDER BY sc.position
+  `).pluck().all(songId) as string[];
+}
+
+export function getSongComposerEntries(
+  db: Database.Database,
+  songId: string,
+): { id: string; name: string }[] {
+  return db.prepare(`
+    SELECT ar.id, ar.name
+    FROM song_composers sc
+    JOIN artists ar ON ar.id = sc.artist_id
+    WHERE sc.song_id = ?
+    ORDER BY sc.position
+  `).all(songId) as { id: string; name: string }[];
+}
+
+export function getSongComposerEntriesForMany(
+  db: Database.Database,
+  songIds: string[],
+): Map<string, { id: string; name: string }[]> {
+  if (songIds.length === 0) return new Map();
+  const placeholders = songIds.map(() => '?').join(',');
+  const rows = db.prepare(`
+    SELECT sc.song_id, ar.id, ar.name
+    FROM song_composers sc
+    JOIN artists ar ON ar.id = sc.artist_id
+    WHERE sc.song_id IN (${placeholders})
+    ORDER BY sc.song_id, sc.position
+  `).all(...songIds) as { song_id: string; id: string; name: string }[];
+  const map = new Map<string, { id: string; name: string }[]>();
+  for (const row of rows) {
+    const list = map.get(row.song_id) ?? [];
+    list.push({ id: row.id, name: row.name });
+    map.set(row.song_id, list);
+  }
+  return map;
+}
+
+export function attachSongComposerEntries(db: Database.Database, songs: Song[]): void {
+  if (songs.length === 0) return;
+  const entries = getSongComposerEntriesForMany(db, songs.map((s) => s.id));
+  for (const song of songs) {
+    const list = entries.get(song.id);
+    if (list && list.length > 0) {
+      song.composerEntries = list;
     }
   }
 }

@@ -21,8 +21,10 @@ const STRING_OPERATORS: { value: SmartPlaylistRule['operator']; label: string }[
 const NUMBER_OPERATORS: { value: SmartPlaylistRule['operator']; label: string }[] = [
   { value: 'is', label: 'is' },
   { value: 'isNot', label: 'is not' },
-  { value: 'gt', label: '>' },
-  { value: 'lt', label: '<' },
+  { value: 'gt', label: 'greater than' },
+  { value: 'gte', label: 'greater than or equal to' },
+  { value: 'lt', label: 'less than' },
+  { value: 'lte', label: 'less than or equal to' },
   { value: 'inTheRange', label: 'between' },
   { value: 'isMissing', label: 'is missing' },
   { value: 'isPresent', label: 'is present' },
@@ -446,16 +448,16 @@ function RuleValueInput({
       <select
         value={value === undefined ? '' : String(value)}
         onChange={(e) => {
-          const parsed = parseInt(e.target.value, 10);
+          const parsed = parseFloat(e.target.value);
           onChange(Number.isNaN(parsed) ? undefined : parsed);
         }}
         className="input py-1.5 text-sm"
       >
-        <option value="1">1 star</option>
-        <option value="2">2 stars</option>
-        <option value="3">3 stars</option>
-        <option value="4">4 stars</option>
-        <option value="5">5 stars</option>
+        {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((r) => (
+          <option key={r} value={r}>
+            {r} {r === 1 ? 'star' : 'stars'}
+          </option>
+        ))}
       </select>
     );
   }

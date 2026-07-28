@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import { randomUUID } from 'node:crypto';
 import type { Album } from '@sonarly/shared';
 
 export interface DbAlbum {
@@ -11,7 +12,6 @@ export interface DbAlbum {
   genre_id: string | null;
   cover_art_id: string | null;
   active: number;
-  labels: string | null;
   catalog_numbers: string | null;
   barcode: string | null;
   asin: string | null;
@@ -35,7 +35,6 @@ export function toAlbum(row: DbAlbum): Album {
     genreId: row.genre_id ?? undefined,
     coverArt: row.cover_art_id ?? undefined,
     active: row.active === 1,
-    labels: row.labels ? JSON.parse(row.labels) : undefined,
     catalogNumbers: row.catalog_numbers ? JSON.parse(row.catalog_numbers) : undefined,
     barcode: row.barcode ?? undefined,
     asin: row.asin ?? undefined,
@@ -69,7 +68,9 @@ export function listInactiveAlbums(db: Database.Database): Album[] {
     WHERE a.active = 0
     ORDER BY a.name
   `).all() as (DbAlbum & { artist_name: string | null })[];
-  return rows.map((row) => ({ ...toAlbum(row), artistName: row.artist_name ?? undefined }));
+  const albums = rows.map((row) => ({ ...toAlbum(row), artistName: row.artist_name ?? undefined }));
+  attachAlbumLabelEntries(db, albums);
+  return albums;
 }
 
 export function deleteAlbumById(db: Database.Database, id: string): void {
@@ -78,8 +79,8 @@ export function deleteAlbumById(db: Database.Database, id: string): void {
 
 export function upsertAlbum(db: Database.Database, album: Album): void {
   const stmt = db.prepare(`
-    INSERT INTO albums (id, name, artist_id, artist_name, year, genre, genre_id, cover_art_id, active, labels, catalog_numbers, barcode, asin, musicbrainz_album_id, musicbrainz_release_group_id, musicbrainz_album_artist_ids, original_year, compilation, total_tracks, total_discs)
-    VALUES (@id, @name, @artistId, @artistName, @year, @genre, @genreId, @coverArt, @active, @labels, @catalogNumbers, @barcode, @asin, @musicBrainzAlbumId, @musicBrainzReleaseGroupId, @musicBrainzAlbumArtistIds, @originalYear, @compilation, @totalTracks, @totalDiscs)
+    INSERT INTO albums (id, name, artist_id, artist_name, year, genre, genre_id, cover_art_id, active, catalog_numbers, barcode, asin, musicbrainz_album_id, musicbrainz_release_group_id, musicbrainz_album_artist_ids, original_year, compilation, total_tracks, total_discs)
+    VALUES (@id, @name, @artistId, @artistName, @year, @genre, @genreId, @coverArt, @active, @catalogNumbers, @barcode, @asin, @musicBrainzAlbumId, @musicBrainzReleaseGroupId, @musicBrainzAlbumArtistIds, @originalYear, @compilation, @totalTracks, @totalDiscs)
     ON CONFLICT(id) DO UPDATE SET
       name = excluded.name,
       artist_id = excluded.artist_id,
@@ -89,7 +90,6 @@ export function upsertAlbum(db: Database.Database, album: Album): void {
       genre_id = excluded.genre_id,
       cover_art_id = excluded.cover_art_id,
       active = excluded.active,
-      labels = excluded.labels,
       catalog_numbers = excluded.catalog_numbers,
       barcode = excluded.barcode,
       asin = excluded.asin,
@@ -111,7 +111,6 @@ export function upsertAlbum(db: Database.Database, album: Album): void {
     genreId: album.genreId ?? null,
     coverArt: album.coverArt ?? null,
     active: album.active === false ? 0 : 1,
-    labels: album.labels ? JSON.stringify(album.labels) : null,
     catalogNumbers: album.catalogNumbers ? JSON.stringify(album.catalogNumbers) : null,
     barcode: album.barcode ?? null,
     asin: album.asin ?? null,
@@ -212,4 +211,112 @@ export function getAlbumArtistEntriesForMany(
     map.set(row.album_id, list);
   }
   return map;
+}
+
+export function getLabelByName(db: Database.Database, name: string): { id: string; name: string } | undefined {
+  return db.prepare('SELECT id, name FROM labels WHERE name = ? COLLATE NOCASE').get(name) as { id: string; name: string } | undefined;
+}
+
+export function upsertLabel(
+  db: Database.Database,
+  label: { id: string; name: string; active?: boolean },
+): void {
+  db.prepare(`
+    INSERT INTO labels (id, name, active)
+    VALUES (@id, @name, @active)
+    ON CONFLICT(name) DO UPDATE SET
+      name = excluded.name,
+      active = excluded.active
+  `).run({
+    id: label.id,
+    name: label.name,
+    active: label.active === false ? 0 : 1,
+  });
+}
+
+export function ensureLabel(db: Database.Database, name: string): string {
+  const trimmed = name.trim();
+  const existing = getLabelByName(db, trimmed);
+  if (existing) return existing.id;
+  const id = randomUUID();
+  upsertLabel(db, { id, name: trimmed });
+  return id;
+}
+
+export function setAlbumLabels(
+  db: Database.Database,
+  albumId: string,
+  labelIds: string[],
+): void {
+  db.transaction(() => {
+    db.prepare('DELETE FROM album_labels WHERE album_id = ?').run(albumId);
+    const insert = db.prepare(
+      'INSERT INTO album_labels (album_id, label_id, position) VALUES (?, ?, ?)'
+    );
+    for (const [position, labelId] of labelIds.entries()) {
+      insert.run(albumId, labelId, position);
+    }
+  })();
+}
+
+export function getAlbumLabelIds(db: Database.Database, albumId: string): string[] {
+  return db.prepare(
+    'SELECT label_id FROM album_labels WHERE album_id = ? ORDER BY position'
+  ).pluck().all(albumId) as string[];
+}
+
+export function getAlbumLabelNames(db: Database.Database, albumId: string): string[] {
+  return db.prepare(`
+    SELECT l.name
+    FROM album_labels al
+    JOIN labels l ON l.id = al.label_id
+    WHERE al.album_id = ?
+    ORDER BY al.position
+  `).pluck().all(albumId) as string[];
+}
+
+export function getAlbumLabelEntries(
+  db: Database.Database,
+  albumId: string,
+): { id: string; name: string }[] {
+  return db.prepare(`
+    SELECT l.id, l.name
+    FROM album_labels al
+    JOIN labels l ON l.id = al.label_id
+    WHERE al.album_id = ?
+    ORDER BY al.position
+  `).all(albumId) as { id: string; name: string }[];
+}
+
+export function getAlbumLabelEntriesForMany(
+  db: Database.Database,
+  albumIds: string[],
+): Map<string, { id: string; name: string }[]> {
+  if (albumIds.length === 0) return new Map();
+  const placeholders = albumIds.map(() => '?').join(',');
+  const rows = db.prepare(`
+    SELECT al.album_id, l.id, l.name
+    FROM album_labels al
+    JOIN labels l ON l.id = al.label_id
+    WHERE al.album_id IN (${placeholders})
+    ORDER BY al.album_id, al.position
+  `).all(...albumIds) as { album_id: string; id: string; name: string }[];
+  const map = new Map<string, { id: string; name: string }[]>();
+  for (const row of rows) {
+    const list = map.get(row.album_id) ?? [];
+    list.push({ id: row.id, name: row.name });
+    map.set(row.album_id, list);
+  }
+  return map;
+}
+
+export function attachAlbumLabelEntries(db: Database.Database, albums: Album[]): void {
+  if (albums.length === 0) return;
+  const entries = getAlbumLabelEntriesForMany(db, albums.map((a) => a.id));
+  for (const album of albums) {
+    const list = entries.get(album.id);
+    if (list && list.length > 0) {
+      album.labelEntries = list;
+    }
+  }
 }

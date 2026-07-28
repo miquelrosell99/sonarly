@@ -200,12 +200,35 @@ describe('favorites endpoints', () => {
     expect(rowAfter.rating).toBeNull();
   });
 
+  it('accepts half-star ratings', async () => {
+    const rate = await app.inject({
+      method: 'POST',
+      url: '/api/ratings',
+      cookies: { sessionId: cookieValue },
+      payload: { entityType: 'song', entityId: 'song-1', rating: 3.5 },
+    });
+    expect(rate.statusCode).toBe(200);
+
+    const row = db.prepare('SELECT rating FROM user_songs WHERE user_id = ? AND song_id = ?').get('user-1', 'song-1') as { rating: number };
+    expect(row.rating).toBe(3.5);
+  });
+
   it('rejects out-of-range ratings', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/ratings',
       cookies: { sessionId: cookieValue },
       payload: { entityType: 'song', entityId: 'song-1', rating: 6 },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('rejects ratings that are not 0.5 increments', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/ratings',
+      cookies: { sessionId: cookieValue },
+      payload: { entityType: 'song', entityId: 'song-1', rating: 3.7 },
     });
     expect(res.statusCode).toBe(400);
   });
