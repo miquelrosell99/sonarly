@@ -20,7 +20,10 @@ export function MetadataBreadcrumb({ items, className }: MetadataBreadcrumbProps
       {visible.map((item, index) => {
         const isLast = index === visible.length - 1;
         const content = item.href ? (
-          <Link href={item.href} className={cn('hover:text-muted', index === 0 && 'font-medium text-fg-primary')}>
+          <Link
+            href={item.href}
+            className={cn('transition hover:opacity-70', index === 0 && 'font-medium text-fg-primary')}
+          >
             {item.label}
           </Link>
         ) : (

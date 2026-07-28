@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'wouter';
 import type { User } from '@sonarly/shared';
 import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
@@ -154,15 +155,57 @@ export function NowPlaying({ user }: NowPlayingProps) {
               alt={`Cover art for ${currentSong.title}`}
             />
             <div className="space-y-1">
-              <h2 className="text-2xl font-bold text-fg-primary">{currentSong.title}</h2>
-              <p className="text-lg text-fg-secondary">{currentSong.artistName || 'Unknown artist'}</p>
-              {currentSong.albumName && (
-                <p className="text-sm text-fg-secondary/70">{currentSong.albumName}</p>
+              <h2 className="text-2xl font-bold text-fg-primary">
+                <Link
+                  href={`/tracks/${currentSong.id}`}
+                  onClick={() => close()}
+                  className="transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  {currentSong.title}
+                </Link>
+              </h2>
+              <p className="text-lg text-fg-secondary">
+                {currentSong.artistId ? (
+                  <Link
+                    href={`/artists/${currentSong.artistId}`}
+                    onClick={() => close()}
+                    className="transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  >
+                    {currentSong.artistName || 'Unknown artist'}
+                  </Link>
+                ) : (
+                  currentSong.artistName || 'Unknown artist'
+                )}
+              </p>
+              {(currentSong.albumName || currentSong.year) && (
+                <p className="text-sm text-fg-secondary/70">
+                  {currentSong.albumId && currentSong.albumName ? (
+                    <Link
+                      href={`/albums/${currentSong.albumId}`}
+                      onClick={() => close()}
+                      className="transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    >
+                      {currentSong.albumName}
+                    </Link>
+                  ) : (
+                    currentSong.albumName
+                  )}
+                  {currentSong.albumName && currentSong.year && (
+                    <span aria-hidden="true" className="mx-1.5">
+                      ·
+                    </span>
+                  )}
+                  {currentSong.year && (
+                    <Link
+                      href={`/years/${currentSong.year}`}
+                      onClick={() => close()}
+                      className="transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    >
+                      {currentSong.year}
+                    </Link>
+                  )}
+                </p>
               )}
-              <div className="flex items-center justify-center gap-2 pt-1 text-xs text-fg-secondary">
-                {currentSong.year && <span>{currentSong.year}</span>}
-                {currentSong.genre && <span>• {currentSong.genre}</span>}
-              </div>
             </div>
             <TransportControls />
           </div>
