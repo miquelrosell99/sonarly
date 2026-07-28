@@ -68,7 +68,6 @@ export function Album({ user }: { user: User }) {
   const [deleting, setDeleting] = useState(false);
   const [coverArtBusy, setCoverArtBusy] = useState(false);
   const { notify } = useNotification();
-  const coverInputRef = useRef<HTMLInputElement>(null);
   const albumCoverInputRef = useRef<HTMLInputElement>(null);
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
@@ -163,43 +162,6 @@ export function Album({ user }: { user: User }) {
       notify(err instanceof Error ? err.message : 'Failed to delete song', 'error');
     } finally {
       setDeleting(false);
-    }
-  };
-
-  const handleSongEditCoverArt = () => {
-    coverInputRef.current?.click();
-  };
-
-  const handleSongCoverArtFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !songEditing) return;
-    setCoverArtBusy(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      await api(`/songs/${songEditing.id}/cover-art`, {
-        method: 'POST',
-        body: formData,
-      });
-      load();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to update cover art', 'error');
-    } finally {
-      setCoverArtBusy(false);
-      if (coverInputRef.current) coverInputRef.current.value = '';
-    }
-  };
-
-  const handleSongDeleteCoverArt = async () => {
-    if (!songEditing) return;
-    setCoverArtBusy(true);
-    try {
-      await api(`/songs/${songEditing.id}/cover-art`, { method: 'DELETE' });
-      load();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to remove cover art', 'error');
-    } finally {
-      setCoverArtBusy(false);
     }
   };
 
@@ -298,7 +260,6 @@ export function Album({ user }: { user: User }) {
     ? {
         ...albumEditing,
         title: albumEditing.name,
-        artist: albumEditing.artistName,
         albumArtist: albumEditing.artistName,
       }
     : null;
@@ -366,21 +327,12 @@ export function Album({ user }: { user: User }) {
           onClose={() => setSongEditing(null)}
           onSave={handleSongSave}
           onDelete={handleSongDelete}
-          onEditCoverArt={user.isAdmin ? handleSongEditCoverArt : undefined}
-          onDeleteCoverArt={user.isAdmin ? handleSongDeleteCoverArt : undefined}
           onEditSyncedLyrics={() => songEditing && setSyncEditing(songEditing)}
           saving={saving}
           deleting={deleting}
           coverArtBusy={coverArtBusy}
         />
       )}
-      <input
-        ref={coverInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        className="hidden"
-        onChange={handleSongCoverArtFileChange}
-      />
 
       {albumEditEntity && (
         <EditEntityModal

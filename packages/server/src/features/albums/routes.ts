@@ -147,9 +147,12 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
       return reply.status(400).send({ error: err instanceof Error ? err.message : 'Invalid tags' });
     }
 
+    const tagsToWrite = { ...tags };
+    delete (tagsToWrite as Record<string, unknown>).genre;
+
     const songs = listSongsByAlbum(db, id);
     for (const song of songs) {
-      await writeTags(song.filePath, tags);
+      await writeTags(song.filePath, tagsToWrite);
 
       let newPath: string;
       try {
@@ -164,16 +167,6 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
       } catch (err) {
         request.log.error({ err }, 'Failed to queue resync job after album tag write');
         return reply.status(500).send({ error: 'Tags saved and files reorganized, but resync queue failed' });
-      }
-    }
-
-    if (typeof tags.genre === 'string') {
-      const trimmed = tags.genre.trim();
-      if (trimmed.length > 0) {
-        const resolved = resolveGenreForTagWrite(db, tags.genre);
-        db.prepare('UPDATE albums SET genre_id = ?, genre = ? WHERE id = ?').run(resolved.id, resolved.name, id);
-      } else {
-        db.prepare('UPDATE albums SET genre_id = NULL, genre = NULL WHERE id = ?').run(id);
       }
     }
 

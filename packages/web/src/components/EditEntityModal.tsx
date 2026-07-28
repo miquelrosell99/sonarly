@@ -52,10 +52,8 @@ const SONG_FIELDS: TagField[] = [
 
 const ALBUM_FIELDS: TagField[] = [
   { key: 'title', label: 'Title', primary: true },
-  { key: 'artist', label: 'Artist', autocomplete: 'artist', primary: true },
-  { key: 'albumArtist', label: 'Album artist', autocomplete: 'albumArtist' },
-  { key: 'genre', label: 'Genre', autocomplete: 'genre' },
-  { key: 'year', label: 'Year', type: 'number' },
+  { key: 'albumArtist', label: 'Album artist', autocomplete: 'albumArtist', primary: true },
+  { key: 'year', label: 'Year', type: 'number', primary: true },
 ];
 
 const VISIBILITY_OPTIONS = ['private', 'shared', 'public', 'link'] as const;
@@ -284,9 +282,14 @@ export function EditEntityModal({
             <div className="flex flex-col gap-5 sm:flex-row">
               <div className="shrink-0">
                 <EditableCoverArt
-                  coverArt={entity.coverArt as string | undefined}
+                  coverArt={
+                    (entityType === 'song'
+                      ? (entity.albumCoverArt as string | undefined)
+                      : (entity.coverArt as string | undefined)) ??
+                    (entity.coverArt as string | undefined)
+                  }
                   alt={`Cover art for ${values.title ?? entityType}`}
-                  readOnly={readOnly}
+                  readOnly={readOnly || entityType === 'song'}
                   busy={coverArtBusy}
                   onEdit={onEditCoverArt}
                   onRequestDelete={onDeleteCoverArt ? () => setConfirmDeleteCoverArt(true) : undefined}
@@ -294,7 +297,12 @@ export function EditEntityModal({
                 />
                 {lightboxOpen && (
                   <CoverArtLightbox
-                    coverArt={entity.coverArt as string | undefined}
+                    coverArt={
+                      (entityType === 'song'
+                        ? (entity.albumCoverArt as string | undefined)
+                        : (entity.coverArt as string | undefined)) ??
+                      (entity.coverArt as string | undefined)
+                    }
                     alt={`Cover art for ${values.title ?? entityType}`}
                     onClose={() => setLightboxOpen(false)}
                   />

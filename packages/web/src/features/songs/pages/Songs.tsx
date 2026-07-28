@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { Song as SharedSong, User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
@@ -41,11 +41,9 @@ export function Songs({ user }: { user: User }) {
   const [syncEditing, setSyncEditing] = useState<Song | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [coverArtBusy, setCoverArtBusy] = useState(false);
   const [orphanedEntities, setOrphanedEntities] = useState<{ type: 'artist' | 'album'; id: string; name: string }[] | null>(null);
   const [cleaningUp, setCleaningUp] = useState(false);
   const { notify } = useNotification();
-  const coverInputRef = useRef<HTMLInputElement>(null);
   const { playSongs, shufflePlay } = usePlayActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
@@ -133,43 +131,6 @@ export function Songs({ user }: { user: User }) {
     }
   };
 
-  const handleEditCoverArt = () => {
-    coverInputRef.current?.click();
-  };
-
-  const handleCoverArtFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !editing) return;
-    setCoverArtBusy(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      await api(`/songs/${editing.id}/cover-art`, {
-        method: 'POST',
-        body: formData,
-      });
-      load();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to update cover art', 'error');
-    } finally {
-      setCoverArtBusy(false);
-      if (coverInputRef.current) coverInputRef.current.value = '';
-    }
-  };
-
-  const handleDeleteCoverArt = async () => {
-    if (!editing) return;
-    setCoverArtBusy(true);
-    try {
-      await api(`/songs/${editing.id}/cover-art`, { method: 'DELETE' });
-      load();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to remove cover art', 'error');
-    } finally {
-      setCoverArtBusy(false);
-    }
-  };
-
   const editEntity = editing
     ? {
         ...editing,
@@ -207,21 +168,11 @@ export function Songs({ user }: { user: User }) {
           onClose={() => setEditing(null)}
           onSave={handleSave}
           onDelete={handleDelete}
-          onEditCoverArt={user.isAdmin ? handleEditCoverArt : undefined}
-          onDeleteCoverArt={user.isAdmin ? handleDeleteCoverArt : undefined}
           onEditSyncedLyrics={() => editing && setSyncEditing(editing)}
           saving={saving}
           deleting={deleting}
-          coverArtBusy={coverArtBusy}
         />
       )}
-      <input
-        ref={coverInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        className="hidden"
-        onChange={handleCoverArtFileChange}
-      />
       {syncEditing && (
         <SyncedLyricsEditor
           songId={syncEditing.id}

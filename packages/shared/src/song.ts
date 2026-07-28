@@ -22,6 +22,7 @@ export interface Song {
   year?: number;
   explicit?: boolean;
   coverArt?: string;
+  albumCoverArt?: string;
   coverArtMissing?: boolean;
   mtime: number;
   checksum: string;
