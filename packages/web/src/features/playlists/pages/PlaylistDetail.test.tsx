@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { Router, Route } from 'wouter';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PlaylistDetail } from './PlaylistDetail.js';
 import { NotificationProvider } from '../../../contexts/NotificationContext.js';
 
@@ -36,6 +37,8 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
 function renderPlaylistDetail() {
   window.history.pushState({}, '', '/playlists/playlist-1');
   const user = {
@@ -45,11 +48,13 @@ function renderPlaylistDetail() {
     createdAt: new Date().toISOString(),
   };
   return render(
-    <Router>
-      <NotificationProvider>
-        <Route path="/playlists/:id" component={() => <PlaylistDetail user={user} />} />
-      </NotificationProvider>
-    </Router>,
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <NotificationProvider>
+          <Route path="/playlists/:id" component={() => <PlaylistDetail user={user} />} />
+        </NotificationProvider>
+      </Router>
+    </QueryClientProvider>,
   );
 }
 
