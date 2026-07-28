@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
+import type { DuplicateStrategy } from '@sonarly/shared';
 
 export function createIngestJob(db: Database.Database, sourcePath: string): string {
   const id = randomUUID();
@@ -13,8 +14,25 @@ export function updateIngestJob(
   id: string,
   status: string,
   targetPath?: string,
-  error?: string
+  error?: string,
+  duplicate?: boolean,
+  duplicateStrategy?: DuplicateStrategy,
 ): void {
-  db.prepare("UPDATE ingest_jobs SET status = ?, target_path = ?, error = ?, updated_at = datetime('now') WHERE id = ?")
-    .run(status, targetPath ?? null, error ?? null, id);
+  db.prepare(`
+    UPDATE ingest_jobs
+    SET status = ?,
+        target_path = ?,
+        error = ?,
+        duplicate = ?,
+        duplicate_strategy = ?,
+        updated_at = datetime('now')
+    WHERE id = ?
+  `).run(
+    status,
+    targetPath ?? null,
+    error ?? null,
+    duplicate ? 1 : 0,
+    duplicateStrategy ?? null,
+    id,
+  );
 }

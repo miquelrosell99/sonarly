@@ -155,7 +155,7 @@ describe('scanner worker thread', () => {
 
     const row = db.prepare("SELECT status, stats FROM scan_jobs WHERE type = 'ingest'").get() as any;
     expect(row.status).toBe('completed');
-    expect(JSON.parse(row.stats)).toEqual({ processed: 0, imported: 0, needsReview: 0, failed: 0 });
+    expect(JSON.parse(row.stats)).toEqual({ processed: 0, imported: 0, duplicates: 0, needsReview: 0, failed: 0 });
   });
 
   it('processes an organize job', async () => {
