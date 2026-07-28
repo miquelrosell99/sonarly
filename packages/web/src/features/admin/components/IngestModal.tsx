@@ -8,14 +8,13 @@ import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 
-interface IngestJob {
+interface IngestRun {
   id: string;
-  source_path: string;
   status: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  stats?: Record<string, unknown>;
   error: string | null;
-  duplicate: number | null;
-  duplicate_strategy: string | null;
-  created_at: string;
 }
 
 const RETENTION_OPTIONS = [30, 60, 90];
@@ -23,14 +22,43 @@ const RETENTION_OPTIONS = [30, 60, 90];
 interface IngestModalProps {
   open: boolean;
   onClose: () => void;
-  onSelectJob?: (id: string) => void;
+  onSelectRun?: (id: string) => void;
 }
 
-export function IngestModal({ open, onClose, onSelectJob }: IngestModalProps) {
+function formatDateTime(value: string | null): string {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Invalid date';
+  return date.toLocaleString();
+}
+
+function formatDuration(startedAt: string | null, finishedAt: string | null): string {
+  if (!startedAt) return '-';
+  const start = new Date(startedAt).getTime();
+  const end = finishedAt ? new Date(finishedAt).getTime() : Date.now();
+  if (Number.isNaN(start) || Number.isNaN(end)) return '-';
+  const ms = end - start;
+  if (ms < 1000) return `${ms}ms`;
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}m ${secs}s`;
+}
+
+function formatRunStats(stats: Record<string, unknown> | undefined): string {
+  if (!stats || typeof stats !== 'object') return '-';
+  const entries = Object.entries(stats)
+    .filter(([key, value]) => key !== 'path' && typeof value === 'number')
+    .map(([key, value]) => `${key}: ${value}`);
+  return entries.length > 0 ? entries.join(' · ') : '-';
+}
+
+export function IngestModal({ open, onClose, onSelectRun }: IngestModalProps) {
   const { notify } = useNotification();
-  const [jobs, setJobs] = useState<IngestJob[]>([]);
-  const [jobsLoading, setJobsLoading] = useState(true);
-  const [jobsError, setJobsError] = useState<string | null>(null);
+  const [runs, setRuns] = useState<IngestRun[]>([]);
+  const [runsLoading, setRunsLoading] = useState(true);
+  const [runsError, setRunsError] = useState<string | null>(null);
 
   const [retentionDays, setRetentionDays] = useState<number>(30);
   const [initialRetentionDays, setInitialRetentionDays] = useState<number>(30);
@@ -39,14 +67,14 @@ export function IngestModal({ open, onClose, onSelectJob }: IngestModalProps) {
   const isDirty = retentionDays !== initialRetentionDays;
 
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
-  const [jobToDelete, setJobToDelete] = useState<string | null>(null);
+  const [runToDelete, setRunToDelete] = useState<string | null>(null);
 
-  const loadJobs = () => {
-    setJobsLoading(true);
-    api<{ jobs: IngestJob[] }>('/ingest')
-      .then((r) => setJobs(r.jobs))
-      .catch((err) => setJobsError(err instanceof Error ? err.message : 'Failed to load ingest history'))
-      .finally(() => setJobsLoading(false));
+  const loadRuns = () => {
+    setRunsLoading(true);
+    api<{ runs: IngestRun[] }>('/admin/ingest-runs')
+      .then((r) => setRuns(r.runs))
+      .catch((err) => setRunsError(err instanceof Error ? err.message : 'Failed to load ingest history'))
+      .finally(() => setRunsLoading(false));
   };
 
   const loadSettings = () => {
@@ -62,7 +90,7 @@ export function IngestModal({ open, onClose, onSelectJob }: IngestModalProps) {
 
   useEffect(() => {
     if (open) {
-      loadJobs();
+      loadRuns();
       loadSettings();
     }
   }, [open]);
@@ -85,23 +113,23 @@ export function IngestModal({ open, onClose, onSelectJob }: IngestModalProps) {
 
   const clearHistory = async () => {
     try {
-      await api('/ingest', { method: 'DELETE' });
+      await api('/admin/ingest-runs', { method: 'DELETE' });
       setConfirmClearOpen(false);
       notify('Ingest history cleared.', 'success');
-      loadJobs();
+      loadRuns();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to clear ingest history', 'error');
     }
   };
 
-  const deleteJob = async (id: string) => {
+  const deleteRun = async (id: string) => {
     try {
-      await api(`/ingest/${id}`, { method: 'DELETE' });
-      setJobToDelete(null);
-      notify('Ingest job deleted.', 'success');
-      loadJobs();
+      await api(`/admin/ingest-runs/${id}`, { method: 'DELETE' });
+      setRunToDelete(null);
+      notify('Ingest run deleted.', 'success');
+      loadRuns();
     } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to delete ingest job', 'error');
+      notify(err instanceof Error ? err.message : 'Failed to delete ingest run', 'error');
     }
   };
 
@@ -111,59 +139,59 @@ export function IngestModal({ open, onClose, onSelectJob }: IngestModalProps) {
         <div className="space-y-8">
           <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium">Recent jobs</h4>
+              <h4 className="text-sm font-medium">Recent runs</h4>
               <Button
                 variant="danger"
                 onClick={() => setConfirmClearOpen(true)}
-                disabled={jobsLoading || jobs.length === 0}
+                disabled={runsLoading || runs.length === 0}
               >
                 <Icon name="mdi-delete-sweep" size={16} className="mr-1.5" />
                 Clear history
               </Button>
             </div>
-            {jobsError && <p className="text-sm text-danger" role="alert">{jobsError}</p>}
-            {jobsLoading ? (
+            {runsError && <p className="text-sm text-danger" role="alert">{runsError}</p>}
+            {runsLoading ? (
               <p className="text-sm text-muted">Loading...</p>
             ) : (
-              <Table<IngestJob>
+              <Table<IngestRun>
                 columns={[
-                  { key: 'path', header: 'Path', render: (j) => j.source_path },
+                  { key: 'status', header: 'Status', className: 'w-32', render: (r) => <StatusPill status={r.status} /> },
                   {
-                    key: 'duplicate',
-                    header: '',
-                    className: 'w-24',
-                    render: (j) =>
-                      j.duplicate ? (
-                        <span className="inline-flex items-center rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
-                          Existing
-                        </span>
-                      ) : null,
-                  },
-                  { key: 'status', header: 'Status', className: 'w-40', render: (j) => <StatusPill status={j.status} /> },
-                  {
-                    key: 'error',
-                    header: 'Error',
-                    render: (j) => <span className={j.error ? 'text-danger' : ''}>{j.error || '-'}</span>,
+                    key: 'started',
+                    header: 'Started',
+                    className: 'w-48',
+                    render: (r) => formatDateTime(r.startedAt),
                   },
                   {
-                    key: 'created',
-                    header: 'Created',
-                    className: 'w-40',
-                    render: (j) => new Date(j.created_at).toLocaleString(),
+                    key: 'finished',
+                    header: 'Finished',
+                    className: 'w-48',
+                    render: (r) => formatDateTime(r.finishedAt),
+                  },
+                  {
+                    key: 'duration',
+                    header: 'Duration',
+                    className: 'w-28',
+                    render: (r) => formatDuration(r.startedAt, r.finishedAt),
+                  },
+                  {
+                    key: 'summary',
+                    header: 'Summary',
+                    render: (r) => <span className="text-muted">{formatRunStats(r.stats)}</span>,
                   },
                   {
                     key: 'actions',
                     header: '',
                     className: 'w-16',
-                    render: (j) => (
+                    render: (r) => (
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setJobToDelete(j.id);
+                          setRunToDelete(r.id);
                         }}
                         className="rounded p-1 text-fg-secondary transition-colors hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
-                        aria-label="Delete ingest job"
+                        aria-label="Delete ingest run"
                         title="Delete"
                       >
                         <Icon name="mdi-delete" size={16} />
@@ -171,12 +199,12 @@ export function IngestModal({ open, onClose, onSelectJob }: IngestModalProps) {
                     ),
                   },
                 ]}
-                rows={jobs}
-                rowKey={(j) => j.id}
-                empty="No ingest jobs."
-                renderRow={(job, element) =>
+                rows={runs}
+                rowKey={(r) => r.id}
+                empty="No ingest runs."
+                renderRow={(run, element) =>
                   cloneElement(element as ReactElement, {
-                    onClick: () => onSelectJob?.(job.id),
+                    onClick: () => onSelectRun?.(run.id),
                     className: `${(element as ReactElement<{ className?: string }>).props.className ?? ''} cursor-pointer hover:bg-surface-hover`,
                   })
                 }
@@ -226,20 +254,20 @@ export function IngestModal({ open, onClose, onSelectJob }: IngestModalProps) {
         open={confirmClearOpen}
         onClose={() => setConfirmClearOpen(false)}
         title="Clear ingest history"
-        message="This will permanently delete all ingest history entries. This action cannot be undone."
+        message="This will permanently delete all ingest history entries and their associated job details. This action cannot be undone."
         confirmLabel="Clear history"
         danger
         onConfirm={clearHistory}
       />
 
       <ConfirmModal
-        open={jobToDelete !== null}
-        onClose={() => setJobToDelete(null)}
-        title="Delete ingest job"
-        message="Are you sure you want to delete this ingest job entry?"
+        open={runToDelete !== null}
+        onClose={() => setRunToDelete(null)}
+        title="Delete ingest run"
+        message="Are you sure you want to delete this ingest run and its associated job details?"
         confirmLabel="Delete"
         danger
-        onConfirm={() => jobToDelete && deleteJob(jobToDelete)}
+        onConfirm={() => runToDelete && deleteRun(runToDelete)}
       />
     </>
   );

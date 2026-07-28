@@ -31,7 +31,6 @@ type FilterStatus = 'all' | 'failed' | 'needs_review' | 'imported' | 'skipped';
 
 interface IngestReportModalProps {
   runId?: string;
-  jobId?: string;
   open: boolean;
   onClose: () => void;
 }
@@ -69,9 +68,8 @@ const filterOptions: { key: FilterStatus; label: string }[] = [
   { key: 'skipped', label: 'Skipped' },
 ];
 
-export function IngestReportModal({ runId, jobId, open, onClose }: IngestReportModalProps) {
+export function IngestReportModal({ runId, open, onClose }: IngestReportModalProps) {
   const [run, setRun] = useState<IngestRun | null>(null);
-  const [job, setJob] = useState<IngestJob | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterStatus>('all');
@@ -79,7 +77,6 @@ export function IngestReportModal({ runId, jobId, open, onClose }: IngestReportM
   useEffect(() => {
     if (!open) {
       setRun(null);
-      setJob(null);
       setError(null);
       setFilter('all');
       return;
@@ -91,87 +88,14 @@ export function IngestReportModal({ runId, jobId, open, onClose }: IngestReportM
         .then((r) => setRun(r.run))
         .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load ingest report'))
         .finally(() => setLoading(false));
-    } else if (jobId) {
-      setLoading(true);
-      api<{ job: IngestJob }>(`/ingest/${jobId}`)
-        .then((r) => setJob(r.job))
-        .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load ingest job'))
-        .finally(() => setLoading(false));
     }
-  }, [open, runId, jobId]);
+  }, [open, runId]);
 
   const filteredJobs = useMemo(() => {
     if (!run) return [];
     if (filter === 'all') return run.jobs;
     return run.jobs.filter((j) => j.status === filter);
   }, [run, filter]);
-
-  if (job) {
-    return (
-      <Modal open={open} onClose={onClose} title="Ingest job" className="max-w-2xl">
-        <div className="space-y-5">
-          {error && <p className="text-sm text-danger" role="alert">{error}</p>}
-          {loading && <p className="text-sm text-muted">Loading...</p>}
-
-          <div className="space-y-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">Path</p>
-            <p className="break-all text-sm font-medium">{job.sourcePath}</p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Status</p>
-              <div className="mt-1">
-                <StatusPill status={job.status} />
-              </div>
-            </div>
-            {job.duplicate && (
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted">Duplicate</p>
-                <p className="mt-1 text-sm">Yes</p>
-              </div>
-            )}
-            {job.duplicateStrategy && (
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted">Strategy</p>
-                <p className="mt-1 text-sm capitalize">{job.duplicateStrategy.replace(/_/g, ' ')}</p>
-              </div>
-            )}
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Created</p>
-              <p className="mt-1 text-sm">{formatDateTime(job.createdAt)}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Updated</p>
-              <p className="mt-1 text-sm">{formatDateTime(job.updatedAt)}</p>
-            </div>
-          </div>
-
-          {job.targetPath && (
-            <div className="space-y-1">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Target path</p>
-              <p className="break-all text-sm">{job.targetPath}</p>
-            </div>
-          )}
-
-          {job.error && (
-            <div className="rounded-lg border border-danger/30 bg-danger/5 p-4">
-              <div className="flex items-start gap-2">
-                <Icon name="mdi-alert-circle-outline" size={18} className="mt-0.5 shrink-0 text-danger" />
-                <div>
-                  <p className="text-sm font-medium text-danger">Failure reason</p>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-fg-primary">{job.error}</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </Modal>
-    );
-  }
 
   return (
     <Modal open={open} onClose={onClose} title="Ingest report" className="max-w-4xl">
@@ -229,7 +153,9 @@ export function IngestReportModal({ runId, jobId, open, onClose }: IngestReportM
             </div>
 
             {filteredJobs.length === 0 ? (
-              <p className="text-sm text-muted">No jobs match the selected filter.</p>
+              <p className="text-sm text-muted">
+                {filter === 'all' ? 'No individual jobs recorded for this run.' : 'No jobs match the selected filter.'}
+              </p>
             ) : (
               <ul className="divide-y divide-rule rounded-lg border border-rule">
                 {filteredJobs.map((j) => (

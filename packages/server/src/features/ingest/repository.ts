@@ -2,10 +2,10 @@ import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import type { DuplicateStrategy } from '@sonarly/shared';
 
-export function createIngestJob(db: Database.Database, sourcePath: string): string {
+export function createIngestJob(db: Database.Database, sourcePath: string, runId: string): string {
   const id = randomUUID();
-  db.prepare('INSERT INTO ingest_jobs (id, source_path, status) VALUES (?, ?, ?)')
-    .run(id, sourcePath, 'pending');
+  db.prepare('INSERT INTO ingest_jobs (id, run_id, source_path, status) VALUES (?, ?, ?, ?)')
+    .run(id, runId, sourcePath, 'pending');
   return id;
 }
 
