@@ -65,6 +65,8 @@ function shuffleArray<T>(array: T[]): T[] {
   return arr;
 }
 
+const PREVIOUS_RESTART_THRESHOLD = 3;
+
 function buildShuffledIndices(queueLength: number, currentIndex: number): number[] {
   if (queueLength === 0) return [];
   const others = Array.from({ length: queueLength }, (_, i) => i).filter((i) => i !== currentIndex);
@@ -248,8 +250,13 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
       },
 
       previous: () => {
-        const { queue, queueIndex, shuffle, shuffledIndices } = get();
+        const { queue, queueIndex, status, currentTime, shuffle, shuffledIndices, seek } = get();
         if (queue.length === 0) return;
+
+        if (status === 'playing' && currentTime > PREVIOUS_RESTART_THRESHOLD) {
+          seek(0);
+          return;
+        }
 
         let prevIndex: number;
         if (shuffle) {
