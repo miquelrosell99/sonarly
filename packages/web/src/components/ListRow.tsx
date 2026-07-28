@@ -109,7 +109,7 @@ export function ListRow({
       tabIndex={0}
       aria-selected={isSelected}
       className={cn(
-        'group cursor-pointer select-none transition outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
+        'group h-12 cursor-pointer select-none transition outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
         isSelected ? 'bg-surface-hover' : 'hover:bg-surface-hover',
         isDragging && 'z-10 scale-[1.02] shadow-lg',
         className,
@@ -120,7 +120,7 @@ export function ListRow({
       onContextMenu={onContextMenu}
     >
       {sortable && (
-        <td className="w-8 py-2 pr-2">
+        <td className="w-8 whitespace-nowrap py-2 pr-2">
           <button
             type="button"
             {...dragHandleProps}
@@ -131,7 +131,7 @@ export function ListRow({
           </button>
         </td>
       )}
-      <td className="w-12 py-2 pr-4">
+      <td className="w-12 whitespace-nowrap py-2 pr-4">
         <span className="relative grid h-5 w-6 place-items-center text-muted">
           <span className="col-start-1 row-start-1 transition group-hover:opacity-0">
             {indexPad ? (index + 1).toString().padStart(indexPad, '0') : index + 1}

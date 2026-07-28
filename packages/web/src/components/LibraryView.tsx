@@ -133,7 +133,7 @@ function SortableLibraryRow<T>({
       indexPad={indexPad}
     >
       {columns.map((col) => (
-        <td key={col.key} className={cn('py-2 pr-4', col.className)}>
+        <td key={col.key} className={cn('truncate py-2 pr-4', col.className)}>
           {col.render(item)}
         </td>
       ))}
@@ -352,7 +352,7 @@ export function LibraryView<T>({
                 indexPad={indexPad}
               >
                 {columns.map((col) => (
-                  <td key={col.key} className={cn('py-2 pr-4', col.className)}>
+                  <td key={col.key} className={cn('truncate py-2 pr-4', col.className)}>
                     {col.render(item)}
                   </td>
                 ))}

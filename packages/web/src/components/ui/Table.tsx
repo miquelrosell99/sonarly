@@ -138,7 +138,7 @@ export function Table<T>({
             const isSelected = selectable && selectedIds.has(id);
             const isPlayingTitle = playingId !== undefined && playingId === id;
             const cells = columns.map((col) => (
-              <td key={col.key} className={cn('py-2 pr-4', col.className)}>
+              <td key={col.key} className={cn('truncate py-2 pr-4', col.className)}>
                 {col.render(row)}
               </td>
             ));
