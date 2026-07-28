@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { User } from '@sonarly/shared';
+import type { User, DuplicateStrategy } from '@sonarly/shared';
+import { DUPLICATE_STRATEGY_LABELS } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
@@ -26,11 +27,19 @@ export function AdminMedia({ user }: AdminMediaProps) {
   const [jobId, setJobId] = useState<string | null>(null);
   const [triggeringIngest, setTriggeringIngest] = useState(false);
   const [refetchingArtists, setRefetchingArtists] = useState(false);
+  const [duplicateStrategy, setDuplicateStrategy] = useState<DuplicateStrategy | ''>('');
+  const [savingStrategy, setSavingStrategy] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api<AdminStatusCounts>('/admin/status')
-      .then((statusData) => setCounts(statusData.counts))
+    Promise.all([
+      api<AdminStatusCounts>('/admin/status'),
+      api<{ duplicateStrategy: DuplicateStrategy }>('/settings/media'),
+    ])
+      .then(([statusData, settingsData]) => {
+        setCounts(statusData.counts);
+        setDuplicateStrategy(settingsData.duplicateStrategy);
+      })
       .catch((err) => notify(err instanceof Error ? err.message : 'Failed to load settings', 'error'))
       .finally(() => setLoading(false));
   }, [notify]);
@@ -68,6 +77,22 @@ export function AdminMedia({ user }: AdminMediaProps) {
       notify(err instanceof Error ? err.message : 'Failed to refetch artist data', 'error');
     } finally {
       setRefetchingArtists(false);
+    }
+  };
+
+  const saveDuplicateStrategy = async () => {
+    if (!duplicateStrategy) return;
+    setSavingStrategy(true);
+    try {
+      await api('/settings/media', {
+        method: 'PATCH',
+        body: JSON.stringify({ duplicateStrategy }),
+      });
+      notify('Default duplicate strategy saved.', 'success');
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to save duplicate strategy', 'error');
+    } finally {
+      setSavingStrategy(false);
     }
   };
 
@@ -129,6 +154,29 @@ export function AdminMedia({ user }: AdminMediaProps) {
           <Button onClick={refetchArtists} disabled={refetchingArtists} variant="ghost">
             {refetchingArtists ? 'Refetching...' : 'Refetch artist images & data'}
           </Button>
+        </div>
+
+        <div className="space-y-3 rounded-md border border-rule bg-surface p-3">
+          <h4 className="text-sm font-medium text-fg-primary">Default duplicate strategy</h4>
+          <p className="text-xs text-fg-secondary">
+            When a uploaded song matches an existing song by title, album, and artists, use this strategy.
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <select
+              id="duplicate-strategy"
+              value={duplicateStrategy}
+              onChange={(e) => setDuplicateStrategy(e.target.value as DuplicateStrategy)}
+              className="input w-full sm:w-auto"
+              disabled={savingStrategy}
+            >
+              {Object.entries(DUPLICATE_STRATEGY_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+            <Button onClick={saveDuplicateStrategy} disabled={savingStrategy || !duplicateStrategy}>
+              {savingStrategy ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
         </div>
 
         <div className="rounded-md border border-rule bg-surface p-3">

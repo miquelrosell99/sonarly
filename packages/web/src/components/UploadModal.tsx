@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
-import type { Library } from '@sonarly/shared';
+import type { DuplicateStrategy, Library } from '@sonarly/shared';
+import { DUPLICATE_STRATEGY_LABELS } from '@sonarly/shared';
 import { cn } from '../lib/cn.js';
+import { api } from '../api.js';
 import { Button } from './ui/Button.js';
 import { Icon } from './ui/Icon.js';
 import { Modal } from './ui/Modal.js';
@@ -81,6 +83,7 @@ async function collectFiles(items: DataTransferItemList): Promise<UploadFile[]> 
 
 export function UploadModal({ open, onClose, libraries, currentLibraryId }: UploadModalProps) {
   const [selectedLibraryId, setSelectedLibraryId] = useState<string>(currentLibraryId ?? '');
+  const [duplicateStrategy, setDuplicateStrategy] = useState<DuplicateStrategy | ''>('');
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isDone, setIsDone] = useState(false);
@@ -93,6 +96,9 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId }: Uplo
       setSelectedLibraryId(currentLibraryId ?? '');
       setFiles([]);
       setIsDone(false);
+      api<{ duplicateStrategy: DuplicateStrategy }>('/settings/media')
+        .then((data) => setDuplicateStrategy(data.duplicateStrategy))
+        .catch(() => setDuplicateStrategy(''));
     }
   }, [open, currentLibraryId]);
 
@@ -149,14 +155,14 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId }: Uplo
   const clearFiles = useCallback(() => setFiles([]), []);
 
   const handleUpload = useCallback(async () => {
-    if (!selectedLibraryId || files.length === 0) return;
+    if (!selectedLibraryId || files.length === 0 || !duplicateStrategy) return;
     try {
-      await uploadFiles(files, selectedLibraryId);
+      await uploadFiles(files, selectedLibraryId, duplicateStrategy);
       setIsDone(true);
     } catch {
       // Error is already captured in hook state.
     }
-  }, [files, selectedLibraryId, uploadFiles]);
+  }, [files, selectedLibraryId, duplicateStrategy, uploadFiles]);
 
   const handleOpenLibrary = useCallback(() => {
     useLibraryStore.getState().setSelectedLibraryId(selectedLibraryId);
@@ -164,7 +170,7 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId }: Uplo
     setLocation('/songs');
   }, [selectedLibraryId, onClose, setLocation]);
 
-  const canUpload = selectedLibraryId.length > 0 && files.length > 0 && !isUploading && !isDone;
+  const canUpload = selectedLibraryId.length > 0 && duplicateStrategy.length > 0 && files.length > 0 && !isUploading && !isDone;
 
   const footer = (
     <div className="flex items-center justify-between gap-4">
@@ -207,6 +213,27 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId }: Uplo
               </option>
             ))}
           </select>
+        </div>
+
+        <div className="space-y-1">
+          <label htmlFor="upload-duplicate-strategy" className="block text-sm font-medium text-fg-secondary">
+            Duplicate strategy <span className="text-danger">*</span>
+          </label>
+          <select
+            id="upload-duplicate-strategy"
+            value={duplicateStrategy}
+            onChange={(e) => setDuplicateStrategy(e.target.value as DuplicateStrategy)}
+            disabled={isUploading}
+            className="input w-full"
+          >
+            <option value="">Select a strategy</option>
+            {Object.entries(DUPLICATE_STRATEGY_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+          <p className="text-xs text-fg-secondary">
+            Used when an uploaded song matches an existing song by title, album, and artists.
+          </p>
         </div>
 
         <div

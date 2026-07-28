@@ -1,3 +1,5 @@
+import type { DuplicateStrategy } from './duplicate.js';
+
 export type IngestStatus = 'pending' | 'validating' | 'needs_review' | 'imported' | 'failed';
 
 export interface IngestJob {
@@ -6,6 +8,8 @@ export interface IngestJob {
   status: IngestStatus;
   targetPath?: string;
   error?: string;
+  duplicate?: boolean;
+  duplicateStrategy?: DuplicateStrategy;
   createdAt: string;
   updatedAt: string;
 }
