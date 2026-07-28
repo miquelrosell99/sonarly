@@ -109,7 +109,7 @@ function SortableLibraryRow<T>({
   } = useSortable({ id: getId(item) });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Transform.toString(transform ? { ...transform, x: 0 } : transform),
     transition,
   };
 
