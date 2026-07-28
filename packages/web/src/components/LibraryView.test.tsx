@@ -253,4 +253,25 @@ describe('LibraryView', () => {
     expect(onShufflePlay).toHaveBeenCalledTimes(1);
     expect(onShufflePlay).toHaveBeenCalledWith(items);
   });
+
+  it('renders drag handles when sortable is enabled', () => {
+    renderView({ sortable: true, onReorder: vi.fn() });
+    const dragHandles = screen.getAllByRole('button', { name: /drag to reorder/i });
+    expect(dragHandles).toHaveLength(items.length);
+  });
+
+  it('does not render drag handles when sortable is disabled', () => {
+    renderView();
+    const dragHandles = screen.queryAllByRole('button', { name: /drag to reorder/i });
+    expect(dragHandles).toHaveLength(0);
+  });
+
+  it('still renders row play buttons when sortable is enabled', () => {
+    const onPlay = vi.fn();
+    renderView({ sortable: true, onReorder: vi.fn(), onPlay });
+    const playButtons = screen.getAllByRole('button', { name: /play/i });
+    expect(playButtons.length).toBeGreaterThanOrEqual(items.length);
+    fireEvent.click(playButtons[0]);
+    expect(onPlay).toHaveBeenCalledWith(items[0]);
+  });
 });

@@ -1,4 +1,20 @@
 import { Fragment, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  type DragEndEvent,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { Card } from './Card.js';
@@ -20,7 +36,7 @@ export interface LibraryViewCardField<T> {
 }
 
 interface LibraryViewProps<T> {
-  title: string;
+  title?: string;
   data: T[];
   isLoading?: boolean;
   error?: string | Error | null;
@@ -43,9 +59,82 @@ interface LibraryViewProps<T> {
   getCoverAlt?: (item: T) => string;
   renderCover?: (item: T) => ReactNode;
   playingId?: string;
+  sortable?: boolean;
+  onReorder?: (items: T[]) => void;
 }
 
 type ViewMode = 'list' | 'grid';
+
+function SortableLibraryRow<T>({
+  item,
+  getId,
+  index,
+  columns,
+  isSelected,
+  isPlayingTitle,
+  onSelect,
+  onActivate,
+  onPlay,
+  onShufflePlay,
+  favorite,
+  rating,
+  renderContextMenu,
+}: {
+  item: T;
+  getId: (item: T) => string;
+  index: number;
+  columns: LibraryViewColumn<T>[];
+  isSelected: boolean;
+  isPlayingTitle: boolean;
+  onSelect: (e: MouseEvent) => void;
+  onActivate: () => void;
+  onPlay?: () => void;
+  onShufflePlay?: () => void;
+  favorite?: { starred?: boolean; onClick: () => void };
+  rating?: { value?: number; onRate: (value: number) => void };
+  renderContextMenu?: (children: ReactNode) => ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: getId(item) });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const row = (
+    <ListRow
+      index={index}
+      isSelected={isSelected}
+      isPlayingTitle={isPlayingTitle}
+      onSelect={onSelect}
+      onActivate={onActivate}
+      onPlay={onPlay}
+      onShufflePlay={onShufflePlay}
+      favorite={favorite}
+      rating={rating}
+      sortable
+      sortableRef={setNodeRef}
+      sortableStyle={style}
+      isDragging={isDragging}
+      dragHandleProps={{ ...attributes, ...listeners }}
+    >
+      {columns.map((col) => (
+        <td key={col.key} className={cn('py-2 pr-4', col.className)}>
+          {col.render(item)}
+        </td>
+      ))}
+    </ListRow>
+  );
+
+  return renderContextMenu ? renderContextMenu(row) : row;
+}
 
 export function LibraryView<T>({
   title,
@@ -71,6 +160,8 @@ export function LibraryView<T>({
   getCoverAlt,
   renderCover,
   playingId,
+  sortable = false,
+  onReorder,
 }: LibraryViewProps<T>) {
   const effectiveDefaultView = availableViews.includes(defaultView) ? defaultView : availableViews[0];
   const [viewMode, setViewMode] = useState<ViewMode>(effectiveDefaultView);
@@ -78,6 +169,11 @@ export function LibraryView<T>({
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
 
   const errorText = error instanceof Error ? error.message : error ?? null;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const clearSelection = () => {
     setSelectedIds(new Set());
@@ -143,10 +239,23 @@ export function LibraryView<T>({
     }
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    if (!onReorder) return;
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = data.findIndex((item) => getId(item) === active.id);
+    const newIndex = data.findIndex((item) => getId(item) === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const next = [...data];
+    const [moved] = next.splice(oldIndex, 1);
+    next.splice(newIndex, 0, moved);
+    onReorder(next);
+  };
+
   if (isLoading) {
     return (
       <div>
-        <h2 className="mb-4 text-lg font-semibold">{title}</h2>
+        {title && <h2 className="mb-4 text-lg font-semibold">{title}</h2>}
         <p className="text-sm text-muted">Loading...</p>
       </div>
     );
@@ -155,7 +264,7 @@ export function LibraryView<T>({
   if (errorText) {
     return (
       <div>
-        <h2 className="mb-4 text-lg font-semibold">{title}</h2>
+        {title && <h2 className="mb-4 text-lg font-semibold">{title}</h2>}
         <p className="text-sm text-danger">{errorText}</p>
       </div>
     );
@@ -164,17 +273,18 @@ export function LibraryView<T>({
   if (data.length === 0) {
     return (
       <div>
-        <h2 className="mb-4 text-lg font-semibold">{title}</h2>
+        {title && <h2 className="mb-4 text-lg font-semibold">{title}</h2>}
         <p className="py-8 text-center text-sm text-muted">{emptyMessage}</p>
       </div>
     );
   }
 
-  const renderList = () => (
-    <div className="overflow-x-auto" onKeyDown={handleContainerKeyDown} role="grid" aria-multiselectable="true">
+  const renderList = () => {
+    const table = (
       <table className="w-full text-left text-sm">
         <thead className="border-b border-rule text-muted">
           <tr>
+            {sortable && <th className="w-8 py-2 pr-2 font-medium" aria-label="Reorder" />}
             <th className="w-12 py-2 pr-4 font-medium">#</th>
             {columns.map((col) => (
               <th key={col.key} className={cn('py-2 pr-4 font-medium', col.className)}>
@@ -193,6 +303,28 @@ export function LibraryView<T>({
             const rating = getRating?.(item);
             const isSelected = selectedIds.has(id);
             const isPlayingTitle = playingId !== undefined && playingId === id;
+
+            if (sortable) {
+              return (
+                <SortableLibraryRow
+                  key={id}
+                  item={item}
+                  getId={getId}
+                  index={index}
+                  columns={columns}
+                  isSelected={isSelected}
+                  isPlayingTitle={isPlayingTitle}
+                  onSelect={(e) => handleRowSelect(item, e)}
+                  onActivate={() => handleRowActivate(item)}
+                  onPlay={onPlay ? () => onPlay(item) : undefined}
+                  onShufflePlay={onShufflePlay ? () => onShufflePlay(data) : undefined}
+                  favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
+                  rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
+                  renderContextMenu={renderContextMenu ? (children) => renderContextMenu(item, children) : undefined}
+                />
+              );
+            }
+
             const row = (
               <ListRow
                 href={href}
@@ -221,8 +353,22 @@ export function LibraryView<T>({
           })}
         </tbody>
       </table>
-    </div>
-  );
+    );
+
+    return (
+      <div className="overflow-x-auto" onKeyDown={handleContainerKeyDown} role="grid" aria-multiselectable="true">
+        {sortable ? (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={data.map((item) => getId(item))} strategy={verticalListSortingStrategy}>
+              {table}
+            </SortableContext>
+          </DndContext>
+        ) : (
+          table
+        )}
+      </div>
+    );
+  };
 
   const renderGrid = () => (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
@@ -263,52 +409,54 @@ export function LibraryView<T>({
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <div className="flex items-center gap-2">
-          {onShufflePlay && (
-            <button
-              type="button"
-              aria-label="Shuffle play"
-              onClick={() => onShufflePlay(data)}
-              disabled={data.length === 0}
-              className="inline-flex items-center rounded-md border border-rule bg-surface p-2 text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
-            >
-              <Icon name="mdi-shuffle" size={20} />
-            </button>
-          )}
-          {availableViews.length > 1 && (
-            <div className="flex items-center rounded-md border border-rule bg-surface p-1">
-              {availableViews.includes('list') && (
-                <button
-                  type="button"
-                  aria-label="List view"
-                  onClick={() => setViewMode('list')}
-                  className={cn(
-                    'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                    viewMode === 'list' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
-                  )}
-                >
-                  <Icon name="mdi-format-list-bulleted" size={20} />
-                </button>
-              )}
-              {availableViews.includes('grid') && (
-                <button
-                  type="button"
-                  aria-label="Grid view"
-                  onClick={() => setViewMode('grid')}
-                  className={cn(
-                    'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                    viewMode === 'grid' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
-                  )}
-                >
-                  <Icon name="mdi-view-grid-outline" size={20} />
-                </button>
-              )}
-            </div>
-          )}
+      {title && (
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <div className="flex items-center gap-2">
+            {onShufflePlay && (
+              <button
+                type="button"
+                aria-label="Shuffle play"
+                onClick={() => onShufflePlay(data)}
+                disabled={data.length === 0}
+                className="inline-flex items-center rounded-md border border-rule bg-surface p-2 text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+              >
+                <Icon name="mdi-shuffle" size={20} />
+              </button>
+            )}
+            {availableViews.length > 1 && (
+              <div className="flex items-center rounded-md border border-rule bg-surface p-1">
+                {availableViews.includes('list') && (
+                  <button
+                    type="button"
+                    aria-label="List view"
+                    onClick={() => setViewMode('list')}
+                    className={cn(
+                      'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                      viewMode === 'list' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
+                    )}
+                  >
+                    <Icon name="mdi-format-list-bulleted" size={20} />
+                  </button>
+                )}
+                {availableViews.includes('grid') && (
+                  <button
+                    type="button"
+                    aria-label="Grid view"
+                    onClick={() => setViewMode('grid')}
+                    className={cn(
+                      'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                      viewMode === 'grid' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
+                    )}
+                  >
+                    <Icon name="mdi-view-grid-outline" size={20} />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
       {viewMode === 'list' ? renderList() : renderGrid()}
     </div>
   );
