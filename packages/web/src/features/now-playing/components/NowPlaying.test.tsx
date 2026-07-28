@@ -10,6 +10,25 @@ const mockUser = { id: 'u1', username: 'test', isAdmin: false } as User;
 
 vi.mock('wouter', () => ({
   useLocation: () => [{}, vi.fn()],
+  Link: ({
+    children,
+    href,
+    onClick,
+  }: {
+    children: React.ReactNode;
+    href: string;
+    onClick?: () => void;
+  }) => (
+    <a
+      href={href}
+      onClick={(e) => {
+        e.preventDefault();
+        onClick?.();
+      }}
+    >
+      {children}
+    </a>
+  ),
 }));
 
 function Wrapper({ children }: { children: React.ReactNode }) {
@@ -71,5 +90,91 @@ describe('NowPlaying', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(useNowPlaying.getState().isOpen).toBe(true);
     expect(screen.queryByRole('menu')).toBeFalsy();
+  });
+
+  it('renders clickable metadata links with correct hrefs', () => {
+    useNowPlaying.getState().open();
+    usePlayer.getState().playQueue(
+      [
+        {
+          id: 's1',
+          title: 'Song',
+          artistId: 'a1',
+          artistName: 'Artist',
+          albumId: 'alb1',
+          albumName: 'Album',
+          year: 2020,
+        } as any,
+      ],
+      0,
+    );
+    render(<NowPlaying user={mockUser} />, { wrapper: Wrapper });
+
+    const titleLink = screen.getByRole('link', { name: 'Song' });
+    const artistLink = screen.getByRole('link', { name: 'Artist' });
+    const albumLink = screen.getByRole('link', { name: 'Album' });
+    const yearLink = screen.getByRole('link', { name: '2020' });
+
+    expect(titleLink.getAttribute('href')).toBe('/tracks/s1');
+    expect(artistLink.getAttribute('href')).toBe('/artists/a1');
+    expect(albumLink.getAttribute('href')).toBe('/albums/alb1');
+    expect(yearLink.getAttribute('href')).toBe('/years/2020');
+    expect(albumLink.parentElement?.textContent).toContain('·');
+  });
+
+  it('closes the dialog when a metadata link is clicked', () => {
+    useNowPlaying.getState().open();
+    usePlayer.getState().playQueue(
+      [
+        {
+          id: 's1',
+          title: 'Song',
+          artistId: 'a1',
+          artistName: 'Artist',
+          albumId: 'alb1',
+          albumName: 'Album',
+          year: 2020,
+        } as any,
+      ],
+      0,
+    );
+    render(<NowPlaying user={mockUser} />, { wrapper: Wrapper });
+
+    fireEvent.click(screen.getByRole('link', { name: 'Song' }));
+    expect(useNowPlaying.getState().isOpen).toBe(false);
+
+    useNowPlaying.getState().open();
+    fireEvent.click(screen.getByRole('link', { name: 'Artist' }));
+    expect(useNowPlaying.getState().isOpen).toBe(false);
+
+    useNowPlaying.getState().open();
+    fireEvent.click(screen.getByRole('link', { name: 'Album' }));
+    expect(useNowPlaying.getState().isOpen).toBe(false);
+
+    useNowPlaying.getState().open();
+    fireEvent.click(screen.getByRole('link', { name: '2020' }));
+    expect(useNowPlaying.getState().isOpen).toBe(false);
+  });
+
+  it('does not render links when metadata ids are missing', () => {
+    useNowPlaying.getState().open();
+    usePlayer.getState().playQueue(
+      [
+        {
+          id: 's1',
+          title: 'Song',
+          artistName: 'Artist',
+          albumName: 'Album',
+          year: 2020,
+        } as any,
+      ],
+      0,
+    );
+    render(<NowPlaying user={mockUser} />, { wrapper: Wrapper });
+
+    expect(screen.getByRole('link', { name: 'Song' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Artist' })).toBeFalsy();
+    expect(screen.queryByRole('link', { name: 'Album' })).toBeFalsy();
+    expect(screen.getByRole('link', { name: '2020' })).toBeTruthy();
   });
 });
