@@ -79,6 +79,7 @@ function sameArtistSet(a: string[], b: Set<string>): boolean {
 export interface DuplicateResolution {
   existingId: string;
   finalPath?: string;
+  skipped?: boolean;
 }
 
 export async function handleDuplicateSong(
@@ -106,9 +107,24 @@ export async function handleDuplicateSong(
       return replaceFileAndMetadata(db, sourcePath, targetPath, existing, meta, mtime, checksum, libraryId, true);
     case 'keep_file_aggregate_metadata':
       return keepFileReplaceMetadata(db, sourcePath, existing, meta, libraryId, true);
+    case 'skip':
+      return skipDuplicate(db, sourcePath, existing);
     default:
       return undefined;
   }
+}
+
+async function skipDuplicate(
+  db: Database.Database,
+  sourcePath: string,
+  existing: { id: string; filePath: string },
+): Promise<DuplicateResolution> {
+  try {
+    await unlink(sourcePath);
+  } catch {
+    // Ignore cleanup failure.
+  }
+  return { existingId: existing.id, skipped: true };
 }
 
 async function replaceFileAndMetadata(

@@ -15,6 +15,7 @@ const config: Record<
   failed: { label: 'Failed', icon: 'mdi-alert-circle-outline', className: 'bg-danger/10 text-danger' },
   // Ingest job statuses
   imported: { label: 'Imported', icon: 'mdi-check-circle-outline', className: 'bg-success/10 text-success' },
+  skipped: { label: 'Skipped', icon: 'mdi-skip-next', className: 'bg-surface text-muted' },
   needs_review: { label: 'Needs review', icon: 'mdi-alert-circle-outline', className: 'bg-warning/10 text-warning' },
 };
 
