@@ -83,22 +83,7 @@ export function Playlists() {
       render: (playlist) => playlist.songCount ?? 0,
       className: 'w-20 text-right',
     },
-    {
-      key: 'actions',
-      header: '',
-      render: (playlist) => (
-        <button
-          type="button"
-          onClick={() => openForEdit(playlist.id)}
-          aria-label={`Edit ${playlist.name}`}
-          title="Edit playlist"
-          className="rounded p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-        >
-          <Icon name="mdi-pencil" size={18} />
-        </button>
-      ),
-      className: 'w-10 text-right',
-    },
+
   ];
 
   const cardFields: LibraryViewCardField<Playlist>[] = [
