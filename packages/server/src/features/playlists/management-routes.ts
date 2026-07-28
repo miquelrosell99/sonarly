@@ -143,6 +143,7 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       return {
         id: r.id,
         name: r.name,
+        description: base.description,
         ownerId: r.owner_id,
         ownerUsername: r.owner_username,
         visibility: r.visibility,
@@ -193,6 +194,7 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
     const userId = (request as any).session.userId as string;
     const body = request.body as {
       name: string;
+      description?: string;
       visibility?: PlaylistVisibility;
       songIds?: string[];
       isSmart?: boolean;
@@ -214,6 +216,7 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
     const playlist: Playlist = {
       id: randomUUID(),
       name: body.name,
+      description: body.description,
       ownerId: userId,
       visibility,
       shareToken: visibility === 'link' ? generateShareToken() : undefined,
@@ -236,6 +239,7 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
 
     const body = request.body as Partial<{
       name: string;
+      description: string;
       visibility: PlaylistVisibility;
       songIds: string[];
       rules: SmartPlaylistRules;
@@ -277,6 +281,7 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
     const updated: Playlist = {
       ...existing,
       name: typeof body.name === 'string' && body.name.length > 0 ? body.name : existing.name,
+      description: typeof body.description === 'string' ? body.description : existing.description,
       visibility,
       shareToken,
       isSmart,

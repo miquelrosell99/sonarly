@@ -5,6 +5,7 @@ export type PlaylistVisibility = 'private' | 'shared' | 'public' | 'link';
 export interface Playlist {
   id: string;
   name: string;
+  description?: string;
   ownerId: string;
   ownerUsername?: string;
   visibility: PlaylistVisibility;

@@ -29,6 +29,7 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
   const { data: playlist, isLoading: loadingPlaylist, error: playlistError } = usePlaylist(editingPlaylistId ?? undefined);
 
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<PlaylistVisibility>('private');
   const [isSmart, setIsSmart] = useState(false);
   const [rules, setRules] = useState<SmartPlaylistRules>(DEFAULT_RULES);
@@ -40,11 +41,13 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
     if (open && (!wasOpenRef.current || wasEditingRef.current !== isEditing)) {
       if (isEditing && playlist) {
         setName(playlist.name);
+        setDescription(playlist.description ?? '');
         setVisibility(playlist.visibility);
         setIsSmart(playlist.isSmart ?? false);
         setRules(playlist.rules ?? DEFAULT_RULES);
       } else if (!isEditing) {
         setName('');
+        setDescription('');
         setVisibility('private');
         setIsSmart(false);
         setRules(DEFAULT_RULES);
@@ -59,6 +62,7 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
     mutationFn: async () => {
       const body: Record<string, unknown> = {
         name: name.trim(),
+        description: description.trim(),
         visibility,
       };
       if (isSmart) {
@@ -84,6 +88,7 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
         queryClient.invalidateQueries({ queryKey: ['playlist', editingPlaylistId] });
       }
       setName('');
+      setDescription('');
       setVisibility('private');
       setIsSmart(false);
       setRules(DEFAULT_RULES);
@@ -144,6 +149,20 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
               placeholder="Playlist name"
               disabled={save.isPending || loadingPlaylist}
               autoFocus
+            />
+          </div>
+          <div>
+            <label htmlFor="create-playlist-description" className="mb-1.5 block text-sm font-medium text-fg-secondary">
+              Description
+            </label>
+            <textarea
+              id="create-playlist-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Optional description"
+              rows={3}
+              disabled={save.isPending || loadingPlaylist}
+              className="input min-h-[5rem] w-full py-2"
             />
           </div>
           <div>
