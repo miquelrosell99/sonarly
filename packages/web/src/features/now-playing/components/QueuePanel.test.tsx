@@ -51,6 +51,25 @@ describe('QueuePanel', () => {
     expect(usePlayer.getState().currentSong?.id).toBe('s2');
   });
 
+  it('keeps the queue and shuffle order when jumping to a song', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'First' } as any,
+      { id: 's2', title: 'Second' } as any,
+      { id: 's3', title: 'Third' } as any,
+    ], 0);
+    usePlayer.setState({ shuffle: true, shuffledIndices: [0, 2, 1] });
+
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+    const playButtons = screen.getAllByRole('button', { name: /play/i });
+    fireEvent.click(playButtons[2]);
+
+    const state = usePlayer.getState();
+    expect(state.queue).toHaveLength(3);
+    expect(state.shuffledIndices).toEqual([0, 2, 1]);
+    expect(state.queueIndex).toBe(1);
+    expect(state.currentSong?.id).toBe('s2');
+  });
+
   it('removes a song from the queue via context menu', () => {
     usePlayer.getState().playQueue([
       { id: 's1', title: 'First' } as any,

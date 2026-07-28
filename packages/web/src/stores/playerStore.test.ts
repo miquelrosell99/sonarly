@@ -63,6 +63,45 @@ describe('playQueue', () => {
   });
 });
 
+describe('playAtIndex', () => {
+  it('jumps to the given index without replacing the queue', () => {
+    const songs = [createSong('1'), createSong('2'), createSong('3')];
+    usePlayer.getState().playQueue(songs, 0);
+    usePlayer.getState().playAtIndex(2);
+
+    const state = usePlayer.getState();
+    expect(state.queue).toEqual(songs);
+    expect(state.queueIndex).toBe(2);
+    expect(state.currentSong).toEqual(songs[2]);
+    expect(state.status).toBe('playing');
+    expect(state.currentTime).toBe(0);
+  });
+
+  it('preserves shuffle order when jumping to an index', () => {
+    const songs = [createSong('1'), createSong('2'), createSong('3'), createSong('4')];
+    usePlayer.getState().playQueue(songs, 0, true);
+    const { shuffledIndices } = usePlayer.getState();
+
+    usePlayer.getState().playAtIndex(shuffledIndices[2]);
+
+    const state = usePlayer.getState();
+    expect(state.queue).toEqual(songs);
+    expect(state.shuffledIndices).toEqual(shuffledIndices);
+    expect(state.queueIndex).toBe(shuffledIndices[2]);
+    expect(state.currentSong).toEqual(songs[shuffledIndices[2]]);
+  });
+
+  it('clamps out-of-bounds indices', () => {
+    const songs = [createSong('1'), createSong('2')];
+    usePlayer.getState().playQueue(songs, 0);
+    usePlayer.getState().playAtIndex(10);
+
+    const state = usePlayer.getState();
+    expect(state.queueIndex).toBe(1);
+    expect(state.currentSong).toEqual(songs[1]);
+  });
+});
+
 describe('next', () => {
   it('advances to the next song in the queue', () => {
     const songs = [createSong('1'), createSong('2'), createSong('3')];

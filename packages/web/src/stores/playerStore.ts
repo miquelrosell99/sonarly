@@ -23,6 +23,7 @@ interface PlayerState {
 interface PlayerActions {
   playNow: (song: PlayerSong) => void;
   playQueue: (songs: PlayerSong[], startIndex?: number, shuffle?: boolean) => void;
+  playAtIndex: (index: number) => void;
   playNext: (song: PlayerSong | PlayerSong[]) => void;
   addToQueue: (songs: PlayerSong[], options?: { addedByAutoDj?: boolean }) => void;
   removeAutoDjItems: () => void;
@@ -111,6 +112,20 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
           duration: currentSong?.duration ?? 0,
           shuffle: nextShuffle,
           shuffledIndices,
+        });
+      },
+
+      playAtIndex: (index) => {
+        const { queue } = get();
+        if (queue.length === 0) return;
+        const safeIndex = Math.max(0, Math.min(index, queue.length - 1));
+        const song = queue[safeIndex] ?? null;
+        set({
+          queueIndex: safeIndex,
+          currentSong: song,
+          status: 'playing',
+          currentTime: 0,
+          duration: song?.duration ?? 0,
         });
       },
 
