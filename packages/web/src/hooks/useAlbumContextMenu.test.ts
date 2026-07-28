@@ -104,10 +104,10 @@ describe('useAlbumContextMenu', () => {
 
     await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/albums/album-1'));
     expect(playActions.playSongs).toHaveBeenCalledTimes(1);
-    expect(playActions.playSongs).toHaveBeenCalledWith(albumSongs, 0);
+    expect(playActions.playSongs).toHaveBeenCalledWith(albumSongs);
   });
 
-  it('fetches album details and calls playNext for each song in reverse order when Play next is clicked', async () => {
+  it('fetches album details and calls playNext with all songs when Play next is clicked', async () => {
     mockedApi.mockResolvedValueOnce({ album, songs: albumSongs } as AlbumDetail);
 
     const Harness = createHarness(album);
@@ -116,10 +116,8 @@ describe('useAlbumContextMenu', () => {
     fireEvent.click(screen.getByTestId('play-next'));
 
     await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/albums/album-1'));
-    expect(playActions.playNext).toHaveBeenCalledTimes(albumSongs.length);
-    expect(playActions.playNext).toHaveBeenNthCalledWith(1, albumSongs[2]);
-    expect(playActions.playNext).toHaveBeenNthCalledWith(2, albumSongs[1]);
-    expect(playActions.playNext).toHaveBeenNthCalledWith(3, albumSongs[0]);
+    expect(playActions.playNext).toHaveBeenCalledTimes(1);
+    expect(playActions.playNext).toHaveBeenCalledWith(albumSongs);
   });
 
   it('fetches album details and calls addToQueue with the songs when Add to queue is clicked', async () => {

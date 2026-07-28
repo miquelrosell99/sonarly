@@ -39,7 +39,7 @@ describe('playQueue', () => {
     expect(state.currentSong).toEqual(songs[1]);
   });
 
-  it('keeps the current song first when shuffle is enabled', () => {
+  it('keeps the explicit start index first when shuffle is enabled', () => {
     const songs = [createSong('1'), createSong('2'), createSong('3'), createSong('4')];
     usePlayer.getState().playQueue(songs, 2, true);
 
@@ -48,6 +48,18 @@ describe('playQueue', () => {
     expect(state.shuffledIndices).toHaveLength(songs.length);
     expect(state.shuffledIndices[0]).toBe(2);
     expect(new Set(state.shuffledIndices).size).toBe(songs.length);
+  });
+
+  it('picks a random start index when shuffle is enabled and no start index is given', () => {
+    const songs = [createSong('1'), createSong('2'), createSong('3'), createSong('4')];
+    usePlayer.getState().playQueue(songs, undefined, true);
+
+    const state = usePlayer.getState();
+    expect(state.shuffle).toBe(true);
+    expect(state.shuffledIndices).toHaveLength(songs.length);
+    expect(new Set(state.shuffledIndices).size).toBe(songs.length);
+    // The current song should be the one at the randomly selected start index.
+    expect(state.currentSong).toEqual(songs[state.queueIndex]);
   });
 });
 
@@ -98,27 +110,31 @@ describe('next', () => {
 });
 
 describe('toggleShuffle', () => {
-  it('enables shuffle and keeps the current song first', () => {
-    const songs = [createSong('1'), createSong('2'), createSong('3')];
+  it('enables shuffle and keeps played items in their current positions', () => {
+    const songs = [createSong('1'), createSong('2'), createSong('3'), createSong('4')];
     const store = usePlayer.getState();
     store.playQueue(songs, 1);
     store.toggleShuffle();
 
     const state = usePlayer.getState();
     expect(state.shuffle).toBe(true);
-    expect(state.shuffledIndices[0]).toBe(1);
+    // Played/current prefix (indices 0 and 1) should be preserved.
+    expect(state.shuffledIndices.slice(0, 2)).toEqual([0, 1]);
     expect(new Set(state.shuffledIndices).size).toBe(songs.length);
   });
 
-  it('disables shuffle and clears shuffled indices', () => {
-    const songs = [createSong('1'), createSong('2'), createSong('3')];
+  it('disables shuffle and preserves the current shuffled order', () => {
+    const songs = [createSong('1'), createSong('2'), createSong('3'), createSong('4')];
     const store = usePlayer.getState();
     store.playQueue(songs, 0, true);
+    const { shuffledIndices } = usePlayer.getState();
     store.toggleShuffle();
 
     const state = usePlayer.getState();
     expect(state.shuffle).toBe(false);
     expect(state.shuffledIndices).toEqual([]);
+    expect(state.queue.map((s) => s.id)).toEqual(shuffledIndices.map((i) => songs[i].id));
+    expect(state.currentSong).toEqual(songs[0]);
   });
 });
 
@@ -220,6 +236,29 @@ describe('playerStore queue actions', () => {
     const state = usePlayer.getState();
     expect(state.queue.map((s) => s.id)).toEqual(['a']);
     expect(state.queueIndex).toBe(0);
+  });
+
+  it('playNext shuffles new indices when shuffle is enabled', () => {
+    usePlayer.getState().playQueue([songA, songB, songC], 0, true);
+    const songD: PlayerSong = { id: 'd', title: 'D', duration: 100 } as PlayerSong;
+    const songE: PlayerSong = { id: 'e', title: 'E', duration: 100 } as PlayerSong;
+    usePlayer.getState().playNext([songD, songE]);
+    const state = usePlayer.getState();
+    expect(state.queue.map((s) => s.id)).toEqual(['a', 'd', 'e', 'b', 'c']);
+    expect(state.shuffledIndices.slice(0, 1)).toEqual([0]);
+    expect(new Set(state.shuffledIndices).size).toBe(state.queue.length);
+    // The two newly inserted indices should appear after the current position.
+    const newIndices = state.shuffledIndices.slice(1, 3).sort((a, b) => a - b);
+    expect(newIndices).toEqual([1, 2]);
+  });
+
+  it('addToQueue shuffles new indices when shuffle is enabled', () => {
+    usePlayer.getState().playQueue([songA, songB], 0, true);
+    usePlayer.getState().addToQueue([songC]);
+    const state = usePlayer.getState();
+    expect(state.queue.map((s) => s.id)).toEqual(['a', 'b', 'c']);
+    expect(state.shuffledIndices).toHaveLength(3);
+    expect(state.shuffledIndices).toContain(2);
   });
 });
 

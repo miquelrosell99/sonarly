@@ -93,17 +93,16 @@ describe('useGenreContextMenu', () => {
     fireEvent.click(screen.getByTestId('play'));
     expect(mockedApi).not.toHaveBeenCalled();
     expect(playActions.playSongs).toHaveBeenCalledTimes(1);
-    expect(playActions.playSongs).toHaveBeenCalledWith(genreSongs, 0);
+    expect(playActions.playSongs).toHaveBeenCalledWith(genreSongs);
   });
 
-  it('uses provided tracks and calls playNext for each song in reverse order when Play next is clicked', () => {
+  it('uses provided tracks and calls playNext with all songs when Play next is clicked', () => {
     const Harness = createHarness('Rock', genreSongs);
     render(React.createElement(Harness));
 
     fireEvent.click(screen.getByTestId('play-next'));
-    expect(playActions.playNext).toHaveBeenCalledTimes(genreSongs.length);
-    expect(playActions.playNext).toHaveBeenNthCalledWith(1, genreSongs[1]);
-    expect(playActions.playNext).toHaveBeenNthCalledWith(2, genreSongs[0]);
+    expect(playActions.playNext).toHaveBeenCalledTimes(1);
+    expect(playActions.playNext).toHaveBeenCalledWith(genreSongs);
   });
 
   it('uses provided tracks and calls addToQueue with the tracks when Add to queue is clicked', () => {
@@ -125,7 +124,7 @@ describe('useGenreContextMenu', () => {
 
     await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/songs?genre=Rock'));
     expect(playActions.playSongs).toHaveBeenCalledTimes(1);
-    expect(playActions.playSongs).toHaveBeenCalledWith(genreSongs, 0);
+    expect(playActions.playSongs).toHaveBeenCalledWith(genreSongs);
   });
 
   it('disables playback actions when provided tracks are empty', () => {
