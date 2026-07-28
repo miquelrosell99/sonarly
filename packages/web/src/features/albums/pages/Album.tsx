@@ -4,6 +4,7 @@ import type { Song as SharedSong, User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { cn } from '../../../lib/cn.js';
 import { Button } from '../../../components/ui/Button.js';
+import { Icon } from '../../../components/ui/Icon.js';
 import { CoverArt } from '../../../components/CoverArt.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { PlayButton } from '../../../components/PlayButton.js';
@@ -60,13 +61,15 @@ export function Album({ user }: { user: User }) {
   const [detail, setDetail] = useState<AlbumDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editing, setEditing] = useState<SongWithNames | null>(null);
+  const [songEditing, setSongEditing] = useState<SongWithNames | null>(null);
+  const [albumEditing, setAlbumEditing] = useState<Album | null>(null);
   const [syncEditing, setSyncEditing] = useState<SongWithNames | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [coverArtBusy, setCoverArtBusy] = useState(false);
   const { notify } = useNotification();
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const albumCoverInputRef = useRef<HTMLInputElement>(null);
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
@@ -132,15 +135,15 @@ export function Album({ user }: { user: User }) {
     }
   };
 
-  const handleSave = async (patched: Record<string, unknown>) => {
-    if (!editing) return;
+  const handleSongSave = async (patched: Record<string, unknown>) => {
+    if (!songEditing) return;
     setSaving(true);
     try {
-      await api(`/songs/${editing.id}/tags`, {
+      await api(`/songs/${songEditing.id}/tags`, {
         method: 'PUT',
         body: JSON.stringify(patched),
       });
-      setEditing(null);
+      setSongEditing(null);
       load();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to save song', 'error');
@@ -149,12 +152,12 @@ export function Album({ user }: { user: User }) {
     }
   };
 
-  const handleDelete = async () => {
-    if (!editing) return;
+  const handleSongDelete = async () => {
+    if (!songEditing) return;
     setDeleting(true);
     try {
-      await api(`/songs/${editing.id}`, { method: 'DELETE' });
-      setEditing(null);
+      await api(`/songs/${songEditing.id}`, { method: 'DELETE' });
+      setSongEditing(null);
       load();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to delete song', 'error');
@@ -163,18 +166,18 @@ export function Album({ user }: { user: User }) {
     }
   };
 
-  const handleEditCoverArt = () => {
+  const handleSongEditCoverArt = () => {
     coverInputRef.current?.click();
   };
 
-  const handleCoverArtFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSongCoverArtFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !editing) return;
+    if (!file || !songEditing) return;
     setCoverArtBusy(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
-      await api(`/songs/${editing.id}/cover-art`, {
+      await api(`/songs/${songEditing.id}/cover-art`, {
         method: 'POST',
         body: formData,
       });
@@ -187,11 +190,79 @@ export function Album({ user }: { user: User }) {
     }
   };
 
-  const handleDeleteCoverArt = async () => {
-    if (!editing) return;
+  const handleSongDeleteCoverArt = async () => {
+    if (!songEditing) return;
     setCoverArtBusy(true);
     try {
-      await api(`/songs/${editing.id}/cover-art`, { method: 'DELETE' });
+      await api(`/songs/${songEditing.id}/cover-art`, { method: 'DELETE' });
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to remove cover art', 'error');
+    } finally {
+      setCoverArtBusy(false);
+    }
+  };
+
+  const handleAlbumSave = async (patched: Record<string, unknown>) => {
+    if (!albumEditing) return;
+    setSaving(true);
+    try {
+      await api(`/albums/${albumEditing.id}/tags`, {
+        method: 'PUT',
+        body: JSON.stringify(patched),
+      });
+      setAlbumEditing(null);
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to save album', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAlbumDelete = async () => {
+    if (!albumEditing) return;
+    setDeleting(true);
+    try {
+      await api(`/albums/${albumEditing.id}`, { method: 'DELETE' });
+      setAlbumEditing(null);
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to delete album', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleAlbumEditCoverArt = () => {
+    albumCoverInputRef.current?.click();
+  };
+
+  const handleAlbumCoverArtFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !albumEditing) return;
+    setCoverArtBusy(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      await api(`/albums/${albumEditing.id}/cover-art`, {
+        method: 'POST',
+        body: formData,
+      });
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to update cover art', 'error');
+    } finally {
+      setCoverArtBusy(false);
+      if (albumCoverInputRef.current) albumCoverInputRef.current.value = '';
+    }
+  };
+
+  const handleAlbumDeleteCoverArt = async () => {
+    if (!albumEditing) return;
+    setCoverArtBusy(true);
+    try {
+      await api(`/albums/${albumEditing.id}/cover-art`, { method: 'DELETE' });
       load();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to remove cover art', 'error');
@@ -214,12 +285,21 @@ export function Album({ user }: { user: User }) {
       ]
     : [];
 
-  const editEntity = editing
+  const songEditEntity = songEditing
     ? {
-        ...editing,
-        artist: editing.artistName,
-        album: editing.albumName,
-        albumArtist: editing.albumArtistName,
+        ...songEditing,
+        artist: songEditing.artistName,
+        album: songEditing.albumName,
+        albumArtist: songEditing.albumArtistName,
+      }
+    : null;
+
+  const albumEditEntity = albumEditing
+    ? {
+        ...albumEditing,
+        title: albumEditing.name,
+        artist: albumEditing.artistName,
+        albumArtist: albumEditing.artistName,
       }
     : null;
 
@@ -249,6 +329,10 @@ export function Album({ user }: { user: User }) {
             <PlayButton variant="default" onPlay={handlePlayAlbum} onShufflePlay={handleShuffleAlbumSongs}>
               Play
             </PlayButton>
+            <Button variant="ghost" onClick={() => setAlbumEditing(detail.album)} className="gap-2">
+              <Icon name="mdi-pencil" size={18} />
+              Edit
+            </Button>
             <FavoriteRatingGroup
               starred={detail.album.starred}
               onToggleFavorite={() => handleFavorite(!detail.album.starred)}
@@ -267,24 +351,24 @@ export function Album({ user }: { user: User }) {
         onShufflePlay={handleShuffleAlbumSongs}
         onPlaySelection={handlePlaySelection}
         renderRow={(song, row) => (
-          <SongContextMenu song={song} onEdit={() => setEditing(song as SongWithNames)} isAdmin={user.isAdmin}>
+          <SongContextMenu song={song} onEdit={() => setSongEditing(song as SongWithNames)} isAdmin={user.isAdmin}>
             {row}
           </SongContextMenu>
         )}
         empty="No songs."
       />
 
-      {editEntity && (
+      {songEditEntity && (
         <EditEntityModal
           open
           entityType="song"
-          entity={editEntity}
-          onClose={() => setEditing(null)}
-          onSave={handleSave}
-          onDelete={handleDelete}
-          onEditCoverArt={user.isAdmin ? handleEditCoverArt : undefined}
-          onDeleteCoverArt={user.isAdmin ? handleDeleteCoverArt : undefined}
-          onEditSyncedLyrics={() => editing && setSyncEditing(editing)}
+          entity={songEditEntity}
+          onClose={() => setSongEditing(null)}
+          onSave={handleSongSave}
+          onDelete={handleSongDelete}
+          onEditCoverArt={user.isAdmin ? handleSongEditCoverArt : undefined}
+          onDeleteCoverArt={user.isAdmin ? handleSongDeleteCoverArt : undefined}
+          onEditSyncedLyrics={() => songEditing && setSyncEditing(songEditing)}
           saving={saving}
           deleting={deleting}
           coverArtBusy={coverArtBusy}
@@ -295,8 +379,32 @@ export function Album({ user }: { user: User }) {
         type="file"
         accept="image/jpeg,image/png,image/webp"
         className="hidden"
-        onChange={handleCoverArtFileChange}
+        onChange={handleSongCoverArtFileChange}
       />
+
+      {albumEditEntity && (
+        <EditEntityModal
+          open
+          entityType="album"
+          entity={albumEditEntity}
+          onClose={() => setAlbumEditing(null)}
+          onSave={handleAlbumSave}
+          onDelete={handleAlbumDelete}
+          onEditCoverArt={handleAlbumEditCoverArt}
+          onDeleteCoverArt={handleAlbumDeleteCoverArt}
+          saving={saving}
+          deleting={deleting}
+          coverArtBusy={coverArtBusy}
+        />
+      )}
+      <input
+        ref={albumCoverInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleAlbumCoverArtFileChange}
+      />
+
       {syncEditing && (
         <SyncedLyricsEditor
           songId={syncEditing.id}
