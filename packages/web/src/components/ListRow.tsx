@@ -33,6 +33,7 @@ interface ListRowProps {
   isDragging?: boolean;
   dragHandleProps?: Record<string, unknown>;
   className?: string;
+  indexPad?: number;
   children: ReactNode;
 }
 
@@ -68,6 +69,7 @@ export function ListRow({
   isDragging = false,
   dragHandleProps,
   className,
+  indexPad,
   children,
 }: ListRowProps) {
   const handleClick = (e: MouseEvent) => {
@@ -131,7 +133,9 @@ export function ListRow({
       )}
       <td className="w-12 py-2 pr-4">
         <span className="relative grid h-5 w-6 place-items-center text-muted">
-          <span className="col-start-1 row-start-1 transition group-hover:opacity-0">{index + 1}</span>
+          <span className="col-start-1 row-start-1 transition group-hover:opacity-0">
+            {indexPad ? (index + 1).toString().padStart(indexPad, '0') : index + 1}
+          </span>
           {onPlay && (
             <span className="col-start-1 row-start-1 opacity-0 transition group-hover:opacity-100">
               <PlayButton
