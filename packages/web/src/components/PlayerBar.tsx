@@ -120,7 +120,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
                       currentSong.albumId ? (
                         <Link
                           href={`/albums/${currentSong.albumId}`}
-                          className="hover:text-accent"
+                          className="transition hover:opacity-70"
                         >
                           {currentSong.albumName}
                         </Link>
@@ -136,7 +136,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
                     {currentSong.year && (
                       <Link
                         href={`/years/${currentSong.year}`}
-                        className="hover:text-accent"
+                        className="transition hover:opacity-70"
                       >
                         {currentSong.year}
                       </Link>
@@ -149,7 +149,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
                       <span key={artist.id}>
                         <Link
                           href={`/artists/${artist.id}`}
-                          className="hover:text-accent"
+                          className="transition hover:opacity-70"
                         >
                           {artist.name}
                         </Link>
@@ -159,7 +159,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
                   ) : currentSong.artistId ? (
                     <Link
                       href={`/artists/${currentSong.artistId}`}
-                      className="hover:text-accent"
+                      className="transition hover:opacity-70"
                     >
                       {currentSong.artistName || 'Unknown artist'}
                     </Link>
