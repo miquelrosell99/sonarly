@@ -269,10 +269,15 @@ function useFilterDefinitions(location: string): FilterDefinition[] {
         { key: 'genre', label: 'Genre', type: 'select', options: uniqueSortedOptions(songs.map((s) => s.genre)) },
         { key: 'favorites', label: 'Favorites only', type: 'boolean' },
         { key: 'rating', label: 'Rating', type: 'select', options: [
+          { value: '0.5', label: '0.5 stars' },
           { value: '1', label: '1 star' },
+          { value: '1.5', label: '1.5 stars' },
           { value: '2', label: '2 stars' },
+          { value: '2.5', label: '2.5 stars' },
           { value: '3', label: '3 stars' },
+          { value: '3.5', label: '3.5 stars' },
           { value: '4', label: '4 stars' },
+          { value: '4.5', label: '4.5 stars' },
           { value: '5', label: '5 stars' },
         ]},
       ];

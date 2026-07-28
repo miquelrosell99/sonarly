@@ -2,7 +2,7 @@
 
 Sonarly uses **SQLite** (via `better-sqlite3`). The database file is created at `${DATA_DIR}/sonarly.db` (default `/data/sonarly.db`). Migrations run automatically on startup from `packages/server/src/db/migrations/`.
 
-This document reflects the schema produced by migrations `001` through `040`.
+This document reflects the schema produced by migrations `001` through `041`.
 
 ## Conventions
 
@@ -50,6 +50,38 @@ Music artists.
 - `idx_artists_name_unique` unique on `name COLLATE NOCASE`
 - `idx_artists_active` on `active`
 
+### `song_artists`
+
+Multi-value track artist links. Track artists are stored in the shared `artists` table.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `song_id` | `TEXT` | FK → `songs(id)` `ON DELETE CASCADE` |
+| `artist_id` | `TEXT` | FK → `artists(id)` `ON DELETE CASCADE` |
+| `position` | `INTEGER` | Order within the song |
+
+**Primary key:** (`song_id`, `artist_id`)
+
+**Indexes:**
+- `idx_song_artists_song` on `song_id`
+- `idx_song_artists_artist` on `artist_id`
+
+### `album_artists`
+
+Multi-value album artist links. Album artists are stored in the shared `artists` table.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `album_id` | `TEXT` | FK → `albums(id)` `ON DELETE CASCADE` |
+| `artist_id` | `TEXT` | FK → `artists(id)` `ON DELETE CASCADE` |
+| `position` | `INTEGER` | Order within the album |
+
+**Primary key:** (`album_id`, `artist_id`)
+
+**Indexes:**
+- `idx_album_artists_album` on `album_id`
+- `idx_album_artists_artist` on `artist_id`
+
 ### `albums`
 
 Music albums.
@@ -71,6 +103,42 @@ Music albums.
 - `idx_albums_artist` on `artist_id`
 - `idx_albums_active` on `active`
 - `idx_albums_genre_id` on `genre_id`
+
+### `labels`
+
+Record labels. Uses the same schema shape as `artists` but lives in its own table because labels are organizations, not creators.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | `TEXT` | Primary key (UUID) |
+| `name` | `TEXT` | `COLLATE NOCASE`, unique (case-insensitive) |
+| `active` | `INTEGER` | Default `1`; set to `0` when no active albums reference the label |
+| `label_image_url` | `TEXT` | Optional external label image URL |
+| `label_image_local_path` | `TEXT` | Optional local cached label image path |
+| `musicbrainz_label_ids` | `TEXT` | JSON array of MusicBrainz label IDs |
+| `bio` | `TEXT` | Biography / description |
+| `external_urls` | `TEXT` | JSON object of external links |
+
+**Indexes:**
+- `idx_labels_name` on `name`
+- `idx_labels_name_unique` unique on `name COLLATE NOCASE`
+- `idx_labels_active` on `active`
+
+### `album_labels`
+
+Multi-value label links for albums.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `album_id` | `TEXT` | FK → `albums(id)` `ON DELETE CASCADE` |
+| `label_id` | `TEXT` | FK → `labels(id)` `ON DELETE CASCADE` |
+| `position` | `INTEGER` | Order within the album |
+
+**Primary key:** (`album_id`, `label_id`)
+
+**Indexes:**
+- `idx_album_labels_album` on `album_id`
+- `idx_album_labels_label` on `label_id`
 
 ### `songs`
 
@@ -121,6 +189,22 @@ Individual audio tracks.
 - `idx_songs_artist` on `artist_id`
 - `idx_songs_active` on `active`
 - `idx_songs_genre_id` on `genre_id`
+
+### `song_composers`
+
+Multi-value composer links for songs. Composers are stored in the shared `artists` table.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `song_id` | `TEXT` | FK → `songs(id)` `ON DELETE CASCADE` |
+| `artist_id` | `TEXT` | FK → `artists(id)` `ON DELETE CASCADE` |
+| `position` | `INTEGER` | Order within the song |
+
+**Primary key:** (`song_id`, `artist_id`)
+
+**Indexes:**
+- `idx_song_composers_song` on `song_id`
+- `idx_song_composers_artist` on `artist_id`
 
 ### `genres`
 

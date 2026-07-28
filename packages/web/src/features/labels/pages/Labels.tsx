@@ -19,8 +19,10 @@ export function Labels() {
       .finally(() => setLoading(false));
   }, [selectedLibraryId]);
 
+  const labelNames = (album: Album) => album.labelEntries?.map((entry) => entry.name) ?? [];
+
   const labels = Array.from(
-    new Set(albums.flatMap((album) => album.labels ?? [])),
+    new Set(albums.flatMap((album) => labelNames(album))),
   ).sort((a, b) => a.localeCompare(b));
 
   const columns: LibraryViewColumn<string>[] = [

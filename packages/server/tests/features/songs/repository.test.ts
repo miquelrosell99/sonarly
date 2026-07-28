@@ -7,6 +7,9 @@ import {
   listCollisionSongs,
   setSongArtists,
   getSongArtistNames,
+  setSongComposers,
+  getSongComposerNames,
+  getSongComposerEntries,
 } from '../../../src/features/songs/repository.js';
 import { upsertArtist } from '../../../src/features/artists/repository.js';
 
@@ -80,7 +83,6 @@ describe('song repository', () => {
       musicBrainzTrackId: 'track-mbid',
       musicBrainzWorkId: 'work-mbid',
       musicBrainzDiscId: 'disc-mbid',
-      composers: ['Composer One', 'Composer Two'],
       producers: ['Producer One'],
       isrcs: ['US-ABC-01-00001'],
       originalYear: 1999,
@@ -106,5 +108,23 @@ describe('song repository', () => {
     });
     setSongArtists(db, 's1', ['a2', 'a1']);
     expect(getSongArtistNames(db, 's1')).toEqual(['Artist Two', 'Artist One']);
+  });
+
+  it('stores and retrieves multi-value song composers via the artists table', () => {
+    upsertArtist(db, { id: 'c1', name: 'Composer One' });
+    upsertArtist(db, { id: 'c2', name: 'Composer Two' });
+    upsertSong(db, {
+      id: 's1',
+      filePath: '/music/A/B/track.mp3',
+      title: 'Track One',
+      mtime: 1,
+      checksum: 'a',
+    });
+    setSongComposers(db, 's1', ['c2', 'c1']);
+    expect(getSongComposerNames(db, 's1')).toEqual(['Composer Two', 'Composer One']);
+    expect(getSongComposerEntries(db, 's1')).toEqual([
+      { id: 'c2', name: 'Composer Two' },
+      { id: 'c1', name: 'Composer One' },
+    ]);
   });
 });

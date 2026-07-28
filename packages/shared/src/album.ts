@@ -15,7 +15,7 @@ export interface Album {
   active?: boolean;
   starred?: boolean;
   rating?: number;
-  labels?: string[];
+  labelEntries?: { id: string; name: string }[];
   catalogNumbers?: string[];
   barcode?: string;
   asin?: string;

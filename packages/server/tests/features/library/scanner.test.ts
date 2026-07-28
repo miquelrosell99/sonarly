@@ -207,12 +207,15 @@ describe('scanLibrary', () => {
     expect(stats.added).toBe(1);
     const song = db.prepare('SELECT * FROM songs WHERE title = ?').get('Rich Song') as any;
     expect(song).toBeDefined();
-    expect(JSON.parse(song.composers)).toEqual(['Composer A']);
     expect(song.total_tracks).toBe('10');
 
     const songArtists = db.prepare('SELECT ar.name FROM song_artists sa JOIN artists ar ON ar.id = sa.artist_id WHERE sa.song_id = ? ORDER BY sa.position')
       .pluck().all(song.id) as string[];
     expect(songArtists).toEqual(['Artist A', 'Artist B']);
+
+    const songComposers = db.prepare('SELECT ar.name FROM song_composers sc JOIN artists ar ON ar.id = sc.artist_id WHERE sc.song_id = ? ORDER BY sc.position')
+      .pluck().all(song.id) as string[];
+    expect(songComposers).toEqual(['Composer A']);
 
     const album = db.prepare('SELECT * FROM albums WHERE name = ?').get('Rich Album') as any;
     expect(album).toBeDefined();

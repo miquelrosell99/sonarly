@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import type { Song } from '@sonarly/shared';
 import { MAX_EXCLUDE_IDS } from '@sonarly/shared';
 import type { DbSong } from '../songs/repository.js';
+import { attachSongComposerEntries } from '../songs/repository.js';
 
 interface CandidateRow extends DbSong {
   artist_name: string | null;
@@ -66,7 +67,6 @@ function rowToSong(row: CandidateRow): Song & { artistName?: string; albumName?:
     displayAlbumArtist: row.display_album_artist ?? undefined,
     lyrics: row.lyrics ?? undefined,
     syncedLyrics: row.synced_lyrics ? JSON.parse(row.synced_lyrics) : undefined,
-    composers: row.composers ? JSON.parse(row.composers) : undefined,
     producers: row.producers ? JSON.parse(row.producers) : undefined,
     isrcs: row.isrcs ? JSON.parse(row.isrcs) : undefined,
     originalYear: row.original_year ?? undefined,
@@ -175,6 +175,7 @@ export function getSimilarCandidates(
   }
 
   const songs = rows.map(rowToSong);
+  attachSongComposerEntries(db, songs);
 
   if (songs.length < count) {
     const more = getRandomCandidates(db, userId, count - songs.length, [
@@ -224,7 +225,9 @@ export function getRandomCandidates(
     rows = [...rows, ...more];
   }
 
-  return rows.map(rowToSong);
+  const songs = rows.map(rowToSong);
+  attachSongComposerEntries(db, songs);
+  return songs;
 }
 
 export interface SmartCandidate {
@@ -271,13 +274,15 @@ export function getSmartCandidateRows(
   ];
 
   const rows = db.prepare(sql).all(...params) as CandidateRow[];
-  return rows.map((row) => ({
+  const candidates = rows.map((row) => ({
     song: rowToSong(row),
     rating: row.rating ?? undefined,
     playCount: row.play_count ?? undefined,
     lastPlayed: row.last_played ?? undefined,
     genreOverlap: row.genre_overlap ?? 0,
   }));
+  attachSongComposerEntries(db, candidates.map((c) => c.song));
+  return candidates;
 }
 
 export function getUserAveragePlayCount(db: Database.Database, userId: string): number {

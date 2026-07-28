@@ -32,7 +32,9 @@ const NUMBER_OPERATORS = new Set<SmartPlaylistRule['operator']>([
   'is',
   'isNot',
   'gt',
+  'gte',
   'lt',
+  'lte',
   'inTheRange',
 ]);
 
@@ -173,8 +175,12 @@ function compileRule(ctx: CompilerContext, rule: SmartPlaylistRule): string {
         return `(${expr} IS NULL OR ${expr} != ${placeholder})`;
       case 'gt':
         return `${expr} > ${placeholder}`;
+      case 'gte':
+        return `${expr} >= ${placeholder}`;
       case 'lt':
         return `${expr} < ${placeholder}`;
+      case 'lte':
+        return `${expr} <= ${placeholder}`;
       default:
         return '1=1';
     }

@@ -21,12 +21,14 @@ export function Composers() {
       .finally(() => setLoading(false));
   }, [selectedLibraryId]);
 
+  const composerNames = (song: Song) => song.composerEntries?.map((entry) => entry.name) ?? [];
+
   const composers = Array.from(
-    new Set(songs.flatMap((song) => song.composers ?? [])),
+    new Set(songs.flatMap((song) => composerNames(song))),
   ).sort((a, b) => a.localeCompare(b));
 
   const playComposer = (composer: string) => {
-    const matching = songs.filter((song) => song.composers?.includes(composer));
+    const matching = songs.filter((song) => composerNames(song).includes(composer));
     if (matching.length > 0) {
       playSongs(matching);
     }
@@ -34,7 +36,7 @@ export function Composers() {
 
   const shuffleComposers = (selectedComposers: string[]) => {
     const matching = songs.filter((song) =>
-      selectedComposers.some((composer) => song.composers?.includes(composer)),
+      selectedComposers.some((composer) => composerNames(song).includes(composer)),
     );
     if (matching.length > 0) {
       shufflePlay(matching);
