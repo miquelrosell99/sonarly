@@ -118,6 +118,11 @@ export function Sidebar({ config, playlists }: SidebarProps) {
               <span className="text-xs font-semibold uppercase tracking-wider text-fg-secondary">
                 Playlists
               </span>
+              {playlists && playlists.length > 0 && (
+                <span className="ml-1 rounded-full bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium text-fg-secondary">
+                  {playlists.length}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-0.5">
               <Link
