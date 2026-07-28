@@ -10,3 +10,4 @@ export * from './favorite.js';
 export * from './player.js';
 export * from './listening-stats.js';
 export * from './library.js';
+export * from './duplicate.js';
