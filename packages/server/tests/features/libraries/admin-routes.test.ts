@@ -97,6 +97,7 @@ describe('library admin endpoints', () => {
     expect(body.libraries).toHaveLength(1);
     expect(body.libraries[0].path).toBe(config.LIBRARY_PATH);
     expect(body.libraries[0].organizePattern).toBeDefined();
+    expect(body.libraries[0].isDefault).toBe(true);
   });
 
   it('lists libraries publicly without admin', async () => {
@@ -130,6 +131,29 @@ describe('library admin endpoints', () => {
     const created = libraries.find((l: { name: string }) => l.name === 'Music');
     expect(created).toBeDefined();
     expect(created.organizePattern).toBe('{artist}/{title}');
+    expect(created.isDefault).toBe(false);
+  });
+
+  it('creates a library as default and keeps a single default', async () => {
+    const path = join(root, 'media', 'music2');
+    mkdirSync(path, { recursive: true });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/admin/libraries',
+      cookies: { sessionId: adminCookie },
+      payload: { name: 'Music2', path, isDefault: true },
+    });
+    expect(res.statusCode).toBe(201);
+
+    const list = await app.inject({
+      method: 'GET',
+      url: '/api/admin/libraries',
+      cookies: { sessionId: adminCookie },
+    });
+    const libraries = JSON.parse(list.body).libraries;
+    const defaults = libraries.filter((l: { isDefault: boolean }) => l.isDefault);
+    expect(defaults).toHaveLength(1);
+    expect(defaults[0].name).toBe('Music2');
   });
 
   it('updates a library', async () => {
@@ -179,6 +203,42 @@ describe('library admin endpoints', () => {
       cookies: { sessionId: adminCookie },
     });
     expect(JSON.parse(updated.body).libraries).toHaveLength(0);
+  });
+
+  it('reassigns default when the default library is deleted', async () => {
+    const path = join(root, 'media', 'secondary');
+    mkdirSync(path, { recursive: true });
+    await app.inject({
+      method: 'POST',
+      url: '/api/admin/libraries',
+      cookies: { sessionId: adminCookie },
+      payload: { name: 'Secondary', path },
+    });
+
+    const before = await app.inject({
+      method: 'GET',
+      url: '/api/admin/libraries',
+      cookies: { sessionId: adminCookie },
+    });
+    const libraries = JSON.parse(before.body).libraries;
+    expect(libraries).toHaveLength(2);
+    const defaultLibrary = libraries.find((l: { isDefault: boolean }) => l.isDefault);
+    expect(defaultLibrary).toBeDefined();
+
+    await app.inject({
+      method: 'DELETE',
+      url: `/api/admin/libraries/${defaultLibrary.id}`,
+      cookies: { sessionId: adminCookie },
+    });
+
+    const after = await app.inject({
+      method: 'GET',
+      url: '/api/admin/libraries',
+      cookies: { sessionId: adminCookie },
+    });
+    const remaining = JSON.parse(after.body).libraries;
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].isDefault).toBe(true);
   });
 
   it('forbids non-admins', async () => {

@@ -33,3 +33,32 @@ export async function cleanupReviewFolder(reviewDir: string, retentionDays: numb
 
   return stats;
 }
+
+export async function cleanupAllReviewFolders(ingestPath: string, retentionDays: number): Promise<ReviewCleanupStats> {
+  const total: ReviewCleanupStats = { deleted: 0, failed: 0 };
+
+  async function walk(dir: string): Promise<void> {
+    let entries;
+    try {
+      entries = await readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === 'review') {
+          const stats = await cleanupReviewFolder(fullPath, retentionDays);
+          total.deleted += stats.deleted;
+          total.failed += stats.failed;
+        } else {
+          await walk(fullPath);
+        }
+      }
+    }
+  }
+
+  await walk(ingestPath);
+  return total;
+}

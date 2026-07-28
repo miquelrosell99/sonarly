@@ -87,22 +87,28 @@ async function collectFiles(items: DataTransferItemList): Promise<UploadFile[]> 
 }
 
 export function UploadModal({ open, onClose, libraries, currentLibraryId, onComplete }: UploadModalProps) {
-  const [selectedLibraryId, setSelectedLibraryId] = useState<string>(currentLibraryId ?? '');
+  const defaultLibraryId = useMemo(
+    () => libraries.find((l) => l.isDefault)?.id ?? libraries[0]?.id ?? '',
+    [libraries],
+  );
+  const [selectedLibraryId, setSelectedLibraryId] = useState<string>(currentLibraryId ?? defaultLibraryId);
   const [duplicateStrategy, setDuplicateStrategy] = useState<DuplicateStrategy | ''>('');
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const { progress, isUploading, error, uploadFiles } = useUpload();
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const isUsingDefaultLibrary = !currentLibraryId && Boolean(defaultLibraryId);
+
   useEffect(() => {
     if (open) {
-      setSelectedLibraryId(currentLibraryId ?? '');
+      setSelectedLibraryId(currentLibraryId ?? defaultLibraryId);
       setFiles([]);
       api<{ duplicateStrategy: DuplicateStrategy }>('/settings/media')
         .then((data) => setDuplicateStrategy(data.duplicateStrategy))
         .catch(() => setDuplicateStrategy(''));
     }
-  }, [open, currentLibraryId]);
+  }, [open, currentLibraryId, defaultLibraryId]);
 
   const totalSize = useMemo(
     () => files.reduce((sum, { file }) => sum + file.size, 0),
@@ -207,10 +213,15 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
             <option value="">Select a library</option>
             {libraries.map((library) => (
               <option key={library.id} value={library.id}>
-                {library.name}
+                {library.name} {library.isDefault ? '(default)' : ''}
               </option>
             ))}
           </select>
+          {isUsingDefaultLibrary && (
+            <p className="text-xs text-fg-secondary">
+              No library selected in the UI; files will be uploaded to the default library.
+            </p>
+          )}
         </div>
 
         <div className="space-y-1">

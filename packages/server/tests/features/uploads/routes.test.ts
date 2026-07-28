@@ -79,6 +79,7 @@ describe('upload routes', () => {
       name: 'Music',
       path: config.LIBRARY_PATH,
       organizePattern: '{artist}/{title}',
+      isDefault: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });

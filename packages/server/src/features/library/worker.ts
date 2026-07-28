@@ -1,11 +1,10 @@
 import { parentPort, workerData } from 'node:worker_threads';
-import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { getDbPath, type Config } from '../../config.js';
 import { migrate } from '../../db/migrate.js';
 import { scanLibrary } from './scanner.js';
 import { popPendingJob, pushJob, markJobRunning, markJobCompleted, markJobFailed } from './queue.js';
-import { processIngestFolder, cleanupReviewFolder, runOrganizeJob } from '../ingest/index.js';
+import { processIngestFolder, cleanupAllReviewFolders, runOrganizeJob } from '../ingest/index.js';
 import {
   getReviewRetentionDays,
   getSetting,
@@ -92,8 +91,7 @@ async function loop(): Promise<void> {
         markJobCompleted(db, job.id, stats);
       } else if (job.type === 'cleanup_review') {
         const retentionDays = getReviewRetentionDays(db, config.REVIEW_RETENTION_DAYS);
-        const reviewDir = join(config.INGEST_PATH, 'review');
-        const stats = await cleanupReviewFolder(reviewDir, retentionDays);
+        const stats = await cleanupAllReviewFolders(config.INGEST_PATH, retentionDays);
         markJobCompleted(db, job.id, stats);
         setSetting(db, 'last_review_cleanup', new Date().toISOString());
       } else if (job.type === 'organize') {

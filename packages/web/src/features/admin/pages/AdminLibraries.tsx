@@ -6,6 +6,7 @@ import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { Icon } from '../../../components/ui/Icon.js';
+import { Checkbox } from '../../../components/ui/Checkbox.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { AdminShell } from '../components/AdminShell.js';
 
@@ -16,12 +17,14 @@ interface AdminLibrariesProps {
 interface CreateForm {
   name: string;
   path: string;
+  isDefault: boolean;
 }
 
 interface EditForm {
   name: string;
   path: string;
   organizePattern: string;
+  isDefault: boolean;
 }
 
 const templates = [
@@ -80,11 +83,11 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
   const { notify } = useNotification();
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
-  const [form, setForm] = useState<CreateForm>({ name: '', path: '' });
+  const [form, setForm] = useState<CreateForm>({ name: '', path: '', isDefault: false });
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingLibrary, setEditingLibrary] = useState<Library | null>(null);
-  const [editForm, setEditForm] = useState<EditForm>({ name: '', path: '', organizePattern: '' });
+  const [editForm, setEditForm] = useState<EditForm>({ name: '', path: '', organizePattern: '', isDefault: false });
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -107,7 +110,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
   }, [user.isAdmin]);
 
   const openCreate = () => {
-    setForm({ name: '', path: '' });
+    setForm({ name: '', path: '', isDefault: libraries.length === 0 });
     setError(null);
     setCreateOpen(true);
   };
@@ -127,10 +130,11 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
         body: JSON.stringify({
           name: form.name.trim(),
           path: form.path.trim(),
+          isDefault: form.isDefault,
         }),
       });
       setCreateOpen(false);
-      setForm({ name: '', path: '' });
+      setForm({ name: '', path: '', isDefault: false });
       notify('Library created.', 'success');
       await load();
     } catch (err) {
@@ -146,6 +150,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
       name: library.name,
       path: library.path,
       organizePattern: library.organizePattern,
+      isDefault: library.isDefault,
     });
     setError(null);
   };
@@ -172,6 +177,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
           name: editForm.name.trim(),
           path: editForm.path.trim(),
           organizePattern: editForm.organizePattern.trim(),
+          isDefault: editForm.isDefault,
         }),
       });
       notify('Library updated.', 'success');
@@ -257,6 +263,13 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
                 onChange={(e) => updateForm({ path: e.target.value })}
               />
             </div>
+            <Checkbox
+              id="lib-is-default"
+              checked={form.isDefault}
+              onChange={(e) => updateForm({ isDefault: e.target.checked })}
+              label="Default library"
+              description="Used when no library is selected for ingest or upload."
+            />
           </div>
         </Modal>
 
@@ -318,6 +331,13 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
               <p className="text-xs font-medium text-muted">Preview</p>
               <code className="mt-1 block break-all text-sm text-fg-primary">{previewPath}</code>
             </div>
+            <Checkbox
+              id="edit-lib-is-default"
+              checked={editForm.isDefault}
+              onChange={(e) => setEditForm((prev) => ({ ...prev, isDefault: e.target.checked }))}
+              label="Default library"
+              description="Used when no library is selected for ingest or upload."
+            />
           </div>
         </Modal>
 
@@ -327,6 +347,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
               <tr>
                 <th className="px-4 py-2 text-left font-medium text-fg-primary">Name</th>
                 <th className="px-4 py-2 text-left font-medium text-fg-primary">Path</th>
+                <th className="px-4 py-2 text-left font-medium text-fg-primary">Default</th>
                 <th className="px-4 py-2 text-left font-medium text-fg-primary">Actions</th>
               </tr>
             </thead>
@@ -335,6 +356,13 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
                 <tr key={library.id} className="border-t border-rule">
                   <td className="px-4 py-2 font-medium text-fg-primary">{library.name}</td>
                   <td className="px-4 py-2 font-mono text-xs text-fg-secondary">{library.path}</td>
+                  <td className="px-4 py-2">
+                    {library.isDefault && (
+                      <span className="inline-flex items-center rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+                        Default
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-2">
                       <Button variant="ghost" onClick={() => setLocation(`/admin/libraries/${library.id}/users`)}>
@@ -358,7 +386,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
               ))}
               {libraries.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-sm text-fg-secondary">
+                  <td colSpan={4} className="px-4 py-6 text-center text-sm text-fg-secondary">
                     No libraries configured yet.
                   </td>
                 </tr>
