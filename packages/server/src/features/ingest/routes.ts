@@ -24,7 +24,19 @@ export function registerIngestManagementRoutes(app: FastifyInstance, db: Databas
     if (!job) {
       return reply.status(404).send({ error: 'Ingest job not found' });
     }
-    reply.send({ job });
+    reply.send({
+      job: {
+        id: String(job.id),
+        sourcePath: String(job.source_path),
+        targetPath: job.target_path ? String(job.target_path) : null,
+        status: String(job.status),
+        error: job.error ? String(job.error) : null,
+        duplicate: Boolean(job.duplicate),
+        duplicateStrategy: job.duplicate_strategy ? String(job.duplicate_strategy) : null,
+        createdAt: String(job.created_at),
+        updatedAt: String(job.updated_at),
+      },
+    });
   });
 
   app.post('/api/ingest/trigger', (request: FastifyRequest, reply: FastifyReply) => {
