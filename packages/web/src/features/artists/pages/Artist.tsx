@@ -5,13 +5,12 @@ import { api } from '../../../api.js';
 import { Card } from '../../../components/Card.js';
 import { CoverArt } from '../../../components/CoverArt.js';
 import { ArtistImage } from '../../../components/ArtistImage.js';
-import { EntityHeader } from '../../../components/EntityHeader.js';
+import { EntityDetail } from '../../../components/EntityDetail.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { ScrollRow } from '../../../components/ScrollRow.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
-import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { TrackList } from '../../songs/index.js';
 import type { SongWithNames } from '../../../lib/types.js';
@@ -47,8 +46,6 @@ export function Artist() {
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-
-  useDocumentTitle(artist?.name);
 
   useEffect(() => {
     if (!id) return;
@@ -143,16 +140,17 @@ export function Artist() {
     playSongs([track as Song], 0);
   };
 
-  if (loading) return <p className="text-sm text-muted">Loading...</p>;
-  if (error) return <p className="text-sm text-danger">{error}</p>;
-  if (!artist) return <p className="text-sm text-muted">Artist not found.</p>;
-
   return (
-    <div>
-      <EntityHeader
-        type="Artist"
-        title={artist.name}
-        cover={
+    <EntityDetail
+      isLoading={loading}
+      error={error}
+      notFound={!artist}
+      notFoundMessage="Artist not found."
+      documentTitle={artist?.name}
+      type="Artist"
+      title={artist?.name}
+      cover={
+        artist && (
           <ArtistImage
             artistId={artist.id}
             alt={`Image for ${artist.name}`}
@@ -160,8 +158,10 @@ export function Artist() {
             iconSize={64}
             shape="rounded"
           />
-        }
-        actions={
+        )
+      }
+      actions={
+        artist && (
           <>
             <PlayButton
               variant="default"
@@ -178,10 +178,10 @@ export function Artist() {
               onRate={handleRate}
             />
           </>
-        }
-      />
-
-      {artist.albums.length > 0 ? (
+        )
+      }
+    >
+      {artist && artist.albums.length > 0 ? (
         <ScrollRow title="Albums">
           {artist.albums.map((album) => {
             const hasFilteredSongs =
@@ -241,6 +241,6 @@ export function Artist() {
       <h3 className="mb-2 mt-8 text-sm font-medium text-fg-secondary">Top tracks</h3>
       <TrackList tracks={topTracks} onItemClick={playTrack} showArtist={false} showAlbum />
       {topTracks.length === 0 && <p className="py-4 text-sm text-muted">No tracks found.</p>}
-    </div>
+    </EntityDetail>
   );
 }

@@ -5,12 +5,11 @@ import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { CoverArt } from '../../../components/CoverArt.js';
-import { EntityHeader } from '../../../components/EntityHeader.js';
+import { EntityDetail } from '../../../components/EntityDetail.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { formatDuration } from '../../../lib/format.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
-import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import type { SongWithNames } from '../../../lib/types.js';
 
@@ -24,8 +23,6 @@ export function Track() {
   const { playSong } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-
-  useDocumentTitle(track?.title);
 
   const load = () => {
     if (!id) return;
@@ -60,37 +57,42 @@ export function Track() {
     }
   };
 
-  if (loading) return <p className="text-sm text-muted">Loading...</p>;
-  if (error) return <p className="text-sm text-danger">{error}</p>;
-  if (!track) return <p className="text-sm text-muted">Track not found.</p>;
-
-  const metadata = [
-    { label: track.artistName ?? 'Unknown artist', href: track.artistId ? `/artists/${track.artistId}` : undefined },
-    { label: track.albumName ?? 'Unknown album', href: track.albumId ? `/albums/${track.albumId}` : undefined },
-    { label: track.year !== undefined && track.year !== null ? String(track.year) : '', href: track.year !== undefined ? `/years/${track.year}` : undefined },
-    { label: track.genre ?? '', href: track.genre ? `/genres/${encodeURIComponent(track.genre)}` : undefined },
-    { label: track.duration !== undefined ? formatDuration(track.duration) : '' },
-  ];
+  const metadata = track
+    ? [
+        { label: track.artistName ?? 'Unknown artist', href: track.artistId ? `/artists/${track.artistId}` : undefined },
+        { label: track.albumName ?? 'Unknown album', href: track.albumId ? `/albums/${track.albumId}` : undefined },
+        { label: track.year !== undefined && track.year !== null ? String(track.year) : '', href: track.year !== undefined ? `/years/${track.year}` : undefined },
+        { label: track.genre ?? '', href: track.genre ? `/genres/${encodeURIComponent(track.genre)}` : undefined },
+        { label: track.duration !== undefined ? formatDuration(track.duration) : '' },
+      ]
+    : [];
 
   return (
-    <EntityHeader
+    <EntityDetail
+      isLoading={loading}
+      error={error}
+      notFound={!track}
+      notFoundMessage="Track not found."
+      documentTitle={track?.title}
       type="Song"
-      title={track.title}
-      cover={<CoverArt coverArt={track.coverArt} alt={`Cover art for ${track.title}`} className="h-48 w-48 sm:h-56 sm:w-56" iconSize={64} />}
+      title={track?.title}
+      cover={track ? <CoverArt coverArt={track.coverArt} alt={`Cover art for ${track.title}`} className="h-48 w-48 sm:h-56 sm:w-56" iconSize={64} /> : undefined}
       metadata={metadata}
       actions={
-        <>
-          <Button onClick={() => playSong(track)} className="gap-2">
-            <Icon name="mdi-play" size={18} />
-            Play
-          </Button>
-          <FavoriteRatingGroup
-            starred={track.starred}
-            onToggleFavorite={() => handleFavorite(!track.starred)}
-            rating={track.rating}
-            onRate={handleRate}
-          />
-        </>
+        track && (
+          <>
+            <Button onClick={() => playSong(track)} className="gap-2">
+              <Icon name="mdi-play" size={18} />
+              Play
+            </Button>
+            <FavoriteRatingGroup
+              starred={track.starred}
+              onToggleFavorite={() => handleFavorite(!track.starred)}
+              rating={track.rating}
+              onRate={handleRate}
+            />
+          </>
+        )
       }
     />
   );

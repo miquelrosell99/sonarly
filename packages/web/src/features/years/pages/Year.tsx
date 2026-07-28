@@ -3,9 +3,9 @@ import { useParams } from 'wouter';
 import type { Song, Album } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
+import { EntityDetail } from '../../../components/EntityDetail.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
-import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { TrackList } from '../../songs/index.js';
 import { AlbumList } from '../../albums/index.js';
@@ -18,8 +18,6 @@ interface AlbumWithArtist extends Album {
 export function Year() {
   const { year: yearParam } = useParams<{ year: string }>();
   const year = yearParam ? Number(yearParam) : NaN;
-
-  useDocumentTitle(Number.isNaN(year) ? null : String(year));
 
   const [tracks, setTracks] = useState<SongWithNames[]>([]);
   const [albums, setAlbums] = useState<AlbumWithArtist[]>([]);
@@ -47,27 +45,31 @@ export function Year() {
     load();
   }, [year, selectedLibraryId]);
 
-  if (Number.isNaN(year)) return <p className="text-sm text-danger">Invalid year.</p>;
-  if (loading) return <p className="text-sm text-muted">Loading...</p>;
-  if (error) return <p className="text-sm text-danger">{error}</p>;
+  const title = Number.isNaN(year) ? undefined : String(year);
+  const actions = tracks.length > 0 && (
+    <>
+      <PlayButton variant="default" onPlay={() => playSongs(tracks as Song[])} onShufflePlay={() => shufflePlay(tracks as Song[])}>
+        Play all
+      </PlayButton>
+      <Button variant="ghost" onClick={() => shufflePlay(tracks as Song[])}>
+        Shuffle
+      </Button>
+    </>
+  );
 
   return (
-    <div className="space-y-8">
+    <EntityDetail
+      isLoading={loading}
+      error={error}
+      notFound={Number.isNaN(year)}
+      notFoundMessage="Invalid year."
+      documentTitle={title}
+      type="Year"
+      title={title}
+      actions={actions}
+      className="space-y-8"
+    >
       <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{year}</h2>
-          {tracks.length > 0 && (
-            <div className="flex gap-2">
-              <PlayButton variant="default" onPlay={() => playSongs(tracks as Song[])} onShufflePlay={() => shufflePlay(tracks as Song[])}>
-                Play all
-              </PlayButton>
-              <Button variant="ghost" onClick={() => shufflePlay(tracks as Song[])}>
-                Shuffle
-              </Button>
-            </div>
-          )}
-        </div>
-
         <h3 className="mb-2 text-sm font-medium text-muted">Tracks</h3>
         <TrackList
           tracks={tracks}
@@ -82,6 +84,6 @@ export function Year() {
           empty={<p className="text-sm text-muted">No albums for this year.</p>}
         />
       </div>
-    </div>
+    </EntityDetail>
   );
 }

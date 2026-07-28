@@ -5,7 +5,7 @@ import { api } from '../../../api.js';
 import { cn } from '../../../lib/cn.js';
 import { Button } from '../../../components/ui/Button.js';
 import { CoverArt } from '../../../components/CoverArt.js';
-import { EntityHeader } from '../../../components/EntityHeader.js';
+import { EntityDetail } from '../../../components/EntityDetail.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
@@ -13,7 +13,6 @@ import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
-import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
@@ -72,8 +71,6 @@ export function Album({ user }: { user: User }) {
   const { playSongs, shufflePlay } = usePlayActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-
-  useDocumentTitle(detail?.album.name);
 
   const load = () => {
     if (!id) return;
@@ -203,20 +200,19 @@ export function Album({ user }: { user: User }) {
     }
   };
 
-  if (loading) return <p className="text-sm text-muted">Loading...</p>;
-  if (error) return <p className="text-sm text-danger">{error}</p>;
-  if (!detail) return <p className="text-sm text-muted">Album not found.</p>;
-
   const hasFilteredSongs =
+    detail !== null &&
     detail.album.totalSongCount !== undefined &&
     detail.album.shownSongCount !== undefined &&
     detail.album.totalSongCount > detail.album.shownSongCount;
 
-  const metadata = [
-    { label: detail.album.artistName ?? 'Unknown artist', href: detail.album.artistId ? `/artists/${detail.album.artistId}` : undefined },
-    { label: detail.album.year !== undefined && detail.album.year !== null ? String(detail.album.year) : '', href: detail.album.year !== undefined ? `/years/${detail.album.year}` : undefined },
-    { label: detail.album.genre ?? '', href: detail.album.genre ? `/genres/${encodeURIComponent(detail.album.genre)}` : undefined },
-  ];
+  const metadata = detail
+    ? [
+        { label: detail.album.artistName ?? 'Unknown artist', href: detail.album.artistId ? `/artists/${detail.album.artistId}` : undefined },
+        { label: detail.album.year !== undefined && detail.album.year !== null ? String(detail.album.year) : '', href: detail.album.year !== undefined ? `/years/${detail.album.year}` : undefined },
+        { label: detail.album.genre ?? '', href: detail.album.genre ? `/genres/${encodeURIComponent(detail.album.genre)}` : undefined },
+      ]
+    : [];
 
   const editEntity = editing
     ? {
@@ -228,20 +224,27 @@ export function Album({ user }: { user: User }) {
     : null;
 
   return (
-    <div>
-      <EntityHeader
-        type="Album"
-        title={detail.album.name}
-        cover={
+    <EntityDetail
+      isLoading={loading}
+      error={error}
+      notFound={!detail}
+      notFoundMessage="Album not found."
+      documentTitle={detail?.album.name}
+      type="Album"
+      title={detail?.album.name}
+      cover={
+        detail && (
           <CoverArt
             coverArt={detail.album.coverArt}
             alt={`Cover art for ${detail.album.name}`}
             className={cn('h-48 w-48 sm:h-56 sm:w-56', blurExplicitCovers && hasFilteredSongs && 'blur-sm')}
             iconSize={64}
           />
-        }
-        metadata={metadata}
-        actions={
+        )
+      }
+      metadata={metadata}
+      actions={
+        detail && (
           <>
             <PlayButton variant="default" onPlay={handlePlayAlbum} onShufflePlay={handleShuffleAlbumSongs}>
               Play
@@ -253,11 +256,11 @@ export function Album({ user }: { user: User }) {
               onRate={handleRate}
             />
           </>
-        }
-      />
-
+        )
+      }
+    >
       <SongTable
-        songs={detail.songs}
+        songs={detail?.songs ?? []}
         playingId={playingId}
         blurExplicit={blurExplicitTitles}
         onPlay={handlePlay}
@@ -307,6 +310,6 @@ export function Album({ user }: { user: User }) {
           }}
         />
       )}
-    </div>
+    </EntityDetail>
   );
 }
