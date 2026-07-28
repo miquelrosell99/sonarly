@@ -32,6 +32,7 @@ import { Composers } from './features/composers/index.js';
 import { Labels } from './features/labels/index.js';
 import { AlbumTypes } from './features/album-types/index.js';
 import { StatisticsPage } from './features/statistics/index.js';
+import { AdminRefreshProvider } from './features/admin/contexts/AdminRefreshContext.js';
 import { api } from './api.js';
 
 function Redirect({ to }: { to: string }) {
@@ -45,6 +46,12 @@ function Redirect({ to }: { to: string }) {
 export default function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [needsSetup, setNeedsSetup] = useState<boolean | undefined>(undefined);
+
+  const AdminRoute = (Component: React.ComponentType<{ user: User }>) => () => (
+    <AdminRefreshProvider>
+      <Component user={user as User} />
+    </AdminRefreshProvider>
+  );
 
   useEffect(() => {
     Promise.all([
@@ -148,12 +155,12 @@ export default function App() {
         <Route path="/album-types" component={AlbumTypes} />
         <Route path="/organize" component={Organize} />
         <Route path="/admin" component={() => <Redirect to="/admin/status" />} />
-        <Route path="/admin/status" component={() => <AdminStatus user={user} />} />
-        <Route path="/admin/libraries" component={() => <AdminLibraries user={user} />} />
-        <Route path="/admin/media" component={() => <AdminMedia user={user} />} />
-        <Route path="/admin/users" component={() => <AdminUsers user={user} />} />
-        <Route path="/admin/system-tasks" component={() => <AdminSystemTasks user={user} />} />
-        <Route path="/admin/genres" component={() => <AdminGenres user={user} />} />
+        <Route path="/admin/status" component={AdminRoute(AdminStatus)} />
+        <Route path="/admin/libraries" component={AdminRoute(AdminLibraries)} />
+        <Route path="/admin/media" component={AdminRoute(AdminMedia)} />
+        <Route path="/admin/users" component={AdminRoute(AdminUsers)} />
+        <Route path="/admin/system-tasks" component={AdminRoute(AdminSystemTasks)} />
+        <Route path="/admin/genres" component={AdminRoute(AdminGenres)} />
         <Route path="/statistics" component={() => <StatisticsPage mode="me" />} />
         <Route path="/settings" component={() => <Redirect to="/settings/profile" />} />
         <Route path="/settings/profile" component={() => <SettingsProfile user={user} onUserChange={setUser} />} />
