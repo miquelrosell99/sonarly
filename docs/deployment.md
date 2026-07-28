@@ -93,12 +93,12 @@ Internal variables set by the compose files (usually not changed):
 | `NODE_ENV` | `production` | `development` | Runtime mode. |
 | `DATA_DIR` | `/data/db` | `/data/db` | Directory containing the SQLite database. |
 | `LIBRARY_PATH` | `/data/library` | `/data/library` | Organized music library. |
-| `INGEST_PATH` | `/data/ingest` | `/data/ingest` | Drop music files here for import. |
+| `INGEST_PATH` | `/data/ingest` | `/data/ingest` | Parent folder for per-library ingest subfolders. |
 | `SCAN_INTERVAL_MINUTES` | `60` | `60` | Interval between automatic library rescans. |
 
 Optional settings stored in the database (can be changed in the web UI):
 
-- `REVIEW_RETENTION_DAYS` — days to keep files in the ingest review folder (default `30`).
+- `REVIEW_RETENTION_DAYS` — days to keep files in each library's ingest review subfolder (default `30`).
 - `ARTIST_IMAGE_INTERVAL_MINUTES` — minutes between artist image sync jobs (default `1440`; set `0` to disable).
 
 ---
@@ -113,7 +113,7 @@ The compose files mount three bind volumes:
 |-----------|----------------|---------|
 | `./config/sonarly/data` | `/data/db` | SQLite database and runtime data |
 | `./config/sonarly/library` | `/data/library` | Organized music library |
-| `./config/sonarly/ingest` | `/data/ingest` | Files dropped for import |
+| `./config/sonarly/ingest` | `/data/ingest` | Parent folder for per-library ingest subfolders |
 
 ### Development (`compose.dev.yaml`)
 
@@ -123,7 +123,7 @@ Same data volumes as production, plus bind mounts for the source code and anonym
 |-----------|----------------|---------|
 | `./config/sonarly/data` | `/data/db` | SQLite database |
 | `./config/sonarly/library` | `/data/library` | Library |
-| `./config/sonarly/ingest` | `/data/ingest` | Ingest folder |
+| `./config/sonarly/ingest` | `/data/ingest` | Parent folder for per-library ingest subfolders |
 | `./packages/server` | `/app/packages/server` | Backend source |
 | `./packages/web` | `/app/packages/web` | Frontend source |
 | `./packages/shared` | `/app/packages/shared` | Shared package source |
@@ -133,6 +133,8 @@ Make sure the host data directories exist and are writable by the container user
 ```bash
 mkdir -p ./config/sonarly/data ./config/sonarly/library ./config/sonarly/ingest
 ```
+
+Each library gets its own ingest subfolder inside `INGEST_PATH`, named by the library ID (for example, `/data/ingest/<library-id>/`). Files dropped into a library's subfolder are imported into that library. The web UI selects the default library automatically, and the default subfolder is created on first ingest.
 
 ---
 

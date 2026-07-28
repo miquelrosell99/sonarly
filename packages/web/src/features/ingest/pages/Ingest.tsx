@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { Library } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
@@ -15,14 +16,29 @@ interface IngestJob {
 
 export function Ingest() {
   const [jobs, setJobs] = useState<IngestJob[]>([]);
+  const [libraries, setLibraries] = useState<Library[]>([]);
+  const [selectedLibraryId, setSelectedLibraryId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [triggering, setTriggering] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const defaultLibrary = useMemo(
+    () => libraries.find((l) => l.isDefault) ?? libraries[0],
+    [libraries],
+  );
+
   const load = () => {
     setLoading(true);
-    api<{ jobs: IngestJob[] }>('/ingest')
-      .then((r) => setJobs(r.jobs))
+    Promise.all([
+      api<{ jobs: IngestJob[] }>('/ingest'),
+      api<{ libraries: Library[] }>('/libraries'),
+    ])
+      .then(([jobsRes, libsRes]) => {
+        setJobs(jobsRes.jobs);
+        setLibraries(libsRes.libraries);
+        const def = libsRes.libraries.find((l) => l.isDefault) ?? libsRes.libraries[0];
+        setSelectedLibraryId((prev) => (prev ? prev : def?.id ?? ''));
+      })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load ingest queue'))
       .finally(() => setLoading(false));
   };
@@ -32,13 +48,22 @@ export function Ingest() {
   }, []);
 
   const trigger = async () => {
+    const libraryId = selectedLibraryId || defaultLibrary?.id;
+    if (!libraryId) {
+      setError('No library selected.');
+      return;
+    }
     setTriggering(true);
     setError(null);
     try {
-      await api('/ingest/trigger', { method: 'POST' });
+      await api('/ingest/trigger', {
+        method: 'POST',
+        body: JSON.stringify({ libraryId }),
+      });
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to trigger ingest');
+    } finally {
       setTriggering(false);
     }
   };
@@ -72,11 +97,25 @@ export function Ingest() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold">Ingest Queue</h2>
-        <Button onClick={trigger} disabled={triggering}>
-          Trigger Ingest
-        </Button>
+        <div className="flex items-center gap-3">
+          <select
+            value={selectedLibraryId}
+            onChange={(e) => setSelectedLibraryId(e.target.value)}
+            disabled={triggering || libraries.length === 0}
+            className="input"
+          >
+            {libraries.map((library) => (
+              <option key={library.id} value={library.id}>
+                {library.name} {library.isDefault ? '(default)' : ''}
+              </option>
+            ))}
+          </select>
+          <Button onClick={trigger} disabled={triggering || libraries.length === 0}>
+            Trigger Ingest
+          </Button>
+        </div>
       </div>
       {error && <p className="mb-4 text-sm text-danger">{error}</p>}
       {loading ? (

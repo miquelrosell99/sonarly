@@ -27,12 +27,14 @@ const createSchema = z.object({
   name: z.string().min(1),
   path: z.string().min(1),
   organizePattern: z.string().min(1).optional(),
+  isDefault: z.boolean().optional(),
 });
 
 const updateSchema = z.object({
   name: z.string().min(1).optional(),
   path: z.string().min(1).optional(),
   organizePattern: z.string().min(1).optional(),
+  isDefault: z.boolean().optional(),
 });
 
 const assignUsersSchema = z.object({
@@ -70,6 +72,7 @@ export function registerLibraryAdminRoutes(
         name: input.name,
         path: input.path,
         organizePattern: input.organizePattern ?? getDefaultOrganizePattern(db),
+        isDefault: input.isDefault ?? false,
         createdAt: now,
         updatedAt: now,
       });
@@ -117,6 +120,12 @@ export function registerLibraryAdminRoutes(
     if (!existing) return reply.status(404).send({ error: 'Library not found' });
 
     deleteLibraryById(db, id);
+    if (existing.isDefault) {
+      const nextDefault = listLibraries(db)[0];
+      if (nextDefault) {
+        updateLibrary(db, nextDefault.id, { isDefault: true });
+      }
+    }
     restartWatcher?.();
     reply.send({ ok: true });
   });
