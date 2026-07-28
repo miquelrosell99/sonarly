@@ -7,6 +7,7 @@ import { StatusPill } from './StatusPill.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
+import { useAdminRefresh } from '../contexts/AdminRefreshContext.js';
 
 interface IngestRun {
   id: string;
@@ -16,8 +17,6 @@ interface IngestRun {
   stats?: Record<string, unknown>;
   error: string | null;
 }
-
-const RETENTION_OPTIONS = [30, 60, 90];
 
 interface IngestModalProps {
   open: boolean;
@@ -55,16 +54,11 @@ function formatRunStats(stats: Record<string, unknown> | undefined): string {
 }
 
 export function IngestModal({ open, onClose, onSelectRun }: IngestModalProps) {
+  const { refresh } = useAdminRefresh();
   const { notify } = useNotification();
   const [runs, setRuns] = useState<IngestRun[]>([]);
   const [runsLoading, setRunsLoading] = useState(true);
   const [runsError, setRunsError] = useState<string | null>(null);
-
-  const [retentionDays, setRetentionDays] = useState<number>(30);
-  const [initialRetentionDays, setInitialRetentionDays] = useState<number>(30);
-  const [settingsLoading, setSettingsLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const isDirty = retentionDays !== initialRetentionDays;
 
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [runToDelete, setRunToDelete] = useState<string | null>(null);
@@ -77,44 +71,17 @@ export function IngestModal({ open, onClose, onSelectRun }: IngestModalProps) {
       .finally(() => setRunsLoading(false));
   };
 
-  const loadSettings = () => {
-    setSettingsLoading(true);
-    api<{ reviewRetentionDays: number }>('/settings')
-      .then((r) => {
-        setRetentionDays(r.reviewRetentionDays);
-        setInitialRetentionDays(r.reviewRetentionDays);
-      })
-      .catch((err) => notify(err instanceof Error ? err.message : 'Failed to load settings', 'error'))
-      .finally(() => setSettingsLoading(false));
-  };
-
   useEffect(() => {
     if (open) {
       loadRuns();
-      loadSettings();
     }
   }, [open]);
-
-  const saveRetention = async () => {
-    setSaving(true);
-    try {
-      await api('/settings', {
-        method: 'POST',
-        body: JSON.stringify({ reviewRetentionDays: retentionDays }),
-      });
-      setInitialRetentionDays(retentionDays);
-      notify('Settings saved.', 'success');
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to save settings', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const clearHistory = async () => {
     try {
       await api('/admin/ingest-runs', { method: 'DELETE' });
       setConfirmClearOpen(false);
+      refresh();
       notify('Ingest history cleared.', 'success');
       loadRuns();
     } catch (err) {
@@ -126,6 +93,7 @@ export function IngestModal({ open, onClose, onSelectRun }: IngestModalProps) {
     try {
       await api(`/admin/ingest-runs/${id}`, { method: 'DELETE' });
       setRunToDelete(null);
+      refresh();
       notify('Ingest run deleted.', 'success');
       loadRuns();
     } catch (err) {
@@ -212,41 +180,6 @@ export function IngestModal({ open, onClose, onSelectRun }: IngestModalProps) {
             )}
           </section>
 
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium">Ingest cleanup</h4>
-              {isDirty && !settingsLoading && (
-                <Button onClick={saveRetention} disabled={saving}>
-                  {saving ? 'Saving...' : 'Save changes'}
-                </Button>
-              )}
-            </div>
-            {settingsLoading ? (
-              <p className="text-sm text-muted">Loading...</p>
-            ) : (
-              <div>
-                <label htmlFor="retention" className="mb-1 block text-sm font-medium text-fg-primary">
-                  Review folder cleanup
-                </label>
-                <p className="mb-2 text-sm text-muted">
-                  Files moved to the ingest review folder are automatically deleted after this many days.
-                </p>
-                <select
-                  id="retention"
-                  value={retentionDays}
-                  onChange={(e) => setRetentionDays(Number(e.target.value))}
-                  className="input"
-                  disabled={saving}
-                >
-                  {RETENTION_OPTIONS.map((days) => (
-                    <option key={days} value={days}>
-                      {days} days
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </section>
         </div>
       </Modal>
 

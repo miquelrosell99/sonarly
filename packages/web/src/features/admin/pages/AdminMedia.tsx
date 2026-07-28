@@ -7,6 +7,9 @@ import { Icon } from '../../../components/ui/Icon.js';
 import { AdminShell } from '../components/AdminShell.js';
 import { RenameProgressModal } from '../../settings/index.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
+import { useAdminRefresh } from '../contexts/AdminRefreshContext.js';
+
+const RETENTION_OPTIONS = [30, 60, 90];
 
 interface AdminStatusCounts {
   counts: {
@@ -22,6 +25,7 @@ interface AdminMediaProps {
 }
 
 export function AdminMedia({ user }: AdminMediaProps) {
+  const { refresh } = useAdminRefresh();
   const { notify } = useNotification();
   const [counts, setCounts] = useState<AdminStatusCounts['counts'] | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
@@ -29,16 +33,21 @@ export function AdminMedia({ user }: AdminMediaProps) {
   const [refetchingArtists, setRefetchingArtists] = useState(false);
   const [duplicateStrategy, setDuplicateStrategy] = useState<DuplicateStrategy | ''>('');
   const [savingStrategy, setSavingStrategy] = useState(false);
+  const [retentionDays, setRetentionDays] = useState<number>(30);
+  const [initialRetentionDays, setInitialRetentionDays] = useState<number>(30);
+  const [savingRetention, setSavingRetention] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       api<AdminStatusCounts>('/admin/status'),
-      api<{ duplicateStrategy: DuplicateStrategy }>('/settings/media'),
+      api<{ duplicateStrategy: DuplicateStrategy; reviewRetentionDays: number }>('/settings/media'),
     ])
       .then(([statusData, settingsData]) => {
         setCounts(statusData.counts);
         setDuplicateStrategy(settingsData.duplicateStrategy);
+        setRetentionDays(settingsData.reviewRetentionDays);
+        setInitialRetentionDays(settingsData.reviewRetentionDays);
       })
       .catch((err) => notify(err instanceof Error ? err.message : 'Failed to load settings', 'error'))
       .finally(() => setLoading(false));
@@ -60,6 +69,7 @@ export function AdminMedia({ user }: AdminMediaProps) {
     setTriggeringIngest(true);
     try {
       await api('/ingest/trigger', { method: 'POST' });
+      refresh();
       notify('Ingest triggered.', 'success');
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to trigger ingest', 'error');
@@ -72,6 +82,7 @@ export function AdminMedia({ user }: AdminMediaProps) {
     setRefetchingArtists(true);
     try {
       await api('/admin/artists/refetch', { method: 'POST' });
+      refresh();
       notify('Artist image and metadata refetch started.', 'success');
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to refetch artist data', 'error');
@@ -93,6 +104,22 @@ export function AdminMedia({ user }: AdminMediaProps) {
       notify(err instanceof Error ? err.message : 'Failed to save duplicate strategy', 'error');
     } finally {
       setSavingStrategy(false);
+    }
+  };
+
+  const saveRetention = async () => {
+    setSavingRetention(true);
+    try {
+      await api('/settings/media', {
+        method: 'PATCH',
+        body: JSON.stringify({ reviewRetentionDays: retentionDays }),
+      });
+      setInitialRetentionDays(retentionDays);
+      notify('Review folder retention saved.', 'success');
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to save retention settings', 'error');
+    } finally {
+      setSavingRetention(false);
     }
   };
 
@@ -177,6 +204,35 @@ export function AdminMedia({ user }: AdminMediaProps) {
               {savingStrategy ? 'Saving…' : 'Save'}
             </Button>
           </div>
+        </div>
+
+        <div className="space-y-3 rounded-md border border-rule bg-surface p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-medium text-fg-primary">Review folder cleanup</h4>
+              <p className="text-xs text-fg-secondary">
+                Files moved to the ingest review folder are automatically deleted after this many days.
+              </p>
+            </div>
+            {retentionDays !== initialRetentionDays && (
+              <Button onClick={saveRetention} disabled={savingRetention}>
+                {savingRetention ? 'Saving…' : 'Save'}
+              </Button>
+            )}
+          </div>
+          <select
+            id="review-retention"
+            value={retentionDays}
+            onChange={(e) => setRetentionDays(Number(e.target.value))}
+            className="input w-full sm:w-auto"
+            disabled={savingRetention}
+          >
+            {RETENTION_OPTIONS.map((days) => (
+              <option key={days} value={days}>
+                {days} days
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="rounded-md border border-rule bg-surface p-3">

@@ -10,7 +10,7 @@ import {
   getSetting,
   setSetting,
 } from '../settings/index.js';
-import { ScanScheduler, ArtistImageScheduler } from './scheduler.js';
+import { ScanScheduler, ArtistImageScheduler, IngestScheduler } from './scheduler.js';
 import { syncMissingArtistImages, syncMissingArtistMetadata } from '../artists/index.js';
 import { ensureDefaultLibrary, getLibraryById } from '../libraries/index.js';
 import { registerDefaultWriters } from '../tags/index.js';
@@ -38,6 +38,7 @@ const REVIEW_CLEANUP_RETRY_MS = 5 * 60 * 1000;
 
 const scanScheduler = new ScanScheduler(config);
 const artistImageScheduler = new ArtistImageScheduler(config);
+const ingestScheduler = new IngestScheduler(config);
 
 function hasPendingOrRunningReviewCleanup(): boolean {
   const row = db.prepare(
@@ -64,6 +65,7 @@ async function loop(): Promise<void> {
     scheduleReviewCleanupIfNeeded();
     scanScheduler.tick(db);
     artistImageScheduler.tick(db);
+    ingestScheduler.tick(db);
 
     const job = popPendingJob(db);
     if (!job) {

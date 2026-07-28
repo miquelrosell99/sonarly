@@ -6,6 +6,7 @@ import { Button } from './ui/Button.js';
 import { Input } from './ui/Input.js';
 import { Checkbox } from './ui/Checkbox.js';
 import { Modal } from './ui/Modal.js';
+import { ConfirmModal } from './ui/ConfirmModal.js';
 import { AutocompleteInput } from './ui/AutocompleteInput.js';
 import { CoverArt } from './CoverArt.js';
 import { ArtistImage } from './ArtistImage.js';
@@ -110,6 +111,8 @@ export function EditEntityModal({
   );
   const [albumStats, setAlbumStats] = useState<{ tracks: number; discs: number } | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDeleteCoverArt, setConfirmDeleteCoverArt] = useState(false);
 
   useEffect(() => {
     if (entityType !== 'song' && entityType !== 'album') return;
@@ -178,9 +181,12 @@ export function EditEntityModal({
 
   const handleDelete = () => {
     if (!onDelete) return;
-    if (window.confirm('Are you sure you want to delete this?')) {
-      onDelete();
-    }
+    setConfirmDelete(true);
+  };
+
+  const confirmDeleteAction = () => {
+    setConfirmDelete(false);
+    onDelete?.();
   };
 
   const updateValue = (key: string, value: string) => {
@@ -211,14 +217,15 @@ export function EditEntityModal({
   );
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={`Edit ${entityType}`}
-      footer={footer}
-      className="max-w-4xl"
-    >
-      <div className="space-y-6">
+    <>
+      <Modal
+        open={open}
+        onClose={onClose}
+        title={`Edit ${entityType}`}
+        footer={footer}
+        className="max-w-4xl"
+      >
+        <div className="space-y-6">
         {entityType === 'artist' ? (
           <div className="flex items-start gap-5">
             <ArtistImage
@@ -280,7 +287,7 @@ export function EditEntityModal({
                   readOnly={readOnly}
                   busy={coverArtBusy}
                   onEdit={onEditCoverArt}
-                  onDelete={onDeleteCoverArt}
+                  onRequestDelete={onDeleteCoverArt ? () => setConfirmDeleteCoverArt(true) : undefined}
                   onView={() => setLightboxOpen(true)}
                 />
                 {lightboxOpen && (
@@ -370,7 +377,31 @@ export function EditEntityModal({
           </>
         )}
       </div>
-    </Modal>
+      </Modal>
+
+      <ConfirmModal
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        title={`Delete ${entityType}`}
+        message="Are you sure you want to delete this? This action cannot be undone."
+        confirmLabel="Delete"
+        danger
+        onConfirm={confirmDeleteAction}
+      />
+
+      <ConfirmModal
+        open={confirmDeleteCoverArt}
+        onClose={() => setConfirmDeleteCoverArt(false)}
+        title="Remove cover art"
+        message="Are you sure you want to remove the cover art? This action cannot be undone."
+        confirmLabel="Remove"
+        danger
+        onConfirm={() => {
+          setConfirmDeleteCoverArt(false);
+          onDeleteCoverArt?.();
+        }}
+      />
+    </>
   );
 }
 
@@ -462,7 +493,7 @@ function EditableCoverArt({
   readOnly,
   busy,
   onEdit,
-  onDelete,
+  onRequestDelete,
   onView,
 }: {
   coverArt?: string;
@@ -470,10 +501,10 @@ function EditableCoverArt({
   readOnly?: boolean;
   busy?: boolean;
   onEdit?: () => void;
-  onDelete?: () => void;
+  onRequestDelete?: () => void;
   onView?: () => void;
 }) {
-  const editable = !readOnly && (onEdit || onDelete);
+  const editable = !readOnly && (onEdit || onRequestDelete);
   return (
     <div
       className={cn(
@@ -513,12 +544,12 @@ function EditableCoverArt({
               <Icon name="mdi-pencil" size={18} />
             </button>
           )}
-          {onDelete && coverArt && (
+          {onRequestDelete && coverArt && (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onDelete();
+                onRequestDelete();
               }}
               disabled={busy}
               aria-label="Remove cover art"

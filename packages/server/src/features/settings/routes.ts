@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { z } from 'zod';
 import type { Config } from '../../config.js';
-import { setSetting, getOrganizePattern, getDuplicateStrategy } from './repository.js';
+import { setSetting, getOrganizePattern, getDuplicateStrategy, getReviewRetentionDays } from './repository.js';
 import { isDuplicateStrategy } from '@sonarly/shared';
 
 const templates = [
@@ -20,6 +20,7 @@ const templates = [
 const mediaPatchSchema = z.object({
   organizePattern: z.string().min(1).optional(),
   duplicateStrategy: z.string().optional(),
+  reviewRetentionDays: z.number().int().min(1).max(365).optional(),
 });
 
 function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | undefined): boolean {
@@ -48,6 +49,7 @@ export function registerSettingsManagementRoutes(app: FastifyInstance, config: C
     reply.send({
       organizePattern: getOrganizePattern(db, config),
       duplicateStrategy: getDuplicateStrategy(db),
+      reviewRetentionDays: getReviewRetentionDays(db, config.REVIEW_RETENTION_DAYS),
       templates,
     });
   });
@@ -61,7 +63,7 @@ export function registerSettingsManagementRoutes(app: FastifyInstance, config: C
       return reply.status(400).send({ error: 'Invalid request body' });
     }
 
-    const { organizePattern, duplicateStrategy } = parseResult.data;
+    const { organizePattern, duplicateStrategy, reviewRetentionDays } = parseResult.data;
 
     if (organizePattern !== undefined) {
       const validationError = validatePattern(organizePattern);
@@ -78,9 +80,14 @@ export function registerSettingsManagementRoutes(app: FastifyInstance, config: C
       setSetting(db, 'duplicate_strategy', duplicateStrategy);
     }
 
+    if (reviewRetentionDays !== undefined) {
+      setSetting(db, 'review_retention_days', String(reviewRetentionDays));
+    }
+
     reply.send({
       organizePattern: getOrganizePattern(db, config),
       duplicateStrategy: getDuplicateStrategy(db),
+      reviewRetentionDays: getReviewRetentionDays(db, config.REVIEW_RETENTION_DAYS),
     });
   });
 

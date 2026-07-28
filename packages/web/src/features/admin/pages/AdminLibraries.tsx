@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'wouter';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Library, User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 import { Modal } from '../../../components/ui/Modal.js';
-import { Icon } from '../../../components/ui/Icon.js';
+import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { Checkbox } from '../../../components/ui/Checkbox.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { AdminShell } from '../components/AdminShell.js';
@@ -79,7 +79,6 @@ function validatePattern(pattern: string): string | undefined {
 }
 
 export function AdminLibraries({ user }: AdminLibrariesProps) {
-  const [, setLocation] = useLocation();
   const { notify } = useNotification();
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
@@ -90,6 +89,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
   const [editForm, setEditForm] = useState<EditForm>({ name: '', path: '', organizePattern: '', isDefault: false });
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [libraryToDelete, setLibraryToDelete] = useState<string | null>(null);
 
   const updateForm = (patch: Partial<CreateForm>) => {
     setForm((prev) => ({ ...prev, ...patch }));
@@ -191,11 +191,11 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
   };
 
   const remove = async (id: string) => {
-    if (!window.confirm('Delete this library? Songs in this library will no longer be scanned.')) return;
     setDeletingId(id);
     setError(null);
     try {
       await api(`/admin/libraries/${id}`, { method: 'DELETE' });
+      setLibraryToDelete(null);
       notify('Library deleted.', 'success');
       await load();
     } catch (err) {
@@ -338,6 +338,8 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
               label="Default library"
               description="Used when no library is selected for ingest or upload."
             />
+
+            {editingLibrary && <LibraryUsersSection libraryId={editingLibrary.id} />}
           </div>
         </Modal>
 
@@ -365,17 +367,12 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" onClick={() => setLocation(`/admin/libraries/${library.id}/users`)}>
-                        <Icon name="mdi-account-multiple" size={16} className="mr-1" />
-                        Users
-                      </Button>
                       <Button variant="ghost" onClick={() => openEdit(library)}>
-                        <Icon name="mdi-pencil" size={16} className="mr-1" />
                         Edit
                       </Button>
                       <Button
                         variant="danger"
-                        onClick={() => remove(library.id)}
+                        onClick={() => setLibraryToDelete(library.id)}
                         disabled={deletingId === library.id}
                       >
                         Delete
@@ -395,6 +392,88 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
           </table>
         </div>
       </div>
+
+      <ConfirmModal
+        open={libraryToDelete !== null}
+        onClose={() => setLibraryToDelete(null)}
+        title="Delete library"
+        message="Delete this library? Songs in this library will no longer be scanned. This action cannot be undone."
+        confirmLabel="Delete"
+        danger
+        onConfirm={() => libraryToDelete && remove(libraryToDelete)}
+      />
     </AdminShell>
+  );
+}
+
+function LibraryUsersSection({ libraryId }: { libraryId: string }) {
+  const qc = useQueryClient();
+  const { notify } = useNotification();
+
+  const { data: users } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: async () => (await api<{ users: User[] }>('/admin/users')).users,
+  });
+
+  const { data: assigned } = useQuery({
+    queryKey: ['admin-library-users', libraryId],
+    queryFn: async () => (await api<{ users: string[] }>(`/admin/libraries/${libraryId}/users`)).users,
+    enabled: !!libraryId,
+  });
+
+  const assign = useMutation({
+    mutationFn: async (userIds: string[]) =>
+      api(`/admin/libraries/${libraryId}/users`, { method: 'POST', body: JSON.stringify({ userIds }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-library-users', libraryId] }),
+    onError: (err) => notify(err instanceof Error ? err.message : 'Failed to assign user', 'error'),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (userId: string) =>
+      api(`/admin/libraries/${libraryId}/users/${userId}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-library-users', libraryId] }),
+    onError: (err) => notify(err instanceof Error ? err.message : 'Failed to remove user', 'error'),
+  });
+
+  const assignedSet = new Set(assigned ?? []);
+  const busy = assign.isPending || remove.isPending;
+
+  const toggle = (userId: string, checked: boolean) => {
+    if (checked) {
+      assign.mutate([userId]);
+    } else {
+      remove.mutate(userId);
+    }
+  };
+
+  const sortedUsers = useMemo(() => {
+    return [...(users ?? [])].sort((a, b) => a.username.localeCompare(b.username));
+  }, [users]);
+
+  return (
+    <div className="space-y-3 border-t border-rule pt-4">
+      <h4 className="text-sm font-medium text-fg-secondary">Users</h4>
+      {!users || users.length === 0 ? (
+        <p className="text-sm text-muted">No users found.</p>
+      ) : (
+        <ul className="space-y-2">
+          {sortedUsers.map((u) => (
+            <li
+              key={u.id}
+              className="flex items-center justify-between rounded-lg border border-rule bg-bg-primary px-4 py-3"
+            >
+              <Checkbox
+                id={`edit-library-user-${libraryId}-${u.id}`}
+                label={u.username}
+                description={u.isAdmin ? 'Administrator' : 'User'}
+                checked={assignedSet.has(u.id)}
+                onChange={(e) => toggle(u.id, e.target.checked)}
+                disabled={busy}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
