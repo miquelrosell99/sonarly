@@ -127,16 +127,17 @@ export function ListRow({
         </td>
       )}
       <td className="w-12 py-2 pr-4">
-        <span className="relative inline-flex h-5 w-6 items-center justify-center text-muted">
-          <span className="group-hover:opacity-0">{index + 1}</span>
+        <span className="relative grid h-5 w-6 place-items-center text-muted">
+          <span className="col-start-1 row-start-1 transition group-hover:opacity-0">{index + 1}</span>
           {onPlay && (
-            <PlayButton
-              variant="inline"
-              onPlay={onPlay}
-              onShufflePlay={onShufflePlay}
-              label={playLabel}
-              className="absolute inset-0 inline-flex opacity-0 group-hover:opacity-100"
-            />
+            <span className="col-start-1 row-start-1 opacity-0 transition group-hover:opacity-100">
+              <PlayButton
+                variant="inline"
+                onPlay={onPlay}
+                onShufflePlay={onShufflePlay}
+                label={playLabel}
+              />
+            </span>
           )}
         </span>
       </td>

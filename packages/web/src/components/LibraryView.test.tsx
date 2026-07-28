@@ -73,19 +73,19 @@ describe('LibraryView', () => {
     const { container } = renderView();
 
     expect(container.querySelector('table')).toBeTruthy();
-    expect(container.querySelector('.grid')).toBeFalsy();
+    expect(container.querySelector('.library-view-grid')).toBeFalsy();
     expect(screen.getByText('Alpha')).toBeTruthy();
 
     fireEvent.click(screen.getAllByRole('button', { name: /grid view/i })[0]);
 
     expect(container.querySelector('table')).toBeFalsy();
-    expect(container.querySelector('.grid')).toBeTruthy();
+    expect(container.querySelector('.library-view-grid')).toBeTruthy();
     expect(screen.getByText('Beta')).toBeTruthy();
 
     fireEvent.click(screen.getAllByRole('button', { name: /list view/i })[0]);
 
     expect(container.querySelector('table')).toBeTruthy();
-    expect(container.querySelector('.grid')).toBeFalsy();
+    expect(container.querySelector('.library-view-grid')).toBeFalsy();
   });
 
   it('calls onPlay when the row play button is clicked', () => {

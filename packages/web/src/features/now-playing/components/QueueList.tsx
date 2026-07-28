@@ -29,7 +29,7 @@ const columns: LibraryViewColumn<PlayerSong>[] = [
       <span className="flex items-center gap-2">
         <span className="truncate">{song.title}</span>
         {song.addedByAutoDj && (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent/70">
             <Icon name="mdi-robot" size={12} />
             Auto DJ
           </span>
