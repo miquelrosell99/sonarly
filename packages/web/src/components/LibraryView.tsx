@@ -288,7 +288,7 @@ export function LibraryView<T>({
   }
 
   const renderList = () => {
-    const indexPad = String(data.length).length;
+    const indexPad = Math.max(2, String(data.length).length);
     const table = (
       <table className="w-full text-left text-sm">
         <thead className="border-b border-rule text-muted">
@@ -331,6 +331,7 @@ export function LibraryView<T>({
                   rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
                   renderContextMenu={renderContextMenu ? (children) => renderContextMenu(item, children) : undefined}
                   rowClassName={getRowClassName?.(item)}
+                  indexPad={indexPad}
                 />
               );
             }
