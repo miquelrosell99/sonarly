@@ -15,6 +15,7 @@ import { ScanScheduler, ArtistImageScheduler } from './scheduler.js';
 import { syncMissingArtistImages, syncMissingArtistMetadata } from '../artists/index.js';
 import { ensureDefaultLibrary, getLibraryById } from '../libraries/index.js';
 import { registerDefaultWriters } from '../tags/index.js';
+import type { DuplicateStrategy } from '@sonarly/shared';
 
 registerDefaultWriters();
 
@@ -77,14 +78,16 @@ async function loop(): Promise<void> {
         const stats = await scanLibrary(config, db);
         markJobCompleted(db, job.id, stats);
       } else if (job.type === 'ingest') {
-        let payload: { sourcePath?: string; libraryId?: string } = {};
+        let payload: { sourcePath?: string; libraryId?: string; duplicateStrategy?: DuplicateStrategy } = {};
         try {
           payload = JSON.parse(job.payload || '{}');
         } catch {
           payload = {};
         }
         const library = payload.libraryId ? getLibraryById(db, payload.libraryId) : undefined;
-        const stats = await processIngestFolder(config, db, payload.sourcePath, library);
+        const stats = await processIngestFolder(config, db, payload.sourcePath, library, {
+          duplicateStrategy: payload.duplicateStrategy,
+        });
         markJobCompleted(db, job.id, stats);
       } else if (job.type === 'cleanup_review') {
         const retentionDays = getReviewRetentionDays(db, config.REVIEW_RETENTION_DAYS);
