@@ -84,8 +84,8 @@ export function IngestReportModal({ runId, open, onClose }: IngestReportModalPro
 
     if (runId) {
       setLoading(true);
-      api<{ run: IngestRun }>(`/admin/ingest-runs/${runId}`)
-        .then((r) => setRun(r.run))
+      api<IngestRun>(`/admin/ingest-runs/${runId}`)
+        .then((r) => setRun(r))
         .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load ingest report'))
         .finally(() => setLoading(false));
     }
@@ -137,7 +137,7 @@ export function IngestReportModal({ runId, open, onClose }: IngestReportModalPro
                     onClick={() => setFilter(option.key)}
                     className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                       filter === option.key
-                        ? 'bg-accent text-white'
+                        ? 'bg-accent text-bg-primary'
                         : 'border border-rule bg-surface text-fg-secondary hover:bg-surface-hover'
                     }`}
                   >
