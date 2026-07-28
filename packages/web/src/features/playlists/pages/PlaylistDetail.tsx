@@ -1,11 +1,10 @@
-import { useState } from 'react';
 import { useParams } from 'wouter';
-import type { SmartPlaylistRules, Song, User } from '@sonarly/shared';
+import type { Song, User } from '@sonarly/shared';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { EntityHeader } from '../../../components/EntityHeader.js';
+import { PlayButton } from '../../../components/PlayButton.js';
 import { PlaylistCoverGrid } from '../components/PlaylistCoverGrid.js';
-import { SmartPlaylistEditor } from '../components/SmartPlaylistEditor.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { usePlayer } from '../../../stores/playerStore.js';
@@ -18,7 +17,6 @@ import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
 import { usePlaylist, type PlaylistDetailEntry } from '../../../hooks/usePlaylist.js';
 import { useCreatePlaylistModal } from '../../../hooks/useCreatePlaylistModal.js';
 import { SongTable, type SongListItem } from '../../songs/components/SongTable.js';
-import { api } from '../../../api.js';
 
 type DisplaySong = PlaylistDetailEntry & {
   artistName?: string;
@@ -68,29 +66,12 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
   const { id } = useParams<{ id: string }>();
   const { data: playlist, isLoading, error, refetch } = usePlaylist(id);
   const { openForEdit } = useCreatePlaylistModal();
-  const [savingRules, setSavingRules] = useState(false);
   const { notify } = useNotification();
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
 
   useDocumentTitle(playlist?.name);
-
-  const saveRules = async (rules: SmartPlaylistRules) => {
-    if (!id || !playlist) return;
-    setSavingRules(true);
-    try {
-      await api(`/playlists/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ rules }),
-      });
-      await refetch();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to save rules', 'error');
-    } finally {
-      setSavingRules(false);
-    }
-  };
 
   const blurExplicitTitles = user.blurExplicitTitles === true;
 
@@ -140,8 +121,6 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
 
   const metadata = [
     { label: `${playlist.songCount} song${playlist.songCount === 1 ? '' : 's'}` },
-    { label: playlist.visibility },
-    ...(playlist.isSmart ? [{ label: 'smart' }] : []),
   ];
 
   const header = (
@@ -156,6 +135,12 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
       metadata={metadata}
       actions={
         <>
+          <PlayButton
+            onPlay={() => playSongs(displayEntries as unknown as Song[], 0)}
+            onShufflePlay={() => shufflePlay(displayEntries as unknown as Song[])}
+          >
+            Play
+          </PlayButton>
           <FavoriteRatingGroup
             starred={playlist.starred}
             onToggleFavorite={() => handleFavorite(!playlist.starred)}
@@ -170,6 +155,14 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
         </>
       }
     >
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded bg-surface-hover px-2 py-0.5 text-xs font-medium text-fg-secondary capitalize">
+          {playlist.visibility}
+        </span>
+        {playlist.isSmart && (
+          <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">Smart</span>
+        )}
+      </div>
       {playlist.description && (
         <p className="max-w-prose whitespace-pre-line text-sm text-fg-secondary">{playlist.description}</p>
       )}
@@ -185,16 +178,6 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
       >
         {header}
       </PlaylistHeaderContextMenu>
-
-      {playlist.isSmart && (
-        <div className="mb-6 rounded border border-rule p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-medium">Smart rules</h3>
-            {savingRules && <span className="text-xs text-muted">Saving...</span>}
-          </div>
-          <SmartPlaylistEditor initialRules={playlist.rules} onChange={saveRules} />
-        </div>
-      )}
 
       <SongTable
         songs={displayEntries}
