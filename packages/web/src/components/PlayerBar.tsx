@@ -105,8 +105,14 @@ export function PlayerBar({ user }: PlayerBarProps) {
                 />
               </button>
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-fg-primary">
-                  {currentSong.title}
+                <div className="flex items-center gap-2 text-sm font-semibold text-fg-primary">
+                  <span className="truncate">{currentSong.title}</span>
+                  {currentSong.addedByAutoDj && (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent/70">
+                      <Icon name="mdi-robot" size={12} />
+                      Auto DJ
+                    </span>
+                  )}
                 </div>
                 {currentSong.albumName && (
                   <div className="truncate text-xs text-fg-secondary">
