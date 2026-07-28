@@ -3,7 +3,7 @@ import Database from 'better-sqlite3';
 import { unlink } from 'node:fs/promises';
 import type { SongTags, Album } from '@sonarly/shared';
 import { listSongsByAlbum, deleteSongByPath } from '../songs/index.js';
-import { getAlbumArtistNamesForMany, getAlbumArtistNames } from './repository.js';
+import { getAlbumArtistNamesForMany, getAlbumArtistNames, getAlbumLabelEntriesForMany, getAlbumLabelEntries } from './repository.js';
 import { getAlbumGenreNamesForMany, getAlbumGenreNames } from '../genres/repository.js';
 import { getUserById } from '../users/index.js';
 import { writeTags, writeCoverArt } from '../tags/index.js';
@@ -24,7 +24,6 @@ interface AlbumRow {
   active: number;
   starred: number | null;
   rating: number | null;
-  labels: string | null;
   catalog_numbers: string | null;
   barcode: string | null;
   asin: string | null;
@@ -49,7 +48,6 @@ function rowToAlbum(row: AlbumRow): Album {
     active: row.active === 1,
     starred: row.starred === 1,
     rating: row.rating ?? undefined,
-    labels: row.labels ? JSON.parse(row.labels) : undefined,
     catalogNumbers: row.catalog_numbers ? JSON.parse(row.catalog_numbers) : undefined,
     barcode: row.barcode ?? undefined,
     asin: row.asin ?? undefined,
@@ -122,11 +120,14 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
     }));
     const artistMap = getAlbumArtistNamesForMany(db, albums.map((a) => a.id));
     const genreMap = getAlbumGenreNamesForMany(db, albums.map((a) => a.id));
+    const labelMap = getAlbumLabelEntriesForMany(db, albums.map((a) => a.id));
     for (const album of albums) {
       const artists = artistMap.get(album.id);
       if (artists) album.artists = artists;
       const genres = genreMap.get(album.id);
       if (genres) album.genres = genres;
+      const labels = labelMap.get(album.id);
+      if (labels) album.labelEntries = labels;
     }
     reply.send({ albums });
   });
@@ -207,6 +208,8 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
     if (artists.length) album.artists = artists;
     const genres = getAlbumGenreNames(db, album.id);
     if (genres.length) album.genres = genres;
+    const labels = getAlbumLabelEntries(db, album.id);
+    if (labels.length) album.labelEntries = labels;
     reply.send({ album, songs: visibleSongs });
   });
 

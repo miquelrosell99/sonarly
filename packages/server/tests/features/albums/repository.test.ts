@@ -6,6 +6,10 @@ import {
   getAlbumById,
   setAlbumArtists,
   getAlbumArtistNames,
+  setAlbumLabels,
+  getAlbumLabelNames,
+  getAlbumLabelEntries,
+  ensureLabel,
 } from '../../../src/features/albums/repository.js';
 import { upsertArtist } from '../../../src/features/artists/repository.js';
 
@@ -37,7 +41,6 @@ describe('album repository', () => {
     const album = {
       id: 'al1',
       name: 'Album One',
-      labels: ['Label A'],
       catalogNumbers: ['CAT-001'],
       barcode: '1234567890123',
       asin: 'B012345678',
@@ -60,5 +63,17 @@ describe('album repository', () => {
     upsertAlbum(db, { id: 'al1', name: 'Album One' });
     setAlbumArtists(db, 'al1', ['a2', 'a1']);
     expect(getAlbumArtistNames(db, 'al1')).toEqual(['Artist Two', 'Artist One']);
+  });
+
+  it('stores and retrieves multi-value album labels via the labels table', () => {
+    const labelA = ensureLabel(db, 'Label A');
+    const labelB = ensureLabel(db, 'Label B');
+    upsertAlbum(db, { id: 'al1', name: 'Album One' });
+    setAlbumLabels(db, 'al1', [labelB, labelA]);
+    expect(getAlbumLabelNames(db, 'al1')).toEqual(['Label B', 'Label A']);
+    expect(getAlbumLabelEntries(db, 'al1')).toEqual([
+      { id: labelB, name: 'Label B' },
+      { id: labelA, name: 'Label A' },
+    ]);
   });
 });

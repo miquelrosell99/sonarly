@@ -12,6 +12,8 @@ import {
   findInactiveSongByTags,
   setSongArtists,
   getSongArtistIds,
+  setSongComposers,
+  getSongComposerIds,
 } from '../songs/index.js';
 import { ensureArtist } from '../artists/index.js';
 export { ensureArtist };
@@ -19,6 +21,8 @@ import {
   upsertAlbum,
   getAlbumByNameAndArtist,
   setAlbumArtists,
+  ensureLabel,
+  setAlbumLabels,
 } from '../albums/index.js';
 import {
   getOrCreateGenreByName,
@@ -238,6 +242,10 @@ export async function persistSong(
         totalDiscs: meta.totalDiscs,
       })
     : undefined;
+  const composerNames = meta.composers;
+  const newComposerIds = composerNames?.length
+    ? composerNames.map((name) => ensureArtist(db, name))
+    : undefined;
   const id = existingId ?? randomUUID();
 
   // Seed the album cover from the first song that carries embedded art.
@@ -287,7 +295,6 @@ export async function persistSong(
     lyrics: meta.lyrics,
     syncedLyrics: meta.syncedLyrics,
     artists: artistNames,
-    composers: meta.composers,
     producers: meta.producers,
     isrcs: meta.isrcs,
     originalYear: meta.originalYear,
@@ -313,12 +320,16 @@ export async function persistSong(
 
   let finalArtistIds = newArtistIds;
   let finalGenreIds = newGenreIds;
+  let finalComposerIds = newComposerIds;
   if (existingId && options?.aggregate) {
     if (finalArtistIds) {
       finalArtistIds = unionIds(getSongArtistIds(db, existingId), finalArtistIds);
     }
     if (finalGenreIds) {
       finalGenreIds = unionIds(getSongGenreIds(db, existingId), finalGenreIds);
+    }
+    if (finalComposerIds) {
+      finalComposerIds = unionIds(getSongComposerIds(db, existingId), finalComposerIds);
     }
   }
 
@@ -327,6 +338,9 @@ export async function persistSong(
   }
   if (finalGenreIds?.length) {
     setSongGenres(db, id, finalGenreIds);
+  }
+  if (finalComposerIds?.length) {
+    setSongComposers(db, id, finalComposerIds);
   }
 
   if (!options?.keepCoverArt) {
@@ -392,7 +406,6 @@ function mergeSongWithExisting(song: Song, existing: Song, keepCoverArt: boolean
     lyrics: song.lyrics ?? existing.lyrics,
     syncedLyrics: song.syncedLyrics ?? existing.syncedLyrics,
     artists: unionArrays(song.artists, existing.artists),
-    composers: unionArrays(song.composers, existing.composers),
     producers: unionArrays(song.producers, existing.producers),
     isrcs: unionArrays(song.isrcs, existing.isrcs),
     originalYear: song.originalYear ?? existing.originalYear,
@@ -492,6 +505,14 @@ function recomputeAlbumAndArtistActivity(db: Database.Database): void {
       WHEN id IN (SELECT DISTINCT artist_id FROM albums WHERE active = 1 AND artist_id IS NOT NULL) THEN 1
       WHEN id IN (SELECT DISTINCT sa.artist_id FROM song_artists sa JOIN songs s ON s.id = sa.song_id WHERE s.active = 1) THEN 1
       WHEN id IN (SELECT DISTINCT aa.artist_id FROM album_artists aa JOIN albums a ON a.id = aa.album_id WHERE a.active = 1) THEN 1
+      WHEN id IN (SELECT DISTINCT sc.artist_id FROM song_composers sc JOIN songs s ON s.id = sc.song_id WHERE s.active = 1) THEN 1
+      ELSE 0
+    END
+  `).run();
+  db.prepare(`
+    UPDATE labels
+    SET active = CASE
+      WHEN id IN (SELECT DISTINCT al.label_id FROM album_labels al JOIN albums a ON a.id = al.album_id WHERE a.active = 1) THEN 1
       ELSE 0
     END
   `).run();
@@ -522,6 +543,7 @@ export function ensureAlbum(
 ): string {
   const artistIds = artistNames?.map((n) => ensureArtist(db, n)) ?? [];
   const primaryArtistId = artistIds[0];
+  const labelIds = meta.labels?.length ? meta.labels.map((n) => ensureLabel(db, n)) : undefined;
   const existing = getAlbumByNameAndArtist(db, name, primaryArtistId);
   if (existing) {
     if (artistIds.length > 1) {
@@ -529,6 +551,9 @@ export function ensureAlbum(
     }
     if (genreIds && genreIds.length > 1) {
       setAlbumGenres(db, existing.id, genreIds);
+    }
+    if (labelIds?.length) {
+      setAlbumLabels(db, existing.id, labelIds);
     }
     return existing.id;
   }
@@ -541,7 +566,6 @@ export function ensureAlbum(
     year,
     genre: genreNames?.[0],
     genreId: genreIds?.[0],
-    labels: meta.labels,
     catalogNumbers: meta.catalogNumbers,
     barcode: meta.barcode,
     asin: meta.asin,
@@ -558,6 +582,9 @@ export function ensureAlbum(
   }
   if (genreIds?.length) {
     setAlbumGenres(db, id, genreIds);
+  }
+  if (labelIds?.length) {
+    setAlbumLabels(db, id, labelIds);
   }
   return id;
 }

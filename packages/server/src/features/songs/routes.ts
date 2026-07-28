@@ -3,7 +3,7 @@ import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import { unlink } from 'node:fs/promises';
 import type { Song, SongTags, ScrobbleDetails } from '@sonarly/shared';
-import { getSongById, deleteSongByPath, scrobbleSong, attachSongArtistEntries } from './repository.js';
+import { getSongById, deleteSongByPath, scrobbleSong, attachSongArtistEntries, attachSongComposerEntries } from './repository.js';
 import { getSongGenreNamesForMany, getSongGenreNames } from '../genres/repository.js';
 import { getUserById } from '../users/index.js';
 import { writeTags, writeCoverArt } from '../tags/index.js';
@@ -185,7 +185,6 @@ interface SongDetailRow {
   musicbrainz_track_id: string | null;
   musicbrainz_work_id: string | null;
   musicbrainz_disc_id: string | null;
-  composers: string | null;
   producers: string | null;
   isrcs: string | null;
   original_year: number | null;
@@ -220,7 +219,6 @@ interface SongListRow {
   musicbrainz_track_id: string | null;
   musicbrainz_work_id: string | null;
   musicbrainz_disc_id: string | null;
-  composers: string | null;
   producers: string | null;
   isrcs: string | null;
   original_year: number | null;
@@ -256,7 +254,6 @@ function rowToSong(row: SongDetailRow | SongListRow): Song & { artistName?: stri
     musicBrainzTrackId: row.musicbrainz_track_id ?? undefined,
     musicBrainzWorkId: row.musicbrainz_work_id ?? undefined,
     musicBrainzDiscId: row.musicbrainz_disc_id ?? undefined,
-    composers: row.composers ? JSON.parse(row.composers) : undefined,
     producers: row.producers ? JSON.parse(row.producers) : undefined,
     isrcs: row.isrcs ? JSON.parse(row.isrcs) : undefined,
     originalYear: row.original_year ?? undefined,
@@ -301,6 +298,7 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
 
     const songs = rows.map(rowToSong);
     attachSongArtistEntries(db, songs);
+    attachSongComposerEntries(db, songs);
     const genreMap = getSongGenreNamesForMany(db, songs.map((s) => s.id));
     for (const song of songs) {
       const genres = genreMap.get(song.id);
@@ -384,6 +382,7 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
 
     const song = rowToSong(row);
     attachSongArtistEntries(db, [song]);
+    attachSongComposerEntries(db, [song]);
     const genres = getSongGenreNames(db, song.id);
     if (genres.length) song.genres = genres;
     reply.send({ song });

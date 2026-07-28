@@ -52,7 +52,7 @@ export interface Song {
   syncedLyrics?: SyncedLyricLine[];
   artists?: string[];
   artistEntries?: { id: string; name: string }[];
-  composers?: string[];
+  composerEntries?: { id: string; name: string }[];
   producers?: string[];
   isrcs?: string[];
   originalYear?: number;

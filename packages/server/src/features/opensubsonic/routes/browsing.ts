@@ -5,8 +5,8 @@ import type Database from 'better-sqlite3';
 import { lookup } from 'mime-types';
 import type { Config } from '../../../config.js';
 import { sendSubsonicReply } from '../responses.js';
-import { getSongArtistEntriesForMany, getAlbumSongStatsForMany } from '../../songs/repository.js';
-import { getAlbumArtistEntriesForMany } from '../../albums/repository.js';
+import { getSongArtistEntriesForMany, getSongComposerEntriesForMany, getAlbumSongStatsForMany } from '../../songs/repository.js';
+import { getAlbumArtistEntriesForMany, getAlbumLabelEntriesForMany } from '../../albums/repository.js';
 import {
   getSongGenreNamesForMany,
   getAlbumGenreNamesForMany,
@@ -29,7 +29,6 @@ interface AlbumRow {
   cover_art_id: string | null;
   year: number | null;
   genre: string | null;
-  labels: string | null;
   catalog_numbers: string | null;
   barcode: string | null;
   asin: string | null;
@@ -77,7 +76,6 @@ interface SongRow {
   display_album_artist: string | null;
   album_name: string | null;
   artist_name: string | null;
-  composers: string | null;
   producers: string | null;
   isrcs: string | null;
   original_year: number | null;
@@ -177,11 +175,13 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     `).all(userId ?? null, id) as (SongRow & { starred: number | null; rating: number | null; play_count: number | null })[];
     const duration = songs.reduce((sum, s) => sum + (s.duration ?? 0), 0);
     const songArtistMap = getSongArtistEntriesForMany(db, songs.map((s) => s.id));
+    const songComposerMap = getSongComposerEntriesForMany(db, songs.map((s) => s.id));
     const songGenreMap = getSongGenreNamesForMany(db, songs.map((s) => s.id));
     const albumGenreNames = getAlbumGenreNames(db, album.id);
-    const openSubsonicSongs = songs.map((s) => toOpenSubsonicSong(s, userId, songArtistMap.get(s.id), songGenreMap.get(s.id)));
+    const albumLabelEntries = getAlbumLabelEntriesForMany(db, [album.id]).get(album.id);
+    const openSubsonicSongs = songs.map((s) => toOpenSubsonicSong(s, userId, songArtistMap.get(s.id), songGenreMap.get(s.id), songComposerMap.get(s.id)));
     sendSubsonicReply(reply, format, {
-      album: toOpenSubsonicAlbum(album, openSubsonicSongs, duration, userId, undefined, albumGenreNames),
+      album: toOpenSubsonicAlbum(album, openSubsonicSongs, duration, userId, undefined, albumGenreNames, albumLabelEntries),
     });
   });
 
@@ -204,8 +204,9 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       }, 'failed');
     }
     const songArtists = getSongArtistEntriesForMany(db, [song.id]).get(song.id);
+    const songComposers = getSongComposerEntriesForMany(db, [song.id]).get(song.id);
     const songGenres = getSongGenreNames(db, song.id);
-    sendSubsonicReply(reply, format, { song: toOpenSubsonicSong(song, userId, songArtists, songGenres) });
+    sendSubsonicReply(reply, format, { song: toOpenSubsonicSong(song, userId, songArtists, songGenres, songComposers) });
   });
 
   app.get('/rest/getArtist.view', (request: FastifyRequest, reply: FastifyReply) => {
@@ -236,6 +237,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
 
     const albumIds = albums.map((a) => a.id);
     const albumArtistMap = getAlbumArtistEntriesForMany(db, albumIds);
+    const albumLabelMap = getAlbumLabelEntriesForMany(db, albumIds);
     const albumGenreMap = getAlbumGenreNamesForMany(db, albumIds);
     const albumStatsMap = getAlbumSongStatsForMany(db, albumIds);
     sendSubsonicReply(reply, format, {
@@ -248,7 +250,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
         albumCount: albums.length,
         album: albums.map((album) => {
           const stats = albumStatsMap.get(album.id) ?? { songCount: 0, duration: 0 };
-          return toOpenSubsonicAlbum(album, [], stats.duration, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), stats.songCount);
+          return toOpenSubsonicAlbum(album, [], stats.duration, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), albumLabelMap.get(album.id), stats.songCount);
         }),
         ...(userId ? toArtistInteractions(artist) : {}),
       },
@@ -359,11 +361,12 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     if (albums.length) {
       const albumIds = albums.map((a) => a.id);
       const albumArtistMap = getAlbumArtistEntriesForMany(db, albumIds);
+      const albumLabelMap = getAlbumLabelEntriesForMany(db, albumIds);
       const albumGenreMap = getAlbumGenreNamesForMany(db, albumIds);
       const albumStatsMap = getAlbumSongStatsForMany(db, albumIds);
       result.album = albums.map((album) => {
         const stats = albumStatsMap.get(album.id) ?? { songCount: 0, duration: 0 };
-        return toOpenSubsonicAlbum(album, [], stats.duration, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), stats.songCount);
+        return toOpenSubsonicAlbum(album, [], stats.duration, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), albumLabelMap.get(album.id), stats.songCount);
       });
     }
 
@@ -382,8 +385,9 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     `).all(...songParams) as (SongRow & { starred: number | null; rating: number | null; play_count: number | null })[];
     if (songs.length) {
       const songArtistMap = getSongArtistEntriesForMany(db, songs.map((s) => s.id));
+      const songComposerMap = getSongComposerEntriesForMany(db, songs.map((s) => s.id));
       const songGenreMap = getSongGenreNamesForMany(db, songs.map((s) => s.id));
-      result.song = songs.map((song) => toOpenSubsonicSong(song, userId, songArtistMap.get(song.id), songGenreMap.get(song.id)));
+      result.song = songs.map((song) => toOpenSubsonicSong(song, userId, songArtistMap.get(song.id), songGenreMap.get(song.id), songComposerMap.get(song.id)));
     }
 
     sendSubsonicReply(reply, format, { searchResult3: result });
@@ -550,6 +554,7 @@ export function toOpenSubsonicAlbum(
   userId?: string,
   artistEntries?: { id: string; name: string }[],
   genreNames?: string[],
+  labelEntries?: { id: string; name: string }[],
   songCount?: number,
 ): Record<string, unknown> {
   const artists = artistEntries && artistEntries.length > 0
@@ -595,8 +600,8 @@ export function toOpenSubsonicAlbum(
   if (album.compilation === 1) {
     result.compilation = true;
   }
-  if (album.labels) {
-    result.labels = JSON.parse(album.labels);
+  if (labelEntries && labelEntries.length) {
+    result.labels = labelEntries.map((entry) => entry.name);
   }
   if (album.catalog_numbers) {
     result.catalogNumbers = JSON.parse(album.catalog_numbers);
@@ -744,6 +749,7 @@ export function toOpenSubsonicSong(
   userId?: string,
   artistEntries?: { id: string; name: string }[],
   genreNames?: string[],
+  composerEntries?: { id: string; name: string }[],
 ): Record<string, unknown> {
   const suffix = path.extname(song.file_path).replace(/^\./, '').toLowerCase();
   const contentType = song.media_type ?? lookup(song.file_path) ?? 'audio/mpeg';
@@ -850,9 +856,8 @@ export function toOpenSubsonicSong(
   if (song.musicbrainz_disc_id) {
     result.musicBrainzDiscId = song.musicbrainz_disc_id;
   }
-  if (song.composers) {
-    const composers = parseStringArray(song.composers);
-    if (composers.length) result.composers = composers;
+  if (composerEntries && composerEntries.length) {
+    result.composers = composerEntries.map((entry) => entry.name);
   }
   if (song.producers) {
     const producers = parseStringArray(song.producers);
@@ -914,8 +919,9 @@ export function mapSongRowsToOpenSubsonic(
 ): Record<string, unknown>[] {
   const ids = rows.map((r) => r.id);
   const artistMap = getSongArtistEntriesForMany(db, ids);
+  const composerMap = getSongComposerEntriesForMany(db, ids);
   const genreMap = getSongGenreNamesForMany(db, ids);
-  return rows.map((row) => toOpenSubsonicSong(row, userId, artistMap.get(row.id), genreMap.get(row.id)));
+  return rows.map((row) => toOpenSubsonicSong(row, userId, artistMap.get(row.id), genreMap.get(row.id), composerMap.get(row.id)));
 }
 
 export function fetchOpenSubsonicSongsByIds(
@@ -1008,11 +1014,12 @@ function fetchAlbumList(
   const albums = db.prepare(sql).all(...params) as (AlbumRow & AlbumInteractions)[];
   const albumIds = albums.map((a) => a.id);
   const albumArtistMap = getAlbumArtistEntriesForMany(db, albumIds);
+  const albumLabelMap = getAlbumLabelEntriesForMany(db, albumIds);
   const albumGenreMap = getAlbumGenreNamesForMany(db, albumIds);
   const albumStatsMap = getAlbumSongStatsForMany(db, albumIds);
   return albums.map((album) => {
     const stats = albumStatsMap.get(album.id) ?? { songCount: 0, duration: 0 };
-    return toOpenSubsonicAlbum(album, [], stats.duration, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), stats.songCount);
+    return toOpenSubsonicAlbum(album, [], stats.duration, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), albumLabelMap.get(album.id), stats.songCount);
   });
 }
 

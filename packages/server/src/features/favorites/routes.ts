@@ -42,8 +42,8 @@ function validateRatingInput(body: unknown): RatingInput {
     throw new Error('entityId is required');
   }
   if ('rating' in input && input.rating !== undefined && input.rating !== null) {
-    if (typeof input.rating !== 'number' || !Number.isInteger(input.rating) || input.rating < 0 || input.rating > 5) {
-      throw new Error('rating must be an integer between 0 and 5');
+    if (typeof input.rating !== 'number' || input.rating < 0 || input.rating > 5 || input.rating * 2 !== Math.round(input.rating * 2)) {
+      throw new Error('rating must be between 0 and 5 in 0.5 increments');
     }
   }
   return {

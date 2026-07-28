@@ -53,6 +53,21 @@ export function StarRating({ rating = 0, onRate, className, variant = 'default' 
 
   const isOverlay = variant === 'overlay';
 
+  const resolveTarget = (e: React.MouseEvent<HTMLButtonElement>, value: number): number => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const isLeftHalf = e.clientX - rect.left < rect.width / 2;
+    return isLeftHalf ? value - 0.5 : value;
+  };
+
+  const handleMove = (e: React.MouseEvent<HTMLButtonElement>, value: number) => {
+    setHover(resolveTarget(e, value));
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>, value: number) => {
+    const target = resolveTarget(e, value);
+    onRate(target === rating ? 0 : target);
+  };
+
   return (
     <span
       className={cn('inline-flex items-center', isOverlay ? 'gap-0' : 'gap-0.5', className)}
@@ -60,33 +75,40 @@ export function StarRating({ rating = 0, onRate, className, variant = 'default' 
       role="group"
       aria-label="Rating"
     >
-      {[1, 2, 3, 4, 5].map((value) => (
-        <button
-          key={value}
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onRate(value === rating ? 0 : value);
-          }}
-          onMouseEnter={() => setHover(value)}
-          aria-label={`Rate ${value} stars`}
-          className={cn(
-            'rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-            isOverlay ? 'p-0' : 'p-0.5',
-            value <= display
-              ? 'text-accent'
-              : isOverlay
-                ? 'text-white/80 hover:text-white'
-                : 'text-muted hover:text-accent/70',
-          )}
-        >
-          <Icon
-            name={value <= display ? 'mdi-star' : 'mdi-star-outline'}
-            size={isOverlay ? 14 : 16}
-          />
-        </button>
-      ))}
+      {[1, 2, 3, 4, 5].map((value) => {
+        const filled = display >= value;
+        const half = !filled && display >= value - 0.5;
+        const icon = filled ? 'mdi-star' : half ? 'mdi-star-half-full' : 'mdi-star-outline';
+        const label = half ? `Rate ${value - 0.5} stars` : `Rate ${value} stars`;
+        return (
+          <button
+            key={value}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleClick(e, value);
+            }}
+            onMouseMove={(e) => handleMove(e, value)}
+            onMouseEnter={(e) => handleMove(e, value)}
+            aria-label={label}
+            className={cn(
+              'rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              isOverlay ? 'p-0' : 'p-0.5',
+              filled || half
+                ? 'text-accent'
+                : isOverlay
+                  ? 'text-white/80 hover:text-white'
+                  : 'text-muted hover:text-accent/70',
+            )}
+          >
+            <Icon
+              name={icon}
+              size={isOverlay ? 14 : 16}
+            />
+          </button>
+        );
+      })}
     </span>
   );
 }
