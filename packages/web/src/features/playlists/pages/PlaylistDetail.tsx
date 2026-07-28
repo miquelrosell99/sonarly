@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useLocation } from 'wouter';
+import { useParams } from 'wouter';
 import type { SmartPlaylistRules, Song, User } from '@sonarly/shared';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
@@ -64,7 +64,6 @@ interface PlaylistDetailProps {
 
 export function PlaylistDetail({ user }: PlaylistDetailProps) {
   const { id } = useParams<{ id: string }>();
-  const [, setLocation] = useLocation();
   const { data: playlist, isLoading, error, refetch } = usePlaylist(id);
   const { openForEdit } = useCreatePlaylistModal();
   const [savingRules, setSavingRules] = useState(false);
@@ -161,9 +160,6 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
         <Button variant="ghost" onClick={() => openForEdit(playlist.id)}>
           <Icon name="mdi-pencil" size={18} className="mr-1.5" />
           Edit
-        </Button>
-        <Button variant="ghost" onClick={() => setLocation('/playlists')}>
-          Back
         </Button>
       </div>
     </div>
