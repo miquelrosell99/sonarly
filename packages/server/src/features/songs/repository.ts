@@ -17,6 +17,7 @@ export interface DbSong {
   year: number | null;
   explicit: number;
   cover_art_id: string | null;
+  album_cover_art_id?: string | null;
   cover_art_missing: number | null;
   mtime: number;
   checksum: string;
@@ -73,6 +74,7 @@ function toSong(row: DbSong): Song {
     year: row.year ?? undefined,
     explicit: row.explicit === 1,
     coverArt: row.cover_art_id ?? undefined,
+    albumCoverArt: row.album_cover_art_id ?? undefined,
     coverArtMissing: row.cover_art_missing === 1,
     mtime: row.mtime,
     checksum: row.checksum,
@@ -119,12 +121,18 @@ function toSongWithInteractions(row: DbSongWithInteractions): Song {
 
 export function getSongById(db: Database.Database, id: string, userId?: string): Song | undefined {
   if (!userId) {
-    const row = db.prepare('SELECT * FROM songs WHERE id = ?').get(id) as DbSong | undefined;
+    const row = db.prepare(`
+      SELECT s.*, al.cover_art_id AS album_cover_art_id
+      FROM songs s
+      LEFT JOIN albums al ON al.id = s.album_id
+      WHERE s.id = ?
+    `).get(id) as DbSong | undefined;
     return row ? toSong(row) : undefined;
   }
   const row = db.prepare(`
-    SELECT s.*, us.starred, us.rating
+    SELECT s.*, al.cover_art_id AS album_cover_art_id, us.starred, us.rating
     FROM songs s
+    LEFT JOIN albums al ON al.id = s.album_id
     LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
     WHERE s.id = ?
   `).get(userId, id) as DbSongWithInteractions | undefined;
@@ -307,7 +315,7 @@ export function findInactiveSongByTags(
 export function listInactiveSongs(db: Database.Database, userId?: string): Song[] {
   if (!userId) {
     const rows = db.prepare(`
-      SELECT s.*, ar.name AS artist_name, al.name AS album_name
+      SELECT s.*, ar.name AS artist_name, al.name AS album_name, al.cover_art_id AS album_cover_art_id
       FROM songs s
       LEFT JOIN artists ar ON ar.id = s.artist_id
       LEFT JOIN albums al ON al.id = s.album_id
@@ -320,7 +328,7 @@ export function listInactiveSongs(db: Database.Database, userId?: string): Song[
     return songs;
   }
   const rows = db.prepare(`
-    SELECT s.*, ar.name AS artist_name, al.name AS album_name, us.starred, us.rating
+    SELECT s.*, ar.name AS artist_name, al.name AS album_name, al.cover_art_id AS album_cover_art_id, us.starred, us.rating
     FROM songs s
     LEFT JOIN artists ar ON ar.id = s.artist_id
     LEFT JOIN albums al ON al.id = s.album_id
@@ -348,7 +356,8 @@ export function listSongsByArtist(
   const libraryParams = libraryId ? [libraryId] : [];
   if (!userId) {
     const rows = db.prepare(`
-      SELECT * FROM songs s
+      SELECT s.*, al.cover_art_id AS album_cover_art_id FROM songs s
+      LEFT JOIN albums al ON al.id = s.album_id
       WHERE s.artist_id = ? AND s.active = 1 ${libraryFilter}
       ORDER BY s.year, s.album_id, s.disc_number, s.track_number, s.title
     `).all(artistId, ...libraryParams) as DbSong[];
@@ -358,8 +367,9 @@ export function listSongsByArtist(
     return songs;
   }
   const rows = db.prepare(`
-    SELECT s.*, us.starred, us.rating
+    SELECT s.*, al.cover_art_id AS album_cover_art_id, us.starred, us.rating
     FROM songs s
+    LEFT JOIN albums al ON al.id = s.album_id
     LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
     WHERE s.artist_id = ? AND s.active = 1 ${libraryFilter}
     ORDER BY s.year, s.album_id, s.disc_number, s.track_number, s.title
@@ -379,7 +389,7 @@ export function listSongsByAlbum(
   const libraryFilter = libraryId ? 'AND s.library_id = ?' : '';
   const libraryParams = libraryId ? [libraryId] : [];
   const baseSelect = `
-    SELECT s.*, ar.name AS artist_name, al.name AS album_name, al.artist_name AS album_artist_name
+    SELECT s.*, ar.name AS artist_name, al.name AS album_name, al.artist_name AS album_artist_name, al.cover_art_id AS album_cover_art_id
   `;
   const baseFrom = `
     FROM songs s

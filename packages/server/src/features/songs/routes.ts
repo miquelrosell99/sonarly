@@ -173,6 +173,7 @@ interface SongDetailRow {
   year: number | null;
   explicit: number;
   cover_art_id: string | null;
+  album_cover_art_id: string | null;
   mtime: number;
   checksum: string;
   active: number;
@@ -207,6 +208,7 @@ interface SongListRow {
   year: number | null;
   explicit: number;
   cover_art_id: string | null;
+  album_cover_art_id: string | null;
   mtime: number;
   checksum: string;
   active: number;
@@ -242,6 +244,7 @@ function rowToSong(row: SongDetailRow | SongListRow): Song & { artistName?: stri
     year: row.year ?? undefined,
     explicit: row.explicit === 1,
     coverArt: row.cover_art_id ?? undefined,
+    albumCoverArt: row.album_cover_art_id ?? undefined,
     mtime: row.mtime,
     checksum: row.checksum,
     active: row.active === 1,
@@ -283,7 +286,7 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
     if (genreFilter) params.push(resolvedGenre.id);
 
     const rows = db.prepare(`
-      SELECT s.*, ar.name AS artist_name, al.name AS album_name, al.artist_name AS album_artist_name, us.starred, us.rating
+      SELECT s.*, ar.name AS artist_name, al.name AS album_name, al.artist_name AS album_artist_name, al.cover_art_id AS album_cover_art_id, us.starred, us.rating
       FROM songs s
       LEFT JOIN artists ar ON ar.id = s.artist_id
       LEFT JOIN albums al ON al.id = s.album_id
@@ -365,7 +368,7 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
     params.push(id);
 
     const row = db.prepare(`
-      SELECT s.*, ar.name AS artist_name, al.name AS album_name, al.artist_name AS album_artist_name, us.starred, us.rating
+      SELECT s.*, ar.name AS artist_name, al.name AS album_name, al.artist_name AS album_artist_name, al.cover_art_id AS album_cover_art_id, us.starred, us.rating
       FROM songs s
       LEFT JOIN artists ar ON ar.id = s.artist_id
       LEFT JOIN albums al ON al.id = s.album_id
