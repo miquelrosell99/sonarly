@@ -11,6 +11,8 @@ interface IngestJob {
   source_path: string;
   status: string;
   error: string | null;
+  duplicate: number | null;
+  duplicate_strategy: string | null;
   created_at: string;
 }
 
@@ -86,6 +88,17 @@ export function IngestModal({ open, onClose }: IngestModalProps) {
             <Table<IngestJob>
               columns={[
                 { key: 'path', header: 'Path', render: (j) => j.source_path },
+                {
+                  key: 'duplicate',
+                  header: '',
+                  className: 'w-24',
+                  render: (j) =>
+                    j.duplicate ? (
+                      <span className="inline-flex items-center rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+                        Existing
+                      </span>
+                    ) : null,
+                },
                 { key: 'status', header: 'Status', className: 'w-40', render: (j) => <StatusPill status={j.status} /> },
                 {
                   key: 'error',
