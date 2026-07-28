@@ -81,6 +81,7 @@ function SortableLibraryRow<T>({
   rating,
   renderContextMenu,
   rowClassName,
+  indexPad,
 }: {
   item: T;
   getId: (item: T) => string;
@@ -96,6 +97,7 @@ function SortableLibraryRow<T>({
   rating?: { value?: number; onRate: (value: number) => void };
   renderContextMenu?: (children: ReactNode) => ReactNode;
   rowClassName?: string;
+  indexPad?: number;
 }) {
   const {
     attributes,
@@ -128,6 +130,7 @@ function SortableLibraryRow<T>({
       isDragging={isDragging}
       dragHandleProps={{ ...attributes, ...listeners }}
       className={rowClassName}
+      indexPad={indexPad}
     >
       {columns.map((col) => (
         <td key={col.key} className={cn('py-2 pr-4', col.className)}>
@@ -285,6 +288,7 @@ export function LibraryView<T>({
   }
 
   const renderList = () => {
+    const indexPad = String(data.length).length;
     const table = (
       <table className="w-full text-left text-sm">
         <thead className="border-b border-rule text-muted">
@@ -344,6 +348,7 @@ export function LibraryView<T>({
                 favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
                 rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
                 className={getRowClassName?.(item)}
+                indexPad={indexPad}
               >
                 {columns.map((col) => (
                   <td key={col.key} className={cn('py-2 pr-4', col.className)}>
