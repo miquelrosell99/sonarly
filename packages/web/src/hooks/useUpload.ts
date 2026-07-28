@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import type { DuplicateStrategy } from '@sonarly/shared';
 import { api } from '../api.js';
 
 const CHUNK_SIZE = 5 * 1024 * 1024;
@@ -19,7 +20,7 @@ export interface UseUploadReturn {
   progress: UploadProgress;
   isUploading: boolean;
   error: string | null;
-  uploadFiles: (files: UploadFile[], libraryId: string) => Promise<void>;
+  uploadFiles: (files: UploadFile[], libraryId: string, duplicateStrategy?: DuplicateStrategy) => Promise<void>;
 }
 
 function generateFileId(): string {
@@ -68,7 +69,11 @@ export function useUpload(): UseUploadReturn {
   });
   const abortRef = useRef(false);
 
-  const uploadFiles = useCallback(async (files: UploadFile[], libraryId: string): Promise<void> => {
+  const uploadFiles = useCallback(async (
+    files: UploadFile[],
+    libraryId: string,
+    duplicateStrategy?: DuplicateStrategy,
+  ): Promise<void> => {
     setIsUploading(true);
     setError(null);
     setProgress({
@@ -80,9 +85,13 @@ export function useUpload(): UseUploadReturn {
     abortRef.current = false;
 
     try {
+      const body: { libraryId: string; duplicateStrategy?: DuplicateStrategy } = { libraryId };
+      if (duplicateStrategy) {
+        body.duplicateStrategy = duplicateStrategy;
+      }
       const { sessionId } = await api<{ sessionId: string }>('/upload/sessions', {
         method: 'POST',
-        body: JSON.stringify({ libraryId }),
+        body: JSON.stringify(body),
       });
 
       for (let i = 0; i < files.length; i++) {
