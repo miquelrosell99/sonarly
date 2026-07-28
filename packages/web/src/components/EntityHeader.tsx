@@ -23,7 +23,7 @@ export function EntityHeader({
   blurCover,
 }: EntityHeaderProps) {
   return (
-    <div className={cn('mb-6 flex flex-col gap-6 sm:flex-row sm:items-end', className)}>
+    <div className={cn('mb-6 flex flex-col gap-6 sm:flex-row sm:items-start', className)}>
       {cover && (
         <div className={cn('shrink-0 shadow-lg', blurCover && 'blur-sm')}>
           {cover}
