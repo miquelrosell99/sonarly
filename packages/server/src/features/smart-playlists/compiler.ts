@@ -78,6 +78,9 @@ function fieldColumn(field: string): { expr: string; needsJoin: string | null; i
 function ensureJoin(ctx: CompilerContext, join: string | null): void {
   if (!join) return;
   ctx.joins.add(join);
+  if (join === 'albumArtist') {
+    ctx.joins.add('albums');
+  }
 }
 
 function pushParam(ctx: CompilerContext, value: unknown): string {
