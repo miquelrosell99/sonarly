@@ -20,6 +20,7 @@ interface TableProps<T> {
   playingId?: string;
   renderRow?: (row: T, element: ReactNode) => ReactNode;
   indexPad?: number;
+  className?: string;
 }
 
 function isInteractiveTarget(target: EventTarget, currentTarget: EventTarget) {
@@ -47,6 +48,7 @@ export function Table<T>({
   playingId,
   renderRow,
   indexPad,
+  className,
 }: TableProps<T>) {
   const selectable = Boolean(onPlaySelection);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -121,7 +123,7 @@ export function Table<T>({
 
   return (
     <div className="overflow-x-auto" onKeyDown={selectable ? handleContainerKeyDown : undefined} role={selectable ? 'grid' : undefined} aria-multiselectable={selectable ? 'true' : undefined}>
-      <table className="w-full text-left text-sm">
+      <table className={cn('w-full text-left text-sm', className)}>
         <thead className="border-b border-rule text-muted">
           <tr>
             {onPlay && <th className="w-12 py-2 pr-4 font-medium" aria-hidden />}

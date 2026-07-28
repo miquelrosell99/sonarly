@@ -6,6 +6,7 @@ import { api } from '../api.js';
 import { Button } from './ui/Button.js';
 import { Icon } from './ui/Icon.js';
 import { Modal } from './ui/Modal.js';
+import { Table, type TableColumn } from './ui/Table.js';
 import { useUpload, type UploadFile } from '../hooks/useUpload.js';
 
 export interface UploadSummary {
@@ -176,6 +177,40 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
 
   const canUpload = selectedLibraryId.length > 0 && duplicateStrategy.length > 0 && files.length > 0 && !isUploading;
 
+  const fileColumns: TableColumn<UploadFile>[] = useMemo(
+    () => [
+      {
+        key: 'name',
+        header: 'File name',
+        render: ({ relativePath }) => (
+          <span className="truncate text-fg-primary" title={relativePath}>
+            {relativePath}
+          </span>
+        ),
+      },
+      {
+        key: 'size',
+        header: 'Size',
+        className: 'w-24 text-right',
+        render: ({ file, relativePath }) => (
+          <div className="flex items-center justify-end gap-2">
+            <span className="text-xs text-fg-secondary">{formatBytes(file.size)}</span>
+            <button
+              type="button"
+              onClick={() => removeFile(relativePath)}
+              disabled={isUploading}
+              aria-label="Remove file"
+              className="shrink-0 rounded p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-danger disabled:opacity-50"
+            >
+              <Icon name="mdi-close" size={16} />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [isUploading, removeFile],
+  );
+
   const footer = (
     <div className="flex items-center justify-between gap-4">
       <div className="text-xs text-fg-secondary">
@@ -289,32 +324,21 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
               </Button>
             </div>
             <div className="max-h-48 overflow-y-auto rounded-md border border-rule">
-              <ul className="divide-y divide-rule">
-                {files.map(({ file, relativePath }) => (
-                  <li key={relativePath} className="flex items-center justify-between px-3 py-2 text-sm">
-                    <span className="truncate text-fg-primary" title={relativePath}>{relativePath}</span>
-                    <span className="ml-2 shrink-0 text-xs text-fg-secondary">{formatBytes(file.size)}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeFile(relativePath)}
-                      disabled={isUploading}
-                      aria-label="Remove file"
-                      className="ml-2 shrink-0 rounded p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-danger disabled:opacity-50"
-                    >
-                      <Icon name="mdi-close" size={16} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <Table
+                columns={fileColumns}
+                rows={files}
+                rowKey={(f) => f.relativePath}
+                className="table-fixed"
+              />
             </div>
           </div>
         )}
 
         {isUploading && (
           <div className="space-y-1">
-            <div className="flex justify-between text-xs text-fg-secondary">
-              <span className="truncate" title={progress.currentFile}>{progress.currentFile}</span>
-              <span>{progress.completedFiles} / {progress.totalFiles}</span>
+            <div className="flex justify-between gap-2 text-xs text-fg-secondary">
+              <span className="min-w-0 flex-1 truncate" title={progress.currentFile}>{progress.currentFile}</span>
+              <span className="shrink-0">{progress.completedFiles} / {progress.totalFiles}</span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-surface-hover">
               <div
