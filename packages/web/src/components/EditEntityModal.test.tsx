@@ -111,7 +111,6 @@ describe('EditEntityModal', () => {
 
   it('calls onDelete only after confirm', () => {
     const onDelete = vi.fn();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     render(
       <EditEntityModal
         open
@@ -123,14 +122,13 @@ describe('EditEntityModal', () => {
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: /delete/i }));
-    expect(confirmSpy).toHaveBeenCalled();
+    const deleteButtons = screen.getAllByRole('button', { name: /^delete$/i });
+    fireEvent.click(deleteButtons[deleteButtons.length - 1]);
     expect(onDelete).toHaveBeenCalledTimes(1);
-    confirmSpy.mockRestore();
   });
 
   it('does not call onDelete when confirm is cancelled', () => {
     const onDelete = vi.fn();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     render(
       <EditEntityModal
         open
@@ -142,9 +140,9 @@ describe('EditEntityModal', () => {
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: /delete/i }));
-    expect(confirmSpy).toHaveBeenCalled();
+    const cancelButtons = screen.getAllByRole('button', { name: /cancel/i });
+    fireEvent.click(cancelButtons[cancelButtons.length - 1]);
     expect(onDelete).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 
   it('calls onClose when cancel is clicked', () => {
@@ -236,6 +234,7 @@ describe('EditEntityModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /change cover art/i }));
     expect(onEditCoverArt).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole('button', { name: /remove cover art/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^remove$/i }));
     expect(onDeleteCoverArt).toHaveBeenCalledTimes(1);
   });
 

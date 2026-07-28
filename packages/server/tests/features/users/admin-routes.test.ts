@@ -355,6 +355,89 @@ describe('management admin endpoints', () => {
     expect(res.statusCode).toBe(403);
   });
 
+  describe('user libraries', () => {
+    it('lists, assigns and removes libraries for a user', async () => {
+      const bobId = 'user-bob';
+      const libPath = join(root, 'extra-library');
+      mkdirSync(libPath, { recursive: true });
+
+      const createLib = await app.inject({
+        method: 'POST',
+        url: '/api/admin/libraries',
+        cookies: { sessionId: adminCookie },
+        payload: { name: 'Extra', path: libPath },
+      });
+      expect(createLib.statusCode).toBe(201);
+
+      const listLibraries = await app.inject({
+        method: 'GET',
+        url: '/api/admin/libraries',
+        cookies: { sessionId: adminCookie },
+      });
+      const extraLibrary = JSON.parse(listLibraries.body).libraries.find(
+        (l: { name: string }) => l.name === 'Extra',
+      );
+      expect(extraLibrary).toBeDefined();
+
+      const assign = await app.inject({
+        method: 'POST',
+        url: `/api/admin/users/${bobId}/libraries`,
+        cookies: { sessionId: adminCookie },
+        payload: { libraryIds: [extraLibrary.id] },
+      });
+      expect(assign.statusCode).toBe(200);
+
+      const list = await app.inject({
+        method: 'GET',
+        url: `/api/admin/users/${bobId}/libraries`,
+        cookies: { sessionId: adminCookie },
+      });
+      expect(list.statusCode).toBe(200);
+      expect(JSON.parse(list.body).libraries).toContain(extraLibrary.id);
+
+      const remove = await app.inject({
+        method: 'DELETE',
+        url: `/api/admin/users/${bobId}/libraries/${extraLibrary.id}`,
+        cookies: { sessionId: adminCookie },
+      });
+      expect(remove.statusCode).toBe(200);
+
+      const after = await app.inject({
+        method: 'GET',
+        url: `/api/admin/users/${bobId}/libraries`,
+        cookies: { sessionId: adminCookie },
+      });
+      expect(JSON.parse(after.body).libraries).not.toContain(extraLibrary.id);
+    });
+
+    it('forbids user library endpoints for non-admins', async () => {
+      const bobId = 'user-bob';
+      const get = await app.inject({
+        method: 'GET',
+        url: `/api/admin/users/${bobId}/libraries`,
+        cookies: { sessionId: userCookie },
+      });
+      expect(get.statusCode).toBe(403);
+
+      const post = await app.inject({
+        method: 'POST',
+        url: `/api/admin/users/${bobId}/libraries`,
+        cookies: { sessionId: userCookie },
+        payload: { libraryIds: ['lib-1'] },
+      });
+      expect(post.statusCode).toBe(403);
+    });
+
+    it('returns 404 for unknown user', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/admin/users/unknown/libraries',
+        cookies: { sessionId: adminCookie },
+      });
+      expect(res.statusCode).toBe(404);
+    });
+  });
+
   it('returns admin status for admins', async () => {
     const res = await app.inject({
       method: 'GET',

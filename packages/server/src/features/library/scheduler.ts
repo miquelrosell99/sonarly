@@ -76,3 +76,42 @@ export class ArtistImageScheduler {
     return row !== undefined;
   }
 }
+
+export class IngestScheduler {
+  private readonly intervalMs: number;
+  private readonly ingestPath: string;
+
+  constructor(config: Config) {
+    this.intervalMs = config.INGEST_INTERVAL_MINUTES > 0 ? config.INGEST_INTERVAL_MINUTES * 60 * 1000 : 0;
+    this.ingestPath = config.INGEST_PATH;
+  }
+
+  tick(db: Database.Database, now = Date.now()): void {
+    if (this.intervalMs === 0) return;
+
+    const lastRaw = getSetting(db, 'last_periodic_ingest', '');
+    if (!lastRaw) {
+      setSetting(db, 'last_periodic_ingest', new Date(now).toISOString());
+      return;
+    }
+
+    const last = new Date(lastRaw).getTime();
+    if (Number.isNaN(last)) {
+      setSetting(db, 'last_periodic_ingest', new Date(now).toISOString());
+      return;
+    }
+
+    if (now - last < this.intervalMs) return;
+    if (this.hasPendingOrRunningIngest(db)) return;
+
+    pushJob(db, 'ingest', this.ingestPath);
+    setSetting(db, 'last_periodic_ingest', new Date(now).toISOString());
+  }
+
+  private hasPendingOrRunningIngest(db: Database.Database): boolean {
+    const row = db.prepare(
+      "SELECT 1 FROM scan_jobs WHERE type = 'ingest' AND status IN ('pending', 'running') LIMIT 1"
+    ).get();
+    return row !== undefined;
+  }
+}

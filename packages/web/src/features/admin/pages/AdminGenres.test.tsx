@@ -142,7 +142,6 @@ describe('AdminGenres', () => {
   });
 
   it('deletes a leaf genre after confirm', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     renderAdminGenres();
 
     await waitFor(() => {
@@ -150,11 +149,11 @@ describe('AdminGenres', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: /delete classic rock/i }));
+    const deleteButtons = screen.getAllByRole('button', { name: /^delete$/i });
+    fireEvent.click(deleteButtons[deleteButtons.length - 1]);
 
     await waitFor(() => {
       expect(mockApi).toHaveBeenCalledWith('/genres/g2', { method: 'DELETE' });
     });
-
-    confirmSpy.mockRestore();
   });
 });

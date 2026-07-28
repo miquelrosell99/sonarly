@@ -6,6 +6,7 @@ import { Modal } from '../../../components/ui/Modal.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
+import { useAdminRefresh } from '../contexts/AdminRefreshContext.js';
 
 interface MissingSong extends Song {
   artistName?: string;
@@ -27,6 +28,7 @@ interface MissingModalProps {
 }
 
 export function MissingModal({ open, onClose }: MissingModalProps) {
+  const { refresh } = useAdminRefresh();
   const { notify } = useNotification();
   const [data, setData] = useState<MissingData>({ songs: [], albums: [], artists: [] });
   const [loading, setLoading] = useState(true);
@@ -59,6 +61,7 @@ export function MissingModal({ open, onClose }: MissingModalProps) {
     try {
       await api(`/admin/missing/${kind}/${id}`, { method: 'DELETE' });
       setData((prev) => ({ ...prev, [kind]: prev[kind].filter((item) => item.id !== id) }));
+      refresh();
       notify('Item removed.', 'success');
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to remove item', 'error');
@@ -72,6 +75,7 @@ export function MissingModal({ open, onClose }: MissingModalProps) {
     try {
       await api(`/admin/missing/${kind}`, { method: 'DELETE' });
       setData((prev) => ({ ...prev, [kind]: [] }));
+      refresh();
       notify(`All missing ${kind} removed.`, 'success');
     } catch (err) {
       notify(err instanceof Error ? err.message : `Failed to remove missing ${kind}`, 'error');

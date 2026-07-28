@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
-import { listCollisionSongs } from '../songs/index.js';
+import { listCollisionSongs, deleteSongById } from '../songs/index.js';
 
 interface ConflictRow {
   id: string;
@@ -52,5 +52,16 @@ export function registerConflictManagementRoutes(app: FastifyInstance, db: Datab
         albumName: names.get(song.id)?.albumName,
       })),
     });
+  });
+
+  app.delete('/api/conflicts', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { isAdmin?: boolean } | undefined;
+    if (!requireAdmin(reply, session)) return;
+
+    const songs = listCollisionSongs(db);
+    for (const song of songs) {
+      deleteSongById(db, song.id);
+    }
+    reply.send({ ok: true, deleted: songs.length });
   });
 }

@@ -8,6 +8,7 @@ import { ConflictsModal } from '../components/ConflictsModal.js';
 import { MissingModal } from '../components/MissingModal.js';
 import { IngestModal } from '../components/IngestModal.js';
 import { IngestReportModal } from '../components/IngestReportModal.js';
+import { useAdminRefresh } from '../contexts/AdminRefreshContext.js';
 
 interface AdminStatus {
   counts: {
@@ -39,16 +40,27 @@ interface AdminStatusProps {
 type ActiveModal = 'conflicts' | 'missing' | 'ingest' | null;
 
 export function AdminStatus({ user }: AdminStatusProps) {
+  const { refreshKey } = useAdminRefresh();
   const [status, setStatus] = useState<AdminStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [reportRunId, setReportRunId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadStatus = () => {
     if (!user.isAdmin) return;
     api<AdminStatus>('/admin/status')
       .then(setStatus)
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load server status'));
+  };
+
+  useEffect(() => {
+    loadStatus();
+  }, [user.isAdmin, refreshKey]);
+
+  useEffect(() => {
+    if (!user.isAdmin) return;
+    const interval = setInterval(loadStatus, 5000);
+    return () => clearInterval(interval);
   }, [user.isAdmin]);
 
   return (

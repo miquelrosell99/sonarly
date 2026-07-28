@@ -12,6 +12,11 @@ import {
   updateUserAdminFields,
   deleteUserById,
 } from '../users/index.js';
+import {
+  getUserLibraries,
+  assignLibrariesToUser,
+  removeLibraryFromUser,
+} from '../libraries/repository.js';
 import { listInactiveSongs, deleteSongById, listCollisionSongs } from '../songs/index.js';
 import { listInactiveAlbums, deleteAlbumById } from '../albums/index.js';
 import { listInactiveArtists, deleteArtistById } from '../artists/index.js';
@@ -124,7 +129,7 @@ function getSystemTasks(config: Config): SystemTaskDefinition[] {
       name: 'Ingest',
       description: 'Processes files in the ingest folder and imports them into the library.',
       jobTypes: ['ingest'],
-      intervalMinutes: null,
+      intervalMinutes: config.INGEST_INTERVAL_MINUTES > 0 ? config.INGEST_INTERVAL_MINUTES : null,
       getLastRunAt: (db) => {
         const status = getLatestJobStatus(db, ['ingest']);
         return status.lastRunAt;
@@ -148,6 +153,10 @@ function buildSystemTaskResponse(def: SystemTaskDefinition, db: Database.Databas
 
 const taskRunParamsSchema = z.object({
   taskId: z.enum(['periodic_scan', 'review_cleanup', 'artist_images', 'ingest']),
+});
+
+const assignLibrariesSchema = z.object({
+  libraryIds: z.array(z.string().min(1)),
 });
 
 export function registerAdminRoutes(app: FastifyInstance, db: Database.Database, sessionSecret: string, config: Config): void {
@@ -386,6 +395,52 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
     }
 
     deleteUserById(db, id);
+    reply.send({ ok: true });
+  });
+
+  app.get('/api/admin/users/:id/libraries', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    const { id } = request.params as { id: string };
+    const existing = getUserById(db, id);
+    if (!existing) {
+      return reply.status(404).send({ error: 'User not found' });
+    }
+
+    reply.send({ libraries: getUserLibraries(db, id) });
+  });
+
+  app.post('/api/admin/users/:id/libraries', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    const { id } = request.params as { id: string };
+    const existing = getUserById(db, id);
+    if (!existing) {
+      return reply.status(404).send({ error: 'User not found' });
+    }
+
+    const parseResult = assignLibrariesSchema.safeParse(request.body);
+    if (!parseResult.success) {
+      return reply.status(400).send({ error: 'Invalid input' });
+    }
+
+    assignLibrariesToUser(db, id, parseResult.data.libraryIds);
+    reply.send({ ok: true });
+  });
+
+  app.delete('/api/admin/users/:id/libraries/:libraryId', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    const { id, libraryId } = request.params as { id: string; libraryId: string };
+    const existing = getUserById(db, id);
+    if (!existing) {
+      return reply.status(404).send({ error: 'User not found' });
+    }
+
+    removeLibraryFromUser(db, id, libraryId);
     reply.send({ ok: true });
   });
 
