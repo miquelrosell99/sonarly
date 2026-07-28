@@ -248,7 +248,6 @@ export function Albums() {
     ? {
         ...editing,
         title: editing.name,
-        artist: editing.artistName,
         albumArtist: editing.artistName,
       }
     : null;

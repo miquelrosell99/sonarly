@@ -219,8 +219,8 @@ describe('EditEntityModal', () => {
     render(
       <EditEntityModal
         open
-        entityType="song"
-        entity={{ id: '12', title: 'Track', coverArt: 'cover-1' }}
+        entityType="album"
+        entity={{ id: '12', title: 'Album', coverArt: 'cover-1' }}
         onClose={vi.fn()}
         onSave={vi.fn()}
         onDelete={vi.fn()}
@@ -242,8 +242,8 @@ describe('EditEntityModal', () => {
     render(
       <EditEntityModal
         open
-        entityType="song"
-        entity={{ id: '13', title: 'Track', coverArt: 'cover-1' }}
+        entityType="album"
+        entity={{ id: '13', title: 'Album', coverArt: 'cover-1' }}
         onClose={vi.fn()}
         onSave={vi.fn()}
         onDelete={vi.fn()}
@@ -260,8 +260,8 @@ describe('EditEntityModal', () => {
     render(
       <EditEntityModal
         open
-        entityType="song"
-        entity={{ id: '14', title: 'Track' }}
+        entityType="album"
+        entity={{ id: '14', title: 'Album' }}
         onClose={vi.fn()}
         onSave={vi.fn()}
         onDelete={vi.fn()}

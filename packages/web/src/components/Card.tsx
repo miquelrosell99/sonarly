@@ -57,6 +57,10 @@ export function Card({
           href={href}
           draggable={false}
           onDragStart={(e) => e.preventDefault()}
+          onContextMenu={(e) => {
+            e.stopPropagation();
+            onContextMenu?.(e);
+          }}
           className="relative block overflow-hidden rounded-xl shadow-md outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
         >
           <div className="transition duration-300 group-hover/card:scale-105">{cover}</div>
