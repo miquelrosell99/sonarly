@@ -171,9 +171,11 @@ export function EditEntityModal({
           patched[key] = raw === '' ? undefined : raw;
         }
       }
-      patched.lyrics = values.lyrics === '' ? undefined : values.lyrics;
-      patched.explicit = explicit;
-      delete patched.syncedLyrics;
+      if (entityType === 'song') {
+        patched.lyrics = values.lyrics === '' ? undefined : values.lyrics;
+        patched.explicit = explicit;
+        delete patched.syncedLyrics;
+      }
     }
 
     onSave(patched);
@@ -344,36 +346,40 @@ export function EditEntityModal({
               ))}
             </div>
 
-            <Field label={values.lyrics ? 'Lyrics' : 'Empty'} htmlFor="edit-lyrics">
-              <textarea
-                id="edit-lyrics"
-                value={values.lyrics ?? ''}
-                onChange={(e) => updateValue('lyrics', e.target.value)}
-                placeholder="Empty"
-                rows={5}
-                disabled={readOnly}
-                className="input w-full resize-none py-3"
-              />
-            </Field>
+            {entityType === 'song' && (
+              <>
+                <Field label={values.lyrics ? 'Lyrics' : 'Empty'} htmlFor="edit-lyrics">
+                  <textarea
+                    id="edit-lyrics"
+                    value={values.lyrics ?? ''}
+                    onChange={(e) => updateValue('lyrics', e.target.value)}
+                    placeholder="Empty"
+                    rows={5}
+                    disabled={readOnly}
+                    className="input w-full resize-none py-3"
+                  />
+                </Field>
 
-            <div className="flex items-center justify-between rounded-lg border border-rule bg-surface px-4 py-3">
-              <span className="text-sm text-fg-secondary">
-                {((entity.syncedLyrics as unknown[] | undefined)?.length ?? 0)} synced lines
-              </span>
-              {!readOnly && (
-                <Button variant="ghost" onClick={onEditSyncedLyrics}>
-                  Edit Synced Lyrics
-                </Button>
-              )}
-            </div>
+                <div className="flex items-center justify-between rounded-lg border border-rule bg-surface px-4 py-3">
+                  <span className="text-sm text-fg-secondary">
+                    {((entity.syncedLyrics as unknown[] | undefined)?.length ?? 0)} synced lines
+                  </span>
+                  {!readOnly && (
+                    <Button variant="ghost" onClick={onEditSyncedLyrics}>
+                      Edit Synced Lyrics
+                    </Button>
+                  )}
+                </div>
 
-            <Checkbox
-              id="edit-explicit"
-              label="Explicit content"
-              checked={explicit}
-              onChange={(e) => setExplicit(e.target.checked)}
-              disabled={readOnly}
-            />
+                <Checkbox
+                  id="edit-explicit"
+                  label="Explicit content"
+                  checked={explicit}
+                  onChange={(e) => setExplicit(e.target.checked)}
+                  disabled={readOnly}
+                />
+              </>
+            )}
           </>
         )}
       </div>
