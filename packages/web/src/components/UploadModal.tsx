@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'wouter';
 import type { DuplicateStrategy, Library } from '@sonarly/shared';
 import { DUPLICATE_STRATEGY_LABELS } from '@sonarly/shared';
 import { cn } from '../lib/cn.js';
@@ -8,13 +7,19 @@ import { Button } from './ui/Button.js';
 import { Icon } from './ui/Icon.js';
 import { Modal } from './ui/Modal.js';
 import { useUpload, type UploadFile } from '../hooks/useUpload.js';
-import { useLibraryStore } from '../stores/libraryStore.js';
+
+export interface UploadSummary {
+  fileCount: number;
+  totalSize: number;
+  libraryName: string;
+}
 
 interface UploadModalProps {
   open: boolean;
   onClose: () => void;
   libraries: Library[];
   currentLibraryId: string | null;
+  onComplete?: (summary: UploadSummary) => void;
 }
 
 function formatBytes(bytes: number): string {
@@ -81,21 +86,18 @@ async function collectFiles(items: DataTransferItemList): Promise<UploadFile[]> 
   return files;
 }
 
-export function UploadModal({ open, onClose, libraries, currentLibraryId }: UploadModalProps) {
+export function UploadModal({ open, onClose, libraries, currentLibraryId, onComplete }: UploadModalProps) {
   const [selectedLibraryId, setSelectedLibraryId] = useState<string>(currentLibraryId ?? '');
   const [duplicateStrategy, setDuplicateStrategy] = useState<DuplicateStrategy | ''>('');
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [isDone, setIsDone] = useState(false);
   const { progress, isUploading, error, uploadFiles } = useUpload();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [, setLocation] = useLocation();
 
   useEffect(() => {
     if (open) {
       setSelectedLibraryId(currentLibraryId ?? '');
       setFiles([]);
-      setIsDone(false);
       api<{ duplicateStrategy: DuplicateStrategy }>('/settings/media')
         .then((data) => setDuplicateStrategy(data.duplicateStrategy))
         .catch(() => setDuplicateStrategy(''));
@@ -158,19 +160,15 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId }: Uplo
     if (!selectedLibraryId || files.length === 0 || !duplicateStrategy) return;
     try {
       await uploadFiles(files, selectedLibraryId, duplicateStrategy);
-      setIsDone(true);
+      const libraryName = libraries.find((l) => l.id === selectedLibraryId)?.name ?? '';
+      onComplete?.({ fileCount: files.length, totalSize, libraryName });
+      onClose();
     } catch {
       // Error is already captured in hook state.
     }
-  }, [files, selectedLibraryId, duplicateStrategy, uploadFiles]);
+  }, [files, selectedLibraryId, duplicateStrategy, uploadFiles, libraries, totalSize, onComplete, onClose]);
 
-  const handleOpenLibrary = useCallback(() => {
-    useLibraryStore.getState().setSelectedLibraryId(selectedLibraryId);
-    onClose();
-    setLocation('/songs');
-  }, [selectedLibraryId, onClose, setLocation]);
-
-  const canUpload = selectedLibraryId.length > 0 && duplicateStrategy.length > 0 && files.length > 0 && !isUploading && !isDone;
+  const canUpload = selectedLibraryId.length > 0 && duplicateStrategy.length > 0 && files.length > 0 && !isUploading;
 
   const footer = (
     <div className="flex items-center justify-between gap-4">
@@ -269,26 +267,6 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId }: Uplo
 
         {error && <p className="text-sm text-danger" role="alert">{error}</p>}
 
-        {isDone && (
-          <div className="space-y-3 rounded-md bg-success/10 p-4 text-sm">
-            <div className="flex items-center gap-2 text-success">
-              <Icon name="mdi-check-circle-outline" size={18} />
-              <span className="font-medium">Upload complete</span>
-            </div>
-            <p className="text-fg-secondary">
-              {files.length} file{files.length === 1 ? '' : 's'} uploaded. They will be processed and appear in the library shortly.
-            </p>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" onClick={onClose} className="flex-1">
-                Close
-              </Button>
-              <Button onClick={handleOpenLibrary} className="flex-1">
-                Open elements
-              </Button>
-            </div>
-          </div>
-        )}
-
         {files.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -335,6 +313,46 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId }: Uplo
             </div>
           </div>
         )}
+      </div>
+    </Modal>
+  );
+}
+
+interface UploadResultsModalProps {
+  open: boolean;
+  onClose: () => void;
+  summary: UploadSummary | null;
+}
+
+export function UploadResultsModal({ open, onClose, summary }: UploadResultsModalProps) {
+  const footer = (
+    <div className="flex justify-end">
+      <Button onClick={onClose}>Close</Button>
+    </div>
+  );
+
+  return (
+    <Modal open={open} onClose={onClose} title="Upload complete" footer={footer} className="max-w-md">
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-success">
+          <Icon name="mdi-check-circle-outline" size={20} />
+          <span className="font-medium">Upload successful</span>
+        </div>
+        {summary && (
+          <div className="rounded-md border border-rule bg-surface p-3 text-sm">
+            <p className="text-fg-primary">
+              <span className="font-medium">{summary.fileCount}</span> file
+              {summary.fileCount === 1 ? '' : 's'} uploaded
+              {summary.libraryName && (
+                <span> to <span className="font-medium">{summary.libraryName}</span></span>
+              )}
+            </p>
+            <p className="text-fg-secondary">Total size: {formatBytes(summary.totalSize)}</p>
+          </div>
+        )}
+        <p className="text-sm text-fg-secondary">
+          Files will be processed and appear in the library shortly. Duplicates will be handled according to the selected strategy.
+        </p>
       </div>
     </Modal>
   );
