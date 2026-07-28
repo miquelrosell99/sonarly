@@ -3,9 +3,11 @@ import { useEffect, useRef } from 'react';
 import type { User } from '@sonarly/shared';
 import { api } from '../api.js';
 import { ProfileModal } from '../features/profile/index.js';
+import { CreatePlaylistModal } from '../features/playlists/index.js';
 import { NowPlaying } from '../features/now-playing/index.js';
 import { usePreferences } from '../hooks/usePreferences.js';
 import { usePlaylists } from '../hooks/usePlaylists.js';
+import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
 import { useTheme } from '../stores/themeStore.js';
 import { usePlayer } from '../stores/playerStore.js';
 import { useDominantColor } from '../hooks/useDominantColor.js';
@@ -38,6 +40,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
   const [location, setLocation] = useLocation();
   const search = useSearch();
   const { isOpen, close } = useProfileModal(location, search, setLocation);
+  const { isOpen: createPlaylistOpen, close: closeCreatePlaylist } = useCreatePlaylistModal();
   const { data: preferences } = usePreferences();
   const { data: playlists } = usePlaylists();
   const { themeMode, accentColor, setThemeMode, setAccentColor } = useTheme();
@@ -101,6 +104,8 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
           onClose={close}
         />
       )}
+
+      <CreatePlaylistModal open={createPlaylistOpen} onClose={closeCreatePlaylist} />
     </div>
   );
 }
