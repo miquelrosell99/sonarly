@@ -445,9 +445,13 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
     const finishedAt = run.finished_at ?? new Date().toISOString().replace('T', ' ').replace(/\..*$/, '');
     const jobs = db
       .prepare(
-        "SELECT id, source_path, target_path, status, error, duplicate, duplicate_strategy, created_at, updated_at FROM ingest_jobs WHERE datetime(created_at) >= datetime(?) AND datetime(created_at) <= datetime(?) ORDER BY created_at DESC"
+        `SELECT id, source_path, target_path, status, error, duplicate, duplicate_strategy, created_at, updated_at
+         FROM ingest_jobs
+         WHERE run_id = ?
+            OR (run_id IS NULL AND datetime(created_at) >= datetime(?) AND datetime(created_at) <= datetime(?))
+         ORDER BY created_at DESC`
       )
-      .all(startedAt, finishedAt) as {
+      .all(id, startedAt, finishedAt) as {
         id: string;
         source_path: string;
         target_path: string | null;
@@ -479,6 +483,64 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
         updatedAt: job.updated_at,
       })),
     });
+  });
+
+  app.get('/api/admin/ingest-runs', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    const rows = db
+      .prepare(
+        "SELECT id, status, started_at, finished_at, stats, error FROM scan_jobs WHERE type = 'ingest' ORDER BY started_at DESC, rowid DESC LIMIT 100"
+      )
+      .all() as {
+        id: string;
+        status: string;
+        started_at: string | null;
+        finished_at: string | null;
+        stats: string | null;
+        error: string | null;
+      }[];
+
+    reply.send({
+      runs: rows.map((row) => ({
+        id: row.id,
+        status: row.status,
+        startedAt: row.started_at,
+        finishedAt: row.finished_at,
+        stats: row.stats ? JSON.parse(row.stats) : undefined,
+        error: row.error,
+      })),
+    });
+  });
+
+  app.delete('/api/admin/ingest-runs/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    const { id } = request.params as { id: string };
+    const deleteRun = db.transaction(() => {
+      db.prepare('DELETE FROM ingest_jobs WHERE run_id = ?').run(id);
+      const result = db.prepare("DELETE FROM scan_jobs WHERE id = ? AND type = 'ingest'").run(id);
+      return result.changes;
+    });
+    const changes = deleteRun();
+    if (changes === 0) {
+      return reply.status(404).send({ error: 'Ingest run not found' });
+    }
+    reply.send({ ok: true });
+  });
+
+  app.delete('/api/admin/ingest-runs', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    const clearRuns = db.transaction(() => {
+      db.prepare('DELETE FROM ingest_jobs').run();
+      db.prepare("DELETE FROM scan_jobs WHERE type = 'ingest'").run();
+    });
+    clearRuns();
+    reply.send({ ok: true });
   });
 
   app.get('/api/admin/missing', async (request: FastifyRequest, reply: FastifyReply) => {

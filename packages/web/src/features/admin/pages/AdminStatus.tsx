@@ -43,7 +43,6 @@ export function AdminStatus({ user }: AdminStatusProps) {
   const [error, setError] = useState<string | null>(null);
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [reportRunId, setReportRunId] = useState<string | null>(null);
-  const [reportJobId, setReportJobId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user.isAdmin) return;
@@ -112,16 +111,12 @@ export function AdminStatus({ user }: AdminStatusProps) {
       <IngestModal
         open={activeModal === 'ingest'}
         onClose={() => setActiveModal(null)}
-        onSelectJob={(id) => setReportJobId(id)}
+        onSelectRun={(id) => setReportRunId(id)}
       />
       <IngestReportModal
         runId={reportRunId ?? undefined}
-        jobId={reportJobId ?? undefined}
-        open={Boolean(reportRunId || reportJobId)}
-        onClose={() => {
-          setReportRunId(null);
-          setReportJobId(null);
-        }}
+        open={Boolean(reportRunId)}
+        onClose={() => setReportRunId(null)}
       />
     </AdminShell>
   );

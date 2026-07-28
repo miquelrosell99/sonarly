@@ -28,7 +28,7 @@ export async function processIngestFolder(
   db: Database.Database,
   sourcePath?: string,
   targetLibrary?: Library,
-  options?: { duplicateStrategy?: DuplicateStrategy },
+  options?: { duplicateStrategy?: DuplicateStrategy; runId?: string },
 ): Promise<IngestStats> {
   const root = sourcePath ?? config.INGEST_PATH;
   const libraryPath = targetLibrary?.path ?? config.LIBRARY_PATH;
@@ -44,7 +44,7 @@ export async function processIngestFolder(
   for await (const filePath of walkIngestFiles(root)) {
     stats.processed++;
     const sourceDir = dirname(filePath);
-    const jobId = createIngestJob(db, filePath);
+    const jobId = createIngestJob(db, filePath, options?.runId ?? 'unknown');
     try {
       const validation = await validateIngestFile(filePath);
       if (!validation.valid) {
