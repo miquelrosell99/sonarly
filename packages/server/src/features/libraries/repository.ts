@@ -8,6 +8,7 @@ interface DbLibrary {
   name: string;
   path: string;
   organize_pattern: string;
+  is_default: number;
   created_at: string;
   updated_at: string;
 }
@@ -20,6 +21,7 @@ function toLibrary(row: DbLibrary): Library {
     name: row.name,
     path: row.path,
     organizePattern: row.organize_pattern,
+    isDefault: Boolean(row.is_default),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -39,27 +41,55 @@ export function getLibraryById(db: Database.Database, id: string): Library | und
   return row ? toLibrary(row) : undefined;
 }
 
+export function getDefaultLibrary(db: Database.Database): Library | undefined {
+  const row = db.prepare('SELECT * FROM libraries WHERE is_default = 1 LIMIT 1').get() as DbLibrary | undefined;
+  return row ? toLibrary(row) : undefined;
+}
+
+function clearDefaultExcept(db: Database.Database, id?: string): void {
+  if (id) {
+    db.prepare('UPDATE libraries SET is_default = 0 WHERE id != ?').run(id);
+  } else {
+    db.prepare('UPDATE libraries SET is_default = 0').run();
+  }
+}
+
 export function createLibrary(db: Database.Database, library: Library): void {
-  db.prepare('INSERT INTO libraries (id, name, path, organize_pattern, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)').run(
+  const count = (db.prepare('SELECT COUNT(*) AS count FROM libraries').get() as { count: number }).count;
+  const isDefault = (count === 0 || library.isDefault) ? 1 : 0;
+  db.prepare(
+    'INSERT INTO libraries (id, name, path, organize_pattern, is_default, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(
     library.id,
     library.name,
     library.path,
     library.organizePattern,
+    isDefault,
     library.createdAt,
     library.updatedAt,
   );
+  if (isDefault) {
+    clearDefaultExcept(db, library.id);
+  }
 }
 
 export function updateLibrary(db: Database.Database, id: string, input: UpdateLibraryInput): void {
   const existing = getLibraryById(db, id);
   if (!existing) return;
-  db.prepare('UPDATE libraries SET name = ?, path = ?, organize_pattern = ?, updated_at = ? WHERE id = ?').run(
+  const isDefault = input.isDefault ?? existing.isDefault;
+  db.prepare(
+    'UPDATE libraries SET name = ?, path = ?, organize_pattern = ?, is_default = ?, updated_at = ? WHERE id = ?'
+  ).run(
     input.name ?? existing.name,
     input.path ?? existing.path,
     input.organizePattern ?? existing.organizePattern,
+    isDefault ? 1 : 0,
     new Date().toISOString(),
     id,
   );
+  if (isDefault) {
+    clearDefaultExcept(db, id);
+  }
 }
 
 export function deleteLibraryById(db: Database.Database, id: string): void {
@@ -92,6 +122,7 @@ export function ensureDefaultLibrary(db: Database.Database, path: string): void 
     name,
     path,
     organizePattern: getDefaultOrganizePattern(db),
+    isDefault: true,
     createdAt: now,
     updatedAt: now,
   });

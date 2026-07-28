@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pushJob } from '../../../src/features/library/queue.js';
 import { migrate } from '../../../src/db/migrate.js';
+import { createLibrary } from '../../../src/features/libraries/repository.js';
 import type { Config } from '../../../src/config.js';
 import NodeID3 from 'node-id3';
 
@@ -96,6 +97,15 @@ describe('scanner worker thread', () => {
 
     db = new Database(dbPath);
     migrate(db);
+    createLibrary(db, {
+      id: '00000000-0000-0000-0000-000000000001',
+      name: 'Default',
+      path: libraryPath,
+      organizePattern: '{artist}/{album}/{title}',
+      isDefault: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
     worker = new Worker(workerUrl, { workerData: config });
   });
 
@@ -145,8 +155,13 @@ describe('scanner worker thread', () => {
     expect(stats.failed).toBe(0);
   });
 
-  it('processes an ingest job', async () => {
-    pushJob(db, 'ingest', ingestPath);
+  it('processes an ingest job from a library subfolder', async () => {
+    const libraryId = '00000000-0000-0000-0000-000000000001';
+    const sourceDir = join(ingestPath, libraryId);
+    mkdirSync(sourceDir, { recursive: true });
+    copyFileSync(fixture, join(sourceDir, 'Song.mp3'));
+
+    pushJob(db, 'ingest', JSON.stringify({ sourcePath: sourceDir, libraryId }));
 
     await waitFor(() => {
       const row = db.prepare("SELECT status FROM scan_jobs WHERE type = 'ingest'").get() as any;
@@ -155,7 +170,9 @@ describe('scanner worker thread', () => {
 
     const row = db.prepare("SELECT status, stats FROM scan_jobs WHERE type = 'ingest'").get() as any;
     expect(row.status).toBe('completed');
-    expect(JSON.parse(row.stats)).toEqual({ processed: 0, imported: 0, duplicates: 0, needsReview: 0, failed: 0 });
+    const stats = JSON.parse(row.stats);
+    expect(stats.processed).toBe(1);
+    expect(stats.imported).toBe(1);
   });
 
   it('processes an organize job', async () => {

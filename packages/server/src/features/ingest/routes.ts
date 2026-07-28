@@ -1,6 +1,12 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
+import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { z } from 'zod';
+import type { Config } from '../../config.js';
+import { getDefaultLibrary, getLibraryById } from '../libraries/index.js';
+import { pushJob } from '../library/queue.js';
 
 function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | undefined): boolean {
   if (!session?.isAdmin) {
@@ -10,7 +16,15 @@ function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | unde
   return true;
 }
 
-export function registerIngestManagementRoutes(app: FastifyInstance, db: Database.Database): void {
+const triggerSchema = z.object({
+  libraryId: z.string().uuid().optional(),
+});
+
+export function registerIngestManagementRoutes(
+  app: FastifyInstance,
+  db: Database.Database,
+  config: Config,
+): void {
   app.get('/api/ingest', (request: FastifyRequest, reply: FastifyReply) => {
     const jobs = db.prepare('SELECT * FROM ingest_jobs ORDER BY created_at DESC LIMIT 100').all();
     reply.send({ jobs });
@@ -59,11 +73,26 @@ export function registerIngestManagementRoutes(app: FastifyInstance, db: Databas
     reply.send({ ok: true });
   });
 
-  app.post('/api/ingest/trigger', (request: FastifyRequest, reply: FastifyReply) => {
+  app.post('/api/ingest/trigger', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { isAdmin?: boolean } | undefined;
     if (!requireAdmin(reply, session)) return;
-    db.prepare("INSERT INTO scan_jobs (id, type, status, stats) VALUES (?, 'ingest', 'pending', ?)")
-      .run(randomUUID(), JSON.stringify({ path: '' }));
+
+    const parseResult = triggerSchema.safeParse(request.body ?? {});
+    if (!parseResult.success) {
+      return reply.status(400).send({ error: 'Invalid input' });
+    }
+
+    const library = parseResult.data.libraryId
+      ? getLibraryById(db, parseResult.data.libraryId)
+      : getDefaultLibrary(db);
+    if (!library) {
+      return reply.status(404).send({ error: 'Library not found' });
+    }
+
+    const sourcePath = join(config.INGEST_PATH, library.id);
+    await mkdir(sourcePath, { recursive: true });
+
+    pushJob(db, 'ingest', JSON.stringify({ sourcePath, libraryId: library.id }));
     reply.send({ ok: true });
   });
 }

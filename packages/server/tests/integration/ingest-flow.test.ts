@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { copyFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 import type { FastifyInstance } from 'fastify';
@@ -64,7 +65,12 @@ describe('Ingest flow', () => {
   });
 
   it('imports the sample MP3 through the ingest endpoint and surfaces it via /api/songs', async () => {
-    copyFileSync(fixturePath, `${config.INGEST_PATH}/sample.mp3`);
+    const libraryRow = db.prepare("SELECT id FROM libraries WHERE is_default = 1 LIMIT 1").get() as { id: string } | undefined;
+    expect(libraryRow).toBeDefined();
+    const libraryId = libraryRow!.id;
+    const ingestDir = join(config.INGEST_PATH, libraryId);
+    mkdirSync(ingestDir, { recursive: true });
+    copyFileSync(fixturePath, join(ingestDir, 'sample.mp3'));
 
     const trigger = await app.inject({
       method: 'POST',

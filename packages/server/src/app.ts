@@ -146,7 +146,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   registerAlbumManagementRoutes(app, config, db);
   registerPlaylistManagementRoutes(app, db);
   registerScanManagementRoutes(app, config, db);
-  registerIngestManagementRoutes(app, db);
+  registerIngestManagementRoutes(app, db, config);
   registerOrganizeManagementRoutes(app, config, db);
   registerUploadRoutes(app, config, db);
   registerAdminRoutes(app, db, config.SESSION_SECRET, config);
