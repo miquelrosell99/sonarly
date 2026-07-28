@@ -3,6 +3,7 @@ import type { Playlist, UserPreferences, SidebarItem } from '@sonarly/shared';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
+import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
 import { mergeSidebarItems } from '../lib/sidebar.js';
 
 interface SidebarProps {
@@ -70,6 +71,7 @@ export function Sidebar({ config, playlists }: SidebarProps) {
   const [location] = useLocation();
   const { data: preferences } = usePreferences();
   const updatePreferences = useUpdatePreferences();
+  const { open: openCreatePlaylist } = useCreatePlaylistModal();
   const items = mergeSidebarItems(config);
   const collapsed = preferences?.playlistsCollapsed ?? false;
 
@@ -135,6 +137,7 @@ export function Sidebar({ config, playlists }: SidebarProps) {
                 type="button"
                 aria-label="Create playlist"
                 title="Create playlist"
+                onClick={openCreatePlaylist}
                 className="rounded-md p-1.5 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 <Icon name="mdi-playlist-plus" size={18} />
