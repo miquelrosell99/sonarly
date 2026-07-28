@@ -8,7 +8,7 @@ import { api } from '../api.js';
 import { Avatar } from './Avatar.js';
 import { SearchBox } from './SearchBox.js';
 import { LibrarySelector } from './LibrarySelector.js';
-import { UploadModal } from './UploadModal.js';
+import { UploadModal, UploadResultsModal, type UploadSummary } from './UploadModal.js';
 import { useLibraryStore, buildLibraryQuery } from '../stores/libraryStore.js';
 import type { FilterDefinition } from './FilterPanel.js';
 import type { PlayerInfo } from '@sonarly/shared';
@@ -304,6 +304,8 @@ export function TopBar({ user, onLogout }: TopBarProps) {
   const [location] = useLocation();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [resultsOpen, setResultsOpen] = useState(false);
+  const [uploadSummary, setUploadSummary] = useState<UploadSummary | null>(null);
   const filters = useFilterDefinitions(location);
   const { libraries, selectedLibraryId, setSelectedLibraryId, loadLibraries } = useLibraryStore();
 
@@ -356,6 +358,15 @@ export function TopBar({ user, onLogout }: TopBarProps) {
         onClose={() => setUploadOpen(false)}
         libraries={libraries}
         currentLibraryId={selectedLibraryId}
+        onComplete={(summary) => {
+          setUploadSummary(summary);
+          setResultsOpen(true);
+        }}
+      />
+      <UploadResultsModal
+        open={resultsOpen}
+        onClose={() => setResultsOpen(false)}
+        summary={uploadSummary}
       />
     </header>
   );
