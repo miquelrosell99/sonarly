@@ -193,6 +193,78 @@ describe('cycleRepeat', () => {
   });
 });
 
+describe('previous', () => {
+  it('restarts the current song when playing and past the threshold', () => {
+    const songs = [createSong('1'), createSong('2')];
+    const store = usePlayer.getState();
+    store.playQueue(songs, 1);
+    store.setDuration(120);
+    store.setCurrentTime(5);
+    store.previous();
+
+    const state = usePlayer.getState();
+    expect(state.queueIndex).toBe(1);
+    expect(state.currentSong).toEqual(songs[1]);
+    expect(state.currentTime).toBe(0);
+    expect(state.status).toBe('playing');
+  });
+
+  it('goes to the previous track when within the threshold', () => {
+    const songs = [createSong('1'), createSong('2')];
+    const store = usePlayer.getState();
+    store.playQueue(songs, 1);
+    store.setDuration(120);
+    store.setCurrentTime(2);
+    store.previous();
+
+    const state = usePlayer.getState();
+    expect(state.queueIndex).toBe(0);
+    expect(state.currentSong).toEqual(songs[0]);
+    expect(state.currentTime).toBe(0);
+  });
+
+  it('goes to the previous track when paused even if past the threshold', () => {
+    const songs = [createSong('1'), createSong('2')];
+    const store = usePlayer.getState();
+    store.playQueue(songs, 1);
+    store.setDuration(120);
+    store.setCurrentTime(5);
+    store.pause();
+    store.previous();
+
+    const state = usePlayer.getState();
+    expect(state.queueIndex).toBe(0);
+    expect(state.currentSong).toEqual(songs[0]);
+  });
+
+  it('restarts the first song when playing and past the threshold', () => {
+    const songs = [createSong('1'), createSong('2')];
+    const store = usePlayer.getState();
+    store.playQueue(songs, 0);
+    store.setDuration(120);
+    store.setCurrentTime(5);
+    store.previous();
+
+    const state = usePlayer.getState();
+    expect(state.queueIndex).toBe(0);
+    expect(state.currentSong).toEqual(songs[0]);
+    expect(state.currentTime).toBe(0);
+  });
+
+  it('does nothing when at the first track and within the threshold', () => {
+    const songs = [createSong('1'), createSong('2')];
+    const store = usePlayer.getState();
+    store.playQueue(songs, 0);
+    store.setDuration(120);
+    store.setCurrentTime(2);
+    store.previous();
+
+    const state = usePlayer.getState();
+    expect(state.queueIndex).toBe(0);
+    expect(state.currentSong).toEqual(songs[0]);
+  });
+});
+
 describe('onEnded', () => {
   it('restarts the current song when repeat is one', () => {
     const songs = [createSong('1'), createSong('2')];
