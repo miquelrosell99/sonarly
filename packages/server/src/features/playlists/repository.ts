@@ -10,6 +10,7 @@ export function generateShareToken(): string {
 interface DbPlaylist {
   id: string;
   name: string;
+  description: string | null;
   owner_id: string;
   visibility: PlaylistVisibility;
   share_token: string | null;
@@ -35,6 +36,7 @@ export function getPlaylistById(db: Database.Database, id: string): Playlist | u
   return {
     id: row.id,
     name: row.name,
+    description: row.description ?? undefined,
     ownerId: row.owner_id,
     visibility: row.visibility,
     shareToken: row.share_token ?? undefined,
@@ -71,11 +73,12 @@ export function resolvePlaylistSongCount(db: Database.Database, playlist: Playli
 export function createPlaylist(db: Database.Database, playlist: Playlist): void {
   const isSmart = playlist.isSmart === true;
   db.prepare(`
-    INSERT INTO playlists (id, name, owner_id, visibility, share_token, is_smart, rules_json)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO playlists (id, name, description, owner_id, visibility, share_token, is_smart, rules_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     playlist.id,
     playlist.name,
+    playlist.description ?? null,
     playlist.ownerId,
     playlist.visibility,
     playlist.shareToken ?? null,
@@ -91,10 +94,11 @@ export function updatePlaylist(db: Database.Database, playlist: Playlist): void 
   const isSmart = playlist.isSmart === true;
   db.prepare(`
     UPDATE playlists
-    SET name = ?, visibility = ?, share_token = ?, is_smart = ?, rules_json = ?, updated_at = datetime('now')
+    SET name = ?, description = ?, visibility = ?, share_token = ?, is_smart = ?, rules_json = ?, updated_at = datetime('now')
     WHERE id = ?
   `).run(
     playlist.name,
+    playlist.description ?? null,
     playlist.visibility,
     playlist.shareToken ?? null,
     isSmart ? 1 : 0,
