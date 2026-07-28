@@ -376,6 +376,51 @@ describe('management admin endpoints', () => {
     expect(res.statusCode).toBe(403);
   });
 
+  it('returns ingest run report for admins', async () => {
+    const runId = 'run-1';
+    db.prepare("INSERT INTO scan_jobs (id, type, status, started_at, finished_at, stats) VALUES (?, 'ingest', 'completed', datetime('now', '-1 hour'), datetime('now'), ?)")
+      .run(runId, JSON.stringify({ processed: 2, imported: 1, failed: 1 }));
+    db.prepare("INSERT INTO ingest_jobs (id, source_path, status, created_at, updated_at) VALUES (?, ?, 'imported', datetime('now', '-30 minutes'), datetime('now', '-30 minutes'))")
+      .run('job-1', '/data/ingest/song1.mp3');
+    db.prepare("INSERT INTO ingest_jobs (id, source_path, status, error, created_at, updated_at) VALUES (?, ?, 'failed', ?, datetime('now', '-20 minutes'), datetime('now', '-20 minutes'))")
+      .run('job-2', '/data/ingest/song2.mp3', 'Unsupported format');
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/admin/ingest-runs/${runId}`,
+      cookies: { sessionId: adminCookie },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.id).toBe(runId);
+    expect(body.status).toBe('completed');
+    expect(body.jobs).toHaveLength(2);
+    expect(body.jobs.map((j: { sourcePath: string }) => j.sourcePath).sort()).toEqual([
+      '/data/ingest/song1.mp3',
+      '/data/ingest/song2.mp3',
+    ]);
+    const failedJob = body.jobs.find((j: { status: string }) => j.status === 'failed');
+    expect(failedJob.error).toBe('Unsupported format');
+  });
+
+  it('forbids ingest run report for non-admins', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/admin/ingest-runs/run-1',
+      cookies: { sessionId: userCookie },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('returns 404 for unknown ingest run', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/admin/ingest-runs/unknown',
+      cookies: { sessionId: adminCookie },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
   it('lists missing items for admins', async () => {
     upsertArtist(db, { id: 'artist-1', name: 'Gone Artist', active: false });
     upsertAlbum(db, { id: 'album-1', name: 'Gone Album', artistId: 'artist-1', artistName: 'Gone Artist', active: false });
