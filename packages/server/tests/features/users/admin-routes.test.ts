@@ -489,8 +489,13 @@ describe('management admin endpoints', () => {
       expect(res.statusCode).toBe(200);
       const body = JSON.parse(res.body);
       expect(body.tasks).toBeInstanceOf(Array);
-      expect(body.tasks.length).toBe(3);
-      expect(body.tasks.map((t: { id: string }) => t.id)).toEqual(['periodic_scan', 'review_cleanup', 'artist_images']);
+      expect(body.tasks.length).toBe(4);
+      expect(body.tasks.map((t: { id: string }) => t.id)).toEqual([
+        'periodic_scan',
+        'review_cleanup',
+        'artist_images',
+        'ingest',
+      ]);
       for (const task of body.tasks) {
         expect(task).toHaveProperty('name');
         expect(task).toHaveProperty('description');
@@ -553,6 +558,18 @@ describe('management admin endpoints', () => {
       const pending = db
         .prepare("SELECT * FROM scan_jobs WHERE type = 'artist_images' AND status = 'pending'")
         .all();
+      expect(pending.length).toBeGreaterThan(0);
+    });
+
+    it('queues an ingest when run', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/admin/system-tasks/ingest/run',
+        cookies: { sessionId: adminCookie },
+      });
+      expect(res.statusCode).toBe(202);
+
+      const pending = db.prepare("SELECT * FROM scan_jobs WHERE type = 'ingest' AND status = 'pending'").all();
       expect(pending.length).toBeGreaterThan(0);
     });
 

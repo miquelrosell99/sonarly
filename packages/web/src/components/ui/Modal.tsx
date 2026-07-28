@@ -26,7 +26,7 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
     >
       <div
         className={cn(
-          'flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-rule bg-surface shadow-2xl',
+          'flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-rule bg-surface shadow-2xl',
           className,
         )}
       >

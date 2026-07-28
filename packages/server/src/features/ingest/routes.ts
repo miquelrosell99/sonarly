@@ -39,6 +39,26 @@ export function registerIngestManagementRoutes(app: FastifyInstance, db: Databas
     });
   });
 
+  app.delete('/api/ingest/:id', (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { isAdmin?: boolean } | undefined;
+    if (!requireAdmin(reply, session)) return;
+
+    const { id } = request.params as { id: string };
+    const result = db.prepare('DELETE FROM ingest_jobs WHERE id = ?').run(id);
+    if (result.changes === 0) {
+      return reply.status(404).send({ error: 'Ingest job not found' });
+    }
+    reply.send({ ok: true });
+  });
+
+  app.delete('/api/ingest', (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { isAdmin?: boolean } | undefined;
+    if (!requireAdmin(reply, session)) return;
+
+    db.prepare('DELETE FROM ingest_jobs').run();
+    reply.send({ ok: true });
+  });
+
   app.post('/api/ingest/trigger', (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { isAdmin?: boolean } | undefined;
     if (!requireAdmin(reply, session)) return;
