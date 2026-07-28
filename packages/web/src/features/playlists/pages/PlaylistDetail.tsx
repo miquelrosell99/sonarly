@@ -1,7 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { useParams, useLocation } from 'wouter';
 import type { SmartPlaylistRules, Song, User } from '@sonarly/shared';
-import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { SmartPlaylistEditor } from '../components/SmartPlaylistEditor.js';
@@ -11,34 +10,15 @@ import { usePlayer } from '../../../stores/playerStore.js';
 import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js';
 import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
-import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
+import { usePlaylist, type PlaylistDetailEntry } from '../../../hooks/usePlaylist.js';
+import { useCreatePlaylistModal } from '../../../hooks/useCreatePlaylistModal.js';
 import { SongTable, type SongListItem } from '../../songs/components/SongTable.js';
+import { api } from '../../../api.js';
 
-interface PlaylistSong {
-  id: string;
-  title: string;
-  artist: string;
-  album: string;
-  duration?: number;
-  explicit?: boolean;
-}
-
-interface Playlist {
-  id: string;
-  name: string;
-  ownerId: string;
-  visibility: string;
-  isSmart?: boolean;
-  rules?: SmartPlaylistRules;
-  entries: PlaylistSong[];
-  starred?: boolean;
-  rating?: number;
-}
-
-type DisplaySong = PlaylistSong & {
+type DisplaySong = PlaylistDetailEntry & {
   artistName?: string;
   albumName?: string;
 };
@@ -49,10 +29,10 @@ function PlaylistHeaderContextMenu({
   onConvert,
   children,
 }: {
-  playlist: Playlist;
+  playlist: { id: string; name: string; visibility: string; isSmart?: boolean };
   onEdit: () => void;
   onConvert: () => void;
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
   const sections = usePlaylistContextMenu(
     playlist as unknown as import('@sonarly/shared').Playlist,
@@ -69,7 +49,7 @@ function PlaylistSongContextMenu({
 }: {
   song: SongListItem;
   onEdit: () => void;
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
   const sections = useSongContextMenu(song as unknown as Song, onEdit, false);
   const visibleSections = sections
@@ -85,12 +65,8 @@ interface PlaylistDetailProps {
 export function PlaylistDetail({ user }: PlaylistDetailProps) {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
-  const [playlist, setPlaylist] = useState<Playlist | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: playlist, isLoading, error, refetch } = usePlaylist(id);
+  const { openForEdit } = useCreatePlaylistModal();
   const [savingRules, setSavingRules] = useState(false);
   const { notify } = useNotification();
   const { setFavorite, setRating } = useFavoriteActions();
@@ -98,21 +74,6 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
   const playingId = usePlayer((state) => state.currentSong?.id);
 
   useDocumentTitle(playlist?.name);
-
-  const load = () => {
-    if (!id) return;
-    setLoading(true);
-    api<{ playlist: Playlist }>(`/playlists/${id}`)
-      .then((playlistRes) => {
-        setPlaylist(playlistRes.playlist);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load playlist'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-  }, [id]);
 
   const saveRules = async (rules: SmartPlaylistRules) => {
     if (!id || !playlist) return;
@@ -122,8 +83,7 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
         method: 'PUT',
         body: JSON.stringify({ rules }),
       });
-      const refreshed = await api<{ playlist: Playlist }>(`/playlists/${id}`);
-      setPlaylist(refreshed.playlist);
+      await refetch();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to save rules', 'error');
     } finally {
@@ -155,7 +115,6 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
     if (!playlist) return;
     try {
       await setFavorite('playlist', playlist.id, starred);
-      setPlaylist((prev) => (prev ? { ...prev, starred } : prev));
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to update favorite', 'error');
     }
@@ -165,54 +124,17 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
     if (!playlist) return;
     try {
       await setRating('playlist', playlist.id, rating);
-      setPlaylist((prev) => (prev ? { ...prev, rating } : prev));
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to update rating', 'error');
     }
   };
 
-  const handleSavePlaylist = async (patched: Record<string, unknown>) => {
-    if (!id || !playlist) return;
-    setSaving(true);
-    try {
-      const body: Record<string, unknown> = {
-        name: patched.name,
-        visibility: patched.visibility,
-      };
-      if (playlist.isSmart) {
-        body.rules = patched.rules;
-      }
-      await api(`/playlists/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(body),
-      });
-      setEditing(false);
-      load();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to save playlist', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDeletePlaylist = async () => {
-    if (!id || !playlist) return;
-    setDeleting(true);
-    try {
-      await api(`/playlists/${id}`, { method: 'DELETE' });
-      setLocation('/playlists');
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to delete playlist', 'error');
-      setDeleting(false);
-    }
-  };
-
   const handleConvert = () => {
-    load();
+    refetch();
   };
 
-  if (loading) return <p className="text-sm text-muted">Loading...</p>;
-  if (error) return <p className="text-sm text-danger">{error}</p>;
+  if (isLoading) return <p className="text-sm text-muted">Loading...</p>;
+  if (error) return <p className="text-sm text-danger">{error.message}</p>;
   if (!playlist) return <p className="text-sm text-muted">Playlist not found.</p>;
 
   const header = (
@@ -235,9 +157,15 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
           )}
         </p>
       </div>
-      <Button variant="ghost" onClick={() => setLocation('/playlists')}>
-        Back
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" onClick={() => openForEdit(playlist.id)}>
+          <Icon name="mdi-pencil" size={18} className="mr-1.5" />
+          Edit
+        </Button>
+        <Button variant="ghost" onClick={() => setLocation('/playlists')}>
+          Back
+        </Button>
+      </div>
     </div>
   );
 
@@ -245,7 +173,7 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
     <div>
       <PlaylistHeaderContextMenu
         playlist={playlist}
-        onEdit={() => setEditing(true)}
+        onEdit={() => openForEdit(playlist.id)}
         onConvert={handleConvert}
       >
         {header}
@@ -275,19 +203,6 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
         )}
         empty="No songs in this playlist."
       />
-
-      {editing && (
-        <EditEntityModal
-          open
-          entityType="playlist"
-          entity={(playlist as unknown) as Record<string, unknown>}
-          onClose={() => setEditing(false)}
-          onSave={handleSavePlaylist}
-          onDelete={handleDeletePlaylist}
-          saving={saving}
-          deleting={deleting}
-        />
-      )}
     </div>
   );
 }

@@ -40,7 +40,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
   const [location, setLocation] = useLocation();
   const search = useSearch();
   const { isOpen, close } = useProfileModal(location, search, setLocation);
-  const { isOpen: createPlaylistOpen, close: closeCreatePlaylist } = useCreatePlaylistModal();
+  const { isOpen: createPlaylistOpen, editingPlaylistId, close: closeCreatePlaylist } = useCreatePlaylistModal();
   const { data: preferences } = usePreferences();
   const { data: playlists } = usePlaylists();
   const { themeMode, accentColor, setThemeMode, setAccentColor } = useTheme();
@@ -105,7 +105,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
         />
       )}
 
-      <CreatePlaylistModal open={createPlaylistOpen} onClose={closeCreatePlaylist} />
+      <CreatePlaylistModal open={createPlaylistOpen} onClose={closeCreatePlaylist} editingPlaylistId={editingPlaylistId} />
     </div>
   );
 }
