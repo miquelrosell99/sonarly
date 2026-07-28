@@ -119,6 +119,18 @@ function getSystemTasks(config: Config): SystemTaskDefinition[] {
       },
       run: (db) => pushJob(db, 'artist_images', ''),
     },
+    {
+      id: 'ingest',
+      name: 'Ingest',
+      description: 'Processes files in the ingest folder and imports them into the library.',
+      jobTypes: ['ingest'],
+      intervalMinutes: null,
+      getLastRunAt: (db) => {
+        const status = getLatestJobStatus(db, ['ingest']);
+        return status.lastRunAt;
+      },
+      run: (db, cfg) => pushJob(db, 'ingest', cfg.INGEST_PATH),
+    },
   ];
 }
 
@@ -135,7 +147,7 @@ function buildSystemTaskResponse(def: SystemTaskDefinition, db: Database.Databas
 }
 
 const taskRunParamsSchema = z.object({
-  taskId: z.enum(['periodic_scan', 'review_cleanup', 'artist_images']),
+  taskId: z.enum(['periodic_scan', 'review_cleanup', 'artist_images', 'ingest']),
 });
 
 export function registerAdminRoutes(app: FastifyInstance, db: Database.Database, sessionSecret: string, config: Config): void {
@@ -175,7 +187,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
     const limit = Math.max(1, Math.min(100, parseInt(query.limit ?? '10', 10) || 10));
     const offset = (page - 1) * limit;
 
-    const systemTaskTypes = ['scan', 'resync', 'cleanup_review', 'artist_images'];
+    const systemTaskTypes = ['scan', 'resync', 'cleanup_review', 'artist_images', 'ingest'];
     const placeholders = systemTaskTypes.map(() => '?').join(',');
     const rows = db.prepare(
       `SELECT id, type, status, started_at, finished_at, stats
@@ -202,6 +214,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
       resync: 'Periodic library scan',
       cleanup_review: 'Review folder cleanup',
       artist_images: 'Artist image sync',
+      ingest: 'Ingest',
     };
 
     reply.send({
@@ -503,6 +516,36 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
     const { id } = request.params as { id: string };
     deleteArtistById(db, id);
+    reply.send({ ok: true });
+  });
+
+  app.delete('/api/admin/missing/songs', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    for (const song of listInactiveSongs(db)) {
+      deleteSongById(db, song.id);
+    }
+    reply.send({ ok: true });
+  });
+
+  app.delete('/api/admin/missing/albums', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    for (const album of listInactiveAlbums(db)) {
+      deleteAlbumById(db, album.id);
+    }
+    reply.send({ ok: true });
+  });
+
+  app.delete('/api/admin/missing/artists', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    for (const artist of listInactiveArtists(db)) {
+      deleteArtistById(db, artist.id);
+    }
     reply.send({ ok: true });
   });
 
