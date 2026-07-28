@@ -59,7 +59,7 @@ export function Genre() {
           <h2 className="text-lg font-semibold">{genre}</h2>
           {tracks.length > 0 && (
             <div className="flex gap-2">
-              <PlayButton variant="default" onPlay={() => playSongs(tracks as Song[], 0)} onShufflePlay={() => shufflePlay(tracks as Song[])}>
+              <PlayButton variant="default" onPlay={() => playSongs(tracks as Song[])} onShufflePlay={() => shufflePlay(tracks as Song[])}>
                 Play all
               </PlayButton>
               <Button variant="ghost" onClick={() => shufflePlay(tracks as Song[])}>

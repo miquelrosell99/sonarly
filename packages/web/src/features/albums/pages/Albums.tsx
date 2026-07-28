@@ -84,7 +84,7 @@ export function Albums() {
   const playAlbum = async (album: Album) => {
     try {
       const detail = await api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
-      playSongs(detail.songs, 0);
+      playSongs(detail.songs);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to play album');
     }

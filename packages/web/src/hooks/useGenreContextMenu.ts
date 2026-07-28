@@ -30,15 +30,13 @@ export function useGenreContextMenu(genre: string, tracks?: Song[]): ContextMenu
 
   const handlePlay = useCallback(async () => {
     await withTracks('play', (songs) => {
-      playSongs(songs, 0);
+      playSongs(songs);
     });
   }, [withTracks, playSongs]);
 
   const handlePlayNext = useCallback(async () => {
     await withTracks('play-next', (songs) => {
-      for (let i = songs.length - 1; i >= 0; i--) {
-        playNext(songs[i]);
-      }
+      playNext(songs);
     });
   }, [withTracks, playNext]);
 

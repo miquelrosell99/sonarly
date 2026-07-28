@@ -35,15 +35,13 @@ export function useAlbumContextMenu(album: Album): ContextMenuSection[] {
 
   const handlePlay = useCallback(async () => {
     await withAlbumSongs('play', (songs) => {
-      playSongs(songs, 0);
+      playSongs(songs);
     });
   }, [withAlbumSongs, playSongs]);
 
   const handlePlayNext = useCallback(async () => {
     await withAlbumSongs('play-next', (songs) => {
-      for (let i = songs.length - 1; i >= 0; i--) {
-        playNext(songs[i]);
-      }
+      playNext(songs);
     });
   }, [withAlbumSongs, playNext]);
 

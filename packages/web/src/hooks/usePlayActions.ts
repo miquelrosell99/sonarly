@@ -5,7 +5,7 @@ export interface UsePlayActionsResult {
   playSong: (song: Song) => void;
   playSongs: (songs: Song[], startIndex?: number, shuffle?: boolean) => void;
   shufflePlay: (songs: Song[]) => void;
-  playNext: (song: Song) => void;
+  playNext: (song: Song | Song[]) => void;
   addToQueue: (songs: Song[]) => void;
 }
 
@@ -19,16 +19,16 @@ export function usePlayActions(): UsePlayActionsResult {
     playNow(song as PlayerSong);
   };
 
-  const playSongs = (songs: Song[], startIndex = 0, shuffle?: boolean) => {
+  const playSongs = (songs: Song[], startIndex?: number, shuffle?: boolean) => {
     playQueue(songs as PlayerSong[], startIndex, shuffle);
   };
 
   const shufflePlay = (songs: Song[]) => {
-    playSongs(songs, 0, true);
+    playSongs(songs, undefined, true);
   };
 
-  const playNext = (song: Song) => {
-    playNextSong(song as PlayerSong);
+  const playNext = (song: Song | Song[]) => {
+    playNextSong(song as PlayerSong | PlayerSong[]);
   };
 
   const addToQueue = (songs: Song[]) => {

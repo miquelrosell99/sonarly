@@ -28,7 +28,7 @@ export function Composers() {
   const playComposer = (composer: string) => {
     const matching = songs.filter((song) => song.composers?.includes(composer));
     if (matching.length > 0) {
-      playSongs(matching, 0);
+      playSongs(matching);
     }
   };
 

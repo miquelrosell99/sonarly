@@ -133,10 +133,10 @@ describe('usePlaylistContextMenu', () => {
 
     await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/playlists/playlist-1'));
     expect(playActions.playSongs).toHaveBeenCalledTimes(1);
-    expect(playActions.playSongs).toHaveBeenCalledWith(playlistSongs, 0);
+    expect(playActions.playSongs).toHaveBeenCalledWith(playlistSongs);
   });
 
-  it('fetches playlist entries and calls playNext for each song in reverse order when Play next is clicked', async () => {
+  it('fetches playlist entries and calls playNext with all songs when Play next is clicked', async () => {
     mockedApi.mockResolvedValueOnce(makeDetail(basePlaylist));
 
     const Harness = createHarness(basePlaylist, vi.fn(), vi.fn());
@@ -145,9 +145,8 @@ describe('usePlaylistContextMenu', () => {
     fireEvent.click(screen.getByTestId('play-next'));
 
     await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/playlists/playlist-1'));
-    expect(playActions.playNext).toHaveBeenCalledTimes(playlistSongs.length);
-    expect(playActions.playNext).toHaveBeenNthCalledWith(1, playlistSongs[1]);
-    expect(playActions.playNext).toHaveBeenNthCalledWith(2, playlistSongs[0]);
+    expect(playActions.playNext).toHaveBeenCalledTimes(1);
+    expect(playActions.playNext).toHaveBeenCalledWith(playlistSongs);
   });
 
   it('fetches playlist entries and calls addToQueue with the songs when Add to queue is clicked', async () => {

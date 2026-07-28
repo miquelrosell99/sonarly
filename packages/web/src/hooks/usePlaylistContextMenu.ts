@@ -37,15 +37,13 @@ export function usePlaylistContextMenu(
 
   const handlePlay = useCallback(async () => {
     await withEntries('play', (songs) => {
-      playSongs(songs, 0);
+      playSongs(songs);
     });
   }, [withEntries, playSongs]);
 
   const handlePlayNext = useCallback(async () => {
     await withEntries('play-next', (songs) => {
-      for (let i = songs.length - 1; i >= 0; i--) {
-        playNext(songs[i]);
-      }
+      playNext(songs);
     });
   }, [withEntries, playNext]);
 

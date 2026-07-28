@@ -103,7 +103,7 @@ export function Album({ user }: { user: User }) {
 
   const handlePlayAlbum = () => {
     if (!detail) return;
-    playSongs(detail.songs as SharedSong[], 0);
+    playSongs(detail.songs as SharedSong[]);
   };
 
   const handleShuffleAlbumSongs = () => {
