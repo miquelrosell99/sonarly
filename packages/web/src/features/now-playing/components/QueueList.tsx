@@ -64,7 +64,7 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
   const currentSong = usePlayer((state) => state.currentSong);
   const shuffle = usePlayer((state) => state.shuffle);
   const shuffledIndices = usePlayer((state) => state.shuffledIndices);
-  const playQueue = usePlayer((state) => state.playQueue);
+  const playAtIndex = usePlayer((state) => state.playAtIndex);
   const toggleShuffle = usePlayer((state) => state.toggleShuffle);
   const { notify } = useNotification();
 
@@ -117,13 +117,12 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
   };
 
   const handlePlay = (item: QueueDisplayItem) => {
-    playQueue(queue, item.originalIndex);
+    playAtIndex(item.originalIndex);
   };
 
   const handlePlaySelection = (selected: QueueDisplayItem[], startIndex: number) => {
-    const selectedSongs = selected.map((item) => item.song);
     const originalStartIndex = selected[startIndex]?.originalIndex ?? 0;
-    playQueue(selectedSongs, originalStartIndex);
+    playAtIndex(originalStartIndex);
   };
 
   const handleReorder = (nextItems: QueueDisplayItem[]) => {
