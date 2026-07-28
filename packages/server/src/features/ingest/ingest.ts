@@ -73,8 +73,11 @@ export async function processIngestFolder(
       );
 
       if (duplicate) {
-        updateIngestJob(db, jobId, 'imported', duplicate.finalPath, undefined, true, duplicateStrategy);
-        stats.imported++;
+        const status = duplicate.skipped ? 'skipped' : 'imported';
+        updateIngestJob(db, jobId, status, duplicate.finalPath, undefined, true, duplicateStrategy);
+        if (!duplicate.skipped) {
+          stats.imported++;
+        }
         stats.duplicates++;
         if (sourceDir !== root && duplicate.finalPath) {
           importedSourceDirs.set(sourceDir, dirname(duplicate.finalPath));

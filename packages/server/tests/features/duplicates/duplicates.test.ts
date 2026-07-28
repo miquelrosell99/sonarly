@@ -155,4 +155,35 @@ describe('duplicate song handling', () => {
     expect(second.duplicates).toBe(0);
     expect(second.imported).toBe(1);
   });
+
+  it('skips duplicate without importing with skip strategy', async () => {
+    setDuplicateStrategy(db, 'skip');
+
+    copyFileSync(fixturePath, join(ingestPath, 'first.mp3'));
+    const first = await processIngestFolder(config, db);
+    expect(first.imported).toBe(1);
+
+    const firstLibraryPath = db.prepare('SELECT file_path FROM songs WHERE active = 1').pluck().get() as string;
+    const firstSize = readFileSync(firstLibraryPath).length;
+
+    const secondPath = join(ingestPath, 'second.mp3');
+    copyFileSync(fixturePath, secondPath);
+    NodeID3.write(
+      { title: 'Sample Song', artist: 'Sample Artist', album: 'Sample Album', genre: 'Rock' },
+      secondPath,
+    );
+
+    const second = await processIngestFolder(config, db);
+    expect(second.duplicates).toBe(1);
+    expect(second.imported).toBe(0);
+
+    const song = getSongById(db, db.prepare('SELECT id FROM songs WHERE active = 1').pluck().get() as string);
+    expect(song?.filePath).toBe(firstLibraryPath);
+    expect(readFileSync(song!.filePath).length).toBe(firstSize);
+    // Metadata was not changed.
+    expect(song?.genre).toBe('Sample');
+
+    const jobStatus = db.prepare("SELECT status FROM ingest_jobs WHERE source_path = ?").pluck().get(secondPath) as string;
+    expect(jobStatus).toBe('skipped');
+  });
 });
