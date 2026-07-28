@@ -1,5 +1,6 @@
 import { Children, type MouseEvent, type KeyboardEvent, type ReactNode, cloneElement, isValidElement } from 'react';
 import { cn } from '../lib/cn.js';
+import { Icon } from './ui/Icon.js';
 import { PlayButton } from './PlayButton.js';
 import { FavoriteButton, StarRating } from './ActionButtons.js';
 
@@ -26,6 +27,11 @@ interface ListRowProps {
   favorite?: ListRowActionFavorite;
   rating?: ListRowActionRating;
   onContextMenu?: (e: React.MouseEvent) => void;
+  sortable?: boolean;
+  sortableRef?: React.Ref<HTMLTableRowElement>;
+  sortableStyle?: React.CSSProperties;
+  isDragging?: boolean;
+  dragHandleProps?: Record<string, unknown>;
   children: ReactNode;
 }
 
@@ -55,6 +61,11 @@ export function ListRow({
   favorite,
   rating,
   onContextMenu,
+  sortable = false,
+  sortableRef,
+  sortableStyle,
+  isDragging = false,
+  dragHandleProps,
   children,
 }: ListRowProps) {
   const handleClick = (e: MouseEvent) => {
@@ -89,17 +100,32 @@ export function ListRow({
 
   return (
     <tr
+      ref={sortableRef}
+      style={sortableStyle}
       tabIndex={0}
       aria-selected={isSelected}
       className={cn(
         'group cursor-pointer select-none transition outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
         isSelected ? 'bg-surface-hover' : 'hover:bg-surface-hover',
+        isDragging && 'z-10 scale-[1.02] shadow-lg',
       )}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onKeyDown={handleKeyDown}
       onContextMenu={onContextMenu}
     >
+      {sortable && (
+        <td className="w-8 py-2 pr-2">
+          <button
+            type="button"
+            {...dragHandleProps}
+            aria-label="Drag to reorder"
+            className="cursor-grab text-fg-secondary opacity-0 transition hover:text-fg-primary group-hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing"
+          >
+            <Icon name="mdi-drag-vertical" size={18} />
+          </button>
+        </td>
+      )}
       <td className="w-12 py-2 pr-4">
         <span className="relative inline-flex h-5 w-6 items-center justify-center text-muted">
           <span className="group-hover:opacity-0">{index + 1}</span>

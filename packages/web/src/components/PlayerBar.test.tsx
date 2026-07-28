@@ -179,7 +179,7 @@ describe('PlayerBar', () => {
     expect(screen.getByRole('button', { name: /queue/i })).toBeTruthy();
   });
 
-  it('opens a floating queue modal and plays a queued track when clicked', () => {
+  it('opens a floating queue modal and plays a queued track when double-clicked', () => {
     usePlayer.getState().playQueue([
       { id: 's1', title: 'Now Playing', artistName: 'Artist' } as any,
       { id: 's2', title: 'Up Next', artistName: 'Artist' } as any,
@@ -189,7 +189,7 @@ describe('PlayerBar', () => {
     fireEvent.click(screen.getByRole('button', { name: /queue/i }));
 
     expect(screen.getByRole('dialog', { name: /queue/i })).toBeTruthy();
-    fireEvent.click(screen.getByText('Up Next'));
+    fireEvent.doubleClick(screen.getByText('Up Next'));
     expect(usePlayer.getState().currentSong?.id).toBe('s2');
   });
 

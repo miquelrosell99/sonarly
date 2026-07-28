@@ -4,7 +4,7 @@ import type { User } from '@sonarly/shared';
 import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { ControlButton } from '../../../components/PlayerControls.js';
-import { Queue } from './Queue.js';
+import { QueueList } from './QueueList.js';
 
 interface QueueModalProps {
   user: User;
@@ -110,7 +110,7 @@ export function QueueModal({ user }: QueueModalProps) {
               </button>
             </div>
             <div className="flex-1 min-h-0 p-2">
-              <Queue user={user} showHeader={false} />
+              <QueueList user={user} showHeader={false} />
             </div>
           </div>,
           document.body,
