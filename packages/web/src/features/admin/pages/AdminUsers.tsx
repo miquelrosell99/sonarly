@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { User } from '@sonarly/shared';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { Library, User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 import { Checkbox } from '../../../components/ui/Checkbox.js';
 import { Modal } from '../../../components/ui/Modal.js';
+import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { AdminShell } from '../components/AdminShell.js';
 import { useStatistics, StatisticsView } from '../../statistics/index.js';
@@ -87,6 +89,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
   const [editForm, setEditForm] = useState<EditForm>(emptyEditForm);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [statsUser, setStatsUser] = useState<User | null>(null);
   const [statsRange, setStatsRange] = useState<'7d' | '30d' | '90d' | '1y' | 'all'>('all');
   const { data: statsData, isLoading: statsLoading, error: statsError } = useStatistics(
@@ -217,7 +220,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
     }
   };
 
-  const remove = async (id: string) => {
+  const promptDelete = (id: string) => {
     if (id === user.id) {
       setError('You cannot delete your own account');
       return;
@@ -229,11 +232,15 @@ export function AdminUsers({ user }: AdminUsersProps) {
       setError('Cannot delete the last admin');
       return;
     }
-    if (!window.confirm(`Delete user "${target.username}"? This cannot be undone.`)) return;
+    setUserToDelete(id);
+  };
+
+  const remove = async (id: string) => {
     setDeletingId(id);
     setError(null);
     try {
       await api(`/admin/users/${id}`, { method: 'DELETE' });
+      setUserToDelete(null);
       notify('User deleted.', 'success');
       await load();
     } catch (err) {
@@ -489,6 +496,8 @@ export function AdminUsers({ user }: AdminUsersProps) {
                 onChange={(e) => setEditForm((prev) => ({ ...prev, blurExplicitCovers: e.target.checked }))}
               />
             </div>
+
+            {editingUser && <UserLibrariesSection userId={editingUser.id} />}
           </div>
         </Modal>
 
@@ -539,7 +548,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
                         </Button>
                         <Button
                           variant="danger"
-                          onClick={() => remove(u.id)}
+                          onClick={() => promptDelete(u.id)}
                           disabled={deletingId === u.id || isSelf || (u.isAdmin && !canDemoteOrDeleteAdmin)}
                         >
                           Delete
@@ -553,6 +562,88 @@ export function AdminUsers({ user }: AdminUsersProps) {
           </table>
         </div>
       </div>
+
+      <ConfirmModal
+        open={userToDelete !== null}
+        onClose={() => setUserToDelete(null)}
+        title="Delete user"
+        message={`Delete user "${users.find((u) => u.id === userToDelete)?.username ?? ''}"? This cannot be undone.`}
+        confirmLabel="Delete"
+        danger
+        onConfirm={() => userToDelete && remove(userToDelete)}
+      />
     </AdminShell>
+  );
+}
+
+function UserLibrariesSection({ userId }: { userId: string }) {
+  const qc = useQueryClient();
+  const { notify } = useNotification();
+
+  const { data: libraries } = useQuery({
+    queryKey: ['admin-libraries'],
+    queryFn: async () => (await api<{ libraries: Library[] }>('/admin/libraries')).libraries,
+  });
+
+  const { data: assigned } = useQuery({
+    queryKey: ['admin-user-libraries', userId],
+    queryFn: async () => (await api<{ libraries: string[] }>(`/admin/users/${userId}/libraries`)).libraries,
+    enabled: !!userId,
+  });
+
+  const assign = useMutation({
+    mutationFn: async (libraryIds: string[]) =>
+      api(`/admin/users/${userId}/libraries`, { method: 'POST', body: JSON.stringify({ libraryIds }) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-user-libraries', userId] }),
+    onError: (err) => notify(err instanceof Error ? err.message : 'Failed to assign library', 'error'),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (libraryId: string) =>
+      api(`/admin/users/${userId}/libraries/${libraryId}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-user-libraries', userId] }),
+    onError: (err) => notify(err instanceof Error ? err.message : 'Failed to remove library', 'error'),
+  });
+
+  const assignedSet = new Set(assigned ?? []);
+  const busy = assign.isPending || remove.isPending;
+
+  const toggle = (libraryId: string, checked: boolean) => {
+    if (checked) {
+      assign.mutate([libraryId]);
+    } else {
+      remove.mutate(libraryId);
+    }
+  };
+
+  const sortedLibraries = useMemo(() => {
+    return [...(libraries ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+  }, [libraries]);
+
+  return (
+    <div className="space-y-3 border-t border-rule pt-4">
+      <h4 className="text-sm font-medium text-fg-secondary">Libraries</h4>
+      {!libraries || libraries.length === 0 ? (
+        <p className="text-sm text-muted">No libraries found.</p>
+      ) : (
+        <ul className="space-y-2">
+          {sortedLibraries.map((library) => (
+            <li
+              key={library.id}
+              className="flex items-center justify-between rounded-lg border border-rule bg-bg-primary px-4 py-3"
+            >
+              <Checkbox
+                id={`edit-user-library-${userId}-${library.id}`}
+                label={library.name}
+                description={library.path}
+                checked={assignedSet.has(library.id)}
+                onChange={(e) => toggle(library.id, e.target.checked)}
+                disabled={busy}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

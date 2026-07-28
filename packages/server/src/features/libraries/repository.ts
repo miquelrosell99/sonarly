@@ -112,6 +112,22 @@ export function removeUserFromLibrary(db: Database.Database, libraryId: string, 
   db.prepare('DELETE FROM user_libraries WHERE library_id = ? AND user_id = ?').run(libraryId, userId);
 }
 
+export function getUserLibraries(db: Database.Database, userId: string): string[] {
+  return db.prepare('SELECT library_id FROM user_libraries WHERE user_id = ? ORDER BY library_id')
+    .pluck().all(userId) as string[];
+}
+
+export function assignLibrariesToUser(db: Database.Database, userId: string, libraryIds: string[]): void {
+  const stmt = db.prepare('INSERT OR IGNORE INTO user_libraries (user_id, library_id) VALUES (?, ?)');
+  for (const libraryId of libraryIds) {
+    stmt.run(userId, libraryId);
+  }
+}
+
+export function removeLibraryFromUser(db: Database.Database, userId: string, libraryId: string): void {
+  db.prepare('DELETE FROM user_libraries WHERE user_id = ? AND library_id = ?').run(userId, libraryId);
+}
+
 export function ensureDefaultLibrary(db: Database.Database, path: string): void {
   const count = (db.prepare('SELECT COUNT(*) AS count FROM libraries').get() as { count: number }).count;
   if (count > 0) return;

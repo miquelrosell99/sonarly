@@ -159,7 +159,6 @@ export function Songs({ user }: { user: User }) {
 
   const handleDeleteCoverArt = async () => {
     if (!editing) return;
-    if (!window.confirm('Are you sure you want to remove the cover art?')) return;
     setCoverArtBusy(true);
     try {
       await api(`/songs/${editing.id}/cover-art`, { method: 'DELETE' });

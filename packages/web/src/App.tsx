@@ -16,7 +16,6 @@ import {
   AdminSystemTasks,
   AdminGenres,
   AdminLibraries,
-  LibraryUsers,
 } from './features/admin/index.js';
 import { SettingsProfile } from './features/settings/index.js';
 import { SettingsAppearance } from './features/settings/index.js';
@@ -151,7 +150,6 @@ export default function App() {
         <Route path="/admin" component={() => <Redirect to="/admin/status" />} />
         <Route path="/admin/status" component={() => <AdminStatus user={user} />} />
         <Route path="/admin/libraries" component={() => <AdminLibraries user={user} />} />
-        <Route path="/admin/libraries/:id/users" component={() => <LibraryUsers user={user} />} />
         <Route path="/admin/media" component={() => <AdminMedia user={user} />} />
         <Route path="/admin/users" component={() => <AdminUsers user={user} />} />
         <Route path="/admin/system-tasks" component={() => <AdminSystemTasks user={user} />} />

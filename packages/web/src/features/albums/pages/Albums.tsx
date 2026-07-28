@@ -181,7 +181,6 @@ export function Albums() {
 
   const handleDeleteCoverArt = async () => {
     if (!editing) return;
-    if (!window.confirm('Are you sure you want to remove the cover art?')) return;
     setCoverArtBusy(true);
     try {
       await api(`/albums/${editing.id}/cover-art`, { method: 'DELETE' });

@@ -4,6 +4,7 @@ import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 import { Icon } from '../../../components/ui/Icon.js';
+import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { AdminShell } from '../components/AdminShell.js';
 
 interface AdminGenresProps {
@@ -61,6 +62,7 @@ export function AdminGenres({ user }: AdminGenresProps) {
   const [inlineAdd, setInlineAdd] = useState<InlineAdd | null>(null);
   const [movingId, setMovingId] = useState<string | null>(null);
   const [pending, setPending] = useState<Set<string>>(new Set());
+  const [genreToDelete, setGenreToDelete] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -175,11 +177,15 @@ export function AdminGenres({ user }: AdminGenresProps) {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this genre?')) return;
+  const handleDelete = (id: string) => {
+    setGenreToDelete(id);
+  };
+
+  const confirmDelete = async (id: string) => {
     markPending(id, true);
     try {
       await api(`/genres/${id}`, { method: 'DELETE' });
+      setGenreToDelete(null);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete genre');
@@ -275,6 +281,16 @@ export function AdminGenres({ user }: AdminGenresProps) {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={genreToDelete !== null}
+        onClose={() => setGenreToDelete(null)}
+        title="Delete genre"
+        message="Are you sure you want to delete this genre? This action cannot be undone."
+        confirmLabel="Delete"
+        danger
+        onConfirm={() => genreToDelete && confirmDelete(genreToDelete)}
+      />
     </AdminShell>
   );
 }
