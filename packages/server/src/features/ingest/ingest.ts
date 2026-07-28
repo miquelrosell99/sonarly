@@ -1,4 +1,4 @@
-import { readdir, rename, mkdir, stat, rmdir } from 'node:fs/promises';
+import { readdir, rename, mkdir, stat, rmdir, copyFile, unlink } from 'node:fs/promises';
 import { extname, join, dirname, basename, parse } from 'node:path';
 import Database from 'better-sqlite3';
 import type { Config } from '../../config.js';
@@ -109,7 +109,24 @@ async function* walkIngestFiles(dir: string): AsyncGenerator<string> {
 async function moveToReview(sourcePath: string, reviewDir: string): Promise<void> {
   const target = await resolveUniquePath(join(reviewDir, basename(sourcePath)));
   await mkdir(dirname(target), { recursive: true });
-  await rename(sourcePath, target);
+  await moveFile(sourcePath, target);
+}
+
+async function moveFile(sourcePath: string, targetPath: string): Promise<void> {
+  try {
+    await rename(sourcePath, targetPath);
+  } catch (err) {
+    if (isExdev(err)) {
+      await copyFile(sourcePath, targetPath);
+      await unlink(sourcePath);
+    } else {
+      throw err;
+    }
+  }
+}
+
+function isExdev(err: unknown): boolean {
+  return err instanceof Error && (err as NodeJS.ErrnoException).code === 'EXDEV';
 }
 
 async function resolveUniquePath(targetPath: string): Promise<string> {
