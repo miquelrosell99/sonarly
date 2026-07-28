@@ -432,9 +432,19 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
     const finishedAt = run.finished_at ?? new Date().toISOString().replace('T', ' ').replace(/\..*$/, '');
     const jobs = db
       .prepare(
-        "SELECT * FROM ingest_jobs WHERE datetime(created_at) >= datetime(?) AND datetime(created_at) <= datetime(?) ORDER BY created_at DESC"
+        "SELECT id, source_path, target_path, status, error, duplicate, duplicate_strategy, created_at, updated_at FROM ingest_jobs WHERE datetime(created_at) >= datetime(?) AND datetime(created_at) <= datetime(?) ORDER BY created_at DESC"
       )
-      .all(startedAt, finishedAt) as Record<string, unknown>[];
+      .all(startedAt, finishedAt) as {
+        id: string;
+        source_path: string;
+        target_path: string | null;
+        status: string;
+        error: string | null;
+        duplicate: number;
+        duplicate_strategy: string | null;
+        created_at: string;
+        updated_at: string;
+      }[];
 
     reply.send({
       id: run.id,
@@ -445,15 +455,15 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
       stats: run.stats ? JSON.parse(run.stats) : undefined,
       error: run.error,
       jobs: jobs.map((job) => ({
-        id: String(job.id),
-        sourcePath: String(job.source_path),
-        targetPath: job.target_path ? String(job.target_path) : null,
-        status: String(job.status),
-        error: job.error ? String(job.error) : null,
+        id: job.id,
+        sourcePath: job.source_path,
+        targetPath: job.target_path,
+        status: job.status,
+        error: job.error,
         duplicate: Boolean(job.duplicate),
-        duplicateStrategy: job.duplicate_strategy ? String(job.duplicate_strategy) : null,
-        createdAt: String(job.created_at),
-        updatedAt: String(job.updated_at),
+        duplicateStrategy: job.duplicate_strategy,
+        createdAt: job.created_at,
+        updatedAt: job.updated_at,
       })),
     });
   });
