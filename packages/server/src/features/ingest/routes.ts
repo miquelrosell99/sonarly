@@ -16,6 +16,17 @@ export function registerIngestManagementRoutes(app: FastifyInstance, db: Databas
     reply.send({ jobs });
   });
 
+  app.get('/api/ingest/:id', (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const job = db
+      .prepare('SELECT * FROM ingest_jobs WHERE id = ?')
+      .get(id) as Record<string, unknown> | undefined;
+    if (!job) {
+      return reply.status(404).send({ error: 'Ingest job not found' });
+    }
+    reply.send({ job });
+  });
+
   app.post('/api/ingest/trigger', (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { isAdmin?: boolean } | undefined;
     if (!requireAdmin(reply, session)) return;

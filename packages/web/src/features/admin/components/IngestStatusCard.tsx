@@ -1,4 +1,3 @@
-import { Link } from 'wouter';
 import { Icon } from '../../../components/ui/Icon.js';
 import { StatusPill } from './StatusPill.js';
 
@@ -12,7 +11,8 @@ interface IngestStatus {
 
 interface IngestStatusCardProps {
   ingest: IngestStatus;
-  onOpenIngest?: () => void;
+  onOpenReport?: () => void;
+  onOpenHistory?: () => void;
   onOpenConflicts?: () => void;
   onOpenMissing?: () => void;
 }
@@ -42,25 +42,6 @@ function formatDateTime(value: string): string {
   return new Date(value).toLocaleString();
 }
 
-function formatDurationMs(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return `${hours}h ${remainingMinutes}m`;
-}
-
-function getDuration(ingest: IngestStatus): string | null {
-  const started = new Date(ingest.startedAt).getTime();
-  const finished = ingest.finishedAt ? new Date(ingest.finishedAt).getTime() : Date.now();
-  if (Number.isNaN(started) || Number.isNaN(finished)) return null;
-  return formatDurationMs(finished - started);
-}
-
 function getNumericStats(stats: Record<string, unknown> | undefined): { key: string; value: number }[] {
   if (!stats) return [];
   return Object.entries(stats)
@@ -84,19 +65,6 @@ function StatCard({
   const label = statLabels[statKey] ?? statKey;
   const className =
     'rounded border border-rule bg-bg-primary p-3 text-center transition-colors hover:bg-surface-hover';
-
-  if (songStatKeys.has(statKey)) {
-    return (
-      <Link
-        href="/songs"
-        className={className}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <p className="text-2xl font-semibold">{value}</p>
-        <p className="text-xs text-muted">{label}</p>
-      </Link>
-    );
-  }
 
   let onClick: (() => void) | undefined;
   if (ingestStatKeys.has(statKey)) onClick = onOpenIngest;
@@ -129,60 +97,50 @@ function StatCard({
 
 export function IngestStatusCard({
   ingest,
-  onOpenIngest,
+  onOpenReport,
+  onOpenHistory,
   onOpenConflicts,
   onOpenMissing,
 }: IngestStatusCardProps) {
-  const duration = getDuration(ingest);
   const stats = getNumericStats(ingest.stats);
+  const timestamp = ingest.finishedAt ?? ingest.startedAt;
 
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={onOpenIngest}
+      onClick={onOpenReport}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onOpenIngest?.();
+          onOpenReport?.();
         }
       }}
       className="w-full cursor-pointer rounded border border-rule bg-surface p-4 text-left shadow-sm transition-colors hover:bg-surface-hover"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Latest ingest</p>
-          <h3 className="mt-1 text-base font-semibold">Ingest run</h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-base font-semibold">Latest ingest</h3>
+          <StatusPill status={ingest.status} />
         </div>
-        <StatusPill status={ingest.status} />
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenHistory?.();
+          }}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-rule px-3 py-1.5 text-xs font-medium text-fg-secondary transition-colors hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <Icon name="mdi-history" size={14} />
+          History
+        </button>
       </div>
 
-      <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-        <div className="flex items-center gap-2">
-          <Icon name="mdi-calendar-clock" size={16} className="text-muted" />
-          <span className="text-muted">Started:</span>
-          <span>{formatDateTime(ingest.startedAt)}</span>
-        </div>
-        {ingest.finishedAt ? (
-          <div className="flex items-center gap-2">
-            <Icon name="mdi-clock-check-outline" size={16} className="text-muted" />
-            <span className="text-muted">Finished:</span>
-            <span>{formatDateTime(ingest.finishedAt)}</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Icon name="mdi-timer-sand" size={16} className="text-muted" />
-            <span className="text-muted">Running for:</span>
-            <span>{duration ?? '-'}</span>
-          </div>
-        )}
-      </div>
-
-      {duration && ingest.finishedAt && (
-        <div className="mt-3 flex items-center gap-2 text-sm">
-          <Icon name="mdi-timer-outline" size={16} className="text-muted" />
-          <span className="text-muted">Duration:</span>
-          <span>{duration}</span>
+      {timestamp && (
+        <div className="mt-3 flex items-center gap-2 text-sm text-muted">
+          <Icon name="mdi-clock-check-outline" size={16} />
+          <span>{ingest.finishedAt ? 'Finished' : 'Started'}:</span>
+          <span className="text-fg-primary">{formatDateTime(timestamp)}</span>
         </div>
       )}
 
@@ -193,7 +151,7 @@ export function IngestStatusCard({
               key={stat.key}
               statKey={stat.key}
               value={stat.value}
-              onOpenIngest={onOpenIngest}
+              onOpenIngest={onOpenReport}
               onOpenConflicts={onOpenConflicts}
               onOpenMissing={onOpenMissing}
             />
