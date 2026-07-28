@@ -114,17 +114,32 @@ export function PlayerBar({ user }: PlayerBarProps) {
                     </span>
                   )}
                 </div>
-                {currentSong.albumName && (
+                {(currentSong.albumName || currentSong.year) && (
                   <div className="truncate text-xs text-fg-secondary">
-                    {currentSong.albumId ? (
+                    {currentSong.albumName && (
+                      currentSong.albumId ? (
+                        <Link
+                          href={`/albums/${currentSong.albumId}`}
+                          className="hover:text-accent"
+                        >
+                          {currentSong.albumName}
+                        </Link>
+                      ) : (
+                        <span>{currentSong.albumName}</span>
+                      )
+                    )}
+                    {currentSong.albumName && currentSong.year && (
+                      <span aria-hidden="true" className="mx-1">
+                        ·
+                      </span>
+                    )}
+                    {currentSong.year && (
                       <Link
-                        href={`/albums/${currentSong.albumId}`}
+                        href={`/years/${currentSong.year}`}
                         className="hover:text-accent"
                       >
-                        {currentSong.albumName}
+                        {currentSong.year}
                       </Link>
-                    ) : (
-                      currentSong.albumName
                     )}
                   </div>
                 )}
