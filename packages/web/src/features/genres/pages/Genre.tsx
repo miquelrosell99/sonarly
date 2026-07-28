@@ -3,9 +3,9 @@ import { useParams } from 'wouter';
 import type { Song, Album } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
+import { EntityDetail } from '../../../components/EntityDetail.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
-import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { TrackList } from '../../songs/index.js';
 import { AlbumList } from '../../albums/index.js';
@@ -18,8 +18,6 @@ interface AlbumWithArtist extends Album {
 export function Genre() {
   const { genre: encodedGenre } = useParams<{ genre: string }>();
   const genre = encodedGenre ? decodeURIComponent(encodedGenre) : '';
-
-  useDocumentTitle(genre);
 
   const [tracks, setTracks] = useState<SongWithNames[]>([]);
   const [albums, setAlbums] = useState<AlbumWithArtist[]>([]);
@@ -49,26 +47,30 @@ export function Genre() {
     load();
   }, [genre, selectedLibraryId]);
 
-  if (loading) return <p className="text-sm text-muted">Loading...</p>;
-  if (error) return <p className="text-sm text-danger">{error}</p>;
+  const actions = tracks.length > 0 && (
+    <>
+      <PlayButton variant="default" onPlay={() => playSongs(tracks as Song[])} onShufflePlay={() => shufflePlay(tracks as Song[])}>
+        Play all
+      </PlayButton>
+      <Button variant="ghost" onClick={() => shufflePlay(tracks as Song[])}>
+        Shuffle
+      </Button>
+    </>
+  );
 
   return (
-    <div className="space-y-8">
+    <EntityDetail
+      isLoading={loading}
+      error={error}
+      notFound={!genre}
+      notFoundMessage="Genre not found."
+      documentTitle={genre || null}
+      type="Genre"
+      title={genre}
+      actions={actions}
+      className="space-y-8"
+    >
       <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{genre}</h2>
-          {tracks.length > 0 && (
-            <div className="flex gap-2">
-              <PlayButton variant="default" onPlay={() => playSongs(tracks as Song[])} onShufflePlay={() => shufflePlay(tracks as Song[])}>
-                Play all
-              </PlayButton>
-              <Button variant="ghost" onClick={() => shufflePlay(tracks as Song[])}>
-                Shuffle
-              </Button>
-            </div>
-          )}
-        </div>
-
         <h3 className="mb-2 text-sm font-medium text-muted">Tracks</h3>
         <TrackList
           tracks={tracks}
@@ -83,6 +85,6 @@ export function Genre() {
           empty={<p className="text-sm text-muted">No albums for this genre.</p>}
         />
       </div>
-    </div>
+    </EntityDetail>
   );
 }

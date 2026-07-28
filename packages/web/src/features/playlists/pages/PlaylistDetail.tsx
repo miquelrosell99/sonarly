@@ -2,7 +2,7 @@ import { useParams } from 'wouter';
 import type { Song, User } from '@sonarly/shared';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
-import { EntityHeader } from '../../../components/EntityHeader.js';
+import { EntityDetail } from '../../../components/EntityDetail.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { PlaylistCoverGrid } from '../components/PlaylistCoverGrid.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
@@ -13,7 +13,6 @@ import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
-import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
 import { usePlaylist, type PlaylistDetailEntry } from '../../../hooks/usePlaylist.js';
 import { useCreatePlaylistModal } from '../../../hooks/useCreatePlaylistModal.js';
 import { SongTable, type SongListItem } from '../../songs/components/SongTable.js';
@@ -71,8 +70,6 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
   const { playSongs, shufflePlay } = usePlayActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
 
-  useDocumentTitle(playlist?.name);
-
   const blurExplicitTitles = user.blurExplicitTitles === true;
 
   const displayEntries: DisplaySong[] = playlist?.entries.map((entry) => ({
@@ -115,70 +112,81 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
     refetch();
   };
 
-  if (isLoading) return <p className="text-sm text-muted">Loading...</p>;
-  if (error) return <p className="text-sm text-danger">{error.message}</p>;
-  if (!playlist) return <p className="text-sm text-muted">Playlist not found.</p>;
+  const metadata = playlist
+    ? [{ label: `${playlist.songCount} song${playlist.songCount === 1 ? '' : 's'}` }]
+    : [];
 
-  const metadata = [
-    { label: `${playlist.songCount} song${playlist.songCount === 1 ? '' : 's'}` },
-  ];
-
-  const header = (
-    <EntityHeader
+  return (
+    <EntityDetail
+      isLoading={isLoading}
+      error={error?.message ?? null}
+      notFound={!playlist}
+      notFoundMessage="Playlist not found."
+      documentTitle={playlist?.name}
       type="Playlist"
-      title={playlist.name}
+      title={playlist?.name}
       cover={
-        <div className="h-48 w-48 sm:h-56 sm:w-56">
-          <PlaylistCoverGrid playlistId={playlist.id} />
-        </div>
+        playlist && (
+          <div className="h-48 w-48 sm:h-56 sm:w-56">
+            <PlaylistCoverGrid playlistId={playlist.id} />
+          </div>
+        )
       }
       metadata={metadata}
       actions={
-        <>
-          <PlayButton
-            onPlay={() => playSongs(displayEntries as unknown as Song[], 0)}
-            onShufflePlay={() => shufflePlay(displayEntries as unknown as Song[])}
+        playlist && (
+          <>
+            <PlayButton
+              onPlay={() => playSongs(displayEntries as unknown as Song[], 0)}
+              onShufflePlay={() => shufflePlay(displayEntries as unknown as Song[])}
+            >
+              Play
+            </PlayButton>
+            <Button variant="ghost" onClick={() => openForEdit(playlist.id)}>
+              <Icon name="mdi-pencil" size={18} className="mr-1.5" />
+              Edit
+            </Button>
+            <FavoriteRatingGroup
+              starred={playlist.starred}
+              onToggleFavorite={() => handleFavorite(!playlist.starred)}
+              rating={playlist.rating}
+              onRate={(rating) => handleRate(rating || undefined)}
+              favoriteLabel={playlist.name}
+            />
+          </>
+        )
+      }
+      headerChildren={
+        playlist && (
+          <>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded bg-surface-hover px-2 py-0.5 text-xs font-medium text-fg-secondary capitalize">
+                {playlist.visibility}
+              </span>
+              {playlist.isSmart && (
+                <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">Smart</span>
+              )}
+            </div>
+            {playlist.description && (
+              <p className="max-w-prose whitespace-pre-line text-sm text-fg-secondary">{playlist.description}</p>
+            )}
+          </>
+        )
+      }
+      renderHeader={(header) =>
+        playlist ? (
+          <PlaylistHeaderContextMenu
+            playlist={playlist}
+            onEdit={() => openForEdit(playlist.id)}
+            onConvert={handleConvert}
           >
-            Play
-          </PlayButton>
-          <FavoriteRatingGroup
-            starred={playlist.starred}
-            onToggleFavorite={() => handleFavorite(!playlist.starred)}
-            rating={playlist.rating}
-            onRate={(rating) => handleRate(rating || undefined)}
-            favoriteLabel={playlist.name}
-          />
-          <Button variant="ghost" onClick={() => openForEdit(playlist.id)}>
-            <Icon name="mdi-pencil" size={18} className="mr-1.5" />
-            Edit
-          </Button>
-        </>
+            {header}
+          </PlaylistHeaderContextMenu>
+        ) : (
+          header
+        )
       }
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded bg-surface-hover px-2 py-0.5 text-xs font-medium text-fg-secondary capitalize">
-          {playlist.visibility}
-        </span>
-        {playlist.isSmart && (
-          <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">Smart</span>
-        )}
-      </div>
-      {playlist.description && (
-        <p className="max-w-prose whitespace-pre-line text-sm text-fg-secondary">{playlist.description}</p>
-      )}
-    </EntityHeader>
-  );
-
-  return (
-    <div>
-      <PlaylistHeaderContextMenu
-        playlist={playlist}
-        onEdit={() => openForEdit(playlist.id)}
-        onConvert={handleConvert}
-      >
-        {header}
-      </PlaylistHeaderContextMenu>
-
       <SongTable
         songs={displayEntries}
         playingId={playingId}
@@ -193,6 +201,6 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
         )}
         empty="No songs in this playlist."
       />
-    </div>
+    </EntityDetail>
   );
 }
