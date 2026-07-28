@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, cloneElement, type ReactElement } from 'react';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Modal } from '../../../components/ui/Modal.js';
@@ -21,9 +21,10 @@ const RETENTION_OPTIONS = [30, 60, 90];
 interface IngestModalProps {
   open: boolean;
   onClose: () => void;
+  onSelectJob?: (id: string) => void;
 }
 
-export function IngestModal({ open, onClose }: IngestModalProps) {
+export function IngestModal({ open, onClose, onSelectJob }: IngestModalProps) {
   const { notify } = useNotification();
   const [jobs, setJobs] = useState<IngestJob[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
@@ -115,6 +116,12 @@ export function IngestModal({ open, onClose }: IngestModalProps) {
               rows={jobs}
               rowKey={(j) => j.id}
               empty="No ingest jobs."
+              renderRow={(job, element) =>
+                cloneElement(element as React.ReactElement, {
+                  onClick: () => onSelectJob?.(job.id),
+                  className: `${(element as React.ReactElement<{ className?: string }>).props.className ?? ''} cursor-pointer hover:bg-surface-hover`,
+                })
+              }
             />
           )}
         </section>

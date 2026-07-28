@@ -385,9 +385,9 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
     const albumsCount = (db.prepare('SELECT COUNT(*) AS count FROM albums').get() as { count: number }).count;
     const artistsCount = (db.prepare('SELECT COUNT(*) AS count FROM artists').get() as { count: number }).count;
     const latestIngest = db
-      .prepare("SELECT type, status, started_at, finished_at, stats FROM scan_jobs WHERE type = 'ingest' ORDER BY started_at DESC LIMIT 1")
+      .prepare("SELECT id, type, status, started_at, finished_at, stats FROM scan_jobs WHERE type = 'ingest' ORDER BY started_at DESC LIMIT 1")
       .get() as
-      | { type: string; status: string; started_at: string; finished_at: string | null; stats: string | null }
+      | { id: string; type: string; status: string; started_at: string; finished_at: string | null; stats: string | null }
       | undefined;
 
     const conflictsCount = listCollisionSongs(db).length;
@@ -403,6 +403,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
       ingestJobsCount,
       latestIngest: latestIngest
         ? {
+            id: latestIngest.id,
             type: latestIngest.type,
             status: latestIngest.status,
             startedAt: latestIngest.started_at,
@@ -410,6 +411,60 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
             stats: latestIngest.stats ? JSON.parse(latestIngest.stats) : undefined,
           }
         : null,
+    });
+  });
+
+  app.get('/api/admin/ingest-runs/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    if (!requireAdmin(session, reply)) return;
+
+    const { id } = request.params as { id: string };
+    const run = db
+      .prepare('SELECT id, type, status, started_at, finished_at, stats, error FROM scan_jobs WHERE id = ? AND type = \'ingest\'')
+      .get(id) as
+      | { id: string; type: string; status: string; started_at: string | null; finished_at: string | null; stats: string | null; error: string | null }
+      | undefined;
+    if (!run) {
+      return reply.status(404).send({ error: 'Ingest run not found' });
+    }
+
+    const startedAt = run.started_at ?? '1970-01-01 00:00:00';
+    const finishedAt = run.finished_at ?? new Date().toISOString().replace('T', ' ').replace(/\..*$/, '');
+    const jobs = db
+      .prepare(
+        "SELECT id, source_path, target_path, status, error, duplicate, duplicate_strategy, created_at, updated_at FROM ingest_jobs WHERE datetime(created_at) >= datetime(?) AND datetime(created_at) <= datetime(?) ORDER BY created_at DESC"
+      )
+      .all(startedAt, finishedAt) as {
+        id: string;
+        source_path: string;
+        target_path: string | null;
+        status: string;
+        error: string | null;
+        duplicate: number;
+        duplicate_strategy: string | null;
+        created_at: string;
+        updated_at: string;
+      }[];
+
+    reply.send({
+      id: run.id,
+      type: run.type,
+      status: run.status,
+      startedAt: run.started_at,
+      finishedAt: run.finished_at,
+      stats: run.stats ? JSON.parse(run.stats) : undefined,
+      error: run.error,
+      jobs: jobs.map((job) => ({
+        id: job.id,
+        sourcePath: job.source_path,
+        targetPath: job.target_path,
+        status: job.status,
+        error: job.error,
+        duplicate: Boolean(job.duplicate),
+        duplicateStrategy: job.duplicate_strategy,
+        createdAt: job.created_at,
+        updatedAt: job.updated_at,
+      })),
     });
   });
 
