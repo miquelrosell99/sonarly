@@ -2,11 +2,14 @@ import { readdir, rename, mkdir, stat, rmdir, copyFile, unlink } from 'node:fs/p
 import { extname, join, dirname, basename, parse } from 'node:path';
 import Database from 'better-sqlite3';
 import type { Config } from '../../config.js';
-import type { Library } from '@sonarly/shared';
+import type { DuplicateStrategy, Library } from '@sonarly/shared';
 import { validateIngestFile } from './validator.js';
-import { getOrganizePattern } from '../settings/index.js';
+import { computeChecksum } from '../tags/index.js';
+import { getOrganizePattern, getDuplicateStrategy } from '../settings/index.js';
 import { buildTargetPath, moveToLibrary } from './organizer.js';
 import { createIngestJob, updateIngestJob } from './repository.js';
+import { handleDuplicateSong } from '../duplicates/index.js';
+import { persistSong } from '../library/scanner.js';
 
 const AUDIO_EXTS = new Set(['.mp3', '.flac', '.ogg', '.m4a']);
 const COMPANION_IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp']);
@@ -15,6 +18,7 @@ const COMPANION_IMAGE_NAMES = new Set(['cover', 'folder', 'album', 'front', 'art
 export interface IngestStats extends Record<string, number> {
   processed: number;
   imported: number;
+  duplicates: number;
   needsReview: number;
   failed: number;
 }
@@ -24,11 +28,13 @@ export async function processIngestFolder(
   db: Database.Database,
   sourcePath?: string,
   targetLibrary?: Library,
+  options?: { duplicateStrategy?: DuplicateStrategy },
 ): Promise<IngestStats> {
   const root = sourcePath ?? config.INGEST_PATH;
   const libraryPath = targetLibrary?.path ?? config.LIBRARY_PATH;
   const pattern = targetLibrary?.organizePattern ?? getOrganizePattern(db, config);
-  const stats: IngestStats = { processed: 0, imported: 0, needsReview: 0, failed: 0 };
+  const duplicateStrategy = options?.duplicateStrategy ?? getDuplicateStrategy(db);
+  const stats: IngestStats = { processed: 0, imported: 0, duplicates: 0, needsReview: 0, failed: 0 };
   const reviewDir = join(root, 'review');
   await mkdir(reviewDir, { recursive: true });
 
@@ -50,8 +56,35 @@ export async function processIngestFolder(
         }
         continue;
       }
+      const meta = validation.meta!;
+      const mtime = (await stat(filePath)).mtimeMs;
+      const checksum = await computeChecksum(filePath);
       const targetPath = buildTargetPath(pattern, libraryPath, validation.tags!, filePath);
+
+      const duplicate = await handleDuplicateSong(
+        db,
+        filePath,
+        targetPath,
+        meta,
+        mtime,
+        checksum,
+        targetLibrary?.id,
+        duplicateStrategy,
+      );
+
+      if (duplicate) {
+        updateIngestJob(db, jobId, 'imported', duplicate.finalPath, undefined, true, duplicateStrategy);
+        stats.imported++;
+        stats.duplicates++;
+        if (sourceDir !== root && duplicate.finalPath) {
+          importedSourceDirs.set(sourceDir, dirname(duplicate.finalPath));
+          reviewSourceDirs.delete(sourceDir);
+        }
+        continue;
+      }
+
       const finalPath = await moveToLibrary(filePath, targetPath);
+      await persistSong(db, finalPath, meta, mtime, checksum, targetLibrary?.id);
       updateIngestJob(db, jobId, 'imported', finalPath);
       stats.imported++;
       if (sourceDir !== root) {

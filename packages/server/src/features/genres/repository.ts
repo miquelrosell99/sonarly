@@ -189,6 +189,15 @@ export function setSongGenres(
   })();
 }
 
+export function getSongGenreIds(db: Database.Database, songId: string): string[] {
+  return db.prepare(`
+    SELECT genre_id
+    FROM song_genres
+    WHERE song_id = ?
+    ORDER BY position
+  `).pluck().all(songId) as string[];
+}
+
 export function getSongGenreNames(db: Database.Database, songId: string): string[] {
   return db.prepare(`
     SELECT g.name

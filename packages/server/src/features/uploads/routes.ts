@@ -3,12 +3,16 @@ import Database from 'better-sqlite3';
 import { join } from 'node:path';
 import { z } from 'zod';
 import type { Config } from '../../config.js';
+import { isDuplicateStrategy } from '@sonarly/shared';
 import { getLibraryById } from '../libraries/repository.js';
 import { pushJob } from '../library/queue.js';
 import { createUploadSession, getUploadSession, deleteUploadSession } from './repository.js';
 import { writeChunk, reassembleFile, moveSessionFilesToIngest, removeSessionDirectory } from './chunked.js';
 
-const sessionSchema = z.object({ libraryId: z.string().uuid() });
+const sessionSchema = z.object({
+  libraryId: z.string().uuid(),
+  duplicateStrategy: z.string().optional(),
+});
 const completeFileSchema = z.object({ totalChunks: z.number().int().min(1), relativePath: z.string().min(1) });
 
 function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | undefined): boolean {
@@ -29,8 +33,11 @@ export function registerUploadRoutes(app: FastifyInstance, config: Config, db: D
     const library = getLibraryById(db, parse.data.libraryId);
     if (!library) return reply.status(404).send({ error: 'Library not found' });
 
-    const session = createUploadSession(db, library.id);
-    reply.status(201).send({ sessionId: session.id, libraryId: session.libraryId });
+    const duplicateStrategy = parse.data.duplicateStrategy && isDuplicateStrategy(parse.data.duplicateStrategy)
+      ? parse.data.duplicateStrategy
+      : undefined;
+    const session = createUploadSession(db, library.id, duplicateStrategy);
+    reply.status(201).send({ sessionId: session.id, libraryId: session.libraryId, duplicateStrategy: session.duplicateStrategy });
   });
 
   app.post('/api/upload/sessions/:id/files/:fileId/chunks/:index', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -77,7 +84,11 @@ export function registerUploadRoutes(app: FastifyInstance, config: Config, db: D
     const sessionDir = join(config.DATA_DIR, 'uploads', id);
     const ingestDir = join(config.INGEST_PATH, 'uploads', session.libraryId);
     await moveSessionFilesToIngest(sessionDir, ingestDir);
-    pushJob(db, 'ingest', JSON.stringify({ sourcePath: ingestDir, libraryId: library.id }));
+    pushJob(db, 'ingest', JSON.stringify({
+      sourcePath: ingestDir,
+      libraryId: library.id,
+      duplicateStrategy: session.duplicateStrategy,
+    }));
     deleteUploadSession(db, id);
     await removeSessionDirectory(sessionDir);
     reply.send({ ok: true });

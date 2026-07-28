@@ -3,7 +3,7 @@ import { join, extname } from 'node:path';
 import { lookup } from 'mime-types';
 import Database from 'better-sqlite3';
 import type { Config } from '../../config.js';
-import { readTags, computeChecksum, writeCoverArt } from '../tags/index.js';
+import { readTags, computeChecksum, writeCoverArt, type AudioMetadata } from '../tags/index.js';
 import {
   upsertSong,
   getSongById,
@@ -11,8 +11,10 @@ import {
   deactivateSongByPath,
   findInactiveSongByTags,
   setSongArtists,
+  getSongArtistIds,
 } from '../songs/index.js';
 import { ensureArtist } from '../artists/index.js';
+export { ensureArtist };
 import {
   upsertAlbum,
   getAlbumByNameAndArtist,
@@ -23,6 +25,7 @@ import {
   setSongGenres,
   setAlbumGenres,
   getOrCreateGenreIdsByNames,
+  getSongGenreIds,
 } from '../genres/index.js';
 import type { Song, SongTags } from '@sonarly/shared';
 import { randomUUID } from 'node:crypto';
@@ -186,18 +189,27 @@ function findReplacedSong(
   return findInactiveSongByTags(db, tags.title, albumId, artistId);
 }
 
-async function persistSong(
+export interface PersistSongOptions {
+  /** When updating an existing song, merge multi-value fields (artists, genres, composers, etc.)
+   *  and fill in missing scalar values from the existing record. New scalar values always win. */
+  aggregate?: boolean;
+  /** Keep the existing song cover art instead of overwriting it with the new file's cover art. */
+  keepCoverArt?: boolean;
+}
+
+export async function persistSong(
   db: Database.Database,
   filePath: string,
-  meta: Awaited<ReturnType<typeof readTags>>,
+  meta: AudioMetadata,
   mtime: number,
   checksum: string,
   libraryId: string | undefined,
   existingId?: string,
+  options?: PersistSongOptions,
 ): Promise<Song> {
   const tags = meta.tags;
   const artistNames = meta.artists ?? (tags.artist ? [tags.artist] : undefined);
-  const artistIds = artistNames?.length
+  const newArtistIds = artistNames?.length
     ? artistNames.map((name, index) =>
         ensureArtist(
           db,
@@ -206,13 +218,13 @@ async function persistSong(
         ),
       )
     : undefined;
-  const artistId = artistIds?.[0];
+  const artistId = newArtistIds?.[0];
   const albumArtistNames = meta.albumArtists ?? artistNames;
   const genreNames = meta.genres ?? (tags.genre ? [tags.genre] : undefined);
-  const genreIds = genreNames?.length ? getOrCreateGenreIdsByNames(db, genreNames) : undefined;
-  const genreId = genreIds?.[0];
+  const newGenreIds = genreNames?.length ? getOrCreateGenreIdsByNames(db, genreNames) : undefined;
+  const genreId = newGenreIds?.[0];
   const albumId = tags.album
-    ? ensureAlbum(db, tags.album, albumArtistNames, tags.year, genreNames, genreIds, {
+    ? ensureAlbum(db, tags.album, albumArtistNames, tags.year, genreNames, newGenreIds, {
         musicBrainzAlbumId: meta.musicBrainzAlbumId,
         musicBrainzReleaseGroupId: meta.musicBrainzReleaseGroupId,
         musicBrainzAlbumArtistIds: meta.musicBrainzAlbumArtistIds,
@@ -234,7 +246,7 @@ async function persistSong(
     setAlbumCoverArtId(db, albumId, coverArtId);
   }
 
-  const song: Song = {
+  let song: Song = {
     id,
     filePath,
     title: tags.title,
@@ -284,19 +296,125 @@ async function persistSong(
     totalTracks: meta.totalTracks,
     totalDiscs: meta.totalDiscs,
   };
+
+  if (existingId) {
+    const existing = getSongById(db, existingId);
+    if (existing) {
+      if (options?.aggregate) {
+        song = mergeSongWithExisting(song, existing, options.keepCoverArt ?? false);
+      } else if (options?.keepCoverArt) {
+        song.coverArt = existing.coverArt;
+        song.coverArtMissing = existing.coverArtMissing;
+      }
+    }
+  }
+
   upsertSong(db, song);
 
-  if (artistIds?.length) {
-    setSongArtists(db, id, artistIds);
-  }
-  if (genreIds?.length) {
-    setSongGenres(db, id, genreIds);
+  let finalArtistIds = newArtistIds;
+  let finalGenreIds = newGenreIds;
+  if (existingId && options?.aggregate) {
+    if (finalArtistIds) {
+      finalArtistIds = unionIds(getSongArtistIds(db, existingId), finalArtistIds);
+    }
+    if (finalGenreIds) {
+      finalGenreIds = unionIds(getSongGenreIds(db, existingId), finalGenreIds);
+    }
   }
 
-  await syncSongCoverWithAlbum(db, id, albumId, filePath);
+  if (finalArtistIds?.length) {
+    setSongArtists(db, id, finalArtistIds);
+  }
+  if (finalGenreIds?.length) {
+    setSongGenres(db, id, finalGenreIds);
+  }
+
+  if (!options?.keepCoverArt) {
+    await syncSongCoverWithAlbum(db, id, albumId, filePath);
+  }
 
   const updated = getSongById(db, id);
   return updated ?? song;
+}
+
+function unionIds(a: string[] | undefined, b: string[] | undefined): string[] | undefined {
+  if (!a?.length) return b;
+  if (!b?.length) return a;
+  const set = new Set(a);
+  const result = [...a];
+  for (const id of b) {
+    if (!set.has(id)) {
+      set.add(id);
+      result.push(id);
+    }
+  }
+  return result;
+}
+
+function mergeSongWithExisting(song: Song, existing: Song, keepCoverArt: boolean): Song {
+  return {
+    ...existing,
+    ...song,
+    title: song.title || existing.title,
+    trackNumber: song.trackNumber ?? existing.trackNumber,
+    discNumber: song.discNumber ?? existing.discNumber,
+    duration: song.duration ?? existing.duration,
+    artistId: song.artistId ?? existing.artistId,
+    albumId: song.albumId ?? existing.albumId,
+    genre: song.genre ?? existing.genre,
+    genreId: song.genreId ?? existing.genreId,
+    libraryId: song.libraryId ?? existing.libraryId,
+    year: song.year ?? existing.year,
+    explicit: song.explicit ?? existing.explicit,
+    coverArt: keepCoverArt ? existing.coverArt : (song.coverArt ?? existing.coverArt),
+    coverArtMissing: keepCoverArt ? existing.coverArtMissing : (song.coverArtMissing ?? existing.coverArtMissing),
+    mtime: song.mtime,
+    checksum: song.checksum,
+    bitRate: song.bitRate ?? existing.bitRate,
+    bitsPerSample: song.bitsPerSample ?? existing.bitsPerSample,
+    sampleRate: song.sampleRate ?? existing.sampleRate,
+    channels: song.channels ?? existing.channels,
+    bpm: song.bpm ?? existing.bpm,
+    musicBrainzId: song.musicBrainzId ?? existing.musicBrainzId,
+    musicBrainzTrackId: song.musicBrainzTrackId ?? existing.musicBrainzTrackId,
+    musicBrainzWorkId: song.musicBrainzWorkId ?? existing.musicBrainzWorkId,
+    musicBrainzDiscId: song.musicBrainzDiscId ?? existing.musicBrainzDiscId,
+    replayGain: song.replayGain ?? existing.replayGain,
+    comment: song.comment ?? existing.comment,
+    sortName: song.sortName ?? existing.sortName,
+    mood: song.mood ?? existing.mood,
+    mediaType: song.mediaType ?? existing.mediaType,
+    originalReleaseDate: song.originalReleaseDate ?? existing.originalReleaseDate,
+    releaseDate: song.releaseDate ?? existing.releaseDate,
+    remixOf: song.remixOf ?? existing.remixOf,
+    displayArtist: song.displayArtist ?? existing.displayArtist,
+    displayAlbumArtist: song.displayAlbumArtist ?? existing.displayAlbumArtist,
+    lyrics: song.lyrics ?? existing.lyrics,
+    syncedLyrics: song.syncedLyrics ?? existing.syncedLyrics,
+    artists: unionArrays(song.artists, existing.artists),
+    composers: unionArrays(song.composers, existing.composers),
+    producers: unionArrays(song.producers, existing.producers),
+    isrcs: unionArrays(song.isrcs, existing.isrcs),
+    originalYear: song.originalYear ?? existing.originalYear,
+    originalArtist: song.originalArtist ?? existing.originalArtist,
+    gapless: song.gapless ?? existing.gapless,
+    totalTracks: song.totalTracks ?? existing.totalTracks,
+    totalDiscs: song.totalDiscs ?? existing.totalDiscs,
+  };
+}
+
+function unionArrays<T>(a: T[] | undefined, b: T[] | undefined): T[] | undefined {
+  if (!a?.length) return b;
+  if (!b?.length) return a;
+  const set = new Set(a);
+  const result = [...a];
+  for (const value of b) {
+    if (!set.has(value)) {
+      set.add(value);
+      result.push(value);
+    }
+  }
+  return result;
 }
 
 async function syncSongCoverWithAlbum(
@@ -333,7 +451,7 @@ function needsCoverSync(db: Database.Database, existing: Song): boolean {
 async function persistSongCoverOnly(
   db: Database.Database,
   filePath: string,
-  meta: Awaited<ReturnType<typeof readTags>>,
+  meta: AudioMetadata,
   existing: Song,
   libraryId: string | undefined,
 ): Promise<void> {
@@ -393,7 +511,7 @@ interface AlbumMeta {
   totalDiscs?: string;
 }
 
-function ensureAlbum(
+export function ensureAlbum(
   db: Database.Database,
   name: string,
   artistNames: string[] | undefined,
