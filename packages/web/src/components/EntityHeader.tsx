@@ -3,7 +3,7 @@ import { MetadataBreadcrumb, type MetadataItem } from './MetadataBreadcrumb.js';
 
 interface EntityHeaderProps {
   type: string;
-  title: string;
+  title: React.ReactNode;
   cover?: React.ReactNode;
   metadata?: MetadataItem[];
   actions?: React.ReactNode;

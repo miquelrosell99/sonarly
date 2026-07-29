@@ -415,28 +415,36 @@ export function EditEntityModal({
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              {secondaryFields.map(({ key, label, type, autocomplete }) => (
-                <Field key={key} label={label} htmlFor={`edit-${key}`}>
-                  <TagInput
-                    id={`edit-${key}`}
-                    value={values[key] ?? ''}
-                    onChange={(value) => updateValue(key, value)}
-                    type={type}
-                    autocomplete={autocomplete}
-                    placeholder={label}
-                    disabled={readOnly || (entityType === 'song' && key === 'albumArtist')}
-                    locked={!readOnly && entityType === 'song' && key === 'albumArtist'}
-                    hint={
-                      key === 'trackNumber' && albumStats && albumStats.tracks > 0
-                        ? `Max track in album: ${albumStats.tracks}`
-                        : key === 'discNumber' && albumStats && albumStats.discs > 0
-                          ? `Max disc in album: ${albumStats.discs}`
-                          : undefined
-                    }
-                  />
-                </Field>
-              ))}
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {secondaryFields.map(({ key, label, type, autocomplete }) => {
+                const isCompact = key === 'trackNumber' || key === 'discNumber';
+                return (
+                  <Field
+                    key={key}
+                    label={label}
+                    htmlFor={`edit-${key}`}
+                    className={isCompact ? 'col-span-1' : 'col-span-2'}
+                  >
+                    <TagInput
+                      id={`edit-${key}`}
+                      value={values[key] ?? ''}
+                      onChange={(value) => updateValue(key, value)}
+                      type={type}
+                      autocomplete={autocomplete}
+                      placeholder={label}
+                      disabled={readOnly || (entityType === 'song' && key === 'albumArtist')}
+                      locked={!readOnly && entityType === 'song' && key === 'albumArtist'}
+                      hint={
+                        key === 'trackNumber' && albumStats && albumStats.tracks > 0
+                          ? `Max track in album: ${albumStats.tracks}`
+                          : key === 'discNumber' && albumStats && albumStats.discs > 0
+                            ? `Max disc in album: ${albumStats.discs}`
+                            : undefined
+                      }
+                    />
+                  </Field>
+                );
+              })}
             </div>
 
             {entityType === 'song' && (

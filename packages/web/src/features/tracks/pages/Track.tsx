@@ -15,6 +15,8 @@ import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import type { SongWithNames } from '../../../lib/types.js';
+import { usePlayer } from '../../../stores/playerStore.js';
+import { patchToPlayerSong } from '../../../lib/songPatch.js';
 
 type TrackDetail = SongWithNames;
 
@@ -31,6 +33,7 @@ export function Track() {
   const { playSong } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
   const { notify } = useNotification();
+  const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   const load = () => {
@@ -74,6 +77,9 @@ export function Track() {
         method: 'PUT',
         body: JSON.stringify(patched),
       });
+      if (track.id === usePlayer.getState().currentSong?.id) {
+        updateCurrentSong(patchToPlayerSong(patched));
+      }
       setEditing(false);
       load();
     } catch (err) {

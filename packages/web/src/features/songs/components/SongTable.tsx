@@ -15,6 +15,7 @@ export interface SongListItem {
   explicit?: boolean;
   trackNumber?: number;
   discNumber?: number;
+  syncedLyrics?: { time: number; text: string }[];
 }
 
 interface SongTableProps {

@@ -239,12 +239,14 @@ export function Table<T>({
                       <td className="w-12 py-2 px-2 text-center">
                         <span className="group/play relative inline-flex h-5 w-6 items-center justify-center text-muted">
                           <span className="transition group-hover/play:opacity-0">{indexContent}</span>
-                          <span className="absolute inset-0 flex items-center justify-center opacity-0 transition group-hover/play:opacity-100">
-                            <PlayButton
-                              variant="inline"
-                              onPlay={() => onPlay(row)}
-                              onShufflePlay={onShufflePlay ? () => onShufflePlay(row) : undefined}
-                            />
+                          <span className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition group-hover/play:opacity-100">
+                            <span className="pointer-events-auto">
+                              <PlayButton
+                                variant="inline"
+                                onPlay={() => onPlay(row)}
+                                onShufflePlay={onShufflePlay ? () => onShufflePlay(row) : undefined}
+                              />
+                            </span>
                           </span>
                         </span>
                       </td>

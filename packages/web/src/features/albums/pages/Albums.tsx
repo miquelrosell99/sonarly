@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import type { Album, Song } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
+import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
@@ -197,9 +198,11 @@ export function Albums() {
       key: 'title',
       header: 'Title',
       render: (album) => (
-        <Link href={`/albums/${album.id}`} className="hover:text-muted">
-          {album.name}
-        </Link>
+        <ExplicitTitle explicit={album.explicit}>
+          <Link href={`/albums/${album.id}`} className="hover:text-muted">
+            {album.name}
+          </Link>
+        </ExplicitTitle>
       ),
     },
     { key: 'artist', header: 'Artist', render: (album) => album.artistName ?? '-' },
@@ -208,7 +211,7 @@ export function Albums() {
   ];
 
   const cardFields: LibraryViewCardField<Album>[] = [
-    { key: 'title', render: (album) => album.name },
+    { key: 'title', render: (album) => <ExplicitTitle title={album.name} explicit={album.explicit} /> },
     {
       key: 'artist-year',
       render: (album) => (

@@ -12,6 +12,7 @@ export interface Album {
   coverArt?: string;
   totalSongCount?: number;
   shownSongCount?: number;
+  explicit?: boolean;
   active?: boolean;
   starred?: boolean;
   rating?: number;
