@@ -26,7 +26,7 @@ interface SongTableProps {
   onPlay?: (song: SongListItem) => void;
   onShufflePlay?: (song: SongListItem) => void;
   onPlaySelection?: (songs: SongListItem[], startIndex: number) => void;
-  renderRow?: (song: SongListItem, row: React.ReactNode) => React.ReactNode;
+  renderRow?: (song: SongListItem, row: React.ReactNode, selectedRows: SongListItem[]) => React.ReactNode;
   empty?: React.ReactNode;
   /** Override the # column label for a song. Returning undefined falls back to the 1-based row index. */
   getIndexLabel?: (song: SongListItem, index: number) => ReactNode;

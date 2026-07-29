@@ -32,6 +32,8 @@ interface SongSearchRow {
   album_name: string | null;
   starred: number | null;
   rating: number | null;
+  lyrics: string | null;
+  synced_lyrics: string | null;
 }
 
 interface AlbumSearchRow {
@@ -89,6 +91,8 @@ function rowToSong(row: SongSearchRow): Song {
     genre: row.genre ?? undefined,
     year: row.year ?? undefined,
     explicit: row.explicit === 1,
+    lyrics: row.lyrics ?? undefined,
+    syncedLyrics: row.synced_lyrics ? JSON.parse(row.synced_lyrics) : undefined,
     coverArt: row.cover_art_id ?? undefined,
     mtime: row.mtime,
     checksum: row.checksum,

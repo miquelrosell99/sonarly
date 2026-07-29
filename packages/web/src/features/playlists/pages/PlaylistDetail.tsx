@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useParams } from 'wouter';
 import type { Song, User } from '@sonarly/shared';
+import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
@@ -9,13 +11,15 @@ import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js';
-import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
+import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { usePlaylist, type PlaylistDetailEntry } from '../../../hooks/usePlaylist.js';
 import { useCreatePlaylistModal } from '../../../hooks/useCreatePlaylistModal.js';
 import { SongTable, type SongListItem } from '../../songs/components/SongTable.js';
+import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { SyncedLyricsEditor } from '../../songs/index.js';
 
 type DisplaySong = PlaylistDetailEntry & {
   artistName?: string;
@@ -42,19 +46,18 @@ function PlaylistHeaderContextMenu({
 }
 
 function PlaylistSongContextMenu({
-  song,
+  songs,
   onEdit,
+  isAdmin,
   children,
 }: {
-  song: SongListItem;
+  songs: SongListItem[];
   onEdit: () => void;
+  isAdmin: boolean;
   children: React.ReactNode;
 }) {
-  const sections = useSongContextMenu(song as unknown as Song, onEdit, false);
-  const visibleSections = sections
-    .map((section) => ({ ...section, items: section.items.filter((item) => item.id !== 'edit') }))
-    .filter((section) => section.items.length > 0);
-  return <ItemContextMenu sections={visibleSections}>{children}</ItemContextMenu>;
+  const sections = useSongsContextMenu(songs as unknown as Song[], onEdit, isAdmin);
+  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
 
 interface PlaylistDetailProps {
@@ -69,6 +72,11 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
   const playingId = usePlayer((state) => state.currentSong?.id);
+
+  const [songEditing, setSongEditing] = useState<SongListItem[] | null>(null);
+  const [syncEditing, setSyncEditing] = useState<SongListItem | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const blurExplicitTitles = user.blurExplicitTitles === true;
 
@@ -111,6 +119,63 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
   const handleConvert = () => {
     refetch();
   };
+
+  const handleSongSave = async (patched: Record<string, unknown>) => {
+    if (!songEditing || songEditing.length !== 1) return;
+    setSaving(true);
+    try {
+      await api(`/songs/${songEditing[0].id}/tags`, {
+        method: 'PUT',
+        body: JSON.stringify(patched),
+      });
+      setSongEditing(null);
+      refetch();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to save song', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSongSaveMany = async (patched: Record<string, unknown>) => {
+    if (!songEditing || songEditing.length < 2) return;
+    setSaving(true);
+    try {
+      await api('/songs/tags', {
+        method: 'PUT',
+        body: JSON.stringify({
+          ids: songEditing.map((s) => s.id),
+          tags: patched,
+        }),
+      });
+      setSongEditing(null);
+      refetch();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to save songs', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSongDelete = async () => {
+    if (!songEditing || songEditing.length !== 1) return;
+    setDeleting(true);
+    try {
+      await api(`/songs/${songEditing[0].id}`, { method: 'DELETE' });
+      setSongEditing(null);
+      refetch();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to delete song', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const songEditEntities = songEditing?.map((song) => ({
+    ...song,
+    artist: song.artistName,
+    album: song.albumName,
+  }));
 
   const metadata = playlist
     ? [{ label: `${playlist.songCount} song${playlist.songCount === 1 ? '' : 's'}` }]
@@ -194,13 +259,46 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
         onPlay={handlePlay}
         onShufflePlay={handleShufflePlay}
         onPlaySelection={handlePlaySelection}
-        renderRow={(song, row) => (
-          <PlaylistSongContextMenu song={song} onEdit={() => {}}>
+        renderRow={(song, row, selectedRows) => (
+          <PlaylistSongContextMenu songs={selectedRows} onEdit={() => setSongEditing(selectedRows)} isAdmin={user.isAdmin}>
             {row}
           </PlaylistSongContextMenu>
         )}
         empty="No songs in this playlist."
       />
+
+      {songEditEntities && songEditEntities.length > 0 && (
+        <EditEntityModal
+          open
+          entityType="song"
+          entities={songEditEntities}
+          entity={songEditEntities.length === 1 ? songEditEntities[0] : undefined}
+          onClose={() => setSongEditing(null)}
+          onSave={handleSongSave}
+          onSaveMany={handleSongSaveMany}
+          onDelete={songEditEntities.length === 1 ? handleSongDelete : undefined}
+          onEditSyncedLyrics={
+            songEditEntities.length === 1 && songEditing
+              ? () => songEditing && setSyncEditing(songEditing[0])
+              : undefined
+          }
+          saving={saving}
+          deleting={deleting}
+        />
+      )}
+      {syncEditing && (
+        <SyncedLyricsEditor
+          songId={syncEditing.id}
+          title={syncEditing.title}
+          artistName={syncEditing.artistName}
+          duration={syncEditing.duration}
+          onClose={() => setSyncEditing(null)}
+          onSaved={() => {
+            setSyncEditing(null);
+            refetch();
+          }}
+        />
+      )}
     </EntityDetail>
   );
 }
