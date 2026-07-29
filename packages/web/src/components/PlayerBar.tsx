@@ -5,6 +5,7 @@ import { CoverArt } from './CoverArt.js';
 import { FavoriteButton, StarRating } from './ActionButtons.js';
 import { ItemContextMenu } from './ItemContextMenu.js';
 import { ControlButton, PlayButton, Slider } from './PlayerControls.js';
+import { ExplicitTitle } from './ExplicitTitle.js';
 import { usePlayer } from '../stores/playerStore.js';
 import { useSongInteraction } from '../hooks/useSongInteraction.js';
 import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
@@ -105,8 +106,14 @@ export function PlayerBar({ user }: PlayerBarProps) {
                 />
               </button>
               <div className="min-w-0">
-                <div className="flex items-center gap-2 text-sm font-semibold text-fg-primary">
-                  <span className="truncate">{currentSong.title}</span>
+                <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-fg-primary">
+                  <ExplicitTitle
+                    explicit={currentSong.explicit}
+                    blur={user?.blurExplicitTitles === true}
+                    className="truncate"
+                  >
+                    {currentSong.title}
+                  </ExplicitTitle>
                   {currentSong.addedByAutoDj && (
                     <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent/70">
                       <Icon name="mdi-robot" size={12} />

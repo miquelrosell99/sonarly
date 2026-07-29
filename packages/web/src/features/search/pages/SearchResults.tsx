@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useSearch, Link } from 'wouter';
-import type { Song, Album, Artist, Playlist, FavoriteEntityType } from '@sonarly/shared';
+import type { Song, Album, Artist, Playlist, FavoriteEntityType, User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
+import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useAlbumContextMenu } from '../../../hooks/useAlbumContextMenu.js';
@@ -11,6 +12,10 @@ import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
+
+interface SearchResultsProps {
+  user: User;
+}
 
 type SearchType = 'songs' | 'albums' | 'artists' | 'playlists';
 
@@ -57,7 +62,8 @@ function PlaylistContextMenu({ playlist, children }: { playlist: Playlist; child
   return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
 
-export function SearchResults() {
+export function SearchResults({ user }: SearchResultsProps) {
+  const blurExplicitTitles = user.blurExplicitTitles === true;
   const search = useSearch();
   const params = new URLSearchParams(search);
   const query = params.get('q') ?? '';
@@ -153,9 +159,11 @@ export function SearchResults() {
         key: 'title',
         header: 'Title',
         render: (song) => (
-          <Link href={`/tracks/${song.id}`} className="hover:text-muted">
-            {song.title}
-          </Link>
+          <ExplicitTitle explicit={song.explicit} blur={blurExplicitTitles}>
+            <Link href={`/tracks/${song.id}`} className="hover:text-muted">
+              {song.title}
+            </Link>
+          </ExplicitTitle>
         ),
       },
       { key: 'artist', header: 'Artist', render: (song) => song.artistName ?? '-' },
@@ -168,7 +176,14 @@ export function SearchResults() {
       },
     ];
     const cardFields: LibraryViewCardField<Song>[] = [
-      { key: 'title', render: (song) => song.title },
+      {
+        key: 'title',
+        render: (song) => (
+          <ExplicitTitle explicit={song.explicit} blur={blurExplicitTitles}>
+            {song.title}
+          </ExplicitTitle>
+        ),
+      },
       { key: 'artist', render: (song) => song.artistName ?? '-' },
       { key: 'album', render: (song) => song.albumName ?? '-' },
     ];
