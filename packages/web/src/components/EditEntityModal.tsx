@@ -150,7 +150,7 @@ export function EditEntityModal({
 
   const handleSave = () => {
     if (readOnly || !onSave) return;
-    const patched: Record<string, unknown> = { ...entity };
+    const patched: Record<string, unknown> = {};
 
     if (entityType === 'playlist') {
       patched.name = values.name;
@@ -172,7 +172,6 @@ export function EditEntityModal({
       if (entityType === 'song') {
         patched.lyrics = values.lyrics === '' ? undefined : values.lyrics;
         patched.explicit = explicit;
-        delete patched.syncedLyrics;
       }
     }
 
