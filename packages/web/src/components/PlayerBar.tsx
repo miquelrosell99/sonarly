@@ -100,7 +100,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
                 className="h-14 w-14 shrink-0 overflow-hidden rounded-md shadow-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 <CoverArt
-                  coverArt={currentSong.coverArt}
+                  coverArt={currentSong.albumCoverArt ?? currentSong.coverArt}
                   alt={`Cover art for ${currentSong.title}`}
                   iconSize={20}
                 />

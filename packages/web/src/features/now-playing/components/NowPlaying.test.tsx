@@ -233,6 +233,28 @@ describe('NowPlaying', () => {
     expect(title.parentElement?.className.includes('blur-sm')).toBe(true);
   });
 
+  it('renders the album cover art when available', () => {
+    useNowPlaying.getState().open();
+    usePlayer.getState().playQueue(
+      [{ id: 's1', title: 'Song', artistName: 'Artist', coverArt: 'song-cover', albumCoverArt: 'album-cover' } as any],
+      0,
+    );
+    render(<NowPlaying user={mockUser} />, { wrapper: Wrapper });
+
+    expect(screen.getByAltText('Cover art for Song').getAttribute('src')).toBe('/api/cover-art/album-cover');
+  });
+
+  it('falls back to the song cover art when no album cover art exists', () => {
+    useNowPlaying.getState().open();
+    usePlayer.getState().playQueue(
+      [{ id: 's1', title: 'Song', artistName: 'Artist', coverArt: 'song-cover' } as any],
+      0,
+    );
+    render(<NowPlaying user={mockUser} />, { wrapper: Wrapper });
+
+    expect(screen.getByAltText('Cover art for Song').getAttribute('src')).toBe('/api/cover-art/song-cover');
+  });
+
   it('renders favorite and rating controls', () => {
     useNowPlaying.getState().open();
     usePlayer.getState().playQueue(

@@ -203,6 +203,24 @@ describe('PlayerBar', () => {
     expect(useNowPlaying.getState().isOpen).toBe(true);
   });
 
+  it('renders the album cover art when available', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'Now Playing', artistName: 'Artist', coverArt: 'song-cover', albumCoverArt: 'album-cover' } as any,
+    ], 0);
+
+    render(<PlayerBar />);
+    expect(screen.getByAltText('Cover art for Now Playing').getAttribute('src')).toBe('/api/cover-art/album-cover');
+  });
+
+  it('falls back to the song cover art when no album cover art exists', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'Now Playing', artistName: 'Artist', coverArt: 'song-cover' } as any,
+    ], 0);
+
+    render(<PlayerBar />);
+    expect(screen.getByAltText('Cover art for Now Playing').getAttribute('src')).toBe('/api/cover-art/song-cover');
+  });
+
   it('renders the queue button when a user is provided', () => {
     render(<PlayerBar user={mockUser} />, { wrapper: NotificationProvider });
     expect(screen.getByRole('button', { name: /queue/i })).toBeTruthy();
