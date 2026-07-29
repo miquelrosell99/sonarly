@@ -62,6 +62,12 @@ interface LibraryViewProps<T> {
   sortable?: boolean;
   onReorder?: (items: T[]) => void;
   getRowClassName?: (item: T) => string;
+  /** Override the displayed # label for a row. Returning undefined falls back to the 1-based row index. */
+  getIndexLabel?: (item: T, index: number) => ReactNode;
+  /** Group rows into sections by a shared key. Only contiguous rows with the same key are grouped together. */
+  groupBy?: (item: T) => string | undefined;
+  /** Render a custom header for a group. Receives the group key and the items in the group. */
+  renderGroupHeader?: (key: string, items: T[]) => ReactNode;
 }
 
 type ViewMode = 'list' | 'grid';
@@ -82,6 +88,7 @@ function SortableLibraryRow<T>({
   renderContextMenu,
   rowClassName,
   indexPad,
+  indexLabel,
 }: {
   item: T;
   getId: (item: T) => string;
@@ -98,6 +105,7 @@ function SortableLibraryRow<T>({
   renderContextMenu?: (children: ReactNode) => ReactNode;
   rowClassName?: string;
   indexPad?: number;
+  indexLabel?: ReactNode;
 }) {
   const {
     attributes,
@@ -131,6 +139,7 @@ function SortableLibraryRow<T>({
       dragHandleProps={{ ...attributes, ...listeners }}
       className={rowClassName}
       indexPad={indexPad}
+      indexLabel={indexLabel}
     >
       {columns.map((col) => (
         <td key={col.key} className={cn('truncate py-2 pr-4', col.className)}>
@@ -170,6 +179,9 @@ export function LibraryView<T>({
   sortable = false,
   onReorder,
   getRowClassName,
+  getIndexLabel,
+  groupBy,
+  renderGroupHeader,
 }: LibraryViewProps<T>) {
   const effectiveDefaultView = availableViews.includes(defaultView) ? defaultView : availableViews[0];
   const [viewMode, setViewMode] = useState<ViewMode>(effectiveDefaultView);
@@ -289,12 +301,33 @@ export function LibraryView<T>({
 
   const renderList = () => {
     const indexPad = Math.max(2, String(data.length).length);
+
+    const rowIndexMap = new Map<T, number>();
+    data.forEach((item, idx) => rowIndexMap.set(item, idx));
+
+    const groups: { key?: string; items: T[] }[] = [];
+    if (!groupBy) {
+      groups.push({ items: data });
+    } else {
+      for (const item of data) {
+        const key = groupBy(item);
+        const last = groups[groups.length - 1];
+        if (!last || last.key !== key) {
+          groups.push({ key, items: [] });
+        }
+        groups[groups.length - 1].items.push(item);
+      }
+    }
+
+    const groupHeaderColSpan =
+      (sortable ? 1 : 0) + 1 + columns.length + (onFavorite ? 1 : 0) + (onRate ? 1 : 0);
+
     const table = (
       <table className="w-full text-left text-sm">
         <thead className="border-b border-rule text-muted">
           <tr>
             {sortable && <th className="w-8 py-2 pr-2 font-medium" aria-label="Reorder" />}
-            <th className="w-12 py-2 pr-4 font-medium">#</th>
+            <th className="w-12 py-2 px-2 text-center font-medium">#</th>
             {columns.map((col) => (
               <th key={col.key} className={cn('py-2 pr-4 font-medium', col.className)}>
                 {col.header}
@@ -305,65 +338,84 @@ export function LibraryView<T>({
           </tr>
         </thead>
         <tbody className="divide-y divide-rule">
-          {data.map((item, index) => {
-            const id = getId(item);
-            const href = getHref(item);
-            const starred = getFavorite?.(item);
-            const rating = getRating?.(item);
-            const isSelected = selectedIds.has(id);
-            const isPlayingTitle = playingId !== undefined && playingId === id;
+          {groups.map((group, groupIndex) => (
+            <Fragment key={group.key ?? `group-${groupIndex}`}>
+              {group.key !== undefined && group.key !== '' && (
+                <tr className="border-t border-rule first:border-t-0">
+                  <th
+                    colSpan={groupHeaderColSpan}
+                    className="py-2 pr-4 text-left text-xs font-semibold uppercase tracking-wider text-muted"
+                    scope="rowgroup"
+                  >
+                    {renderGroupHeader ? renderGroupHeader(group.key, group.items) : group.key}
+                  </th>
+                </tr>
+              )}
+              {group.items.map((item) => {
+                const index = rowIndexMap.get(item) ?? 0;
+                const id = getId(item);
+                const href = getHref(item);
+                const starred = getFavorite?.(item);
+                const rating = getRating?.(item);
+                const isSelected = selectedIds.has(id);
+                const isPlayingTitle = playingId !== undefined && playingId === id;
+                const indexLabel = getIndexLabel?.(item, index);
 
-            if (sortable) {
-              return (
-                <SortableLibraryRow
-                  key={id}
-                  item={item}
-                  getId={getId}
-                  index={index}
-                  columns={columns}
-                  isSelected={isSelected}
-                  isPlayingTitle={isPlayingTitle}
-                  onSelect={(e) => handleRowSelect(item, e)}
-                  onActivate={() => handleRowActivate(item)}
-                  onPlay={onPlay ? () => onPlay(item) : undefined}
-                  onShufflePlay={onShufflePlay ? () => onShufflePlay(data) : undefined}
-                  favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
-                  rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
-                  renderContextMenu={renderContextMenu ? (children) => renderContextMenu(item, children) : undefined}
-                  rowClassName={getRowClassName?.(item)}
-                  indexPad={indexPad}
-                />
-              );
-            }
+                if (sortable) {
+                  return (
+                    <SortableLibraryRow
+                      key={id}
+                      item={item}
+                      getId={getId}
+                      index={index}
+                      columns={columns}
+                      isSelected={isSelected}
+                      isPlayingTitle={isPlayingTitle}
+                      onSelect={(e) => handleRowSelect(item, e)}
+                      onActivate={() => handleRowActivate(item)}
+                      onPlay={onPlay ? () => onPlay(item) : undefined}
+                      onShufflePlay={onShufflePlay ? () => onShufflePlay(data) : undefined}
+                      favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
+                      rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
+                      renderContextMenu={renderContextMenu ? (children) => renderContextMenu(item, children) : undefined}
+                      rowClassName={getRowClassName?.(item)}
+                      indexPad={indexPad}
+                      indexLabel={indexLabel}
+                    />
+                  );
+                }
 
-            const row = (
-              <ListRow
-                href={href}
-                index={index}
-                isSelected={isSelected}
-                isPlayingTitle={isPlayingTitle}
-                onSelect={(e) => handleRowSelect(item, e)}
-                onActivate={() => handleRowActivate(item)}
-                onPlay={onPlay ? () => onPlay(item) : undefined}
-                onShufflePlay={onShufflePlay ? () => onShufflePlay(data) : undefined}
-                favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
-                rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
-                className={getRowClassName?.(item)}
-                indexPad={indexPad}
-              >
-                {columns.map((col) => (
-                  <td key={col.key} className={cn('truncate py-2 pr-4', col.className)}>
-                    {col.render(item)}
-                  </td>
-                ))}
-              </ListRow>
-            );
-            return (
-              <Fragment key={id}>
-                {renderContextMenu ? renderContextMenu(item, row) : row}
-              </Fragment>
-            );
-          })}
+                const row = (
+                  <ListRow
+                    href={href}
+                    index={index}
+                    isSelected={isSelected}
+                    isPlayingTitle={isPlayingTitle}
+                    onSelect={(e) => handleRowSelect(item, e)}
+                    onActivate={() => handleRowActivate(item)}
+                    onPlay={onPlay ? () => onPlay(item) : undefined}
+                    onShufflePlay={onShufflePlay ? () => onShufflePlay(data) : undefined}
+                    favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
+                    rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
+                    className={getRowClassName?.(item)}
+                    indexPad={indexPad}
+                    indexLabel={indexLabel}
+                  >
+                    {columns.map((col) => (
+                      <td key={col.key} className={cn('truncate py-2 pr-4', col.className)}>
+                        {col.render(item)}
+                      </td>
+                    ))}
+                  </ListRow>
+                );
+                return (
+                  <Fragment key={id}>
+                    {renderContextMenu ? renderContextMenu(item, row) : row}
+                  </Fragment>
+                );
+              })}
+            </Fragment>
+          ))}
         </tbody>
       </table>
     );
