@@ -157,6 +157,30 @@ describe('explicit content filtering endpoints', () => {
     expect(songs.map((s: { title: string }) => s.title)).toContain('Explicit Song');
   });
 
+  it('returns equal shown and total song counts when hideExplicit is disabled', async () => {
+    const albumsRes = await app.inject({
+      method: 'GET',
+      url: '/api/albums',
+      cookies: { sessionId: cookie },
+    });
+    expect(albumsRes.statusCode).toBe(200);
+    const albums = JSON.parse(albumsRes.body).albums;
+    expect(albums).toHaveLength(1);
+    expect(albums[0].shownSongCount).toBe(2);
+    expect(albums[0].totalSongCount).toBe(2);
+
+    const artistRes = await app.inject({
+      method: 'GET',
+      url: '/api/artists/artist-1',
+      cookies: { sessionId: cookie },
+    });
+    expect(artistRes.statusCode).toBe(200);
+    const artistAlbums = JSON.parse(artistRes.body).artist.albums;
+    expect(artistAlbums).toHaveLength(1);
+    expect(artistAlbums[0].shownSongCount).toBe(2);
+    expect(artistAlbums[0].totalSongCount).toBe(2);
+  });
+
   it('hides albums with only explicit songs', async () => {
     upsertSong(db, {
       id: 'song-3',
