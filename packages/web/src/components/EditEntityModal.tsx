@@ -12,6 +12,7 @@ import { CoverArt } from './CoverArt.js';
 import { ArtistImage } from './ArtistImage.js';
 import { Icon } from './ui/Icon.js';
 import { SmartPlaylistEditor } from '../features/playlists/index.js';
+import { FetchMetadataModal } from './FetchMetadataModal.js';
 
 type EntityType = 'song' | 'album' | 'artist' | 'playlist';
 
@@ -152,6 +153,7 @@ export function EditEntityModal({
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmDeleteCoverArt, setConfirmDeleteCoverArt] = useState(false);
+  const [fetchOpen, setFetchOpen] = useState(false);
   const wasOpenRef = useRef(open);
 
   useEffect(() => {
@@ -275,13 +277,32 @@ export function EditEntityModal({
   const primaryFields = useMemo(() => fields.filter((f) => f.primary), [fields]);
   const secondaryFields = useMemo(() => fields.filter((f) => !f.primary), [fields]);
 
+  const handleMetadataFetched = (patch: Record<string, string>) => {
+    for (const [key, value] of Object.entries(patch)) {
+      if (key === 'title' && entityType === 'artist') {
+        updateValue('name', value);
+      } else {
+        updateValue(key, value);
+      }
+    }
+    setFetchOpen(false);
+  };
+
   const footer = (
     <div className="flex justify-between gap-4">
-      {!readOnly && !isMulti && entityType !== 'artist' && (
-        <Button variant="danger" onClick={handleDelete} disabled={deleting || saving}>
-          Delete
-        </Button>
-      )}
+      <div className="flex gap-2">
+        {!readOnly && !isMulti && entityType !== 'artist' && (
+          <Button variant="danger" onClick={handleDelete} disabled={deleting || saving}>
+            Delete
+          </Button>
+        )}
+        {!readOnly && !isMulti && (entityType === 'song' || entityType === 'album' || entityType === 'artist') && (
+          <Button variant="ghost" onClick={() => setFetchOpen(true)} disabled={saving || deleting} className="border border-rule">
+            <Icon name="mdi-music-box-outline" size={18} className="mr-1.5" />
+            MusicBrainz
+          </Button>
+        )}
+      </div>
       <div className="ml-auto flex gap-2">
         <Button variant="ghost" onClick={onClose} disabled={saving || deleting}>
           {readOnly ? 'Close' : 'Cancel'}
@@ -514,6 +535,16 @@ export function EditEntityModal({
           onDeleteCoverArt?.();
         }}
       />
+
+      {activeEntities[0] && (
+        <FetchMetadataModal
+          open={fetchOpen}
+          entityType={entityType === 'song' || entityType === 'album' || entityType === 'artist' ? entityType : 'song'}
+          entity={activeEntities[0]}
+          onClose={() => setFetchOpen(false)}
+          onApply={handleMetadataFetched}
+        />
+      )}
     </>
   );
 }

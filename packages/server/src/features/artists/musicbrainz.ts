@@ -37,7 +37,7 @@ export interface ArtistMetadataResult {
 
 let lastRequestAt = 0;
 
-async function fetchWithTimeout(url: string): Promise<Response> {
+export async function fetchWithTimeout(url: string): Promise<Response> {
   const now = Date.now();
   const elapsed = now - lastRequestAt;
   if (elapsed < RATE_LIMIT_DELAY_MS) {

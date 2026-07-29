@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { EditEntityModal } from './EditEntityModal.js';
 
-afterEach(() => cleanup());
+const originalFetch = global.fetch;
+
+afterEach(() => {
+  cleanup();
+  global.fetch = originalFetch;
+});
 
 describe('EditEntityModal', () => {
   it('renders song fields and calls onSave', () => {
@@ -289,5 +294,37 @@ describe('EditEntityModal', () => {
     );
     expect(screen.queryByRole('button', { name: /remove cover art/i })).toBeFalsy();
     expect(screen.getByRole('button', { name: /change cover art/i })).toBeTruthy();
+  });
+
+  it('opens MusicBrainz fetch modal and applies fetched metadata', async () => {
+    global.fetch = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          matches: [{ id: 'mb-1', title: 'Fetched Title', artist: 'Fetched Artist' }],
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    }) as unknown as typeof fetch;
+
+    const onSave = vi.fn();
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '15', title: 'Track', artist: 'Artist' }}
+        onClose={vi.fn()}
+        onSave={onSave}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /musicbrainz/i }));
+    await waitFor(() => expect(screen.queryByText(/searching musicbrainz/i)).toBeFalsy());
+
+    fireEvent.click(screen.getAllByTitle('Transfer value')[0]);
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'Fetched Title' }));
   });
 });
