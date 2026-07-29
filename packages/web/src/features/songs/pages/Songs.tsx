@@ -4,7 +4,7 @@ import { api } from '../../../api.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
-import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
+import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
@@ -19,17 +19,17 @@ type Song = SharedSong & {
 };
 
 function SongContextMenu({
-  song,
+  songs,
   onEdit,
   isAdmin,
   children,
 }: {
-  song: Song;
+  songs: Song[];
   onEdit: () => void;
   isAdmin: boolean;
   children: ReactNode;
 }) {
-  const sections = useSongContextMenu(song, onEdit, isAdmin);
+  const sections = useSongsContextMenu(songs, onEdit, isAdmin);
   return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
 
@@ -37,7 +37,7 @@ export function Songs({ user }: { user: User }) {
   const [songs, setSongs] = useState<Song[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editing, setEditing] = useState<Song | null>(null);
+  const [editing, setEditing] = useState<Song[] | null>(null);
   const [syncEditing, setSyncEditing] = useState<Song | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -77,10 +77,10 @@ export function Songs({ user }: { user: User }) {
   };
 
   const handleSave = async (patched: Record<string, unknown>) => {
-    if (!editing) return;
+    if (!editing || editing.length !== 1) return;
     setSaving(true);
     try {
-      const result = await api<{ ok: boolean; orphanedEntities?: { type: 'artist' | 'album'; id: string; name: string }[] }>(`/songs/${editing.id}/tags`, {
+      const result = await api<{ ok: boolean; orphanedEntities?: { type: 'artist' | 'album'; id: string; name: string }[] }>(`/songs/${editing[0].id}/tags`, {
         method: 'PUT',
         body: JSON.stringify(patched),
       });
@@ -92,6 +92,30 @@ export function Songs({ user }: { user: User }) {
       }
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to save song', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveMany = async (patched: Record<string, unknown>) => {
+    if (!editing || editing.length < 2) return;
+    setSaving(true);
+    try {
+      const result = await api<{ ok: boolean; orphanedEntities?: { type: 'artist' | 'album'; id: string; name: string }[] }>('/songs/tags', {
+        method: 'PUT',
+        body: JSON.stringify({
+          ids: editing.map((s) => s.id),
+          tags: patched,
+        }),
+      });
+      setEditing(null);
+      if (result.orphanedEntities && result.orphanedEntities.length > 0) {
+        setOrphanedEntities(result.orphanedEntities);
+      } else {
+        load();
+      }
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to save songs', 'error');
     } finally {
       setSaving(false);
     }
@@ -118,10 +142,10 @@ export function Songs({ user }: { user: User }) {
   };
 
   const handleDelete = async () => {
-    if (!editing) return;
+    if (!editing || editing.length !== 1) return;
     setDeleting(true);
     try {
-      await api(`/songs/${editing.id}`, { method: 'DELETE' });
+      await api(`/songs/${editing[0].id}`, { method: 'DELETE' });
       setEditing(null);
       load();
     } catch (err) {
@@ -131,14 +155,12 @@ export function Songs({ user }: { user: User }) {
     }
   };
 
-  const editEntity = editing
-    ? {
-        ...editing,
-        artist: editing.artistName,
-        album: editing.albumName,
-        albumArtist: editing.albumArtistName,
-      }
-    : null;
+  const editEntities = editing?.map((song) => ({
+    ...song,
+    artist: song.artistName,
+    album: song.albumName,
+    albumArtist: song.albumArtistName,
+  }));
 
   if (loading) return <p className="text-sm text-muted">Loading...</p>;
   if (error) return <p className="text-sm text-danger">{error}</p>;
@@ -153,22 +175,28 @@ export function Songs({ user }: { user: User }) {
         onPlay={handlePlay}
         onShufflePlay={handleShufflePlay}
         onPlaySelection={handlePlaySelection}
-        renderRow={(song, row) => (
-          <SongContextMenu song={song as Song} onEdit={() => setEditing(song as Song)} isAdmin={user.isAdmin}>
+        renderRow={(song, row, selectedRows) => (
+          <SongContextMenu songs={selectedRows as Song[]} onEdit={() => setEditing(selectedRows as Song[])} isAdmin={user.isAdmin}>
             {row}
           </SongContextMenu>
         )}
         empty="No songs."
       />
-      {editEntity && (
+      {editEntities && editEntities.length > 0 && (
         <EditEntityModal
           open
           entityType="song"
-          entity={editEntity}
+          entities={editEntities}
+          entity={editEntities.length === 1 ? editEntities[0] : undefined}
           onClose={() => setEditing(null)}
           onSave={handleSave}
-          onDelete={handleDelete}
-          onEditSyncedLyrics={() => editing && setSyncEditing(editing)}
+          onSaveMany={handleSaveMany}
+          onDelete={editEntities.length === 1 ? handleDelete : undefined}
+          onEditSyncedLyrics={
+            editEntities.length === 1 && editing
+              ? () => editing && setSyncEditing(editing[0])
+              : undefined
+          }
           saving={saving}
           deleting={deleting}
         />

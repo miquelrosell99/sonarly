@@ -271,7 +271,7 @@ export function Albums() {
         getRating={(album) => album.rating}
         getCover={(album) => album.coverArt}
         getCoverAlt={(album) => `Cover art for ${album.name}`}
-        renderContextMenu={(album, children) => (
+        renderContextMenu={(album, children, _selectedItems) => (
           <AlbumContextMenu album={album} onEdit={() => setEditing(album)}>
             {children}
           </AlbumContextMenu>

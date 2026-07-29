@@ -51,7 +51,7 @@ interface LibraryViewProps<T> {
   onRate?: (item: T, rating?: number) => void;
   getFavorite?: (item: T) => boolean | undefined;
   getRating?: (item: T) => number | undefined;
-  renderContextMenu?: (item: T, children: ReactNode) => ReactNode;
+  renderContextMenu?: (item: T, children: ReactNode, selectedItems: T[]) => ReactNode;
   emptyMessage?: string;
   defaultView?: 'list' | 'grid';
   availableViews?: ViewMode[];
@@ -89,6 +89,7 @@ function SortableLibraryRow<T>({
   rowClassName,
   indexPad,
   indexLabel,
+  selectedItems,
 }: {
   item: T;
   getId: (item: T) => string;
@@ -102,10 +103,11 @@ function SortableLibraryRow<T>({
   onShufflePlay?: () => void;
   favorite?: { starred?: boolean; onClick: () => void };
   rating?: { value?: number; onRate: (value: number) => void };
-  renderContextMenu?: (children: ReactNode) => ReactNode;
+  renderContextMenu?: (children: ReactNode, selectedItems: T[]) => ReactNode;
   rowClassName?: string;
   indexPad?: number;
   indexLabel?: ReactNode;
+  selectedItems?: T[];
 }) {
   const {
     attributes,
@@ -149,7 +151,7 @@ function SortableLibraryRow<T>({
     </ListRow>
   );
 
-  return renderContextMenu ? renderContextMenu(row) : row;
+  return renderContextMenu ? renderContextMenu(row, selectedItems ?? []) : row;
 }
 
 export function LibraryView<T>({
@@ -305,6 +307,8 @@ export function LibraryView<T>({
     const rowIndexMap = new Map<T, number>();
     data.forEach((item, idx) => rowIndexMap.set(item, idx));
 
+    const selectedItems = data.filter((d) => selectedIds.has(getId(d)));
+
     const groups: { key?: string; items: T[] }[] = [];
     if (!groupBy) {
       groups.push({ items: data });
@@ -377,7 +381,15 @@ export function LibraryView<T>({
                       onShufflePlay={onShufflePlay ? () => onShufflePlay(data) : undefined}
                       favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
                       rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
-                      renderContextMenu={renderContextMenu ? (children) => renderContextMenu(item, children) : undefined}
+                      renderContextMenu={
+                        renderContextMenu
+                          ? (children, selectedItems) => {
+                              const menuSelection = selectedItems.length > 0 ? selectedItems : [item];
+                              return renderContextMenu(item, children, menuSelection);
+                            }
+                          : undefined
+                      }
+                      selectedItems={selectedItems}
                       rowClassName={getRowClassName?.(item)}
                       indexPad={indexPad}
                       indexLabel={indexLabel}
@@ -408,9 +420,10 @@ export function LibraryView<T>({
                     ))}
                   </ListRow>
                 );
+                const menuSelection = selectedItems.length > 0 ? selectedItems : [item];
                 return (
                   <Fragment key={id}>
-                    {renderContextMenu ? renderContextMenu(item, row) : row}
+                    {renderContextMenu ? renderContextMenu(item, row, menuSelection) : row}
                   </Fragment>
                 );
               })}
@@ -465,7 +478,7 @@ export function LibraryView<T>({
         );
         return (
           <Fragment key={getId(item)}>
-            {renderContextMenu ? renderContextMenu(item, card) : card}
+            {renderContextMenu ? renderContextMenu(item, card, [item]) : card}
           </Fragment>
         );
       })}

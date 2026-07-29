@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import type { Album } from '@sonarly/shared';
+import { ensureArtist } from '../artists/repository.js';
 
 export interface DbAlbum {
   id: string;
@@ -122,6 +123,36 @@ export function upsertAlbum(db: Database.Database, album: Album): void {
     totalTracks: album.totalTracks ?? null,
     totalDiscs: album.totalDiscs ?? null,
   });
+}
+
+export function ensureAlbum(
+  db: Database.Database,
+  name: string,
+  artistNames: string[] | undefined,
+  year?: number,
+  genre?: string,
+): string {
+  const trimmed = name.trim();
+  const artistIds = artistNames?.map((n) => ensureArtist(db, n.trim())).filter((id): id is string => id !== undefined);
+  const primaryArtistId = artistIds?.[0];
+  const existing = getAlbumByNameAndArtist(db, trimmed, primaryArtistId);
+  if (existing) {
+    return existing.id;
+  }
+  const id = randomUUID();
+  upsertAlbum(db, {
+    id,
+    name: trimmed,
+    artistId: primaryArtistId,
+    artistName: artistNames?.join(' / '),
+    year,
+    genre,
+    active: true,
+  });
+  if (artistIds && artistIds.length > 0) {
+    setAlbumArtists(db, id, artistIds);
+  }
+  return id;
 }
 
 export function setAlbumArtists(

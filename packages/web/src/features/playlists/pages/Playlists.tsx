@@ -113,7 +113,7 @@ export function Playlists() {
         getFavorite={(playlist) => playlist.starred}
         getRating={(playlist) => playlist.rating}
         renderCover={(playlist) => <PlaylistCoverGrid playlistId={playlist.id} />}
-        renderContextMenu={(playlist, children) => (
+        renderContextMenu={(playlist, children, _selectedItems) => (
           <PlaylistContextMenu
             playlist={playlist}
             onEdit={() => openForEdit(playlist.id)}

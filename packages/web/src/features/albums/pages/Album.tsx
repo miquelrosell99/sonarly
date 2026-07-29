@@ -11,7 +11,7 @@ import { PlayButton } from '../../../components/PlayButton.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
-import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
+import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
@@ -42,17 +42,17 @@ interface AlbumDetail {
 }
 
 function SongContextMenu({
-  song,
+  songs,
   onEdit,
   isAdmin,
   children,
 }: {
-  song: SongListItem;
+  songs: SongListItem[];
   onEdit: () => void;
   isAdmin: boolean;
   children: ReactNode;
 }) {
-  const sections = useSongContextMenu(song as SharedSong, onEdit, isAdmin);
+  const sections = useSongsContextMenu(songs as SharedSong[], onEdit, isAdmin);
   return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
 
@@ -61,7 +61,7 @@ export function Album({ user }: { user: User }) {
   const [detail, setDetail] = useState<AlbumDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [songEditing, setSongEditing] = useState<SongWithNames | null>(null);
+  const [songEditing, setSongEditing] = useState<SongWithNames[] | null>(null);
   const [albumEditing, setAlbumEditing] = useState<Album | null>(null);
   const [syncEditing, setSyncEditing] = useState<SongWithNames | null>(null);
   const [saving, setSaving] = useState(false);
@@ -135,10 +135,10 @@ export function Album({ user }: { user: User }) {
   };
 
   const handleSongSave = async (patched: Record<string, unknown>) => {
-    if (!songEditing) return;
+    if (!songEditing || songEditing.length !== 1) return;
     setSaving(true);
     try {
-      await api(`/songs/${songEditing.id}/tags`, {
+      await api(`/songs/${songEditing[0].id}/tags`, {
         method: 'PUT',
         body: JSON.stringify(patched),
       });
@@ -151,11 +151,31 @@ export function Album({ user }: { user: User }) {
     }
   };
 
+  const handleSongSaveMany = async (patched: Record<string, unknown>) => {
+    if (!songEditing || songEditing.length < 2) return;
+    setSaving(true);
+    try {
+      await api('/songs/tags', {
+        method: 'PUT',
+        body: JSON.stringify({
+          ids: songEditing.map((s) => s.id),
+          tags: patched,
+        }),
+      });
+      setSongEditing(null);
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to save songs', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSongDelete = async () => {
-    if (!songEditing) return;
+    if (!songEditing || songEditing.length !== 1) return;
     setDeleting(true);
     try {
-      await api(`/songs/${songEditing.id}`, { method: 'DELETE' });
+      await api(`/songs/${songEditing[0].id}`, { method: 'DELETE' });
       setSongEditing(null);
       load();
     } catch (err) {
@@ -247,14 +267,12 @@ export function Album({ user }: { user: User }) {
       ]
     : [];
 
-  const songEditEntity = songEditing
-    ? {
-        ...songEditing,
-        artist: songEditing.artistName,
-        album: songEditing.albumName,
-        albumArtist: songEditing.albumArtistName,
-      }
-    : null;
+  const songEditEntities = songEditing?.map((song) => ({
+    ...song,
+    artist: song.artistName,
+    album: song.albumName,
+    albumArtist: song.albumArtistName,
+  }));
 
   const albumEditEntity = albumEditing
     ? {
@@ -321,23 +339,29 @@ export function Album({ user }: { user: User }) {
         getIndexLabel={(song) => song.trackNumber}
         groupBy={hasMultipleDiscs ? (song) => (song.discNumber ? String(song.discNumber) : undefined) : undefined}
         renderGroupHeader={hasMultipleDiscs ? (key) => `Disc ${Number(key).toString().padStart(2, '0')}` : undefined}
-        renderRow={(song, row) => (
-          <SongContextMenu song={song} onEdit={() => setSongEditing(song as SongWithNames)} isAdmin={user.isAdmin}>
+        renderRow={(song, row, selectedRows) => (
+          <SongContextMenu songs={selectedRows} onEdit={() => setSongEditing(selectedRows as SongWithNames[])} isAdmin={user.isAdmin}>
             {row}
           </SongContextMenu>
         )}
         empty="No songs."
       />
 
-      {songEditEntity && (
+      {songEditEntities && songEditEntities.length > 0 && (
         <EditEntityModal
           open
           entityType="song"
-          entity={songEditEntity}
+          entities={songEditEntities}
+          entity={songEditEntities.length === 1 ? songEditEntities[0] : undefined}
           onClose={() => setSongEditing(null)}
           onSave={handleSongSave}
-          onDelete={handleSongDelete}
-          onEditSyncedLyrics={() => songEditing && setSyncEditing(songEditing)}
+          onSaveMany={handleSongSaveMany}
+          onDelete={songEditEntities.length === 1 ? handleSongDelete : undefined}
+          onEditSyncedLyrics={
+            songEditEntities.length === 1 && songEditing
+              ? () => songEditing && setSyncEditing(songEditing[0])
+              : undefined
+          }
           saving={saving}
           deleting={deleting}
           coverArtBusy={coverArtBusy}

@@ -18,7 +18,7 @@ interface TableProps<T> {
   onShufflePlay?: (row: T) => void;
   onPlaySelection?: (rows: T[], startIndex: number) => void;
   playingId?: string;
-  renderRow?: (row: T, element: ReactNode) => ReactNode;
+  renderRow?: (row: T, element: ReactNode, selectedRows: T[]) => ReactNode;
   indexPad?: number;
   className?: string;
   /** Override the displayed index label for a row. Returning undefined falls back to the 1-based row index. */
@@ -133,6 +133,8 @@ export function Table<T>({
   const rowIndexMap = new Map<T, number>();
   rows.forEach((row, idx) => rowIndexMap.set(row, idx));
 
+  const selectedRows = selectable ? rows.filter((row) => selectedIds.has(rowKey(row))) : [];
+
   const groups: { key?: string; rows: T[] }[] = [];
   if (!groupBy) {
     groups.push({ rows });
@@ -235,9 +237,9 @@ export function Table<T>({
                   >
                     {onPlay && (
                       <td className="w-12 py-2 px-2 text-center">
-                        <span className="relative inline-flex h-5 w-6 items-center justify-center text-muted">
-                          <span className="transition group-hover:opacity-0">{indexContent}</span>
-                          <span className="absolute inset-0 flex items-center justify-center opacity-0 transition group-hover:opacity-100">
+                        <span className="group/play relative inline-flex h-5 w-6 items-center justify-center text-muted">
+                          <span className="transition group-hover/play:opacity-0">{indexContent}</span>
+                          <span className="absolute inset-0 flex items-center justify-center opacity-0 transition group-hover/play:opacity-100">
                             <PlayButton
                               variant="inline"
                               onPlay={() => onPlay(row)}
@@ -252,8 +254,9 @@ export function Table<T>({
                   </tr>
                 );
 
+                const menuSelection = selectedRows.length > 0 ? selectedRows : [row];
                 return renderRow ? (
-                  <Fragment key={id}>{renderRow(row, tr)}</Fragment>
+                  <Fragment key={id}>{renderRow(row, tr, menuSelection)}</Fragment>
                 ) : (
                   tr
                 );

@@ -213,7 +213,7 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
     });
   };
 
-  const renderContextMenu = (item: QueueDisplayItem, children: React.ReactNode) => {
+  const renderContextMenu = (item: QueueDisplayItem, children: React.ReactNode, _selectedItems: QueueDisplayItem[]) => {
     const song = item.song;
     const menuSections = [
       {
