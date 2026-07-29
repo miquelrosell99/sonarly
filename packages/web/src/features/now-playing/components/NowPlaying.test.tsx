@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { NowPlaying } from './NowPlaying.js';
 import { useNowPlaying, resetNowPlaying } from '../stores/nowPlayingStore.js';
 import { usePlayer, resetPlayer } from '../../../stores/playerStore.js';
 import { NotificationProvider } from '../../../contexts/NotificationContext.js';
+import { useSongInteraction } from '../../../hooks/useSongInteraction.js';
+import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferences.js';
 import type { User } from '@sonarly/shared';
 
 const mockUser = { id: 'u1', username: 'test', isAdmin: false } as User;
@@ -31,6 +33,22 @@ vi.mock('wouter', () => ({
   ),
 }));
 
+vi.mock('../../../hooks/useSongInteraction.js', () => ({
+  useSongInteraction: vi.fn(() => ({
+    starred: false,
+    rating: 0,
+    setFavorite: vi.fn(),
+    setRating: vi.fn(),
+  })),
+}));
+
+vi.mock('../../../hooks/usePreferences.js', () => ({
+  usePreferences: vi.fn(() => ({
+    data: { autoDjEnabled: false, autoDjMode: 'smart' },
+  })),
+  useUpdatePreferences: vi.fn(() => ({ mutate: vi.fn() })),
+}));
+
 function Wrapper({ children }: { children: React.ReactNode }) {
   return <NotificationProvider>{children}</NotificationProvider>;
 }
@@ -38,6 +56,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 beforeEach(() => {
   resetNowPlaying();
   resetPlayer();
+  vi.clearAllMocks();
 });
 
 afterEach(() => {
@@ -212,5 +231,83 @@ describe('NowPlaying', () => {
 
     const title = screen.getByRole('link', { name: 'Explicit Song' });
     expect(title.parentElement?.className.includes('blur-sm')).toBe(true);
+  });
+
+  it('renders favorite and rating controls', () => {
+    useNowPlaying.getState().open();
+    usePlayer.getState().playQueue(
+      [{ id: 's1', title: 'Song', artistName: 'Artist' } as any],
+      0,
+    );
+    vi.mocked(useSongInteraction).mockReturnValue({
+      starred: true,
+      rating: 3,
+      setFavorite: vi.fn(),
+      setRating: vi.fn(),
+    });
+    render(<NowPlaying user={mockUser} />, { wrapper: Wrapper });
+
+    expect(screen.getByRole('button', { name: 'Remove favorite' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Rating' })).toBeTruthy();
+  });
+
+  it('toggles favorite and updates the current song', async () => {
+    useNowPlaying.getState().open();
+    usePlayer.getState().playQueue(
+      [{ id: 's1', title: 'Song', artistName: 'Artist', starred: false } as any],
+      0,
+    );
+    const setFavorite = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useSongInteraction).mockReturnValue({
+      starred: false,
+      rating: 0,
+      setFavorite,
+      setRating: vi.fn(),
+    });
+
+    render(<NowPlaying user={mockUser} />, { wrapper: Wrapper });
+    fireEvent.click(screen.getByRole('button', { name: 'Add favorite' }));
+
+    await waitFor(() => expect(setFavorite).toHaveBeenCalledWith(true));
+    expect(usePlayer.getState().currentSong?.starred).toBe(true);
+  });
+
+  it('updates rating and the current song', async () => {
+    useNowPlaying.getState().open();
+    usePlayer.getState().playQueue(
+      [{ id: 's1', title: 'Song', artistName: 'Artist' } as any],
+      0,
+    );
+    const setRating = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useSongInteraction).mockReturnValue({
+      starred: false,
+      rating: 0,
+      setFavorite: vi.fn(),
+      setRating,
+    });
+
+    render(<NowPlaying user={mockUser} />, { wrapper: Wrapper });
+    fireEvent.click(screen.getByRole('button', { name: 'Rate 4 stars' }));
+
+    await waitFor(() => expect(setRating).toHaveBeenCalledWith(4));
+    expect(usePlayer.getState().currentSong?.rating).toBe(4);
+  });
+
+  it('toggles Auto DJ from the header', () => {
+    useNowPlaying.getState().open();
+    usePlayer.getState().playQueue(
+      [{ id: 's1', title: 'Song', artistName: 'Artist' } as any],
+      0,
+    );
+    const mutate = vi.fn();
+    vi.mocked(usePreferences).mockReturnValue({
+      data: { autoDjEnabled: false, autoDjMode: 'smart' },
+    } as any);
+    vi.mocked(useUpdatePreferences).mockReturnValue({ mutate } as any);
+
+    render(<NowPlaying user={mockUser} />, { wrapper: Wrapper });
+    fireEvent.click(screen.getByRole('button', { name: 'Auto DJ: off' }));
+
+    expect(mutate).toHaveBeenCalledWith({ autoDjEnabled: true });
   });
 });
