@@ -7,6 +7,7 @@ import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { CoverArt } from '../../../components/CoverArt.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
+import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
@@ -16,6 +17,7 @@ import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { usePlayer } from '../../../stores/playerStore.js';
+import { patchToPlayerSong } from '../../../lib/songPatch.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 import { SongTable } from '../../songs/index.js';
@@ -32,6 +34,7 @@ interface Album {
   coverArt?: string;
   totalSongCount?: number;
   shownSongCount?: number;
+  explicit?: boolean;
   starred?: boolean;
   rating?: number;
 }
@@ -71,6 +74,7 @@ export function Album({ user }: { user: User }) {
   const albumCoverInputRef = useRef<HTMLInputElement>(null);
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
+  const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
   const playingId = usePlayer((state) => state.currentSong?.id);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
@@ -142,6 +146,9 @@ export function Album({ user }: { user: User }) {
         method: 'PUT',
         body: JSON.stringify(patched),
       });
+      if (songEditing[0].id === usePlayer.getState().currentSong?.id) {
+        updateCurrentSong(patchToPlayerSong(patched));
+      }
       setSongEditing(null);
       load();
     } catch (err) {
@@ -162,6 +169,10 @@ export function Album({ user }: { user: User }) {
           tags: patched,
         }),
       });
+      const currentId = usePlayer.getState().currentSong?.id;
+      if (currentId && songEditing.some((s) => s.id === currentId)) {
+        updateCurrentSong(patchToPlayerSong(patched));
+      }
       setSongEditing(null);
       load();
     } catch (err) {
@@ -297,7 +308,15 @@ export function Album({ user }: { user: User }) {
       notFoundMessage="Album not found."
       documentTitle={detail?.album.name}
       type="Album"
-      title={detail?.album.name}
+      title={
+        detail ? (
+          <ExplicitTitle
+            title={detail.album.name}
+            explicit={detail.album.explicit}
+            blur={blurExplicitTitles}
+          />
+        ) : undefined
+      }
       cover={
         detail && (
           <CoverArt

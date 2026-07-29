@@ -34,6 +34,7 @@ interface AlbumRow {
   compilation: number | null;
   total_tracks: string | null;
   total_discs: string | null;
+  explicit?: number | null;
 }
 
 function rowToAlbum(row: AlbumRow): Album {
@@ -48,6 +49,7 @@ function rowToAlbum(row: AlbumRow): Album {
     active: row.active === 1,
     starred: row.starred === 1,
     rating: row.rating ?? undefined,
+    explicit: row.explicit === 1,
     catalogNumbers: row.catalog_numbers ? JSON.parse(row.catalog_numbers) : undefined,
     barcode: row.barcode ?? undefined,
     asin: row.asin ?? undefined,
@@ -99,7 +101,8 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
         ua.starred,
         ua.rating,
         COUNT(s.id) AS total_song_count,
-        SUM(CASE WHEN s.explicit = 0 THEN 1 ELSE 0 END) AS shown_song_count
+        SUM(CASE WHEN s.explicit = 0 THEN 1 ELSE 0 END) AS shown_song_count,
+        MAX(s.explicit) AS explicit
       FROM albums a
       ${libraryFilter ? 'JOIN songs s ON s.album_id = a.id AND s.active = 1 AND s.library_id = ?' : 'LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1'}
       LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
@@ -196,6 +199,7 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
       ...rowToAlbum(row),
       totalSongCount: songs.length,
       shownSongCount: visibleSongs.length,
+      explicit: songs.some((s) => s.explicit),
     };
     const artists = getAlbumArtistNames(db, album.id);
     if (artists.length) album.artists = artists;

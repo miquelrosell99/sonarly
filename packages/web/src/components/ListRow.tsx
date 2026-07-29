@@ -149,13 +149,15 @@ export function ListRow({
             )}
           </span>
           {onPlay && (
-            <span className="absolute inset-0 flex items-center justify-center opacity-0 transition group-hover/play:opacity-100">
-              <PlayButton
-                variant="inline"
-                onPlay={onPlay}
-                onShufflePlay={onShufflePlay}
-                label={playLabel}
-              />
+            <span className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition group-hover/play:opacity-100">
+              <span className="pointer-events-auto">
+                <PlayButton
+                  variant="inline"
+                  onPlay={onPlay}
+                  onShufflePlay={onShufflePlay}
+                  label={playLabel}
+                />
+              </span>
             </span>
           )}
         </span>

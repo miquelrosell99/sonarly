@@ -4,6 +4,7 @@ import { api } from '../../../api.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
+import { patchToPlayerSong } from '../../../lib/songPatch.js';
 import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
@@ -45,6 +46,7 @@ export function Songs({ user }: { user: User }) {
   const [cleaningUp, setCleaningUp] = useState(false);
   const { notify } = useNotification();
   const { playSongs, shufflePlay } = usePlayActions();
+  const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
   const playingId = usePlayer((state) => state.currentSong?.id);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
@@ -84,6 +86,9 @@ export function Songs({ user }: { user: User }) {
         method: 'PUT',
         body: JSON.stringify(patched),
       });
+      if (editing[0].id === usePlayer.getState().currentSong?.id) {
+        updateCurrentSong(patchToPlayerSong(patched));
+      }
       setEditing(null);
       if (result.orphanedEntities && result.orphanedEntities.length > 0) {
         setOrphanedEntities(result.orphanedEntities);
@@ -108,6 +113,10 @@ export function Songs({ user }: { user: User }) {
           tags: patched,
         }),
       });
+      const currentId = usePlayer.getState().currentSong?.id;
+      if (currentId && editing.some((s) => s.id === currentId)) {
+        updateCurrentSong(patchToPlayerSong(patched));
+      }
       setEditing(null);
       if (result.orphanedEntities && result.orphanedEntities.length > 0) {
         setOrphanedEntities(result.orphanedEntities);
