@@ -10,6 +10,7 @@ import { PlaylistCoverGrid } from '../components/PlaylistCoverGrid.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { usePlayer } from '../../../stores/playerStore.js';
+import { patchToPlayerSong } from '../../../lib/songPatch.js';
 import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js';
 import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
@@ -71,6 +72,7 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
   const { notify } = useNotification();
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
+  const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
   const playingId = usePlayer((state) => state.currentSong?.id);
 
   const [songEditing, setSongEditing] = useState<SongListItem[] | null>(null);
@@ -128,6 +130,9 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
         method: 'PUT',
         body: JSON.stringify(patched),
       });
+      if (songEditing[0].id === usePlayer.getState().currentSong?.id) {
+        updateCurrentSong(patchToPlayerSong(patched));
+      }
       setSongEditing(null);
       refetch();
     } catch (err) {
@@ -148,6 +153,10 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
           tags: patched,
         }),
       });
+      const currentId = usePlayer.getState().currentSong?.id;
+      if (currentId && songEditing.some((s) => s.id === currentId)) {
+        updateCurrentSong(patchToPlayerSong(patched));
+      }
       setSongEditing(null);
       refetch();
     } catch (err) {

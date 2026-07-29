@@ -47,6 +47,7 @@ interface AlbumSearchRow {
   active: number;
   starred: number | null;
   rating: number | null;
+  explicit: number;
 }
 
 interface ArtistSearchRow {
@@ -114,6 +115,7 @@ function rowToAlbum(row: AlbumSearchRow): Album {
     active: row.active === 1,
     starred: row.starred === 1,
     rating: row.rating ?? undefined,
+    explicit: row.explicit === 1,
   };
 }
 
@@ -196,7 +198,8 @@ function fetchAlbums(
     SELECT
       a.*,
       ua.starred,
-      ua.rating
+      ua.rating,
+      (SELECT MAX(CASE WHEN s.explicit = 1 THEN 1 ELSE 0 END) FROM songs s WHERE s.album_id = a.id AND s.active = 1) AS explicit
     FROM albums a
     LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
     WHERE a.active = 1 AND LOWER(a.name) LIKE LOWER(?)

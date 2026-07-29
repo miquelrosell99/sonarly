@@ -11,7 +11,7 @@ export interface EntityDetailProps {
   notFoundMessage?: string;
   documentTitle?: string | null;
   type: string;
-  title?: string;
+  title?: React.ReactNode;
   cover?: ReactNode;
   metadata?: MetadataItem[];
   actions?: ReactNode;

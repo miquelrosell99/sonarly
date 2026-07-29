@@ -231,9 +231,32 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
     </div>
   );
 
+  const modalOnClose = isUploading ? () => {} : onClose;
+
   return (
-    <Modal open={open} onClose={onClose} title="Upload" footer={footer} className="max-w-2xl">
+    <Modal open={open} onClose={modalOnClose} title="Upload" footer={isUploading ? null : footer} className="max-w-2xl">
       <div className="space-y-4">
+        {isUploading ? (
+          <div className="flex flex-col items-center justify-center gap-5 py-8 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent">
+              <Icon name="mdi-cloud-upload-outline" size={28} className="animate-pulse" />
+            </div>
+            <div className="w-full max-w-md space-y-1">
+              <div className="flex justify-between gap-2 text-xs text-fg-secondary">
+                <span className="min-w-0 flex-1 truncate" title={progress.currentFile}>{progress.currentFile}</span>
+                <span className="shrink-0">{progress.completedFiles} / {progress.totalFiles}</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-surface-hover">
+                <div
+                  className="h-full bg-accent transition-all"
+                  style={{ width: `${progress.currentFileProgress}%` }}
+                />
+              </div>
+              <p className="text-xs text-fg-secondary">{Math.round(progress.currentFileProgress)}% uploaded</p>
+            </div>
+          </div>
+        ) : (
+          <>
         <div className="space-y-1">
           <label htmlFor="upload-library" className="block text-sm font-medium text-fg-secondary">
             Library <span className="text-danger">*</span>
@@ -334,19 +357,7 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
           </div>
         )}
 
-        {isUploading && (
-          <div className="space-y-1">
-            <div className="flex justify-between gap-2 text-xs text-fg-secondary">
-              <span className="min-w-0 flex-1 truncate" title={progress.currentFile}>{progress.currentFile}</span>
-              <span className="shrink-0">{progress.completedFiles} / {progress.totalFiles}</span>
-            </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-surface-hover">
-              <div
-                className="h-full bg-accent transition-all"
-                style={{ width: `${progress.currentFileProgress}%` }}
-              />
-            </div>
-          </div>
+        </>
         )}
       </div>
     </Modal>

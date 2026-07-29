@@ -13,6 +13,7 @@ import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
+import { patchToPlayerSong } from '../../../lib/songPatch.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
@@ -98,6 +99,7 @@ export function SearchResults({ user }: SearchResultsProps) {
   const { playSong, playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
   const { notify } = useNotification();
+  const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
   const playingId = usePlayer((state) => state.currentSong?.id);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
   const libraryQuery = buildLibraryQuery(selectedLibraryId);
@@ -189,6 +191,9 @@ export function SearchResults({ user }: SearchResultsProps) {
         method: 'PUT',
         body: JSON.stringify(patched),
       });
+      if (songEditing[0].id === usePlayer.getState().currentSong?.id) {
+        updateCurrentSong(patchToPlayerSong(patched));
+      }
       setSongEditing(null);
       load();
     } catch (err) {
@@ -209,6 +214,10 @@ export function SearchResults({ user }: SearchResultsProps) {
           tags: patched,
         }),
       });
+      const currentId = usePlayer.getState().currentSong?.id;
+      if (currentId && songEditing.some((s) => s.id === currentId)) {
+        updateCurrentSong(patchToPlayerSong(patched));
+      }
       setSongEditing(null);
       load();
     } catch (err) {
@@ -308,9 +317,11 @@ export function SearchResults({ user }: SearchResultsProps) {
         key: 'title',
         header: 'Title',
         render: (album) => (
-          <Link href={`/albums/${album.id}`} className="hover:text-muted">
-            {album.name}
-          </Link>
+          <ExplicitTitle explicit={album.explicit} blur={blurExplicitTitles}>
+            <Link href={`/albums/${album.id}`} className="hover:text-muted">
+              {album.name}
+            </Link>
+          </ExplicitTitle>
         ),
       },
       { key: 'artist', header: 'Artist', render: (album) => album.artistName ?? '-' },
@@ -318,7 +329,7 @@ export function SearchResults({ user }: SearchResultsProps) {
       { key: 'genre', header: 'Genre', render: (album) => album.genre ?? '-' },
     ];
     const cardFields: LibraryViewCardField<Album>[] = [
-      { key: 'title', render: (album) => album.name },
+      { key: 'title', render: (album) => <ExplicitTitle title={album.name} explicit={album.explicit} blur={blurExplicitTitles} /> },
       {
         key: 'artist',
         render: (album) =>
