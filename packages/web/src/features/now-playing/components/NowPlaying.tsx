@@ -172,7 +172,7 @@ export function NowPlaying({ user }: NowPlayingProps) {
         type="button"
         onClick={close}
         aria-label="Close Now Playing"
-        className="absolute right-6 top-6 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="absolute left-6 top-6 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
         <Icon name="mdi-chevron-down" size={24} />
       </button>
