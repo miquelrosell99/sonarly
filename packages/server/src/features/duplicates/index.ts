@@ -12,6 +12,8 @@ export interface SongIdentity {
   title: string;
   albumId?: string;
   artistIds: string[];
+  trackNumber?: number;
+  discNumber?: number;
 }
 
 export function resolveSongIdentity(
@@ -25,12 +27,22 @@ export function resolveSongIdentity(
   if (!artistNames?.length) return undefined;
 
   const artistIds = artistNames.map((name) => ensureArtist(db, name));
-  const primaryArtistId = artistIds[0];
+  // Use album artists for album lookup so compilations where the track artist
+  // differs from the album artist still resolve to the correct album.
+  const albumArtistNames = meta.albumArtists ?? artistNames;
+  const albumArtistIds = albumArtistNames.map((name) => ensureArtist(db, name));
+  const primaryAlbumArtistId = albumArtistIds[0];
   const albumId = meta.tags.album
-    ? getAlbumByNameAndArtist(db, meta.tags.album, primaryArtistId)?.id
+    ? getAlbumByNameAndArtist(db, meta.tags.album, primaryAlbumArtistId)?.id
     : undefined;
 
-  return { title, albumId, artistIds };
+  return {
+    title,
+    albumId,
+    artistIds,
+    trackNumber: meta.tags.trackNumber,
+    discNumber: meta.tags.discNumber,
+  };
 }
 
 export function findExistingSongByIdentity(
@@ -39,7 +51,7 @@ export function findExistingSongByIdentity(
   libraryId?: string,
 ): { id: string; filePath: string; mtime: number; checksum: string } | undefined {
   const libraryFilter = libraryId ? 'AND library_id = ?' : '';
-  const params: (string | null)[] = [identity.title];
+  const params: (string | number | null)[] = [identity.title];
   if (identity.albumId) {
     params.push(identity.albumId);
   } else {
@@ -50,20 +62,32 @@ export function findExistingSongByIdentity(
   }
 
   const rows = db.prepare(`
-    SELECT id, file_path, mtime, checksum
+    SELECT id, file_path, mtime, checksum, track_number, disc_number
     FROM songs
     WHERE active = 1
       AND LOWER(title) = LOWER(?)
       AND album_id IS ?
       ${libraryFilter}
-  `).all(...params) as { id: string; file_path: string; mtime: number; checksum: string }[];
+  `).all(...params) as { id: string; file_path: string; mtime: number; checksum: string; track_number: number | null; disc_number: number | null }[];
 
   const target = new Set(identity.artistIds);
+  let trackMatch: typeof rows[0] | undefined;
   for (const row of rows) {
     const existingIds = getSongArtistIds(db, row.id);
     if (sameArtistSet(existingIds, target)) {
       return { id: row.id, filePath: row.file_path, mtime: row.mtime, checksum: row.checksum };
     }
+    if (
+      trackMatch === undefined &&
+      identity.trackNumber != null &&
+      row.track_number === identity.trackNumber &&
+      (identity.discNumber == null || row.disc_number === identity.discNumber)
+    ) {
+      trackMatch = row;
+    }
+  }
+  if (trackMatch) {
+    return { id: trackMatch.id, filePath: trackMatch.file_path, mtime: trackMatch.mtime, checksum: trackMatch.checksum };
   }
   return undefined;
 }
@@ -168,6 +192,7 @@ async function keepFileReplaceMetadata(
   await persistSong(db, existing.filePath, meta, existing.mtime, existing.checksum, libraryId, existing.id, {
     aggregate,
     keepCoverArt: true,
+    replacePresentOnly: !aggregate,
   });
 
   try {

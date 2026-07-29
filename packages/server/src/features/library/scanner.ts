@@ -199,6 +199,10 @@ export interface PersistSongOptions {
   aggregate?: boolean;
   /** Keep the existing song cover art instead of overwriting it with the new file's cover art. */
   keepCoverArt?: boolean;
+  /** When updating an existing song, only overwrite fields that are present in the new metadata.
+   *  Missing scalar fields keep their existing values and missing array fields keep existing arrays.
+   *  Used by "keep file replace metadata" to avoid clearing fields the new file does not specify. */
+  replacePresentOnly?: boolean;
 }
 
 export async function persistSong(
@@ -309,6 +313,8 @@ export async function persistSong(
     if (existing) {
       if (options?.aggregate) {
         song = mergeSongWithExisting(song, existing, options.keepCoverArt ?? false);
+      } else if (options?.replacePresentOnly) {
+        song = replacePresentOnly(song, existing, options.keepCoverArt ?? false);
       } else if (options?.keepCoverArt) {
         song.coverArt = existing.coverArt;
         song.coverArtMissing = existing.coverArtMissing;
@@ -408,6 +414,57 @@ function mergeSongWithExisting(song: Song, existing: Song, keepCoverArt: boolean
     artists: unionArrays(song.artists, existing.artists),
     producers: unionArrays(song.producers, existing.producers),
     isrcs: unionArrays(song.isrcs, existing.isrcs),
+    originalYear: song.originalYear ?? existing.originalYear,
+    originalArtist: song.originalArtist ?? existing.originalArtist,
+    gapless: song.gapless ?? existing.gapless,
+    totalTracks: song.totalTracks ?? existing.totalTracks,
+    totalDiscs: song.totalDiscs ?? existing.totalDiscs,
+  };
+}
+
+function replacePresentOnly(song: Song, existing: Song, keepCoverArt: boolean): Song {
+  return {
+    ...existing,
+    ...song,
+    title: song.title || existing.title,
+    trackNumber: song.trackNumber ?? existing.trackNumber,
+    discNumber: song.discNumber ?? existing.discNumber,
+    duration: song.duration ?? existing.duration,
+    artistId: song.artistId ?? existing.artistId,
+    albumId: song.albumId ?? existing.albumId,
+    genre: song.genre ?? existing.genre,
+    genreId: song.genreId ?? existing.genreId,
+    libraryId: song.libraryId ?? existing.libraryId,
+    year: song.year ?? existing.year,
+    explicit: song.explicit ?? existing.explicit,
+    coverArt: keepCoverArt ? existing.coverArt : (song.coverArt ?? existing.coverArt),
+    coverArtMissing: keepCoverArt ? existing.coverArtMissing : (song.coverArtMissing ?? existing.coverArtMissing),
+    mtime: song.mtime,
+    checksum: song.checksum,
+    bitRate: song.bitRate ?? existing.bitRate,
+    bitsPerSample: song.bitsPerSample ?? existing.bitsPerSample,
+    sampleRate: song.sampleRate ?? existing.sampleRate,
+    channels: song.channels ?? existing.channels,
+    bpm: song.bpm ?? existing.bpm,
+    musicBrainzId: song.musicBrainzId ?? existing.musicBrainzId,
+    musicBrainzTrackId: song.musicBrainzTrackId ?? existing.musicBrainzTrackId,
+    musicBrainzWorkId: song.musicBrainzWorkId ?? existing.musicBrainzWorkId,
+    musicBrainzDiscId: song.musicBrainzDiscId ?? existing.musicBrainzDiscId,
+    replayGain: song.replayGain ?? existing.replayGain,
+    comment: song.comment ?? existing.comment,
+    sortName: song.sortName ?? existing.sortName,
+    mood: song.mood ?? existing.mood,
+    mediaType: song.mediaType ?? existing.mediaType,
+    originalReleaseDate: song.originalReleaseDate ?? existing.originalReleaseDate,
+    releaseDate: song.releaseDate ?? existing.releaseDate,
+    remixOf: song.remixOf ?? existing.remixOf,
+    displayArtist: song.displayArtist ?? existing.displayArtist,
+    displayAlbumArtist: song.displayAlbumArtist ?? existing.displayAlbumArtist,
+    lyrics: song.lyrics ?? existing.lyrics,
+    syncedLyrics: song.syncedLyrics ?? existing.syncedLyrics,
+    artists: song.artists ?? existing.artists,
+    producers: song.producers ?? existing.producers,
+    isrcs: song.isrcs ?? existing.isrcs,
     originalYear: song.originalYear ?? existing.originalYear,
     originalArtist: song.originalArtist ?? existing.originalArtist,
     gapless: song.gapless ?? existing.gapless,
