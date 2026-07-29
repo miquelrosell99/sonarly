@@ -355,15 +355,15 @@ export function EditEntityModal({
 
             {entityType === 'song' && (
               <>
-                <Field label={values.lyrics ? 'Lyrics' : 'Empty'} htmlFor="edit-lyrics">
+                <Field label="Lyrics" htmlFor="edit-lyrics">
                   <textarea
                     id="edit-lyrics"
                     value={values.lyrics ?? ''}
                     onChange={(e) => updateValue('lyrics', e.target.value)}
-                    placeholder="Empty"
+                    placeholder="Add lyrics..."
                     rows={5}
                     disabled={readOnly}
-                    className="input w-full resize-none py-3"
+                    className="input w-full resize-none pt-2 pb-3"
                   />
                 </Field>
 
