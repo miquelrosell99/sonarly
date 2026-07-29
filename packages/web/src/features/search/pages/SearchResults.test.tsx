@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/react';
 import { Router } from 'wouter';
 import type { User } from '@sonarly/shared';
 import { SearchResults } from './SearchResults.js';
@@ -199,5 +199,36 @@ describe('SearchResults', () => {
     await waitFor(() => {
       expect(screen.getByText('Songs matching "alpha"')).toBeTruthy();
     });
+  });
+
+  it('renders a context menu for song results', async () => {
+    vi.spyOn(apiModule, 'api').mockResolvedValue({
+      songs: [
+        {
+          id: 'song-1',
+          title: 'Alpha Song',
+          artistName: 'Alpha Artist',
+          albumName: 'Alpha Album',
+          filePath: '/data/library/song1.mp3',
+          mtime: 0,
+          checksum: '',
+        },
+      ],
+      albums: [],
+      artists: [],
+      playlists: [],
+    });
+
+    renderWithRouter('?q=alpha&type=songs', { ...mockUser, isAdmin: true });
+
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Song')).toBeTruthy();
+    });
+    const row = screen.getByText('Alpha Song').closest('tr');
+    expect(row).toBeTruthy();
+    fireEvent.contextMenu(row!);
+    expect(screen.getByRole('menu')).toBeTruthy();
+    expect(screen.getByText('Playback')).toBeTruthy();
+    expect(screen.getByText('Edit')).toBeTruthy();
   });
 });
