@@ -47,6 +47,8 @@ interface LibraryViewProps<T> {
   onPlay?: (item: T) => void;
   onPlaySelection?: (items: T[], startIndex: number) => void;
   onShufflePlay?: (data: T[]) => void;
+  /** When true, the header shuffle button is still shown but individual row/card play buttons will not support hold-to-shuffle. */
+  disableRowShuffle?: boolean;
   onFavorite?: (item: T, starred: boolean) => void;
   onRate?: (item: T, rating?: number) => void;
   getFavorite?: (item: T) => boolean | undefined;
@@ -166,6 +168,7 @@ export function LibraryView<T>({
   onPlay,
   onPlaySelection,
   onShufflePlay,
+  disableRowShuffle,
   onFavorite,
   onRate,
   getFavorite,
@@ -378,7 +381,7 @@ export function LibraryView<T>({
                       onSelect={(e) => handleRowSelect(item, e)}
                       onActivate={() => handleRowActivate(item)}
                       onPlay={onPlay ? () => onPlay(item) : undefined}
-                      onShufflePlay={onShufflePlay ? () => onShufflePlay(data) : undefined}
+                      onShufflePlay={onShufflePlay && !disableRowShuffle ? () => onShufflePlay(data) : undefined}
                       favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
                       rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
                       renderContextMenu={
@@ -406,7 +409,7 @@ export function LibraryView<T>({
                     onSelect={(e) => handleRowSelect(item, e)}
                     onActivate={() => handleRowActivate(item)}
                     onPlay={onPlay ? () => onPlay(item) : undefined}
-                    onShufflePlay={onShufflePlay ? () => onShufflePlay(data) : undefined}
+                    onShufflePlay={onShufflePlay && !disableRowShuffle ? () => onShufflePlay(data) : undefined}
                     favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
                     rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
                     className={getRowClassName?.(item)}
@@ -474,7 +477,7 @@ export function LibraryView<T>({
             cover={coverElement}
             favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
             rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
-            play={onPlay ? { onPlay: () => onPlay(item), onShufflePlay: onShufflePlay ? () => onShufflePlay(data) : undefined } : undefined}
+            play={onPlay ? { onPlay: () => onPlay(item), onShufflePlay: onShufflePlay && !disableRowShuffle ? () => onShufflePlay(data) : undefined } : undefined}
             isPlaying={isPlaying}
           />
         );
