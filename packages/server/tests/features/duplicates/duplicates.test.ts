@@ -100,8 +100,10 @@ describe('duplicate song handling', () => {
 
     const secondPath = join(ingestPath, 'second.mp3');
     copyFileSync(fixturePath, secondPath);
+    // Omit genre in the second file: "replace metadata" should update the fields
+    // that are present (year) without clearing fields the new file does not specify (genre).
     NodeID3.write(
-      { title: 'Sample Song', artist: 'Sample Artist', album: 'Sample Album', genre: 'Rock', year: 2025 },
+      { title: 'Sample Song', artist: 'Sample Artist', album: 'Sample Album', year: 2025 },
       secondPath,
     );
 
@@ -111,7 +113,7 @@ describe('duplicate song handling', () => {
     const song = getSongById(db, db.prepare('SELECT id FROM songs WHERE active = 1').pluck().get() as string);
     expect(song?.filePath).toBe(firstLibraryPath);
     expect(readFileSync(song!.filePath).length).toBe(firstSize);
-    expect(song?.genre).toBe('Rock');
+    expect(song?.genre).toBe('Sample');
     expect(song?.year).toBe(2025);
   });
 
@@ -185,5 +187,51 @@ describe('duplicate song handling', () => {
 
     const jobStatus = db.prepare("SELECT status FROM ingest_jobs WHERE source_path = ?").pluck().get(secondPath) as string;
     expect(jobStatus).toBe('skipped');
+  });
+
+  it('detects duplicates on compilation albums when track artists differ', async () => {
+    setDuplicateStrategy(db, 'keep_file_replace_metadata');
+
+    const firstPath = join(ingestPath, 'first.mp3');
+    copyFileSync(fixturePath, firstPath);
+    NodeID3.write(
+      {
+        title: 'Sample Song',
+        artist: 'Original Artist',
+        performerInfo: 'Compilation Artist',
+        album: 'Compilation Album',
+        trackNumber: '1/10',
+      },
+      firstPath,
+    );
+    const first = await processIngestFolder(config, db);
+    expect(first.imported).toBe(1);
+
+    const firstLibraryPath = db.prepare('SELECT file_path FROM songs WHERE active = 1').pluck().get() as string;
+
+    const secondPath = join(ingestPath, 'second.mp3');
+    copyFileSync(fixturePath, secondPath);
+    NodeID3.write(
+      {
+        title: 'Sample Song',
+        artist: 'Different Artist',
+        performerInfo: 'Compilation Artist',
+        album: 'Compilation Album',
+        trackNumber: '1/10',
+        genre: 'Rock',
+      },
+      secondPath,
+    );
+
+    const second = await processIngestFolder(config, db);
+    expect(second.duplicates).toBe(1);
+    expect(second.imported).toBe(1);
+
+    const activePaths = db.prepare('SELECT file_path FROM songs WHERE active = 1').pluck().all() as string[];
+    expect(activePaths).toHaveLength(1);
+    expect(activePaths[0]).toBe(firstLibraryPath);
+
+    const song = getSongById(db, db.prepare('SELECT id FROM songs WHERE active = 1').pluck().get() as string);
+    expect(song?.genre).toBe('Rock');
   });
 });
