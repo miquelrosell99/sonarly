@@ -241,7 +241,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
         </div>
       ) : (
         <div ref={containerRef} className="flex-1 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words px-2 text-center text-fg-primary" style={lyricsMaskStyle}>
-          {plainLyrics || syncedLyrics?.map((line) => line.text).join('\n')}
+          {syncedLyrics ? syncedLyrics.map((line) => line.text).join('\n') : plainLyrics}
         </div>
       )}
       {editorModal}

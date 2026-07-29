@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SmartPlaylistRules, Song } from '@sonarly/shared';
 import { api } from '../api.js';
 import { cn } from '../lib/cn.js';
@@ -18,9 +18,11 @@ type EntityType = 'song' | 'album' | 'artist' | 'playlist';
 interface EditEntityModalProps {
   open: boolean;
   entityType: EntityType;
-  entity: Record<string, unknown>;
+  entity?: Record<string, unknown>;
+  entities?: Record<string, unknown>[];
   onClose: () => void;
   onSave?: (patchedEntity: Record<string, unknown>) => void;
+  onSaveMany?: (patchedEntity: Record<string, unknown>) => void;
   onDelete?: () => void;
   onEditCoverArt?: () => void;
   onDeleteCoverArt?: () => void;
@@ -75,12 +77,48 @@ function initialTagValues(entity: Record<string, unknown>, fields: TagField[]): 
   return next;
 }
 
+function getCommonValue(entities: Record<string, unknown>[], key: string): unknown {
+  if (entities.length === 0) return undefined;
+  const first = entities[0][key];
+  for (let i = 1; i < entities.length; i++) {
+    if (entities[i][key] !== first) return undefined;
+  }
+  return first;
+}
+
+function getCommonBoolean(entities: Record<string, unknown>[], key: string): boolean | null {
+  if (entities.length === 0) return null;
+  const first = entities[0][key];
+  if (typeof first !== 'boolean') return null;
+  for (let i = 1; i < entities.length; i++) {
+    if (entities[i][key] !== first) return null;
+  }
+  return first;
+}
+
+function initialTagValuesForEntities(
+  entities: Record<string, unknown>[],
+  fields: TagField[],
+  isMulti: boolean,
+): Record<string, string> {
+  const next: Record<string, string> = {};
+  for (const { key } of fields) {
+    const value = isMulti ? getCommonValue(entities, key) : entities[0]?.[key];
+    next[key] = value === undefined || value === null ? '' : String(value);
+  }
+  const lyricsValue = isMulti ? getCommonValue(entities, 'lyrics') : entities[0]?.lyrics;
+  next.lyrics = lyricsValue === undefined || lyricsValue === null ? '' : String(lyricsValue);
+  return next;
+}
+
 export function EditEntityModal({
   open,
   entityType,
   entity,
+  entities,
   onClose,
   onSave,
+  onSaveMany,
   onDelete,
   onEditCoverArt,
   onDeleteCoverArt,
@@ -90,27 +128,56 @@ export function EditEntityModal({
   coverArtBusy,
   readOnly,
 }: EditEntityModalProps) {
+  const activeEntities = entities && entities.length > 0 ? entities : entity ? [entity] : [];
+  const isMulti = entities !== undefined && entities.length > 1;
   const fields = entityType === 'album' ? ALBUM_FIELDS : SONG_FIELDS;
   const [values, setValues] = useState<Record<string, string>>(() => {
     if (entityType === 'playlist') {
       return {
-        name: String(entity.name ?? ''),
-        visibility: String(entity.visibility ?? 'private'),
+        name: String(getCommonValue(activeEntities, 'name') ?? ''),
+        visibility: String(getCommonValue(activeEntities, 'visibility') ?? 'private'),
       };
     }
     if (entityType === 'artist') {
-      return { name: String(entity.name ?? '') };
+      return { name: String(getCommonValue(activeEntities, 'name') ?? '') };
     }
-    return initialTagValues(entity, fields);
+    return initialTagValuesForEntities(activeEntities, fields, isMulti);
   });
-  const [explicit, setExplicit] = useState(() => Boolean(entity.explicit));
+  const [explicit, setExplicit] = useState(() => getCommonBoolean(activeEntities, 'explicit'));
+  const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
   const [rules, setRules] = useState<SmartPlaylistRules | undefined>(() =>
-    entityType === 'playlist' ? (entity.rules as SmartPlaylistRules | undefined) ?? undefined : undefined,
+    entityType === 'playlist' ? (getCommonValue(activeEntities, 'rules') as SmartPlaylistRules | undefined) ?? undefined : undefined,
   );
   const [albumStats, setAlbumStats] = useState<{ tracks: number; discs: number } | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmDeleteCoverArt, setConfirmDeleteCoverArt] = useState(false);
+  const wasOpenRef = useRef(open);
+
+  useEffect(() => {
+    if (open && !wasOpenRef.current) {
+      setValues(() => {
+        if (entityType === 'playlist') {
+          return {
+            name: String(getCommonValue(activeEntities, 'name') ?? ''),
+            visibility: String(getCommonValue(activeEntities, 'visibility') ?? 'private'),
+          };
+        }
+        if (entityType === 'artist') {
+          return { name: String(getCommonValue(activeEntities, 'name') ?? '') };
+        }
+        return initialTagValuesForEntities(activeEntities, fields, isMulti);
+      });
+      setExplicit(getCommonBoolean(activeEntities, 'explicit'));
+      setTouchedFields(new Set());
+      setRules(
+        entityType === 'playlist'
+          ? (getCommonValue(activeEntities, 'rules') as SmartPlaylistRules | undefined) ?? undefined
+          : undefined,
+      );
+    }
+    wasOpenRef.current = open;
+  }, [open, activeEntities, entityType, fields, isMulti]);
 
   useEffect(() => {
     if (entityType !== 'song' && entityType !== 'album') return;
@@ -149,19 +216,21 @@ export function EditEntityModal({
   }, [entityType, values.album, values.artist]);
 
   const handleSave = () => {
-    if (readOnly || !onSave) return;
+    if (readOnly) return;
     const patched: Record<string, unknown> = {};
 
     if (entityType === 'playlist') {
       patched.name = values.name;
       patched.visibility = values.visibility;
-      if (entity.isSmart) {
+      const isSmart = getCommonValue(activeEntities, 'isSmart');
+      if (isSmart) {
         patched.rules = rules;
       }
     } else if (entityType === 'artist') {
       patched.name = values.name;
     } else {
       for (const { key, type } of fields) {
+        if (isMulti && !touchedFields.has(key)) continue;
         const raw = values[key];
         if (type === 'number') {
           patched[key] = parseNumber(raw);
@@ -170,12 +239,20 @@ export function EditEntityModal({
         }
       }
       if (entityType === 'song') {
-        patched.lyrics = values.lyrics === '' ? undefined : values.lyrics;
-        patched.explicit = explicit;
+        if (!isMulti || touchedFields.has('lyrics')) {
+          patched.lyrics = values.lyrics === '' ? undefined : values.lyrics;
+        }
+        if (!isMulti || touchedFields.has('explicit')) {
+          patched.explicit = explicit === null ? undefined : explicit;
+        }
       }
     }
 
-    onSave(patched);
+    if (isMulti) {
+      onSaveMany?.(patched);
+    } else {
+      onSave?.(patched);
+    }
   };
 
   const handleDelete = () => {
@@ -190,6 +267,9 @@ export function EditEntityModal({
 
   const updateValue = (key: string, value: string) => {
     setValues((prev) => ({ ...prev, [key]: value }));
+    if (isMulti) {
+      setTouchedFields((prev) => new Set(prev).add(key));
+    }
   };
 
   const primaryFields = useMemo(() => fields.filter((f) => f.primary), [fields]);
@@ -197,7 +277,7 @@ export function EditEntityModal({
 
   const footer = (
     <div className="flex justify-between gap-4">
-      {!readOnly && entityType !== 'artist' && (
+      {!readOnly && !isMulti && entityType !== 'artist' && (
         <Button variant="danger" onClick={handleDelete} disabled={deleting || saving}>
           Delete
         </Button>
@@ -220,7 +300,7 @@ export function EditEntityModal({
       <Modal
         open={open}
         onClose={onClose}
-        title={`Edit ${entityType}`}
+        title={isMulti ? `Edit ${activeEntities.length} ${entityType}s` : `Edit ${entityType}`}
         footer={footer}
         className="max-w-4xl"
       >
@@ -228,7 +308,7 @@ export function EditEntityModal({
         {entityType === 'artist' ? (
           <div className="flex items-start gap-5">
             <ArtistImage
-              artistId={String(entity.id)}
+              artistId={String(activeEntities[0]?.id ?? entity?.id ?? '')}
               alt={String(values.name || 'Artist')}
               className="h-40 w-40 rounded-xl"
               iconSize={40}
@@ -274,7 +354,7 @@ export function EditEntityModal({
                 ))}
               </select>
             </Field>
-            {Boolean(entity.isSmart) && <SmartPlaylistEditor initialRules={rules} onChange={setRules} />}
+            {Boolean(getCommonValue(activeEntities, 'isSmart')) && <SmartPlaylistEditor initialRules={rules} onChange={setRules} />}
           </div>
         ) : (
           <>
@@ -282,25 +362,31 @@ export function EditEntityModal({
               <div className="shrink-0">
                 <EditableCoverArt
                   coverArt={
-                    (entityType === 'song'
-                      ? (entity.albumCoverArt as string | undefined)
-                      : (entity.coverArt as string | undefined)) ??
-                    (entity.coverArt as string | undefined)
+                    isMulti
+                      ? (getCommonValue(activeEntities, entityType === 'song' ? 'albumCoverArt' : 'coverArt') as string | undefined) ??
+                        (getCommonValue(activeEntities, 'coverArt') as string | undefined)
+                      : (entityType === 'song'
+                          ? (entity!.albumCoverArt as string | undefined)
+                          : (entity!.coverArt as string | undefined)) ??
+                        (entity!.coverArt as string | undefined)
                   }
                   alt={`Cover art for ${values.title ?? entityType}`}
-                  readOnly={readOnly || entityType === 'song'}
+                  readOnly={readOnly || entityType === 'song' || isMulti}
                   busy={coverArtBusy}
                   onEdit={onEditCoverArt}
-                  onRequestDelete={onDeleteCoverArt ? () => setConfirmDeleteCoverArt(true) : undefined}
+                  onRequestDelete={onDeleteCoverArt && !isMulti ? () => setConfirmDeleteCoverArt(true) : undefined}
                   onView={() => setLightboxOpen(true)}
                 />
                 {lightboxOpen && (
                   <CoverArtLightbox
                     coverArt={
-                      (entityType === 'song'
-                        ? (entity.albumCoverArt as string | undefined)
-                        : (entity.coverArt as string | undefined)) ??
-                      (entity.coverArt as string | undefined)
+                      isMulti
+                        ? (getCommonValue(activeEntities, entityType === 'song' ? 'albumCoverArt' : 'coverArt') as string | undefined) ??
+                          (getCommonValue(activeEntities, 'coverArt') as string | undefined)
+                        : (entityType === 'song'
+                            ? (entity!.albumCoverArt as string | undefined)
+                            : (entity!.coverArt as string | undefined)) ??
+                          (entity!.coverArt as string | undefined)
                     }
                     alt={`Cover art for ${values.title ?? entityType}`}
                     onClose={() => setLightboxOpen(false)}
@@ -363,15 +449,15 @@ export function EditEntityModal({
                     placeholder="Add lyrics..."
                     rows={5}
                     disabled={readOnly}
-                    className="input w-full resize-none pt-2 pb-3"
+                    className="input w-full resize-none py-2 align-top !h-auto min-h-[8rem]"
                   />
                 </Field>
 
                 <div className="flex items-center justify-between rounded-lg border border-rule bg-surface px-4 py-3">
                   <span className="text-sm text-fg-secondary">
-                    {((entity.syncedLyrics as unknown[] | undefined)?.length ?? 0)} synced lines
+                    {((getCommonValue(activeEntities, 'syncedLyrics') as unknown[] | undefined)?.length ?? 0)} synced lines
                   </span>
-                  {!readOnly && (
+                  {!readOnly && !isMulti && (
                     <Button variant="ghost" onClick={onEditSyncedLyrics}>
                       Edit Synced Lyrics
                     </Button>
@@ -381,8 +467,14 @@ export function EditEntityModal({
                 <Checkbox
                   id="edit-explicit"
                   label="Explicit content"
-                  checked={explicit}
-                  onChange={(e) => setExplicit(e.target.checked)}
+                  checked={explicit ?? false}
+                  indeterminate={explicit === null}
+                  onChange={(e) => {
+                    setExplicit(e.target.checked);
+                    if (isMulti) {
+                      setTouchedFields((prev) => new Set(prev).add('explicit'));
+                    }
+                  }}
                   disabled={readOnly}
                 />
               </>

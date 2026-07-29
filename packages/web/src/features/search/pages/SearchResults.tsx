@@ -12,7 +12,7 @@ import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
-import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
+import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
@@ -67,17 +67,17 @@ function PlaylistContextMenu({ playlist, children }: { playlist: Playlist; child
 }
 
 function SongContextMenu({
-  song,
+  songs,
   onEdit,
   isAdmin,
   children,
 }: {
-  song: Song;
+  songs: Song[];
   onEdit: () => void;
   isAdmin: boolean;
   children: ReactNode;
 }) {
-  const sections = useSongContextMenu(song, onEdit, isAdmin);
+  const sections = useSongsContextMenu(songs, onEdit, isAdmin);
   return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
 
@@ -91,7 +91,7 @@ export function SearchResults({ user }: SearchResultsProps) {
   const [data, setData] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [songEditing, setSongEditing] = useState<Song | null>(null);
+  const [songEditing, setSongEditing] = useState<Song[] | null>(null);
   const [syncEditing, setSyncEditing] = useState<Song | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -182,10 +182,10 @@ export function SearchResults({ user }: SearchResultsProps) {
   };
 
   const handleSongSave = async (patched: Record<string, unknown>) => {
-    if (!songEditing) return;
+    if (!songEditing || songEditing.length !== 1) return;
     setSaving(true);
     try {
-      await api(`/songs/${songEditing.id}/tags`, {
+      await api(`/songs/${songEditing[0].id}/tags`, {
         method: 'PUT',
         body: JSON.stringify(patched),
       });
@@ -198,11 +198,31 @@ export function SearchResults({ user }: SearchResultsProps) {
     }
   };
 
+  const handleSongSaveMany = async (patched: Record<string, unknown>) => {
+    if (!songEditing || songEditing.length < 2) return;
+    setSaving(true);
+    try {
+      await api('/songs/tags', {
+        method: 'PUT',
+        body: JSON.stringify({
+          ids: songEditing.map((s) => s.id),
+          tags: patched,
+        }),
+      });
+      setSongEditing(null);
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to save songs', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSongDelete = async () => {
-    if (!songEditing) return;
+    if (!songEditing || songEditing.length !== 1) return;
     setDeleting(true);
     try {
-      await api(`/songs/${songEditing.id}`, { method: 'DELETE' });
+      await api(`/songs/${songEditing[0].id}`, { method: 'DELETE' });
       setSongEditing(null);
       load();
     } catch (err) {
@@ -272,8 +292,8 @@ export function SearchResults({ user }: SearchResultsProps) {
         getFavorite={(song) => song.starred}
         getRating={(song) => song.rating}
         playingId={playingId}
-        renderContextMenu={(song, children) => (
-          <SongContextMenu song={song} onEdit={() => setSongEditing(song)} isAdmin={user.isAdmin}>
+        renderContextMenu={(song, children, selectedItems) => (
+          <SongContextMenu songs={selectedItems} onEdit={() => setSongEditing(selectedItems)} isAdmin={user.isAdmin}>
             {children}
           </SongContextMenu>
         )}
@@ -434,13 +454,11 @@ export function SearchResults({ user }: SearchResultsProps) {
     );
   };
 
-  const songEditEntity = songEditing
-    ? {
-        ...songEditing,
-        artist: songEditing.artistName,
-        album: songEditing.albumName,
-      }
-    : null;
+  const songEditEntities = songEditing?.map((song) => ({
+    ...song,
+    artist: song.artistName,
+    album: song.albumName,
+  }));
 
   if (!data) {
     return (
@@ -469,15 +487,21 @@ export function SearchResults({ user }: SearchResultsProps) {
   return (
     <>
       {result}
-      {songEditEntity && (
+      {songEditEntities && songEditEntities.length > 0 && (
         <EditEntityModal
           open
           entityType="song"
-          entity={songEditEntity}
+          entities={songEditEntities}
+          entity={songEditEntities.length === 1 ? songEditEntities[0] : undefined}
           onClose={() => setSongEditing(null)}
           onSave={handleSongSave}
-          onDelete={handleSongDelete}
-          onEditSyncedLyrics={() => songEditing && setSyncEditing(songEditing)}
+          onSaveMany={handleSongSaveMany}
+          onDelete={songEditEntities.length === 1 ? handleSongDelete : undefined}
+          onEditSyncedLyrics={
+            songEditEntities.length === 1 && songEditing
+              ? () => songEditing && setSyncEditing(songEditing[0])
+              : undefined
+          }
           saving={saving}
           deleting={deleting}
         />

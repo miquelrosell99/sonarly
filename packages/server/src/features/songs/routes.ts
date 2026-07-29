@@ -10,6 +10,8 @@ import { writeTags, writeCoverArt } from '../tags/index.js';
 import { createCoverArt, deleteCoverArt, setSongCoverArtId, getSongCoverArtId } from '../cover-art/index.js';
 import { organizeSongFile } from '../ingest/index.js';
 import { resolveGenreForTagWrite, resolveGenreForFilter } from '../genres/index.js';
+import { ensureArtist } from '../artists/repository.js';
+import { ensureAlbum } from '../albums/repository.js';
 import type { Config } from '../../config.js';
 
 const ALLOWED_TAG_KEYS = new Set<keyof SongTags>([
@@ -45,6 +47,107 @@ function normalizeName(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
+}
+
+type ApplySongTagsResult =
+  | { ok: true; orphanedEntities: OrphanedEntity[] }
+  | { ok: false; error: string; statusCode: number };
+
+async function applySongTags(
+  db: Database.Database,
+  config: Config,
+  id: string,
+  tags: SongTags,
+  logError: (msg: string, err?: unknown) => void,
+): Promise<ApplySongTagsResult> {
+  const song = getSongById(db, id);
+  if (!song) {
+    return { ok: false, error: 'Song not found', statusCode: 404 };
+  }
+
+  try {
+    await writeTags(song.filePath, tags);
+  } catch (err) {
+    logError(`Failed to write tags for ${song.filePath}`, err);
+    return { ok: false, error: 'Failed to write tags', statusCode: 500 };
+  }
+
+  let newPath: string;
+  try {
+    newPath = await organizeSongFile(config, db, song.filePath);
+  } catch (err) {
+    logError(`Failed to organize file after tag write for ${song.filePath}`, err);
+    return { ok: false, error: 'Tags were saved but the file could not be reorganized', statusCode: 500 };
+  }
+
+  const artistId = tags.artist !== undefined
+    ? ensureArtist(db, tags.artist)
+    : song.artistId;
+
+  const albumArtistNames = tags.albumArtist !== undefined
+    ? (normalizeName(tags.albumArtist) ? [tags.albumArtist] : undefined)
+    : tags.artist !== undefined
+      ? (normalizeName(tags.artist) ? [tags.artist] : undefined)
+      : undefined;
+
+  const albumId = tags.album !== undefined
+    ? (normalizeName(tags.album)
+        ? ensureAlbum(db, tags.album, albumArtistNames, tags.year, typeof tags.genre === 'string' ? tags.genre : undefined)
+        : null)
+    : (song.albumId ?? null);
+
+  let genreId: string | null = null;
+  let genreName: string | null = null;
+  if (typeof tags.genre === 'string') {
+    const trimmed = tags.genre.trim();
+    if (trimmed.length > 0) {
+      const resolved = resolveGenreForTagWrite(db, tags.genre);
+      genreId = resolved.id;
+      genreName = resolved.name;
+    }
+  } else if (song.genreId !== undefined) {
+    genreId = song.genreId;
+    genreName = song.genre ?? null;
+  }
+
+  db.prepare(`
+    UPDATE songs SET
+      file_path = ?,
+      title = ?,
+      artist_id = ?,
+      album_id = ?,
+      track_number = ?,
+      disc_number = ?,
+      year = ?,
+      explicit = ?,
+      lyrics = ?,
+      genre_id = ?,
+      genre = ?
+    WHERE id = ?
+  `).run(
+    newPath,
+    tags.title ?? song.title,
+    artistId ?? null,
+    albumId,
+    tags.trackNumber !== undefined ? tags.trackNumber : (song.trackNumber ?? null),
+    tags.discNumber !== undefined ? tags.discNumber : (song.discNumber ?? null),
+    tags.year !== undefined ? tags.year : (song.year ?? null),
+    tags.explicit === true ? 1 : tags.explicit === false ? 0 : (song.explicit ? 1 : 0),
+    tags.lyrics !== undefined ? tags.lyrics : (song.lyrics ?? null),
+    genreId,
+    genreName,
+    id,
+  );
+
+  try {
+    queueResync(db, newPath);
+  } catch (err) {
+    logError('Failed to queue resync job after tag write', err);
+    return { ok: false, error: 'Tags saved and file reorganized, but resync queue failed', statusCode: 500 };
+  }
+
+  const orphaned = findOrphanedEntities(db, song, tags);
+  return { ok: true, orphanedEntities: orphaned };
 }
 
 function findOrphanedEntities(
@@ -183,6 +286,7 @@ interface SongDetailRow {
   starred: number | null;
   rating: number | null;
   lyrics: string | null;
+  synced_lyrics: string | null;
   musicbrainz_track_id: string | null;
   musicbrainz_work_id: string | null;
   musicbrainz_disc_id: string | null;
@@ -218,6 +322,7 @@ interface SongListRow {
   starred: number | null;
   rating: number | null;
   lyrics: string | null;
+  synced_lyrics: string | null;
   musicbrainz_track_id: string | null;
   musicbrainz_work_id: string | null;
   musicbrainz_disc_id: string | null;
@@ -254,6 +359,7 @@ function rowToSong(row: SongDetailRow | SongListRow): Song & { artistName?: stri
     starred: row.starred === 1,
     rating: row.rating ?? undefined,
     lyrics: row.lyrics ?? undefined,
+    syncedLyrics: row.synced_lyrics ? JSON.parse(row.synced_lyrics) : undefined,
     musicBrainzTrackId: row.musicbrainz_track_id ?? undefined,
     musicBrainzWorkId: row.musicbrainz_work_id ?? undefined,
     musicBrainzDiscId: row.musicbrainz_disc_id ?? undefined,
@@ -315,8 +421,6 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
     if (!requireAdmin(reply, session)) return;
 
     const { id } = request.params as { id: string };
-    const song = getSongById(db, id);
-    if (!song) return reply.status(404).send({ error: 'Song not found' });
 
     let tags: SongTags;
     try {
@@ -325,35 +429,41 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
       return reply.status(400).send({ error: err instanceof Error ? err.message : 'Invalid tags' });
     }
 
-    if (typeof tags.genre === 'string') {
-      const trimmed = tags.genre.trim();
-      if (trimmed.length > 0) {
-        const resolved = resolveGenreForTagWrite(db, tags.genre);
-        db.prepare('UPDATE songs SET genre_id = ?, genre = ? WHERE id = ?').run(resolved.id, resolved.name, id);
-      } else {
-        db.prepare('UPDATE songs SET genre_id = NULL, genre = NULL WHERE id = ?').run(id);
+    const result = await applySongTags(db, config, id, tags, (msg, err) => request.log.error({ err }, msg));
+    if (!result.ok) {
+      return reply.status(result.statusCode).send({ error: result.error });
+    }
+
+    return reply.send({ ok: true, orphanedEntities: result.orphanedEntities.length > 0 ? result.orphanedEntities : undefined });
+  });
+
+  app.put('/api/songs/tags', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { isAdmin?: boolean } | undefined;
+    if (!requireAdmin(reply, session)) return;
+
+    const body = request.body as { ids?: unknown; tags?: unknown };
+    if (!Array.isArray(body.ids) || body.ids.some((id) => typeof id !== 'string')) {
+      return reply.status(400).send({ error: 'ids must be an array of strings' });
+    }
+    const ids = body.ids as string[];
+
+    let tags: SongTags;
+    try {
+      tags = validateSongTags(body.tags);
+    } catch (err) {
+      return reply.status(400).send({ error: err instanceof Error ? err.message : 'Invalid tags' });
+    }
+
+    const allOrphaned: OrphanedEntity[] = [];
+    for (const id of ids) {
+      const result = await applySongTags(db, config, id, tags, (msg, err) => request.log.error({ err }, msg));
+      if (!result.ok) {
+        return reply.status(result.statusCode).send({ error: result.error, failedId: id });
       }
+      allOrphaned.push(...result.orphanedEntities);
     }
 
-    await writeTags(song.filePath, tags);
-
-    let newPath: string;
-    try {
-      newPath = await organizeSongFile(config, db, song.filePath);
-    } catch (err) {
-      request.log.error({ err }, `Failed to organize file after tag write for ${song.filePath}`);
-      return reply.status(500).send({ error: 'Tags were saved but the file could not be reorganized' });
-    }
-
-    try {
-      queueResync(db, newPath);
-    } catch (err) {
-      request.log.error({ err }, 'Failed to queue resync job after tag write');
-      return reply.status(500).send({ error: 'Tags saved and file reorganized, but resync queue failed' });
-    }
-
-    const orphaned = findOrphanedEntities(db, song, tags);
-    return reply.send({ ok: true, orphanedEntities: orphaned.length > 0 ? orphaned : undefined });
+    return reply.send({ ok: true, orphanedEntities: allOrphaned.length > 0 ? allOrphaned : undefined });
   });
 
   app.get('/api/songs/:id', async (request: FastifyRequest, reply: FastifyReply) => {

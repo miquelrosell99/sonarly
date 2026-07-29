@@ -126,7 +126,7 @@ export function Artists() {
         getFavorite={(artist) => artist.starred}
         getRating={(artist) => artist.rating}
         renderCover={(artist) => <ArtistImage artistId={artist.id} alt={artist.name} className="h-full w-full" />}
-        renderContextMenu={(artist, children) => (
+        renderContextMenu={(artist, children, _selectedItems) => (
           <ArtistContextMenu artist={artist} onEdit={() => setEditing(artist)}>
             {children}
           </ArtistContextMenu>

@@ -106,7 +106,7 @@ export function Genres() {
       onPlay={playGenre}
       onShufflePlay={shuffleGenres}
       renderCover={(genre) => <GenreCoverGrid genreId={genre.id} />}
-      renderContextMenu={(genre, children) => (
+      renderContextMenu={(genre, children, _selectedItems) => (
         <GenreContextMenu genre={genre.name} tracks={tracks}>
           {children}
         </GenreContextMenu>
