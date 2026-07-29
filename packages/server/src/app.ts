@@ -47,6 +47,7 @@ import { registerGenreManagementRoutes } from './features/genres/index.js';
 import { registerStatisticsRoutes } from './features/statistics/index.js';
 import { registerAutoDjRoutes } from './features/auto-dj/index.js';
 import { registerMusicBrainzRoutes } from './features/musicbrainz/index.js';
+import { registerLrcLibRoutes } from './features/lrclib/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -169,6 +170,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   registerStatisticsRoutes(app, db, config);
   registerAutoDjRoutes(app, db);
   registerMusicBrainzRoutes(app);
+  registerLrcLibRoutes(app);
 
   const webDist = join(__dirname, '..', 'web-dist');
   if (existsSync(webDist)) {

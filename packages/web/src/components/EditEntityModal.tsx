@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { SmartPlaylistRules, Song } from '@sonarly/shared';
+import { useQueryClient } from '@tanstack/react-query';
+import type { SmartPlaylistRules, Song, SyncedLyricLine } from '@sonarly/shared';
 import { api } from '../api.js';
 import { cn } from '../lib/cn.js';
 import { Button } from './ui/Button.js';
@@ -13,6 +14,7 @@ import { ArtistImage } from './ArtistImage.js';
 import { Icon } from './ui/Icon.js';
 import { SmartPlaylistEditor } from '../features/playlists/index.js';
 import { FetchMetadataModal } from './FetchMetadataModal.js';
+import { FetchLyricsModal } from './FetchLyricsModal.js';
 
 type EntityType = 'song' | 'album' | 'artist' | 'playlist';
 
@@ -154,6 +156,9 @@ export function EditEntityModal({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmDeleteCoverArt, setConfirmDeleteCoverArt] = useState(false);
   const [fetchOpen, setFetchOpen] = useState(false);
+  const [fetchLyricsOpen, setFetchLyricsOpen] = useState(false);
+  const [syncedLyricsOverride, setSyncedLyricsOverride] = useState<unknown[] | undefined>(undefined);
+  const queryClient = useQueryClient();
   const wasOpenRef = useRef(open);
 
   useEffect(() => {
@@ -172,6 +177,7 @@ export function EditEntityModal({
       });
       setExplicit(getCommonBoolean(activeEntities, 'explicit'));
       setTouchedFields(new Set());
+      setSyncedLyricsOverride(undefined);
       setRules(
         entityType === 'playlist'
           ? (getCommonValue(activeEntities, 'rules') as SmartPlaylistRules | undefined) ?? undefined
@@ -300,6 +306,12 @@ export function EditEntityModal({
           <Button variant="ghost" onClick={() => setFetchOpen(true)} disabled={saving || deleting} className="border border-rule">
             <Icon name="mdi-music-box-outline" size={18} className="mr-1.5" />
             MusicBrainz
+          </Button>
+        )}
+        {!readOnly && !isMulti && entityType === 'song' && (
+          <Button variant="ghost" onClick={() => setFetchLyricsOpen(true)} disabled={saving || deleting} className="border border-rule">
+            <Icon name="mdi-cloud-download-outline" size={18} className="mr-1.5" />
+            Fetch lyrics
           </Button>
         )}
       </div>
@@ -484,7 +496,7 @@ export function EditEntityModal({
 
                 <div className="flex items-center justify-between rounded-lg border border-rule bg-surface px-4 py-3">
                   <span className="text-sm text-fg-secondary">
-                    {((getCommonValue(activeEntities, 'syncedLyrics') as unknown[] | undefined)?.length ?? 0)} synced lines
+                    {((syncedLyricsOverride ?? (getCommonValue(activeEntities, 'syncedLyrics') as unknown[] | undefined))?.length ?? 0)} synced lines
                   </span>
                   {!readOnly && !isMulti && (
                     <Button variant="ghost" onClick={onEditSyncedLyrics}>
@@ -543,6 +555,41 @@ export function EditEntityModal({
           entity={activeEntities[0]}
           onClose={() => setFetchOpen(false)}
           onApply={handleMetadataFetched}
+        />
+      )}
+
+      {activeEntities[0] && entityType === 'song' && (
+        <FetchLyricsModal
+          open={fetchLyricsOpen}
+          songId={String(activeEntities[0].id)}
+          title={String(activeEntities[0].title ?? '')}
+          artistName={String(activeEntities[0].artistName ?? '')}
+          albumName={String(activeEntities[0].albumName ?? activeEntities[0].album ?? '')}
+          duration={typeof activeEntities[0].duration === 'number' ? activeEntities[0].duration : undefined}
+          currentLyrics={values.lyrics}
+          currentSyncedLyrics={
+            (syncedLyricsOverride as SyncedLyricLine[] | undefined) ??
+            (activeEntities[0].syncedLyrics as SyncedLyricLine[] | undefined)
+          }
+          onClose={() => setFetchLyricsOpen(false)}
+          onApply={async (patch) => {
+            const songId = String(activeEntities[0].id);
+            await api(`/songs/${songId}/lyrics`, {
+              method: 'PUT',
+              body: JSON.stringify({
+                lyrics: patch.lyrics,
+                syncedLyrics: patch.syncedLyrics,
+              }),
+            });
+            queryClient.invalidateQueries({ queryKey: ['lyrics', songId] });
+            if (patch.lyrics !== undefined) {
+              updateValue('lyrics', patch.lyrics);
+            }
+            if (patch.syncedLyrics !== undefined) {
+              setSyncedLyricsOverride(patch.syncedLyrics);
+            }
+            setFetchLyricsOpen(false);
+          }}
         />
       )}
     </>

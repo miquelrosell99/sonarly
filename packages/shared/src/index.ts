@@ -12,3 +12,4 @@ export * from './listening-stats.js';
 export * from './library.js';
 export * from './duplicate.js';
 export * from './musicbrainz.js';
+export * from './lrclib.js';
