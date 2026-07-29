@@ -45,7 +45,7 @@ export function Songs({ user }: { user: User }) {
   const [orphanedEntities, setOrphanedEntities] = useState<{ type: 'artist' | 'album'; id: string; name: string }[] | null>(null);
   const [cleaningUp, setCleaningUp] = useState(false);
   const { notify } = useNotification();
-  const { playSongs, shufflePlay } = usePlayActions();
+  const { playSongs } = usePlayActions();
   const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
   const playingId = usePlayer((state) => state.currentSong?.id);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
@@ -72,10 +72,6 @@ export function Songs({ user }: { user: User }) {
 
   const handlePlaySelection = (songs: SongListItem[], startIndex: number) => {
     playSongs(songs as SharedSong[], startIndex);
-  };
-
-  const handleShufflePlay = (_song: SongListItem) => {
-    shufflePlay(songs as SharedSong[]);
   };
 
   const handleSave = async (patched: Record<string, unknown>) => {
@@ -182,7 +178,6 @@ export function Songs({ user }: { user: User }) {
         playingId={playingId}
         blurExplicit={blurExplicitTitles}
         onPlay={handlePlay}
-        onShufflePlay={handleShufflePlay}
         onPlaySelection={handlePlaySelection}
         renderRow={(song, row, selectedRows) => (
           <SongContextMenu songs={selectedRows as Song[]} onEdit={() => setEditing(selectedRows as Song[])} isAdmin={user.isAdmin}>
