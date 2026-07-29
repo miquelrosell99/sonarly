@@ -163,4 +163,38 @@ describe('Table', () => {
     const alphaTitle = screen.getByText('Alpha');
     expect(alphaTitle.className).not.toContain('text-accent');
   });
+
+  it('renders custom index labels when getIndexLabel is provided', () => {
+    renderTable({
+      onPlay: vi.fn(),
+      indexPad: 2,
+      getIndexLabel: (item) => (item.id === '2' ? 5 : undefined),
+    });
+    const rows = screen.getAllByRole('row');
+    // rows[0] is the header; data rows follow in original order.
+    expect(rows[1].textContent).toContain('01');
+    expect(rows[2].textContent).toContain('05');
+    expect(rows[3].textContent).toContain('03');
+  });
+
+  it('renders group headers when groupBy is provided', () => {
+    renderTable({
+      onPlaySelection: vi.fn(),
+      groupBy: (item) => (item.id === '1' || item.id === '2' ? 'A' : 'B'),
+    });
+    expect(screen.getAllByText('A')).toHaveLength(1);
+    expect(screen.getAllByText('B')).toHaveLength(1);
+    expect(screen.getByText('Alpha').closest('tr')?.previousElementSibling?.textContent).toBe('A');
+    expect(screen.getByText('Gamma').closest('tr')?.previousElementSibling?.textContent).toBe('B');
+  });
+
+  it('renders custom group headers when renderGroupHeader is provided', () => {
+    renderTable({
+      onPlaySelection: vi.fn(),
+      groupBy: (item) => (item.id === '1' || item.id === '2' ? 'A' : 'B'),
+      renderGroupHeader: (key) => `Group ${key}`,
+    });
+    expect(screen.getByText('Group A')).toBeTruthy();
+    expect(screen.getByText('Group B')).toBeTruthy();
+  });
 });

@@ -21,6 +21,12 @@ interface TableProps<T> {
   renderRow?: (row: T, element: ReactNode) => ReactNode;
   indexPad?: number;
   className?: string;
+  /** Override the displayed index label for a row. Returning undefined falls back to the 1-based row index. */
+  getIndexLabel?: (row: T, index: number) => ReactNode;
+  /** Group rows into sections by a shared key. Only contiguous rows with the same key are grouped together. */
+  groupBy?: (row: T) => string | undefined;
+  /** Render a custom header for a group. Receives the group key and the rows in the group. */
+  renderGroupHeader?: (key: string, rows: T[]) => ReactNode;
 }
 
 function isInteractiveTarget(target: EventTarget, currentTarget: EventTarget) {
@@ -49,6 +55,9 @@ export function Table<T>({
   renderRow,
   indexPad,
   className,
+  getIndexLabel,
+  groupBy,
+  renderGroupHeader,
 }: TableProps<T>) {
   const selectable = Boolean(onPlaySelection);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -121,12 +130,31 @@ export function Table<T>({
     }
   };
 
+  const rowIndexMap = new Map<T, number>();
+  rows.forEach((row, idx) => rowIndexMap.set(row, idx));
+
+  const groups: { key?: string; rows: T[] }[] = [];
+  if (!groupBy) {
+    groups.push({ rows });
+  } else {
+    for (const row of rows) {
+      const key = groupBy(row);
+      const last = groups[groups.length - 1];
+      if (!last || last.key !== key) {
+        groups.push({ key, rows: [] });
+      }
+      groups[groups.length - 1].rows.push(row);
+    }
+  }
+
+  const groupHeaderColSpan = columns.length + (onPlay ? 1 : 0);
+
   return (
     <div className="overflow-x-auto" onKeyDown={selectable ? handleContainerKeyDown : undefined} role={selectable ? 'grid' : undefined} aria-multiselectable={selectable ? 'true' : undefined}>
       <table className={cn('w-full text-left text-sm', className)}>
         <thead className="border-b border-rule text-muted">
           <tr>
-            {onPlay && <th className="w-12 py-2 pr-4 font-medium" aria-hidden />}
+            {onPlay && <th className="w-12 py-2 px-2 text-center font-medium" aria-hidden />}
             {columns.map((col) => (
               <th key={col.key} className={cn('py-2 pr-4 font-medium', col.className)}>
                 {col.header}
@@ -135,74 +163,103 @@ export function Table<T>({
           </tr>
         </thead>
         <tbody className="divide-y divide-rule">
-          {rows.map((row, index) => {
-            const id = rowKey(row);
-            const isSelected = selectable && selectedIds.has(id);
-            const isPlayingTitle = playingId !== undefined && playingId === id;
-            const cells = columns.map((col) => (
-              <td key={col.key} className={cn('truncate py-2 pr-4', col.className)}>
-                {col.render(row)}
-              </td>
-            ));
-            const titleCell = cells[0];
-            const restCells = cells.slice(1);
-            const highlightedTitle = isValidElement(titleCell)
-              ? cloneElement(titleCell as React.ReactElement<{ className?: string }>, {
-                  className: cn(
-                    (titleCell.props as { className?: string }).className,
-                    isPlayingTitle && 'text-accent',
-                  ),
-                })
-              : titleCell;
-
-            const tr = (
-              <tr
-                key={id}
-                tabIndex={selectable ? 0 : undefined}
-                aria-selected={selectable ? isSelected : undefined}
-                className={cn(
-                  'transition',
-                  selectable && 'group cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
-                  isSelected ? 'bg-surface-hover' : selectable ? 'hover:bg-surface-hover' : '',
-                )}
-                onClick={selectable ? (e) => {
-                  if (isInteractiveTarget(e.target, e.currentTarget)) return;
-                  handleRowSelect(row, e);
-                } : undefined}
-                onDoubleClick={selectable ? () => handleRowActivate(row) : undefined}
-                onKeyDown={selectable ? (e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleRowActivate(row);
-                  }
-                } : undefined}
-              >
-                {onPlay && (
-                  <td className="w-12 py-2 pr-4">
-                    <span className="relative inline-flex h-5 w-6 items-center justify-center text-muted">
-                      <span className="group-hover:opacity-0">
-                        {indexPad ? (index + 1).toString().padStart(indexPad, '0') : index + 1}
-                      </span>
-                      <PlayButton
-                        variant="inline"
-                        onPlay={() => onPlay(row)}
-                        onShufflePlay={onShufflePlay ? () => onShufflePlay(row) : undefined}
-                        className="absolute inset-0 inline-flex opacity-0 group-hover:opacity-100"
-                      />
-                    </span>
+          {groups.map((group, groupIndex) => (
+            <Fragment key={group.key ?? `group-${groupIndex}`}>
+              {group.key !== undefined && group.key !== '' && (
+                <tr className="border-t border-rule first:border-t-0">
+                  <th
+                    colSpan={groupHeaderColSpan}
+                    className="py-2 pr-4 text-left text-xs font-semibold uppercase tracking-wider text-muted"
+                    scope="rowgroup"
+                  >
+                    {renderGroupHeader ? renderGroupHeader(group.key, group.rows) : group.key}
+                  </th>
+                </tr>
+              )}
+              {group.rows.map((row) => {
+                const index = rowIndexMap.get(row) ?? 0;
+                const id = rowKey(row);
+                const isSelected = selectable && selectedIds.has(id);
+                const isPlayingTitle = playingId !== undefined && playingId === id;
+                const cells = columns.map((col) => (
+                  <td key={col.key} className={cn('truncate py-2 pr-4', col.className)}>
+                    {col.render(row)}
                   </td>
-                )}
-                {highlightedTitle}
-                {restCells}
-              </tr>
-            );
+                ));
+                const titleCell = cells[0];
+                const restCells = cells.slice(1);
+                const highlightedTitle = isValidElement(titleCell)
+                  ? cloneElement(titleCell as React.ReactElement<{ className?: string }>, {
+                      className: cn(
+                        (titleCell.props as { className?: string }).className,
+                        isPlayingTitle && 'text-accent',
+                      ),
+                    })
+                  : titleCell;
 
-            return renderRow ? (
-              <Fragment key={id}>{renderRow(row, tr)}</Fragment>
-            ) : (
-              tr
-            );
-          })}
+                const indexLabel = getIndexLabel?.(row, index);
+                const indexContent =
+                  indexLabel !== undefined && indexLabel !== null ? (
+                    typeof indexLabel === 'number' && indexPad ? (
+                      String(indexLabel).padStart(indexPad, '0')
+                    ) : (
+                      indexLabel
+                    )
+                  ) : indexPad ? (
+                    (index + 1).toString().padStart(indexPad, '0')
+                  ) : (
+                    index + 1
+                  );
+
+                const tr = (
+                  <tr
+                    key={id}
+                    tabIndex={selectable ? 0 : undefined}
+                    aria-selected={selectable ? isSelected : undefined}
+                    className={cn(
+                      'transition',
+                      selectable && 'group cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
+                      isSelected ? 'bg-surface-hover' : selectable ? 'hover:bg-surface-hover' : '',
+                    )}
+                    onClick={selectable ? (e) => {
+                      if (isInteractiveTarget(e.target, e.currentTarget)) return;
+                      handleRowSelect(row, e);
+                    } : undefined}
+                    onDoubleClick={selectable ? () => handleRowActivate(row) : undefined}
+                    onKeyDown={selectable ? (e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleRowActivate(row);
+                      }
+                    } : undefined}
+                  >
+                    {onPlay && (
+                      <td className="w-12 py-2 px-2 text-center">
+                        <span className="relative inline-flex h-5 w-6 items-center justify-center text-muted">
+                          <span className="transition group-hover:opacity-0">{indexContent}</span>
+                          <span className="absolute inset-0 flex items-center justify-center opacity-0 transition group-hover:opacity-100">
+                            <PlayButton
+                              variant="inline"
+                              onPlay={() => onPlay(row)}
+                              onShufflePlay={onShufflePlay ? () => onShufflePlay(row) : undefined}
+                            />
+                          </span>
+                        </span>
+                      </td>
+                    )}
+                    {highlightedTitle}
+                    {restCells}
+                  </tr>
+                );
+
+                return renderRow ? (
+                  <Fragment key={id}>{renderRow(row, tr)}</Fragment>
+                ) : (
+                  tr
+                );
+              })}
+            </Fragment>
+          ))}
         </tbody>
       </table>
       {rows.length === 0 && empty !== undefined && (
