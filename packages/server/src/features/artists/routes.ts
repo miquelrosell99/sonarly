@@ -86,14 +86,14 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
     const albums = db.prepare(`
       SELECT a.id, a.name, a.year, a.genre, a.cover_art_id, ua.starred, ua.rating,
         COUNT(s.id) AS total_song_count,
-        SUM(CASE WHEN s.explicit = 0 THEN 1 ELSE 0 END) AS shown_song_count
+        SUM(CASE WHEN ? = 1 AND s.explicit = 1 THEN 0 ELSE 1 END) AS shown_song_count
       FROM albums a
       LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1 ${libraryFilter ? 'AND s.library_id = ?' : ''}
       LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
       WHERE a.artist_id = ? AND a.active = 1
       ${hideExplicit ? 'GROUP BY a.id HAVING shown_song_count > 0' : 'GROUP BY a.id'}
       ORDER BY a.year, a.name
-    `).all(...(libraryFilter ? [libraryId, userId ?? null, id] : [userId ?? null, id])) as (AlbumRow & { total_song_count: number; shown_song_count: number })[];
+    `).all(...(libraryFilter ? [hideExplicit ? 1 : 0, libraryId, userId ?? null, id] : [hideExplicit ? 1 : 0, userId ?? null, id])) as (AlbumRow & { total_song_count: number; shown_song_count: number })[];
 
     reply.send({
       artist: {

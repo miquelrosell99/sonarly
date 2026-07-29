@@ -101,7 +101,7 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
         ua.starred,
         ua.rating,
         COUNT(s.id) AS total_song_count,
-        SUM(CASE WHEN s.explicit = 0 THEN 1 ELSE 0 END) AS shown_song_count,
+        SUM(CASE WHEN ? = 1 AND s.explicit = 1 THEN 0 ELSE 1 END) AS shown_song_count,
         MAX(s.explicit) AS explicit
       FROM albums a
       ${libraryFilter ? 'JOIN songs s ON s.album_id = a.id AND s.active = 1 AND s.library_id = ?' : 'LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1'}
@@ -112,8 +112,8 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
       ORDER BY a.name
       LIMIT 500
     `).all(...(libraryFilter
-      ? (genreFilter ? [libraryId, userId ?? null, resolvedGenre.id] : [libraryId, userId ?? null])
-      : (genreFilter ? [userId ?? null, resolvedGenre.id] : [userId ?? null]))
+      ? (genreFilter ? [hideExplicit ? 1 : 0, libraryId, userId ?? null, resolvedGenre.id] : [hideExplicit ? 1 : 0, libraryId, userId ?? null])
+      : (genreFilter ? [hideExplicit ? 1 : 0, userId ?? null, resolvedGenre.id] : [hideExplicit ? 1 : 0, userId ?? null]))
     ) as (AlbumRow & { total_song_count: number; shown_song_count: number })[];
 
     const albums = rows.map((row) => ({
