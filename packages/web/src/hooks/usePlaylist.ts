@@ -17,6 +17,7 @@ export interface PlaylistDetailEntry {
   year?: number;
   explicit?: boolean;
   coverArt?: string;
+  albumCoverArt?: string;
 }
 
 export interface PlaylistDetail extends Playlist {
