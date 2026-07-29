@@ -12,7 +12,7 @@ export function ExplicitTitle({ title, children, explicit, blur, className }: Ex
     <span className={cn('inline-flex items-center gap-2', blur && explicit && 'blur-sm', className)}>
       {children ?? title}
       {explicit && (
-        <span aria-label="Explicit" className="rounded bg-red-500/10 px-1 text-[10px] font-bold text-red-500">E</span>
+        <span aria-label="Explicit" className="rounded bg-accent/10 px-1 text-[10px] font-bold text-accent">E</span>
       )}
     </span>
   );
