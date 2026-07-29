@@ -69,8 +69,10 @@ interface PlaylistSongRow {
   year: number | null;
   explicit: number;
   mtime: number;
+  cover_art_id: string | null;
   album_id: string | null;
   album_name: string | null;
+  album_cover_art_id: string | null;
   artist_id: string | null;
   artist_name: string | null;
 }
@@ -78,7 +80,7 @@ interface PlaylistSongRow {
 function fetchPlaylistSongs(db: Database.Database, songIds: string[]): Record<string, unknown>[] {
   if (songIds.length === 0) return [];
   const rows = db.prepare(`
-    SELECT s.*, a.id AS album_id, a.name AS album_name, ar.id AS artist_id, ar.name AS artist_name
+    SELECT s.*, a.id AS album_id, a.name AS album_name, a.cover_art_id AS album_cover_art_id, ar.id AS artist_id, ar.name AS artist_name
     FROM songs s
     LEFT JOIN albums a ON a.id = s.album_id
     LEFT JOIN artists ar ON ar.id = s.artist_id
@@ -101,6 +103,8 @@ function fetchPlaylistSongs(db: Database.Database, songIds: string[]): Record<st
       year: song.year,
       explicit: song.explicit === 1,
       duration: song.duration,
+      coverArt: song.cover_art_id ?? undefined,
+      albumCoverArt: song.album_cover_art_id ?? undefined,
       type: 'music',
       isDir: false,
       created: new Date(song.mtime).toISOString(),

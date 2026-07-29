@@ -17,6 +17,8 @@ export interface SongListItem {
   trackNumber?: number;
   discNumber?: number;
   syncedLyrics?: { time: number; text: string }[];
+  coverArt?: string;
+  albumCoverArt?: string;
 }
 
 interface SongTableProps {
