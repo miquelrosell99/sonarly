@@ -93,7 +93,7 @@ export function StarRating({ rating = 0, onRate, className, variant = 'default' 
             onMouseEnter={(e) => handleMove(e, value)}
             aria-label={label}
             className={cn(
-              'rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              'inline-flex items-center justify-center rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
               isOverlay ? 'p-0' : 'p-0.5',
               filled || half
                 ? 'text-accent'
