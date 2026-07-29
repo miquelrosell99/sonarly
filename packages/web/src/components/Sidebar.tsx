@@ -86,8 +86,8 @@ export function Sidebar({ config, playlists }: SidebarProps) {
 
   return (
     <aside className="flex w-60 shrink-0 flex-col bg-surface">
-      <div className="flex-1 overflow-y-auto p-3">
-        <nav className="space-y-0.5">
+      <div className="flex flex-1 flex-col overflow-hidden p-3">
+        <nav className="space-y-0.5 overflow-y-auto">
           {orderedLibraryLinks.map((link) => (
             <SidebarNavLink
               key={link.id}
@@ -99,8 +99,8 @@ export function Sidebar({ config, playlists }: SidebarProps) {
           ))}
         </nav>
 
-        <div className="mt-6">
-          <div className="mb-2 flex items-center justify-between px-3">
+        <div className="mt-6 flex min-h-0 flex-1 flex-col">
+          <div className="mb-2 flex shrink-0 items-center justify-between px-3">
             <div className="flex items-center gap-1">
               <button
                 type="button"
@@ -151,7 +151,7 @@ export function Sidebar({ config, playlists }: SidebarProps) {
           </div>
 
           {!collapsed && (
-            <nav className="space-y-0.5">
+            <nav className="space-y-0.5 min-h-0 flex-1 overflow-y-auto">
               {playlists?.map((playlist) => {
                 const href = `/playlists/${playlist.id}`;
                 const active = isActive(location, href);
