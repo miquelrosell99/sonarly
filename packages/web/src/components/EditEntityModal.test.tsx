@@ -1,8 +1,14 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render as baseRender, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EditEntityModal } from './EditEntityModal.js';
 
 const originalFetch = global.fetch;
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+function render(ui: React.ReactElement) {
+  return baseRender(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+}
 
 afterEach(() => {
   cleanup();
