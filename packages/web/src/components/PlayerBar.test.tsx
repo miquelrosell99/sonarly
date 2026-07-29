@@ -208,6 +208,36 @@ describe('PlayerBar', () => {
     expect(screen.getByRole('button', { name: /queue/i })).toBeTruthy();
   });
 
+  it('renders an explicit badge for explicit tracks', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'Explicit Song', artistName: 'Artist', explicit: true } as any,
+    ], 0);
+
+    render(<PlayerBar user={mockUser} />, { wrapper: NotificationProvider });
+    expect(screen.getByText('Explicit Song')).toBeTruthy();
+    expect(screen.getByLabelText('Explicit')).toBeTruthy();
+  });
+
+  it('does not render an explicit badge for clean tracks', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'Clean Song', artistName: 'Artist', explicit: false } as any,
+    ], 0);
+
+    render(<PlayerBar user={mockUser} />, { wrapper: NotificationProvider });
+    expect(screen.getByText('Clean Song')).toBeTruthy();
+    expect(screen.queryByLabelText('Explicit')).toBeNull();
+  });
+
+  it('blurs the title when the user prefers blurred explicit titles', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'Explicit Song', artistName: 'Artist', explicit: true } as any,
+    ], 0);
+
+    render(<PlayerBar user={{ ...mockUser, blurExplicitTitles: true }} />, { wrapper: NotificationProvider });
+    const title = screen.getByText('Explicit Song');
+    expect((title as HTMLElement).className.includes('blur-sm')).toBe(true);
+  });
+
   it('opens a floating queue modal and plays a queued track when double-clicked', () => {
     usePlayer.getState().playQueue([
       { id: 's1', title: 'Now Playing', artistName: 'Artist' } as any,

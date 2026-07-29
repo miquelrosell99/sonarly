@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import type { User } from '@sonarly/shared';
 import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
+import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { useNowPlaying } from '../stores/nowPlayingStore.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useDominantColor } from '../../../hooks/useDominantColor.js';
@@ -156,13 +157,18 @@ export function NowPlaying({ user }: NowPlayingProps) {
             />
             <div className="space-y-1">
               <h2 className="text-2xl font-bold text-fg-primary">
-                <Link
-                  href={`/tracks/${currentSong.id}`}
-                  onClick={() => close()}
-                  className="transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                <ExplicitTitle
+                  explicit={currentSong.explicit}
+                  blur={user.blurExplicitTitles === true}
                 >
-                  {currentSong.title}
-                </Link>
+                  <Link
+                    href={`/tracks/${currentSong.id}`}
+                    onClick={() => close()}
+                    className="transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  >
+                    {currentSong.title}
+                  </Link>
+                </ExplicitTitle>
               </h2>
               <p className="text-lg text-fg-secondary">
                 {currentSong.artistId ? (

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import type { Song } from '@sonarly/shared';
+import type { Song, User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
+import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
@@ -10,12 +11,17 @@ import { usePlayer } from '../../../stores/playerStore.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { formatDuration } from '../../../lib/format.js';
 
+interface TracksProps {
+  user: User;
+}
+
 interface Track extends Song {
   artistName?: string;
   albumName?: string;
 }
 
-export function Tracks() {
+export function Tracks({ user }: TracksProps) {
+  const blurExplicitTitles = user.blurExplicitTitles === true;
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -96,9 +102,11 @@ export function Tracks() {
       key: 'title',
       header: 'Title',
       render: (track) => (
-        <Link href={`/tracks/${track.id}`} className="hover:text-muted">
-          {track.title}
-        </Link>
+        <ExplicitTitle explicit={track.explicit} blur={blurExplicitTitles}>
+          <Link href={`/tracks/${track.id}`} className="hover:text-muted">
+            {track.title}
+          </Link>
+        </ExplicitTitle>
       ),
     },
     { key: 'artist', header: 'Artist', render: (track) => track.artistName ?? '-' },
@@ -112,7 +120,14 @@ export function Tracks() {
   ];
 
   const cardFields: LibraryViewCardField<Track>[] = [
-    { key: 'title', render: (track) => track.title },
+    {
+      key: 'title',
+      render: (track) => (
+        <ExplicitTitle explicit={track.explicit} blur={blurExplicitTitles}>
+          {track.title}
+        </ExplicitTitle>
+      ),
+    },
     {
       key: 'artist',
       render: (track) => track.artistName ?? '-',
