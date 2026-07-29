@@ -63,13 +63,12 @@ export function LibrarySelector({ libraries, selectedLibraryId, onSelect }: Libr
             aria-selected={selectedLibraryId === null}
             onClick={() => { onSelect(null); setOpen(false); }}
             className={cn(
-              'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition',
+              'flex w-full rounded-lg px-3 py-2 text-left text-sm transition',
               selectedLibraryId === null
                 ? 'bg-accent/10 text-accent'
                 : 'text-fg-primary hover:bg-surface-hover focus-visible:bg-surface-hover',
             )}
           >
-            <Icon name="mdi-playlist-music" size={18} className="text-fg-secondary" />
             All libraries
           </button>
           <div className="my-1 border-t border-rule" />
@@ -81,13 +80,12 @@ export function LibrarySelector({ libraries, selectedLibraryId, onSelect }: Libr
               aria-selected={selectedLibraryId === library.id}
               onClick={() => { onSelect(library.id); setOpen(false); }}
               className={cn(
-                'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition',
+                'flex w-full rounded-lg px-3 py-2 text-left text-sm transition',
                 selectedLibraryId === library.id
                   ? 'bg-accent/10 text-accent'
                   : 'text-fg-primary hover:bg-surface-hover focus-visible:bg-surface-hover',
               )}
             >
-              <Icon name="mdi-music-box" size={18} className="text-fg-secondary" />
               <span className="truncate">{library.name}</span>
             </button>
           ))}
