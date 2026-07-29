@@ -23,6 +23,24 @@ describe('EditEntityModal', () => {
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'New Title' }));
   });
 
+  it('does not include the entity id in the song patch', () => {
+    const onSave = vi.fn();
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '1', title: 'Track', artist: 'Artist', filePath: '/music/track.mp3' }}
+        onClose={vi.fn()}
+        onSave={onSave}
+        onDelete={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+    const [patch] = onSave.mock.calls[0];
+    expect(patch).not.toHaveProperty('id');
+    expect(patch).not.toHaveProperty('filePath');
+  });
+
   it('renders lyrics field and synced lyrics button for songs', () => {
     const onEditSyncedLyrics = vi.fn();
     render(
