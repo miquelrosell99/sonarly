@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
-import type { User } from '@sonarly/shared';
+import type { AutoDjMode, User } from '@sonarly/shared';
 import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
+import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
+import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
+import { ControlButton } from '../../../components/PlayerControls.js';
 import { useNowPlaying } from '../stores/nowPlayingStore.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useDominantColor } from '../../../hooks/useDominantColor.js';
+import { useSongInteraction } from '../../../hooks/useSongInteraction.js';
+import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferences.js';
 import { NowPlayingCover } from './NowPlayingCover.js';
 import { TransportControls } from './TransportControls.js';
 import { QueuePanel } from './QueuePanel.js';
@@ -71,6 +76,37 @@ export function NowPlaying({ user }: NowPlayingProps) {
 
   const currentSong = usePlayer((state) => state.currentSong);
   const coverArtUrl = currentSong?.coverArt ? `/api/cover-art/${currentSong.coverArt}` : undefined;
+  const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
+
+  const { starred, rating, setFavorite, setRating } = useSongInteraction(
+    currentSong?.id,
+    { starred: currentSong?.starred, rating: currentSong?.rating },
+  );
+
+  const { data: preferences } = usePreferences();
+  const autoDjEnabled = preferences?.autoDjEnabled ?? false;
+  const autoDjMode = preferences?.autoDjMode ?? 'smart';
+  const updatePreferences = useUpdatePreferences();
+
+  const handleFavorite = async (nextStarred: boolean) => {
+    await setFavorite(nextStarred);
+    updateCurrentSong({ starred: nextStarred });
+  };
+
+  const handleRate = async (nextRating?: number) => {
+    await setRating(nextRating);
+    updateCurrentSong({ rating: nextRating });
+  };
+
+  const handleToggleAutoDj = () => {
+    updatePreferences.mutate({ autoDjEnabled: !autoDjEnabled });
+  };
+
+  const djModeItems: { id: AutoDjMode; label: string; icon: string }[] = [
+    { id: 'similar', label: 'Similar', icon: 'mdi-account-music' },
+    { id: 'random', label: 'Random', icon: 'mdi-shuffle' },
+    { id: 'smart', label: 'Smart', icon: 'mdi-brain' },
+  ];
 
   const [closing, setClosing] = useState(false);
   const wasOpenRef = useRef(isOpen);
@@ -213,6 +249,12 @@ export function NowPlaying({ user }: NowPlayingProps) {
                 </p>
               )}
             </div>
+            <FavoriteRatingGroup
+              starred={starred}
+              onToggleFavorite={() => handleFavorite(!starred)}
+              rating={rating}
+              onRate={handleRate}
+            />
             <TransportControls />
           </div>
 
@@ -237,6 +279,31 @@ export function NowPlaying({ user }: NowPlayingProps) {
                   ariaControls="now-playing-panel-lyrics"
                 />
               </div>
+              <ItemContextMenu
+                sections={[
+                  {
+                    items: djModeItems.map((mode) => ({
+                      id: mode.id,
+                      label: mode.label,
+                      icon: mode.icon,
+                      active: autoDjMode === mode.id,
+                      onClick: () => updatePreferences.mutate({ autoDjMode: mode.id }),
+                    })),
+                  },
+                ]}
+                anchorToTrigger
+                placement="top-end"
+              >
+                <ControlButton
+                  onClick={handleToggleAutoDj}
+                  label={`Auto DJ: ${autoDjEnabled ? 'on' : 'off'}`}
+                  active={autoDjEnabled}
+                  className="h-8 w-auto gap-1.5 px-2.5 text-xs font-medium"
+                >
+                  <Icon name="mdi-record-player" size={16} />
+                  Auto DJ
+                </ControlButton>
+              </ItemContextMenu>
             </div>
             <div
               id={panelId}
