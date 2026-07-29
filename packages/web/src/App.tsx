@@ -135,9 +135,9 @@ export default function App() {
       <Layout user={user} onUserChange={setUser}>
         <Route path="/" component={HomePage} />
         <Route path="/songs" component={() => <Songs user={user} />} />
-        <Route path="/tracks" component={Tracks} />
+        <Route path="/tracks" component={() => <Tracks user={user} />} />
         <Route path="/tracks/:id" component={Track} />
-        <Route path="/search" component={SearchResults} />
+        <Route path="/search" component={() => <SearchResults user={user} />} />
         <Route path="/playlists" component={Playlists} />
         <Route path="/playlists/:id" component={() => <PlaylistDetail user={user} />} />
         <Route path="/albums" component={Albums} />

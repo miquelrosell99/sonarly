@@ -177,4 +177,40 @@ describe('NowPlaying', () => {
     expect(screen.queryByRole('link', { name: 'Album' })).toBeFalsy();
     expect(screen.getByRole('link', { name: '2020' })).toBeTruthy();
   });
+
+  it('renders an explicit badge for explicit tracks', () => {
+    useNowPlaying.getState().open();
+    usePlayer.getState().playQueue(
+      [{ id: 's1', title: 'Explicit Song', artistName: 'Artist', explicit: true } as any],
+      0,
+    );
+    render(<NowPlaying user={mockUser} />, { wrapper: Wrapper });
+
+    expect(screen.getByRole('link', { name: 'Explicit Song' })).toBeTruthy();
+    expect(screen.getByLabelText('Explicit')).toBeTruthy();
+  });
+
+  it('does not render an explicit badge for clean tracks', () => {
+    useNowPlaying.getState().open();
+    usePlayer.getState().playQueue(
+      [{ id: 's1', title: 'Clean Song', artistName: 'Artist', explicit: false } as any],
+      0,
+    );
+    render(<NowPlaying user={mockUser} />, { wrapper: Wrapper });
+
+    expect(screen.getByRole('link', { name: 'Clean Song' })).toBeTruthy();
+    expect(screen.queryByLabelText('Explicit')).toBeNull();
+  });
+
+  it('blurs the title when the user prefers blurred explicit titles', () => {
+    useNowPlaying.getState().open();
+    usePlayer.getState().playQueue(
+      [{ id: 's1', title: 'Explicit Song', artistName: 'Artist', explicit: true } as any],
+      0,
+    );
+    render(<NowPlaying user={{ ...mockUser, blurExplicitTitles: true }} />, { wrapper: Wrapper });
+
+    const title = screen.getByRole('link', { name: 'Explicit Song' });
+    expect(title.parentElement?.className.includes('blur-sm')).toBe(true);
+  });
 });
