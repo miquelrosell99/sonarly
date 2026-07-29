@@ -153,6 +153,7 @@ export function Tracks({ user }: TracksProps) {
       onPlay={handlePlay}
       onPlaySelection={handlePlaySelection}
       onShufflePlay={handleShufflePlay}
+      disableRowShuffle
       playingId={playingId}
       onFavorite={handleFavorite}
       onRate={handleRate}

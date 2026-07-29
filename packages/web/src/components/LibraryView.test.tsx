@@ -254,6 +254,37 @@ describe('LibraryView', () => {
     expect(onShufflePlay).toHaveBeenCalledWith(items);
   });
 
+  it('does not trigger onShufflePlay on row play buttons when disableRowShuffle is set', () => {
+    const onPlay = vi.fn();
+    const onShufflePlay = vi.fn();
+    renderView({ onPlay, onShufflePlay, disableRowShuffle: true });
+
+    const playButton = screen.getAllByRole('button', { name: /Play$/i })[0];
+    fireEvent.pointerDown(playButton);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    fireEvent.pointerUp(playButton);
+
+    expect(onShufflePlay).not.toHaveBeenCalled();
+  });
+
+  it('does not trigger onShufflePlay on grid card play buttons when disableRowShuffle is set', () => {
+    const onPlay = vi.fn();
+    const onShufflePlay = vi.fn();
+    renderView({ onPlay, onShufflePlay, disableRowShuffle: true });
+
+    fireEvent.click(screen.getAllByRole('button', { name: /grid view/i })[0]);
+    const playButton = screen.getAllByRole('button', { name: /Play$/i })[0];
+    fireEvent.pointerDown(playButton);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    fireEvent.pointerUp(playButton);
+
+    expect(onShufflePlay).not.toHaveBeenCalled();
+  });
+
   it('renders drag handles when sortable is enabled', () => {
     renderView({ sortable: true, onReorder: vi.fn() });
     const dragHandles = screen.getAllByRole('button', { name: /drag to reorder/i });
