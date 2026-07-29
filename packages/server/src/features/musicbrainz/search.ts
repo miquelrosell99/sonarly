@@ -56,9 +56,20 @@ function extractYear(date?: string): number | undefined {
   return Number.isNaN(year) ? undefined : year;
 }
 
+const ARTIST_SPLIT_REGEX = /\s*[,;\/]\s*|\s+&\s+|\s+feat\.\s+|\s+featuring\s+|\s+ft\.\s+/i;
+
+function splitArtists(value: string): string[] {
+  const parts = value.split(ARTIST_SPLIT_REGEX).map((p) => p.trim()).filter(Boolean);
+  return parts.length > 0 ? parts : [value.trim()];
+}
+
+function firstArtist(value: string): string {
+  return splitArtists(value)[0] ?? value;
+}
+
 function extractArtistName(credits: MbArtistCredit[] | undefined): string | undefined {
   if (!credits || credits.length === 0) return undefined;
-  return credits.map((c) => c.name).join(', ');
+  return credits.map((c) => c.name).join('; ');
 }
 
 function buildCoverArtUrl(mbid: string, isReleaseGroup: boolean): string | undefined {
@@ -112,7 +123,7 @@ function artistToMatch(artist: MbArtist): MusicBrainzMatch {
 function buildRecordingQuery(title: string, artist?: string, album?: string): string {
   const parts: string[] = [`recording:${escapeLucene(title)}`];
   if (artist && artist.trim().length > 0) {
-    parts.push(`artist:${escapeLucene(artist)}`);
+    parts.push(`artist:${escapeLucene(firstArtist(artist))}`);
   }
   if (album && album.trim().length > 0) {
     parts.push(`release:${escapeLucene(album)}`);
@@ -123,7 +134,7 @@ function buildRecordingQuery(title: string, artist?: string, album?: string): st
 function buildReleaseQuery(title: string, artist?: string): string {
   const parts: string[] = [`release:${escapeLucene(title)}`];
   if (artist && artist.trim().length > 0) {
-    parts.push(`artist:${escapeLucene(artist)}`);
+    parts.push(`artist:${escapeLucene(firstArtist(artist))}`);
   }
   return parts.join(' AND ');
 }

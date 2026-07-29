@@ -147,4 +147,58 @@ describe('musicbrainz search', () => {
     expect(await fetchMusicBrainzRelease('missing')).toBeUndefined();
     expect(await fetchMusicBrainzArtistMatch('missing')).toBeUndefined();
   });
+
+  it('joins multiple artist credits with a semicolon', async () => {
+    global.fetch = vi.fn(async (url: string) => {
+      if (url.includes('/ws/2/recording/')) {
+        return new Response(
+          JSON.stringify({
+            recordings: [
+              {
+                id: 'rec-2',
+                title: 'Collab',
+                'artist-credit': [{ name: 'Artist A' }, { name: 'Artist B' }],
+                releases: [{ id: 'rel-2', title: 'Album', date: '2020' }],
+              },
+            ],
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      return new Response('Not found', { status: 404 });
+    }) as unknown as typeof fetch;
+
+    const matches = await searchMusicBrainzRecordings('Collab');
+    expect(matches[0].artist).toBe('Artist A; Artist B');
+  });
+
+  it('uses only the first local artist when building the recording query', async () => {
+    let capturedUrl: string | undefined;
+    global.fetch = vi.fn(async (url: string) => {
+      if (url.includes('/ws/2/recording/')) {
+        capturedUrl = url;
+        return new Response(JSON.stringify({ recordings: [] }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      return new Response('Not found', { status: 404 });
+    }) as unknown as typeof fetch;
+
+    await searchMusicBrainzRecordings('Song Title', 'Artist A; Artist B', 'Album Title');
+    expect(capturedUrl).toContain('artist%3A%22Artist%20A%22');
+    expect(capturedUrl).not.toContain('Artist%20B');
+  });
+
+  it('uses only the first local artist when building the release query', async () => {
+    let capturedUrl: string | undefined;
+    global.fetch = vi.fn(async (url: string) => {
+      if (url.includes('/ws/2/release/')) {
+        capturedUrl = url;
+        return new Response(JSON.stringify({ releases: [] }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      return new Response('Not found', { status: 404 });
+    }) as unknown as typeof fetch;
+
+    await searchMusicBrainzReleases('Album Title', 'Artist A & Artist B');
+    expect(capturedUrl).toContain('artist%3A%22Artist%20A%22');
+    expect(capturedUrl).not.toContain('Artist%20B');
+  });
 });
