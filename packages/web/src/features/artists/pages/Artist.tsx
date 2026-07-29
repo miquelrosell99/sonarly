@@ -21,8 +21,6 @@ interface Album {
   year?: number;
   genre?: string;
   coverArt?: string;
-  totalSongCount?: number;
-  shownSongCount?: number;
   starred?: boolean;
   rating?: number;
 }
@@ -183,53 +181,38 @@ export function Artist() {
     >
       {artist && artist.albums.length > 0 ? (
         <ScrollRow title="Albums">
-          {artist.albums.map((album) => {
-            const hasFilteredSongs =
-              album.totalSongCount !== undefined &&
-              album.shownSongCount !== undefined &&
-              album.totalSongCount > album.shownSongCount;
-            return (
-              <div key={album.id} className="w-40 flex-none sm:w-44">
-                <Card
-                  href={`/albums/${album.id}`}
-                  title={album.name}
-                  cover={<CoverArt coverArt={album.coverArt} alt={`Cover art for ${album.name}`} />}
-                  fields={[
-                    {
-                      content: (
-                        <span>
-                          {album.year !== undefined && album.year !== null && (
-                            <Link href={`/years/${album.year}`} className="hover:text-muted">
-                              {album.year}
-                            </Link>
-                          )}
-                          {hasFilteredSongs && (
-                            <span className="ml-2 rounded bg-yellow-500/10 px-1.5 py-0.5 text-xs text-yellow-500">
-                              {album.shownSongCount} of {album.totalSongCount}
-                            </span>
-                          )}
-                        </span>
-                      ),
-                    },
-                  ]}
-                  favorite={{
-                    starred: album.starred,
-                    onClick: () => handleAlbumFavorite(album, !album.starred),
-                    label: album.starred ? 'Remove favorite' : 'Add favorite',
-                  }}
-                  rating={{
-                    value: album.rating,
-                    onRate: (rating) => handleAlbumRate(album, rating || undefined),
-                  }}
-                  play={{
-                    onPlay: () => playAlbum(album),
-                    onShufflePlay: () => shufflePlayAlbum(album),
-                    label: album.name,
-                  }}
-                />
-              </div>
-            );
-          })}
+          {artist.albums.map((album) => (
+            <div key={album.id} className="w-40 flex-none sm:w-44">
+              <Card
+                href={`/albums/${album.id}`}
+                title={album.name}
+                cover={<CoverArt coverArt={album.coverArt} alt={`Cover art for ${album.name}`} />}
+                fields={[
+                  {
+                    content: album.year !== undefined && album.year !== null && (
+                      <Link href={`/years/${album.year}`} className="hover:text-muted">
+                        {album.year}
+                      </Link>
+                    ),
+                  },
+                ]}
+                favorite={{
+                  starred: album.starred,
+                  onClick: () => handleAlbumFavorite(album, !album.starred),
+                  label: album.starred ? 'Remove favorite' : 'Add favorite',
+                }}
+                rating={{
+                  value: album.rating,
+                  onRate: (rating) => handleAlbumRate(album, rating || undefined),
+                }}
+                play={{
+                  onPlay: () => playAlbum(album),
+                  onShufflePlay: () => shufflePlayAlbum(album),
+                  label: album.name,
+                }}
+              />
+            </div>
+          ))}
         </ScrollRow>
       ) : (
         <>

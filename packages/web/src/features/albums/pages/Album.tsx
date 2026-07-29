@@ -270,6 +270,11 @@ export function Album({ user }: { user: User }) {
     detail.album.shownSongCount !== undefined &&
     detail.album.totalSongCount > detail.album.shownSongCount;
 
+  const hiddenSongCount =
+    detail?.album.totalSongCount !== undefined && detail?.album.shownSongCount !== undefined
+      ? detail.album.totalSongCount - detail.album.shownSongCount
+      : 0;
+
   const metadata = detail
     ? [
         { label: detail.album.artistName ?? 'Unknown artist', href: detail.album.artistId ? `/artists/${detail.album.artistId}` : undefined },
@@ -345,6 +350,13 @@ export function Album({ user }: { user: User }) {
               onRate={handleRate}
             />
           </>
+        )
+      }
+      headerChildren={
+        hiddenSongCount > 0 && (
+          <span className="text-sm text-fg-secondary">
+            {hiddenSongCount} hidden
+          </span>
         )
       }
     >
