@@ -216,6 +216,28 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  .playing-indicator-bar {
+    animation: playing-bars 1.2s ease-in-out infinite;
+    transform-origin: bottom;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .playing-indicator-bar {
+      animation: none;
+      transform: scaleY(1);
+    }
+  }
+}
+
+@keyframes playing-bars {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
 }
 
 @keyframes now-playing-enter {

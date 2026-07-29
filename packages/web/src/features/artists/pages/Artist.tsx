@@ -12,6 +12,7 @@ import { ScrollRow } from '../../../components/ScrollRow.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
+import { usePlayer } from '../../../stores/playerStore.js';
 import { TrackList } from '../../songs/index.js';
 import type { SongWithNames } from '../../../lib/types.js';
 
@@ -43,6 +44,7 @@ export function Artist() {
   const [error, setError] = useState<string | null>(null);
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
+  const currentAlbumId = usePlayer((state) => state.currentSong?.albumId);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   useEffect(() => {
@@ -210,6 +212,7 @@ export function Artist() {
                   onShufflePlay: () => shufflePlayAlbum(album),
                   label: album.name,
                 }}
+                isPlaying={currentAlbumId === album.id}
               />
             </div>
           ))}

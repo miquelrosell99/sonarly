@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import { cn } from '../lib/cn.js';
 import { PlayButton } from './PlayButton.js';
 import { FavoriteButton, StarRating } from './ActionButtons.js';
+import { PlayingIndicator } from './PlayingIndicator.js';
 
 export interface CardActionFavorite {
   starred?: boolean;
@@ -35,6 +36,7 @@ interface CardProps {
   rating?: CardActionRating;
   play?: CardActionPlay;
   onContextMenu?: (e: React.MouseEvent) => void;
+  isPlaying?: boolean;
 }
 
 export function Card({
@@ -46,6 +48,7 @@ export function Card({
   rating,
   play,
   onContextMenu,
+  isPlaying = false,
 }: CardProps) {
   return (
     <div
@@ -64,6 +67,11 @@ export function Card({
           className="relative block overflow-hidden rounded-xl shadow-md outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
         >
           <div className="transition duration-300 group-hover/card:scale-105">{cover}</div>
+          {isPlaying && (
+            <div className="pointer-events-none absolute bottom-2 right-2 z-20 rounded-full bg-bg-primary/80 p-1.5 text-accent opacity-100 transition-opacity duration-200 group-hover/card:opacity-0">
+              <PlayingIndicator size={16} />
+            </div>
+          )}
           <div className="pointer-events-none absolute inset-0 flex flex-col justify-between bg-black/50 opacity-0 transition-opacity group-hover/card:opacity-100">
             {(favorite || rating) && (
               <div className="pointer-events-auto flex items-start justify-between p-2">

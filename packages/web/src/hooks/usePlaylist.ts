@@ -6,7 +6,10 @@ export interface PlaylistDetailEntry {
   id: string;
   title: string;
   album: string;
+  albumId?: string;
   artist: string;
+  artistId?: string;
+  artistEntries?: { id: string; name: string }[];
   track?: number;
   discNumber?: number;
   duration?: number;

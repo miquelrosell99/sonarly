@@ -78,7 +78,7 @@ function SortableLibraryRow<T>({
   index,
   columns,
   isSelected,
-  isPlayingTitle,
+  isPlaying,
   onSelect,
   onActivate,
   onPlay,
@@ -96,7 +96,7 @@ function SortableLibraryRow<T>({
   index: number;
   columns: LibraryViewColumn<T>[];
   isSelected: boolean;
-  isPlayingTitle: boolean;
+  isPlaying: boolean;
   onSelect: (e: MouseEvent) => void;
   onActivate: () => void;
   onPlay?: () => void;
@@ -127,7 +127,7 @@ function SortableLibraryRow<T>({
     <ListRow
       index={index}
       isSelected={isSelected}
-      isPlayingTitle={isPlayingTitle}
+      isPlaying={isPlaying}
       onSelect={onSelect}
       onActivate={onActivate}
       onPlay={onPlay}
@@ -362,7 +362,7 @@ export function LibraryView<T>({
                 const starred = getFavorite?.(item);
                 const rating = getRating?.(item);
                 const isSelected = selectedIds.has(id);
-                const isPlayingTitle = playingId !== undefined && playingId === id;
+                const isPlaying = playingId !== undefined && playingId === id;
                 const indexLabel = getIndexLabel?.(item, index);
 
                 if (sortable) {
@@ -374,7 +374,7 @@ export function LibraryView<T>({
                       index={index}
                       columns={columns}
                       isSelected={isSelected}
-                      isPlayingTitle={isPlayingTitle}
+                      isPlaying={isPlaying}
                       onSelect={(e) => handleRowSelect(item, e)}
                       onActivate={() => handleRowActivate(item)}
                       onPlay={onPlay ? () => onPlay(item) : undefined}
@@ -402,7 +402,7 @@ export function LibraryView<T>({
                     href={href}
                     index={index}
                     isSelected={isSelected}
-                    isPlayingTitle={isPlayingTitle}
+                    isPlaying={isPlaying}
                     onSelect={(e) => handleRowSelect(item, e)}
                     onActivate={() => handleRowActivate(item)}
                     onPlay={onPlay ? () => onPlay(item) : undefined}
@@ -456,6 +456,7 @@ export function LibraryView<T>({
         const rating = getRating?.(item);
         const coverId = getCover?.(item);
         const customCover = renderCover?.(item);
+        const isPlaying = playingId !== undefined && playingId === getId(item);
         const [titleField, ...extraFields] = cardFields;
         const coverElement =
           customCover ??
@@ -474,6 +475,7 @@ export function LibraryView<T>({
             favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
             rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
             play={onPlay ? { onPlay: () => onPlay(item), onShufflePlay: onShufflePlay ? () => onShufflePlay(data) : undefined } : undefined}
+            isPlaying={isPlaying}
           />
         );
         return (
