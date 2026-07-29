@@ -6,6 +6,7 @@ import { Icon } from '../../../components/ui/Icon.js';
 import { api } from '../../../api.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
+import { FetchLyricsModal } from '../../../components/FetchLyricsModal.js';
 import type { NowPlayingTab } from '../stores/nowPlayingStore.js';
 
 interface LyricsPanelProps {
@@ -33,6 +34,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
   const [mode, setMode] = useState<'dynamic' | 'static'>('dynamic');
   const [autoScroll, setAutoScroll] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [fetchOpen, setFetchOpen] = useState(false);
   const lineRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -63,6 +65,32 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
         if (songId) {
           queryClient.invalidateQueries({ queryKey: ['lyrics', songId] });
         }
+      }}
+    />
+  ) : null;
+
+  const fetchModal = currentSong ? (
+    <FetchLyricsModal
+      open={fetchOpen}
+      songId={currentSong.id}
+      title={currentSong.title}
+      artistName={currentSong.artistName}
+      albumName={currentSong.albumName}
+      duration={currentSong.duration}
+      currentLyrics={plainLyrics}
+      currentSyncedLyrics={syncedLyrics}
+      onClose={() => setFetchOpen(false)}
+      onApply={async (patch) => {
+        if (!songId) return;
+        await api(`/songs/${songId}/lyrics`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            lyrics: patch.lyrics,
+            syncedLyrics: patch.syncedLyrics,
+          }),
+        });
+        queryClient.invalidateQueries({ queryKey: ['lyrics', songId] });
+        setFetchOpen(false);
       }}
     />
   ) : null;
@@ -134,11 +162,17 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
         <Icon name="mdi-text" size={48} />
         <p className="text-sm">No lyrics for this track.</p>
         {user.isAdmin && (
-          <button type="button" onClick={() => setEditorOpen(true)} className="text-sm text-accent hover:underline">
-            Add lyrics
-          </button>
+          <div className="flex gap-3">
+            <button type="button" onClick={() => setEditorOpen(true)} className="text-sm text-accent hover:underline">
+              Add lyrics
+            </button>
+            <button type="button" onClick={() => setFetchOpen(true)} className="text-sm text-accent hover:underline">
+              Fetch lyrics
+            </button>
+          </div>
         )}
         {editorModal}
+        {fetchModal}
       </div>
     );
   }
@@ -148,15 +182,26 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {user.isAdmin && (
-            <button
-              type="button"
-              onClick={() => setEditorOpen(true)}
-              aria-label="Edit lyrics"
-              className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-medium text-fg-secondary transition hover:bg-surface-hover"
-            >
-              <Icon name="mdi-pencil" size={14} />
-              Edit lyrics
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setEditorOpen(true)}
+                aria-label="Edit lyrics"
+                className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-medium text-fg-secondary transition hover:bg-surface-hover"
+              >
+                <Icon name="mdi-pencil" size={14} />
+                Edit lyrics
+              </button>
+              <button
+                type="button"
+                onClick={() => setFetchOpen(true)}
+                aria-label="Fetch lyrics"
+                className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-medium text-fg-secondary transition hover:bg-surface-hover"
+              >
+                <Icon name="mdi-cloud-download-outline" size={14} />
+                Fetch lyrics
+              </button>
+            </>
           )}
           {mode === 'dynamic' && (
             <button
@@ -238,6 +283,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
             </button>
           )}
           {editorModal}
+          {fetchModal}
         </div>
       ) : (
         <div ref={containerRef} className="flex-1 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words px-2 text-center text-fg-primary" style={lyricsMaskStyle}>
@@ -245,6 +291,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
         </div>
       )}
       {editorModal}
+      {fetchModal}
     </div>
   );
 }
