@@ -130,7 +130,7 @@ export function Track() {
         documentTitle={track?.title}
         type="Song"
         title={track?.title}
-        cover={track ? <CoverArt coverArt={track.coverArt} alt={`Cover art for ${track.title}`} className="h-48 w-48 sm:h-56 sm:w-56" iconSize={64} /> : undefined}
+        cover={track ? <CoverArt coverArt={track.albumCoverArt ?? track.coverArt} alt={`Cover art for ${track.title}`} className="h-48 w-48 sm:h-56 sm:w-56" iconSize={64} /> : undefined}
         metadata={metadata}
         actions={
           track && (

@@ -188,7 +188,7 @@ export function NowPlaying({ user }: NowPlayingProps) {
           {/* Left: cover + metadata */}
           <div className="flex flex-col items-center justify-center gap-6 text-center">
             <NowPlayingCover
-              coverArt={currentSong.coverArt}
+              coverArt={currentSong.albumCoverArt ?? currentSong.coverArt}
               alt={`Cover art for ${currentSong.title}`}
             />
             <div className="space-y-1">
