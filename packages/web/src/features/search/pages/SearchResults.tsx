@@ -12,6 +12,10 @@ import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
+import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
+import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { SyncedLyricsEditor } from '../../songs/index.js';
+import { useNotification } from '../../../contexts/NotificationContext.js';
 
 interface SearchResultsProps {
   user: User;
@@ -62,6 +66,21 @@ function PlaylistContextMenu({ playlist, children }: { playlist: Playlist; child
   return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
 
+function SongContextMenu({
+  song,
+  onEdit,
+  isAdmin,
+  children,
+}: {
+  song: Song;
+  onEdit: () => void;
+  isAdmin: boolean;
+  children: ReactNode;
+}) {
+  const sections = useSongContextMenu(song, onEdit, isAdmin);
+  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+}
+
 export function SearchResults({ user }: SearchResultsProps) {
   const blurExplicitTitles = user.blurExplicitTitles === true;
   const search = useSearch();
@@ -72,14 +91,19 @@ export function SearchResults({ user }: SearchResultsProps) {
   const [data, setData] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [songEditing, setSongEditing] = useState<Song | null>(null);
+  const [syncEditing, setSyncEditing] = useState<Song | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { playSong, playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
+  const { notify } = useNotification();
   const playingId = usePlayer((state) => state.currentSong?.id);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
   const libraryQuery = buildLibraryQuery(selectedLibraryId);
   const libraryParam = libraryQuery ? `&${libraryQuery.slice(1)}` : '';
 
-  useEffect(() => {
+  const load = () => {
     if (!query.trim()) {
       setData({ songs: [], albums: [], artists: [], playlists: [] });
       setLoading(false);
@@ -92,6 +116,10 @@ export function SearchResults({ user }: SearchResultsProps) {
       .then(setData)
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load search results'))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    load();
   }, [query, type, selectedLibraryId]);
 
   function updateItem<T extends { id: string }>(
@@ -151,6 +179,37 @@ export function SearchResults({ user }: SearchResultsProps) {
   const shufflePlaylists = async (playlists: Playlist[]) => {
     const details = await Promise.all(playlists.map((p) => api<PlaylistDetail>(`/playlists/${p.id}`)));
     shufflePlay(details.flatMap((d) => d.playlist.entries));
+  };
+
+  const handleSongSave = async (patched: Record<string, unknown>) => {
+    if (!songEditing) return;
+    setSaving(true);
+    try {
+      await api(`/songs/${songEditing.id}/tags`, {
+        method: 'PUT',
+        body: JSON.stringify(patched),
+      });
+      setSongEditing(null);
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to save song', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSongDelete = async () => {
+    if (!songEditing) return;
+    setDeleting(true);
+    try {
+      await api(`/songs/${songEditing.id}`, { method: 'DELETE' });
+      setSongEditing(null);
+      load();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to delete song', 'error');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const renderSongs = (songs: Song[]) => {
@@ -213,6 +272,11 @@ export function SearchResults({ user }: SearchResultsProps) {
         getFavorite={(song) => song.starred}
         getRating={(song) => song.rating}
         playingId={playingId}
+        renderContextMenu={(song, children) => (
+          <SongContextMenu song={song} onEdit={() => setSongEditing(song)} isAdmin={user.isAdmin}>
+            {children}
+          </SongContextMenu>
+        )}
         emptyMessage={`No songs match "${query}".`}
       />
     );
@@ -370,6 +434,14 @@ export function SearchResults({ user }: SearchResultsProps) {
     );
   };
 
+  const songEditEntity = songEditing
+    ? {
+        ...songEditing,
+        artist: songEditing.artistName,
+        album: songEditing.albumName,
+      }
+    : null;
+
   if (!data) {
     return (
       <div>
@@ -379,16 +451,50 @@ export function SearchResults({ user }: SearchResultsProps) {
     );
   }
 
-  switch (type) {
-    case 'songs':
-      return renderSongs(data.songs);
-    case 'albums':
-      return renderAlbums(data.albums);
-    case 'artists':
-      return renderArtists(data.artists);
-    case 'playlists':
-      return renderPlaylists(data.playlists);
-    default:
-      return renderSongs(data.songs);
-  }
+  const result = (() => {
+    switch (type) {
+      case 'songs':
+        return renderSongs(data.songs);
+      case 'albums':
+        return renderAlbums(data.albums);
+      case 'artists':
+        return renderArtists(data.artists);
+      case 'playlists':
+        return renderPlaylists(data.playlists);
+      default:
+        return renderSongs(data.songs);
+    }
+  })();
+
+  return (
+    <>
+      {result}
+      {songEditEntity && (
+        <EditEntityModal
+          open
+          entityType="song"
+          entity={songEditEntity}
+          onClose={() => setSongEditing(null)}
+          onSave={handleSongSave}
+          onDelete={handleSongDelete}
+          onEditSyncedLyrics={() => songEditing && setSyncEditing(songEditing)}
+          saving={saving}
+          deleting={deleting}
+        />
+      )}
+      {syncEditing && (
+        <SyncedLyricsEditor
+          songId={syncEditing.id}
+          title={syncEditing.title}
+          artistName={syncEditing.artistName}
+          duration={syncEditing.duration}
+          onClose={() => setSyncEditing(null)}
+          onSaved={() => {
+            setSyncEditing(null);
+            load();
+          }}
+        />
+      )}
+    </>
+  );
 }

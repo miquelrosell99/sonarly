@@ -134,8 +134,8 @@ export function ListRow({
         </td>
       )}
       <td className="w-12 whitespace-nowrap py-2 px-2 text-center">
-        <span className="relative inline-flex h-5 w-6 items-center justify-center text-muted">
-          <span className="transition group-hover:opacity-0">
+        <span className="group/play relative inline-flex h-5 w-6 items-center justify-center text-muted">
+          <span className="transition group-hover/play:opacity-0">
             {indexLabel !== undefined && indexLabel !== null ? (
               typeof indexLabel === 'number' && indexPad ? (
                 String(indexLabel).padStart(indexPad, '0')
@@ -149,7 +149,7 @@ export function ListRow({
             )}
           </span>
           {onPlay && (
-            <span className="absolute inset-0 flex items-center justify-center opacity-0 transition group-hover:opacity-100">
+            <span className="absolute inset-0 flex items-center justify-center opacity-0 transition group-hover/play:opacity-100">
               <PlayButton
                 variant="inline"
                 onPlay={onPlay}
