@@ -264,6 +264,13 @@ export function Album({ user }: { user: User }) {
       }
     : null;
 
+  const discNumbers = new Set(
+    (detail?.songs ?? [])
+      .map((song) => song.discNumber)
+      .filter((disc): disc is number => disc !== undefined && disc !== null),
+  );
+  const hasMultipleDiscs = discNumbers.size > 1;
+
   return (
     <EntityDetail
       isLoading={loading}
@@ -311,6 +318,9 @@ export function Album({ user }: { user: User }) {
         onPlay={handlePlay}
         onShufflePlay={handleShuffleAlbumSongs}
         onPlaySelection={handlePlaySelection}
+        getIndexLabel={(song) => song.trackNumber}
+        groupBy={hasMultipleDiscs ? (song) => (song.discNumber ? String(song.discNumber) : undefined) : undefined}
+        renderGroupHeader={hasMultipleDiscs ? (key) => `Disc ${Number(key).toString().padStart(2, '0')}` : undefined}
         renderRow={(song, row) => (
           <SongContextMenu song={song} onEdit={() => setSongEditing(song as SongWithNames)} isAdmin={user.isAdmin}>
             {row}

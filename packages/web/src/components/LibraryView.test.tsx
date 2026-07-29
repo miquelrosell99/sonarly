@@ -274,4 +274,26 @@ describe('LibraryView', () => {
     fireEvent.click(playButtons[0]);
     expect(onPlay).toHaveBeenCalledWith(items[0]);
   });
+
+  it('renders group headers in list view when groupBy is provided', () => {
+    renderView({
+      groupBy: (item) => (item.id === '1' || item.id === '2' ? 'A' : 'B'),
+      renderGroupHeader: (key) => `Group ${key}`,
+    });
+    expect(screen.getByText('Group A')).toBeTruthy();
+    expect(screen.getByText('Group B')).toBeTruthy();
+    expect(screen.getByText('Alpha').closest('tr')?.previousElementSibling?.textContent).toBe('Group A');
+    expect(screen.getByText('Gamma').closest('tr')?.previousElementSibling?.textContent).toBe('Group B');
+  });
+
+  it('uses custom index labels when getIndexLabel is provided', () => {
+    renderView({
+      onPlay: vi.fn(),
+      getIndexLabel: (item) => (item.id === '2' ? 5 : undefined),
+    });
+    const rows = screen.getAllByRole('row');
+    expect(rows[1].textContent).toContain('01');
+    expect(rows[2].textContent).toContain('05');
+    expect(rows[3].textContent).toContain('03');
+  });
 });

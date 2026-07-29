@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from 'wouter';
 import { Table, type TableColumn } from '../../../components/ui/Table.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
@@ -12,6 +13,8 @@ export interface SongListItem {
   albumId?: string | null;
   duration?: number;
   explicit?: boolean;
+  trackNumber?: number;
+  discNumber?: number;
 }
 
 interface SongTableProps {
@@ -25,6 +28,12 @@ interface SongTableProps {
   onPlaySelection?: (songs: SongListItem[], startIndex: number) => void;
   renderRow?: (song: SongListItem, row: React.ReactNode) => React.ReactNode;
   empty?: React.ReactNode;
+  /** Override the # column label for a song. Returning undefined falls back to the 1-based row index. */
+  getIndexLabel?: (song: SongListItem, index: number) => ReactNode;
+  /** Group songs into sections by a shared key. Only contiguous songs with the same key are grouped together. */
+  groupBy?: (song: SongListItem) => string | undefined;
+  /** Render a custom header for a group. Receives the group key and the songs in the group. */
+  renderGroupHeader?: (key: string, songs: SongListItem[]) => ReactNode;
 }
 
 export function SongTable({
@@ -38,6 +47,9 @@ export function SongTable({
   onPlaySelection,
   renderRow,
   empty,
+  getIndexLabel,
+  groupBy,
+  renderGroupHeader,
 }: SongTableProps) {
   const columns: TableColumn<SongListItem>[] = [
     {
@@ -112,6 +124,9 @@ export function SongTable({
       playingId={playingId}
       renderRow={renderRow}
       indexPad={indexPad}
+      getIndexLabel={getIndexLabel}
+      groupBy={groupBy}
+      renderGroupHeader={renderGroupHeader}
     />
   );
 }
