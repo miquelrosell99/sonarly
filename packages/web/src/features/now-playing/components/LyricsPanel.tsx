@@ -89,7 +89,11 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
             syncedLyrics: patch.syncedLyrics,
           }),
         });
-        queryClient.invalidateQueries({ queryKey: ['lyrics', songId] });
+        queryClient.setQueryData<{ lyrics?: string; syncedLyrics?: { time: number; text: string }[] }>(
+          ['lyrics', songId],
+          (old) => ({ ...old, lyrics: patch.lyrics, syncedLyrics: patch.syncedLyrics }),
+        );
+        await refetch();
         setFetchOpen(false);
       }}
     />
