@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'wouter';
-import type { Song, UserPreferences } from '@sonarly/shared';
+import type { Song, User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Card } from '../../../components/Card.js';
 import { CoverArt } from '../../../components/CoverArt.js';
@@ -9,11 +9,13 @@ import { EntityDetail } from '../../../components/EntityDetail.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { ScrollRow } from '../../../components/ScrollRow.js';
+import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
+import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { usePlayer } from '../../../stores/playerStore.js';
-import { TrackList } from '../../songs/index.js';
+import { formatDuration } from '../../../lib/format.js';
 import type { SongWithNames } from '../../../lib/types.js';
 
 interface Album {
@@ -35,17 +37,18 @@ interface ArtistDetail {
   rating?: number;
 }
 
-export function Artist() {
+export function Artist({ user }: { user: User }) {
   const { id } = useParams<{ id: string }>();
   const [artist, setArtist] = useState<ArtistDetail | null>(null);
   const [topTracks, setTopTracks] = useState<SongWithNames[]>([]);
-  const [preferences, setPreferences] = useState<UserPreferences>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
   const currentAlbumId = usePlayer((state) => state.currentSong?.albumId);
+  const playingId = usePlayer((state) => state.currentSong?.id);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const blurExplicitTitles = user.blurExplicitTitles === true;
 
   useEffect(() => {
     if (!id) return;
@@ -53,12 +56,10 @@ export function Artist() {
     Promise.all([
       api<{ artist: ArtistDetail }>(`/artists/${id}${buildLibraryQuery(selectedLibraryId)}`),
       api<{ songs: SongWithNames[] }>(`/songs${buildLibraryQuery(selectedLibraryId)}`).catch(() => ({ songs: [] })),
-      api<{ preferences: UserPreferences }>('/me/preferences').catch(() => ({ preferences: {} })),
     ])
-      .then(([artistRes, songsRes, prefsRes]) => {
+      .then(([artistRes, songsRes]) => {
         setArtist(artistRes.artist);
         setTopTracks(songsRes.songs.filter((s) => s.artistId === id));
-        setPreferences(prefsRes.preferences);
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load artist'))
       .finally(() => setLoading(false));
@@ -136,9 +137,87 @@ export function Artist() {
     }
   };
 
-  const playTrack = (track: SongWithNames) => {
+  const handlePlay = (track: SongWithNames) => {
     playSongs([track as Song], 0);
   };
+
+  const handlePlaySelection = (tracks: SongWithNames[], startIndex: number) => {
+    playSongs(tracks as Song[], startIndex);
+  };
+
+  const handleShuffleTracks = (tracks: SongWithNames[]) => {
+    shufflePlay(tracks as Song[]);
+  };
+
+  const handleTrackFavorite = async (track: SongWithNames, starred: boolean) => {
+    try {
+      await setFavorite('song', track.id, starred);
+      setTopTracks((prev) => prev.map((t) => (t.id === track.id ? { ...t, starred } : t)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+    }
+  };
+
+  const handleTrackRate = async (track: SongWithNames, rating?: number) => {
+    try {
+      await setRating('song', track.id, rating);
+      setTopTracks((prev) => prev.map((t) => (t.id === track.id ? { ...t, rating } : t)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update rating');
+    }
+  };
+
+  const columns: LibraryViewColumn<SongWithNames>[] = [
+    {
+      key: 'title',
+      header: 'Title',
+      render: (track) => (
+        <ExplicitTitle explicit={track.explicit} blur={blurExplicitTitles}>
+          <Link href={`/tracks/${track.id}`} className="hover:text-muted">
+            {track.title}
+          </Link>
+        </ExplicitTitle>
+      ),
+    },
+    {
+      key: 'album',
+      header: 'Album',
+      render: (track) =>
+        track.albumName ? (
+          track.albumId ? (
+            <Link href={`/albums/${track.albumId}`} className="hover:text-muted">
+              {track.albumName}
+            </Link>
+          ) : (
+            track.albumName
+          )
+        ) : (
+          '-'
+        ),
+    },
+    {
+      key: 'duration',
+      header: 'Duration',
+      className: 'w-24',
+      render: (track) => (track.duration ? formatDuration(track.duration) : '-'),
+    },
+  ];
+
+  const cardFields: LibraryViewCardField<SongWithNames>[] = [
+    {
+      key: 'title',
+      render: (track) => (
+        <ExplicitTitle explicit={track.explicit} blur={blurExplicitTitles}>
+          {track.title}
+        </ExplicitTitle>
+      ),
+    },
+    {
+      key: 'album',
+      render: (track) => track.albumName ?? '-',
+      getHref: (track) => (track.albumId ? `/albums/${track.albumId}` : undefined),
+    },
+  ];
 
   return (
     <EntityDetail
@@ -224,9 +303,23 @@ export function Artist() {
         </>
       )}
 
-      <h3 className="mb-2 mt-8 text-sm font-medium text-fg-secondary">Top tracks</h3>
-      <TrackList tracks={topTracks} onItemClick={playTrack} showArtist={false} showAlbum />
-      {topTracks.length === 0 && <p className="py-4 text-sm text-muted">No tracks found.</p>}
+      <LibraryView
+        title="Top tracks"
+        data={topTracks}
+        columns={columns}
+        cardFields={cardFields}
+        getId={(track) => track.id}
+        getHref={(track) => `/tracks/${track.id}`}
+        onPlay={handlePlay}
+        onPlaySelection={handlePlaySelection}
+        onShufflePlay={handleShuffleTracks}
+        playingId={playingId}
+        onFavorite={handleTrackFavorite}
+        onRate={handleTrackRate}
+        getFavorite={(track) => track.starred}
+        getRating={(track) => track.rating}
+        emptyMessage="No tracks found."
+      />
     </EntityDetail>
   );
 }
