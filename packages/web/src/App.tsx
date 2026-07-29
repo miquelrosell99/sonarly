@@ -143,9 +143,9 @@ export default function App() {
         <Route path="/albums" component={Albums} />
         <Route path="/albums/:id" component={() => <Album user={user} />} />
         <Route path="/artists" component={Artists} />
-        <Route path="/artists/:id" component={Artist} />
+        <Route path="/artists/:id" component={() => <Artist user={user} />} />
         <Route path="/album-artists" component={AlbumArtists} />
-        <Route path="/album-artists/:id" component={Artist} />
+        <Route path="/album-artists/:id" component={() => <Artist user={user} />} />
         <Route path="/genres" component={Genres} />
         <Route path="/genres/:genre" component={Genre} />
         <Route path="/years" component={Years} />
