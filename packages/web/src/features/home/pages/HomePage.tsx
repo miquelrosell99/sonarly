@@ -7,6 +7,7 @@ import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useDominantColor } from '../../../hooks/useDominantColor.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
+import { usePlayer } from '../../../stores/playerStore.js';
 import { ScrollRow } from '../../../components/ScrollRow.js';
 import { Card } from '../../../components/Card.js';
 import { CoverArt } from '../../../components/CoverArt.js';
@@ -26,6 +27,7 @@ interface AlbumDetail {
 function AlbumCard({ album: initialAlbum }: { album: Album }) {
   const { playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
+  const currentAlbumId = usePlayer((state) => state.currentSong?.albumId);
   const [album, setAlbum] = useState(initialAlbum);
   const [error, setError] = useState<string | null>(null);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
@@ -119,6 +121,7 @@ function AlbumCard({ album: initialAlbum }: { album: Album }) {
           onShufflePlay: handleShufflePlay,
           label: album.name,
         }}
+        isPlaying={currentAlbumId === album.id}
       />
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}
     </div>

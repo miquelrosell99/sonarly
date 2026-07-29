@@ -1,6 +1,7 @@
 import { Children, Fragment, useState, type MouseEvent, type KeyboardEvent, type ReactNode, type ReactElement, cloneElement, isValidElement } from 'react';
 import { cn } from '../../lib/cn.js';
 import { PlayButton } from '../PlayButton.js';
+import { PlayingIndicator } from '../PlayingIndicator.js';
 
 export interface TableColumn<T> {
   key: string;
@@ -222,6 +223,7 @@ export function Table<T>({
                       'transition',
                       selectable && 'group cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
                       isSelected ? 'bg-surface-hover' : selectable ? 'hover:bg-surface-hover' : '',
+                      isPlayingTitle && 'bg-accent/10',
                     )}
                     onClick={selectable ? (e) => {
                       if (isInteractiveTarget(e.target, e.currentTarget)) return;
@@ -238,7 +240,9 @@ export function Table<T>({
                     {onPlay && (
                       <td className="w-12 py-2 px-2 text-center">
                         <span className="group/play relative inline-flex h-5 w-6 items-center justify-center text-muted">
-                          <span className="transition group-hover/play:opacity-0">{indexContent}</span>
+                          <span className="transition group-hover/play:opacity-0">
+                            {isPlayingTitle ? <PlayingIndicator size={14} /> : indexContent}
+                          </span>
                           <span className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition group-hover/play:opacity-100">
                             <span className="pointer-events-auto">
                               <PlayButton

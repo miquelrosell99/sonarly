@@ -11,6 +11,7 @@ export interface SongListItem {
   albumName?: string;
   artistId?: string | null;
   albumId?: string | null;
+  artistEntries?: { id: string; name: string }[];
   duration?: number;
   explicit?: boolean;
   trackNumber?: number;
@@ -70,18 +71,31 @@ export function SongTable({
     columns.push({
       key: 'artist',
       header: 'Artist',
-      render: (s) =>
-        s.artistName ? (
-          s.artistId ? (
-            <Link href={`/artists/${s.artistId}`} className="hover:text-muted">
-              {s.artistName}
-            </Link>
-          ) : (
-            s.artistName
-          )
-        ) : (
-          '-'
-        ),
+      render: (s) => {
+        const entries =
+          s.artistEntries && s.artistEntries.length > 0
+            ? s.artistEntries
+            : s.artistName
+              ? [{ id: s.artistId ?? null, name: s.artistName }]
+              : [];
+        if (entries.length === 0) return '-';
+        return (
+          <span className="inline-flex flex-wrap gap-x-1">
+            {entries.map((artist, index) => (
+              <span key={artist.id ?? `artist-${index}`}>
+                {artist.id ? (
+                  <Link href={`/artists/${artist.id}`} className="hover:text-muted">
+                    {artist.name}
+                  </Link>
+                ) : (
+                  artist.name
+                )}
+                {index < entries.length - 1 && ','}
+              </span>
+            ))}
+          </span>
+        );
+      },
     });
   }
 
