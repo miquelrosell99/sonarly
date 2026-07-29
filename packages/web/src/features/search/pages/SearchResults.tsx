@@ -100,7 +100,10 @@ export function SearchResults({ user }: SearchResultsProps) {
   const { setFavorite, setRating } = useFavoriteActions();
   const { notify } = useNotification();
   const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
-  const playingId = usePlayer((state) => state.currentSong?.id);
+  const currentSong = usePlayer((state) => state.currentSong);
+  const playingId = currentSong?.id;
+  const currentAlbumId = currentSong?.albumId;
+  const currentArtistId = currentSong?.artistId;
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
   const libraryQuery = buildLibraryQuery(selectedLibraryId);
   const libraryParam = libraryQuery ? `&${libraryQuery.slice(1)}` : '';
@@ -362,6 +365,7 @@ export function SearchResults({ user }: SearchResultsProps) {
         getRating={(album) => album.rating}
         getCover={(album) => album.coverArt}
         getCoverAlt={(album) => `Cover art for ${album.name}`}
+        playingId={currentAlbumId}
         renderContextMenu={(album, children) => <AlbumContextMenu album={album}>{children}</AlbumContextMenu>}
         emptyMessage={`No albums match "${query}".`}
         defaultView="grid"
@@ -405,6 +409,7 @@ export function SearchResults({ user }: SearchResultsProps) {
         }
         getFavorite={(artist) => artist.starred}
         getRating={(artist) => artist.rating}
+        playingId={currentArtistId}
         renderContextMenu={(artist, children) => (
           <ArtistContextMenu artist={artist}>{children}</ArtistContextMenu>
         )}

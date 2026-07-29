@@ -14,6 +14,7 @@ import {
 } from '../playlists/index.js';
 import { getUserById } from '../users/index.js';
 import { DbAlbum, toAlbum } from '../albums/repository.js';
+import { attachSongArtistEntries } from '../songs/repository.js';
 
 const VISIBILITIES: PlaylistVisibility[] = ['private', 'shared', 'public', 'link'];
 
@@ -68,28 +69,32 @@ interface PlaylistSongRow {
   year: number | null;
   explicit: number;
   mtime: number;
+  album_id: string | null;
   album_name: string | null;
+  artist_id: string | null;
   artist_name: string | null;
 }
 
 function fetchPlaylistSongs(db: Database.Database, songIds: string[]): Record<string, unknown>[] {
   if (songIds.length === 0) return [];
   const rows = db.prepare(`
-    SELECT s.*, a.name AS album_name, ar.name AS artist_name
+    SELECT s.*, a.id AS album_id, a.name AS album_name, ar.id AS artist_id, ar.name AS artist_name
     FROM songs s
     LEFT JOIN albums a ON a.id = s.album_id
     LEFT JOIN artists ar ON ar.id = s.artist_id
     WHERE s.active = 1 AND s.id IN (${songIds.map(() => '?').join(',')})
   `).all(...songIds) as PlaylistSongRow[];
   const byId = new Map(rows.map((r) => [r.id, r]));
-  return songIds
+  const entries = songIds
     .map((id) => byId.get(id))
     .filter((row): row is PlaylistSongRow => row !== undefined)
     .map((song) => ({
       id: song.id,
       title: song.title,
       album: song.album_name ?? '',
+      albumId: song.album_id ?? undefined,
       artist: song.artist_name ?? '',
+      artistId: song.artist_id ?? undefined,
       track: song.track_number,
       discNumber: song.disc_number,
       genre: song.genre,
@@ -100,6 +105,8 @@ function fetchPlaylistSongs(db: Database.Database, songIds: string[]): Record<st
       isDir: false,
       created: new Date(song.mtime).toISOString(),
     }));
+  attachSongArtistEntries(db, entries as any);
+  return entries;
 }
 
 function serializeRules(rules: unknown): SmartPlaylistRules | undefined {

@@ -6,6 +6,7 @@ import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
+import { usePlayer } from '../../../stores/playerStore.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
 import { useAlbumContextMenu } from '../../../hooks/useAlbumContextMenu.js';
 import { useAdminContextMenu } from '../../../hooks/useAdminContextMenu.js';
@@ -48,6 +49,7 @@ export function Albums() {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const { playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
+  const currentAlbumId = usePlayer((state) => state.currentSong?.albumId);
   const { get } = useFilterParams();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
@@ -274,6 +276,7 @@ export function Albums() {
         getRating={(album) => album.rating}
         getCover={(album) => album.coverArt}
         getCoverAlt={(album) => `Cover art for ${album.name}`}
+        playingId={currentAlbumId}
         renderContextMenu={(album, children, _selectedItems) => (
           <AlbumContextMenu album={album} onEdit={() => setEditing(album)}>
             {children}
