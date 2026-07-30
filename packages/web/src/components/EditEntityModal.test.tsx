@@ -31,7 +31,7 @@ describe('EditEntityModal', () => {
     );
     fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'New Title' } });
     fireEvent.click(screen.getByRole('button', { name: /save/i }));
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'New Title' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'New Title', artist: ['Artist'] }));
   });
 
   it('does not include the entity id in the song patch', () => {
@@ -77,16 +77,15 @@ describe('EditEntityModal', () => {
       <EditEntityModal
         open
         entityType="album"
-        entity={{ id: '2', title: 'Album', artist: 'Album Artist' }}
+        entity={{ id: '2', title: 'Album', albumArtist: 'Album Artist' }}
         onClose={vi.fn()}
         onSave={onSave}
         onDelete={vi.fn()}
       />,
     );
     fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'New Album' } });
-    fireEvent.change(screen.getByLabelText(/album artist/i), { target: { value: 'New Artist' } });
     fireEvent.click(screen.getByRole('button', { name: /save/i }));
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'New Album', albumArtist: 'New Artist' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'New Album', albumArtist: ['Album Artist'] }));
   });
 
   it('renders playlist fields and calls onSave', () => {
@@ -331,6 +330,40 @@ describe('EditEntityModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'Fetched Title' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'Fetched Title', artist: ['Artist'] }));
+  });
+
+  it('renders multi-value artist and genre as pills', () => {
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '16', title: 'Track', artists: ['Artist A', 'Artist B'], genres: ['Rock', 'Pop'] }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Artist A')).toBeTruthy();
+    expect(screen.getByText('Artist B')).toBeTruthy();
+    expect(screen.getByText('Rock')).toBeTruthy();
+    expect(screen.getByText('Pop')).toBeTruthy();
+  });
+
+  it('removes a pill when its remove button is clicked', () => {
+    const onSave = vi.fn();
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '17', title: 'Track', artists: ['Artist A', 'Artist B'] }}
+        onClose={vi.fn()}
+        onSave={onSave}
+        onDelete={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /remove Artist B/i }));
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ artist: ['Artist A'] }));
   });
 });

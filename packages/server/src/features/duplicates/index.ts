@@ -23,13 +23,13 @@ export function resolveSongIdentity(
   const title = meta.tags.title?.trim();
   if (!title) return undefined;
 
-  const artistNames = meta.artists ?? (meta.tags.artist ? [meta.tags.artist] : undefined);
+  const artistNames = meta.artists ?? (meta.tags.artist ? (Array.isArray(meta.tags.artist) ? meta.tags.artist : [meta.tags.artist]) : undefined);
   if (!artistNames?.length) return undefined;
 
   const artistIds = artistNames.map((name) => ensureArtist(db, name));
   // Use album artists for album lookup so compilations where the track artist
   // differs from the album artist still resolve to the correct album.
-  const albumArtistNames = meta.albumArtists ?? artistNames;
+  const albumArtistNames = meta.albumArtists ?? (meta.tags.albumArtist ? (Array.isArray(meta.tags.albumArtist) ? meta.tags.albumArtist : [meta.tags.albumArtist]) : artistNames);
   const albumArtistIds = albumArtistNames.map((name) => ensureArtist(db, name));
   const primaryAlbumArtistId = albumArtistIds[0];
   const albumId = meta.tags.album

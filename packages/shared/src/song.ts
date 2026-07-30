@@ -65,12 +65,12 @@ export interface Song {
 
 export interface SongTags {
   title: string;
-  artist?: string;
+  artist?: string | string[];
   album?: string;
-  albumArtist?: string;
+  albumArtist?: string | string[];
   trackNumber?: number;
   discNumber?: number;
-  genre?: string;
+  genre?: string | string[];
   year?: number;
   explicit?: boolean;
   lyrics?: string;

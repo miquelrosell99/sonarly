@@ -72,11 +72,12 @@ export async function organizeSongFile(config: Config, db: Database.Database, fi
 async function syncSongCoverWithAlbum(
   db: Database.Database,
   songId: string,
-  tags: { album?: string; artist?: string; albumArtist?: string },
+  tags: { album?: string; artist?: string | string[]; albumArtist?: string | string[] },
   filePath: string,
 ): Promise<void> {
   if (!tags.album) return;
-  const artistName = tags.artist || tags.albumArtist;
+  const artistName = (Array.isArray(tags.artist) ? tags.artist[0] : tags.artist)
+    || (Array.isArray(tags.albumArtist) ? tags.albumArtist[0] : tags.albumArtist);
   const artist = artistName ? getArtistByName(db, artistName) : undefined;
   const album = getAlbumByNameAndArtist(db, tags.album, artist?.id);
   if (!album) return;

@@ -533,6 +533,7 @@ export function attachSongArtistEntries(db: Database.Database, songs: Song[]): v
     const list = entries.get(song.id);
     if (list && list.length > 0) {
       song.artistEntries = list;
+      song.artists = list.map((entry) => entry.name);
     }
   }
 }
