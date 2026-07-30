@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, forwardRef } from 'react';
 import { api } from '../../api.js';
 import { cn } from '../../lib/cn.js';
 
@@ -6,19 +6,24 @@ interface AutocompleteInputProps extends React.InputHTMLAttributes<HTMLInputElem
   field: 'artist' | 'album' | 'genre' | 'albumArtist';
   delay?: number;
   defaultLimit?: number;
+  onValueSelect?: (value: string) => void;
 }
 
-export function AutocompleteInput({
-  field,
-  delay = 200,
-  defaultLimit = 5,
-  className,
-  onChange,
-  onBlur,
-  onFocus,
-  value,
-  ...props
-}: AutocompleteInputProps) {
+export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputProps>(function AutocompleteInput(
+  {
+    field,
+    delay = 200,
+    defaultLimit = 5,
+    className,
+    onChange,
+    onValueSelect,
+    onBlur,
+    onFocus,
+    value,
+    ...props
+  },
+  ref,
+) {
   const [query, setQuery] = useState(String(value ?? ''));
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
@@ -78,10 +83,14 @@ export function AutocompleteInput({
     setQuery(newValue);
     setOpen(false);
     onChange?.(syntheticEvent);
+    onValueSelect?.(newValue);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!open) return;
+    if (!open) {
+      props.onKeyDown?.(e);
+      return;
+    }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setHighlighted((prev) => (prev + 1) % options.length);
@@ -95,6 +104,9 @@ export function AutocompleteInput({
       }
     } else if (e.key === 'Escape') {
       setOpen(false);
+      props.onKeyDown?.(e);
+    } else {
+      props.onKeyDown?.(e);
     }
   };
 
@@ -112,6 +124,7 @@ export function AutocompleteInput({
     <div className="relative">
       <input
         {...props}
+        ref={ref}
         type="text"
         value={query}
         onChange={handleChange}
@@ -160,4 +173,4 @@ export function AutocompleteInput({
       )}
     </div>
   );
-}
+});

@@ -3,8 +3,8 @@ import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import { unlink } from 'node:fs/promises';
 import type { Song, SongTags, ScrobbleDetails } from '@sonarly/shared';
-import { getSongById, deleteSongByPath, scrobbleSong, attachSongArtistEntries, attachSongComposerEntries } from './repository.js';
-import { getSongGenreNamesForMany, getSongGenreNames } from '../genres/repository.js';
+import { getSongById, deleteSongByPath, scrobbleSong, attachSongArtistEntries, attachSongComposerEntries, setSongArtists } from './repository.js';
+import { getSongGenreNamesForMany, getSongGenreNames, setSongGenres } from '../genres/repository.js';
 import { getUserById } from '../users/index.js';
 import { writeTags, writeCoverArt } from '../tags/index.js';
 import { createCoverArt, deleteCoverArt, setSongCoverArtId, getSongCoverArtId } from '../cover-art/index.js';
@@ -49,6 +49,24 @@ function normalizeName(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+function normalizeMultiValue(value: string | string[] | undefined): string[] | undefined {
+  if (value === undefined) return undefined;
+  if (Array.isArray(value)) {
+    const trimmed = value.map((v) => v.trim()).filter((v) => v.length > 0);
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? [trimmed] : undefined;
+  }
+  return undefined;
+}
+
+function joinNames(values: string | string[] | undefined): string | undefined {
+  if (Array.isArray(values)) return values.map((v) => v.trim()).filter(Boolean).join(' / ') || undefined;
+  return normalizeName(values);
+}
+
 type ApplySongTagsResult =
   | { ok: true; orphanedEntities: OrphanedEntity[] }
   | { ok: false; error: string; statusCode: number };
@@ -80,35 +98,23 @@ async function applySongTags(
     return { ok: false, error: 'Tags were saved but the file could not be reorganized', statusCode: 500 };
   }
 
-  const artistId = tags.artist !== undefined
-    ? ensureArtist(db, tags.artist)
-    : song.artistId;
+  const artistNames = normalizeMultiValue(tags.artist);
+  const artistIds = artistNames?.map((name) => ensureArtist(db, name)).filter((artistId): artistId is string => artistId !== undefined);
+  const primaryArtistId = artistIds?.[0] ?? song.artistId;
 
-  const albumArtistNames = tags.albumArtist !== undefined
-    ? (normalizeName(tags.albumArtist) ? [tags.albumArtist] : undefined)
-    : tags.artist !== undefined
-      ? (normalizeName(tags.artist) ? [tags.artist] : undefined)
-      : undefined;
+  const albumArtistNames = normalizeMultiValue(tags.albumArtist) ?? artistNames;
 
   const albumId = tags.album !== undefined
     ? (normalizeName(tags.album)
-        ? ensureAlbum(db, tags.album, albumArtistNames, tags.year, typeof tags.genre === 'string' ? tags.genre : undefined)
+        ? ensureAlbum(db, tags.album, albumArtistNames, tags.year, artistNames?.[0])
         : null)
     : (song.albumId ?? null);
 
-  let genreId: string | null = null;
-  let genreName: string | null = null;
-  if (typeof tags.genre === 'string') {
-    const trimmed = tags.genre.trim();
-    if (trimmed.length > 0) {
-      const resolved = resolveGenreForTagWrite(db, tags.genre);
-      genreId = resolved.id;
-      genreName = resolved.name;
-    }
-  } else if (song.genreId !== undefined) {
-    genreId = song.genreId;
-    genreName = song.genre ?? null;
-  }
+  const genreNames = normalizeMultiValue(tags.genre);
+  const genreResolutions = genreNames?.map((name) => resolveGenreForTagWrite(db, name));
+  const primaryGenre = genreResolutions?.[0];
+  const genreId = primaryGenre?.id ?? song.genreId ?? null;
+  const genreName = primaryGenre?.name ?? song.genre ?? null;
 
   db.prepare(`
     UPDATE songs SET
@@ -127,7 +133,7 @@ async function applySongTags(
   `).run(
     newPath,
     tags.title ?? song.title,
-    artistId ?? null,
+    primaryArtistId ?? null,
     albumId,
     tags.trackNumber !== undefined ? tags.trackNumber : (song.trackNumber ?? null),
     tags.discNumber !== undefined ? tags.discNumber : (song.discNumber ?? null),
@@ -138,6 +144,13 @@ async function applySongTags(
     genreName,
     id,
   );
+
+  if (artistIds !== undefined) {
+    setSongArtists(db, id, artistIds);
+  }
+  if (genreResolutions !== undefined) {
+    setSongGenres(db, id, genreResolutions.map((g) => g.id));
+  }
 
   try {
     queueResync(db, newPath);
@@ -157,7 +170,7 @@ function findOrphanedEntities(
 ): OrphanedEntity[] {
   const orphaned: OrphanedEntity[] = [];
 
-  const newArtist = normalizeName(tags.artist);
+  const newArtist = joinNames(tags.artist);
   if (song.artistId && newArtist !== undefined) {
     const artist = db.prepare('SELECT name FROM artists WHERE id = ?').get(song.artistId) as { name: string } | undefined;
     if (artist && newArtist.toLowerCase() !== artist.name.toLowerCase()) {
@@ -222,6 +235,16 @@ function parseScrobbleBody(body: unknown): ScrobbleDetails | undefined {
   return Object.keys(details).length > 0 ? details : undefined;
 }
 
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((v) => typeof v === 'string');
+}
+
+function validateStringOrArray(value: unknown, field: string): void {
+  if (value !== undefined && typeof value !== 'string' && !isStringArray(value)) {
+    throw new Error(`${field} must be a string or an array of strings`);
+  }
+}
+
 export function validateSongTags(body: unknown): SongTags {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     throw new Error('Tags must be an object');
@@ -232,12 +255,21 @@ export function validateSongTags(body: unknown): SongTags {
       throw new Error(`Unknown tag field: ${key}`);
     }
   }
+  if ('title' in input && typeof input.title !== 'string') {
+    throw new Error('title must be a string');
+  }
+  validateStringOrArray(input.artist, 'artist');
+  validateStringOrArray(input.albumArtist, 'albumArtist');
+  if ('album' in input && typeof input.album !== 'string') {
+    throw new Error('album must be a string');
+  }
   if ('trackNumber' in input && !Number.isInteger(input.trackNumber)) {
     throw new Error('trackNumber must be an integer');
   }
   if ('discNumber' in input && !Number.isInteger(input.discNumber)) {
     throw new Error('discNumber must be an integer');
   }
+  validateStringOrArray(input.genre, 'genre');
   if ('year' in input && !Number.isInteger(input.year)) {
     throw new Error('year must be an integer');
   }

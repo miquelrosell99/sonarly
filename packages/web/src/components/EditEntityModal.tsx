@@ -9,6 +9,7 @@ import { Checkbox } from './ui/Checkbox.js';
 import { Modal } from './ui/Modal.js';
 import { ConfirmModal } from './ui/ConfirmModal.js';
 import { AutocompleteInput } from './ui/AutocompleteInput.js';
+import { PillInput } from './ui/PillInput.js';
 import { CoverArt } from './CoverArt.js';
 import { ArtistImage } from './ArtistImage.js';
 import { Icon } from './ui/Icon.js';
@@ -42,22 +43,23 @@ interface TagField {
   type?: 'text' | 'number';
   autocomplete?: 'artist' | 'album' | 'albumArtist' | 'genre';
   primary?: boolean;
+  multi?: boolean;
 }
 
 const SONG_FIELDS: TagField[] = [
   { key: 'title', label: 'Title', primary: true },
-  { key: 'artist', label: 'Artist', autocomplete: 'artist', primary: true },
+  { key: 'artist', label: 'Artist', autocomplete: 'artist', primary: true, multi: true },
   { key: 'album', label: 'Album', autocomplete: 'album', primary: true },
-  { key: 'albumArtist', label: 'Album artist', autocomplete: 'albumArtist' },
+  { key: 'albumArtist', label: 'Album artist', autocomplete: 'albumArtist', multi: true },
   { key: 'trackNumber', label: 'Track number', type: 'number' },
   { key: 'discNumber', label: 'Disc number', type: 'number' },
-  { key: 'genre', label: 'Genre', autocomplete: 'genre' },
+  { key: 'genre', label: 'Genre', autocomplete: 'genre', multi: true },
   { key: 'year', label: 'Year', type: 'number' },
 ];
 
 const ALBUM_FIELDS: TagField[] = [
   { key: 'title', label: 'Title', primary: true },
-  { key: 'albumArtist', label: 'Album artist', autocomplete: 'albumArtist', primary: true },
+  { key: 'albumArtist', label: 'Album artist', autocomplete: 'albumArtist', primary: true, multi: true },
   { key: 'year', label: 'Year', type: 'number', primary: true },
 ];
 
@@ -70,11 +72,46 @@ function parseNumber(value: string): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
-function initialTagValues(entity: Record<string, unknown>, fields: TagField[]): Record<string, string> {
-  const next: Record<string, string> = {};
-  for (const { key } of fields) {
-    const value = entity[key];
-    next[key] = value === undefined || value === null ? '' : String(value);
+const MULTI_VALUE_DELIMITERS = /\s*[,;\/]\s*|\s+&\s+|\s+feat\.\s+|\s+featuring\s+|\s+ft\.\s+/i;
+
+function parseMultiValue(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((v): v is string => typeof v === 'string' && v.trim() !== '').map((v) => v.trim());
+  }
+  if (typeof value === 'string') {
+    return value.split(MULTI_VALUE_DELIMITERS).map((s) => s.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function getMultiValue(entity: Record<string, unknown>, key: string, fallbackKey?: string): string[] {
+  const direct = entity[key];
+  if (Array.isArray(direct) && direct.length > 0) return parseMultiValue(direct);
+  if (fallbackKey) {
+    const fallback = entity[fallbackKey];
+    if (fallback !== undefined && fallback !== null) return parseMultiValue(fallback);
+  }
+  if (direct !== undefined && direct !== null) return parseMultiValue(direct);
+  const pluralKey = `${key}s`;
+  const plural = entity[pluralKey];
+  if (Array.isArray(plural) && plural.length > 0) return parseMultiValue(plural);
+  return [];
+}
+
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((value, index) => value === b[index]);
+}
+
+function initialTagValues(entity: Record<string, unknown>, fields: TagField[]): Record<string, string | string[]> {
+  const next: Record<string, string | string[]> = {};
+  for (const { key, multi } of fields) {
+    if (multi) {
+      next[key] = getMultiValue(entity, key);
+    } else {
+      const value = entity[key];
+      next[key] = value === undefined || value === null ? '' : String(value);
+    }
   }
   next.lyrics = entity.lyrics === undefined || entity.lyrics === null ? '' : String(entity.lyrics);
   return next;
@@ -85,6 +122,16 @@ function getCommonValue(entities: Record<string, unknown>[], key: string): unkno
   const first = entities[0][key];
   for (let i = 1; i < entities.length; i++) {
     if (entities[i][key] !== first) return undefined;
+  }
+  return first;
+}
+
+function getCommonArray(entities: Record<string, unknown>[], key: string, fallbackKey?: string): string[] | undefined {
+  if (entities.length === 0) return undefined;
+  const first = getMultiValue(entities[0], key, fallbackKey);
+  for (let i = 1; i < entities.length; i++) {
+    const current = getMultiValue(entities[i], key, fallbackKey);
+    if (!arraysEqual(first, current)) return undefined;
   }
   return first;
 }
@@ -103,11 +150,15 @@ function initialTagValuesForEntities(
   entities: Record<string, unknown>[],
   fields: TagField[],
   isMulti: boolean,
-): Record<string, string> {
-  const next: Record<string, string> = {};
-  for (const { key } of fields) {
-    const value = isMulti ? getCommonValue(entities, key) : entities[0]?.[key];
-    next[key] = value === undefined || value === null ? '' : String(value);
+): Record<string, string | string[]> {
+  const next: Record<string, string | string[]> = {};
+  for (const { key, multi } of fields) {
+    if (multi) {
+      next[key] = isMulti ? (getCommonArray(entities, key) ?? []) : getMultiValue(entities[0] ?? {}, key);
+    } else {
+      const value = isMulti ? getCommonValue(entities, key) : entities[0]?.[key];
+      next[key] = value === undefined || value === null ? '' : String(value);
+    }
   }
   const lyricsValue = isMulti ? getCommonValue(entities, 'lyrics') : entities[0]?.lyrics;
   next.lyrics = lyricsValue === undefined || lyricsValue === null ? '' : String(lyricsValue);
@@ -134,7 +185,7 @@ export function EditEntityModal({
   const activeEntities = entities && entities.length > 0 ? entities : entity ? [entity] : [];
   const isMulti = entities !== undefined && entities.length > 1;
   const fields = entityType === 'album' ? ALBUM_FIELDS : SONG_FIELDS;
-  const [values, setValues] = useState<Record<string, string>>(() => {
+  const [values, setValues] = useState<Record<string, string | string[]>>(() => {
     if (entityType === 'playlist') {
       return {
         name: String(getCommonValue(activeEntities, 'name') ?? ''),
@@ -189,7 +240,7 @@ export function EditEntityModal({
 
   useEffect(() => {
     if (entityType !== 'song' && entityType !== 'album') return;
-    const albumName = values.album?.trim();
+    const albumName = String(values.album ?? '').trim();
     if (!albumName) {
       setAlbumStats(null);
       return;
@@ -198,7 +249,7 @@ export function EditEntityModal({
     api<{ albums: { id: string; name: string; artistName?: string }[] }>('/albums')
       .then(({ albums }) => {
         if (cancelled) return;
-        const artistName = values.artist?.trim();
+        const artistName = (Array.isArray(values.artist) ? values.artist[0] : values.artist)?.trim();
         const match = albums.find(
           (a) =>
             a.name.toLowerCase() === albumName.toLowerCase() &&
@@ -237,11 +288,14 @@ export function EditEntityModal({
     } else if (entityType === 'artist') {
       patched.name = values.name;
     } else {
-      for (const { key, type } of fields) {
+      for (const { key, type, multi } of fields) {
         if (isMulti && !touchedFields.has(key)) continue;
         const raw = values[key];
         if (type === 'number') {
-          patched[key] = parseNumber(raw);
+          patched[key] = parseNumber(String(raw));
+        } else if (multi) {
+          const arr = Array.isArray(raw) ? raw : [];
+          patched[key] = arr.length > 0 ? arr : undefined;
         } else {
           patched[key] = raw === '' ? undefined : raw;
         }
@@ -273,7 +327,7 @@ export function EditEntityModal({
     onDelete?.();
   };
 
-  const updateValue = (key: string, value: string) => {
+  const updateValue = (key: string, value: string | string[]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
     if (isMulti) {
       setTouchedFields((prev) => new Set(prev).add(key));
@@ -283,7 +337,7 @@ export function EditEntityModal({
   const primaryFields = useMemo(() => fields.filter((f) => f.primary), [fields]);
   const secondaryFields = useMemo(() => fields.filter((f) => !f.primary), [fields]);
 
-  const handleMetadataFetched = (patch: Record<string, string>) => {
+  const handleMetadataFetched = (patch: Record<string, string | string[]>) => {
     for (const [key, value] of Object.entries(patch)) {
       if (key === 'title' && entityType === 'artist') {
         updateValue('name', value);
@@ -353,7 +407,7 @@ export function EditEntityModal({
                 ) : (
                   <Input
                     id="edit-name"
-                    value={values.name ?? ''}
+                    value={String(values.name ?? '')}
                     onChange={(e) => updateValue('name', e.target.value)}
                     placeholder="Name"
                   />
@@ -366,7 +420,7 @@ export function EditEntityModal({
             <Field label="Name" htmlFor="edit-name">
               <Input
                 id="edit-name"
-                value={values.name ?? ''}
+                value={String(values.name ?? '')}
                 onChange={(e) => updateValue('name', e.target.value)}
                 placeholder="Name"
                 disabled={readOnly}
@@ -375,7 +429,7 @@ export function EditEntityModal({
             <Field label="Visibility" htmlFor="edit-visibility">
               <select
                 id="edit-visibility"
-                value={values.visibility ?? 'private'}
+                value={String(values.visibility ?? 'private')}
                 onChange={(e) => updateValue('visibility', e.target.value)}
                 disabled={readOnly}
                 className="input w-full"
@@ -427,29 +481,40 @@ export function EditEntityModal({
                 )}
               </div>
               <div className="grid flex-1 gap-4 sm:grid-cols-2">
-                {primaryFields.map(({ key, label, type, autocomplete }) => (
+                {primaryFields.map(({ key, label, type, autocomplete, multi }) => (
                   <Field
                     key={key}
                     label={label}
                     htmlFor={`edit-${key}`}
                     className={key === 'title' ? 'sm:col-span-2' : undefined}
                   >
-                    <TagInput
-                      id={`edit-${key}`}
-                      value={values[key] ?? ''}
-                      onChange={(value) => updateValue(key, value)}
-                      type={type}
-                      autocomplete={autocomplete}
-                      placeholder={label}
-                      disabled={readOnly}
-                    />
+                    {multi ? (
+                      <PillInput
+                        id={`edit-${key}`}
+                        values={Array.isArray(values[key]) ? (values[key] as string[]) : []}
+                        onChange={(value) => updateValue(key, value)}
+                        autocomplete={autocomplete}
+                        placeholder={label}
+                        disabled={readOnly}
+                      />
+                    ) : (
+                      <TagInput
+                        id={`edit-${key}`}
+                        value={String(values[key] ?? '')}
+                        onChange={(value) => updateValue(key, value)}
+                        type={type}
+                        autocomplete={autocomplete}
+                        placeholder={label}
+                        disabled={readOnly}
+                      />
+                    )}
                   </Field>
                 ))}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {secondaryFields.map(({ key, label, type, autocomplete }) => {
+              {secondaryFields.map(({ key, label, type, autocomplete, multi }) => {
                 const isCompact = key === 'trackNumber' || key === 'discNumber';
                 return (
                   <Field
@@ -458,23 +523,34 @@ export function EditEntityModal({
                     htmlFor={`edit-${key}`}
                     className={isCompact ? 'col-span-1' : 'col-span-2'}
                   >
-                    <TagInput
-                      id={`edit-${key}`}
-                      value={values[key] ?? ''}
-                      onChange={(value) => updateValue(key, value)}
-                      type={type}
-                      autocomplete={autocomplete}
-                      placeholder={label}
-                      disabled={readOnly || (entityType === 'song' && key === 'albumArtist')}
-                      locked={!readOnly && entityType === 'song' && key === 'albumArtist'}
-                      hint={
-                        key === 'trackNumber' && albumStats && albumStats.tracks > 0
-                          ? `Max track in album: ${albumStats.tracks}`
-                          : key === 'discNumber' && albumStats && albumStats.discs > 0
-                            ? `Max disc in album: ${albumStats.discs}`
-                            : undefined
-                      }
-                    />
+                    {multi ? (
+                      <PillInput
+                        id={`edit-${key}`}
+                        values={Array.isArray(values[key]) ? (values[key] as string[]) : []}
+                        onChange={(value) => updateValue(key, value)}
+                        autocomplete={autocomplete}
+                        placeholder={label}
+                        disabled={readOnly || (entityType === 'song' && key === 'albumArtist')}
+                      />
+                    ) : (
+                      <TagInput
+                        id={`edit-${key}`}
+                        value={String(values[key] ?? '')}
+                        onChange={(value) => updateValue(key, value)}
+                        type={type}
+                        autocomplete={autocomplete}
+                        placeholder={label}
+                        disabled={readOnly || (entityType === 'song' && key === 'albumArtist')}
+                        locked={!readOnly && entityType === 'song' && key === 'albumArtist'}
+                        hint={
+                          key === 'trackNumber' && albumStats && albumStats.tracks > 0
+                            ? `Max track in album: ${albumStats.tracks}`
+                            : key === 'discNumber' && albumStats && albumStats.discs > 0
+                              ? `Max disc in album: ${albumStats.discs}`
+                              : undefined
+                        }
+                      />
+                    )}
                   </Field>
                 );
               })}
@@ -485,7 +561,7 @@ export function EditEntityModal({
                 <Field label="Lyrics" htmlFor="edit-lyrics">
                   <textarea
                     id="edit-lyrics"
-                    value={values.lyrics ?? ''}
+                    value={String(values.lyrics ?? '')}
                     onChange={(e) => updateValue('lyrics', e.target.value)}
                     placeholder="Add lyrics..."
                     rows={5}
@@ -566,7 +642,7 @@ export function EditEntityModal({
           artistName={String(activeEntities[0].artistName ?? '')}
           albumName={String(activeEntities[0].albumName ?? activeEntities[0].album ?? '')}
           duration={typeof activeEntities[0].duration === 'number' ? activeEntities[0].duration : undefined}
-          currentLyrics={values.lyrics}
+          currentLyrics={String(values.lyrics ?? '')}
           currentSyncedLyrics={
             (syncedLyricsOverride as SyncedLyricLine[] | undefined) ??
             (activeEntities[0].syncedLyrics as SyncedLyricLine[] | undefined)

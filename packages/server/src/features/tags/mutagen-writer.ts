@@ -32,6 +32,14 @@ def serialize_lrc(synced):
         return f'{m:02d}:{s:02d}.{cs:02d}'
     return '\\n'.join([f'[{fmt(item["time"])}] {item["text"]}' for item in synced])
 
+def normalize_values(value):
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if v is not None and str(v).strip() != '']
+    s = str(value).strip()
+    return [s] if s != '' else []
+
 def write_tags(path, tags):
     ext = path.lower().rsplit('.', 1)[-1] if '.' in path else ''
     explicit = tags.get('explicit')
@@ -56,16 +64,16 @@ def write_tags(path, tags):
             'year': 'date',
         }
         for our_key, mutagen_key in key_map.items():
-            value = tags.get(our_key)
-            if value is None or value == '':
+            values = normalize_values(tags.get(our_key))
+            if not values:
                 continue
             if mutagen_key in ('tracknumber', 'discnumber'):
-                pair = parse_num_pair(value)
+                pair = parse_num_pair(values[0])
                 if pair is None:
                     continue
                 audio.tags[mutagen_key] = f'{pair[0]}/{pair[1]}' if pair[1] else str(pair[0])
             else:
-                audio.tags[mutagen_key] = str(value)
+                audio.tags[mutagen_key] = values if len(values) > 1 else values[0]
         audio.save()
 
         # EasyID3 does not support custom TXXX frames or lyrics; write via raw ID3.
@@ -97,16 +105,16 @@ def write_tags(path, tags):
             'year': 'DATE',
         }
         for our_key, mutagen_key in key_map.items():
-            value = tags.get(our_key)
-            if value is None or value == '':
+            values = normalize_values(tags.get(our_key))
+            if not values:
                 continue
             if mutagen_key in ('TRACKNUMBER', 'DISCNUMBER'):
-                pair = parse_num_pair(value)
+                pair = parse_num_pair(values[0])
                 if pair is None:
                     continue
                 audio.tags[mutagen_key] = f'{pair[0]}/{pair[1]}' if pair[1] else str(pair[0])
             else:
-                audio.tags[mutagen_key] = str(value)
+                audio.tags[mutagen_key] = values
         if explicit is not None:
             audio.tags['ITUNESADVISORY'] = '1' if explicit else '0'
         if lyrics:
@@ -129,16 +137,16 @@ def write_tags(path, tags):
             'year': '\\xa9day',
         }
         for our_key, mutagen_key in key_map.items():
-            value = tags.get(our_key)
-            if value is None or value == '':
+            values = normalize_values(tags.get(our_key))
+            if not values:
                 continue
             if mutagen_key in ('trkn', 'disk'):
-                pair = parse_num_pair(value)
+                pair = parse_num_pair(values[0])
                 if pair is None:
                     continue
                 audio[mutagen_key] = [pair]
             else:
-                audio[mutagen_key] = [str(value)]
+                audio[mutagen_key] = values
         if explicit is not None:
             audio['rtng'] = [(1 if explicit else 0)]
         if lyrics:

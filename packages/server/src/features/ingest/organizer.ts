@@ -17,14 +17,15 @@ export function buildTargetPath(pattern: string, libraryPath: string, tags: Song
 }
 
 function buildVariables(tags: SongTags): Record<string, string> {
-  const artist = tags.artist || 'Unknown Artist';
+  const artist = Array.isArray(tags.artist) ? tags.artist[0] : tags.artist || 'Unknown Artist';
   const album = tags.album || 'Unknown Album';
   const title = tags.title || 'Unknown Title';
-  const albumArtist = tags.albumArtist || artist;
+  const albumArtistRaw = Array.isArray(tags.albumArtist) ? tags.albumArtist[0] : tags.albumArtist;
+  const albumArtist = albumArtistRaw || artist;
   const track = tags.trackNumber ?? '';
   const disc = tags.discNumber ?? '';
   const year = tags.year ?? '';
-  const genre = tags.genre ?? '';
+  const genre = Array.isArray(tags.genre) ? tags.genre[0] : tags.genre ?? '';
 
   return {
     artist: sanitize(artist),
