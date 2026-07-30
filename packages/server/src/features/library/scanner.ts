@@ -44,6 +44,13 @@ import {
 
 const AUDIO_EXTS = new Set(['.mp3', '.flac', '.ogg', '.m4a']);
 
+function toStringArray(value: string | string[] | undefined): string[] | undefined {
+  if (value === undefined) return undefined;
+  if (Array.isArray(value)) return value.map((v) => v.trim()).filter(Boolean);
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? [trimmed] : undefined;
+}
+
 export interface ScanFailure {
   path: string;
   error: string;
@@ -216,7 +223,7 @@ export async function persistSong(
   options?: PersistSongOptions,
 ): Promise<Song> {
   const tags = meta.tags;
-  const artistNames = meta.artists ?? (tags.artist ? [tags.artist] : undefined);
+  const artistNames = meta.artists ?? toStringArray(tags.artist);
   const newArtistIds = artistNames?.length
     ? artistNames.map((name, index) =>
         ensureArtist(
@@ -227,8 +234,8 @@ export async function persistSong(
       )
     : undefined;
   const artistId = newArtistIds?.[0];
-  const albumArtistNames = meta.albumArtists ?? artistNames;
-  const genreNames = meta.genres ?? (tags.genre ? [tags.genre] : undefined);
+  const albumArtistNames = meta.albumArtists ?? toStringArray(tags.albumArtist) ?? artistNames;
+  const genreNames = meta.genres ?? toStringArray(tags.genre);
   const newGenreIds = genreNames?.length ? getOrCreateGenreIdsByNames(db, genreNames) : undefined;
   const genreId = newGenreIds?.[0];
   const albumId = tags.album
@@ -267,7 +274,7 @@ export async function persistSong(
     duration: meta.duration,
     artistId,
     albumId,
-    genre: tags.genre,
+    genre: Array.isArray(tags.genre) ? tags.genre[0] : tags.genre,
     genreId,
     libraryId,
     year: tags.year,
@@ -526,12 +533,12 @@ async function persistSongCoverOnly(
   libraryId: string | undefined,
 ): Promise<void> {
   const tags = meta.tags;
-  const artistNames = meta.artists ?? (tags.artist ? [tags.artist] : undefined);
+  const artistNames = meta.artists ?? toStringArray(tags.artist);
   const artistIds = artistNames?.length
     ? artistNames.map((name) => ensureArtist(db, name))
     : undefined;
-  const albumArtistNames = meta.albumArtists ?? artistNames;
-  const genreNames = meta.genres ?? (tags.genre ? [tags.genre] : undefined);
+  const albumArtistNames = meta.albumArtists ?? toStringArray(tags.albumArtist) ?? artistNames;
+  const genreNames = meta.genres ?? toStringArray(tags.genre);
   const genreIds = genreNames?.length ? getOrCreateGenreIdsByNames(db, genreNames) : undefined;
   const albumId = tags.album
     ? ensureAlbum(db, tags.album, albumArtistNames, tags.year, genreNames, genreIds, {})

@@ -3,8 +3,9 @@ import Database from 'better-sqlite3';
 import { unlink } from 'node:fs/promises';
 import type { SongTags, Album } from '@sonarly/shared';
 import { listSongsByAlbum, deleteSongByPath } from '../songs/index.js';
-import { getAlbumArtistNamesForMany, getAlbumArtistNames, getAlbumLabelEntriesForMany, getAlbumLabelEntries } from './repository.js';
-import { getAlbumGenreNamesForMany, getAlbumGenreNames } from '../genres/repository.js';
+import { getAlbumArtistNamesForMany, getAlbumArtistNames, getAlbumLabelEntriesForMany, getAlbumLabelEntries, setAlbumArtists, getAlbumById } from './repository.js';
+import { getAlbumGenreNamesForMany, getAlbumGenreNames, setAlbumGenres } from '../genres/repository.js';
+import { ensureArtist } from '../artists/repository.js';
 import { getUserById } from '../users/index.js';
 import { writeTags, writeCoverArt } from '../tags/index.js';
 import { validateSongTags, queueResync } from '../songs/index.js';
@@ -79,6 +80,30 @@ function cleanupOrphanCoverArt(db: Database.Database, coverArtId: string): void 
   if (!inUse) {
     deleteCoverArt(db, coverArtId);
   }
+}
+
+function normalizeName(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function normalizeMultiValue(value: string | string[] | undefined): string[] | undefined {
+  if (value === undefined) return undefined;
+  if (Array.isArray(value)) {
+    const trimmed = value.map((v) => v.trim()).filter((v) => v.length > 0);
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? [trimmed] : undefined;
+  }
+  return undefined;
+}
+
+function joinNames(values: string | string[] | undefined): string | undefined {
+  if (Array.isArray(values)) return values.map((v) => v.trim()).filter(Boolean).join(' / ') || undefined;
+  return normalizeName(values);
 }
 
 export function registerAlbumManagementRoutes(app: FastifyInstance, config: Config, db: Database.Database): void {
@@ -171,6 +196,43 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
         request.log.error({ err }, 'Failed to queue resync job after album tag write');
         return reply.status(500).send({ error: 'Tags saved and files reorganized, but resync queue failed' });
       }
+    }
+
+    const albumArtistNames = normalizeMultiValue(tags.albumArtist);
+    const albumArtistIds = albumArtistNames?.map((name) => ensureArtist(db, name)).filter((artistId): artistId is string => artistId !== undefined);
+    const primaryArtistId = albumArtistIds?.[0] ?? (normalizeName(tags.albumArtist) === '' ? null : undefined);
+
+    const genreNames = normalizeMultiValue(tags.genre);
+    const genreResolutions = genreNames?.map((name) => resolveGenreForTagWrite(db, name));
+    const primaryGenre = genreResolutions?.[0];
+
+    const albumName = normalizeName(tags.title) ?? album.name;
+    const albumYear = tags.year !== undefined ? tags.year : album.year;
+
+    db.prepare(`
+      UPDATE albums SET
+        name = ?,
+        artist_id = ?,
+        artist_name = ?,
+        year = ?,
+        genre_id = ?,
+        genre = ?
+      WHERE id = ?
+    `).run(
+      albumName,
+      primaryArtistId === undefined ? (album.artistId ?? null) : primaryArtistId,
+      joinNames(tags.albumArtist) ?? album.artistName ?? null,
+      albumYear ?? null,
+      primaryGenre?.id ?? album.genreId ?? null,
+      primaryGenre?.name ?? album.genre ?? null,
+      id,
+    );
+
+    if (albumArtistIds !== undefined) {
+      setAlbumArtists(db, id, albumArtistIds);
+    }
+    if (genreResolutions !== undefined) {
+      setAlbumGenres(db, id, genreResolutions.map((g) => g.id));
     }
 
     reply.send({ updated: songs.length });

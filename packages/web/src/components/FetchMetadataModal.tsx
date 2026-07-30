@@ -15,30 +15,31 @@ interface FetchMetadataModalProps {
   entityType: EntityType;
   entity: Record<string, unknown>;
   onClose: () => void;
-  onApply: (patch: Record<string, string>) => void;
+  onApply: (patch: Record<string, string | string[]>) => void;
   onCoverArtApplied?: () => void;
 }
 
 interface FieldMapping {
   key: keyof SongTags | 'coverArt';
   label: string;
+  multi?: boolean;
 }
 
 const SONG_FIELDS: FieldMapping[] = [
   { key: 'title', label: 'Title' },
-  { key: 'artist', label: 'Artist' },
+  { key: 'artist', label: 'Artist', multi: true },
   { key: 'album', label: 'Album' },
-  { key: 'albumArtist', label: 'Album artist' },
+  { key: 'albumArtist', label: 'Album artist', multi: true },
   { key: 'trackNumber', label: 'Track number' },
   { key: 'discNumber', label: 'Disc number' },
-  { key: 'genre', label: 'Genre' },
+  { key: 'genre', label: 'Genre', multi: true },
   { key: 'year', label: 'Year' },
   { key: 'coverArt', label: 'Cover art' },
 ];
 
 const ALBUM_FIELDS: FieldMapping[] = [
   { key: 'title', label: 'Title' },
-  { key: 'albumArtist', label: 'Album artist' },
+  { key: 'albumArtist', label: 'Album artist', multi: true },
   { key: 'year', label: 'Year' },
   { key: 'coverArt', label: 'Cover art' },
 ];
@@ -54,6 +55,62 @@ function getFields(entityType: EntityType): FieldMapping[] {
 function formatValue(value: unknown): string {
   if (value === undefined || value === null) return '';
   return String(value);
+}
+
+function toArray(value: unknown): string[] | undefined {
+  if (Array.isArray(value)) {
+    const arr = value.filter((v): v is string => typeof v === 'string').map((v) => v.trim()).filter(Boolean);
+    return arr.length > 0 ? arr : undefined;
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value.split(/;\s*|\s*\/\s*/).map((s) => s.trim()).filter(Boolean);
+  }
+  return undefined;
+}
+
+function getInternalValue(entity: Record<string, unknown>, key: string, entityType: EntityType): string | string[] | undefined {
+  if (key === 'coverArt') {
+    return formatValue(
+      entityType === 'song'
+        ? entity.albumCoverArt ?? entity.coverArt
+        : entity.coverArt,
+    );
+  }
+  if (key === 'title' && entityType === 'artist') {
+    return formatValue(entity.name);
+  }
+  if (key === 'artist') {
+    return toArray(entity.artists) ?? toArray(entity.artistName) ?? toArray(entity.artist);
+  }
+  if (key === 'albumArtist') {
+    return toArray(entity.albumArtists) ?? toArray(entity.albumArtistName) ?? toArray(entity.albumArtist);
+  }
+  if (key === 'genre') {
+    return toArray(entity.genres) ?? toArray(entity.genre);
+  }
+  const value = entity[key] ?? entity[key === 'title' ? 'name' : key];
+  return value === undefined || value === null ? undefined : formatValue(value);
+}
+
+function getMusicBrainzValue(match: MusicBrainzMatch | undefined, key: string): string | string[] | undefined {
+  if (!match) return undefined;
+  if (key === 'title') return match.title;
+  if (key === 'artist') return match.artists ?? toArray(match.artist);
+  if (key === 'albumArtist') return match.albumArtists ?? toArray(match.albumArtist);
+  if (key === 'genre') return match.genres ?? toArray(match.genre);
+  return formatValue(match[key as keyof MusicBrainzMatch]);
+}
+
+function valueToString(value: string | string[] | undefined): string {
+  if (value === undefined || value === null) return '';
+  if (Array.isArray(value)) return value.join('; ');
+  return String(value);
+}
+
+function hasValue(value: string | string[] | undefined): boolean {
+  if (value === undefined || value === null) return false;
+  if (Array.isArray(value)) return value.length > 0;
+  return String(value).trim() !== '';
 }
 
 function buildSearchQuery(entityType: EntityType, entity: Record<string, unknown>): {
@@ -80,6 +137,23 @@ function buildSearchQuery(entityType: EntityType, entity: Record<string, unknown
   };
 }
 
+function ValuePills({ values }: { values: string | string[] | undefined }) {
+  if (!hasValue(values)) return <span className="text-sm text-fg-secondary">—</span>;
+  const arr = Array.isArray(values) ? values : [values];
+  return (
+    <div className="flex flex-wrap gap-1">
+      {arr.map((value, index) => (
+        <span
+          key={`${value}-${index}`}
+          className="inline-block rounded-full bg-surface-hover px-2 py-0.5 text-sm text-fg-primary"
+        >
+          {value}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function FetchMetadataModal({
   open,
   entityType,
@@ -94,7 +168,7 @@ export function FetchMetadataModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [manualQuery, setManualQuery] = useState('');
-  const [pendingPatch, setPendingPatch] = useState<Record<string, string>>({});
+  const [pendingPatch, setPendingPatch] = useState<Record<string, string | string[]>>({});
   const [applyingCoverArt, setApplyingCoverArt] = useState(false);
   const [coverArtMessage, setCoverArtMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -144,46 +218,31 @@ export function FetchMetadataModal({
 
   const selectedMatch = matches[selectedIndex];
 
-  const internalValues: Record<string, string> = useMemo(() => {
-    const next: Record<string, string> = {};
+  const internalValues: Record<string, string | string[]> = useMemo(() => {
+    const next: Record<string, string | string[]> = {};
     for (const { key } of fields) {
-      if (key === 'coverArt') {
-        next[key] = formatValue(
-          entityType === 'song'
-            ? entity.albumCoverArt ?? entity.coverArt
-            : entity.coverArt,
-        );
-      } else if (key === 'title' && entityType === 'artist') {
-        next[key] = formatValue(entity.name);
-      } else {
-        next[key] = formatValue(entity[key] ?? entity[key === 'title' ? 'name' : key]);
-      }
+      const value = getInternalValue(entity, key, entityType);
+      next[key] = value ?? '';
     }
     return next;
   }, [fields, entity, entityType]);
 
-  const transferredValue = (key: string): string | undefined => {
+  const transferredValue = (key: string): string | string[] | undefined => {
     if (key in pendingPatch) return pendingPatch[key];
     return undefined;
   };
 
-  const displayedInternalValue = (key: string): string => {
+  const displayedInternalValue = (key: string): string | string[] => {
     const transferred = transferredValue(key);
     return transferred !== undefined ? transferred : internalValues[key];
-  };
-
-  const musicBrainzValue = (match: MusicBrainzMatch | undefined, key: string): string | undefined => {
-    if (!match) return undefined;
-    if (key === 'title') return match.title;
-    return formatValue(match[key as keyof MusicBrainzMatch]);
   };
 
   const isTransferred = (key: string): boolean => key in pendingPatch;
 
   const transferValue = (key: string) => {
-    const mbValue = musicBrainzValue(selectedMatch, key);
-    if (mbValue === undefined) return;
-    setPendingPatch((prev) => ({ ...prev, [key]: mbValue }));
+    const mbValue = getMusicBrainzValue(selectedMatch, key);
+    if (!hasValue(mbValue)) return;
+    setPendingPatch((prev) => ({ ...prev, [key]: mbValue as string | string[] }));
   };
 
   const revertValue = (key: string) => {
@@ -318,11 +377,11 @@ export function FetchMetadataModal({
               <span>Internal</span>
             </div>
 
-            {fields.map(({ key, label }) => {
-              const mbValue = musicBrainzValue(selectedMatch, key);
+            {fields.map(({ key, label, multi }) => {
+              const mbValue = getMusicBrainzValue(selectedMatch, key);
               const internalValue = displayedInternalValue(key);
               const transferred = isTransferred(key);
-              const hasValue = mbValue !== undefined && mbValue !== '';
+              const mbHasValue = hasValue(mbValue);
               const isCoverArt = key === 'coverArt';
 
               return (
@@ -338,15 +397,17 @@ export function FetchMetadataModal({
                     {isCoverArt ? (
                       mbValue ? (
                         <img
-                          src={mbValue}
+                          src={String(mbValue)}
                           alt="MusicBrainz cover art"
                           className="mt-1 h-20 w-20 rounded-lg object-cover"
                         />
                       ) : (
                         <span className="text-sm text-fg-secondary">No cover art</span>
                       )
+                    ) : multi ? (
+                      <ValuePills values={mbValue} />
                     ) : (
-                      <div className="truncate text-sm text-fg-primary">{hasValue ? mbValue : '—'}</div>
+                      <div className="truncate text-sm text-fg-primary">{mbHasValue ? valueToString(mbValue) : '—'}</div>
                     )}
                   </div>
 
@@ -369,7 +430,7 @@ export function FetchMetadataModal({
                       <button
                         type="button"
                         onClick={() => transferValue(key)}
-                        disabled={!hasValue}
+                        disabled={!mbHasValue}
                         title="Transfer value"
                         className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-fg-primary shadow-sm transition hover:bg-surface-hover hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -392,13 +453,17 @@ export function FetchMetadataModal({
                     <div className="text-xs text-fg-secondary">{label}</div>
                     {isCoverArt ? (
                       internalValue ? (
-                        <CoverArt coverArt={internalValue} alt="Current cover art" className="mt-1 h-20 w-20 rounded-lg" iconSize={24} />
+                        <CoverArt coverArt={String(internalValue)} alt="Current cover art" className="mt-1 h-20 w-20 rounded-lg" iconSize={24} />
                       ) : (
                         <span className="text-sm text-fg-secondary">No cover art</span>
                       )
+                    ) : multi ? (
+                      <div className={transferred ? 'text-accent' : 'text-fg-primary'}>
+                        <ValuePills values={internalValue} />
+                      </div>
                     ) : (
                       <div className={cn('truncate text-sm', transferred ? 'text-accent' : 'text-fg-primary')}>
-                        {internalValue || '—'}
+                        {valueToString(internalValue) || '—'}
                       </div>
                     )}
                   </div>

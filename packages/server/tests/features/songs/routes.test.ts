@@ -172,6 +172,41 @@ describe('management song endpoints', () => {
     expect(body.song.albumName).toBe('Test Album');
   });
 
+  it('writes multi-value artist and genre tags', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/songs/song-1/tags',
+      cookies: { sessionId: cookieValue },
+      payload: {
+        title: 'New Title',
+        artist: ['Artist A', 'Artist B'],
+        genre: ['Rock', 'Pop'],
+      },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.ok).toBe(true);
+
+    const getRes = await app.inject({
+      method: 'GET',
+      url: '/api/songs/song-1',
+      cookies: { sessionId: cookieValue },
+    });
+    expect(getRes.statusCode).toBe(200);
+    const song = JSON.parse(getRes.body).song;
+    expect(song.artistName).toBe('Artist A');
+    expect(song.artists).toEqual(['Artist A', 'Artist B']);
+    expect(song.genres).toEqual(['Rock', 'Pop']);
+
+    const artistRows = db.prepare('SELECT artist_id FROM song_artists WHERE song_id = ? ORDER BY position').all('song-1') as { artist_id: string }[];
+    const artistNames = artistRows.map((r) => db.prepare('SELECT name FROM artists WHERE id = ?').pluck().get(r.artist_id));
+    expect(artistNames).toEqual(['Artist A', 'Artist B']);
+
+    const genreRows = db.prepare('SELECT genre_id FROM song_genres WHERE song_id = ? ORDER BY position').all('song-1') as { genre_id: string }[];
+    const genreNames = genreRows.map((r) => db.prepare('SELECT name FROM genres WHERE id = ?').pluck().get(r.genre_id));
+    expect(genreNames).toEqual(['Rock', 'Pop']);
+  });
+
   it('filters songs by genre', async () => {
     const src = new URL('../../fixtures/sample.mp3', import.meta.url).pathname;
     const rockPath = join(config.LIBRARY_PATH, 'rock.mp3');

@@ -28,7 +28,8 @@ Shared components live in `packages/web/src/components/`. Use them for consisten
 | `Input` | `components/ui/Input.tsx` | Text input primitive. |
 | `Icon` | `components/ui/Icon.tsx` | Icon renderer. |
 | `Table` | `components/ui/Table.tsx` | Generic table component. |
-| `AutocompleteInput` | `components/ui/AutocompleteInput.tsx` | Autocomplete input primitive. |
+| `AutocompleteInput` | `components/ui/AutocompleteInput.tsx` | Autocomplete input primitive. Supports ref forwarding and an `onValueSelect` callback for use inside `PillInput`. |
+| `PillInput` | `components/ui/PillInput.tsx` | Multi-value pill list with inline autocomplete. Used for artists and genres in edit and metadata-fetch modals. |
 | `ProgressBar` | `components/ui/ProgressBar.tsx` | Progress indicator. |
 | `SongTable` | `features/songs/components/SongTable.tsx` | Opinionated song table; accepts `SongListItem` rows. |
 | `TrackList` | `features/songs/components/TrackList.tsx` | Simple vertical list of tracks. |

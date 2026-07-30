@@ -11,6 +11,12 @@ interface MbArtistCredit {
   };
 }
 
+interface MbTag {
+  name: string;
+  count?: number;
+  score?: number;
+}
+
 interface MbRelease {
   id: string;
   title: string;
@@ -20,6 +26,7 @@ interface MbRelease {
     id: string;
     'primary-type'?: string;
   };
+  tags?: MbTag[];
 }
 
 interface MbRecording {
@@ -28,6 +35,7 @@ interface MbRecording {
   disambiguation?: string;
   'artist-credit'?: MbArtistCredit[];
   releases?: MbRelease[];
+  tags?: MbTag[];
 }
 
 interface MbRecordingSearchResult {
@@ -42,6 +50,7 @@ interface MbArtist {
   id: string;
   name: string;
   disambiguation?: string;
+  tags?: MbTag[];
 }
 
 interface MbArtistSearchResult {
@@ -72,6 +81,21 @@ function extractArtistName(credits: MbArtistCredit[] | undefined): string | unde
   return credits.map((c) => c.name).join('; ');
 }
 
+function extractArtistNames(credits: MbArtistCredit[] | undefined): string[] | undefined {
+  if (!credits || credits.length === 0) return undefined;
+  const names = credits.map((c) => c.name).filter(Boolean);
+  return names.length > 0 ? names : undefined;
+}
+
+function extractGenres(tags: MbTag[] | undefined): string[] | undefined {
+  if (!tags || tags.length === 0) return undefined;
+  const names = tags
+    .filter((t) => (t.score ?? t.count ?? 1) > 0)
+    .map((t) => t.name)
+    .filter(Boolean);
+  return names.length > 0 ? names : undefined;
+}
+
 function buildCoverArtUrl(mbid: string, isReleaseGroup: boolean): string | undefined {
   if (isReleaseGroup) {
     return `https://coverartarchive.org/release-group/${mbid}/front`;
@@ -90,8 +114,11 @@ function recordingToMatch(recording: MbRecording): MusicBrainzMatch {
     id: recording.id,
     title: recording.title,
     artist: extractArtistName(recording['artist-credit']),
+    artists: extractArtistNames(recording['artist-credit']),
     album: release?.title,
     albumArtist: extractArtistName(release?.['artist-credit']),
+    albumArtists: extractArtistNames(release?.['artist-credit']),
+    genres: extractGenres(recording.tags) ?? extractGenres(release?.tags),
     year: extractYear(release?.date),
     coverArt: coverArtMbid ? buildCoverArtUrl(coverArtMbid, isReleaseGroup) : undefined,
     disambiguation: recording.disambiguation,
@@ -107,6 +134,8 @@ function releaseToMatch(release: MbRelease): MusicBrainzMatch {
     id: release.id,
     title: release.title,
     albumArtist: extractArtistName(release['artist-credit']),
+    albumArtists: extractArtistNames(release['artist-credit']),
+    genres: extractGenres(release.tags),
     year: extractYear(release.date),
     coverArt: coverArtMbid ? buildCoverArtUrl(coverArtMbid, isReleaseGroup) : undefined,
   };
@@ -117,6 +146,7 @@ function artistToMatch(artist: MbArtist): MusicBrainzMatch {
     id: artist.id,
     title: artist.name,
     disambiguation: artist.disambiguation,
+    genres: extractGenres(artist.tags),
   };
 }
 
@@ -192,7 +222,7 @@ export async function searchMusicBrainzArtists(name: string, limit = 5): Promise
 }
 
 export async function fetchMusicBrainzRecording(mbid: string): Promise<MusicBrainzMatch | undefined> {
-  const url = `${MB_BASE_URL}/recording/${encodeURIComponent(mbid)}?inc=releases&fmt=json`;
+  const url = `${MB_BASE_URL}/recording/${encodeURIComponent(mbid)}?inc=releases+tags&fmt=json`;
   const response = await fetchWithTimeout(url);
   if (!response.ok) {
     if (response.status === 404) return undefined;
@@ -203,7 +233,7 @@ export async function fetchMusicBrainzRecording(mbid: string): Promise<MusicBrai
 }
 
 export async function fetchMusicBrainzRelease(mbid: string): Promise<MusicBrainzMatch | undefined> {
-  const url = `${MB_BASE_URL}/release/${encodeURIComponent(mbid)}?fmt=json`;
+  const url = `${MB_BASE_URL}/release/${encodeURIComponent(mbid)}?inc=tags&fmt=json`;
   const response = await fetchWithTimeout(url);
   if (!response.ok) {
     if (response.status === 404) return undefined;
@@ -214,7 +244,7 @@ export async function fetchMusicBrainzRelease(mbid: string): Promise<MusicBrainz
 }
 
 export async function fetchMusicBrainzArtistMatch(mbid: string): Promise<MusicBrainzMatch | undefined> {
-  const url = `${MB_BASE_URL}/artist/${encodeURIComponent(mbid)}?fmt=json`;
+  const url = `${MB_BASE_URL}/artist/${encodeURIComponent(mbid)}?inc=tags&fmt=json`;
   const response = await fetchWithTimeout(url);
   if (!response.ok) {
     if (response.status === 404) return undefined;
