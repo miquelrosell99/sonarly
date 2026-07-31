@@ -3,7 +3,6 @@ import type { User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
-import { InsecureConnectionWarning } from '../../../components/InsecureConnectionWarning.js';
 
 export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
   const [username, setUsername] = useState('');
@@ -51,7 +50,6 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
         <p className="text-sm text-muted">
           Create the admin account to get started.
         </p>
-        <InsecureConnectionWarning />
         {error && (
           <div
             className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500"
