@@ -89,12 +89,24 @@ Trigger a library scan from the host without opening the UI:
 docker exec sonarly-dev sh -c "cd /app/packages/server && pnpm trigger-scan"
 ```
 
+## 📚 Documentation
+
+| Document | What it covers |
+|---|---|
+| [docs/deployment.md](docs/deployment.md) | Docker production/development deployment, environment variables, volumes, troubleshooting |
+| [docs/api.md](docs/api.md) | Management REST API and OpenSubsonic API reference |
+| [docs/db-schema.md](docs/db-schema.md) | SQLite database schema and conventions |
+| [docs/design-language.md](docs/design-language.md) | UI design tokens, typography, and visual principles |
+| [CHANGELOG.md](CHANGELOG.md) | Release notes and notable changes |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Development setup, testing, commit conventions, pull request process |
+| [SECURITY.md](SECURITY.md) | Supported versions, vulnerability reporting, security practices |
+
 ## 📂 Project structure
 
 ```
 .
 ├── docker/                 # Dockerfiles and entrypoint
-├── docs/                   # Deployment and design docs
+├── docs/                   # Public documentation
 ├── packages/
 │   ├── server/             # Fastify backend, SQLite, OpenSubsonic API
 │   ├── shared/             # Shared TypeScript types
@@ -147,7 +159,7 @@ Open an issue if your client doesn't work.
 
 ## 📄 License
 
-License TBD — see repository for updates.
+See [LICENSE](LICENSE) for the full license text.
 
 ---
 
