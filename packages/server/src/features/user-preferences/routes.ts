@@ -45,6 +45,10 @@ export function registerUserPreferenceRoutes(app: FastifyInstance, db: Database.
         : DEFAULT_USER_PREFERENCES.autoDjMode;
     }
 
+    if (body.hideSponsorButton !== undefined) {
+      normalized.hideSponsorButton = Boolean(body.hideSponsorButton);
+    }
+
     const preferences = updateUserPreferences(db, session.userId, normalized);
     reply.send({ preferences });
   });

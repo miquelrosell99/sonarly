@@ -48,6 +48,7 @@ export interface UserPreferences {
   autoDjMode?: AutoDjMode;
   autoDjTopUpThreshold?: number;
   autoDjBatchSize?: number;
+  hideSponsorButton?: boolean;
 }
 
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {
