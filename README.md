@@ -48,6 +48,8 @@ The web UI is available at `http://localhost:4533` (change with `SONARLY_PORT`).
 - **Modern web UI** — React + Vite + Tailwind CSS, with adaptive player chrome tinted from the current album art.
 - **Auto-organization** — drop files into the ingest folder and let Sonarly rename them into a clean library pattern.
 - **Cover and artist art** — reads embedded artwork, caches album covers, and fetches artist images.
+- **Smart playlists** — create dynamic playlists from rules that update automatically.
+- **Auto DJ** — let Sonarly keep the music going based on your library.
 - **Self-hosted and containerized** — single Docker image with everything included.
 - **Well tested** — 429+ backend and 274+ frontend tests run on every change.
 - **Tag editing** — write metadata back to files with Python Mutagen.
@@ -146,7 +148,7 @@ Sonarly implements the OpenSubsonic REST API at `/rest/` and has been tested wit
 | Client | Status | Notes |
 |---|---|---|
 | Feishin | Working | Desktop/web player. |
-| Symphonium | Partial | Connects and syncs; reported cases of 0-track sync are being investigated. |
+| Symphonium | Working | Android player; full library sync and playback confirmed. |
 | DSub | Not tested yet | Should work; feedback welcome. |
 | Ultrasonic | Not tested yet | Should work; feedback welcome. |
 
@@ -155,8 +157,6 @@ Open an issue if your client does not work.
 ## Known limitations
 
 - **OpenSubsonic bookmarks**: `getBookmarks.view` currently returns an empty list. Full bookmark support is not implemented yet.
-- **Symphonium sync**: some users report 0 tracks after sync. Investigation is ongoing.
-- **Smart playlists / recommendations**: not implemented yet.
 
 ## Contributing
 
