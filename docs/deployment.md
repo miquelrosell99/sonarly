@@ -84,6 +84,7 @@ Create a `.env` file next to the compose file.
 | `SONARLY_DEV_WEB_PORT` | `4534` | Host port for the Vite dev server in development. |
 | `SONARLY_DEV_API_PORT` | `3001` | Host port for direct backend access in development. |
 | `SONARLY_DEV_ALLOWED_HOSTS` | *(empty)* | Comma-separated list of hosts the Vite dev server is allowed to respond to. Use `true` to allow all hosts (not recommended outside trusted networks). |
+| `LIBRARY_MUSIC` | *(see `.env.example`)* | Host path to the main music library, bind-mounted to `/media/music` in the container. Set in `.env` and referenced by `compose.yaml` and `compose.dev.yaml`. |
 
 Internal variables set by the compose files (usually not changed):
 

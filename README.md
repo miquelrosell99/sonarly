@@ -2,16 +2,16 @@
 
 > A self-hosted music server that speaks OpenSubsonic and looks like a premium music app.
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Fastify](https://img.shields.io/badge/Fastify-4-000000?logo=fastify&logoColor=white)](https://fastify.dev/)
+[![Fastify](https://img.shields.io/badge/Fastify-5-000000?logo=fastify&logoColor=white)](https://fastify.dev/)
 [![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)](https://sqlite.org/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![pnpm](https://img.shields.io/badge/pnpm-9-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
-[![Vitest](https://img.shields.io/badge/Vitest-2-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
-[![Tests](https://img.shields.io/badge/tests-375%20passing-6E9F18?logo=vitest&logoColor=white)]()
+[![Vitest](https://img.shields.io/badge/Vitest-3-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/tests-703%20passing-6E9F18?logo=vitest&logoColor=white)]()
 [![OpenSubsonic](https://img.shields.io/badge/OpenSubsonic-1.16.1-FF6B6B?logo=audioboom&logoColor=white)]()
 [![Self-hosted](https://img.shields.io/badge/Self--hosted-✓-2EA043?logo=linux&logoColor=white)]()
 
@@ -40,7 +40,7 @@ Sonarly organizes your music library, serves it through the **OpenSubsonic API**
 - 📁 **Auto-organization** — drop files into the ingest folder and let Sonarly rename them into a clean library pattern.
 - 🎨 **Cover & artist art** — reads embedded artwork, caches album covers, fetches artist images.
 - 🔒 **Self-hosted & containerized** — single Docker image with everything included.
-- 🧪 **Well tested** — 375+ backend tests run on every change.
+- 🧪 **Well tested** — 429+ backend and 274+ frontend tests run on every change.
 - 🏷️ **Tag editing** — write metadata back to files with Python Mutagen.
 - 📱 **Multiple users & permissions** — admin and regular user roles.
 - 🗂️ **Multi-library support** — manage several media folders from the admin panel.
