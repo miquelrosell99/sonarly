@@ -2,7 +2,7 @@
 
 Sonarly uses **SQLite** (via `better-sqlite3`). The database file is created at `${DATA_DIR}/sonarly.db` (default `/data/sonarly.db`). Migrations run automatically on startup from `packages/server/src/db/migrations/`.
 
-This document reflects the schema produced by migrations `001` through `041`.
+This document reflects the schema produced by migrations `001` through `042`.
 
 ## Conventions
 
