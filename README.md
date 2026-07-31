@@ -1,6 +1,6 @@
-# 🌊 Sonarly
+# Sonarly
 
-> A self-hosted music server that speaks OpenSubsonic and looks like a premium music app.
+A self-hosted music server that speaks the OpenSubsonic API and provides a premium, dark-themed web player for your personal music library.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
@@ -15,44 +15,24 @@
 [![OpenSubsonic](https://img.shields.io/badge/OpenSubsonic-1.16.1-FF6B6B?logo=audioboom&logoColor=white)]()
 [![Self-hosted](https://img.shields.io/badge/Self--hosted-✓-2EA043?logo=linux&logoColor=white)]()
 
----
+> **Alpha software.** Sonarly is in early development and is not stable. Do not use it for music libraries you cannot afford to lose or re-import. Data loss, database resets, or incorrect file organization can happen due to bugs or incomplete features. Always keep separate backups of your audio files and database before importing, organizing, or updating.
 
-<!-- Screenshots go here when available -->
-<!-- ![Sonarly web UI](docs/screenshots/dashboard.png) -->
+<!-- Screenshot placeholder: add a representative UI screenshot here when available. -->
 
-Sonarly organizes your music library, serves it through the **OpenSubsonic API** (so your favorite Subsonic clients just work), and provides a beautiful web management UI inspired by TIDAL's dark, art-first aesthetic.
+## What is Sonarly?
 
-> ⚠️ **Alpha software**
->
-> Sonarly is in early development. It is **not stable** and should not be used for music libraries you cannot afford to lose or re-import.
->
-> - Data loss, database resets, or incorrect file organization can happen due to bugs or incomplete features.
-> - There is no guarantee of data persistence or recovery.
-> - **Always keep separate backups** of your audio files and database before importing, organizing, or updating.
-> - This software is provided "as-is" without warranty of any kind.
->
-> By using Sonarly, you acknowledge and accept these risks.
+Sonarly organizes your music library, serves it through the **OpenSubsonic API** (so your favorite Subsonic clients just work), and provides a web management UI inspired by TIDAL's dark, art-first aesthetic.
 
-## ✨ Features
+## Quick start
 
-- 🎵 **OpenSubsonic compatible** — works with Feishin, Symphonium, DSub, Ultrasonic and any other Subsonic/OpenSubsonic client.
-- 🖥️ **Modern web UI** — React + Vite + Tailwind, with adaptive player chrome that tints from the current album art.
-- 📁 **Auto-organization** — drop files into the ingest folder and let Sonarly rename them into a clean library pattern.
-- 🎨 **Cover & artist art** — reads embedded artwork, caches album covers, fetches artist images.
-- 🔒 **Self-hosted & containerized** — single Docker image with everything included.
-- 🧪 **Well tested** — 429+ backend and 274+ frontend tests run on every change.
-- 🏷️ **Tag editing** — write metadata back to files with Python Mutagen.
-- 📱 **Multiple users & permissions** — admin and regular user roles.
-- 🗂️ **Multi-library support** — manage several media folders from the admin panel.
-
-## 🚀 Quick start (Docker)
+The fastest way to run Sonarly is with Docker Compose.
 
 ```bash
-# 1. Clone the repo
+# 1. Clone the repository
 git clone https://github.com/miquelrosell99/sonarly.git
 cd sonarly
 
-# 2. Configure environment
+# 2. Configure the environment
 cp .env.example .env
 # Edit .env and set SESSION_SECRET to a random string of at least 32 chars.
 
@@ -60,11 +40,21 @@ cp .env.example .env
 docker compose -f compose.yaml up -d --build
 ```
 
-The web UI is available at `http://localhost:4533` (change with `SONARLY_PORT`).
+The web UI is available at `http://localhost:4533` (change with `SONARLY_PORT`). On first visit you will be redirected to `/setup` to create the admin account.
 
-On first visit you'll be redirected to `/setup` to create the admin account.
+## Features
 
-## 🛠️ Development
+- **OpenSubsonic compatible** — works with Feishin, Symphonium, DSub, Ultrasonic, and any other Subsonic/OpenSubsonic client.
+- **Modern web UI** — React + Vite + Tailwind CSS, with adaptive player chrome tinted from the current album art.
+- **Auto-organization** — drop files into the ingest folder and let Sonarly rename them into a clean library pattern.
+- **Cover and artist art** — reads embedded artwork, caches album covers, and fetches artist images.
+- **Self-hosted and containerized** — single Docker image with everything included.
+- **Well tested** — 429+ backend and 274+ frontend tests run on every change.
+- **Tag editing** — write metadata back to files with Python Mutagen.
+- **Users and permissions** — admin and regular user roles.
+- **Multi-library support** — manage several media folders from the admin panel.
+
+## Development
 
 Requirements:
 
@@ -88,7 +78,7 @@ docker compose -f compose.dev.yaml up -d --build
 - Web UI: http://localhost:4534
 - Backend directly: http://localhost:3001
 
-Run tests:
+Run the test suite:
 
 ```bash
 pnpm test
@@ -100,7 +90,7 @@ Trigger a library scan from the host without opening the UI:
 docker exec sonarly-dev sh -c "cd /app/packages/server && pnpm trigger-scan"
 ```
 
-## 📚 Documentation
+## Documentation
 
 | Document | What it covers |
 |---|---|
@@ -112,7 +102,7 @@ docker exec sonarly-dev sh -c "cd /app/packages/server && pnpm trigger-scan"
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development setup, testing, commit conventions, pull request process |
 | [SECURITY.md](SECURITY.md) | Supported versions, vulnerability reporting, security practices |
 
-## 📂 Project structure
+## Project structure
 
 ```
 .
@@ -127,20 +117,7 @@ docker exec sonarly-dev sh -c "cd /app/packages/server && pnpm trigger-scan"
 └── .env.example            # Required environment variables
 ```
 
-## 🎧 Compatible clients
-
-Sonarly implements the OpenSubsonic REST API at `/rest/` and has been tested with:
-
-| Client | Status | Notes |
-|---|---|---|
-| Feishin | ✅ Working | Desktop/web player. |
-| Symphonium | 🔄 Partial | Connects and syncs; reported cases of 0-track sync are being investigated (see TODO). |
-| DSub | 🔄 Not tested yet | Should work; feedback welcome. |
-| Ultrasonic | 🔄 Not tested yet | Should work; feedback welcome. |
-
-Open an issue if your client doesn't work.
-
-## 🏗️ Architecture at a glance
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -148,36 +125,45 @@ Open an issue if your client doesn't work.
 │  ┌─────────────┐  ┌─────────────────────┐   │
 │  │ React + Vite │  │ Fastify backend     │   │
 │  │  (dev: 5173) │  │  (port 3000)        │   │
-│  └──────┬───────┘  └──────────┬──────────┘   │
-│         │                      │              │
-│         └──────────┬───────────┘              │
-│                    │                          │
-│              OpenSubsonic /api                │
-│              /rest/ /api/ /*                  │
+│  └────┬─────────┘  └──────────┬──────────┘   │
+│       │                       │              │
+│       └───────────┬───────────┘              │
+│                   │                          │
+│              OpenSubsonic /api               │
+│              /rest/ /api/ /*                 │
 └─────────────────────────────────────────────┘
 ```
 
-- **Frontend**: React 18 + Vite + Tailwind CSS + wouter + Zustand.
+- **Frontend**: React 18 + Vite 6 + Tailwind CSS + wouter + Zustand.
 - **Backend**: Fastify 5 + better-sqlite3 + Zod.
 - **Scanner**: background worker thread with chokidar watchers.
 - **Storage**: SQLite for metadata, filesystem for audio/cover art.
 
-## 📋 TODO / Known limitations
+## Compatible clients
 
-- **OpenSubsonic bookmarks**: `getBookmarks.view` currently returns an empty list. Full bookmark support (save/load playback positions across clients) is not implemented yet.
-- **Symphonium sync**: some users report 0 tracks after sync. Investigation is ongoing; progress is tracked in this repo.
+Sonarly implements the OpenSubsonic REST API at `/rest/` and has been tested with:
+
+| Client | Status | Notes |
+|---|---|---|
+| Feishin | Working | Desktop/web player. |
+| Symphonium | Partial | Connects and syncs; reported cases of 0-track sync are being investigated. |
+| DSub | Not tested yet | Should work; feedback welcome. |
+| Ultrasonic | Not tested yet | Should work; feedback welcome. |
+
+Open an issue if your client does not work.
+
+## Known limitations
+
+- **OpenSubsonic bookmarks**: `getBookmarks.view` currently returns an empty list. Full bookmark support is not implemented yet.
+- **Symphonium sync**: some users report 0 tracks after sync. Investigation is ongoing.
 - **Smart playlists / recommendations**: not implemented yet.
 
-## 🤖 Development notes
+## Contributing
 
-Sonarly has been developed with assistance from AI coding agents. Human review, testing, and contributions are essential — pull requests and issue reports are very welcome.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, commit conventions, and pull request process.
 
-## 📄 License
+Sonarly has been developed with assistance from AI coding agents. Human review, testing, and contributions are essential.
 
-See [LICENSE](LICENSE) for the full license text.
+## License
 
----
-
-<p align="center">
-  <sub>Built with 🎧 and a lot of dark mode.</sub>
-</p>
+Sonarly is released under the [GNU Affero General Public License v3.0](LICENSE).
