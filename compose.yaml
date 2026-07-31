@@ -1,5 +1,6 @@
 services:
   sonarly:
+    image: ghcr.io/miquelrosell99/sonarly:${SONARLY_VERSION:-latest}
     build:
       context: .
       dockerfile: docker/Dockerfile.server

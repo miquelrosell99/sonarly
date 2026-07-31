@@ -27,6 +27,8 @@ Sonarly organizes your music library, serves it through the **OpenSubsonic API**
 
 The fastest way to run Sonarly is with Docker Compose.
 
+### Using the pre-built image
+
 ```bash
 # 1. Clone the repository
 git clone https://github.com/miquelrosell99/sonarly.git
@@ -37,6 +39,14 @@ cp .env.example .env
 # Edit .env and set SESSION_SECRET to a random string of at least 32 chars.
 
 # 3. Start Sonarly
+docker compose -f compose.yaml up -d
+```
+
+### Building locally
+
+If you prefer to build the image yourself, pass `--build`:
+
+```bash
 docker compose -f compose.yaml up -d --build
 ```
 
