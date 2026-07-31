@@ -5,4 +5,8 @@ node_modules/
 dist/
 .env
 config/
+
+# Internal planning documents (not for public release)
+docs/plans/
+docs/specs/
 docs/superpowers/
