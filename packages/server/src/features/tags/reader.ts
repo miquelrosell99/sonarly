@@ -5,6 +5,14 @@ import type { SongTags, SyncedLyricLine } from '@sonarly/shared';
 import { parseLrc } from './lrc.js';
 export { computeChecksum } from './checksum.js';
 
+type CommentLike = { text?: string } | string | undefined;
+
+function commentText(value: CommentLike): string | undefined {
+  if (value == null) return undefined;
+  const text = typeof value === 'string' ? value : value.text;
+  return text && text.trim() ? text.trim() : undefined;
+}
+
 export interface CoverArtPicture {
   data: Buffer;
   format: string;
@@ -105,7 +113,7 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
     musicBrainzArtistIds: common.musicbrainz_artistid?.length ? common.musicbrainz_artistid : undefined,
     musicBrainzAlbumArtistIds: common.musicbrainz_albumartistid?.length ? common.musicbrainz_albumartistid : undefined,
     replayGain: typeof replayGain === 'number' ? replayGain : undefined,
-    comment: common.comment?.[0] ?? undefined,
+    comment: commentText(common.comment?.[0]) ?? undefined,
     sortName: common.titlesort ?? undefined,
     mood: common.mood ?? undefined,
     originalReleaseDate: common.originaldate ?? undefined,
@@ -136,8 +144,7 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
 }
 
 function extractPlainLyrics(metadata: IAudioMetadata): string | undefined {
-  const value = metadata.common.lyrics?.[0];
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+  return commentText(metadata.common.lyrics?.[0]);
 }
 
 function extractSyncedLyrics(metadata: IAudioMetadata): SyncedLyricLine[] | undefined {
