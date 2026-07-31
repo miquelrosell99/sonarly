@@ -87,7 +87,9 @@ describe('MutagenWriter', () => {
 
     const meta = await parseFile(copy);
     expect(meta.common.title).toBe('Lyrics Title');
-    expect(meta.common.lyrics?.[0]).toBe('These are the lyrics');
+    const lyrics = meta.common.lyrics?.[0];
+    const lyricsText = typeof lyrics === 'string' ? lyrics : lyrics?.text;
+    expect(lyricsText).toBe('These are the lyrics');
   });
 
   it('writes synced lyrics to FLAC and reads them back as LRC', async () => {
