@@ -158,7 +158,7 @@ Open an issue if your client doesn't work.
 ```
 
 - **Frontend**: React 18 + Vite + Tailwind CSS + wouter + Zustand.
-- **Backend**: Fastify 4 + better-sqlite3 + Zod.
+- **Backend**: Fastify 5 + better-sqlite3 + Zod.
 - **Scanner**: background worker thread with chokidar watchers.
 - **Storage**: SQLite for metadata, filesystem for audio/cover art.
 
@@ -167,6 +167,10 @@ Open an issue if your client doesn't work.
 - **OpenSubsonic bookmarks**: `getBookmarks.view` currently returns an empty list. Full bookmark support (save/load playback positions across clients) is not implemented yet.
 - **Symphonium sync**: some users report 0 tracks after sync. Investigation is ongoing; progress is tracked in this repo.
 - **Smart playlists / recommendations**: not implemented yet.
+
+## 🤖 Development notes
+
+Sonarly has been developed with assistance from AI coding agents. Human review, testing, and contributions are essential — pull requests and issue reports are very welcome.
 
 ## 📄 License
 

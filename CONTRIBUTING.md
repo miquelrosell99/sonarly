@@ -2,6 +2,8 @@
 
 Thanks for your interest in improving Sonarly. This guide covers how to set up a development environment, run tests, and submit changes.
 
+Sonarly has been developed with assistance from AI coding agents. Human review, testing, and judgment are essential, and contributions from the community are welcome.
+
 ## Development setup
 
 ### Requirements
