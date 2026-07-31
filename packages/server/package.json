@@ -33,7 +33,7 @@
     "@types/uuid": "^11.0.0",
     "node-id3": "^0.2.6",
     "tsx": "^4.15.0",
-    "typescript": "^5.5.0",
+    "typescript": "^5.9.0",
     "vitest": "^3.2.6"
   }
 }
