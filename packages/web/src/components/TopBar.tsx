@@ -8,6 +8,7 @@ import { api } from '../api.js';
 import { Avatar } from './Avatar.js';
 import { SearchBox } from './SearchBox.js';
 import { LibrarySelector } from './LibrarySelector.js';
+import { SponsorButton } from './SponsorButton.js';
 import { UploadModal, UploadResultsModal, type UploadSummary } from './UploadModal.js';
 import { useLibraryStore, buildLibraryQuery } from '../stores/libraryStore.js';
 import type { FilterDefinition } from './FilterPanel.js';
@@ -354,6 +355,7 @@ export function TopBar({ user, onLogout }: TopBarProps) {
             <Icon name="mdi-upload" size={20} />
           </button>
         )}
+        <SponsorButton />
         <PlayersDropdown />
         <UserMenu user={user} onLogout={onLogout} />
       </div>
