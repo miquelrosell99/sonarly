@@ -12,5 +12,10 @@
   "devDependencies": {
     "typescript": "^5.5.0"
   },
+  "pnpm": {
+    "overrides": {
+      "tar": "^7.5.21"
+    }
+  },
   "packageManager": "pnpm@9.0.0"
 }
