@@ -4,6 +4,8 @@
 
 This file is the entry point for agent instructions. Each section below links to a focused reference file under `agents/`.
 
+This project is developed with assistance from AI coding agents. Human review and validation are required before merging changes.
+
 ## Reference
 
 - [Agent Quick Reference](agents/quick-reference.md)
