@@ -22,6 +22,17 @@
 
 Sonarly organizes your music library, serves it through the **OpenSubsonic API** (so your favorite Subsonic clients just work), and provides a beautiful web management UI inspired by TIDAL's dark, art-first aesthetic.
 
+> ⚠️ **Alpha software**
+>
+> Sonarly is in early development. It is **not stable** and should not be used for music libraries you cannot afford to lose or re-import.
+>
+> - Data loss, database resets, or incorrect file organization can happen due to bugs or incomplete features.
+> - There is no guarantee of data persistence or recovery.
+> - **Always keep separate backups** of your audio files and database before importing, organizing, or updating.
+> - This software is provided "as-is" without warranty of any kind.
+>
+> By using Sonarly, you acknowledge and accept these risks.
+
 ## ✨ Features
 
 - 🎵 **OpenSubsonic compatible** — works with Feishin, Symphonium, DSub, Ultrasonic and any other Subsonic/OpenSubsonic client.
