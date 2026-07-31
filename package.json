@@ -14,7 +14,10 @@
   },
   "pnpm": {
     "overrides": {
-      "tar": "^7.5.21"
+      "tar": "^7.5.21",
+      "vite": "^6.4.3",
+      "esbuild": "^0.25.0",
+      "@mapbox/node-pre-gyp": "^2.0.2"
     }
   },
   "packageManager": "pnpm@9.0.0"
