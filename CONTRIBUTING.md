@@ -25,6 +25,7 @@ Using Docker (recommended):
 
 ```bash
 cp .env.example .env
+cp docker/compose.dev.yaml.example compose.dev.yaml
 # edit .env and set SESSION_SECRET
 docker compose -f compose.dev.yaml up -d --build
 ```

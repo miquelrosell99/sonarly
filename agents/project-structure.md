@@ -21,7 +21,9 @@
 │           ├── lib/        # utilities
 │           └── contexts/   # shared React contexts
 ├── compose.yaml            # production deployment
-├── compose.dev.yaml        # dev deployment with hot reload
+├── docker/                 # Dockerfiles, entrypoint, and compose examples
+│   ├── compose.yaml.example    # production deployment example
+│   └── compose.dev.yaml.example # dev deployment with hot reload example
 ├── .env.example            # required env vars
 └── AGENTS.md               # this file
 ```
