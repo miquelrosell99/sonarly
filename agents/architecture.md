@@ -12,7 +12,7 @@ The server runs a background worker thread for scanning and organizing audio fil
 
 Libraries are admin-managed folders stored in the `libraries` table (`packages/server/src/features/libraries/`). On first start, a default library is seeded from `LIBRARY_PATH` so existing single-folder deployments keep working. Admins can add, edit, and remove libraries from `/admin/libraries`; the scanner, watcher, scheduler, and OpenSubsonic `getMusicFolders` all read from this table.
 
-> **Local development uses `compose.dev.yaml`.** The dev container bind-mounts source code and runs `pnpm -r --parallel dev`, so TypeScript/React changes are hot-reloaded. Do not use the production `compose.yaml` for active development.
+> **Local development uses `compose.dev.yaml` (copy `docker/compose.dev.yaml.example`).** The dev container bind-mounts source code and runs `pnpm -r --parallel dev`, so TypeScript/React changes are hot-reloaded. Do not use the production `compose.yaml` for active development.
 
 In Docker, configure library bind mounts with env vars like `LIBRARY_MUSIC`. The dev/prod compose files mount `LIBRARY_MUSIC` at `/media/music` and set `LIBRARY_PATH=/media/music`, so the seeded default library points to the right place. Additional libraries can be mounted at other `/media/<name>` paths by editing the compose file and then creating them in the admin panel.
 

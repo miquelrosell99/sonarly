@@ -19,6 +19,7 @@ cp .env.example .env
 docker compose -f compose.yaml up -d --build
 
 # Dev Docker deployment with hot reload
+cp docker/compose.dev.yaml.example compose.dev.yaml
 docker compose -f compose.dev.yaml up -d --build
 ```
 
@@ -31,7 +32,7 @@ Before choosing a command after code changes, check what is currently running:
 ```bash
 # List running Sonarly containers
 docker compose -f compose.yaml ps
-docker compose -f compose.dev.yaml ps
+docker compose -f compose.dev.yaml ps   # only if you copied the dev example
 
 # Or check all running containers
 docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
@@ -42,14 +43,14 @@ Use the result to pick the right action:
 | Running container(s) | Deployment type | Code change action |
 |---|---|---|
 | `compose.yaml` service(s) up | Production Docker | `docker compose -f compose.yaml up -d --build` |
-| `compose.dev.yaml` service(s) up | Dev Docker | Usually nothing (hot reload); use `--build` only for dependency/config/Docker changes |
+| `compose.dev.yaml` service(s) up (copied from `docker/compose.dev.yaml.example`) | Dev Docker | Usually nothing (hot reload); use `--build` only for dependency/config/Docker changes |
 | Neither | Local dev | `pnpm dev` (or ask the user how they run it) |
 
 For production Docker, ensure `.env` exists and contains `SESSION_SECRET`. Compose reads it automatically; no inline env vars are needed. Always confirm before rebuilding or recreating a production container, since it restarts the live service.
 
 ### Dev ports
 
-`compose.dev.yaml` exposes:
+`docker/compose.dev.yaml.example` (copy to `compose.dev.yaml` to use) exposes:
 
 - `SONARLY_DEV_WEB_PORT` (default `4534`) → Vite dev server (`http://localhost:4534`)
 - `SONARLY_DEV_API_PORT` (default `3001`) → backend API directly (`http://localhost:3001`)
@@ -58,7 +59,7 @@ The Vite dev server proxies `/api` and `/rest` to the backend, so the web UI onl
 
 ## Dev workflow: restart vs rebuild vs hot reload
 
-Use the dev compose (`compose.dev.yaml`) for active development. Source folders are bind-mounted, so most code changes do not require a rebuild. The three operations below are **not** interchangeable:
+Use the dev compose (`compose.dev.yaml`, copied from `docker/compose.dev.yaml.example`) for active development. Source folders are bind-mounted, so most code changes do not require a rebuild. The three operations below are **not** interchangeable:
 
 - **`restart`** — keeps the same container and image. Use it when only the running process needs a fresh start (e.g. after a crash, or to reload something read at startup). It does **not** pick up new environment variables or rebuilt image layers.
 - **`up -d`** — recreates the container if the compose service definition or `.env` changed. Use it for new env vars, port mappings, volume mounts, or compose edits. It still uses the existing image, so it does **not** install new dependencies.
