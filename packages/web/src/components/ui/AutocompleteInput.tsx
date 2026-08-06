@@ -82,6 +82,7 @@ export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputP
     } as React.ChangeEvent<HTMLInputElement>;
     setQuery(newValue);
     setOpen(false);
+    setSuggestions([]);
     onChange?.(syntheticEvent);
     onValueSelect?.(newValue);
   };
