@@ -14,7 +14,7 @@ services:
     environment:
       - PORT=3000
       - NODE_ENV=production
-      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET is required}
+      - SESSION_SECRET=${SESSION_SECRET}
       - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-false}
       - DATA_DIR=/data/db
       - INGEST_PATH=/data/ingest
