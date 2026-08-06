@@ -24,6 +24,29 @@ docker compose -f compose.dev.yaml up -d --build
 
 Local dev runs the server with `tsx watch` and the web UI with Vite. The production Docker image builds the web UI, copies it into the server image, and serves it from `/`. The dev compose runs `pnpm -r --parallel dev` inside the container and bind-mounts the package directories so TypeScript/React changes are reflected immediately.
 
+## Determining the current deployment type
+
+Before choosing a command after code changes, check what is currently running:
+
+```bash
+# List running Sonarly containers
+docker compose -f compose.yaml ps
+docker compose -f compose.dev.yaml ps
+
+# Or check all running containers
+docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+```
+
+Use the result to pick the right action:
+
+| Running container(s) | Deployment type | Code change action |
+|---|---|---|
+| `compose.yaml` service(s) up | Production Docker | `docker compose -f compose.yaml up -d --build` |
+| `compose.dev.yaml` service(s) up | Dev Docker | Usually nothing (hot reload); use `--build` only for dependency/config/Docker changes |
+| Neither | Local dev | `pnpm dev` (or ask the user how they run it) |
+
+For production Docker, ensure `.env` exists and contains `SESSION_SECRET`. Compose reads it automatically; no inline env vars are needed. Always confirm before rebuilding or recreating a production container, since it restarts the live service.
+
 ### Dev ports
 
 `compose.dev.yaml` exposes:
