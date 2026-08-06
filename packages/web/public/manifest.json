@@ -1,0 +1,16 @@
+{
+  "name": "Sonarly",
+  "short_name": "Sonarly",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f7f7",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "/app-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
