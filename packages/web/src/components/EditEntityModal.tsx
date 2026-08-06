@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { SmartPlaylistRules, Song, SyncedLyricLine } from '@sonarly/shared';
 import { api } from '../api.js';
@@ -48,11 +49,10 @@ interface TagField {
 
 const SONG_FIELDS: TagField[] = [
   { key: 'title', label: 'Title', primary: true },
-  { key: 'artist', label: 'Artist', autocomplete: 'artist', primary: true, multi: true },
   { key: 'album', label: 'Album', autocomplete: 'album', primary: true },
-  { key: 'albumArtist', label: 'Album artist', autocomplete: 'albumArtist', multi: true },
-  { key: 'trackNumber', label: 'Track number', type: 'number' },
-  { key: 'discNumber', label: 'Disc number', type: 'number' },
+  { key: 'trackNumber', label: 'Track number', type: 'number', primary: true },
+  { key: 'discNumber', label: 'Disc number', type: 'number', primary: true },
+  { key: 'artist', label: 'Artist', autocomplete: 'artist', multi: true },
   { key: 'genre', label: 'Genre', autocomplete: 'genre', multi: true },
   { key: 'year', label: 'Year', type: 'number' },
 ];
@@ -387,7 +387,14 @@ export function EditEntityModal({
       <Modal
         open={open}
         onClose={onClose}
-        title={isMulti ? `Edit ${activeEntities.length} ${entityType}s` : `Edit ${entityType}`}
+        title={
+          <span className="flex items-center gap-2">
+            {isMulti ? `Edit ${activeEntities.length} ${entityType}s` : `Edit ${entityType}`}
+            {!isMulti && entityType === 'song' && (
+              <FilePathInfo filePath={String(activeEntities[0]?.filePath ?? '')} />
+            )}
+          </span>
+        }
         footer={footer}
         className="max-w-4xl"
       >
@@ -463,6 +470,7 @@ export function EditEntityModal({
                   onEdit={onEditCoverArt}
                   onRequestDelete={onDeleteCoverArt && !isMulti ? () => setConfirmDeleteCoverArt(true) : undefined}
                   onView={() => setLightboxOpen(true)}
+                  className="h-60 w-60"
                 />
                 {lightboxOpen && (
                   <CoverArtLightbox
@@ -486,9 +494,35 @@ export function EditEntityModal({
                     key={key}
                     label={label}
                     htmlFor={`edit-${key}`}
-                    className={key === 'title' ? 'sm:col-span-2' : undefined}
+                    className={key === 'title' || key === 'album' ? 'sm:col-span-2' : undefined}
                   >
-                    {multi ? (
+                    {key === 'title' && entityType === 'song' ? (
+                      <div className="flex items-center gap-4">
+                        <TagInput
+                          id={`edit-${key}`}
+                          value={String(values[key] ?? '')}
+                          onChange={(value) => updateValue(key, value)}
+                          type={type}
+                          autocomplete={autocomplete}
+                          placeholder={label}
+                          disabled={readOnly}
+                          className="flex-1"
+                        />
+                        <Checkbox
+                          id="edit-explicit"
+                          label="Explicit"
+                          checked={explicit ?? false}
+                          indeterminate={explicit === null}
+                          onChange={(e) => {
+                            setExplicit(e.target.checked);
+                            if (isMulti) {
+                              setTouchedFields((prev) => new Set(prev).add('explicit'));
+                            }
+                          }}
+                          disabled={readOnly}
+                        />
+                      </div>
+                    ) : multi ? (
                       <PillInput
                         id={`edit-${key}`}
                         values={Array.isArray(values[key]) ? (values[key] as string[]) : []}
@@ -506,42 +540,6 @@ export function EditEntityModal({
                         autocomplete={autocomplete}
                         placeholder={label}
                         disabled={readOnly}
-                      />
-                    )}
-                  </Field>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {secondaryFields.map(({ key, label, type, autocomplete, multi }) => {
-                const isCompact = key === 'trackNumber' || key === 'discNumber';
-                return (
-                  <Field
-                    key={key}
-                    label={label}
-                    htmlFor={`edit-${key}`}
-                    className={isCompact ? 'col-span-1' : 'col-span-2'}
-                  >
-                    {multi ? (
-                      <PillInput
-                        id={`edit-${key}`}
-                        values={Array.isArray(values[key]) ? (values[key] as string[]) : []}
-                        onChange={(value) => updateValue(key, value)}
-                        autocomplete={autocomplete}
-                        placeholder={label}
-                        disabled={readOnly || (entityType === 'song' && key === 'albumArtist')}
-                      />
-                    ) : (
-                      <TagInput
-                        id={`edit-${key}`}
-                        value={String(values[key] ?? '')}
-                        onChange={(value) => updateValue(key, value)}
-                        type={type}
-                        autocomplete={autocomplete}
-                        placeholder={label}
-                        disabled={readOnly || (entityType === 'song' && key === 'albumArtist')}
-                        locked={!readOnly && entityType === 'song' && key === 'albumArtist'}
                         hint={
                           key === 'trackNumber' && albumStats && albumStats.tracks > 0
                             ? `Max track in album: ${albumStats.tracks}`
@@ -552,8 +550,46 @@ export function EditEntityModal({
                       />
                     )}
                   </Field>
-                );
-              })}
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {secondaryFields.map(({ key, label, type, autocomplete, multi }) => (
+                <Field
+                  key={key}
+                  label={label}
+                  htmlFor={`edit-${key}`}
+                  className={
+                    key === 'artist'
+                      ? 'col-span-2 sm:col-span-4'
+                      : key === 'genre' || key === 'year'
+                        ? 'col-span-2'
+                        : 'col-span-1'
+                  }
+                >
+                  {multi ? (
+                    <PillInput
+                      id={`edit-${key}`}
+                      values={Array.isArray(values[key]) ? (values[key] as string[]) : []}
+                      onChange={(value) => updateValue(key, value)}
+                      autocomplete={autocomplete}
+                      placeholder={label}
+                      disabled={readOnly}
+                    />
+                  ) : (
+                    <TagInput
+                      id={`edit-${key}`}
+                      value={String(values[key] ?? '')}
+                      onChange={(value) => updateValue(key, value)}
+                      type={type}
+                      autocomplete={autocomplete}
+                      placeholder={label}
+                      disabled={readOnly}
+                    />
+                  )}
+                </Field>
+              ))}
             </div>
 
             {entityType === 'song' && (
@@ -581,19 +617,6 @@ export function EditEntityModal({
                   )}
                 </div>
 
-                <Checkbox
-                  id="edit-explicit"
-                  label="Explicit content"
-                  checked={explicit ?? false}
-                  indeterminate={explicit === null}
-                  onChange={(e) => {
-                    setExplicit(e.target.checked);
-                    if (isMulti) {
-                      setTouchedFields((prev) => new Set(prev).add('explicit'));
-                    }
-                  }}
-                  disabled={readOnly}
-                />
               </>
             )}
           </>
@@ -682,6 +705,7 @@ function TagInput({
   disabled,
   locked,
   hint,
+  className,
 }: {
   id?: string;
   value: string;
@@ -692,6 +716,7 @@ function TagInput({
   disabled?: boolean;
   locked?: boolean;
   hint?: string;
+  className?: string;
 }) {
   const lockedClass = locked ? 'border-transparent bg-transparent text-fg-primary cursor-default' : '';
   const input = autocomplete ? (
@@ -702,7 +727,7 @@ function TagInput({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className={lockedClass}
+      className={cn(lockedClass, className)}
     />
   ) : (
     <Input
@@ -712,7 +737,7 @@ function TagInput({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className={lockedClass}
+      className={cn(lockedClass, className)}
     />
   );
 
@@ -754,6 +779,62 @@ function ReadOnlyValue({ children }: { children: React.ReactNode }) {
   );
 }
 
+function FilePathInfo({ filePath }: { filePath: string }) {
+  const [show, setShow] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const hasPath = filePath.trim() !== '';
+
+  const updatePos = () => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    setPos({
+      top: rect.bottom + window.scrollY + 8,
+      left: rect.left + window.scrollX + rect.width / 2,
+    });
+  };
+
+  const handleEnter = () => {
+    updatePos();
+    setShow(true);
+  };
+
+  const handleLeave = () => {
+    setShow(false);
+  };
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-label={hasPath ? 'Show file path' : 'No file path available'}
+        className="rounded p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        onMouseEnter={handleEnter}
+        onMouseLeave={handleLeave}
+        onFocus={handleEnter}
+        onBlur={handleLeave}
+      >
+        <Icon name="mdi-information-outline" size={18} />
+      </button>
+      {show &&
+        pos &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className="pointer-events-none fixed z-[60] w-max max-w-md -translate-x-1/2 rounded-lg border border-rule bg-surface px-3 py-2 text-xs text-fg-primary shadow-lg"
+            style={{ top: pos.top, left: pos.left }}
+          >
+            <span className="block max-w-md break-all font-mono">
+              {hasPath ? filePath : 'No file path available'}
+            </span>
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
+
 function EditableCoverArt({
   coverArt,
   alt,
@@ -762,6 +843,7 @@ function EditableCoverArt({
   onEdit,
   onRequestDelete,
   onView,
+  className,
 }: {
   coverArt?: string;
   alt: string;
@@ -770,6 +852,7 @@ function EditableCoverArt({
   onEdit?: () => void;
   onRequestDelete?: () => void;
   onView?: () => void;
+  className?: string;
 }) {
   const editable = !readOnly && (onEdit || onRequestDelete);
   return (
@@ -777,6 +860,7 @@ function EditableCoverArt({
       className={cn(
         'group relative aspect-square h-40 w-40 overflow-hidden rounded-xl bg-surface-hover',
         onView && 'cursor-pointer',
+        className,
       )}
       onClick={onView}
       role={onView ? 'button' : undefined}

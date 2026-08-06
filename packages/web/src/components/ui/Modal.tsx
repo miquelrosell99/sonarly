@@ -6,7 +6,7 @@ import { Icon } from './Icon.js';
 export interface ModalProps {
   open: boolean;
   onClose: () => void;
-  title: string;
+  title: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
