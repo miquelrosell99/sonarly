@@ -34,6 +34,7 @@ import {
   registerOrganizeManagementRoutes,
 } from './features/ingest/index.js';
 import { registerUploadRoutes } from './features/uploads/index.js';
+import { EventBus, registerEventRoutes } from './features/events/index.js';
 import { registerSettingsManagementRoutes } from './features/settings/index.js';
 import { registerConflictManagementRoutes } from './features/conflicts/index.js';
 import { registerSuggestionRoutes } from './features/suggestions/index.js';
@@ -80,6 +81,8 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   migrate(db);
   ensureDefaultLibrary(db, config.LIBRARY_PATH);
 
+  const eventBus = new EventBus();
+
   const workerConfig: WorkerConfig = {
     DATA_DIR: config.DATA_DIR,
     LIBRARY_PATH: config.LIBRARY_PATH,
@@ -97,6 +100,30 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   const worker = isTsxRuntime() && workerPath.endsWith('.ts')
     ? new Worker(createTsxWorkerScript(workerPath), { eval: true, workerData: workerConfig })
     : new Worker(workerPath, { workerData: workerConfig });
+
+  worker.on('message', (msg: { type: string; jobType?: string; runId?: string; stats?: Record<string, unknown> }) => {
+    if (msg.type !== 'job:completed' || !msg.jobType || !msg.runId) return;
+
+    const stats = msg.stats ?? {};
+    let changed = false;
+    if (msg.jobType === 'ingest') {
+      changed = (stats.imported as number | undefined ?? 0) > 0 || (stats.updated as number | undefined ?? 0) > 0;
+    } else if (['scan', 'resync', 'organize'].includes(msg.jobType)) {
+      changed = (stats.added as number | undefined ?? 0) > 0
+        || (stats.updated as number | undefined ?? 0) > 0
+        || (stats.moved as number | undefined ?? 0) > 0
+        || (stats.removed as number | undefined ?? 0) > 0;
+    }
+
+    if (changed) {
+      eventBus.broadcast({
+        type: 'library:changed',
+        source: msg.jobType,
+        runId: msg.runId,
+        stats,
+      });
+    }
+  });
 
   pushJob(db, 'scan', '');
   if (config.ARTIST_IMAGE_INTERVAL_MINUTES > 0) {
@@ -171,6 +198,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   registerAutoDjRoutes(app, db);
   registerMusicBrainzRoutes(app);
   registerLrcLibRoutes(app);
+  registerEventRoutes(app, eventBus);
 
   const webDist = join(__dirname, '..', 'web-dist');
   if (existsSync(webDist)) {

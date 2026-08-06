@@ -104,6 +104,7 @@ export interface DuplicateResolution {
   existingId: string;
   finalPath?: string;
   skipped?: boolean;
+  updated?: boolean;
 }
 
 export async function handleDuplicateSong(
@@ -148,7 +149,7 @@ async function skipDuplicate(
   } catch {
     // Ignore cleanup failure.
   }
-  return { existingId: existing.id, skipped: true };
+  return { existingId: existing.id, skipped: true, updated: false };
 }
 
 async function replaceFileAndMetadata(
@@ -178,7 +179,7 @@ async function replaceFileAndMetadata(
     aggregate,
   });
 
-  return { existingId: existing.id, finalPath: targetPath };
+  return { existingId: existing.id, finalPath: targetPath, updated: true };
 }
 
 async function keepFileReplaceMetadata(
@@ -201,7 +202,7 @@ async function keepFileReplaceMetadata(
     // Ignore cleanup failure; the ingest folder will be reprocessed otherwise.
   }
 
-  return { existingId: existing.id };
+  return { existingId: existing.id, updated: true };
 }
 
 async function moveFile(sourcePath: string, targetPath: string): Promise<void> {
