@@ -326,6 +326,11 @@ export function TopBar({ user, onLogout }: TopBarProps) {
           href="/"
           className="flex items-center gap-2 text-xl font-bold tracking-tight text-fg-primary hover:text-fg-primary"
         >
+          <img
+            src="/app-icon.png"
+            alt=""
+            className="app-icon h-8 w-8 rounded-md"
+          />
           <span className="font-display">Sonarly</span>
         </Link>
         <LibrarySelector
