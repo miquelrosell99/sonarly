@@ -52,6 +52,23 @@ describe('EditEntityModal', () => {
     expect(patch).not.toHaveProperty('filePath');
   });
 
+  it('renders the file path in an info button tooltip for songs', () => {
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '1', title: 'Track', artist: 'Artist', filePath: '/music/track.mp3' }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+    const infoButton = screen.getByRole('button', { name: /show file path/i });
+    expect(infoButton).toBeTruthy();
+    fireEvent.mouseEnter(infoButton);
+    expect(screen.getByText('/music/track.mp3')).toBeTruthy();
+  });
+
   it('renders lyrics field and synced lyrics button for songs', () => {
     const onEditSyncedLyrics = vi.fn();
     render(
@@ -365,5 +382,69 @@ describe('EditEntityModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /remove Artist B/i }));
     fireEvent.click(screen.getByRole('button', { name: /save/i }));
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ artist: ['Artist A'] }));
+  });
+
+  it('clears the autocomplete input after selecting a genre suggestion', async () => {
+    global.fetch = vi.fn(async (input) => {
+      const url = typeof input === 'string' ? input : input.url;
+      if (url.includes('/suggestions?field=genre')) {
+        return new Response(JSON.stringify({ suggestions: ['Rock', 'Pop'] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({}), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const onSave = vi.fn();
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '18', title: 'Track' }}
+        onClose={vi.fn()}
+        onSave={onSave}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    const genreInput = screen.getByPlaceholderText('Genre');
+    fireEvent.focus(genreInput);
+    fireEvent.change(genreInput, { target: { value: 'Roc' } });
+
+    await waitFor(() => expect(screen.getAllByText('Rock').length).toBeGreaterThanOrEqual(1));
+
+    fireEvent.click(screen.getAllByText('Rock')[0]);
+    expect(screen.getByRole('option', { name: 'Rock' })).toBeTruthy();
+    expect((genreInput as HTMLInputElement).value).toBe('');
+    await waitFor(() => expect(screen.queryByText('Pop')).toBeFalsy());
+  });
+
+  it('does not render the album artist field for songs', () => {
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '19', title: 'Track', albumArtist: 'Album Artist' }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+    expect(screen.queryByLabelText(/album artist/i)).toBeFalsy();
+  });
+
+  it('renders a file path info button for songs with a file path', () => {
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '20', title: 'Track', filePath: '/music/artist/album/track.mp3' }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('button', { name: /show file path/i })).toBeTruthy();
   });
 });
