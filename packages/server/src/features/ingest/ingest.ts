@@ -18,6 +18,7 @@ const COMPANION_IMAGE_NAMES = new Set(['cover', 'folder', 'album', 'front', 'art
 export interface IngestStats extends Record<string, number> {
   processed: number;
   imported: number;
+  updated: number;
   duplicates: number;
   needsReview: number;
   failed: number;
@@ -34,7 +35,7 @@ export async function processIngestFolder(
   const libraryPath = targetLibrary?.path ?? config.LIBRARY_PATH;
   const pattern = targetLibrary?.organizePattern ?? getOrganizePattern(db, config);
   const duplicateStrategy = options?.duplicateStrategy ?? getDuplicateStrategy(db);
-  const stats: IngestStats = { processed: 0, imported: 0, duplicates: 0, needsReview: 0, failed: 0 };
+  const stats: IngestStats = { processed: 0, imported: 0, updated: 0, duplicates: 0, needsReview: 0, failed: 0 };
   const reviewDir = join(root, 'review');
   await mkdir(reviewDir, { recursive: true });
 
@@ -77,6 +78,9 @@ export async function processIngestFolder(
         updateIngestJob(db, jobId, status, duplicate.finalPath, undefined, true, duplicateStrategy);
         if (!duplicate.skipped) {
           stats.imported++;
+        }
+        if (duplicate.updated) {
+          stats.updated++;
         }
         stats.duplicates++;
         if (sourceDir !== root && duplicate.finalPath) {
