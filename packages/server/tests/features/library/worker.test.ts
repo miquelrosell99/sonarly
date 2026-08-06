@@ -161,6 +161,9 @@ describe('scanner worker thread', () => {
     mkdirSync(sourceDir, { recursive: true });
     copyFileSync(fixture, join(sourceDir, 'Song.mp3'));
 
+    const messages: unknown[] = [];
+    worker.on('message', (msg) => messages.push(msg));
+
     pushJob(db, 'ingest', JSON.stringify({ sourcePath: sourceDir, libraryId }));
 
     await waitFor(() => {
@@ -173,6 +176,12 @@ describe('scanner worker thread', () => {
     const stats = JSON.parse(row.stats);
     expect(stats.processed).toBe(1);
     expect(stats.imported).toBe(1);
+
+    const completed = messages.find(
+      (m: any) => m.type === 'job:completed' && m.jobType === 'ingest',
+    ) as { type: string; jobType: string; runId: string; stats: Record<string, unknown> } | undefined;
+    expect(completed).toBeDefined();
+    expect(completed!.stats.imported).toBe(1);
   });
 
   it('processes an organize job', async () => {

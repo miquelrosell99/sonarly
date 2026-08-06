@@ -418,10 +418,20 @@ export function HomePage({ user }: { user: User }) {
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   useEffect(() => {
-    api<HomeData>(`/home${buildLibraryQuery(selectedLibraryId)}`)
-      .then(setData)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load home'))
-      .finally(() => setLoading(false));
+    const loadHome = () => {
+      setLoading(true);
+      setError(null);
+      api<HomeData>(`/home${buildLibraryQuery(selectedLibraryId)}`)
+        .then(setData)
+        .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load home'))
+        .finally(() => setLoading(false));
+    };
+
+    loadHome();
+
+    const handleLibraryChanged = () => loadHome();
+    window.addEventListener('sonarly:library-changed', handleLibraryChanged);
+    return () => window.removeEventListener('sonarly:library-changed', handleLibraryChanged);
   }, [selectedLibraryId]);
 
   const featuredAlbums = useMemo(() => {

@@ -58,9 +58,14 @@ export function AdminStatus({ user }: AdminStatusProps) {
   }, [user.isAdmin, refreshKey]);
 
   useEffect(() => {
-    if (!user.isAdmin) return;
+    if (!user.isAdmin) return undefined;
     const interval = setInterval(loadStatus, 5000);
-    return () => clearInterval(interval);
+    const handleLibraryChanged = () => loadStatus();
+    window.addEventListener('sonarly:library-changed', handleLibraryChanged);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('sonarly:library-changed', handleLibraryChanged);
+    };
   }, [user.isAdmin]);
 
   return (
