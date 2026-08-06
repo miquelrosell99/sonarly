@@ -33,6 +33,7 @@ import { Labels } from './features/labels/index.js';
 import { AlbumTypes } from './features/album-types/index.js';
 import { StatisticsPage } from './features/statistics/index.js';
 import { AdminRefreshProvider } from './features/admin/contexts/AdminRefreshContext.js';
+import { useServerEvents } from './hooks/useServerEvents.js';
 import { api } from './api.js';
 
 function Redirect({ to }: { to: string }) {
@@ -46,6 +47,8 @@ function Redirect({ to }: { to: string }) {
 export default function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [needsSetup, setNeedsSetup] = useState<boolean | undefined>(undefined);
+
+  useServerEvents({ enabled: Boolean(user) });
 
   const AdminRoute = (Component: React.ComponentType<{ user: User }>) => () => (
     <AdminRefreshProvider>

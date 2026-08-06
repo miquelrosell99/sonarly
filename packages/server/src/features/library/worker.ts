@@ -22,6 +22,19 @@ interface WorkerMessage {
   type: 'shutdown';
 }
 
+interface JobCompletedMessage {
+  type: 'job:completed';
+  jobType: string;
+  runId: string;
+  stats: Record<string, unknown>;
+}
+
+function notifyJobCompleted(jobType: string, runId: string, stats: Record<string, unknown>): void {
+  if (!parentPort) return;
+  const message: JobCompletedMessage = { type: 'job:completed', jobType, runId, stats };
+  parentPort.postMessage(message);
+}
+
 if (!parentPort) throw new Error('worker.ts must run inside a Worker');
 
 const config = workerData as Config;
@@ -78,6 +91,7 @@ async function loop(): Promise<void> {
       if (job.type === 'scan' || job.type === 'resync') {
         const stats = await scanLibrary(config, db);
         markJobCompleted(db, job.id, stats);
+        notifyJobCompleted(job.type, job.id, stats);
       } else if (job.type === 'ingest') {
         let payload: { sourcePath?: string; libraryId?: string; duplicateStrategy?: DuplicateStrategy } = {};
         try {
@@ -91,14 +105,17 @@ async function loop(): Promise<void> {
           runId: job.id,
         });
         markJobCompleted(db, job.id, stats);
+        notifyJobCompleted(job.type, job.id, stats);
       } else if (job.type === 'cleanup_review') {
         const retentionDays = getReviewRetentionDays(db, config.REVIEW_RETENTION_DAYS);
         const stats = await cleanupAllReviewFolders(config.INGEST_PATH, retentionDays);
         markJobCompleted(db, job.id, stats);
         setSetting(db, 'last_review_cleanup', new Date().toISOString());
+        notifyJobCompleted(job.type, job.id, stats);
       } else if (job.type === 'organize') {
         const stats = await runOrganizeJob(config, db, job.id);
         markJobCompleted(db, job.id, stats);
+        notifyJobCompleted(job.type, job.id, stats);
       } else if (job.type === 'artist_images') {
         let options: { refetchExisting?: boolean } = {};
         try {
@@ -113,14 +130,17 @@ async function loop(): Promise<void> {
         const metadataStats = await syncMissingArtistMetadata(db, {
           refetchExisting: refetch,
         });
-        markJobCompleted(db, job.id, {
+        const stats = {
           scanned: imageStats.scanned + metadataStats.scanned,
           updated: imageStats.updated + metadataStats.updated,
           failed: imageStats.failed + metadataStats.failed,
-        });
+        };
+        markJobCompleted(db, job.id, stats);
+        notifyJobCompleted(job.type, job.id, stats);
       }
     } catch (err) {
       markJobFailed(db, job.id, String(err));
+      notifyJobCompleted(job.type, job.id, { failed: 1, error: String(err) });
     } finally {
       activeJobId = null;
     }
