@@ -112,6 +112,14 @@
   .accent-blue { --accent: var(--accent-blue); }
   .accent-monochrome { --accent: var(--fg-primary); }
 
+  .app-icon {
+    filter: none;
+  }
+  .theme-dark .app-icon,
+  .theme-oled .app-icon {
+    filter: invert(1);
+  }
+
   body {
     @apply bg-bg-primary font-sans text-fg-primary antialiased;
   }
