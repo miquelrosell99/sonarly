@@ -30,20 +30,22 @@ export function PillInput({
   }, []);
 
   const addValue = useCallback(
-    (raw: string) => {
+    (raw: string, shouldFocus = true) => {
       const trimmed = raw.trim();
       if (!trimmed) {
-        focusInput();
+        if (shouldFocus) focusInput();
         return;
       }
       if (values.some((v) => v.toLowerCase() === trimmed.toLowerCase())) {
-        focusInput();
+        if (shouldFocus) focusInput();
         return;
       }
       onChange([...values, trimmed]);
       setRawInput('');
-      // Refocus after React renders the cleared input.
-      requestAnimationFrame(focusInput);
+      if (shouldFocus) {
+        // Refocus after React renders the cleared input.
+        requestAnimationFrame(focusInput);
+      }
     },
     [values, onChange, focusInput],
   );
@@ -75,7 +77,7 @@ export function PillInput({
   return (
     <div
       className={cn(
-        'input flex min-h-[2.5rem] flex-wrap items-center gap-1.5 px-2 py-1.5',
+        'input flex h-auto min-h-[2.5rem] flex-wrap items-center gap-1.5 px-2 py-1.5',
         disabled && 'cursor-not-allowed opacity-50',
         className,
       )}
@@ -111,12 +113,13 @@ export function PillInput({
         <AutocompleteInput
           id={id}
           field={autocomplete}
-          value=""
-          onValueSelect={addValue}
+          value={rawInput}
+          onChange={(e) => setRawInput(e.target.value)}
+          onValueSelect={(value) => addValue(value, false)}
           onKeyDown={disabled ? undefined : handleKeyDown}
           placeholder={values.length === 0 ? placeholder : undefined}
           disabled={disabled}
-          className="min-w-[6rem] flex-1 border-0 bg-transparent px-1 py-0.5 text-sm focus-visible:ring-0"
+          className="min-w-[6rem] flex-1 border-0 bg-transparent px-1 py-0.5 text-sm focus-visible:ring-0 h-auto"
           ref={inputRef}
         />
       ) : (
