@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { Link } from 'wouter';
-import type { Album, Song } from '@sonarly/shared';
+import type { Album, Song, User } from '@sonarly/shared';
 import { api } from '../../../api.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
@@ -8,9 +8,13 @@ import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useDominantColor } from '../../../hooks/useDominantColor.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { usePlayer } from '../../../stores/playerStore.js';
+import { useNotification } from '../../../contexts/NotificationContext.js';
 import { ScrollRow } from '../../../components/ScrollRow.js';
 import { Card } from '../../../components/Card.js';
 import { CoverArt } from '../../../components/CoverArt.js';
+import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
+import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { useAlbumContextMenu } from '../../../hooks/useAlbumContextMenu.js';
 
 interface HomeData {
   mostPlayed: Album[];
@@ -24,13 +28,23 @@ interface AlbumDetail {
   songs: Song[];
 }
 
-function AlbumCard({ album: initialAlbum }: { album: Album }) {
+function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) {
   const { playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
+  const { notify } = useNotification();
   const currentAlbumId = usePlayer((state) => state.currentSong?.albumId);
   const [album, setAlbum] = useState(initialAlbum);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [coverArtBusy, setCoverArtBusy] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const baseSections = useAlbumContextMenu(album);
+  const contextMenuSections = user.isAdmin
+    ? [...baseSections, { items: [{ id: 'edit', label: 'Edit', icon: 'mdi-pencil', onClick: () => setEditing(true) }] }]
+    : baseSections;
 
   const handlePlay = async () => {
     setError(null);
@@ -72,12 +86,90 @@ function AlbumCard({ album: initialAlbum }: { album: Album }) {
     }
   };
 
+  const handleSave = async (patched: Record<string, unknown>) => {
+    setSaving(true);
+    try {
+      await api(`/albums/${album.id}/tags`, {
+        method: 'PUT',
+        body: JSON.stringify(patched),
+      });
+      setEditing(false);
+      setAlbum((prev) => ({
+        ...prev,
+        name: typeof patched.title === 'string' ? patched.title : prev.name,
+        artistName: typeof patched.albumArtist === 'string' ? patched.albumArtist : prev.artistName,
+        year: typeof patched.year === 'number' ? patched.year : prev.year,
+      }));
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to save album', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await api(`/albums/${album.id}`, { method: 'DELETE' });
+      setEditing(false);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to delete album', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleEditCoverArt = () => {
+    coverInputRef.current?.click();
+  };
+
+  const handleCoverArtFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverArtBusy(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      await api(`/albums/${album.id}/cover-art`, {
+        method: 'POST',
+        body: formData,
+      });
+      setAlbum((prev) => ({ ...prev, coverArt: `${Date.now()}` }));
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to update cover art', 'error');
+    } finally {
+      setCoverArtBusy(false);
+      if (coverInputRef.current) coverInputRef.current.value = '';
+    }
+  };
+
+  const handleDeleteCoverArt = async () => {
+    setCoverArtBusy(true);
+    try {
+      await api(`/albums/${album.id}/cover-art`, { method: 'DELETE' });
+      setAlbum((prev) => ({ ...prev, coverArt: undefined }));
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to remove cover art', 'error');
+    } finally {
+      setCoverArtBusy(false);
+    }
+  };
+
+  const editEntity = editing
+    ? {
+        ...album,
+        title: album.name,
+        albumArtist: album.artistName,
+      }
+    : null;
+
   return (
     <div>
-      <Card
-        href={`/albums/${album.id}`}
-        title={album.name}
-        fields={[
+      <ItemContextMenu sections={contextMenuSections}>
+        <Card
+          href={`/albums/${album.id}`}
+          title={album.name}
+          fields={[
           {
             content: (
               <span>
@@ -123,7 +215,30 @@ function AlbumCard({ album: initialAlbum }: { album: Album }) {
         }}
         isPlaying={currentAlbumId === album.id}
       />
+      </ItemContextMenu>
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}
+      {editEntity && (
+        <EditEntityModal
+          open
+          entityType="album"
+          entity={editEntity}
+          onClose={() => setEditing(false)}
+          onSave={handleSave}
+          onDelete={handleDelete}
+          onEditCoverArt={handleEditCoverArt}
+          onDeleteCoverArt={handleDeleteCoverArt}
+          saving={saving}
+          deleting={deleting}
+          coverArtBusy={coverArtBusy}
+        />
+      )}
+      <input
+        ref={coverInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={handleCoverArtFileChange}
+      />
     </div>
   );
 }
@@ -296,7 +411,7 @@ function FeaturedAlbum({ albums }: { albums: Album[] }) {
   );
 }
 
-export function HomePage() {
+export function HomePage({ user }: { user: User }) {
   const [data, setData] = useState<HomeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -347,7 +462,7 @@ export function HomePage() {
         ) : (
           data.mostPlayed.map((album) => (
             <div key={album.id} className="w-40 flex-none sm:w-44">
-              <AlbumCard album={album} />
+              <AlbumCard album={album} user={user} />
             </div>
           ))
         )}
@@ -359,7 +474,7 @@ export function HomePage() {
         ) : (
           data.random.map((album) => (
             <div key={album.id} className="w-40 flex-none sm:w-44">
-              <AlbumCard album={album} />
+              <AlbumCard album={album} user={user} />
             </div>
           ))
         )}
@@ -371,7 +486,7 @@ export function HomePage() {
         ) : (
           data.recentlyAdded.map((album) => (
             <div key={album.id} className="w-40 flex-none sm:w-44">
-              <AlbumCard album={album} />
+              <AlbumCard album={album} user={user} />
             </div>
           ))
         )}
@@ -383,7 +498,7 @@ export function HomePage() {
         ) : (
           data.recentlyPlayed.map((album) => (
             <div key={album.id} className="w-40 flex-none sm:w-44">
-              <AlbumCard album={album} />
+              <AlbumCard album={album} user={user} />
             </div>
           ))
         )}

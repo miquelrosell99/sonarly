@@ -138,8 +138,8 @@ export default function App() {
     <Router>
       <Layout user={user} onUserChange={setUser}>
         <Switch>
-          <Route path="/" component={HomePage} />
-          <Route path="/home" component={HomePage} />
+          <Route path="/" component={() => <HomePage user={user} />} />
+          <Route path="/home" component={() => <HomePage user={user} />} />
           <Route path="/songs" component={() => <Songs user={user} />} />
           <Route path="/tracks" component={() => <Tracks user={user} />} />
           <Route path="/tracks/:id" component={Track} />
