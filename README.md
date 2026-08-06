@@ -83,6 +83,7 @@ For Docker-based development with hot reload:
 
 ```bash
 cp .env.example .env
+cp docker/compose.dev.yaml.example compose.dev.yaml
 # edit .env and set SESSION_SECRET
 docker compose -f compose.dev.yaml up -d --build
 ```
@@ -125,7 +126,9 @@ docker exec sonarly-dev sh -c "cd /app/packages/server && pnpm trigger-scan"
 │   ├── shared/             # Shared TypeScript types
 │   └── web/                # React management UI
 ├── compose.yaml            # Production deployment
-├── compose.dev.yaml        # Dev deployment with hot reload
+├── docker/
+│   ├── compose.yaml.example # Production deployment example
+│   └── compose.dev.yaml.example # Dev deployment with hot reload example
 └── .env.example            # Required environment variables
 ```
 

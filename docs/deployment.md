@@ -40,10 +40,11 @@ On first visit the server will redirect to `/setup` to create the admin account.
 
 ## Development deployment
 
-For active development use `compose.dev.yaml`. It bind-mounts the package source directories and runs the backend with `tsx watch` and the frontend with the Vite dev server.
+For active development copy `docker/compose.dev.yaml.example` to `compose.dev.yaml`. It bind-mounts the package source directories and runs the backend with `tsx watch` and the frontend with the Vite dev server.
 
 ```bash
 cp .env.example .env
+cp docker/compose.dev.yaml.example compose.dev.yaml
 # edit .env and set SESSION_SECRET
 docker compose -f compose.dev.yaml up -d --build
 ```
@@ -84,7 +85,7 @@ Create a `.env` file next to the compose file.
 | `SONARLY_DEV_WEB_PORT` | `4534` | Host port for the Vite dev server in development. |
 | `SONARLY_DEV_API_PORT` | `3001` | Host port for direct backend access in development. |
 | `SONARLY_DEV_ALLOWED_HOSTS` | *(empty)* | Comma-separated list of hosts the Vite dev server is allowed to respond to. Use `true` to allow all hosts (not recommended outside trusted networks). |
-| `LIBRARY_MUSIC` | *(see `.env.example`)* | Host path to the main music library, bind-mounted to `/media/music` in the container. Set in `.env` and referenced by `compose.yaml` and `compose.dev.yaml`. |
+| `LIBRARY_MUSIC` | *(see `.env.example`)* | Host path to the main music library, bind-mounted to `/media/music` in the container. Set in `.env` and referenced by `compose.yaml` and `compose.dev.yaml` (copied from `docker/compose.dev.yaml.example`). |
 
 Internal variables set by the compose files (usually not changed):
 
@@ -116,7 +117,7 @@ The compose files mount three bind volumes:
 | `./config/sonarly/library` | `/data/library` | Organized music library |
 | `./config/sonarly/ingest` | `/data/ingest` | Parent folder for per-library ingest subfolders |
 
-### Development (`compose.dev.yaml`)
+### Development (`compose.dev.yaml`, copied from the example)
 
 Same data volumes as production, plus bind mounts for the source code and anonymous volumes for `node_modules`:
 
