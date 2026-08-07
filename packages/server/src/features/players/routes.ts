@@ -7,7 +7,6 @@ export function registerPlayersRoutes(app: FastifyInstance, _db: Database.Databa
     const userId = (request as any).session?.userId as string | undefined;
     if (!userId) return reply.status(401).send({ error: 'Unauthorized' });
 
-    const players = getActivePlayers().filter((player) => player.userId === userId);
-    reply.send({ players });
+    reply.send({ players: getActivePlayers() });
   });
 }
