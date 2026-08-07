@@ -1147,6 +1147,14 @@ Supported `getAlbumList` / `getAlbumList2` types: `alphabeticalByName`, `alphabe
 | `GET /rest/setRating.view?id=<songId>&rating=5` | Rate a song |
 | `GET /rest/scrobble.view?id=<songId>` | Scrobble a play |
 
+### Bookmarks
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /rest/getBookmarks.view` | List playback position bookmarks for the authenticated user |
+| `GET /rest/createBookmark.view?id=<songId>&position=<ms>&comment=<text>` | Create or update a bookmark |
+| `GET /rest/deleteBookmark.view?id=<songId>` | Delete a bookmark |
+
 ### Activity
 
 | Endpoint | Description |
