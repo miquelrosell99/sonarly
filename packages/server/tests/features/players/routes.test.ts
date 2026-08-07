@@ -153,7 +153,7 @@ describe('players endpoint', () => {
     expect(players[0].songId).toBe('song-1');
   });
 
-  it('only returns players belonging to the authenticated user', async () => {
+  it('returns all active players', async () => {
     createUser(db, {
       id: 'user-2',
       username: 'other',
@@ -183,7 +183,8 @@ describe('players endpoint', () => {
     });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body.players).toHaveLength(0);
+    expect(body.players).toHaveLength(1);
+    expect(body.players[0].userId).toBe('user-2');
 
     const otherRes = await app.inject({
       method: 'GET',
