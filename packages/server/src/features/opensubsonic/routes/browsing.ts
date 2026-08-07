@@ -300,11 +300,6 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     });
   });
 
-  app.get('/rest/getBookmarks.view', (request: FastifyRequest, reply: FastifyReply) => {
-    const format = (request as any).subsonicFormat;
-    sendSubsonicReply(reply, format, { bookmarks: { bookmark: [] } });
-  });
-
   app.get('/rest/search3.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
     const userId = (request as any).subsonicUser as string | undefined;
