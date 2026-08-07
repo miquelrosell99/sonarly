@@ -40,7 +40,7 @@ function usePlayers() {
   });
 }
 
-function PlayersDropdown() {
+function PlayersDropdown({ user }: { user: User }) {
   const { data: players = [] } = usePlayers();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -63,7 +63,12 @@ function PlayersDropdown() {
     };
   }, [open]);
 
-  if (players.length === 0) return null;
+  const otherPlayers = useMemo(
+    () => players.filter((player) => player.userId !== user.id),
+    [players, user.id],
+  );
+
+  if (otherPlayers.length === 0) return null;
 
   return (
     <div ref={ref} className="relative">
@@ -72,7 +77,7 @@ function PlayersDropdown() {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        title={`Connected devices (${players.length})`}
+        title={`Connected devices (${otherPlayers.length})`}
         className={cn(
           'relative flex h-10 w-10 items-center justify-center rounded-full text-fg-secondary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
           open ? 'bg-surface-hover text-fg-primary' : 'hover:bg-surface-hover hover:text-fg-primary',
@@ -80,7 +85,7 @@ function PlayersDropdown() {
       >
         <Icon name="mdi-cast-audio" size={20} />
         <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-bg-primary">
-          {players.length}
+          {otherPlayers.length}
         </span>
       </button>
 
@@ -89,7 +94,7 @@ function PlayersDropdown() {
           role="menu"
           className="absolute right-0 top-full z-40 mt-2 w-64 rounded-xl border border-rule bg-surface p-1 shadow-xl"
         >
-          {players.map((player) => (
+          {otherPlayers.map((player) => (
             <div key={player.id} className="px-3 py-2 text-sm">
               <p className="font-medium text-fg-primary">{player.clientId}</p>
               <p className="truncate text-xs text-fg-secondary">{player.songTitle}</p>
@@ -361,7 +366,7 @@ export function TopBar({ user, onLogout }: TopBarProps) {
           </button>
         )}
         <SponsorButton />
-        <PlayersDropdown />
+        <PlayersDropdown user={user} />
         <UserMenu user={user} onLogout={onLogout} />
       </div>
 
