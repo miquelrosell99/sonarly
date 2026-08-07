@@ -8,6 +8,7 @@ import { registerRetrievalRoutes } from './retrieval.js';
 import { registerPlaylistRoutes } from '../../playlists/index.js';
 import { registerStarringRoutes } from './starring.js';
 import { registerNowPlayingRoutes } from './now-playing.js';
+import { registerBookmarkRoutes } from '../../bookmarks/index.js';
 import { getUserById } from '../../users/index.js';
 
 export async function registerOpenSubsonicRoutes(app: FastifyInstance, config: Config, db: Database.Database): Promise<void> {
@@ -17,6 +18,7 @@ export async function registerOpenSubsonicRoutes(app: FastifyInstance, config: C
   registerPlaylistRoutes(app, db);
   registerStarringRoutes(app, db);
   registerNowPlayingRoutes(app, db);
+  registerBookmarkRoutes(app, db);
 
   app.get('/rest/ping.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
