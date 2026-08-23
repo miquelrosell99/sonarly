@@ -78,10 +78,10 @@ export function PlayerBar({ user }: PlayerBarProps) {
   ];
 
   return (
-    <footer className="relative shrink-0 overflow-hidden border-t border-rule/50 bg-surface">
+    <footer className="relative shrink-0 select-none overflow-hidden border-t border-rule/50 bg-surface">
       {/* Ambient wash from the currently playing cover art */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-20 transition-colors duration-700"
+        className="pointer-events-none absolute inset-0 opacity-20"
         style={{
           background:
             'linear-gradient(to top, var(--now-playing-color, transparent) 0%, transparent 70%)',
@@ -212,7 +212,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
           </div>
 
           <div className="flex w-full max-w-md items-center gap-2">
-            <span className="w-9 text-right text-xs tabular-nums text-fg-secondary">
+            <span className="w-9 text-right font-mono text-xs text-fg-secondary">
               {formatTime(displayTime)}
             </span>
             <Slider
@@ -223,8 +223,10 @@ export function PlayerBar({ user }: PlayerBarProps) {
               onChange={seek}
               disabled={!hasTrack}
               variant="progress"
+              ariaLabel="Seek"
+              ariaValueText={`${formatTime(displayTime)} of ${formatTime(displayDuration)}`}
             />
-            <span className="w-9 text-xs tabular-nums text-fg-secondary">
+            <span className="w-9 font-mono text-xs text-fg-secondary">
               {formatTime(displayDuration)}
             </span>
           </div>
@@ -233,7 +235,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
         {/* Right: rating + DJ + favorite + volume */}
         <div className="flex min-w-0 flex-col items-end justify-center gap-1">
           <div className="flex items-center gap-2">
-            <fieldset disabled={!hasTrack} aria-label="Rating" className="m-0 border-0 p-0 disabled:cursor-not-allowed disabled:opacity-40">
+            <fieldset disabled={!hasTrack} aria-label="Rating" className="m-0 hidden border-0 p-0 disabled:cursor-not-allowed disabled:opacity-40 lg:block">
               <StarRating
                 rating={rating}
                 onRate={hasTrack ? handleRate : () => {}}
@@ -284,7 +286,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
               value={volume}
               onChange={setVolume}
               ariaLabel="Volume"
-              className="w-14"
+              className="hidden w-14 lg:block"
             />
           </div>
         </div>

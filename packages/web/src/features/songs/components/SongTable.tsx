@@ -124,7 +124,9 @@ export function SongTable({
     key: 'duration',
     header: 'Duration',
     className: 'w-24',
-    render: (s) => (s.duration ? formatDuration(s.duration) : '-'),
+    render: (s) => (
+      <span className="font-mono tabular-nums">{s.duration ? formatDuration(s.duration) : '-'}</span>
+    ),
   });
 
   const indexPad = Math.max(2, String(songs.length).length);

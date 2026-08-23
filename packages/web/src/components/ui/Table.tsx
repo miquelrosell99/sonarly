@@ -153,7 +153,7 @@ export function Table<T>({
   const groupHeaderColSpan = columns.length + (onPlay ? 1 : 0);
 
   return (
-    <div className="overflow-x-auto" onKeyDown={selectable ? handleContainerKeyDown : undefined} role={selectable ? 'grid' : undefined} aria-multiselectable={selectable ? 'true' : undefined}>
+    <div className="overflow-x-auto" onKeyDown={selectable ? handleContainerKeyDown : undefined}>
       <table className={cn('w-full text-left text-sm', className)}>
         <thead className="border-b border-rule text-muted">
           <tr>

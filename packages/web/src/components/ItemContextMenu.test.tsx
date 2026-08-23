@@ -61,7 +61,7 @@ describe('ItemContextMenu', () => {
     fireEvent.click(buttons[0]);
     fireEvent.click(buttons[1]);
     expect(onClick).not.toHaveBeenCalled();
-    expect(screen.getByText('⟳')).toBeTruthy();
+    expect(buttons[1].querySelector('svg.animate-spin')).toBeTruthy();
   });
 
   it('applies the danger variant class', () => {

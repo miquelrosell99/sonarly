@@ -28,7 +28,7 @@ export const ControlButton = forwardRef<HTMLButtonElement, {
       disabled={disabled}
       aria-label={label}
       className={cn(
-        'inline-flex h-9 w-9 items-center justify-center rounded-full transition',
+        '-m-1 inline-flex h-11 w-11 items-center justify-center rounded-full transition',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary',
         'disabled:cursor-not-allowed disabled:opacity-40',
         active
@@ -64,7 +64,7 @@ export function PlayButton({
       disabled={disabled}
       aria-label={isPlaying ? 'Pause' : 'Play'}
       className={cn(
-        'mx-1 flex h-10 w-10 items-center justify-center rounded-full bg-accent text-bg-primary transition',
+        'mx-1 flex h-11 w-11 items-center justify-center rounded-full bg-accent text-bg-primary transition',
         'hover:scale-105 hover:brightness-110',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary',
         'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100',
@@ -85,6 +85,7 @@ export function Slider({
   disabled,
   className = '',
   ariaLabel,
+  ariaValueText,
   variant = 'volume',
 }: {
   value: number;
@@ -95,6 +96,7 @@ export function Slider({
   disabled?: boolean;
   className?: string;
   ariaLabel?: string;
+  ariaValueText?: string;
   variant?: 'progress' | 'volume';
 }) {
   const range = max - min;
@@ -110,6 +112,7 @@ export function Slider({
       value={value}
       disabled={disabled}
       aria-label={ariaLabel}
+      aria-valuetext={ariaValueText}
       onChange={(e) => onChange(parseFloat(e.target.value))}
       className={cn(
         'slider h-1 w-full cursor-pointer rounded-full text-fg-primary transition',

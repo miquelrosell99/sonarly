@@ -80,7 +80,9 @@ export function Playlists() {
     {
       key: 'songs',
       header: 'Songs',
-      render: (playlist) => playlist.songCount ?? 0,
+      render: (playlist) => (
+        <span className="font-mono tabular-nums">{playlist.songCount ?? 0}</span>
+      ),
       className: 'w-20 text-right',
     },
 
@@ -94,7 +96,7 @@ export function Playlists() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Playlists</h1>
+        <h1 className="font-display text-2xl font-bold tracking-tight">Playlists</h1>
         <Button onClick={openCreateModal}>
           <Icon name="mdi-plus" size={18} className="mr-1.5" />
           Create

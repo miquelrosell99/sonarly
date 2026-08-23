@@ -132,9 +132,15 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
       },
 
       playNext: (songs) => {
-        const { queue, queueIndex, shuffle, shuffledIndices } = get();
+        const { queue, queueIndex, currentSong, shuffle, shuffledIndices } = get();
         const songsArray = Array.isArray(songs) ? songs : [songs];
         if (songsArray.length === 0) return;
+        // With an empty queue (or no current song) there is no "next" slot;
+        // start playback instead of stranding the songs.
+        if (queue.length === 0 || !currentSong) {
+          get().playQueue(songsArray, 0);
+          return;
+        }
         const insertAt = queueIndex + 1;
         const nextQueue = [...queue.slice(0, insertAt), ...songsArray, ...queue.slice(insertAt)];
         let nextShuffled = shuffledIndices;
@@ -152,10 +158,18 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
       },
 
       addToQueue: (songs, options) => {
-        const { queue, shuffle, shuffledIndices } = get();
+        const { queue, currentSong, shuffle, shuffledIndices } = get();
         const markedSongs = options?.addedByAutoDj
           ? songs.map((song) => ({ ...song, addedByAutoDj: true as const }))
           : songs;
+        // Appending to an empty queue would strand the songs with nothing
+        // playing; start playback at the first one instead.
+        if (queue.length === 0 || !currentSong) {
+          if (markedSongs.length > 0) {
+            get().playQueue(markedSongs, 0);
+          }
+          return;
+        }
         const nextQueue = [...queue, ...markedSongs];
         let nextShuffled = shuffledIndices;
         if (shuffle && markedSongs.length > 0) {
@@ -250,10 +264,12 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
       },
 
       previous: () => {
-        const { queue, queueIndex, status, currentTime, shuffle, shuffledIndices, seek } = get();
+        const { queue, queueIndex, currentTime, shuffle, shuffledIndices, seek } = get();
         if (queue.length === 0) return;
 
-        if (status === 'playing' && currentTime > PREVIOUS_RESTART_THRESHOLD) {
+        // Spotify-style: past the threshold, Previous restarts the track
+        // regardless of whether playback is paused.
+        if (currentTime > PREVIOUS_RESTART_THRESHOLD) {
           seek(0);
           return;
         }

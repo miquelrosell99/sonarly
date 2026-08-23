@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { User, Song as BaseSong, Album } from '@sonarly/shared';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
-import { api } from '../api.js';
+import { api } from '../lib/api.js';
 import { Avatar } from './Avatar.js';
 import { SearchBox } from './SearchBox.js';
 import { LibrarySelector } from './LibrarySelector.js';
@@ -17,6 +17,7 @@ import type { PlayerInfo } from '@sonarly/shared';
 interface TopBarProps {
   user: User;
   onLogout: () => void;
+  onMenuClick?: () => void;
 }
 
 interface PlaylistListItem {
@@ -79,7 +80,7 @@ function PlayersDropdown({ user }: { user: User }) {
         aria-expanded={open}
         title={`Connected devices (${otherPlayers.length})`}
         className={cn(
-          'relative flex h-10 w-10 items-center justify-center rounded-full text-fg-secondary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          'relative flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
           open ? 'bg-surface-hover text-fg-primary' : 'hover:bg-surface-hover hover:text-fg-primary',
         )}
       >
@@ -110,16 +111,25 @@ function UserMenu({ user, onLogout }: TopBarProps) {
   const [open, setOpen] = useState(false);
   const [, setLocation] = useLocation();
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const closeMenu = (restoreFocus = false) => {
+    setOpen(false);
+    if (restoreFocus) triggerRef.current?.focus();
+  };
 
   useEffect(() => {
     if (!open) return;
+    // Move focus to the first menu item when the menu opens
+    menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
     const handle = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
       }
     };
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') closeMenu(true);
     };
     document.addEventListener('mousedown', handle);
     document.addEventListener('keydown', handleKey);
@@ -128,6 +138,29 @@ function UserMenu({ user, onLogout }: TopBarProps) {
       document.removeEventListener('keydown', handleKey);
     };
   }, [open]);
+
+  const handleMenuKeyDown = (e: React.KeyboardEvent) => {
+    const items = Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
+    );
+    if (items.length === 0) return;
+    const index = items.indexOf(document.activeElement as HTMLElement);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      items[(index + 1) % items.length].focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      items[(index - 1 + items.length) % items.length].focus();
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      items[0].focus();
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      items[items.length - 1].focus();
+    } else if (e.key === 'Tab') {
+      setOpen(false);
+    }
+  };
 
   const displayName = [user.name, user.surname].filter(Boolean).join(' ') || user.username;
 
@@ -139,8 +172,15 @@ function UserMenu({ user, onLogout }: TopBarProps) {
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={(e) => {
+          if ((e.key === 'ArrowDown' || e.key === 'Enter') && !open) {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
         aria-haspopup="menu"
         aria-expanded={open}
         className="flex items-center gap-2 rounded-full p-1 pr-3 text-left transition hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
@@ -158,7 +198,9 @@ function UserMenu({ user, onLogout }: TopBarProps) {
 
       {open && (
         <div
+          ref={menuRef}
           role="menu"
+          onKeyDown={handleMenuKeyDown}
           className="absolute right-0 top-full z-40 mt-2 w-52 rounded-xl border border-rule bg-surface p-1 shadow-xl"
         >
           <button
@@ -311,7 +353,7 @@ function useFilterDefinitions(location: string): FilterDefinition[] {
   }, [location, albums, songs, playlists]);
 }
 
-export function TopBar({ user, onLogout }: TopBarProps) {
+export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
   const [location] = useLocation();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -327,6 +369,14 @@ export function TopBar({ user, onLogout }: TopBarProps) {
   return (
     <header className="relative z-50 grid h-16 shrink-0 grid-cols-[1fr_2fr_1fr] items-center gap-4 bg-bg-primary/80 px-6 backdrop-blur-md">
       <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          aria-label="Open navigation"
+          className="flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent md:hidden"
+        >
+          <Icon name="mdi-menu" size={20} />
+        </button>
         <Link
           href="/"
           className="flex items-center gap-2 text-xl font-bold tracking-tight text-fg-primary hover:text-fg-primary"
@@ -354,13 +404,21 @@ export function TopBar({ user, onLogout }: TopBarProps) {
       </div>
 
       <div className="flex items-center justify-end gap-2">
+        <Link
+          href="/search"
+          aria-label="Search"
+          title="Search"
+          className="flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:hidden"
+        >
+          <Icon name="mdi-magnify" size={20} />
+        </Link>
         {user.isAdmin && (
           <button
             type="button"
             onClick={() => setUploadOpen(true)}
             title="Upload"
             aria-label="Upload"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <Icon name="mdi-upload" size={20} />
           </button>

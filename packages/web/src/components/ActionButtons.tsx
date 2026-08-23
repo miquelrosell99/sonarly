@@ -26,7 +26,7 @@ export function FavoriteButton({ starred, onClick, label, className, variant = '
       aria-label={label ?? (starred ? 'Remove favorite' : 'Add favorite')}
       title={label ?? (starred ? 'Remove favorite' : 'Add favorite')}
       className={cn(
-        'flex h-8 w-8 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        'flex h-8 w-8 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
         starred
           ? 'text-accent hover:bg-accent/10'
           : variant === 'overlay'
@@ -64,14 +64,28 @@ export function StarRating({ rating = 0, onRate, className, variant = 'default' 
   };
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>, value: number) => {
-    const target = resolveTarget(e, value);
+    // Keyboard-origin clicks (detail === 0) have no meaningful clientX,
+    // so rate the full star instead of resolving a half from geometry.
+    const target = e.detail === 0 ? value : resolveTarget(e, value);
     onRate(target === rating ? 0 : target);
+  };
+
+  // Make half-star steps reachable from the keyboard while any star is focused
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      onRate(Math.min(5, rating + 0.5));
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      onRate(Math.max(0, rating - 0.5));
+    }
   };
 
   return (
     <span
       className={cn('inline-flex items-center', isOverlay ? 'gap-0' : 'gap-0.5', className)}
       onMouseLeave={() => setHover(null)}
+      onKeyDown={handleKeyDown}
       role="group"
       aria-label="Rating"
     >
@@ -93,7 +107,7 @@ export function StarRating({ rating = 0, onRate, className, variant = 'default' 
             onMouseEnter={(e) => handleMove(e, value)}
             aria-label={label}
             className={cn(
-              'inline-flex items-center justify-center rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              'inline-flex items-center justify-center rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
               isOverlay ? 'p-0' : 'p-0.5',
               filled || half
                 ? 'text-accent'

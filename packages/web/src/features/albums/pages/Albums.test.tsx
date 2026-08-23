@@ -6,7 +6,7 @@ import { NotificationProvider } from '../../../contexts/NotificationContext.js';
 
 const mockApi = vi.hoisted(() => vi.fn());
 
-vi.mock('../../../api.js', () => ({
+vi.mock('../../../lib/api.js', () => ({
   api: (...args: unknown[]) => mockApi(...args),
 }));
 
@@ -55,7 +55,7 @@ describe('Albums', () => {
     render(
       <Router>
         <NotificationProvider>
-          <Albums />
+          <Albums user={{ id: 'user-1', username: 'admin', isAdmin: true, createdAt: new Date().toISOString() }} />
         </NotificationProvider>
       </Router>,
     );

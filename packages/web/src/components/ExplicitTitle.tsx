@@ -13,6 +13,7 @@ export function ExplicitTitle({ title, children, explicit, blur, className }: Ex
       {children ?? title}
       {explicit && (
         <span
+          role="img"
           aria-label="Explicit"
           className="ml-1.5 inline-flex h-[1.25em] min-w-[1.25em] items-center justify-center rounded bg-accent/10 px-[0.35em] align-middle text-[0.65em] font-bold leading-none text-accent"
         >

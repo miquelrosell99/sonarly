@@ -402,6 +402,65 @@ describe('management playlist endpoints', () => {
     expect(JSON.parse(update.body).playlist.shareToken).toBeUndefined();
   });
 
+  it('includes the shares list for the owner only', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/playlists',
+      cookies: { sessionId: ownerCookie },
+      payload: { name: 'Shared', visibility: 'shared', songIds: ['song-1'] },
+    });
+    const id = JSON.parse(create.body).playlist.id;
+
+    await app.inject({
+      method: 'POST',
+      url: `/api/playlists/${id}/share`,
+      cookies: { sessionId: ownerCookie },
+      payload: { userId: 'friend-1', canEdit: true },
+    });
+
+    const ownerGet = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}`,
+      cookies: { sessionId: ownerCookie },
+    });
+    expect(ownerGet.statusCode).toBe(200);
+    expect(JSON.parse(ownerGet.body).playlist.shares).toEqual([
+      { userId: 'friend-1', username: 'friend', canEdit: true },
+    ]);
+
+    const friendGet = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}`,
+      cookies: { sessionId: friendCookie },
+    });
+    expect(friendGet.statusCode).toBe(200);
+    expect(JSON.parse(friendGet.body).playlist.shares).toBeUndefined();
+  });
+
+  it('omits the shares list for anonymous share-token viewers', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/playlists',
+      cookies: { sessionId: ownerCookie },
+      payload: { name: 'Link', visibility: 'link', songIds: ['song-1'] },
+    });
+    const { id, shareToken } = JSON.parse(create.body).playlist;
+
+    await app.inject({
+      method: 'POST',
+      url: `/api/playlists/${id}/share`,
+      cookies: { sessionId: ownerCookie },
+      payload: { userId: 'friend-1', canEdit: false },
+    });
+
+    const withToken = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}?shareToken=${shareToken}`,
+    });
+    expect(withToken.statusCode).toBe(200);
+    expect(JSON.parse(withToken.body).playlist.shares).toBeUndefined();
+  });
+
   it('converts a smart playlist to a normal playlist', async () => {
     const createRes = await app.inject({
       method: 'POST',

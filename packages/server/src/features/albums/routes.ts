@@ -19,6 +19,7 @@ interface AlbumRow {
   name: string;
   artist_id: string | null;
   artist_name: string | null;
+  album_type: string | null;
   year: number | null;
   genre: string | null;
   cover_art_id: string | null;
@@ -44,6 +45,7 @@ function rowToAlbum(row: AlbumRow): Album {
     name: row.name,
     artistId: row.artist_id ?? undefined,
     artistName: row.artist_name ?? undefined,
+    albumType: row.album_type ?? undefined,
     year: row.year ?? undefined,
     genre: row.genre ?? undefined,
     coverArt: row.cover_art_id ?? undefined,
@@ -111,14 +113,23 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
     const userId = (request as any).session?.userId as string | undefined;
     const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
 
-    const { genre, libraryId } = request.query as { genre?: string; libraryId?: string };
+    const { genre, libraryId, label } = request.query as { genre?: string; libraryId?: string; label?: string };
     const resolvedGenre = typeof genre === 'string' && genre.length > 0 ? resolveGenreForFilter(db, genre) : undefined;
     const genreFilter = resolvedGenre !== undefined;
     const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
+    const labelFilter = typeof label === 'string' && label.length > 0 ? label : undefined;
 
     if (typeof genre === 'string' && genre.length > 0 && !genreFilter) {
       return reply.send({ albums: [] });
     }
+
+    // Params must match the textual placeholder order: hideExplicit flag
+    // (SELECT), libraryId (JOIN), userId (user_albums JOIN), genre, label.
+    const params: (string | number | null)[] = [hideExplicit ? 1 : 0];
+    if (libraryFilter) params.push(libraryId);
+    params.push(userId ?? null);
+    if (genreFilter) params.push(resolvedGenre.id);
+    if (labelFilter) params.push(labelFilter);
 
     const rows = db.prepare(`
       SELECT
@@ -133,13 +144,11 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
       LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
       WHERE a.active = 1
       ${genreFilter ? 'AND EXISTS (SELECT 1 FROM album_genres ag WHERE ag.album_id = a.id AND ag.genre_id = ?)' : ''}
+      ${labelFilter ? 'AND EXISTS (SELECT 1 FROM album_labels al2 JOIN labels lb ON lb.id = al2.label_id WHERE al2.album_id = a.id AND lb.name = ? COLLATE NOCASE)' : ''}
       ${hideExplicit ? 'GROUP BY a.id HAVING shown_song_count > 0' : 'GROUP BY a.id'}
       ORDER BY a.name
       LIMIT 500
-    `).all(...(libraryFilter
-      ? (genreFilter ? [hideExplicit ? 1 : 0, libraryId, userId ?? null, resolvedGenre.id] : [hideExplicit ? 1 : 0, libraryId, userId ?? null])
-      : (genreFilter ? [hideExplicit ? 1 : 0, userId ?? null, resolvedGenre.id] : [hideExplicit ? 1 : 0, userId ?? null]))
-    ) as (AlbumRow & { total_song_count: number; shown_song_count: number })[];
+    `).all(...params) as (AlbumRow & { total_song_count: number; shown_song_count: number })[];
 
     const albums = rows.map((row) => ({
       ...rowToAlbum(row),
@@ -168,9 +177,16 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
     const album = db.prepare('SELECT * FROM albums WHERE id = ? AND active = 1').get(id) as Album | undefined;
     if (!album) return reply.status(404).send({ error: 'Album not found' });
 
+    // albumType is album-level metadata, not a file tag: pull it out before
+    // validating the song-tag payload.
+    const { albumType, ...tagInput } = request.body as Record<string, unknown>;
+    if (albumType !== undefined && albumType !== null && typeof albumType !== 'string') {
+      return reply.status(400).send({ error: 'albumType must be a string' });
+    }
+
     let tags: SongTags;
     try {
-      tags = validateSongTags(request.body);
+      tags = validateSongTags(tagInput);
     } catch (err) {
       return reply.status(400).send({ error: err instanceof Error ? err.message : 'Invalid tags' });
     }
@@ -233,6 +249,9 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
     }
     if (genreResolutions !== undefined) {
       setAlbumGenres(db, id, genreResolutions.map((g) => g.id));
+    }
+    if (albumType !== undefined) {
+      db.prepare('UPDATE albums SET album_type = ? WHERE id = ?').run(normalizeName(albumType) ?? null, id);
     }
 
     reply.send({ updated: songs.length });

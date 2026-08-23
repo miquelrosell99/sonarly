@@ -31,7 +31,7 @@ export function EntityHeader({
       )}
       <div className="flex min-w-0 flex-col gap-2">
         <span className="text-xs font-medium uppercase tracking-wider text-fg-secondary">{type}</span>
-        <h1 className="text-2xl font-bold text-fg-primary sm:text-3xl">{title}</h1>
+        <h1 className="font-display text-2xl font-bold tracking-tight text-fg-primary sm:text-3xl">{title}</h1>
         {metadata && metadata.length > 0 && <MetadataBreadcrumb items={metadata} />}
         {actions && <div className="mt-1 flex flex-wrap items-center gap-3">{actions}</div>}
         {children}

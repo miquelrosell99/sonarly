@@ -1,15 +1,11 @@
-import { Link, useLocation } from 'wouter';
+import { TabNav } from './TabNav.js';
 
 const sections = [
-  { href: '/settings/profile', label: 'Profile' },
-  { href: '/settings/appearance', label: 'Appearance' },
-  { href: '/settings/playback', label: 'Playback' },
-  { href: '/settings/sidebar', label: 'Sidebar' },
+  { key: '/settings/profile', label: 'Profile' },
+  { key: '/settings/appearance', label: 'Appearance' },
+  { key: '/settings/playback', label: 'Playback' },
+  { key: '/settings/sidebar', label: 'Sidebar' },
 ];
-
-function isActive(location: string, href: string): boolean {
-  return location === href || location.startsWith(`${href}/`);
-}
 
 interface SettingsProps {
   children: React.ReactNode;
@@ -17,24 +13,13 @@ interface SettingsProps {
 }
 
 export function Settings({ children, actions }: SettingsProps) {
-  const [location] = useLocation();
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Settings</h2>
+        <h2 className="font-display text-lg font-semibold">Settings</h2>
         {actions}
       </div>
-      <nav className="mb-6 flex flex-wrap gap-2 border-b border-rule pb-2">
-        {sections.map((section) => (
-          <Link
-            key={section.href}
-            href={section.href}
-            className={`rounded px-3 py-1 text-sm ${isActive(location, section.href) ? 'bg-fg-primary text-bg-primary' : 'text-fg-primary hover:bg-surface-hover'}`}
-          >
-            {section.label}
-          </Link>
-        ))}
-      </nav>
+      <TabNav items={sections} className="mb-6 border-b border-rule pb-2" />
       {children}
     </div>
   );

@@ -44,11 +44,14 @@ function getGlobalSongRatingAverage(db: Database.Database, userId?: string): num
 }
 
 
+// played_at is written as ISO 8601 (Date.toISOString()); compare the indexed
+// column directly against an ISO threshold instead of wrapping it in date(),
+// which would defeat idx_listening_history_user_played_at.
 const RANGE_SQL: Record<StatisticsTimeRange, string | null> = {
-  '7d': "date(lh.played_at) >= date('now', '-7 days')",
-  '30d': "date(lh.played_at) >= date('now', '-30 days')",
-  '90d': "date(lh.played_at) >= date('now', '-90 days')",
-  '1y': "date(lh.played_at) >= date('now', '-1 year')",
+  '7d': "lh.played_at >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-7 days')",
+  '30d': "lh.played_at >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-30 days')",
+  '90d': "lh.played_at >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-90 days')",
+  '1y': "lh.played_at >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 year')",
   all: null,
 };
 
@@ -82,24 +85,27 @@ function getTotals(db: Database.Database, userId?: string, range: StatisticsTime
       COUNT(*) AS total_plays,
       COALESCE(SUM(lh.duration_listened), 0) AS total_duration_listened
     FROM listening_history lh
-    JOIN songs s ON s.id = lh.song_id
+    JOIN songs s ON s.id = lh.song_id AND s.active = 1
     ${where}
   `).get(...params) as {
     total_plays: number;
     total_duration_listened: number;
   };
 
+  const favoriteConditions = userId ? 'WHERE user_id = ? AND starred = 1' : 'WHERE starred = 1';
+  const favoriteParams = userId ? [userId] : [];
+
   const favoriteSongs = (db.prepare(`
-    SELECT COUNT(*) AS count FROM user_songs WHERE user_id = ? AND starred = 1
-  `).get(userId) as { count: number }).count;
+    SELECT COUNT(*) AS count FROM user_songs ${favoriteConditions}
+  `).get(...favoriteParams) as { count: number }).count;
 
   const favoriteAlbums = (db.prepare(`
-    SELECT COUNT(*) AS count FROM user_albums WHERE user_id = ? AND starred = 1
-  `).get(userId) as { count: number }).count;
+    SELECT COUNT(*) AS count FROM user_albums ${favoriteConditions}
+  `).get(...favoriteParams) as { count: number }).count;
 
   const favoriteArtists = (db.prepare(`
-    SELECT COUNT(*) AS count FROM user_artists WHERE user_id = ? AND starred = 1
-  `).get(userId) as { count: number }).count;
+    SELECT COUNT(*) AS count FROM user_artists ${favoriteConditions}
+  `).get(...favoriteParams) as { count: number }).count;
 
   return {
     totalPlays: totalsRow.total_plays,
@@ -120,7 +126,7 @@ function getTopSongs(db: Database.Database, userId?: string, range: StatisticsTi
       COALESCE(s.cover_art_id, al.cover_art_id) AS album_cover_art,
       COUNT(*) AS plays
     FROM listening_history lh
-    JOIN songs s ON s.id = lh.song_id
+    JOIN songs s ON s.id = lh.song_id AND s.active = 1
     LEFT JOIN artists ar ON ar.id = s.artist_id
     LEFT JOIN albums al ON al.id = s.album_id
     ${where}
@@ -152,7 +158,7 @@ function getTopArtists(db: Database.Database, userId?: string, range: Statistics
       ar.name AS artist_name,
       COUNT(*) AS plays
     FROM listening_history lh
-    JOIN songs s ON s.id = lh.song_id
+    JOIN songs s ON s.id = lh.song_id AND s.active = 1
     LEFT JOIN artists ar ON ar.id = s.artist_id
     ${where}
     GROUP BY ar.id
@@ -181,7 +187,7 @@ function getTopAlbums(db: Database.Database, userId?: string, range: StatisticsT
       al.cover_art_id AS cover_art,
       COUNT(*) AS plays
     FROM listening_history lh
-    JOIN songs s ON s.id = lh.song_id
+    JOIN songs s ON s.id = lh.song_id AND s.active = 1
     LEFT JOIN albums al ON al.id = s.album_id
     LEFT JOIN artists ar ON ar.id = al.artist_id
     ${where}
@@ -207,19 +213,29 @@ function getTopAlbums(db: Database.Database, userId?: string, range: StatisticsT
 
 function getTopGenres(db: Database.Database, userId?: string, range: StatisticsTimeRange = 'all'): GenreDistributionItem[] {
   const { where, params } = buildHistoryWhere(userId, range);
-  return db.prepare(`
+  const rows = db.prepare(`
     SELECT
       COALESCE(NULLIF(g.name, ''), 'Unknown') AS genre,
       COUNT(*) AS plays,
       COALESCE(SUM(lh.duration_listened), 0) AS total_duration_listened
     FROM listening_history lh
-    JOIN songs s ON s.id = lh.song_id
+    JOIN songs s ON s.id = lh.song_id AND s.active = 1
     LEFT JOIN genres g ON g.id = s.genre_id
     ${where}
     GROUP BY g.name
     ORDER BY plays DESC
     LIMIT ?
-  `).all(...params, GENRE_LIMIT) as GenreDistributionItem[];
+  `).all(...params, GENRE_LIMIT) as {
+    genre: string;
+    plays: number;
+    total_duration_listened: number;
+  }[];
+
+  return rows.map((row) => ({
+    genre: row.genre,
+    plays: row.plays,
+    totalDurationListened: formatDuration(row.total_duration_listened),
+  }));
 }
 
 function getTopYears(db: Database.Database, userId?: string, range: StatisticsTimeRange = 'all'): TopYearItem[] {
@@ -230,7 +246,7 @@ function getTopYears(db: Database.Database, userId?: string, range: StatisticsTi
       COUNT(*) AS plays,
       COALESCE(SUM(lh.duration_listened), 0) AS total_duration_listened
     FROM listening_history lh
-    JOIN songs s ON s.id = lh.song_id
+    JOIN songs s ON s.id = lh.song_id AND s.active = 1
     WHERE s.year IS NOT NULL
     ${where ? `AND ${where.replace(/^WHERE /, '')}` : ''}
     GROUP BY s.year
@@ -256,7 +272,7 @@ function getMonthlyPlays(db: Database.Database, userId?: string, range: Statisti
       strftime('%Y-%m', lh.played_at) AS month,
       COUNT(*) AS plays
     FROM listening_history lh
-    JOIN songs s ON s.id = lh.song_id
+    JOIN songs s ON s.id = lh.song_id AND s.active = 1
     ${where}
     GROUP BY month
     ORDER BY month
@@ -302,7 +318,7 @@ function getMonthlyGroupedPlays(
           CAST(us.rating AS TEXT) AS key,
           COUNT(*) AS plays
         FROM listening_history lh
-        JOIN songs s ON s.id = lh.song_id
+        JOIN songs s ON s.id = lh.song_id AND s.active = 1
         JOIN user_songs us ON us.song_id = s.id AND us.user_id = ?
         ${joinClause}
         ${ratingWhere}
@@ -316,7 +332,7 @@ function getMonthlyGroupedPlays(
           'Unrated' AS key,
           COUNT(*) AS plays
         FROM listening_history lh
-        JOIN songs s ON s.id = lh.song_id
+        JOIN songs s ON s.id = lh.song_id AND s.active = 1
         LEFT JOIN user_songs us ON us.song_id = s.id AND us.user_id = ?
         ${joinClause}
         ${unratedWhere}
@@ -337,7 +353,7 @@ function getMonthlyGroupedPlays(
           'Favorite' AS key,
           COUNT(*) AS plays
         FROM listening_history lh
-        JOIN songs s ON s.id = lh.song_id
+        JOIN songs s ON s.id = lh.song_id AND s.active = 1
         JOIN user_songs us ON us.song_id = s.id AND us.user_id = ?
         ${joinClause}
         ${favoriteWhere}
@@ -351,7 +367,7 @@ function getMonthlyGroupedPlays(
           'Not favorite' AS key,
           COUNT(*) AS plays
         FROM listening_history lh
-        JOIN songs s ON s.id = lh.song_id
+        JOIN songs s ON s.id = lh.song_id AND s.active = 1
         LEFT JOIN user_songs us ON us.song_id = s.id AND us.user_id = ?
         ${joinClause}
         ${notFavoriteWhere}
@@ -373,7 +389,7 @@ function getMonthlyGroupedPlays(
       ${selectColumn} AS key,
       COUNT(*) AS plays
     FROM listening_history lh
-    JOIN songs s ON s.id = lh.song_id
+    JOIN songs s ON s.id = lh.song_id AND s.active = 1
     ${joinClause}
     ${where}
     GROUP BY month, ${groupColumns}
@@ -495,7 +511,7 @@ function getTopRatedArtists(db: Database.Database, userId?: string): RatedArtist
       COUNT(*) AS rated_songs,
       ROUND((SUM(us.rating) + ? * ?) / (COUNT(*) + ?), 2) AS bayesian_average
     FROM user_songs us
-    JOIN songs s ON s.id = us.song_id
+    JOIN songs s ON s.id = us.song_id AND s.active = 1
     LEFT JOIN artists ar ON ar.id = s.artist_id
     ${where}
     GROUP BY ar.id
@@ -538,7 +554,7 @@ function getTopRatedGenres(db: Database.Database, userId?: string): TopRatedGenr
       COUNT(*) AS rated_songs,
       ROUND((SUM(us.rating) + ? * ?) / (COUNT(*) + ?), 2) AS bayesian_average
     FROM user_songs us
-    JOIN songs s ON s.id = us.song_id
+    JOIN songs s ON s.id = us.song_id AND s.active = 1
     LEFT JOIN genres g ON g.id = s.genre_id
     ${where}
     GROUP BY g.name
@@ -579,7 +595,7 @@ function getTopRatedYears(db: Database.Database, userId?: string): TopRatedYearI
       COUNT(*) AS rated_songs,
       ROUND((SUM(us.rating) + ? * ?) / (COUNT(*) + ?), 2) AS bayesian_average
     FROM user_songs us
-    JOIN songs s ON s.id = us.song_id
+    JOIN songs s ON s.id = us.song_id AND s.active = 1
     ${where}
     GROUP BY s.year
     HAVING rated_songs >= ?
@@ -681,7 +697,7 @@ function getUserSummaries(
       COALESCE(SUM(lh.duration_listened), 0) AS total_duration_listened,
       COUNT(DISTINCT s.id) AS unique_songs
     FROM listening_history lh
-    JOIN songs s ON s.id = lh.song_id
+    JOIN songs s ON s.id = lh.song_id AND s.active = 1
     JOIN users u ON u.id = lh.user_id
     ${where}
     GROUP BY u.id

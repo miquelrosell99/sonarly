@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { Song, Album, Artist, Playlist } from '@sonarly/shared';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
-import { api } from '../api.js';
+import { api } from '../lib/api.js';
 import { useDebounce } from '../hooks/useDebounce.js';
 import { useLibraryStore, buildLibraryQuery } from '../stores/libraryStore.js';
 import { FilterPanel, type FilterDefinition } from './FilterPanel.js';
@@ -237,53 +237,54 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
             'absolute left-0 right-0 top-full z-50 mt-2 overflow-auto rounded-md border border-rule bg-bg-primary py-2 shadow-lg',
             filtersOpen ? 'max-h-[36rem]' : 'max-h-[24rem]',
           )}
-          role="listbox"
         >
           {filtersOpen && hasFilters && (
             <div className="border-b border-rule px-4 pb-4 pt-2">
               <FilterPanel filters={filters} className="border-0 bg-transparent p-0 shadow-none" />
             </div>
           )}
-          {items.length === 0 ? (
-            debouncedQuery.length > 0 ? (
-              <p className="px-4 py-2 text-sm text-muted">No results found.</p>
-            ) : null
-          ) : (
-            grouped.map(({ groupLabel, groupItems, startIndex }) => (
-              <div key={groupLabel} role="group" aria-label={groupLabel}>
-                <p className="px-4 py-1 text-xs font-semibold uppercase tracking-wider text-muted">
-                  {groupLabel}
-                </p>
-                <ul>
-                  {groupItems.map((item, localIndex) => {
-                    const index = startIndex + localIndex;
-                    const isHighlighted = index === highlightedIndex;
-                    return (
-                      <li key={item.id}>
-                        <button
-                          type="button"
-                          id={item.id}
-                          onClick={() => navigate(item.href)}
-                          onMouseEnter={() => setHighlightedIndex(index)}
-                          className={cn(
-                            'w-full px-4 py-2 text-left text-sm transition focus-visible:outline-none',
-                            item.isMore
-                              ? 'text-muted hover:bg-surface-hover hover:text-fg-primary'
-                              : isHighlighted
-                                ? 'bg-surface-hover text-fg-primary'
-                                : 'text-fg-primary hover:bg-surface-hover',
-                          )}
-                          role="option"
-                          aria-selected={isHighlighted}
-                        >
-                          {item.label}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))
+          {(items.length > 0 || debouncedQuery.length > 0) && (
+            <div role="listbox">
+              {items.length === 0 ? (
+                <p className="px-4 py-2 text-sm text-muted">No results found.</p>
+              ) : (
+                grouped.map(({ groupLabel, groupItems, startIndex }) => (
+                  <div key={groupLabel} role="group" aria-label={groupLabel}>
+                    <p className="px-4 py-1 text-xs font-semibold uppercase tracking-wider text-muted">
+                      {groupLabel}
+                    </p>
+                    <ul>
+                      {groupItems.map((item, localIndex) => {
+                        const index = startIndex + localIndex;
+                        const isHighlighted = index === highlightedIndex;
+                        return (
+                          <li key={item.id}>
+                            <button
+                              type="button"
+                              id={item.id}
+                              onClick={() => navigate(item.href)}
+                              onMouseEnter={() => setHighlightedIndex(index)}
+                              className={cn(
+                                'w-full px-4 py-2 text-left text-sm transition focus-visible:outline-none',
+                                item.isMore
+                                  ? 'text-muted hover:bg-surface-hover hover:text-fg-primary'
+                                  : isHighlighted
+                                    ? 'bg-surface-hover text-fg-primary'
+                                    : 'text-fg-primary hover:bg-surface-hover',
+                              )}
+                              role="option"
+                              aria-selected={isHighlighted}
+                            >
+                              {item.label}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ))
+              )}
+            </div>
           )}
         </div>
       )}

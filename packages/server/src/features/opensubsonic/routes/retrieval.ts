@@ -14,8 +14,12 @@ import { recordStream } from '../../players/tracker.js';
 import { sendSubsonicReply } from '../responses.js';
 import { decideTranscode, spawnFfmpegTranscode, transcodeContentType } from '../../transcode/service.js';
 
+// Cover art is immutable by id; safe to cache privately for a day.
+const COVER_ART_CACHE_CONTROL = 'private, max-age=86400';
+
 export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get('/rest/stream.view', async (request: FastifyRequest, reply: FastifyReply) => {
+    const format = (request as any).subsonicFormat as 'json' | 'xml';
     const query = request.query as { id: string; maxBitRate?: string };
     const { id } = query;
     const song = getSongById(db, id);
@@ -63,17 +67,25 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
     }
 
     const mime = lookup(song.filePath) || 'application/octet-stream';
-    const { size } = statSync(song.filePath);
+    let size: number;
+    try {
+      size = statSync(song.filePath).size;
+    } catch {
+      // File vanished from disk after being indexed.
+      return sendSubsonicReply(reply, format, {
+        error: { code: 70, message: 'Data not found' },
+      }, 'failed');
+    }
     const rangeHeader = request.headers.range;
 
     if (request.method === 'HEAD') {
-      return reply.header('Accept-Ranges', 'bytes').type(mime).send();
+      return reply.header('Accept-Ranges', 'bytes').header('Content-Length', size).type(mime).send();
     }
 
     recordStream(db, request, song);
 
     if (!rangeHeader) {
-      return reply.header('Accept-Ranges', 'bytes').type(mime).send(createReadStream(song.filePath));
+      return reply.header('Accept-Ranges', 'bytes').header('Content-Length', size).type(mime).send(createReadStream(song.filePath));
     }
 
     const range = parseRange(rangeHeader, size);
@@ -92,16 +104,25 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
   });
 
   app.get('/rest/download.view', async (request: FastifyRequest, reply: FastifyReply) => {
+    const format = (request as any).subsonicFormat as 'json' | 'xml';
     const { id } = request.query as { id: string };
     const song = getSongById(db, id);
     if (!song) return reply.status(404).send('Not found');
 
     const mime = lookup(song.filePath) || 'application/octet-stream';
-    const { size } = statSync(song.filePath);
+    let size: number;
+    try {
+      size = statSync(song.filePath).size;
+    } catch {
+      return sendSubsonicReply(reply, format, {
+        error: { code: 70, message: 'Data not found' },
+      }, 'failed');
+    }
     const filename = path.basename(song.filePath);
+    const safeFilename = filename.replace(/["\\\r\n]/g, '_');
     return reply
       .header('Content-Length', size)
-      .header('Content-Disposition', `attachment; filename="${filename}"`)
+      .header('Content-Disposition', `attachment; filename="${safeFilename}"; filename*=UTF-8''${encodeURIComponent(filename)}`)
       .type(mime)
       .send(createReadStream(song.filePath));
   });
@@ -112,7 +133,7 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
 
     const cached = getCoverArtById(db, id);
     if (cached) {
-      return reply.type(cached.format).send(cached.data);
+      return reply.header('Cache-Control', COVER_ART_CACHE_CONTROL).type(cached.format).send(cached.data);
     }
 
     // Try song cover art first
@@ -120,7 +141,7 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
     if (songCoverArtId) {
       const songCached = getCoverArtById(db, songCoverArtId);
       if (songCached) {
-        return reply.type(songCached.format).send(songCached.data);
+        return reply.header('Cache-Control', COVER_ART_CACHE_CONTROL).type(songCached.format).send(songCached.data);
       }
     }
 
@@ -130,7 +151,7 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
         const metadata = await parseFile(song.filePath, { duration: false });
         const picture = metadata.common.picture?.[0];
         if (picture) {
-          return reply.type(picture.format).send(Buffer.from(picture.data));
+          return reply.header('Cache-Control', COVER_ART_CACHE_CONTROL).type(picture.format).send(Buffer.from(picture.data));
         }
       } catch {
         // fall through
@@ -142,7 +163,7 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
     if (albumCoverArtId) {
       const albumCached = getCoverArtById(db, albumCoverArtId);
       if (albumCached) {
-        return reply.type(albumCached.format).send(albumCached.data);
+        return reply.header('Cache-Control', COVER_ART_CACHE_CONTROL).type(albumCached.format).send(albumCached.data);
       }
     }
 
@@ -156,7 +177,7 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
             const metadata = await parseFile(firstSong.filePath, { duration: false });
             const picture = metadata.common.picture?.[0];
             if (picture) {
-              return reply.type(picture.format).send(Buffer.from(picture.data));
+              return reply.header('Cache-Control', COVER_ART_CACHE_CONTROL).type(picture.format).send(Buffer.from(picture.data));
             }
           } catch {
             // fall through
@@ -172,7 +193,7 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
         const fileStat = statSync(artistLocalPath);
         if (fileStat.isFile()) {
           const contentType = lookup(artistLocalPath) || 'application/octet-stream';
-          return reply.type(contentType).send(createReadStream(artistLocalPath));
+          return reply.header('Cache-Control', COVER_ART_CACHE_CONTROL).type(contentType).send(createReadStream(artistLocalPath));
         }
       } catch {
         // fall through
@@ -221,6 +242,8 @@ function parseRange(rangeHeader: string, size: number): ByteRange | undefined {
   if (!match) return undefined;
 
   const spec = match[1];
+  // Multi-range requests are not supported.
+  if (spec.includes(',')) return undefined;
   if (spec.startsWith('-')) {
     // suffix range: bytes=-suffix
     const suffix = parseInt(spec.slice(1), 10);

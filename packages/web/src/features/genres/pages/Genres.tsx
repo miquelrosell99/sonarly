@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
 import type { Song } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useGenreContextMenu } from '../../../hooks/useGenreContextMenu.js';

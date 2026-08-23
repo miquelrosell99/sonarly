@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DuplicateStrategy, Library } from '@sonarly/shared';
 import { DUPLICATE_STRATEGY_LABELS } from '@sonarly/shared';
 import { cn } from '../lib/cn.js';
-import { api } from '../api.js';
+import { api } from '../lib/api.js';
 import { Button } from './ui/Button.js';
 import { Icon } from './ui/Icon.js';
 import { Modal } from './ui/Modal.js';

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
 import type { Artist, Song } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { ArtistImage } from '../../../components/ArtistImage.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';

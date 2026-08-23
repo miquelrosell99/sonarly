@@ -1,7 +1,7 @@
 import { useLocation, useSearch } from 'wouter';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { User } from '@sonarly/shared';
-import { api } from '../api.js';
+import { api } from '../lib/api.js';
 import { ProfileModal } from '../features/profile/index.js';
 import { CreatePlaylistModal } from '../features/playlists/index.js';
 import { NowPlaying } from '../features/now-playing/index.js';
@@ -45,6 +45,9 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
   const { data: playlists } = usePlaylists();
   const { themeMode, accentColor, setThemeMode, setAccentColor } = useTheme();
   const currentSong = usePlayer((state) => state.currentSong);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const openMobileNav = useCallback(() => setMobileNavOpen(true), []);
+  const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
 
   const themeModeRef = useRef(themeMode);
   const accentColorRef = useRef(accentColor);
@@ -77,18 +80,33 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
 
   return (
     <div
-      className="relative flex h-screen select-none flex-col overflow-hidden bg-bg-primary text-fg-primary"
+      className="relative flex h-screen flex-col overflow-hidden bg-bg-primary text-fg-primary"
       style={
         dominantColor
           ? ({ '--now-playing-color': dominantColor } as React.CSSProperties)
           : undefined
       }
     >
-      <TopBar user={user} onLogout={handleLogout} />
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-bg-primary"
+      >
+        Skip to content
+      </a>
+      <TopBar user={user} onLogout={handleLogout} onMenuClick={openMobileNav} />
 
       <div className="flex flex-1 min-h-0">
-        <Sidebar config={preferences?.sidebarConfig} playlists={playlists} />
-        <main className="relative flex-1 overflow-y-auto scroll-smooth p-6">
+        <Sidebar
+          config={preferences?.sidebarConfig}
+          playlists={playlists}
+          mobileOpen={mobileNavOpen}
+          onMobileClose={closeMobileNav}
+        />
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="relative flex-1 overflow-y-auto motion-safe:scroll-smooth p-6 focus:outline-none"
+        >
           {children}
         </main>
       </div>

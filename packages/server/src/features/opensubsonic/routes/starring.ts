@@ -7,60 +7,145 @@ import {
   toOpenSubsonicArtist,
   toStarredDate,
   fetchOpenSubsonicSongsByIds,
+  getAlbumMaxMtimesForMany,
 } from './browsing.js';
+import { getAlbumSongStatsForMany } from '../../songs/repository.js';
 import { getAlbumArtistEntriesForMany, getAlbumLabelEntriesForMany } from '../../albums/repository.js';
 import { getAlbumGenreNamesForMany } from '../../genres/repository.js';
 
+type StarredEntityTable = 'songs' | 'albums' | 'artists';
+
+function entityExists(db: Database.Database, table: StarredEntityTable, id: string): boolean {
+  return db.prepare(`SELECT 1 FROM ${table} WHERE id = ?`).get(id) !== undefined;
+}
+
+function handleStar(
+  db: Database.Database,
+  request: FastifyRequest,
+  reply: FastifyReply,
+  starred: boolean,
+): FastifyReply | void {
+  const format = (request as any).subsonicFormat;
+  const userId = (request as any).subsonicUser;
+  const { id, albumId, artistId } = request.query as {
+    id?: string | string[];
+    albumId?: string | string[];
+    artistId?: string | string[];
+  };
+  const songIds = normalizeIds(id);
+  const albumIds = normalizeIds(albumId);
+  const artistIds = normalizeIds(artistId);
+
+  const missing =
+    songIds.some((entityId) => !entityExists(db, 'songs', entityId))
+    || albumIds.some((entityId) => !entityExists(db, 'albums', entityId))
+    || artistIds.some((entityId) => !entityExists(db, 'artists', entityId));
+  if (missing) {
+    return sendSubsonicReply(reply, format, {
+      error: { code: 70, message: 'Data not found' },
+    }, 'failed');
+  }
+
+  for (const songId of songIds) {
+    setStar(db, userId, 'user_songs', 'song_id', songId, starred);
+  }
+  for (const aId of albumIds) {
+    setStar(db, userId, 'user_albums', 'album_id', aId, starred);
+  }
+  for (const aId of artistIds) {
+    setStar(db, userId, 'user_artists', 'artist_id', aId, starred);
+  }
+  sendSubsonicReply(reply, format, {});
+}
+
+function handleGetStarred(
+  db: Database.Database,
+  request: FastifyRequest,
+  reply: FastifyReply,
+  responseKey: 'starred' | 'starred2',
+): void {
+  const format = (request as any).subsonicFormat;
+  const userId = (request as any).subsonicUser as string;
+
+  const songIds = db.prepare('SELECT song_id FROM user_songs WHERE user_id = ? AND starred = 1').pluck().all(userId) as string[];
+  const songs = fetchOpenSubsonicSongsByIds(db, userId, songIds);
+
+  const albumRows = db.prepare(`
+    SELECT a.*, ua.starred, ua.rating,
+      (SELECT AVG(rating) FROM user_albums WHERE album_id = a.id) AS average_rating
+    FROM albums a
+    JOIN user_albums ua ON ua.album_id = a.id AND ua.user_id = ? AND ua.starred = 1
+    WHERE a.active = 1
+  `).all(userId) as AlbumRow[];
+  const albumIds = albumRows.map((a) => a.id);
+  const albumArtistMap = getAlbumArtistEntriesForMany(db, albumIds);
+  const albumLabelMap = getAlbumLabelEntriesForMany(db, albumIds);
+  const albumGenreMap = getAlbumGenreNamesForMany(db, albumIds);
+  const albumStatsMap = getAlbumSongStatsForMany(db, albumIds);
+  const albumMtimeMap = getAlbumMaxMtimesForMany(db, albumIds);
+  const albums = albumRows.map((album) => {
+    const stats = albumStatsMap.get(album.id) ?? { songCount: 0, duration: 0 };
+    const maxMtime = albumMtimeMap.get(album.id);
+    return toOpenSubsonicAlbum(
+      album,
+      [],
+      stats.duration,
+      userId,
+      albumArtistMap.get(album.id),
+      albumGenreMap.get(album.id),
+      albumLabelMap.get(album.id),
+      stats.songCount,
+      maxMtime ? new Date(maxMtime).toISOString() : undefined,
+    );
+  });
+
+  const artistRows = db.prepare(`
+    SELECT ar.*, uar.starred, uar.rating,
+      (SELECT COUNT(*)
+       FROM albums a
+       WHERE a.active = 1
+         AND (a.artist_id = ar.id
+              OR EXISTS (SELECT 1 FROM album_artists aa WHERE aa.album_id = a.id AND aa.artist_id = ar.id))
+      ) AS album_count
+    FROM artists ar
+    JOIN user_artists uar ON uar.artist_id = ar.id AND uar.user_id = ? AND uar.starred = 1
+    WHERE ar.active = 1
+  `).all(userId) as StarredArtistRow[];
+  const artists = artistRows.map((artist) => toOpenSubsonicArtist(artist, userId));
+
+  sendSubsonicReply(reply, format, { [responseKey]: { song: songs, album: albums, artist: artists } });
+}
+
 export function registerStarringRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get('/rest/star.view', (request: FastifyRequest, reply: FastifyReply) => {
-    const format = (request as any).subsonicFormat;
-    const userId = (request as any).subsonicUser;
-    const { id, albumId, artistId } = request.query as {
-      id?: string | string[];
-      albumId?: string | string[];
-      artistId?: string | string[];
-    };
-    for (const songId of normalizeIds(id)) {
-      setStar(db, userId, 'user_songs', 'song_id', songId, true);
-    }
-    for (const aId of normalizeIds(albumId)) {
-      setStar(db, userId, 'user_albums', 'album_id', aId, true);
-    }
-    for (const aId of normalizeIds(artistId)) {
-      setStar(db, userId, 'user_artists', 'artist_id', aId, true);
-    }
-    sendSubsonicReply(reply, format, {});
+    return handleStar(db, request, reply, true);
   });
 
   app.get('/rest/unstar.view', (request: FastifyRequest, reply: FastifyReply) => {
-    const format = (request as any).subsonicFormat;
-    const userId = (request as any).subsonicUser;
-    const { id, albumId, artistId } = request.query as {
-      id?: string | string[];
-      albumId?: string | string[];
-      artistId?: string | string[];
-    };
-    for (const songId of normalizeIds(id)) {
-      setStar(db, userId, 'user_songs', 'song_id', songId, false);
-    }
-    for (const aId of normalizeIds(albumId)) {
-      setStar(db, userId, 'user_albums', 'album_id', aId, false);
-    }
-    for (const aId of normalizeIds(artistId)) {
-      setStar(db, userId, 'user_artists', 'artist_id', aId, false);
-    }
-    sendSubsonicReply(reply, format, {});
+    return handleStar(db, request, reply, false);
   });
 
   app.get('/rest/setRating.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
     const userId = (request as any).subsonicUser;
-    const { id, rating } = request.query as { id: string; rating: string | string[] };
+    const { id, rating } = request.query as { id?: string; rating: string | string[] };
+
+    if (!id) {
+      return sendSubsonicReply(reply, format, {
+        error: { code: 10, message: 'Missing id parameter' },
+      }, 'failed');
+    }
 
     const ratingValue = parseRating(rating);
     if (ratingValue === undefined) {
       return sendSubsonicReply(reply, format, {
         error: { code: 10, message: 'Missing or invalid rating parameter' },
+      }, 'failed');
+    }
+
+    if (!entityExists(db, 'songs', id)) {
+      return sendSubsonicReply(reply, format, {
+        error: { code: 70, message: 'Data not found' },
       }, 'failed');
     }
 
@@ -81,47 +166,34 @@ export function registerStarringRoutes(app: FastifyInstance, db: Database.Databa
   app.get('/rest/scrobble.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
     const userId = (request as any).subsonicUser;
-    const { id } = request.query as { id: string | string[] };
-    for (const songId of normalizeIds(id)) {
+    const { id, submission } = request.query as { id: string | string[]; submission?: string };
+
+    // submission=false marks a "now playing" notification, not a scrobble.
+    const isSubmission = submission === undefined || submission === '' || submission === 'true';
+    if (!isSubmission) {
+      return sendSubsonicReply(reply, format, {});
+    }
+
+    const songIds = normalizeIds(id);
+    if (songIds.some((songId) => !entityExists(db, 'songs', songId))) {
+      return sendSubsonicReply(reply, format, {
+        error: { code: 70, message: 'Data not found' },
+      }, 'failed');
+    }
+
+    for (const songId of songIds) {
       scrobbleSong(db, userId, songId, { client: 'subsonic' });
     }
     sendSubsonicReply(reply, format, {});
   });
 
   app.get('/rest/getStarred2.view', (request: FastifyRequest, reply: FastifyReply) => {
-    const format = (request as any).subsonicFormat;
-    const userId = (request as any).subsonicUser as string;
+    handleGetStarred(db, request, reply, 'starred2');
+  });
 
-    const songIds = db.prepare('SELECT song_id FROM user_songs WHERE user_id = ? AND starred = 1').pluck().all(userId) as string[];
-    const songs = fetchOpenSubsonicSongsByIds(db, userId, songIds);
-
-    const albumRows = db.prepare(`
-      SELECT a.*, ua.starred, ua.rating,
-        (SELECT AVG(rating) FROM user_albums WHERE album_id = a.id) AS average_rating
-      FROM albums a
-      JOIN user_albums ua ON ua.album_id = a.id AND ua.user_id = ? AND ua.starred = 1
-      WHERE a.active = 1
-    `).all(userId) as AlbumRow[];
-    const albumArtistMap = getAlbumArtistEntriesForMany(db, albumRows.map((a) => a.id));
-    const albumLabelMap = getAlbumLabelEntriesForMany(db, albumRows.map((a) => a.id));
-    const albumGenreMap = getAlbumGenreNamesForMany(db, albumRows.map((a) => a.id));
-    const albums = albumRows.map((album) => toOpenSubsonicAlbum(album, [], 0, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), albumLabelMap.get(album.id)));
-
-    const artistRows = db.prepare(`
-      SELECT ar.*, uar.starred, uar.rating,
-        (SELECT COUNT(*)
-         FROM albums a
-         WHERE a.active = 1
-           AND (a.artist_id = ar.id
-                OR EXISTS (SELECT 1 FROM album_artists aa WHERE aa.album_id = a.id AND aa.artist_id = ar.id))
-        ) AS album_count
-      FROM artists ar
-      JOIN user_artists uar ON uar.artist_id = ar.id AND uar.user_id = ? AND uar.starred = 1
-      WHERE ar.active = 1
-    `).all(userId) as StarredArtistRow[];
-    const artists = artistRows.map((artist) => toOpenSubsonicArtist(artist, userId));
-
-    sendSubsonicReply(reply, format, { starred2: { song: songs, album: albums, artist: artists } });
+  // Legacy API: same payload as getStarred2 under the `starred` key.
+  app.get('/rest/getStarred.view', (request: FastifyRequest, reply: FastifyReply) => {
+    handleGetStarred(db, request, reply, 'starred');
   });
 }
 

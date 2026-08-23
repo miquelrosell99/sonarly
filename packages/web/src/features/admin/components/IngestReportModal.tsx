@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { StatusPill } from './StatusPill.js';
 import { Icon } from '../../../components/ui/Icon.js';

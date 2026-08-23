@@ -8,6 +8,7 @@ interface PlayingIndicatorProps {
 export function PlayingIndicator({ size = 16, className }: PlayingIndicatorProps) {
   return (
     <div
+      role="img"
       className={cn('flex items-end justify-center gap-[2px]', className)}
       style={{ width: size, height: size }}
       aria-label="Playing"

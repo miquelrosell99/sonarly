@@ -6,10 +6,9 @@ import { computeChecksum } from '../tags/index.js';
 export function buildTargetPath(pattern: string, libraryPath: string, tags: SongTags, originalPath: string): string {
   const ext = extname(originalPath);
   const variables = buildVariables(tags);
-  // The extension is always appended; strip any legacy {ext} token so existing
-  // stored patterns keep working without requiring users to include it.
-  const patternWithoutExt = pattern.replace(/\{ext\}/g, '');
-  const relativePath = patternWithoutExt.replace(/\{([a-zA-Z0-9:]+)\}/g, (_, token) => {
+  // The extension is always appended from the source file, so patterns never
+  // need an {ext} token (an unknown token simply expands to an empty string).
+  const relativePath = pattern.replace(/\{([a-zA-Z0-9:]+)\}/g, (_, token) => {
     return variables[token] ?? '';
   });
   const sanitized = relativePath.split('/').map(sanitize).join('/');
@@ -88,7 +87,7 @@ function isExdev(err: unknown): boolean {
   return err instanceof Error && (err as NodeJS.ErrnoException).code === 'EXDEV';
 }
 
-async function resolveDuplicateTarget(targetPath: string): Promise<string> {
+export async function resolveDuplicateTarget(targetPath: string): Promise<string> {
   if (!(await fileExists(targetPath))) return targetPath;
   const { dir, name, ext } = parse(targetPath);
   let counter = 1;

@@ -174,7 +174,7 @@ describe('OpenSubsonic retrieval endpoints', () => {
   it('sets the download filename from the file path basename', async () => {
     const res = await app.inject({ method: 'GET', url: query('/rest/download.view?id=song-1', 'json') });
     expect(res.statusCode).toBe(200);
-    expect(res.headers['content-disposition']).toBe('attachment; filename="sample.mp3"');
+    expect(res.headers['content-disposition']).toBe(`attachment; filename="sample.mp3"; filename*=UTF-8''sample.mp3`);
   });
 
   it('returns 404 when downloading a missing song', async () => {

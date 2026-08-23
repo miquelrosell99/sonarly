@@ -218,14 +218,15 @@ function compileRuleGroup(ctx: CompilerContext, group: SmartPlaylistRuleGroup): 
   return parts.join(' AND ');
 }
 
-function buildSortClause(sort: SmartPlaylistSort[]): string {
+function buildSortClause(ctx: CompilerContext, sort: SmartPlaylistSort[]): string {
   const clauses: string[] = [];
   for (const s of sort) {
     if ('random' in s) {
       clauses.push('RANDOM()');
       continue;
     }
-    const { expr } = fieldColumn(s.field);
+    const { expr, needsJoin } = fieldColumn(s.field);
+    ensureJoin(ctx, needsJoin);
     const direction = s.direction === 'desc' ? 'DESC' : 'ASC';
     clauses.push(`${expr} ${direction}`);
   }
@@ -285,8 +286,8 @@ export function compileSmartPlaylist(
     where = compileRuleGroup(ctx, normalized.rules);
   }
 
+  const orderBy = normalized.sort && normalized.sort.length > 0 ? buildSortClause(ctx, normalized.sort) : '';
   const joins = buildJoins(ctx.joins);
-  const orderBy = normalized.sort && normalized.sort.length > 0 ? buildSortClause(normalized.sort) : '';
 
   const userIdParam = ctx.joins.has('userSongs') ? [userId] : [];
   const baseWhereParams = [...ctx.params];

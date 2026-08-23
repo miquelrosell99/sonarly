@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'wouter';
 import type { Song as SharedSong, User } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { cn } from '../../../lib/cn.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
@@ -29,6 +29,7 @@ interface Album {
   name: string;
   artistId?: string;
   artistName?: string;
+  albumType?: string;
   year?: number;
   genre?: string;
   coverArt?: string;
@@ -57,6 +58,10 @@ function SongContextMenu({
 }) {
   const sections = useSongsContextMenu(songs as SharedSong[], onEdit, isAdmin);
   return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+}
+
+function formatAlbumType(value: string): string {
+  return value.length <= 3 ? value.toUpperCase() : value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 export function Album({ user }: { user: User }) {
@@ -278,6 +283,7 @@ export function Album({ user }: { user: User }) {
   const metadata = detail
     ? [
         { label: detail.album.artistName ?? 'Unknown artist', href: detail.album.artistId ? `/artists/${detail.album.artistId}` : undefined },
+        { label: detail.album.albumType ? formatAlbumType(detail.album.albumType) : '' },
         { label: detail.album.year !== undefined && detail.album.year !== null ? String(detail.album.year) : '', href: detail.album.year !== undefined ? `/years/${detail.album.year}` : undefined },
         { label: detail.album.genre ?? '', href: detail.album.genre ? `/genres/${encodeURIComponent(detail.album.genre)}` : undefined },
       ]

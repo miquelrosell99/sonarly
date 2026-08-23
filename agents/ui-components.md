@@ -22,16 +22,17 @@ Shared components live in `packages/web/src/components/`. Use them for consisten
 | `EntityHeader` | `components/EntityHeader.tsx` | Reusable header with cover, title, metadata chips, and actions. |
 | `MetadataBreadcrumb` | `components/MetadataBreadcrumb.tsx` | Horizontal metadata chips with optional links. |
 | `ExplicitTitle` | `components/ExplicitTitle.tsx` | Title text with explicit-content badge and blur toggle. |
-| `PageState` | `components/PageState.tsx` | Loading, empty, and error states for pages. |
+| `PageState` | `components/PageState.tsx` | Loading, empty, and error states for pages. Loading renders `role="status"` with a spinner; error renders `role="alert"` with an icon and an optional `onRetry` button; empty accepts an optional `emptyIcon`. All pages must use it instead of hand-rolled state blocks. |
 | `Avatar` | `components/Avatar.tsx` | User avatar with placeholder fallback. |
-| `Button` | `components/ui/Button.tsx` | Button primitive. |
+| `Button` | `components/ui/Button.tsx` | Button primitive. Optional `loading` prop shows a spinner and disables the button. |
 | `Input` | `components/ui/Input.tsx` | Text input primitive. |
 | `Icon` | `components/ui/Icon.tsx` | Icon renderer. |
 | `Table` | `components/ui/Table.tsx` | Generic table component. |
-| `AutocompleteInput` | `components/ui/AutocompleteInput.tsx` | Autocomplete input primitive. Supports ref forwarding and an `onValueSelect` callback for use inside `PillInput`. |
+| `AutocompleteInput` | `components/ui/AutocompleteInput.tsx` | Autocomplete input primitive backed by `/api/suggestions` (fields: artist, album, albumArtist, genre, albumType via the `AutocompleteField` union). Supports ref forwarding and an `onValueSelect` callback for use inside `PillInput`. |
 | `PillInput` | `components/ui/PillInput.tsx` | Multi-value pill list with inline autocomplete. Used for artists and genres in edit and metadata-fetch modals. |
 | `ProgressBar` | `components/ui/ProgressBar.tsx` | Progress indicator. |
 | `SongTable` | `features/songs/components/SongTable.tsx` | Opinionated song table; accepts `SongListItem` rows. |
+| `SharePlaylistModal` | `features/playlists/components/SharePlaylistModal.tsx` | Playlist sharing: visibility cards (private/shared/public/link), share-link copy, and per-user shares with view/edit roles. Owner-only, opened from the playlist detail header. |
 | `TrackList` | `features/songs/components/TrackList.tsx` | Simple vertical list of tracks. |
 | `AlbumList` | `features/albums/components/AlbumList.tsx` | Simple vertical list of albums. |
 
