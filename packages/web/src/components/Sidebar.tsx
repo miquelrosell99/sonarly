@@ -19,7 +19,7 @@ interface SidebarProps {
 }
 
 const LIBRARY_LINKS = [
-  { id: 'home', href: '/', label: 'Home', icon: 'mdi-home' },
+  { id: 'home', href: '/home', label: 'Home', icon: 'mdi-home' },
   { id: 'albums', href: '/albums', label: 'Albums', icon: 'mdi-album' },
   { id: 'tracks', href: '/tracks', label: 'Tracks', icon: 'mdi-music' },
   { id: 'album-artists', href: '/album-artists', label: 'Album Artists', icon: 'mdi-account-music' },

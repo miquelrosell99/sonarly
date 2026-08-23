@@ -201,7 +201,7 @@ export function NowPlaying({ user }: NowPlayingProps) {
         <button
           type="button"
           onClick={async () => {
-            const url = `${window.location.origin}/now-playing/${queueContext.type}/${queueContext.id}/${currentSong.id}`;
+            const url = `${window.location.origin}/now-playing/${queueContext.type}/${encodeURIComponent(queueContext.id)}/${currentSong.id}`;
             try {
               await navigator.clipboard.writeText(url);
               notify('Link copied', 'success');

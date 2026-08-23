@@ -10,6 +10,8 @@ import { PlaylistDetail } from '../../playlists/pages/PlaylistDetail.js';
 import { GuestPlaylist } from '../../playlists/pages/GuestPlaylist.js';
 import { Album } from '../../albums/pages/Album.js';
 import { Genre } from '../../genres/pages/Genre.js';
+import { Composer } from '../../composers/pages/Composer.js';
+import { Label } from '../../labels/pages/Label.js';
 
 interface PlaylistDetailResponse {
   playlist: { entries: ({ id: string; artist?: string; album?: string } & Record<string, unknown>)[] };
@@ -29,7 +31,10 @@ interface SongsResponse {
 // returns to the plain context path, and sharing/refreshing the URL resumes
 // playback of that song in its context.
 export function NowPlayingRoute({ user }: { user: User | null }) {
-  const { context, contextId, songId } = useParams<{ context: string; contextId: string; songId: string }>();
+  const { context, contextId: rawContextId, songId } = useParams<{ context: string; contextId: string; songId: string }>();
+  // wouter does not decode params; name-based contexts (genre/composer/label)
+  // arrive percent-encoded.
+  const contextId = rawContextId ? decodeURIComponent(rawContextId) : '';
   const [, setLocation] = useLocation();
   const playQueue = usePlayer((state) => state.playQueue);
   const queueContext = usePlayer((state) => state.queueContext);
@@ -44,10 +49,13 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
   const shareToken = getShareToken();
   const isGuest = Boolean(shareToken);
 
-  const valid = context === 'playlist' || context === 'album' || context === 'genre';
+  const valid = ['playlist', 'album', 'genre', 'composer', 'label'].includes(context);
+  const encodedId = encodeURIComponent(contextId);
   const contextPath =
     context === 'album' ? `/albums/${contextId}`
-    : context === 'genre' ? `/genres/${encodeURIComponent(contextId)}`
+    : context === 'genre' ? `/genres/${encodedId}`
+    : context === 'composer' ? `/composers/${encodedId}`
+    : context === 'label' ? `/labels/${encodedId}`
     : `/playlists/${contextId}`;
 
   // Load the context's songs once per context.
@@ -71,7 +79,8 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
         const detail = await api<AlbumDetailResponse>(`/albums/${contextId}`);
         songs = detail.album.songs as unknown as PlayerSong[];
       } else {
-        const res = await api<SongsResponse>(`/songs?genre=${encodeURIComponent(contextId)}`);
+        const filterKey = context === 'genre' ? 'genre' : context === 'composer' ? 'composer' : 'label';
+        const res = await api<SongsResponse>(`/songs?${filterKey}=${encodeURIComponent(contextId)}`);
         songs = res.songs as unknown as PlayerSong[];
       }
       if (cancelled) return;
@@ -109,7 +118,7 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
   useEffect(() => {
     if (!ready || !isOpen || !currentSong || currentSong.id === songId) return;
     if (queueContext?.type !== context || queueContext.id !== contextId) return;
-    setLocation(`/now-playing/${context}/${contextId}/${currentSong.id}`, { replace: true });
+    setLocation(`/now-playing/${context}/${encodedId}/${currentSong.id}`, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSong?.id]);
 
@@ -134,6 +143,12 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
   }
   if (context === 'genre') {
     return <Genre />;
+  }
+  if (context === 'composer') {
+    return <Composer />;
+  }
+  if (context === 'label') {
+    return <Label />;
   }
   return user ? <Album user={user} /> : <PageState error="Sign in to view this album">{null}</PageState>;
 }
