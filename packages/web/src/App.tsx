@@ -8,6 +8,7 @@ import { HomePage } from './features/home/index.js';
 import { Playlists } from './features/playlists/index.js';
 import { PlaylistDetail } from './features/playlists/index.js';
 import { GuestPlaylist } from './features/playlists/index.js';
+import { NowPlayingRoute } from './features/now-playing/index.js';
 import { Organize } from './features/organize/index.js';
 import {
   AdminStatus,
@@ -206,6 +207,7 @@ export default function App() {
           <Route path="/search" component={() => <SearchResults user={user} />} />
           <Route path="/playlists" component={Playlists} />
           <Route path="/playlists/:id" component={() => <PlaylistDetail user={user} />} />
+          <Route path="/now-playing/:context/:contextId/:songId" component={NowPlayingRoute} />
           <Route path="/albums" component={() => <Albums user={user} />} />
           <Route path="/albums/:id" component={() => <Album user={user} />} />
           <Route path="/artists" component={Artists} />
