@@ -12,6 +12,18 @@ interface UseServerEventsOptions {
 
 const SSE_URL = '/api/events';
 
+// Query key prefixes affected by library content changes (scan/ingest/etc).
+const LIBRARY_QUERY_PREFIXES = [
+  'songs',
+  'albums',
+  'artists',
+  'genres',
+  'years',
+  'playlists',
+  'playlist',
+  'search',
+] as const;
+
 export function useServerEvents(options: UseServerEventsOptions = {}): void {
   const { enabled = true } = options;
   const queryClient = useQueryClient();
@@ -39,7 +51,9 @@ export function useServerEvents(options: UseServerEventsOptions = {}): void {
         window.dispatchEvent(
           new CustomEvent('sonarly:library-changed', { detail: data }),
         );
-        queryClient.invalidateQueries({ queryKey: [] });
+        for (const prefix of LIBRARY_QUERY_PREFIXES) {
+          queryClient.invalidateQueries({ queryKey: [prefix] });
+        }
       }
     };
 

@@ -46,7 +46,7 @@ describe('StarRating', () => {
       bottom: 24,
       toJSON: () => undefined,
     });
-    fireEvent.click(star3, { clientX: 20 });
+    fireEvent.click(star3, { clientX: 20, detail: 1 });
     expect(onRate).toHaveBeenCalledWith(3);
   });
 
@@ -65,8 +65,16 @@ describe('StarRating', () => {
       bottom: 24,
       toJSON: () => undefined,
     });
-    fireEvent.click(star3, { clientX: 4 });
+    fireEvent.click(star3, { clientX: 4, detail: 1 });
     expect(onRate).toHaveBeenCalledWith(2.5);
+  });
+
+  it('selects the full star for keyboard-origin clicks (detail 0)', () => {
+    const onRate = vi.fn();
+    render(<StarRating rating={0} onRate={onRate} />);
+    const star3 = screen.getByRole('button', { name: /rate 3 stars/i });
+    fireEvent.click(star3, { detail: 0 });
+    expect(onRate).toHaveBeenCalledWith(3);
   });
 
   it('clears the rating when the current value is clicked', () => {

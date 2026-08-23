@@ -6,7 +6,7 @@ const mockApi = vi.hoisted(() => vi.fn());
 const mockSetFavorite = vi.hoisted(() => vi.fn());
 const mockSetRating = vi.hoisted(() => vi.fn());
 
-vi.mock('../api.js', () => ({
+vi.mock('../lib/api.js', () => ({
   api: mockApi,
 }));
 

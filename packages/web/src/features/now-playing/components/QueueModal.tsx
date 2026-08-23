@@ -92,7 +92,6 @@ export function QueueModal({ user }: QueueModalProps) {
           <div
             ref={panelRef}
             role="dialog"
-            aria-modal="true"
             aria-label="Queue"
             style={style}
             className={cn(

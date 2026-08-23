@@ -69,6 +69,7 @@ export interface AudioMetadata {
   gapless?: boolean;
   totalTracks?: string;
   totalDiscs?: string;
+  albumType?: string;
 }
 
 /**
@@ -80,6 +81,7 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
   const common = metadata.common;
   const picture = common.picture?.[0];
   const replayGain = common.replaygain_track_gain?.dB ?? common.replaygain_track_gain_ratio ?? undefined;
+  const filteredGenres = common.genre?.filter(Boolean) ?? [];
 
   return {
     tags: {
@@ -89,7 +91,8 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
       albumArtist: common.albumartist,
       trackNumber: common.track.no ?? undefined,
       discNumber: common.disk.no ?? undefined,
-      genre: common.genre?.filter(Boolean)[0] ?? common.genre?.filter(Boolean).join(' / '),
+      // Return undefined (not '') when the genre array filters to empty.
+      genre: filteredGenres.length > 0 ? filteredGenres[0] ?? filteredGenres.join(' / ') : undefined,
       year: common.year,
       explicit: detectExplicit(metadata.native),
     },
@@ -102,7 +105,7 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
     },
     hasCoverArt: picture !== undefined,
     coverArt: picture ? { data: Buffer.from(picture.data), format: picture.format } : undefined,
-    genres: common.genre?.filter(Boolean).length ? common.genre.filter(Boolean) : undefined,
+    genres: filteredGenres.length ? filteredGenres : undefined,
     bpm: common.bpm ?? undefined,
     musicBrainzId: common.musicbrainz_recordingid ?? undefined,
     musicBrainzTrackId: common.musicbrainz_trackid ?? undefined,
@@ -140,6 +143,7 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
     gapless: common.gapless ?? undefined,
     totalTracks: common.track.of?.toString() ?? common.totaltracks ?? undefined,
     totalDiscs: common.disk.of?.toString() ?? common.totaldiscs ?? undefined,
+    albumType: common.releasetype?.[0] ?? undefined,
   };
 }
 
@@ -177,9 +181,6 @@ function extractSyncedLyrics(metadata: IAudioMetadata): SyncedLyricLine[] | unde
 
   return undefined;
 }
-
-/** Backward-compatible alias for {@link readMetadata}. */
-export const readTags = readMetadata;
 
 function getFilenameFallback(filePath: string): string {
   return path.basename(filePath).replace(/\.[^.]+$/, '');

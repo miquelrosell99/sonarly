@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';

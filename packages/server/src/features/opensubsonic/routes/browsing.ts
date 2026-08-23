@@ -76,6 +76,7 @@ interface SongRow {
   display_album_artist: string | null;
   album_name: string | null;
   artist_name: string | null;
+  library_path?: string | null;
   producers: string | null;
   isrcs: string | null;
   original_year: number | null;
@@ -164,16 +165,18 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       }, 'failed');
     }
     const songs = db.prepare(`
-      SELECT s.*, a.name AS album_name, ar.name AS artist_name,
+      SELECT s.*, a.name AS album_name, ar.name AS artist_name, l.path AS library_path,
         us.starred, us.rating, us.play_count
       FROM songs s
       LEFT JOIN albums a ON a.id = s.album_id
       LEFT JOIN artists ar ON ar.id = s.artist_id
+      LEFT JOIN libraries l ON l.id = s.library_id
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
       WHERE s.album_id = ? AND s.active = 1
       ORDER BY s.disc_number, s.track_number
     `).all(userId ?? null, id) as (SongRow & { starred: number | null; rating: number | null; play_count: number | null })[];
     const duration = songs.reduce((sum, s) => sum + (s.duration ?? 0), 0);
+    const maxMtime = songs.reduce((max, s) => Math.max(max, s.mtime ?? 0), 0);
     const songArtistMap = getSongArtistEntriesForMany(db, songs.map((s) => s.id));
     const songComposerMap = getSongComposerEntriesForMany(db, songs.map((s) => s.id));
     const songGenreMap = getSongGenreNamesForMany(db, songs.map((s) => s.id));
@@ -181,7 +184,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const albumLabelEntries = getAlbumLabelEntriesForMany(db, [album.id]).get(album.id);
     const openSubsonicSongs = songs.map((s) => toOpenSubsonicSong(s, userId, songArtistMap.get(s.id), songGenreMap.get(s.id), songComposerMap.get(s.id)));
     sendSubsonicReply(reply, format, {
-      album: toOpenSubsonicAlbum(album, openSubsonicSongs, duration, userId, undefined, albumGenreNames, albumLabelEntries),
+      album: toOpenSubsonicAlbum(album, openSubsonicSongs, duration, userId, undefined, albumGenreNames, albumLabelEntries, undefined, maxMtime > 0 ? new Date(maxMtime).toISOString() : undefined),
     });
   });
 
@@ -190,11 +193,12 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const userId = (request as any).subsonicUser as string | undefined;
     const { id } = request.query as { id: string };
     const song = db.prepare(`
-      SELECT s.*, a.name AS album_name, ar.name AS artist_name,
+      SELECT s.*, a.name AS album_name, ar.name AS artist_name, l.path AS library_path,
         us.starred, us.rating, us.play_count
       FROM songs s
       LEFT JOIN albums a ON a.id = s.album_id
       LEFT JOIN artists ar ON ar.id = s.artist_id
+      LEFT JOIN libraries l ON l.id = s.library_id
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
       WHERE s.id = ? AND s.active = 1
     `).get(userId ?? null, id) as (SongRow & { starred: number | null; rating: number | null; play_count: number | null }) | undefined;
@@ -240,6 +244,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const albumLabelMap = getAlbumLabelEntriesForMany(db, albumIds);
     const albumGenreMap = getAlbumGenreNamesForMany(db, albumIds);
     const albumStatsMap = getAlbumSongStatsForMany(db, albumIds);
+    const albumMtimeMap = getAlbumMaxMtimesForMany(db, albumIds);
     sendSubsonicReply(reply, format, {
       artist: {
         id: artist.id,
@@ -250,7 +255,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
         albumCount: albums.length,
         album: albums.map((album) => {
           const stats = albumStatsMap.get(album.id) ?? { songCount: 0, duration: 0 };
-          return toOpenSubsonicAlbum(album, [], stats.duration, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), albumLabelMap.get(album.id), stats.songCount);
+          return toOpenSubsonicAlbum(album, [], stats.duration, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), albumLabelMap.get(album.id), stats.songCount, albumCreatedAt(albumMtimeMap, album.id));
         }),
         ...(userId ? toArtistInteractions(artist) : {}),
       },
@@ -262,7 +267,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const userId = (request as any).subsonicUser as string | undefined;
     const query = request.query as Record<string, string>;
     const type = query.type || 'alphabeticalByName';
-    const size = Number.parseInt(query.size || '20', 10);
+    const size = Math.min(Number.parseInt(query.size || '20', 10), 500);
     const offset = Number.parseInt(query.offset || '0', 10);
     const genre = query.genre;
     const fromYear = query.fromYear ? Number.parseInt(query.fromYear, 10) : undefined;
@@ -359,20 +364,22 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       const albumLabelMap = getAlbumLabelEntriesForMany(db, albumIds);
       const albumGenreMap = getAlbumGenreNamesForMany(db, albumIds);
       const albumStatsMap = getAlbumSongStatsForMany(db, albumIds);
+      const albumMtimeMap = getAlbumMaxMtimesForMany(db, albumIds);
       result.album = albums.map((album) => {
         const stats = albumStatsMap.get(album.id) ?? { songCount: 0, duration: 0 };
-        return toOpenSubsonicAlbum(album, [], stats.duration, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), albumLabelMap.get(album.id), stats.songCount);
+        return toOpenSubsonicAlbum(album, [], stats.duration, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), albumLabelMap.get(album.id), stats.songCount, albumCreatedAt(albumMtimeMap, album.id));
       });
     }
 
     const songWhere = term ? "AND (s.title LIKE ? ESCAPE '\\' OR ar.name LIKE ? ESCAPE '\\' OR a.name LIKE ? ESCAPE '\\')" : '';
     const songParams = term ? [userId ?? null, like, like, like, songCount, songOffset] : [userId ?? null, songCount, songOffset];
     const songs = db.prepare(`
-      SELECT s.*, a.name AS album_name, ar.name AS artist_name,
+      SELECT s.*, a.name AS album_name, ar.name AS artist_name, l.path AS library_path,
         us.starred, us.rating, us.play_count
       FROM songs s
       LEFT JOIN albums a ON a.id = s.album_id
       LEFT JOIN artists ar ON ar.id = s.artist_id
+      LEFT JOIN libraries l ON l.id = s.library_id
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
       WHERE s.active = 1 ${songWhere}
       ORDER BY s.title
@@ -393,7 +400,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const userId = (request as any).subsonicUser as string | undefined;
     const query = request.query as Record<string, string>;
     const type = query.type || 'alphabeticalByName';
-    const size = Number.parseInt(query.size || '20', 10);
+    const size = Math.min(Number.parseInt(query.size || '20', 10), 500);
     const offset = Number.parseInt(query.offset || '0', 10);
     const genre = query.genre;
     const fromYear = query.fromYear ? Number.parseInt(query.fromYear, 10) : undefined;
@@ -407,7 +414,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const userId = (request as any).subsonicUser as string | undefined;
     const query = request.query as Record<string, string>;
     const genre = query.genre ?? '';
-    const size = Number.parseInt(query.size || '10', 10);
+    const size = Math.min(Number.parseInt(query.size || '10', 10), 500);
     const offset = Number.parseInt(query.offset || '0', 10);
 
     if (!genre) {
@@ -551,6 +558,7 @@ export function toOpenSubsonicAlbum(
   genreNames?: string[],
   labelEntries?: { id: string; name: string }[],
   songCount?: number,
+  createdAt?: string,
 ): Record<string, unknown> {
   const artists = artistEntries && artistEntries.length > 0
     ? artistEntries
@@ -571,7 +579,8 @@ export function toOpenSubsonicAlbum(
     parent: artists[0]?.id ?? album.artist_id ?? '',
     songCount: songCount ?? songs.length,
     duration: Math.round(duration),
-    created: new Date().toISOString(),
+    // `created` is when the album was added, approximated by the newest song mtime.
+    created: createdAt ?? new Date(0).toISOString(),
   };
   if (album.year !== null && album.year !== undefined) {
     result.year = album.year;
@@ -757,6 +766,10 @@ export function toOpenSubsonicSong(
 
   const songGenreName = (genreNames?.[0] ?? song.genre) || undefined;
   const songGenres = (genreNames ?? (song.genre ? [song.genre] : [])).map((name) => ({ name }));
+  // Subsonic `path` must be library-relative, never the absolute server path.
+  const relativePath = song.library_path && song.file_path.startsWith(song.library_path)
+    ? path.relative(song.library_path, song.file_path)
+    : path.basename(song.file_path);
   const result: Record<string, unknown> = {
     id: song.id,
     parent: song.album_id ?? '',
@@ -775,7 +788,7 @@ export function toOpenSubsonicSong(
     isVideo: false,
     coverArt: song.cover_art_id ?? song.album_id ?? '',
     created: new Date(song.mtime).toISOString(),
-    path: song.file_path,
+    path: relativePath,
     size,
     suffix,
     contentType,
@@ -798,7 +811,8 @@ export function toOpenSubsonicSong(
   }
 
   if (song.bit_rate !== null && song.bit_rate !== undefined && song.bit_rate > 0) {
-    result.bitRate = Math.round(song.bit_rate);
+    // bit_rate is stored in bits/sec (e.g. 320000); Subsonic bitRate is kbps.
+    result.bitRate = Math.round(song.bit_rate / 1000);
   }
   if (song.bits_per_sample !== null && song.bits_per_sample !== undefined && song.bits_per_sample > 0) {
     result.bitDepth = song.bits_per_sample;
@@ -896,13 +910,38 @@ export function toOpenSubsonicSong(
   return result;
 }
 
+export function getAlbumMaxMtimesForMany(
+  db: Database.Database,
+  albumIds: string[],
+): Map<string, number> {
+  const map = new Map<string, number>();
+  if (albumIds.length === 0) return map;
+  const placeholders = albumIds.map(() => '?').join(',');
+  const rows = db.prepare(`
+    SELECT album_id, MAX(mtime) AS max_mtime
+    FROM songs
+    WHERE album_id IN (${placeholders}) AND active = 1
+    GROUP BY album_id
+  `).all(...albumIds) as { album_id: string; max_mtime: number | null }[];
+  for (const row of rows) {
+    if (row.max_mtime !== null) map.set(row.album_id, row.max_mtime);
+  }
+  return map;
+}
+
+function albumCreatedAt(maxMtimes: Map<string, number>, albumId: string): string | undefined {
+  const mtime = maxMtimes.get(albumId);
+  return mtime ? new Date(mtime).toISOString() : undefined;
+}
+
 function songSelectSql(userIdPlaceholder: string): string {
   return `
-    SELECT s.*, a.name AS album_name, ar.name AS artist_name,
+    SELECT s.*, a.name AS album_name, ar.name AS artist_name, l.path AS library_path,
       us.starred, us.rating, us.play_count
     FROM songs s
     LEFT JOIN albums a ON a.id = s.album_id
     LEFT JOIN artists ar ON ar.id = s.artist_id
+    LEFT JOIN libraries l ON l.id = s.library_id
     LEFT JOIN user_songs us ON us.user_id = ${userIdPlaceholder} AND us.song_id = s.id
   `;
 }
@@ -927,11 +966,12 @@ export function fetchOpenSubsonicSongsByIds(
   if (ids.length === 0) return [];
   const placeholders = ids.map(() => '?').join(',');
   const rows = db.prepare(`
-    SELECT s.*, a.name AS album_name, ar.name AS artist_name,
+    SELECT s.*, a.name AS album_name, ar.name AS artist_name, l.path AS library_path,
       us.starred, us.rating, us.play_count
     FROM songs s
     LEFT JOIN albums a ON a.id = s.album_id
     LEFT JOIN artists ar ON ar.id = s.artist_id
+    LEFT JOIN libraries l ON l.id = s.library_id
     LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
     WHERE s.active = 1 AND s.id IN (${placeholders})
   `).all(userId ?? null, ...ids) as (SongRow & Partial<SongInteractions>)[];
@@ -956,6 +996,7 @@ function fetchAlbumList(
     WHERE a.active = 1
   `;
   const params: (string | number | null)[] = [userId ?? null];
+  const orderParams: (string | number | null)[] = [];
 
   if (genre) {
     sql += ` AND EXISTS (
@@ -979,11 +1020,31 @@ function fetchAlbumList(
       sql += ' ORDER BY a.name';
       break;
     case 'newest':
-      sql += ' ORDER BY a.year DESC NULLS LAST, a.name';
+      // Recently added: newest song mtime per album.
+      sql += ` ORDER BY (
+        SELECT MAX(s2.mtime) FROM songs s2
+        WHERE s2.album_id = a.id AND s2.active = 1
+      ) DESC NULLS LAST, a.name`;
       break;
     case 'recent':
+      // Recently played by this user.
+      sql += ` ORDER BY (
+        SELECT MAX(us2.last_played)
+        FROM user_songs us2
+        JOIN songs s2 ON s2.id = us2.song_id AND s2.active = 1
+        WHERE s2.album_id = a.id AND us2.user_id = ?
+      ) DESC NULLS LAST, a.name`;
+      orderParams.push(userId ?? null);
+      break;
     case 'frequent':
-      sql += ' ORDER BY a.year DESC NULLS LAST, a.name';
+      // Most played by this user.
+      sql += ` ORDER BY (
+        SELECT SUM(us2.play_count)
+        FROM user_songs us2
+        JOIN songs s2 ON s2.id = us2.song_id AND s2.active = 1
+        WHERE s2.album_id = a.id AND us2.user_id = ?
+      ) DESC NULLS LAST, a.name`;
+      orderParams.push(userId ?? null);
       break;
     case 'random':
       sql += ' ORDER BY RANDOM()';
@@ -1004,7 +1065,7 @@ function fetchAlbumList(
   }
 
   sql += ' LIMIT ? OFFSET ?';
-  params.push(size, offset);
+  params.push(...orderParams, size, offset);
 
   const albums = db.prepare(sql).all(...params) as (AlbumRow & AlbumInteractions)[];
   const albumIds = albums.map((a) => a.id);
@@ -1012,9 +1073,10 @@ function fetchAlbumList(
   const albumLabelMap = getAlbumLabelEntriesForMany(db, albumIds);
   const albumGenreMap = getAlbumGenreNamesForMany(db, albumIds);
   const albumStatsMap = getAlbumSongStatsForMany(db, albumIds);
+  const albumMtimeMap = getAlbumMaxMtimesForMany(db, albumIds);
   return albums.map((album) => {
     const stats = albumStatsMap.get(album.id) ?? { songCount: 0, duration: 0 };
-    return toOpenSubsonicAlbum(album, [], stats.duration, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), albumLabelMap.get(album.id), stats.songCount);
+    return toOpenSubsonicAlbum(album, [], stats.duration, userId, albumArtistMap.get(album.id), albumGenreMap.get(album.id), albumLabelMap.get(album.id), stats.songCount, albumCreatedAt(albumMtimeMap, album.id));
   });
 }
 

@@ -7,13 +7,13 @@ import { isDuplicateStrategy } from '@sonarly/shared';
 import { getLibraryById } from '../libraries/repository.js';
 import { pushJob } from '../library/queue.js';
 import { createUploadSession, getUploadSession, deleteUploadSession } from './repository.js';
-import { writeChunk, reassembleFile, moveSessionFilesToIngest, removeSessionDirectory } from './chunked.js';
+import { writeChunk, reassembleFile, moveSessionFilesToIngest, removeSessionDirectory, isValidFileId, isSafeRelativePath, MAX_TOTAL_CHUNKS } from './chunked.js';
 
 const sessionSchema = z.object({
   libraryId: z.string().uuid(),
   duplicateStrategy: z.string().optional(),
 });
-const completeFileSchema = z.object({ totalChunks: z.number().int().min(1), relativePath: z.string().min(1) });
+const completeFileSchema = z.object({ totalChunks: z.number().int().min(1).max(MAX_TOTAL_CHUNKS), relativePath: z.string().min(1) });
 
 function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | undefined): boolean {
   if (!session?.isAdmin) {
@@ -44,6 +44,11 @@ export function registerUploadRoutes(app: FastifyInstance, config: Config, db: D
     if (!requireAdmin(reply, (request as any).session)) return;
 
     const { id, fileId, index } = request.params as { id: string; fileId: string; index: string };
+    if (!isValidFileId(fileId)) return reply.status(400).send({ error: 'Invalid file id' });
+    const chunkIndex = Number(index);
+    if (!/^\d+$/.test(index) || !Number.isSafeInteger(chunkIndex)) {
+      return reply.status(400).send({ error: 'Invalid chunk index' });
+    }
     const session = getUploadSession(db, id);
     if (!session) return reply.status(404).send({ error: 'Session not found' });
 
@@ -52,7 +57,7 @@ export function registerUploadRoutes(app: FastifyInstance, config: Config, db: D
 
     const buffer = await file.toBuffer();
     const sessionDir = join(config.DATA_DIR, 'uploads', id);
-    await writeChunk(sessionDir, fileId, Number(index), buffer);
+    await writeChunk(sessionDir, fileId, chunkIndex, buffer);
     reply.send({ ok: true });
   });
 
@@ -60,11 +65,15 @@ export function registerUploadRoutes(app: FastifyInstance, config: Config, db: D
     if (!requireAdmin(reply, (request as any).session)) return;
 
     const { id, fileId } = request.params as { id: string; fileId: string };
+    if (!isValidFileId(fileId)) return reply.status(400).send({ error: 'Invalid file id' });
     const session = getUploadSession(db, id);
     if (!session) return reply.status(404).send({ error: 'Session not found' });
 
     const parse = completeFileSchema.safeParse(request.body);
     if (!parse.success) return reply.status(400).send({ error: 'Invalid input' });
+    if (!isSafeRelativePath(parse.data.relativePath)) {
+      return reply.status(400).send({ error: 'Invalid relative path' });
+    }
 
     const sessionDir = join(config.DATA_DIR, 'uploads', id);
     await reassembleFile(sessionDir, fileId, parse.data.totalChunks, parse.data.relativePath);

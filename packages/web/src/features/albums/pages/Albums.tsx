@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
-import type { Album, Song } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import type { Album, Song, User } from '@sonarly/shared';
+import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
@@ -37,7 +37,8 @@ function AlbumContextMenu({
   );
 }
 
-export function Albums() {
+export function Albums({ user }: { user: User }) {
+  const blurExplicitTitles = user.blurExplicitTitles === true;
   const [albums, setAlbums] = useState<Album[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -200,7 +201,7 @@ export function Albums() {
       key: 'title',
       header: 'Title',
       render: (album) => (
-        <ExplicitTitle explicit={album.explicit}>
+        <ExplicitTitle explicit={album.explicit} blur={blurExplicitTitles}>
           <Link href={`/albums/${album.id}`} className="hover:text-muted">
             {album.name}
           </Link>
@@ -213,7 +214,7 @@ export function Albums() {
   ];
 
   const cardFields: LibraryViewCardField<Album>[] = [
-    { key: 'title', render: (album) => <ExplicitTitle title={album.name} explicit={album.explicit} /> },
+    { key: 'title', render: (album) => <ExplicitTitle title={album.name} explicit={album.explicit} blur={blurExplicitTitles} /> },
     {
       key: 'artist-year',
       render: (album) => (

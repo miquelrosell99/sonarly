@@ -39,8 +39,8 @@ describe('organizeExistingLibrary', () => {
 
   it('moves unorganized files and updates the database', async () => {
     copyFileSync(fixturePath, join(libraryPath, 'sample.mp3'));
-    db.prepare("INSERT INTO songs (id, file_path, title, track_number, disc_number, duration, artist_id, album_id, genre, year, cover_art, mtime, checksum) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .run('song-1', join(libraryPath, 'sample.mp3'), 'Sample Song', null, null, null, null, null, null, null, null, 0, 'checksum');
+    db.prepare("INSERT INTO songs (id, file_path, title, track_number, disc_number, duration, artist_id, album_id, genre, year, mtime, checksum) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .run('song-1', join(libraryPath, 'sample.mp3'), 'Sample Song', null, null, null, null, null, null, null, 0, 'checksum');
 
     const stats = await organizeExistingLibrary(config, db);
     expect(stats.moved).toBe(1);

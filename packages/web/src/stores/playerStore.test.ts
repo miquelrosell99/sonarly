@@ -223,7 +223,7 @@ describe('previous', () => {
     expect(state.currentTime).toBe(0);
   });
 
-  it('goes to the previous track when paused even if past the threshold', () => {
+  it('restarts the current track when paused and past the threshold', () => {
     const songs = [createSong('1'), createSong('2')];
     const store = usePlayer.getState();
     store.playQueue(songs, 1);
@@ -233,8 +233,10 @@ describe('previous', () => {
     store.previous();
 
     const state = usePlayer.getState();
-    expect(state.queueIndex).toBe(0);
-    expect(state.currentSong).toEqual(songs[0]);
+    expect(state.queueIndex).toBe(1);
+    expect(state.currentSong).toEqual(songs[1]);
+    expect(state.currentTime).toBe(0);
+    expect(state.status).toBe('paused');
   });
 
   it('restarts the first song when playing and past the threshold', () => {

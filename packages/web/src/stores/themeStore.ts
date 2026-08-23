@@ -21,6 +21,8 @@ interface ThemeState {
   apply: () => void;
 }
 
+const THEME_STORAGE_KEY = 'sonarly-theme';
+
 const accentClasses = [
   'accent-auto',
   'accent-monochrome',
@@ -67,5 +69,14 @@ export const useTheme = create<ThemeState>((set, get) => ({
     const resolvedAccent = resolveAccent(accentColor, resolvedMode);
 
     html.classList.add(`theme-${resolvedMode}`, `accent-${resolvedAccent}`);
+
+    // Persist the resolved mode so the index.html bootstrap can apply it
+    // before hydration. For 'auto' this stores the currently resolved mode;
+    // main.tsx re-applies on system preference changes, keeping it fresh.
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, resolvedMode);
+    } catch {
+      // Ignore storage failures (private mode, disabled storage).
+    }
   },
 }));

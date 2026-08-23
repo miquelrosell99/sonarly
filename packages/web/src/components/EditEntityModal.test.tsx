@@ -415,7 +415,7 @@ describe('EditEntityModal', () => {
     await waitFor(() => expect(screen.getAllByText('Rock').length).toBeGreaterThanOrEqual(1));
 
     fireEvent.click(screen.getAllByText('Rock')[0]);
-    expect(screen.getByRole('option', { name: 'Rock' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Remove Rock' })).toBeTruthy();
     expect((genreInput as HTMLInputElement).value).toBe('');
     await waitFor(() => expect(screen.queryByText('Pop')).toBeFalsy());
   });

@@ -56,7 +56,7 @@ function ShowMoreButton({ expanded, onClick, count }: { expanded: boolean; onCli
     <button
       type="button"
       onClick={onClick}
-      className="mt-3 w-full rounded-lg py-2 text-xs font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary"
+      className="mt-3 w-full rounded-lg py-2 text-xs font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       {expanded ? 'Show less' : `Show ${count - 5} more`}
     </button>
@@ -67,6 +67,11 @@ function AnimatedNumber({ value, formatter = formatNumber }: { value: number; fo
   const [display, setDisplay] = useState(0);
 
   useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setDisplay(value);
+      return;
+    }
+
     const duration = 800;
     const start = performance.now();
     const from = display;
@@ -162,7 +167,7 @@ function TopSongs({ songs }: { songs: StatisticsTopLists['topSongs'] }) {
               <p className="truncate font-medium text-fg-primary">{song.title}</p>
               <p className="truncate text-xs text-fg-secondary">{song.artistName ?? '-'}</p>
             </div>
-            <span className="text-sm font-semibold text-fg-secondary">{formatNumber(song.plays)}</span>
+            <span className="text-sm font-semibold font-mono text-fg-secondary">{formatNumber(song.plays)}</span>
           </Link>
         ))}
       </div>
@@ -206,7 +211,7 @@ function TopArtists({ artists }: { artists: StatisticsTopLists['topArtists'] }) 
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium text-fg-primary">{artist.artistName}</p>
             </div>
-            <span className="text-sm font-semibold text-fg-secondary">{formatNumber(artist.plays)}</span>
+            <span className="text-sm font-semibold font-mono text-fg-secondary">{formatNumber(artist.plays)}</span>
           </Link>
         ))}
       </div>
@@ -244,7 +249,7 @@ function TopAlbums({ albums }: { albums: StatisticsTopLists['topAlbums'] }) {
               <p className="truncate font-medium text-fg-primary">{album.albumName}</p>
               <p className="truncate text-xs text-fg-secondary">{album.artistName ?? '-'}</p>
             </div>
-            <span className="text-sm font-semibold text-fg-secondary">{formatNumber(album.plays)}</span>
+            <span className="text-sm font-semibold font-mono text-fg-secondary">{formatNumber(album.plays)}</span>
           </Link>
         ))}
       </div>
@@ -268,11 +273,11 @@ function GenreChart({ genres }: { genres: StatisticsTopLists['topGenres'] }) {
           <div key={genre.genre} className="space-y-1">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium text-fg-primary">{genre.genre}</span>
-              <span className="text-fg-secondary">{formatNumber(genre.plays)}</span>
+              <span className="font-mono text-fg-secondary">{formatNumber(genre.plays)}</span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-surface-hover">
               <div
-                className="h-full rounded-full bg-accent transition-all duration-700 ease-out"
+                className="h-full rounded-full bg-accent transition-all duration-700 ease-out motion-reduce:transition-none"
                 style={{ width: `${max > 0 ? (genre.plays / max) * 100 : 0}%` }}
               />
             </div>
@@ -305,11 +310,11 @@ function TopPlayedYears({ years }: { years: TopYearItem[] }) {
             <div className="flex items-center gap-3">
               <div className="h-2 w-24 overflow-hidden rounded-full bg-surface-hover">
                 <div
-                  className="h-full rounded-full bg-accent transition-all duration-700 ease-out"
+                  className="h-full rounded-full bg-accent transition-all duration-700 ease-out motion-reduce:transition-none"
                   style={{ width: `${max > 0 ? (year.plays / max) * 100 : 0}%` }}
                 />
               </div>
-              <span className="w-10 text-right text-sm text-fg-secondary">{formatNumber(year.plays)}</span>
+              <span className="w-10 text-right text-sm font-mono text-fg-secondary">{formatNumber(year.plays)}</span>
             </div>
           </Link>
         ))}
@@ -382,6 +387,10 @@ function DonutChart({ distribution }: { distribution: StatisticsCharts['ratingDi
   const hoveredPercentage =
     hovered && totalForArc > 0 ? Math.round((hovered.count / totalForArc) * 100) : undefined;
 
+  const chartSummary = `Rating distribution: ${allSegments
+    .map((segment) => `${segment.label}: ${segment.count}`)
+    .join(', ')}`;
+
   return (
     <div className="rounded-2xl border border-rule bg-surface p-4">
       <div className="mb-4 flex items-center gap-2">
@@ -389,13 +398,13 @@ function DonutChart({ distribution }: { distribution: StatisticsCharts['ratingDi
         <h3 className="font-display text-lg font-bold text-fg-primary">Rating Distribution</h3>
       </div>
       <div className="flex items-center justify-center">
-        <div className="relative h-48 w-48">
-          <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+        <div className="relative h-48 w-48" role="img" aria-label={chartSummary}>
+          <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90" aria-hidden="true">
             {allSegments.map((segment) => {
               const segmentLength = (segment.count / totalForArc) * circumference;
               const dashArray = `${segmentLength} ${circumference - segmentLength}`;
               const circle = (
-                <Link key={segment.key} href={segment.href}>
+                <Link key={segment.key} href={segment.href} tabIndex={-1}>
                   <circle
                     cx="50"
                     cy="50"
@@ -405,7 +414,7 @@ function DonutChart({ distribution }: { distribution: StatisticsCharts['ratingDi
                     strokeWidth={hovered?.key === segment.key ? 18 : 12}
                     strokeDasharray={dashArray}
                     strokeDashoffset={-offset}
-                    className="cursor-pointer transition-all duration-300 ease-out"
+                    className="cursor-pointer transition-all duration-300 ease-out motion-reduce:transition-none"
                     onMouseEnter={() => setHovered(segment)}
                     onMouseLeave={() => setHovered(null)}
                   />
@@ -423,13 +432,27 @@ function DonutChart({ distribution }: { distribution: StatisticsCharts['ratingDi
             ) : (
               <span className="text-[10px] text-fg-secondary">Rated</span>
             )}
-            <span className="font-display text-2xl font-bold text-fg-primary">{formatNumber(hoveredInfo.count)}</span>
+            <span className="font-mono text-2xl font-bold text-fg-primary">{formatNumber(hoveredInfo.count)}</span>
             {hoveredPercentage !== undefined && (
               <span className="text-[10px] text-fg-secondary">{hoveredPercentage}%</span>
             )}
           </div>
         </div>
       </div>
+      <ul className="mt-4 space-y-1">
+        {allSegments.map((segment) => (
+          <li key={segment.key}>
+            <Link
+              href={segment.href}
+              className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: segment.color }} />
+              <span className="flex-1 text-fg-primary">{segment.label}</span>
+              <span className="font-mono text-fg-secondary">{formatNumber(segment.count)}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -473,7 +496,7 @@ function TopRatedArtists({ artists }: { artists: StatisticsRatedLists['topRatedA
                   <p className="truncate font-medium text-fg-primary">{artist.artistName}</p>
                   <p className="truncate text-xs text-fg-secondary">{formatNumber(artist.ratedSongs)} rated songs</p>
                 </div>
-                <span className="text-sm font-semibold text-fg-secondary">{formatRating(artist.averageRating)}/5</span>
+                <span className="text-sm font-semibold font-mono text-fg-secondary">{formatRating(artist.averageRating)}/5</span>
               </Link>
             ))}
           </div>
@@ -510,7 +533,7 @@ function TopRatedGenres({ genres }: { genres: StatisticsRatedLists['topRatedGenr
                   <p className="truncate font-medium text-fg-primary">{genre.genre}</p>
                   <p className="truncate text-xs text-fg-secondary">{formatNumber(genre.ratedSongs)} rated songs</p>
                 </div>
-                <span className="text-sm font-semibold text-fg-secondary">{formatRating(genre.averageRating)}/5</span>
+                <span className="text-sm font-semibold font-mono text-fg-secondary">{formatRating(genre.averageRating)}/5</span>
               </Link>
             ))}
           </div>
@@ -544,7 +567,7 @@ function TopRatedYears({ years }: { years: StatisticsRatedLists['topRatedYears']
               <p className="truncate font-medium text-fg-primary">{year.year}</p>
               <p className="truncate text-xs text-fg-secondary">{formatNumber(year.ratedSongs)} rated songs</p>
             </div>
-            <span className="text-sm font-semibold text-fg-secondary">{formatRating(year.averageRating)}/5</span>
+            <span className="text-sm font-semibold font-mono text-fg-secondary">{formatRating(year.averageRating)}/5</span>
           </Link>
         ))}
       </div>
@@ -609,8 +632,9 @@ export function StatisticsView({
               key={option.value}
               type="button"
               onClick={() => onRangeChange(option.value)}
+              aria-pressed={range === option.value}
               className={cn(
-                'rounded-lg px-3 py-1.5 text-sm font-medium transition',
+                'rounded-lg px-3 py-1.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                 range === option.value
                   ? 'bg-accent text-bg-primary'
                   : 'border border-rule bg-surface text-fg-primary hover:bg-surface-hover',

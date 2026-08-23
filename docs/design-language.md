@@ -83,6 +83,12 @@ Implementation: `packages/web/src/hooks/useDominantColor.ts` samples cover art v
 
 - `.input` — rounded-lg, surface background, rule border, accent focus ring.
 
+### Interaction conventions
+
+- Hover-only overlays (card actions, row play buttons) must also carry `group-focus-within/...:opacity-100` and the `.hover-reveal` utility, which forces visibility on touch devices (`@media (hover: none)`).
+- A global `prefers-reduced-motion` dampener in `index.css` zeroes transition/animation durations; JS-driven animations (WAAPI, rAF count-ups, intervals) must check the media query themselves.
+- Durations, counters, and timestamps use `font-mono` (JetBrains Mono); page titles and section headers use `font-display` (Space Grotesk).
+
 ## Modes
 
 Light, dark, and OLED modes are supported via `theme-light`, `theme-dark`, and `theme-oled` classes on `<html>`. OLED uses pure black (`#000000`) for the background and slightly lighter surfaces to maximize contrast and battery life.

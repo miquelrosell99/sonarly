@@ -1,4 +1,4 @@
-import { mkdir, unlink, rename, copyFile } from 'node:fs/promises';
+import { mkdir, unlink, rename, copyFile, stat } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import Database from 'better-sqlite3';
 import type { DuplicateStrategy } from '@sonarly/shared';
@@ -7,6 +7,7 @@ import { ensureArtist } from '../artists/index.js';
 import { getAlbumByNameAndArtist } from '../albums/index.js';
 import { getSongArtistIds } from '../songs/index.js';
 import { persistSong } from '../library/scanner.js';
+import { resolveDuplicateTarget } from '../ingest/organizer.js';
 
 export interface SongIdentity {
   title: string;
@@ -165,9 +166,17 @@ async function replaceFileAndMetadata(
 ): Promise<DuplicateResolution> {
   await mkdir(dirname(targetPath), { recursive: true });
 
-  await moveFile(sourcePath, targetPath);
+  // rename() silently overwrites an existing destination. When the target
+  // differs from the matched file and is already taken, pick a unique path
+  // instead of destroying whatever is there.
+  let finalPath = targetPath;
+  if (targetPath !== existing.filePath && (await fileExists(targetPath))) {
+    finalPath = await resolveDuplicateTarget(targetPath);
+  }
 
-  if (targetPath !== existing.filePath) {
+  await moveFile(sourcePath, finalPath);
+
+  if (finalPath !== existing.filePath) {
     try {
       await unlink(existing.filePath);
     } catch {
@@ -175,11 +184,11 @@ async function replaceFileAndMetadata(
     }
   }
 
-  await persistSong(db, targetPath, meta, mtime, checksum, libraryId, existing.id, {
+  await persistSong(db, finalPath, meta, mtime, checksum, libraryId, existing.id, {
     aggregate,
   });
 
-  return { existingId: existing.id, finalPath: targetPath, updated: true };
+  return { existingId: existing.id, finalPath, updated: true };
 }
 
 async function keepFileReplaceMetadata(
@@ -220,4 +229,13 @@ async function moveFile(sourcePath: string, targetPath: string): Promise<void> {
 
 function isExdev(err: unknown): boolean {
   return err instanceof Error && (err as NodeJS.ErrnoException).code === 'EXDEV';
+}
+
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await stat(path);
+    return true;
+  } catch {
+    return false;
+  }
 }

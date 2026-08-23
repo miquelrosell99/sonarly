@@ -72,7 +72,7 @@ export function Card({
               <PlayingIndicator size={16} />
             </div>
           )}
-          <div className="pointer-events-none absolute inset-0 flex flex-col justify-between bg-black/50 opacity-0 transition-opacity group-hover/card:opacity-100">
+          <div className="hover-reveal pointer-events-none absolute inset-0 flex flex-col justify-between bg-black/50 opacity-0 transition-opacity group-focus-within/card:opacity-100 group-hover/card:opacity-100">
             {(favorite || rating) && (
               <div className="pointer-events-auto flex items-start justify-between p-2">
                 {favorite ? (
@@ -126,7 +126,7 @@ export function Card({
         <div
           className={cn(
             'pointer-events-none absolute left-2 top-2 z-10 transition-opacity',
-            favorite.starred ? 'opacity-100' : 'opacity-0 group-hover/card:opacity-100',
+            favorite.starred ? 'opacity-100' : 'hover-reveal opacity-0 group-focus-within/card:opacity-100 group-hover/card:opacity-100',
           )}
         >
           <FavoriteButton
@@ -137,12 +137,12 @@ export function Card({
         </div>
       )}
       {!cover && rating && (
-        <div className="pointer-events-auto absolute right-2 top-2 z-10 opacity-0 transition-opacity group-hover/card:opacity-100">
+        <div className="hover-reveal pointer-events-auto absolute right-2 top-2 z-10 opacity-0 transition-opacity group-focus-within/card:opacity-100 group-hover/card:opacity-100">
           <StarRating rating={rating.value} onRate={rating.onRate} className="p-1" />
         </div>
       )}
       {!cover && play && (
-        <span className="pointer-events-none absolute bottom-2 right-2 z-10 opacity-0 transition-all duration-200 group-hover/card:pointer-events-auto group-hover/card:opacity-100">
+        <span className="hover-reveal pointer-events-none absolute bottom-2 right-2 z-10 opacity-0 transition-all duration-200 group-focus-within/card:pointer-events-auto group-focus-within/card:opacity-100 group-hover/card:pointer-events-auto group-hover/card:opacity-100">
           <PlayButton
             variant="overlay"
             onPlay={play.onPlay}

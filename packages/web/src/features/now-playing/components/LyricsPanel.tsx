@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { User } from '@sonarly/shared';
 import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 import { FetchLyricsModal } from '../../../components/FetchLyricsModal.js';
@@ -138,7 +138,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center text-fg-secondary">
-        <Icon name="mdi-clock-outline" size={24} className="animate-spin" />
+        <Icon name="mdi-loading" size={24} className="animate-spin motion-reduce:animate-none" />
       </div>
     );
   }
@@ -191,7 +191,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
                 type="button"
                 onClick={() => setEditorOpen(true)}
                 aria-label="Edit lyrics"
-                className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-medium text-fg-secondary transition hover:bg-surface-hover"
+                className="inline-flex h-11 items-center gap-1 rounded-full px-3 text-xs font-medium text-fg-secondary transition hover:bg-surface-hover"
               >
                 <Icon name="mdi-pencil" size={14} />
                 Edit lyrics
@@ -200,7 +200,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
                 type="button"
                 onClick={() => setFetchOpen(true)}
                 aria-label="Fetch lyrics"
-                className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-medium text-fg-secondary transition hover:bg-surface-hover"
+                className="inline-flex h-11 items-center gap-1 rounded-full px-3 text-xs font-medium text-fg-secondary transition hover:bg-surface-hover"
               >
                 <Icon name="mdi-cloud-download-outline" size={14} />
                 Fetch lyrics
@@ -214,7 +214,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
               aria-label="Auto-scroll lyrics"
               aria-pressed={autoScroll}
               className={cn(
-                'inline-flex h-8 w-8 items-center justify-center rounded-full transition',
+                'inline-flex h-11 w-11 items-center justify-center rounded-full transition',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary',
                 autoScroll
                   ? 'bg-accent/15 text-accent hover:bg-accent/25'
@@ -232,7 +232,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
             aria-label="Dynamic lyrics"
             aria-pressed={mode === 'dynamic'}
             className={cn(
-              'inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-medium transition',
+              'inline-flex h-11 items-center gap-1 rounded-full px-3 text-xs font-medium transition',
               mode === 'dynamic' ? 'bg-accent text-bg-primary' : 'text-fg-secondary hover:bg-surface-hover'
             )}
           >
@@ -245,7 +245,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
             aria-label="Static lyrics"
             aria-pressed={mode === 'static'}
             className={cn(
-              'inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-medium transition',
+              'inline-flex h-11 items-center gap-1 rounded-full px-3 text-xs font-medium transition',
               mode === 'static' ? 'bg-accent text-bg-primary' : 'text-fg-secondary hover:bg-surface-hover'
             )}
           >

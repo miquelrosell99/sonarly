@@ -1,6 +1,6 @@
 import { stat } from 'node:fs/promises';
 import { extname } from 'node:path';
-import { readTags } from '../tags/index.js';
+import { readMetadata } from '../tags/index.js';
 import type { SongTags } from '@sonarly/shared';
 import type { AudioMetadata } from '../tags/index.js';
 
@@ -20,7 +20,7 @@ export async function validateIngestFile(filePath: string): Promise<ValidationRe
   }
   try {
     await stat(filePath);
-    const meta = await readTags(filePath);
+    const meta = await readMetadata(filePath);
     const tags = meta.tags;
     if (!tags.title || !tags.artist || !tags.album) {
       return { valid: false, reason: 'missing_required_tags', tags, meta };

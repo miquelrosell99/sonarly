@@ -3,7 +3,7 @@ import Database from 'better-sqlite3';
 import { getDbPath, type Config } from '../../config.js';
 import { migrate } from '../../db/migrate.js';
 import { scanLibrary } from './scanner.js';
-import { popPendingJob, pushJob, markJobRunning, markJobCompleted, markJobFailed } from './queue.js';
+import { popPendingJob, pushJob, markJobRunning, markJobCompleted, markJobFailed, pruneScanJobs, failStaleRunningJobs } from './queue.js';
 import { processIngestFolder, cleanupAllReviewFolders, runOrganizeJob } from '../ingest/index.js';
 import {
   getReviewRetentionDays,
@@ -39,8 +39,15 @@ if (!parentPort) throw new Error('worker.ts must run inside a Worker');
 
 const config = workerData as Config;
 const db = new Database(getDbPath(config));
+// Match the main connection pragmas so the worker does not hit SQLITE_BUSY
+// races and enforces the same constraints.
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+db.pragma('busy_timeout = 5000');
 migrate(db);
 ensureDefaultLibrary(db, config.LIBRARY_PATH);
+// A previous worker may have died mid-job; sweep stale 'running' rows.
+failStaleRunningJobs(db);
 
 let running = true;
 let activeJobId: string | null = null;
@@ -144,10 +151,16 @@ async function loop(): Promise<void> {
     } finally {
       activeJobId = null;
     }
+    pruneScanJobs(db);
   }
 
   if (shutdownJobId) {
-    markJobFailed(db, shutdownJobId, 'Worker shut down while job was running');
+    // Only mark the job failed if it never reached a terminal state; a job
+    // that completed just before shutdown must not be clobbered.
+    const row = db.prepare('SELECT status FROM scan_jobs WHERE id = ?').get(shutdownJobId) as { status: string } | undefined;
+    if (row && row.status !== 'completed' && row.status !== 'failed') {
+      markJobFailed(db, shutdownJobId, 'Worker shut down while job was running');
+    }
   }
   db.close();
   process.exit(0);
@@ -162,4 +175,13 @@ parentPort.on('message', (msg: WorkerMessage) => {
   }
 });
 
-loop();
+loop().catch((err) => {
+  // Exit non-zero so the parent process notices and respawns the worker.
+  console.error('Library worker loop crashed', err);
+  try {
+    db.close();
+  } catch {
+    // Ignore cleanup errors.
+  }
+  process.exit(1);
+});

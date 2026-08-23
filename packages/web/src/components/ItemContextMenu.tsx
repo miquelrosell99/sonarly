@@ -79,6 +79,7 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
       if (e.key === 'Escape') {
         e.stopPropagation();
         setOpen(false);
+        childRef.current?.focus();
       }
     };
     document.addEventListener('mousedown', handleMouse);
@@ -97,6 +98,36 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
     const { top, left } = computeAnchorPosition(trigger, menu, placement);
     setPos({ x: left, y: top });
   }, [open, anchorToTrigger, placement]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const menu = menuRef.current;
+    if (!menu) return;
+    const firstItem = menu.querySelector<HTMLElement>('[role="menuitem"]:not([disabled])');
+    firstItem?.focus();
+  }, [open]);
+
+  const focusMenuItem = (direction: 1 | -1) => {
+    const menu = menuRef.current;
+    if (!menu) return;
+    const items = Array.from(
+      menu.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])'),
+    );
+    if (items.length === 0) return;
+    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
+    const nextIndex = (currentIndex + direction + items.length) % items.length;
+    items[nextIndex].focus();
+  };
+
+  const handleMenuKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      focusMenuItem(1);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      focusMenuItem(-1);
+    }
+  };
 
   const visibleSections = sections?.filter((section) => section.items.length > 0) ?? [];
   if (visibleSections.length === 0) {
@@ -126,8 +157,9 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
       ref={menuRef}
       role="menu"
       style={{ top: pos.y, left: pos.x }}
+      onKeyDown={handleMenuKeyDown}
       className={cn(
-        'fixed z-50 min-w-[10rem] rounded-md border border-rule bg-bg-primary py-1 shadow-lg',
+        'fixed z-50 min-w-[10rem] rounded-md border border-rule bg-surface py-1 shadow-lg',
       )}
     >
       {visibleSections.map((section, sIdx) => (
@@ -142,6 +174,7 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
               onClick={async () => {
                 await item.onClick();
                 setOpen(false);
+                childRef.current?.focus();
               }}
               className={cn(
                 'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none',
@@ -150,7 +183,11 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
                 item.active && 'text-accent',
               )}
             >
-              {item.loading ? <span className="animate-spin">⟳</span> : item.icon && <Icon name={item.icon} size={18} />}
+              {item.loading ? (
+                <Icon name="mdi-loading" size={18} className="animate-spin motion-reduce:animate-none" />
+              ) : (
+                item.icon && <Icon name={item.icon} size={18} />
+              )}
               {item.label}
               {item.active && <Icon name="mdi-check" size={16} className="ml-auto text-accent" />}
             </button>

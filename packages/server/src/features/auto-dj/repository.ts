@@ -267,10 +267,12 @@ export function getSmartCandidateRows(
     LIMIT 500
   `;
 
+  // Placeholders appear textually in SELECT (genre ids), then the
+  // user_songs join (userId), then WHERE (excluded ids) — bind in that order.
   const params: (string | number | null)[] = [
+    ...(context && context.genreIds.length > 0 ? context.genreIds : []),
     userId,
     ...exclude.params,
-    ...(context ? context.genreIds : []),
   ];
 
   const rows = db.prepare(sql).all(...params) as CandidateRow[];

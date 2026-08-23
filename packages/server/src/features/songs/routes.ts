@@ -410,10 +410,12 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
     const userId = (request as any).session?.userId as string | undefined;
     const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
 
-    const { genre, libraryId } = request.query as { genre?: string; libraryId?: string };
+    const { genre, libraryId, composer, label } = request.query as { genre?: string; libraryId?: string; composer?: string; label?: string };
     const resolvedGenre = typeof genre === 'string' && genre.length > 0 ? resolveGenreForFilter(db, genre) : undefined;
     const genreFilter = resolvedGenre !== undefined;
     const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
+    const composerFilter = typeof composer === 'string' && composer.length > 0 ? composer : undefined;
+    const labelFilter = typeof label === 'string' && label.length > 0 ? label : undefined;
 
     if (typeof genre === 'string' && genre.length > 0 && !genreFilter) {
       return reply.send({ songs: [] });
@@ -422,6 +424,8 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
     const params: (string | null)[] = [userId ?? null];
     if (libraryFilter) params.push(libraryId);
     if (genreFilter) params.push(resolvedGenre.id);
+    if (composerFilter) params.push(composerFilter);
+    if (labelFilter) params.push(labelFilter);
 
     const rows = db.prepare(`
       SELECT s.*, ar.name AS artist_name, al.name AS album_name, al.artist_name AS album_artist_name, al.cover_art_id AS album_cover_art_id, us.starred, us.rating
@@ -433,6 +437,8 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
       ${libraryFilter ? 'AND s.library_id = ?' : ''}
       ${hideExplicit ? 'AND s.explicit = 0' : ''}
       ${genreFilter ? 'AND EXISTS (SELECT 1 FROM song_genres sg WHERE sg.song_id = s.id AND sg.genre_id = ?)' : ''}
+      ${composerFilter ? 'AND EXISTS (SELECT 1 FROM song_composers sc JOIN artists ac ON ac.id = sc.artist_id WHERE sc.song_id = s.id AND ac.name = ? COLLATE NOCASE)' : ''}
+      ${labelFilter ? 'AND EXISTS (SELECT 1 FROM album_labels al2 JOIN labels lb ON lb.id = al2.label_id WHERE al2.album_id = s.album_id AND lb.name = ? COLLATE NOCASE)' : ''}
       ORDER BY s.title
       LIMIT 500
     `).all(...params) as SongListRow[];

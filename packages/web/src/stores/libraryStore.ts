@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Library } from '@sonarly/shared';
-import { api } from '../api.js';
+import { api } from '../lib/api.js';
 
 interface LibraryState {
   selectedLibraryId: string | null;

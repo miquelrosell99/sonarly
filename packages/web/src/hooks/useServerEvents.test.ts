@@ -117,7 +117,10 @@ describe('useServerEvents', () => {
     expect(listener).toHaveBeenCalledTimes(1);
     const event = listener.mock.calls[0][0] as CustomEvent;
     expect(event.detail).toEqual({ type: 'library:changed', source: 'ingest' });
-    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: [] });
+    for (const prefix of ['songs', 'albums', 'artists', 'genres', 'years', 'playlists', 'playlist', 'search']) {
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: [prefix] });
+    }
+    expect(mockInvalidateQueries).not.toHaveBeenCalledWith({ queryKey: [] });
 
     window.removeEventListener('sonarly:library-changed', listener);
   });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'wouter';
 import type { Song, User } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
@@ -20,6 +20,7 @@ import { usePlaylist, type PlaylistDetailEntry } from '../../../hooks/usePlaylis
 import { useCreatePlaylistModal } from '../../../hooks/useCreatePlaylistModal.js';
 import { SongTable, type SongListItem } from '../../songs/components/SongTable.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { SharePlaylistModal } from '../components/SharePlaylistModal.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 
 type DisplaySong = PlaylistDetailEntry & {
@@ -77,10 +78,12 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
 
   const [songEditing, setSongEditing] = useState<SongListItem[] | null>(null);
   const [syncEditing, setSyncEditing] = useState<SongListItem | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const blurExplicitTitles = user.blurExplicitTitles === true;
+  const isOwner = playlist?.ownerId === user.id;
 
   const displayEntries: DisplaySong[] = playlist?.entries.map((entry) => ({
     ...entry,
@@ -220,6 +223,12 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
               <Icon name="mdi-pencil" size={18} className="mr-1.5" />
               Edit
             </Button>
+            {isOwner && (
+              <Button variant="ghost" onClick={() => setShareOpen(true)}>
+                <Icon name="mdi-share-variant" size={18} className="mr-1.5" />
+                Share
+              </Button>
+            )}
             <FavoriteRatingGroup
               starred={playlist.starred}
               onToggleFavorite={() => handleFavorite(!playlist.starred)}
@@ -293,6 +302,13 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
           }
           saving={saving}
           deleting={deleting}
+        />
+      )}
+      {playlist && isOwner && (
+        <SharePlaylistModal
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          playlist={playlist}
         />
       )}
       {syncEditing && (

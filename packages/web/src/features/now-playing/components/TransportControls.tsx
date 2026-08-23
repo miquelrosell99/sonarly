@@ -48,7 +48,7 @@ export function TransportControls() {
         </ControlButton>
       </div>
       <div className={cn('flex w-full items-center gap-3')}>
-        <span className="w-10 text-right text-xs tabular-nums text-fg-secondary">{formatTime(displayTime)}</span>
+        <span className="w-10 text-right text-xs font-mono text-fg-secondary">{formatTime(displayTime)}</span>
         <Slider
           min={0}
           max={displayDuration || 1}
@@ -60,7 +60,7 @@ export function TransportControls() {
           variant="progress"
           className="h-2"
         />
-        <span className="w-10 text-xs tabular-nums text-fg-secondary">{formatTime(displayDuration)}</span>
+        <span className="w-10 text-xs font-mono text-fg-secondary">{formatTime(displayDuration)}</span>
       </div>
     </div>
   );

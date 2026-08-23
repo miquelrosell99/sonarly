@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { User } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 
@@ -8,10 +8,13 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setError(null);
+    setSubmitting(true);
     try {
       const { user } = await api<{ user: User }>('/login', {
         method: 'POST',
@@ -19,7 +22,14 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
       });
       onLogin(user);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const message = err instanceof Error ? err.message : 'Login failed';
+      setError(
+        message === 'Invalid credentials'
+          ? 'The username or password is incorrect. Please try again.'
+          : message,
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -29,10 +39,10 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
         <h1 className="text-2xl font-bold tracking-tight text-fg-primary">Sonarly</h1>
         {error && (
           <div
-            className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500"
+            className="rounded-md border border-danger/30 bg-danger/10 p-3 text-sm text-danger"
             role="alert"
           >
-            The username or password is incorrect. Please try again.
+            {error}
           </div>
         )}
         <div>
@@ -43,6 +53,7 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
             id="username"
             type="text"
             autoComplete="username"
+            autoFocus
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
@@ -61,8 +72,8 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
             required
           />
         </div>
-        <Button type="submit" className="w-full">
-          Sign in
+        <Button type="submit" className="w-full" disabled={submitting}>
+          {submitting ? 'Signing in…' : 'Sign in'}
         </Button>
       </form>
     </div>

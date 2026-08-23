@@ -2,7 +2,7 @@ import { Worker, type WorkerOptions } from 'node:worker_threads';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { existsSync } from 'node:fs';
-import Fastify from 'fastify';
+import Fastify, { type FastifyError } from 'fastify';
 import cookie from '@fastify/cookie';
 import session from '@fastify/session';
 import fastifyStatic from '@fastify/static';
@@ -18,11 +18,12 @@ import {
 } from './features/library/index.js';
 import { ensureDefaultLibrary, registerLibraryAdminRoutes } from './features/libraries/index.js';
 import { registerOpenSubsonicRoutes } from './features/opensubsonic/index.js';
-import { createSessionStore } from './features/auth/index.js';
+import { createSessionStore, sweepExpiredSessions } from './features/auth/index.js';
 import {
   registerAuthManagementRoutes,
   registerProfileManagementRoutes,
   registerAdminRoutes,
+  registerUserLookupRoutes,
 } from './features/users/index.js';
 import { registerSongManagementRoutes, registerLyricsRoutes } from './features/songs/index.js';
 import { registerArtistManagementRoutes } from './features/artists/index.js';
@@ -97,11 +98,11 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
     PGID: config.PGID,
   };
   const workerPath = resolveWorkerPath();
-  const worker = isTsxRuntime() && workerPath.endsWith('.ts')
-    ? new Worker(createTsxWorkerScript(workerPath), { eval: true, workerData: workerConfig })
-    : new Worker(workerPath, { workerData: workerConfig });
 
-  worker.on('message', (msg: { type: string; jobType?: string; runId?: string; stats?: Record<string, unknown> }) => {
+  let closing = false;
+  let worker: Worker;
+  let fastifyApp: ReturnType<typeof Fastify> | undefined;
+  const handleWorkerMessage = (msg: { type: string; jobType?: string; runId?: string; stats?: Record<string, unknown> }) => {
     if (msg.type !== 'job:completed' || !msg.jobType || !msg.runId) return;
 
     const stats = msg.stats ?? {};
@@ -123,7 +124,25 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
         stats,
       });
     }
-  });
+  };
+
+  const createWorker = (): Worker => {
+    const w = isTsxRuntime() && workerPath.endsWith('.ts')
+      ? new Worker(createTsxWorkerScript(workerPath), { eval: true, workerData: workerConfig })
+      : new Worker(workerPath, { workerData: workerConfig });
+    w.on('message', handleWorkerMessage);
+    w.on('error', (err) => console.error('Library worker error:', err));
+    w.on('exit', (code) => {
+      if (closing) return;
+      // The worker died unexpectedly (crash, unhandled error); respawn it so
+      // scans and ingests keep running.
+      console.error(`Library worker exited unexpectedly (code ${code}); restarting`);
+      worker = createWorker();
+      if (fastifyApp) (fastifyApp as any).worker = worker;
+    });
+    return w;
+  };
+  worker = createWorker();
 
   pushJob(db, 'scan', '');
   if (config.ARTIST_IMAGE_INTERVAL_MINUTES > 0) {
@@ -137,7 +156,26 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   const stopIngestWatcher = startIngestWatcher(config, db);
 
   const app = Fastify({ logger: true });
+  fastifyApp = app;
   (app as any).worker = worker;
+
+  // Never leak internal error details to API clients.
+  app.setErrorHandler((error: FastifyError, request, reply) => {
+    request.log.error(error);
+    const statusCode = error.statusCode && error.statusCode >= 400 && error.statusCode < 500 ? error.statusCode : 500;
+    reply.status(statusCode).send({ error: statusCode >= 500 ? 'Internal Server Error' : error.message });
+  });
+
+  // Periodically purge expired sessions from the store.
+  sweepExpiredSessions(db);
+  const sessionSweepInterval = setInterval(() => {
+    try {
+      sweepExpiredSessions(db);
+    } catch (err) {
+      console.error('Session sweep failed', err);
+    }
+  }, 60 * 60 * 1000);
+  sessionSweepInterval.unref();
 
   await app.register(cookie);
   await app.register(session, {
@@ -160,7 +198,8 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
     const exempt = ['/api/login', '/api/logout', '/api/setup', '/api/me', '/api/avatars', '/api/libraries'];
     if (exempt.some((p) => url === p || url.startsWith(`${p}/`) || url.startsWith(`${p}?`))) return;
 
-    if (request.method === 'GET' && request.routeOptions.url === '/api/playlists/:id') {
+    if (request.method === 'GET'
+      && (request.routeOptions.url === '/api/playlists/:id' || request.routeOptions.url === '/api/playlists/:id/albums')) {
       const { shareToken } = request.query as { shareToken?: string };
       if (shareToken) return;
     }
@@ -173,6 +212,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
 
   registerAuthManagementRoutes(app, db, config.SESSION_SECRET);
   registerProfileManagementRoutes(app, db, config);
+  registerUserLookupRoutes(app, db);
   registerSongManagementRoutes(app, config, db);
   registerLyricsRoutes(app, config, db);
   registerArtistManagementRoutes(app, db);
@@ -217,6 +257,8 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   }
 
   app.addHook('onClose', async () => {
+    closing = true;
+    clearInterval(sessionSweepInterval);
     worker.postMessage({ type: 'shutdown' });
     let timeout: ReturnType<typeof setTimeout>;
     await Promise.race([

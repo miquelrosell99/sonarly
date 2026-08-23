@@ -1,12 +1,20 @@
 import { useEffect, useRef } from 'react';
-import { api } from '../api.js';
+import { api } from '../lib/api.js';
 import { useNotification } from '../contexts/NotificationContext.js';
 import { usePlayer } from '../stores/playerStore.js';
 import { useAutoDj } from '../hooks/useAutoDj.js';
 
+// Subsonic-style scrobble rule: 50% of the track or 4 minutes, whichever
+// comes first.
+const SCROBBLE_MIN_FRACTION = 0.5;
+const SCROBBLE_MAX_SECONDS = 240;
+// How long playback may stall before surfacing an error.
+const STALLED_ERROR_DELAY_MS = 15000;
+
 export function AudioController() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const lastScrobbledRef = useRef<string | null>(null);
+  const stalledTimerRef = useRef<number | null>(null);
   const { notify } = useNotification();
 
   const currentSong = usePlayer((state) => state.currentSong);
@@ -22,8 +30,30 @@ export function AudioController() {
 
   useAutoDj();
 
+  const clearStalledTimer = () => {
+    if (stalledTimerRef.current !== null) {
+      window.clearTimeout(stalledTimerRef.current);
+      stalledTimerRef.current = null;
+    }
+  };
+
+  const handlePlayError = (err: unknown) => {
+    if (err instanceof DOMException) {
+      // Rapid track skips abort pending play() calls; that is expected.
+      if (err.name === 'AbortError') return;
+      // Autoplay was blocked; wait for a user gesture instead of erroring.
+      if (err.name === 'NotAllowedError') {
+        setStatus('paused');
+        notify('Press play to start playback', 'info');
+        return;
+      }
+    }
+    setStatus('error');
+  };
+
   useEffect(() => {
     lastScrobbledRef.current = null;
+    clearStalledTimer();
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -31,7 +61,7 @@ export function AudioController() {
       setStatus('loading');
       audio.src = `/rest/stream.view?id=${currentSong.id}`;
       audio.load();
-      audio.play().catch(() => setStatus('error'));
+      audio.play().catch(handlePlayError);
     } else {
       audio.removeAttribute('src');
       audio.load();
@@ -43,7 +73,7 @@ export function AudioController() {
     if (!audio) return;
 
     if (status === 'playing') {
-      audio.play().catch(() => setStatus('error'));
+      audio.play().catch(handlePlayError);
     } else if (status === 'paused') {
       audio.pause();
     }
@@ -62,15 +92,88 @@ export function AudioController() {
     if (Math.abs(audio.currentTime - currentTime) > 0.1) {
       audio.currentTime = currentTime;
       if (status === 'playing' && audio.paused) {
-        audio.play().catch(() => setStatus('error'));
+        audio.play().catch(handlePlayError);
       }
     }
   }, [currentTime, currentSong?.id, status]);
 
+  // Media Session: hardware/OS media keys drive the player store.
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    const mediaSession = navigator.mediaSession;
+    const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
+      ['play', () => usePlayer.getState().play()],
+      ['pause', () => usePlayer.getState().pause()],
+      ['previoustrack', () => usePlayer.getState().previous()],
+      ['nexttrack', () => usePlayer.getState().next()],
+    ];
+    for (const [action, handler] of handlers) {
+      try {
+        mediaSession.setActionHandler(action, handler);
+      } catch {
+        // Action not supported by this browser.
+      }
+    }
+    return () => {
+      for (const [action] of handlers) {
+        try {
+          mediaSession.setActionHandler(action, null);
+        } catch {
+          // Ignore.
+        }
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return;
+    if (!currentSong) {
+      navigator.mediaSession.metadata = null;
+      return;
+    }
+    const coverId = currentSong.albumCoverArt ?? currentSong.coverArt;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentSong.title,
+      artist: currentSong.artistName || 'Unknown artist',
+      album: currentSong.albumName || '',
+      artwork: coverId ? [{ src: `/api/cover-art/${coverId}`, sizes: '512x512' }] : [],
+    });
+  }, [currentSong?.id]);
+
+  useEffect(() => {
+    return () => {
+      if (stalledTimerRef.current !== null) {
+        window.clearTimeout(stalledTimerRef.current);
+      }
+    };
+  }, []);
+
+  const armStalledTimer = () => {
+    clearStalledTimer();
+    stalledTimerRef.current = window.setTimeout(() => {
+      stalledTimerRef.current = null;
+      setStatus('error');
+      notify('Playback stalled — check your connection', 'error');
+    }, STALLED_ERROR_DELAY_MS);
+  };
+
   const handlePlay = () => {
+    clearStalledTimer();
     play();
-    if (currentSong) {
-      scrobble(currentSong.id);
+  };
+
+  const handlePlaying = () => {
+    clearStalledTimer();
+    play();
+  };
+
+  const handleWaiting = () => {
+    const currentStatus = usePlayer.getState().status;
+    if (currentStatus === 'playing') {
+      setStatus('loading');
+      armStalledTimer();
+    } else if (currentStatus === 'loading') {
+      armStalledTimer();
     }
   };
 
@@ -83,8 +186,17 @@ export function AudioController() {
 
   const handleTimeUpdate = () => {
     const audio = audioRef.current;
-    if (audio) {
-      setCurrentTime(audio.currentTime);
+    if (!audio) return;
+    // Progress means playback is healthy; cancel any pending stall error.
+    clearStalledTimer();
+    setCurrentTime(audio.currentTime);
+
+    if (!currentSong || lastScrobbledRef.current === currentSong.id) return;
+    const duration = audio.duration || currentSong.duration || 0;
+    if (duration <= 0) return;
+    const threshold = Math.min(duration * SCROBBLE_MIN_FRACTION, SCROBBLE_MAX_SECONDS);
+    if (audio.currentTime >= threshold) {
+      scrobble(currentSong.id);
     }
   };
 
@@ -95,13 +207,20 @@ export function AudioController() {
   };
 
   const handleEnded = () => {
+    clearStalledTimer();
     if (currentSong) {
       scrobble(currentSong.id);
+    }
+    // Repeat-one replays the same song id, so the song-change effect never
+    // resets the scrobble guard; reset it here or replays never scrobble.
+    if (usePlayer.getState().repeat === 'one') {
+      lastScrobbledRef.current = null;
     }
     onEnded();
   };
 
   const handleError = () => {
+    clearStalledTimer();
     setStatus('error');
     notify('Could not play track', 'error');
   };
@@ -114,6 +233,9 @@ export function AudioController() {
       onTimeUpdate={handleTimeUpdate}
       onEnded={handleEnded}
       onPlay={handlePlay}
+      onPlaying={handlePlaying}
+      onWaiting={handleWaiting}
+      onStalled={handleWaiting}
       onError={handleError}
       className="hidden"
     />

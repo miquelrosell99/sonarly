@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import * as React from 'react';
 import type { Playlist, Song } from '@sonarly/shared';
-import { api } from '../api.js';
+import { api } from '../lib/api.js';
 import { usePlaylistContextMenu } from './usePlaylistContextMenu.js';
 
 const playActions = vi.hoisted(() => ({
@@ -23,7 +23,7 @@ vi.mock('../contexts/NotificationContext.js', () => ({
   useNotification: () => mockNotify,
 }));
 
-vi.mock('../api.js', () => ({
+vi.mock('../lib/api.js', () => ({
   api: vi.fn(),
 }));
 

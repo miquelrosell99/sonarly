@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import type { Song, Album, Artist } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { useAdminRefresh } from '../contexts/AdminRefreshContext.js';
+import { TabNav } from '../../settings/index.js';
 
 interface MissingSong extends Song {
   artistName?: string;
@@ -172,17 +173,11 @@ export function MissingModal({ open, onClose }: MissingModalProps) {
           {!loading && (
             <>
               <nav className="flex items-center justify-between gap-2 border-b border-rule pb-2">
-                <div className="flex gap-2">
-                  {tabs.map(({ key, label, count }) => (
-                    <button
-                      key={key}
-                      onClick={() => setTab(key)}
-                      className={`rounded px-3 py-1 text-sm ${tab === key ? 'bg-fg-primary text-bg-primary' : 'text-fg-primary hover:bg-surface-hover'}`}
-                    >
-                      {label} ({count})
-                    </button>
-                  ))}
-                </div>
+                <TabNav
+                  items={tabs.map(({ key, label, count }) => ({ key, label: `${label} (${count})` }))}
+                  activeKey={tab}
+                  onSelect={(key) => setTab(key as Tab)}
+                />
                 <Button
                   variant="danger"
                   onClick={() => setConfirmPurgeAll(tab)}

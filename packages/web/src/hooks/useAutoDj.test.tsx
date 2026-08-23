@@ -49,7 +49,7 @@ vi.mock('../stores/playerStore.js', () => ({
   usePlayer: usePlayerMock,
 }));
 
-vi.mock('../api.js', () => ({
+vi.mock('../lib/api.js', () => ({
   api: mockApi,
 }));
 

@@ -77,15 +77,23 @@ interface PlaylistSongRow {
   artist_name: string | null;
 }
 
+// Chunk IN (...) queries: one placeholder per song id would exceed SQLite's
+// variable limit (999 by default) on huge playlists.
+const SQLITE_VARIABLE_CHUNK = 500;
+
 function fetchPlaylistSongs(db: Database.Database, songIds: string[]): Record<string, unknown>[] {
   if (songIds.length === 0) return [];
-  const rows = db.prepare(`
-    SELECT s.*, a.id AS album_id, a.name AS album_name, a.cover_art_id AS album_cover_art_id, ar.id AS artist_id, ar.name AS artist_name
-    FROM songs s
-    LEFT JOIN albums a ON a.id = s.album_id
-    LEFT JOIN artists ar ON ar.id = s.artist_id
-    WHERE s.active = 1 AND s.id IN (${songIds.map(() => '?').join(',')})
-  `).all(...songIds) as PlaylistSongRow[];
+  const rows: PlaylistSongRow[] = [];
+  for (let i = 0; i < songIds.length; i += SQLITE_VARIABLE_CHUNK) {
+    const chunk = songIds.slice(i, i + SQLITE_VARIABLE_CHUNK);
+    rows.push(...db.prepare(`
+      SELECT s.*, a.id AS album_id, a.name AS album_name, a.cover_art_id AS album_cover_art_id, ar.id AS artist_id, ar.name AS artist_name
+      FROM songs s
+      LEFT JOIN albums a ON a.id = s.album_id
+      LEFT JOIN artists ar ON ar.id = s.artist_id
+      WHERE s.active = 1 AND s.id IN (${chunk.map(() => '?').join(',')})
+    `).all(...chunk) as PlaylistSongRow[]);
+  }
   const byId = new Map(rows.map((r) => [r.id, r]));
   const entries = songIds
     .map((id) => byId.get(id))
@@ -143,7 +151,7 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       JOIN users u ON u.id = p.owner_id
       LEFT JOIN user_playlists up ON up.user_id = ? AND up.playlist_id = p.id
       WHERE p.owner_id = ?
-         OR p.visibility IN ('public', 'link')
+         OR p.visibility = 'public'
          OR EXISTS (SELECT 1 FROM playlist_shares ps WHERE ps.playlist_id = p.id AND ps.user_id = ?)
       ORDER BY p.updated_at DESC
     `).all(userId, userId, userId) as PlaylistListRow[];
@@ -190,6 +198,17 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
         .get(userId, id) as { starred: number | null; rating: number | null } | undefined)
       : undefined;
 
+    const shares = userId === playlist.ownerId
+      ? (db.prepare(`
+          SELECT ps.user_id, u.username, ps.can_edit
+          FROM playlist_shares ps
+          JOIN users u ON u.id = ps.user_id
+          WHERE ps.playlist_id = ?
+          ORDER BY u.username
+        `).all(id) as { user_id: string; username: string; can_edit: number }[])
+        .map((row) => ({ userId: row.user_id, username: row.username, canEdit: row.can_edit === 1 }))
+      : undefined;
+
     reply.send({
       playlist: {
         ...playlist,
@@ -197,6 +216,7 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
         entries: visibleEntries,
         starred: interactionRow?.starred === 1,
         rating: interactionRow?.rating ?? undefined,
+        shares,
       },
     });
   });
@@ -357,21 +377,30 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
     const query = request.query as { limit?: string };
     const limit = Math.min(Math.max(parseInt(query.limit ?? '4', 10) || 4, 1), 20);
 
-    const placeholders = songIds.map(() => '?').join(',');
     const explicitFilter = hideExplicit
       ? 'AND EXISTS (SELECT 1 FROM songs s2 WHERE s2.album_id = a.id AND s2.active = 1 AND s2.explicit = 0)'
       : '';
 
-    const rows = db.prepare(`
-      SELECT a.*
-      FROM albums a
-      JOIN songs s ON s.album_id = a.id
-      WHERE s.id IN (${placeholders}) AND a.active = 1
-      ${explicitFilter}
-      GROUP BY a.id
-      ORDER BY RANDOM()
-      LIMIT ?
-    `).all(...songIds, limit) as DbAlbum[];
+    const byId = new Map<string, DbAlbum>();
+    for (let i = 0; i < songIds.length; i += SQLITE_VARIABLE_CHUNK) {
+      const chunk = songIds.slice(i, i + SQLITE_VARIABLE_CHUNK);
+      const placeholders = chunk.map(() => '?').join(',');
+      const rows = db.prepare(`
+        SELECT a.*
+        FROM albums a
+        JOIN songs s ON s.album_id = a.id
+        WHERE s.id IN (${placeholders}) AND a.active = 1
+        ${explicitFilter}
+        GROUP BY a.id
+      `).all(...chunk) as DbAlbum[];
+      for (const row of rows) {
+        byId.set(row.id, row);
+      }
+    }
+
+    const rows = Array.from(byId.values())
+      .sort(() => Math.random() - 0.5)
+      .slice(0, limit);
 
     reply.send({ albums: rows.map(toAlbum) });
   });

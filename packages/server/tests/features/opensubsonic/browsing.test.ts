@@ -10,7 +10,7 @@ import { upsertSong } from '../../../src/features/songs/repository.js';
 import { getOrCreateGenreByName } from '../../../src/features/genres/repository.js';
 import { buildSubsonicToken } from '../../../src/features/auth/token.js';
 import { encryptSubsonicPassword, hashPassword } from '../../../src/features/auth/password.js';
-import { generateApiKey, storeApiKey } from '../../../src/features/auth/api-keys.js';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import type { Config } from '../../../src/config.js';
 
 const config: Config = {
@@ -96,6 +96,13 @@ function seedCatalog(db: Database.Database) {
   `).run(rockId, rockId);
 }
 
+function seedApiKey(db: Database.Database): string {
+  const apiKey = 'sk_' + randomBytes(32).toString('hex');
+  const keyHash = createHash('sha256').update(apiKey).digest('hex');
+  db.prepare('INSERT INTO api_keys (id, user_id, key_hash) VALUES (?, ?, ?)').run(randomUUID(), 'user-1', keyHash);
+  return apiKey;
+}
+
 describe('OpenSubsonic system endpoints', () => {
   let app: Fastify.FastifyInstance;
   let db: Database.Database;
@@ -133,8 +140,8 @@ describe('OpenSubsonic system endpoints', () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers['content-type']).toContain('application/xml');
     expect(res.body).toContain('<subsonic-response');
-    expect(res.body).toContain('<status>ok</status>');
-    expect(res.body).toContain('<openSubsonic>true</openSubsonic>');
+    expect(res.body).toContain('status="ok"');
+    expect(res.body).toContain('openSubsonic="true"');
   });
 
   it('rejects requests without authentication', async () => {
@@ -161,8 +168,7 @@ describe('OpenSubsonic system endpoints', () => {
   });
 
   it('authenticates with an API key query parameter', async () => {
-    const apiKey = generateApiKey();
-    storeApiKey(db, 'user-1', apiKey);
+    const apiKey = seedApiKey(db);
     const res = await app.inject({ method: 'GET', url: `/rest/ping.view?apiKey=${apiKey}&f=json` });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
@@ -170,8 +176,7 @@ describe('OpenSubsonic system endpoints', () => {
   });
 
   it('authenticates with an X-API-Key header', async () => {
-    const apiKey = generateApiKey();
-    storeApiKey(db, 'user-1', apiKey);
+    const apiKey = seedApiKey(db);
     const res = await app.inject({
       method: 'GET',
       url: '/rest/ping.view?f=json',
@@ -215,17 +220,18 @@ describe('OpenSubsonic system endpoints', () => {
     expect(body['subsonic-response'].user.folder).toEqual(['0']);
   });
 
-  it('authenticates with legacy plaintext password', async () => {
+  it('rejects legacy plaintext password auth', async () => {
     const res = await app.inject({
       method: 'GET',
       url: `/rest/ping.view?u=${auth.username}&p=${auth.password}&f=json`,
     });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body['subsonic-response'].status).toBe('ok');
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(10);
   });
 
-  it('authenticates with hex-encoded legacy password', async () => {
+  it('rejects hex-encoded legacy password auth', async () => {
     const hexPassword = Buffer.from(auth.password).toString('hex');
     const res = await app.inject({
       method: 'GET',
@@ -233,7 +239,8 @@ describe('OpenSubsonic system endpoints', () => {
     });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body['subsonic-response'].status).toBe('ok');
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(10);
   });
 });
 
@@ -336,7 +343,7 @@ describe('OpenSubsonic browsing endpoints', () => {
     expect(song.isVideo).toBe(false);
     expect(song.contentType).toBe('audio/mpeg');
     expect(song.suffix).toBe('mp3');
-    expect(song.path).toBe('/data/library/song1.mp3');
+    expect(song.path).toBe('song1.mp3');
   });
 
   it('returns a controlled error for a missing album', async () => {
@@ -363,7 +370,7 @@ describe('OpenSubsonic browsing endpoints', () => {
     expect(song.isVideo).toBe(false);
     expect(song.contentType).toBe('audio/mpeg');
     expect(song.suffix).toBe('mp3');
-    expect(song.path).toBe('/data/library/song1.mp3');
+    expect(song.path).toBe('song1.mp3');
   });
 
   it('returns a controlled error for a missing song', async () => {

@@ -3,7 +3,7 @@ import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/re
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Router } from 'wouter';
 import { SearchBox } from './SearchBox.js';
-import * as apiModule from '../api.js';
+import * as apiModule from '../lib/api.js';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 

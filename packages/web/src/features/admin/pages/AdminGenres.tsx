@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { User } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 import { Icon } from '../../../components/ui/Icon.js';
@@ -223,7 +223,7 @@ export function AdminGenres({ user }: AdminGenresProps) {
           </p>
         )}
 
-        <div className="flex items-end gap-2 border border-rule p-4">
+        <div className="flex items-end gap-2 rounded-md border border-rule bg-surface p-4">
           <div className="flex-1">
             <label htmlFor="new-root-genre" className="mb-1.5 block text-sm font-medium text-fg-secondary">
               New root genre
@@ -425,7 +425,7 @@ function GenreTreeItem({
                 variant="ghost"
                 onClick={() => onStartRename(node)}
                 disabled={isBusyNode}
-                className="h-8 px-2 text-xs"
+                className="h-10 px-3 text-xs"
                 aria-label={`Rename ${node.name}`}
               >
                 Rename
@@ -434,7 +434,7 @@ function GenreTreeItem({
                 variant="ghost"
                 onClick={() => onStartAddChild(node.id)}
                 disabled={isBusyNode}
-                className="h-8 px-2 text-xs"
+                className="h-10 px-3 text-xs"
                 aria-label={`Add child to ${node.name}`}
               >
                 Add child
@@ -443,7 +443,7 @@ function GenreTreeItem({
                 variant="ghost"
                 onClick={() => onStartMove(node.id)}
                 disabled={isBusyNode}
-                className="h-8 px-2 text-xs"
+                className="h-10 px-3 text-xs"
                 aria-label={`Move ${node.name}`}
               >
                 Move
@@ -452,7 +452,7 @@ function GenreTreeItem({
                 variant="danger"
                 onClick={() => onDelete(node.id)}
                 disabled={isBusyNode || hasChildren}
-                className="h-8 px-2 text-xs disabled:opacity-40"
+                className="h-10 px-3 text-xs disabled:opacity-40"
                 title={hasChildren ? 'Cannot delete a genre with children' : 'Delete genre'}
                 aria-label={`Delete ${node.name}`}
               >

@@ -1,18 +1,14 @@
-import { Link, useLocation } from 'wouter';
 import type { User } from '@sonarly/shared';
+import { TabNav } from '../../settings/index.js';
 
 const tabs = [
-  { href: '/admin/status', label: 'Status' },
-  { href: '/admin/libraries', label: 'Libraries' },
-  { href: '/admin/media', label: 'Media' },
-  { href: '/admin/users', label: 'Users' },
-  { href: '/admin/system-tasks', label: 'System Tasks' },
-  { href: '/admin/genres', label: 'Genres' },
+  { key: '/admin/status', label: 'Status' },
+  { key: '/admin/libraries', label: 'Libraries' },
+  { key: '/admin/media', label: 'Media' },
+  { key: '/admin/users', label: 'Users' },
+  { key: '/admin/system-tasks', label: 'System Tasks' },
+  { key: '/admin/genres', label: 'Genres' },
 ];
-
-function isActive(location: string, href: string): boolean {
-  return location === href || location.startsWith(`${href}/`);
-}
 
 interface AdminShellProps {
   user: User;
@@ -20,12 +16,10 @@ interface AdminShellProps {
 }
 
 export function AdminShell({ user, children }: AdminShellProps) {
-  const [location] = useLocation();
-
   if (!user.isAdmin) {
     return (
       <div className="w-full">
-        <h2 className="text-lg font-semibold">Admin panel</h2>
+        <h2 className="font-display text-lg font-semibold">Admin panel</h2>
         <p className="mt-2 text-sm text-muted">You do not have permission to view this page.</p>
       </div>
     );
@@ -33,18 +27,8 @@ export function AdminShell({ user, children }: AdminShellProps) {
 
   return (
     <div className="w-full">
-      <h2 className="text-lg font-semibold">Admin panel</h2>
-      <nav className="mb-6 mt-4 flex flex-wrap gap-2 border-b border-rule pb-2">
-        {tabs.map((tab) => (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            className={`rounded px-3 py-1 text-sm ${isActive(location, tab.href) ? 'bg-fg-primary text-bg-primary' : 'text-fg-primary hover:bg-surface-hover'}`}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </nav>
+      <h2 className="font-display text-lg font-semibold">Admin panel</h2>
+      <TabNav items={tabs} className="mb-6 mt-4 border-b border-rule pb-2" />
       {children}
     </div>
   );

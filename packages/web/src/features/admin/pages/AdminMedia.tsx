@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { User, DuplicateStrategy } from '@sonarly/shared';
 import { DUPLICATE_STRATEGY_LABELS } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
-import { Icon } from '../../../components/ui/Icon.js';
+import { PageState } from '../../../components/PageState.js';
 import { AdminShell } from '../components/AdminShell.js';
+import { StatCard } from '../components/StatCard.js';
 import { RenameProgressModal } from '../../settings/index.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { useAdminRefresh } from '../contexts/AdminRefreshContext.js';
@@ -126,7 +127,7 @@ export function AdminMedia({ user }: AdminMediaProps) {
   if (loading) {
     return (
       <AdminShell user={user}>
-        <p className="text-sm text-muted">Loading...</p>
+        <PageState loading>{null}</PageState>
       </AdminShell>
     );
   }
@@ -143,34 +144,10 @@ export function AdminMedia({ user }: AdminMediaProps) {
 
         {counts && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-xl border border-rule bg-surface p-3">
-              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-surface-hover text-accent">
-                <Icon name="mdi-music" size={18} />
-              </div>
-              <p className="font-display text-2xl font-bold text-fg-primary">{counts.songs.toLocaleString()}</p>
-              <p className="text-xs text-fg-secondary">Songs</p>
-            </div>
-            <div className="rounded-xl border border-rule bg-surface p-3">
-              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-surface-hover text-accent">
-                <Icon name="mdi-album" size={18} />
-              </div>
-              <p className="font-display text-2xl font-bold text-fg-primary">{counts.albums.toLocaleString()}</p>
-              <p className="text-xs text-fg-secondary">Albums</p>
-            </div>
-            <div className="rounded-xl border border-rule bg-surface p-3">
-              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-surface-hover text-accent">
-                <Icon name="mdi-account-music" size={18} />
-              </div>
-              <p className="font-display text-2xl font-bold text-fg-primary">{counts.artists.toLocaleString()}</p>
-              <p className="text-xs text-fg-secondary">Artists</p>
-            </div>
-            <div className="rounded-xl border border-rule bg-surface p-3">
-              <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-surface-hover text-accent">
-                <Icon name="mdi-account-group" size={18} />
-              </div>
-              <p className="font-display text-2xl font-bold text-fg-primary">{counts.users.toLocaleString()}</p>
-              <p className="text-xs text-fg-secondary">Users</p>
-            </div>
+            <StatCard icon="mdi-music" label="Songs" value={counts.songs} />
+            <StatCard icon="mdi-album" label="Albums" value={counts.albums} />
+            <StatCard icon="mdi-account-music" label="Artists" value={counts.artists} />
+            <StatCard icon="mdi-account-group" label="Users" value={counts.users} />
           </div>
         )}
 

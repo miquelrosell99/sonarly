@@ -20,6 +20,7 @@ import { Icon } from './ui/Icon.js';
 import { Card } from './Card.js';
 import { CoverArt } from './CoverArt.js';
 import { ListRow } from './ListRow.js';
+import { PageState } from './PageState.js';
 
 export interface LibraryViewColumn<T> {
   key: string;
@@ -280,8 +281,8 @@ export function LibraryView<T>({
   if (isLoading) {
     return (
       <div>
-        {title && <h2 className="mb-4 text-lg font-semibold">{title}</h2>}
-        <p className="text-sm text-muted">Loading...</p>
+        {title && <h2 className="mb-4 font-display text-lg font-semibold tracking-tight">{title}</h2>}
+        <PageState loading>{null}</PageState>
       </div>
     );
   }
@@ -289,8 +290,8 @@ export function LibraryView<T>({
   if (errorText) {
     return (
       <div>
-        {title && <h2 className="mb-4 text-lg font-semibold">{title}</h2>}
-        <p className="text-sm text-danger">{errorText}</p>
+        {title && <h2 className="mb-4 font-display text-lg font-semibold tracking-tight">{title}</h2>}
+        <PageState error={errorText}>{null}</PageState>
       </div>
     );
   }
@@ -298,8 +299,8 @@ export function LibraryView<T>({
   if (data.length === 0) {
     return (
       <div>
-        {title && <h2 className="mb-4 text-lg font-semibold">{title}</h2>}
-        <p className="py-8 text-center text-sm text-muted">{emptyMessage}</p>
+        {title && <h2 className="mb-4 font-display text-lg font-semibold tracking-tight">{title}</h2>}
+        <PageState isEmpty emptyMessage={emptyMessage}>{null}</PageState>
       </div>
     );
   }
@@ -437,7 +438,7 @@ export function LibraryView<T>({
     );
 
     return (
-      <div className="overflow-x-auto" onKeyDown={handleContainerKeyDown} role="grid" aria-multiselectable="true">
+      <div className="overflow-x-auto" onKeyDown={handleContainerKeyDown}>
         {sortable ? (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={data.map((item) => getId(item))} strategy={verticalListSortingStrategy}>
@@ -494,7 +495,7 @@ export function LibraryView<T>({
     <div>
       {title && (
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{title}</h2>
+          <h2 className="font-display text-lg font-semibold tracking-tight">{title}</h2>
           <div className="flex items-center gap-2">
             {onShufflePlay && (
               <button

@@ -2,19 +2,19 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { SmartPlaylistRules, Song, SyncedLyricLine } from '@sonarly/shared';
-import { api } from '../api.js';
+import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
 import { Button } from './ui/Button.js';
 import { Input } from './ui/Input.js';
 import { Checkbox } from './ui/Checkbox.js';
 import { Modal } from './ui/Modal.js';
 import { ConfirmModal } from './ui/ConfirmModal.js';
-import { AutocompleteInput } from './ui/AutocompleteInput.js';
+import { AutocompleteInput, type AutocompleteField } from './ui/AutocompleteInput.js';
 import { PillInput } from './ui/PillInput.js';
 import { CoverArt } from './CoverArt.js';
 import { ArtistImage } from './ArtistImage.js';
 import { Icon } from './ui/Icon.js';
-import { SmartPlaylistEditor } from '../features/playlists/index.js';
+import { SmartPlaylistBlockEditor } from '../features/playlists/index.js';
 import { FetchMetadataModal } from './FetchMetadataModal.js';
 import { FetchLyricsModal } from './FetchLyricsModal.js';
 
@@ -42,7 +42,7 @@ interface TagField {
   key: string;
   label: string;
   type?: 'text' | 'number';
-  autocomplete?: 'artist' | 'album' | 'albumArtist' | 'genre';
+  autocomplete?: AutocompleteField;
   primary?: boolean;
   multi?: boolean;
 }
@@ -61,6 +61,7 @@ const ALBUM_FIELDS: TagField[] = [
   { key: 'title', label: 'Title', primary: true },
   { key: 'albumArtist', label: 'Album artist', autocomplete: 'albumArtist', primary: true, multi: true },
   { key: 'year', label: 'Year', type: 'number', primary: true },
+  { key: 'albumType', label: 'Album type', autocomplete: 'albumType' },
 ];
 
 const VISIBILITY_OPTIONS = ['private', 'shared', 'public', 'link'] as const;
@@ -296,6 +297,9 @@ export function EditEntityModal({
         } else if (multi) {
           const arr = Array.isArray(raw) ? raw : [];
           patched[key] = arr.length > 0 ? arr : undefined;
+        } else if (key === 'albumType') {
+          // Send null (not undefined) so clearing the field persists as NULL.
+          patched[key] = raw === '' ? null : raw;
         } else {
           patched[key] = raw === '' ? undefined : raw;
         }
@@ -448,7 +452,7 @@ export function EditEntityModal({
                 ))}
               </select>
             </Field>
-            {Boolean(getCommonValue(activeEntities, 'isSmart')) && <SmartPlaylistEditor initialRules={rules} onChange={setRules} />}
+            {Boolean(getCommonValue(activeEntities, 'isSmart')) && <SmartPlaylistBlockEditor initialRules={rules} onChange={setRules} />}
           </div>
         ) : (
           <>
@@ -711,7 +715,7 @@ function TagInput({
   value: string;
   onChange: (value: string) => void;
   type?: 'text' | 'number';
-  autocomplete?: 'artist' | 'album' | 'albumArtist' | 'genre';
+  autocomplete?: AutocompleteField;
   placeholder?: string;
   disabled?: boolean;
   locked?: boolean;

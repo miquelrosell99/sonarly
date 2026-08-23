@@ -75,13 +75,10 @@ function StatCard({
     return (
       <button
         type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onClick();
-        }}
-        className={`${className} w-full`}
+        onClick={onClick}
+        className={`${className} w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
       >
-        <p className="text-2xl font-semibold">{value}</p>
+        <p className="font-mono text-2xl font-semibold">{value}</p>
         <p className="text-xs text-muted">{label}</p>
       </button>
     );
@@ -89,7 +86,7 @@ function StatCard({
 
   return (
     <div className={className}>
-      <p className="text-2xl font-semibold">{value}</p>
+      <p className="font-mono text-2xl font-semibold">{value}</p>
       <p className="text-xs text-muted">{label}</p>
     </div>
   );
@@ -106,41 +103,39 @@ export function IngestStatusCard({
   const timestamp = ingest.finishedAt ?? ingest.startedAt;
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onOpenReport}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onOpenReport?.();
-        }
-      }}
-      className="w-full cursor-pointer rounded border border-rule bg-surface p-4 text-left shadow-sm transition-colors hover:bg-surface-hover"
-    >
+    <div className="w-full rounded border border-rule bg-surface p-4 text-left shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-base font-semibold">Latest ingest</h3>
           <StatusPill status={ingest.status} />
         </div>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenHistory?.();
-          }}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-rule px-3 py-1.5 text-xs font-medium text-fg-secondary transition-colors hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-        >
-          <Icon name="mdi-history" size={14} />
-          History
-        </button>
+        <div className="flex items-center gap-2">
+          {onOpenReport && (
+            <button
+              type="button"
+              onClick={onOpenReport}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-rule px-3 py-1.5 text-xs font-medium text-fg-secondary transition-colors hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              <Icon name="mdi-information-outline" size={14} />
+              View report
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => onOpenHistory?.()}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-rule px-3 py-1.5 text-xs font-medium text-fg-secondary transition-colors hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <Icon name="mdi-history" size={14} />
+            History
+          </button>
+        </div>
       </div>
 
       {timestamp && (
         <div className="mt-3 flex items-center gap-2 text-sm text-muted">
           <Icon name="mdi-clock-check-outline" size={16} />
           <span>{ingest.finishedAt ? 'Finished' : 'Started'}:</span>
-          <span className="text-fg-primary">{formatDateTime(timestamp)}</span>
+          <span className="font-mono text-fg-primary">{formatDateTime(timestamp)}</span>
         </div>
       )}
 

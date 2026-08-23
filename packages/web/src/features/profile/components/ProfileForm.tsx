@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import type { User } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 import { Avatar } from '../../../components/Avatar.js';

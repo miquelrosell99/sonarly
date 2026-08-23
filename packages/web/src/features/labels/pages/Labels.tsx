@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import type { Album } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 

@@ -103,7 +103,8 @@ export function SettingsPlayback() {
                   key={option.value}
                   type="button"
                   onClick={() => setMode(option.value)}
-                  className={`flex flex-col items-center gap-2 rounded-md border px-4 py-4 text-center transition ${
+                  aria-pressed={selected}
+                  className={`flex flex-col items-center gap-2 rounded-md border px-4 py-4 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                     selected
                       ? 'border-accent bg-surface-hover text-accent'
                       : 'border-rule bg-surface text-fg-secondary hover:bg-surface-hover hover:text-fg-primary'
@@ -122,9 +123,10 @@ export function SettingsPlayback() {
 
         <section className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium">Top-up threshold</label>
+            <label htmlFor="auto-dj-threshold" className="mb-1 block text-sm font-medium">Top-up threshold</label>
             <p className="mb-2 text-xs text-muted">Fetch more tracks when this many remain.</p>
             <Input
+              id="auto-dj-threshold"
               type="number"
               min={1}
               max={20}
@@ -135,9 +137,10 @@ export function SettingsPlayback() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">Batch size</label>
+            <label htmlFor="auto-dj-batch-size" className="mb-1 block text-sm font-medium">Batch size</label>
             <p className="mb-2 text-xs text-muted">How many tracks to fetch at once.</p>
             <Input
+              id="auto-dj-batch-size"
               type="number"
               min={1}
               max={50}

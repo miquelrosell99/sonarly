@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn } from '../lib/cn.js';
 import { EntityHeader } from './EntityHeader.js';
+import { PageState } from './PageState.js';
 import { type MetadataItem } from './MetadataBreadcrumb.js';
 import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
 
@@ -40,15 +41,15 @@ export function EntityDetail({
   useDocumentTitle(documentTitle);
 
   if (isLoading) {
-    return <p className="text-sm text-muted">Loading...</p>;
+    return <PageState loading>{null}</PageState>;
   }
 
   if (error) {
-    return <p className="text-sm text-danger">{error}</p>;
+    return <PageState error={error}>{null}</PageState>;
   }
 
   if (notFound || !title) {
-    return <p className="text-sm text-muted">{notFoundMessage ?? `${type} not found.`}</p>;
+    return <PageState isEmpty emptyMessage={notFoundMessage ?? `${type} not found.`}>{null}</PageState>;
   }
 
   const header = (

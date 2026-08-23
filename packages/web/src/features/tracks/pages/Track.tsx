@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useLocation } from 'wouter';
 import type { Song } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { CoverArt } from '../../../components/CoverArt.js';
@@ -94,7 +94,7 @@ export function Track() {
     setDeleting(true);
     try {
       await api(`/songs/${track.id}`, { method: 'DELETE' });
-      navigate('/songs');
+      navigate('/tracks');
     } catch (err) {
       setDeleting(false);
       notify(err instanceof Error ? err.message : 'Failed to delete song', 'error');

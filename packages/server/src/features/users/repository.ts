@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import type { User, UpdateProfileInput, UpdateUserContentFiltersInput } from '@sonarly/shared';
+import { deleteSessionsForUser } from '../auth/session.js';
 
 export interface DbUser {
   id: string;
@@ -112,14 +113,26 @@ export function updateUserContentFilters(
 ): void {
   const existing = getUserById(db, id);
   if (!existing) return;
-  db.prepare(
-    'UPDATE users SET hide_explicit = ?, blur_explicit_titles = ?, blur_explicit_covers = ? WHERE id = ?',
-  ).run(
-    input.hideExplicit === true ? 1 : 0,
-    input.blurExplicitTitles === true ? 1 : 0,
-    input.blurExplicitCovers === true ? 1 : 0,
-    id,
-  );
+
+  const updates: string[] = [];
+  const values: unknown[] = [];
+
+  if (input.hideExplicit !== undefined) {
+    updates.push('hide_explicit = ?');
+    values.push(input.hideExplicit ? 1 : 0);
+  }
+  if (input.blurExplicitTitles !== undefined) {
+    updates.push('blur_explicit_titles = ?');
+    values.push(input.blurExplicitTitles ? 1 : 0);
+  }
+  if (input.blurExplicitCovers !== undefined) {
+    updates.push('blur_explicit_covers = ?');
+    values.push(input.blurExplicitCovers ? 1 : 0);
+  }
+
+  if (updates.length === 0) return;
+  values.push(id);
+  db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).run(...values);
 }
 
 export interface UpdateUserAdminInput {
@@ -168,5 +181,10 @@ export function updateUserAdminFields(
 }
 
 export function deleteUserById(db: Database.Database, id: string): void {
-  db.prepare('DELETE FROM users WHERE id = ?').run(id);
+  const deleteUser = db.transaction(() => {
+    // Drop the user's sessions first so a deleted user loses access immediately.
+    deleteSessionsForUser(db, id);
+    db.prepare('DELETE FROM users WHERE id = ?').run(id);
+  });
+  deleteUser();
 }

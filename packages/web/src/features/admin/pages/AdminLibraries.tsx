@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Library, User } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { Checkbox } from '../../../components/ui/Checkbox.js';
+import { Table, TableColumn } from '../../../components/ui/Table.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { AdminShell } from '../components/AdminShell.js';
 
@@ -208,6 +209,47 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
   const previewPath = useMemo(() => buildPreviewPath(editForm.organizePattern), [editForm.organizePattern]);
   const selectedTemplate = templates.find((t) => t.value === editForm.organizePattern)?.value ?? '';
 
+  const columns: TableColumn<Library>[] = [
+    {
+      key: 'name',
+      header: 'Name',
+      render: (library) => <span className="font-medium text-fg-primary">{library.name}</span>,
+    },
+    {
+      key: 'path',
+      header: 'Path',
+      render: (library) => <span className="font-mono text-xs text-fg-secondary">{library.path}</span>,
+    },
+    {
+      key: 'default',
+      header: 'Default',
+      render: (library) =>
+        library.isDefault ? (
+          <span className="inline-flex items-center rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+            Default
+          </span>
+        ) : null,
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (library) => (
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" onClick={() => openEdit(library)}>
+            Edit
+          </Button>
+          <Button
+            variant="danger"
+            onClick={() => setLibraryToDelete(library.id)}
+            disabled={deletingId === library.id}
+          >
+            Delete
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   const createFooter = (
     <div className="flex justify-end gap-2">
       <Button variant="ghost" onClick={closeCreate} disabled={creating}>
@@ -343,53 +385,13 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
           </div>
         </Modal>
 
-        <div className="overflow-x-auto rounded-md border border-rule">
-          <table className="w-full text-sm">
-            <thead className="bg-surface">
-              <tr>
-                <th className="px-4 py-2 text-left font-medium text-fg-primary">Name</th>
-                <th className="px-4 py-2 text-left font-medium text-fg-primary">Path</th>
-                <th className="px-4 py-2 text-left font-medium text-fg-primary">Default</th>
-                <th className="px-4 py-2 text-left font-medium text-fg-primary">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {libraries.map((library) => (
-                <tr key={library.id} className="border-t border-rule">
-                  <td className="px-4 py-2 font-medium text-fg-primary">{library.name}</td>
-                  <td className="px-4 py-2 font-mono text-xs text-fg-secondary">{library.path}</td>
-                  <td className="px-4 py-2">
-                    {library.isDefault && (
-                      <span className="inline-flex items-center rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
-                        Default
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" onClick={() => openEdit(library)}>
-                        Edit
-                      </Button>
-                      <Button
-                        variant="danger"
-                        onClick={() => setLibraryToDelete(library.id)}
-                        disabled={deletingId === library.id}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {libraries.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-sm text-fg-secondary">
-                    No libraries configured yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="rounded-md border border-rule">
+          <Table
+            columns={columns}
+            rows={libraries}
+            rowKey={(library) => library.id}
+            empty="No libraries configured yet."
+          />
         </div>
       </div>
 
