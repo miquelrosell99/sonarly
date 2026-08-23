@@ -7,6 +7,7 @@ import { Setup } from './features/setup/index.js';
 import { HomePage } from './features/home/index.js';
 import { Playlists } from './features/playlists/index.js';
 import { PlaylistDetail } from './features/playlists/index.js';
+import { GuestPlaylist } from './features/playlists/index.js';
 import { Organize } from './features/organize/index.js';
 import {
   AdminStatus,
@@ -35,6 +36,7 @@ import { StatisticsPage } from './features/statistics/index.js';
 import { AdminRefreshProvider } from './features/admin/contexts/AdminRefreshContext.js';
 import { useServerEvents } from './hooks/useServerEvents.js';
 import { api } from './lib/api.js';
+import { getShareToken } from './lib/shareToken.js';
 
 function Redirect({ to }: { to: string }) {
   const [, setLocation] = useLocation();
@@ -181,6 +183,12 @@ export default function App() {
       <Router>
         <Switch>
           <Route path="/login" component={() => <Login onLogin={(u) => setUser(u)} />} />
+          {/* Anonymous share-link visitors get a guest view of the linked
+              playlist; every other route still requires an account. */}
+          <Route
+            path="/playlists/:id"
+            component={() => (getShareToken() ? <GuestPlaylist /> : <Redirect to="/login" />)}
+          />
           <Route path="*" component={() => <Redirect to="/login" />} />
         </Switch>
       </Router>

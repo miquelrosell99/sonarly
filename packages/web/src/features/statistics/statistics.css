@@ -1,0 +1,58 @@
+/* Statistics feature animations.
+   All animations are disabled under prefers-reduced-motion; the global
+   dampener in index.css also zeroes durations, but animation-delay would
+   still apply, so each class gets an explicit reduced-motion opt-out. */
+
+@keyframes stat-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stat-reveal {
+  animation: stat-reveal 550ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--stagger, 0) * 70ms);
+}
+
+@keyframes stat-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.stat-grow-x {
+  transform-origin: left;
+  animation: stat-grow-x 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--stagger, 0) * 50ms);
+}
+
+@keyframes stat-grow-y {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.stat-grow-y {
+  transform-origin: bottom;
+  animation: stat-grow-y 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--stagger, 0) * 40ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stat-reveal,
+  .stat-grow-x,
+  .stat-grow-y {
+    animation: none;
+  }
+}

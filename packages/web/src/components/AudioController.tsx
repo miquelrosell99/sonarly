@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { api } from '../lib/api.js';
+import { getShareToken, withShareToken } from '../lib/shareToken.js';
 import { useNotification } from '../contexts/NotificationContext.js';
 import { usePlayer } from '../stores/playerStore.js';
 import { useAutoDj } from '../hooks/useAutoDj.js';
@@ -59,7 +60,12 @@ export function AudioController() {
 
     if (currentSong) {
       setStatus('loading');
-      audio.src = `/rest/stream.view?id=${currentSong.id}`;
+      // /rest/stream.view needs a session; anonymous share-link viewers use
+      // the token-scoped /api/stream endpoint instead.
+      const shareToken = getShareToken();
+      audio.src = shareToken
+        ? `/api/stream/${currentSong.id}?shareToken=${encodeURIComponent(shareToken)}`
+        : `/rest/stream.view?id=${currentSong.id}`;
       audio.load();
       audio.play().catch(handlePlayError);
     } else {
@@ -136,7 +142,7 @@ export function AudioController() {
       title: currentSong.title,
       artist: currentSong.artistName || 'Unknown artist',
       album: currentSong.albumName || '',
-      artwork: coverId ? [{ src: `/api/cover-art/${coverId}`, sizes: '512x512' }] : [],
+      artwork: coverId ? [{ src: withShareToken(`/api/cover-art/${coverId}`), sizes: '512x512' }] : [],
     });
   }, [currentSong?.id]);
 
