@@ -120,6 +120,65 @@ function insertPlaylistSongs(db: Database.Database, playlistId: string, songIds:
   }
 }
 
+// Smart playlists don't populate playlist_songs — their membership resolves
+// from the stored rules at request time. Resolution results are cached briefly
+// (keyed by playlist id + rules, so rule edits invalidate immediately) to avoid
+// recompiling per track on cover-art-heavy pages.
+const SMART_GRANT_CACHE_TTL_MS = 30_000;
+
+interface SmartGrantCacheEntry {
+  ids: Set<string>;
+  expiresAt: number;
+}
+
+const smartGrantCache = new Map<string, SmartGrantCacheEntry>();
+
+interface SmartLinkPlaylistRow {
+  id: string;
+  owner_id: string;
+  rules_json: string | null;
+}
+
+function fetchSmartLinkPlaylists(db: Database.Database, shareToken: string): SmartLinkPlaylistRow[] {
+  return db.prepare(`
+    SELECT id, owner_id, rules_json
+    FROM playlists
+    WHERE visibility = 'link' AND share_token = ? AND is_smart = 1
+  `).all(shareToken) as SmartLinkPlaylistRow[];
+}
+
+function resolveSmartGrantSongIds(db: Database.Database, row: SmartLinkPlaylistRow): Set<string> {
+  const key = `${row.id}:${row.rules_json ?? ''}`;
+  const now = Date.now();
+  const cached = smartGrantCache.get(key);
+  if (cached && cached.expiresAt > now) return cached.ids;
+
+  const ids = new Set<string>();
+  const rules = parseRules(row.rules_json);
+  if (rules) {
+    // Same compiler path as resolvePlaylistSongIds; user-scoped rule fields
+    // resolve against the playlist owner, matching the anonymous detail view.
+    const compiled = compileSmartPlaylist(db, rules, row.owner_id);
+    for (const id of db.prepare(compiled.sql).pluck().all(...compiled.params) as string[]) {
+      ids.add(id);
+    }
+  }
+  smartGrantCache.set(key, { ids, expiresAt: now + SMART_GRANT_CACHE_TTL_MS });
+  return ids;
+}
+
+function shareTokenGrantsSmartSongIds(db: Database.Database, shareToken: string): Set<string> | undefined {
+  const smartPlaylists = fetchSmartLinkPlaylists(db, shareToken);
+  if (smartPlaylists.length === 0) return undefined;
+  const ids = new Set<string>();
+  for (const row of smartPlaylists) {
+    for (const id of resolveSmartGrantSongIds(db, row)) {
+      ids.add(id);
+    }
+  }
+  return ids;
+}
+
 // A share token only ever authorizes content belonging to the link-shared
 // playlist it was minted for; both checks scope the EXISTS to that playlist.
 export function shareTokenGrantsSong(db: Database.Database, shareToken: string, songId: string): boolean {
@@ -131,7 +190,8 @@ export function shareTokenGrantsSong(db: Database.Database, shareToken: string, 
     WHERE p.visibility = 'link' AND p.share_token = ? AND ps.song_id = ?
     LIMIT 1
   `).get(shareToken, songId);
-  return row !== undefined;
+  if (row !== undefined) return true;
+  return shareTokenGrantsSmartSongIds(db, shareToken)?.has(songId) ?? false;
 }
 
 export function shareTokenGrantsCoverArt(db: Database.Database, shareToken: string, coverArtId: string): boolean {
@@ -145,7 +205,24 @@ export function shareTokenGrantsCoverArt(db: Database.Database, shareToken: stri
       AND (s.cover_art_id = ? OR a.cover_art_id = ?)
     LIMIT 1
   `).get(shareToken, coverArtId, coverArtId);
-  return row !== undefined;
+  if (row !== undefined) return true;
+
+  const smartSongIds = shareTokenGrantsSmartSongIds(db, shareToken);
+  if (!smartSongIds || smartSongIds.size === 0) return false;
+  const ids = [...smartSongIds];
+  for (let i = 0; i < ids.length; i += 500) {
+    const chunk = ids.slice(i, i + 500);
+    const match = db.prepare(`
+      SELECT 1
+      FROM songs s
+      LEFT JOIN albums a ON a.id = s.album_id
+      WHERE s.active = 1 AND s.id IN (${chunk.map(() => '?').join(',')})
+        AND (s.cover_art_id = ? OR a.cover_art_id = ?)
+      LIMIT 1
+    `).get(...chunk, coverArtId, coverArtId);
+    if (match !== undefined) return true;
+  }
+  return false;
 }
 
 export function sharePlaylistWithUser(db: Database.Database, playlistId: string, userId: string, canEdit: boolean): void {

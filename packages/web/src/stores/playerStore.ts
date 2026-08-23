@@ -5,6 +5,11 @@ import type { Song } from '@sonarly/shared';
 export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 export type RepeatMode = 'off' | 'all' | 'one';
 
+export type SleepTimerState =
+  | { mode: 'off' }
+  | { mode: 'minutes'; endsAt: number }
+  | { mode: 'endOfTrack' };
+
 export type PlayerSong = Song & { artistName?: string; albumName?: string; addedByAutoDj?: boolean };
 
 interface PlayerState {
@@ -18,6 +23,7 @@ interface PlayerState {
   shuffle: boolean;
   repeat: RepeatMode;
   shuffledIndices: number[];
+  sleepTimer: SleepTimerState;
 }
 
 interface PlayerActions {
@@ -42,6 +48,8 @@ interface PlayerActions {
   setStatus: (status: PlayerStatus) => void;
   onEnded: () => void;
   updateCurrentSong: (patch: Partial<PlayerSong>) => void;
+  setSleepTimer: (timer: number | 'endOfTrack') => void;
+  clearSleepTimer: () => void;
 }
 
 const initialState: PlayerState = {
@@ -55,6 +63,7 @@ const initialState: PlayerState = {
   shuffle: false,
   repeat: 'off',
   shuffledIndices: [],
+  sleepTimer: { mode: 'off' },
 };
 
 function shuffleArray<T>(array: T[]): T[] {
@@ -72,6 +81,30 @@ function buildShuffledIndices(queueLength: number, currentIndex: number): number
   if (queueLength === 0) return [];
   const others = Array.from({ length: queueLength }, (_, i) => i).filter((i) => i !== currentIndex);
   return [currentIndex, ...shuffleArray(others)];
+}
+
+/**
+ * Read-only peek at what `next()` would play, honoring shuffle and repeat.
+ * Used by the gapless preloader; repeat-one returns null because replaying
+ * the current track needs no preload.
+ */
+export function getNextSong(
+  state: Pick<PlayerState, 'queue' | 'queueIndex' | 'repeat' | 'shuffle' | 'shuffledIndices'>,
+): PlayerSong | null {
+  const { queue, queueIndex, repeat, shuffle, shuffledIndices } = state;
+  if (queue.length === 0 || repeat === 'one') return null;
+
+  if (shuffle) {
+    const position = shuffledIndices.indexOf(queueIndex);
+    if (position >= 0 && position + 1 < shuffledIndices.length) {
+      return queue[shuffledIndices[position + 1]] ?? null;
+    }
+    return repeat === 'all' ? queue[shuffledIndices[0]] ?? null : null;
+  }
+
+  const nextIndex = queueIndex + 1;
+  if (nextIndex < queue.length) return queue[nextIndex];
+  return repeat === 'all' ? queue[0] : null;
 }
 
 export const usePlayer = create<PlayerState & PlayerActions>()(
@@ -383,6 +416,17 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
           queue: queue.map((song) => (song.id === updated.id ? { ...song, ...patch } : song)),
         });
       },
+
+      setSleepTimer: (timer) => {
+        if (timer === 'endOfTrack') {
+          set({ sleepTimer: { mode: 'endOfTrack' } });
+        } else {
+          const minutes = Math.max(0, timer);
+          set({ sleepTimer: { mode: 'minutes', endsAt: Date.now() + minutes * 60_000 } });
+        }
+      },
+
+      clearSleepTimer: () => set({ sleepTimer: { mode: 'off' } }),
     }),
     {
       name: 'sonarly-player',

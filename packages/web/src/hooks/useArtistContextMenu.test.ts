@@ -104,6 +104,19 @@ describe('useArtistContextMenu', () => {
     expect(playActions.playSongs).toHaveBeenCalledWith(artistSongs);
   });
 
+  it('fetches artist songs and calls shufflePlay when Shuffle play is clicked', async () => {
+    mockedApi.mockResolvedValueOnce({ songs: artistSongs });
+
+    const Harness = createHarness(artist, vi.fn());
+    render(React.createElement(Harness));
+
+    fireEvent.click(screen.getByTestId('shuffle-play'));
+
+    await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/artists/artist-1/songs'));
+    expect(playActions.shufflePlay).toHaveBeenCalledTimes(1);
+    expect(playActions.shufflePlay).toHaveBeenCalledWith(artistSongs);
+  });
+
   it('fetches artist songs and calls playNext with all songs when Play next is clicked', async () => {
     mockedApi.mockResolvedValueOnce({ songs: artistSongs });
 

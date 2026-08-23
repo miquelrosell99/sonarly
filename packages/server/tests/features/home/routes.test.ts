@@ -244,5 +244,81 @@ describe('home endpoints', () => {
       });
       expect(res.statusCode).toBe(200);
     });
+
+    describe('smart playlist grants', () => {
+      const SMART_SHARE_TOKEN = 'smart-share-token-123';
+
+      function seedSmartSharedPlaylist() {
+        upsertArtist(db, { id: 'artist-1', name: 'Artist' });
+        upsertAlbum(db, { id: 'album-1', name: 'Album', artistId: 'artist-1', artistName: 'Artist' });
+        upsertSong(db, {
+          id: 'song-1',
+          filePath: '/data/library/song1.mp3',
+          title: 'Shared Track',
+          duration: 180,
+          artistId: 'artist-1',
+          albumId: 'album-1',
+          mtime: Date.now(),
+          checksum: 'c1',
+        });
+        upsertSong(db, {
+          id: 'song-2',
+          filePath: '/data/library/song2.mp3',
+          title: 'Other Track',
+          duration: 180,
+          artistId: 'artist-1',
+          mtime: Date.now(),
+          checksum: 'c2',
+        });
+        const songCoverId = createCoverArt(db, Buffer.from('song-cover'), 'image/jpeg');
+        setSongCoverArtId(db, 'song-1', songCoverId);
+        const albumCoverId = createCoverArt(db, Buffer.from('album-cover'), 'image/jpeg');
+        setAlbumCoverArtId(db, 'album-1', albumCoverId);
+        const otherCoverId = createCoverArt(db, Buffer.from('other-cover'), 'image/jpeg');
+        setSongCoverArtId(db, 'song-2', otherCoverId);
+        createPlaylist(db, {
+          id: 'smart-playlist-1',
+          name: 'Smart Link',
+          ownerId: 'user-1',
+          visibility: 'link',
+          shareToken: SMART_SHARE_TOKEN,
+          songIds: [],
+          isSmart: true,
+          rules: { rules: { all: [{ field: 'title', operator: 'contains', value: 'Shared' }] } },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+        return { songCoverId, albumCoverId, otherCoverId };
+      }
+
+      it('grants a song cover resolved through smart rules', async () => {
+        const { songCoverId } = seedSmartSharedPlaylist();
+        const res = await app.inject({
+          method: 'GET',
+          url: `/api/cover-art/${songCoverId}?shareToken=${SMART_SHARE_TOKEN}`,
+        });
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toBe('song-cover');
+      });
+
+      it('grants the album cover of a song resolved through smart rules', async () => {
+        const { albumCoverId } = seedSmartSharedPlaylist();
+        const res = await app.inject({
+          method: 'GET',
+          url: `/api/cover-art/${albumCoverId}?shareToken=${SMART_SHARE_TOKEN}`,
+        });
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toBe('album-cover');
+      });
+
+      it('rejects a cover of a song outside the smart playlist rules', async () => {
+        const { otherCoverId } = seedSmartSharedPlaylist();
+        const res = await app.inject({
+          method: 'GET',
+          url: `/api/cover-art/${otherCoverId}?shareToken=${SMART_SHARE_TOKEN}`,
+        });
+        expect(res.statusCode).toBe(403);
+      });
+    });
   });
 });

@@ -497,5 +497,61 @@ describe('management song endpoints', () => {
       // song-2 has no file on disk, but auth must pass before the 404.
       expect(res.statusCode).toBe(404);
     });
+
+    describe('smart playlist grants', () => {
+      const SMART_SHARE_TOKEN = 'smart-share-token-123';
+
+      function seedSmartSharedPlaylist() {
+        // song-1 ('Old Title') matches the rule; song-2 does not.
+        upsertSong(db, {
+          id: 'song-2',
+          filePath: join(config.LIBRARY_PATH, 'song2.mp3'),
+          title: 'Other Track',
+          artistId: 'artist-1',
+          mtime: Date.now(),
+          checksum: 'checksum-2',
+        });
+        createPlaylist(db, {
+          id: 'smart-playlist-1',
+          name: 'Smart Link',
+          ownerId: 'user-1',
+          visibility: 'link',
+          shareToken: SMART_SHARE_TOKEN,
+          songIds: [],
+          isSmart: true,
+          rules: { rules: { all: [{ field: 'title', operator: 'contains', value: 'Old' }] } },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+
+      it('streams a rule-matching song to anonymous token holders', async () => {
+        seedSmartSharedPlaylist();
+        const res = await app.inject({
+          method: 'GET',
+          url: `/api/stream/song-1?shareToken=${SMART_SHARE_TOKEN}`,
+        });
+        expect(res.statusCode).toBe(200);
+        expect(res.rawPayload.length).toBeGreaterThan(0);
+      });
+
+      it('rejects a song outside the smart playlist rules', async () => {
+        seedSmartSharedPlaylist();
+        const res = await app.inject({
+          method: 'GET',
+          url: `/api/stream/song-2?shareToken=${SMART_SHARE_TOKEN}`,
+        });
+        expect(res.statusCode).toBe(403);
+      });
+
+      it('rejects an unknown share token for a smart playlist', async () => {
+        seedSmartSharedPlaylist();
+        const res = await app.inject({
+          method: 'GET',
+          url: '/api/stream/song-1?shareToken=wrong-token',
+        });
+        expect(res.statusCode).toBe(403);
+      });
+    });
   });
 });
