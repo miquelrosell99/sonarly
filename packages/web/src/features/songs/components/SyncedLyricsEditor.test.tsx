@@ -4,7 +4,7 @@ import { SyncedLyricsEditor } from './SyncedLyricsEditor.js';
 
 afterEach(() => cleanup());
 
-vi.mock('../../../api.js', () => ({
+vi.mock('../../../lib/api.js', () => ({
   api: vi.fn((path: string, opts?: unknown) => {
     if (path === '/songs/1/lyrics' && !opts) {
       return Promise.resolve({ lyrics: '', syncedLyrics: [{ time: 1, text: 'hello' }] });

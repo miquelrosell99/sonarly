@@ -7,7 +7,7 @@ import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { ControlButton } from '../../../components/PlayerControls.js';
-import { useNowPlaying } from '../stores/nowPlayingStore.js';
+import { useNowPlaying, type NowPlayingTab } from '../stores/nowPlayingStore.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useDominantColor } from '../../../hooks/useDominantColor.js';
 import { useSongInteraction } from '../../../hooks/useSongInteraction.js';
@@ -53,12 +53,14 @@ function TabButton({
   return (
     <button
       type="button"
+      role="tab"
       id={id}
       onClick={onClick}
-      aria-pressed={active}
+      aria-selected={active}
       aria-controls={ariaControls}
+      tabIndex={active ? 0 : -1}
       className={cn(
-        'inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition',
+        'inline-flex min-h-11 items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition',
         active ? 'bg-accent text-bg-primary' : 'text-fg-secondary hover:bg-surface-hover'
       )}
     >
@@ -110,6 +112,33 @@ export function NowPlaying({ user }: NowPlayingProps) {
 
   const [closing, setClosing] = useState(false);
   const wasOpenRef = useRef(isOpen);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Move focus into the dialog on open and restore it on close.
+  useEffect(() => {
+    if (!isOpen) return;
+    const previouslyFocused = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    dialogRef.current?.focus();
+    return () => {
+      previouslyFocused?.focus();
+    };
+  }, [isOpen]);
+
+  const handleTabListKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    const tabs: NowPlayingTab[] = ['queue', 'lyrics'];
+    const currentIndex = tabs.indexOf(activeTab);
+    const nextIndex =
+      e.key === 'ArrowRight'
+        ? (currentIndex + 1) % tabs.length
+        : (currentIndex - 1 + tabs.length) % tabs.length;
+    const nextTab = tabs[nextIndex];
+    setActiveTab(nextTab);
+    document.getElementById(`now-playing-tab-${nextTab}`)?.focus();
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -155,11 +184,13 @@ export function NowPlaying({ user }: NowPlayingProps) {
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label="Now Playing"
+      tabIndex={-1}
       className={cn(
-        'fixed inset-0 z-50 flex',
+        'fixed inset-0 z-50 flex outline-none',
         closing ? 'now-playing-exit' : 'now-playing-enter'
       )}
     >
@@ -172,7 +203,7 @@ export function NowPlaying({ user }: NowPlayingProps) {
         type="button"
         onClick={close}
         aria-label="Close Now Playing"
-        className="absolute left-6 top-6 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="absolute left-6 top-6 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
         <Icon name="mdi-chevron-down" size={24} />
       </button>
@@ -192,7 +223,7 @@ export function NowPlaying({ user }: NowPlayingProps) {
               alt={`Cover art for ${currentSong.title}`}
             />
             <div className="space-y-1">
-              <h2 className="text-2xl font-bold text-fg-primary">
+              <h2 className="font-display text-2xl font-bold text-fg-primary">
                 <ExplicitTitle
                   explicit={currentSong.explicit}
                   blur={user.blurExplicitTitles === true}
@@ -261,7 +292,12 @@ export function NowPlaying({ user }: NowPlayingProps) {
           {/* Right: card with tabs */}
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-rule/50 bg-surface/80 backdrop-blur-xl">
             <div className="flex items-center justify-between border-b border-rule/50 px-4 py-3">
-              <div className="flex items-center gap-2" role="tablist" aria-label="Now playing panels">
+              <div
+                className="flex items-center gap-2"
+                role="tablist"
+                aria-label="Now playing panels"
+                onKeyDown={handleTabListKeyDown}
+              >
                 <TabButton
                   id="now-playing-tab-queue"
                   active={activeTab === 'queue'}
@@ -298,7 +334,7 @@ export function NowPlaying({ user }: NowPlayingProps) {
                   onClick={handleToggleAutoDj}
                   label={`Auto DJ: ${autoDjEnabled ? 'on' : 'off'}`}
                   active={autoDjEnabled}
-                  className="h-8 w-auto gap-1.5 px-2.5 text-xs font-medium"
+                  className="h-11 w-auto gap-1.5 px-2.5 text-xs font-medium"
                 >
                   <Icon name="mdi-record-player" size={16} />
                   Auto DJ

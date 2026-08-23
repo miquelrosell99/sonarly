@@ -34,7 +34,7 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
     const rows = db.prepare(`
       SELECT DISTINCT p.id FROM playlists p
       LEFT JOIN playlist_shares ps ON ps.playlist_id = p.id
-      WHERE p.owner_id = ? OR p.visibility IN ('public', 'link') OR ps.user_id = ?
+      WHERE p.owner_id = ? OR p.visibility = 'public' OR ps.user_id = ?
       ORDER BY p.name
     `).pluck().all(userId, userId) as string[];
     const playlists = rows.map((id) => getPlaylistById(db, id)).filter((p): p is Playlist => p !== undefined);
@@ -62,6 +62,34 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
     const query = request.query as Record<string, string | string[]>;
     const ownerId = (request as any).subsonicUser;
     const songIds = normalizeParam(query.songId);
+
+    // Per the Subsonic API, passing playlistId updates an existing playlist's
+    // songs instead of creating a new one.
+    const playlistId = asName(query.playlistId);
+    if (playlistId) {
+      const existing = getPlaylistById(db, playlistId);
+      if (!existing) {
+        return sendSubsonicReply(reply, format, {
+          error: { code: 70, message: 'Data not found' },
+        }, 'failed');
+      }
+      if (!canEditOrOwnPlaylist(db, existing, ownerId)) {
+        return sendUnauthorized(reply, format);
+      }
+      if (existing.isSmart) {
+        return sendSubsonicReply(reply, format, {
+          error: { code: 50, message: 'Smart playlists cannot be edited through this endpoint' },
+        }, 'failed');
+      }
+      const updated: Playlist = {
+        ...existing,
+        songIds,
+        updatedAt: new Date().toISOString(),
+      };
+      updatePlaylist(db, updated);
+      return sendSubsonicReply(reply, format, { playlist: toOpenSubsonicPlaylist(db, updated, ownerId, true) });
+    }
+
     const visibility = asVisibility(query.visibility) ?? 'private';
     const now = new Date().toISOString();
     const playlist: Playlist = {
@@ -234,15 +262,23 @@ function toOpenSubsonicPlaylist(
   return base;
 }
 
+// Chunk IN (...) queries: one placeholder per song id would exceed SQLite's
+// variable limit (999 by default) on huge playlists.
+const SQLITE_VARIABLE_CHUNK = 500;
+
 function fetchPlaylistSongs(db: Database.Database, songIds: string[]): Record<string, unknown>[] {
   if (songIds.length === 0) return [];
-  const rows = db.prepare(`
-    SELECT s.*, a.name AS album_name, ar.name AS artist_name
-    FROM songs s
-    LEFT JOIN albums a ON a.id = s.album_id
-    LEFT JOIN artists ar ON ar.id = s.artist_id
-    WHERE s.active = 1 AND s.id IN (${songIds.map(() => '?').join(',')})
-  `).all(...songIds) as SongRow[];
+  const rows: SongRow[] = [];
+  for (let i = 0; i < songIds.length; i += SQLITE_VARIABLE_CHUNK) {
+    const chunk = songIds.slice(i, i + SQLITE_VARIABLE_CHUNK);
+    rows.push(...db.prepare(`
+      SELECT s.*, a.name AS album_name, ar.name AS artist_name
+      FROM songs s
+      LEFT JOIN albums a ON a.id = s.album_id
+      LEFT JOIN artists ar ON ar.id = s.artist_id
+      WHERE s.active = 1 AND s.id IN (${chunk.map(() => '?').join(',')})
+    `).all(...chunk) as SongRow[]);
+  }
   const byId = new Map(rows.map((r) => [r.id, r]));
   return songIds
     .map((id) => byId.get(id))

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readTags, computeChecksum } from '../../../src/features/tags/reader.js';
+import { readMetadata, computeChecksum } from '../../../src/features/tags/reader.js';
 import { writeTags, registerDefaultWriters } from '../../../src/features/tags/index.js';
 import { copyFile } from 'node:fs/promises';
 import { writeFileSync } from 'node:fs';
@@ -56,10 +56,10 @@ function createMetadataBlock(typeId: number, lastBlock: boolean, data: Buffer): 
   return Buffer.concat([header, data]);
 }
 
-describe('readTags', () => {
+describe('readMetadata', () => {
   it('reads tags from a real MP3 fixture', async () => {
     const fixture = new URL('../../fixtures/sample.mp3', import.meta.url).pathname;
-    const meta = await readTags(fixture);
+    const meta = await readMetadata(fixture);
     expect(meta.tags.title).toBeDefined();
     expect(meta.duration).toBeGreaterThan(0);
   });
@@ -70,7 +70,7 @@ describe('readTags', () => {
     await copyFile(fixture, copy);
     await writeTags(copy, { title: 'Explicit', explicit: true });
 
-    const meta = await readTags(copy);
+    const meta = await readMetadata(copy);
     expect(meta.tags.explicit).toBe(true);
   });
 
@@ -82,7 +82,7 @@ describe('readTags', () => {
       'GENRE=Alternative',
     ]));
 
-    const meta = await readTags(path);
+    const meta = await readMetadata(path);
     expect(meta.genres).toEqual(['Rock', 'Alternative']);
     expect(meta.tags.genre).toBe('Rock');
   });
@@ -94,7 +94,7 @@ describe('readTags', () => {
       'ARTIST=Akon; Stat Quo; Bobby Creekwater',
     ]));
 
-    const meta = await readTags(path);
+    const meta = await readMetadata(path);
     expect(meta.artists).toEqual(['Akon', 'Stat Quo', 'Bobby Creekwater']);
   });
 });

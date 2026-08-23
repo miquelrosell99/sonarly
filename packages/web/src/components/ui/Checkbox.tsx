@@ -21,7 +21,7 @@ export function Checkbox({ label, description, className, id, indeterminate, ...
     <label
       htmlFor={id}
       className={cn(
-        'group flex cursor-pointer items-start gap-3',
+        'group -m-3 flex cursor-pointer items-start gap-3 p-3',
         props.disabled && 'cursor-not-allowed opacity-60',
         className,
       )}

@@ -28,12 +28,17 @@ export function AlbumList({
         <li key={album.id}>
           <Link
             href={`/albums/${album.id}`}
-            className="flex items-center justify-between py-2 text-sm hover:bg-surface-hover"
+            className="flex min-h-11 items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-surface-hover"
           >
             <span>{album.name}</span>
             <span className="text-muted">
               {showArtist && (album.artistName ?? '-')}
-              {showYear && album.year !== undefined && album.year !== null && ` • ${album.year}`}
+              {showYear && album.year !== undefined && album.year !== null && (
+                <>
+                  {' • '}
+                  <span className="font-mono tabular-nums">{album.year}</span>
+                </>
+              )}
             </span>
           </Link>
         </li>

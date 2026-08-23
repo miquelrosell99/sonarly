@@ -7,7 +7,7 @@ import { NotificationProvider } from '../../../contexts/NotificationContext.js';
 
 const mockApi = vi.hoisted(() => vi.fn());
 
-vi.mock('../../../api.js', () => ({
+vi.mock('../../../lib/api.js', () => ({
   api: (...args: unknown[]) => mockApi(...args),
 }));
 

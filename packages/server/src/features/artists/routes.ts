@@ -176,6 +176,17 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
       return reply.status(409).send({ error: 'Cannot delete artist with active songs' });
     }
 
+    // Songs may also reference the artist through the join tables.
+    const joinedSongs = db.prepare(`
+      SELECT 1 FROM song_artists sa JOIN songs s ON s.id = sa.song_id AND s.active = 1 WHERE sa.artist_id = ?
+      UNION
+      SELECT 1 FROM song_composers sc JOIN songs s ON s.id = sc.song_id AND s.active = 1 WHERE sc.artist_id = ?
+      LIMIT 1
+    `).get(id, id);
+    if (joinedSongs) {
+      return reply.status(409).send({ error: 'Cannot delete artist with active songs' });
+    }
+
     const emptyAlbums = db.prepare(`
       SELECT a.id
       FROM albums a
@@ -185,6 +196,11 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
     for (const album of emptyAlbums) {
       deleteAlbumById(db, album.id);
     }
+
+    // Clean up remaining join rows (e.g. from inactive songs) before delete.
+    db.prepare('DELETE FROM song_artists WHERE artist_id = ?').run(id);
+    db.prepare('DELETE FROM song_composers WHERE artist_id = ?').run(id);
+    db.prepare('DELETE FROM album_artists WHERE artist_id = ?').run(id);
 
     deleteArtistById(db, id);
     reply.send({ ok: true, deletedAlbums: emptyAlbums.length });

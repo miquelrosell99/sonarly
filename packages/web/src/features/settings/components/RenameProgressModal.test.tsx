@@ -3,7 +3,7 @@ import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import { RenameProgressModal } from './RenameProgressModal.js';
 
 const apiMock = vi.fn();
-vi.mock('../../../api.js', () => ({
+vi.mock('../../../lib/api.js', () => ({
   api: (...args: unknown[]) => apiMock(...args),
 }));
 

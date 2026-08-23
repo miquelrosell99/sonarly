@@ -172,15 +172,15 @@ function fetchSongs(
     LEFT JOIN albums al ON al.id = s.album_id
     LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
     WHERE s.active = 1 AND (
-      LOWER(s.title) LIKE LOWER(?)
-      OR LOWER(ar.name) LIKE LOWER(?)
-      OR LOWER(al.name) LIKE LOWER(?)
+      LOWER(s.title) LIKE LOWER(?) ESCAPE '\\'
+      OR LOWER(ar.name) LIKE LOWER(?) ESCAPE '\\'
+      OR LOWER(al.name) LIKE LOWER(?) ESCAPE '\\'
     )
     ${libraryFilter}
     ${hideExplicit ? 'AND s.explicit = 0' : ''}
     ORDER BY s.title
     ${limitClause}
-  `).all(userId ?? null, ...libraryParams, pattern, pattern, pattern) as SongSearchRow[];
+  `).all(userId ?? null, pattern, pattern, pattern, ...libraryParams) as SongSearchRow[];
   return rows.map(rowToSong);
 }
 
@@ -202,11 +202,11 @@ function fetchAlbums(
       (SELECT MAX(CASE WHEN s.explicit = 1 THEN 1 ELSE 0 END) FROM songs s WHERE s.album_id = a.id AND s.active = 1) AS explicit
     FROM albums a
     LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
-    WHERE a.active = 1 AND LOWER(a.name) LIKE LOWER(?)
+    WHERE a.active = 1 AND LOWER(a.name) LIKE LOWER(?) ESCAPE '\\'
     ${libraryFilter}
     ORDER BY a.name
     ${limitClause}
-  `).all(userId ?? null, ...libraryParams, pattern) as AlbumSearchRow[];
+  `).all(userId ?? null, pattern, ...libraryParams) as AlbumSearchRow[];
   return rows.map(rowToAlbum);
 }
 
@@ -227,11 +227,11 @@ function fetchArtists(
       ua.rating
     FROM artists ar
     LEFT JOIN user_artists ua ON ua.user_id = ? AND ua.artist_id = ar.id
-    WHERE ar.active = 1 AND LOWER(ar.name) LIKE LOWER(?)
+    WHERE ar.active = 1 AND LOWER(ar.name) LIKE LOWER(?) ESCAPE '\\'
     ${libraryFilter}
     ORDER BY ar.name
     ${limitClause}
-  `).all(userId ?? null, ...libraryParams, pattern) as ArtistSearchRow[];
+  `).all(userId ?? null, pattern, ...libraryParams) as ArtistSearchRow[];
   return rows.map(rowToArtist);
 }
 
@@ -259,10 +259,10 @@ function fetchPlaylists(
     FROM playlists p
     JOIN users u ON u.id = p.owner_id
     LEFT JOIN user_playlists up ON up.user_id = ? AND up.playlist_id = p.id
-    WHERE LOWER(p.name) LIKE LOWER(?)
+    WHERE LOWER(p.name) LIKE LOWER(?) ESCAPE '\\'
       AND (
         p.owner_id = ?
-        OR p.visibility IN ('public', 'link')
+        OR p.visibility = 'public'
         OR EXISTS (SELECT 1 FROM playlist_shares ps WHERE ps.playlist_id = p.id AND ps.user_id = ?)
       )
     ORDER BY p.updated_at DESC

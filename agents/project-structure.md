@@ -18,7 +18,7 @@
 │       └── src/
 │           ├── features/   # domain-first pages and components
 │           ├── components/ # shared UI primitives (Layout, ui/*)
-│           ├── lib/        # utilities
+│           ├── lib/        # utilities and the API client (api.ts)
 │           └── contexts/   # shared React contexts
 ├── compose.yaml            # production deployment
 ├── docker/                 # Dockerfiles, entrypoint, and compose examples

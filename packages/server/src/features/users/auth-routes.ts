@@ -45,15 +45,45 @@ function userCount(db: Database.Database): number {
   return row.count;
 }
 
+const MIN_PASSWORD_LENGTH = 8;
+const MAX_LOGIN_FAILURES = 5;
+const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
+
+interface LoginThrottle {
+  failures: number;
+  lockedUntil: number;
+}
+
 export function registerAuthManagementRoutes(app: FastifyInstance, db: Database.Database, sessionSecret: string): void {
+  // Lightweight in-memory brute-force protection, keyed per IP + username.
+  const loginAttempts = new Map<string, LoginThrottle>();
+
   app.post('/api/login', async (request: FastifyRequest, reply: FastifyReply) => {
     const { username, password } = request.body as { username: string; password: string };
+    const key = `${request.ip}:${String(username ?? '').toLowerCase()}`;
+    const throttle = loginAttempts.get(key);
+    if (throttle && throttle.lockedUntil > Date.now()) {
+      return reply.status(429).send({ error: 'Too many failed login attempts. Try again later.' });
+    }
+
     const userId = await loginUser(db, username, password);
-    if (!userId) return reply.status(401).send({ error: 'Invalid credentials' });
+    if (!userId) {
+      const current = loginAttempts.get(key) ?? { failures: 0, lockedUntil: 0 };
+      current.failures += 1;
+      if (current.failures >= MAX_LOGIN_FAILURES) {
+        current.lockedUntil = Date.now() + LOGIN_LOCKOUT_MS;
+        current.failures = 0;
+      }
+      loginAttempts.set(key, current);
+      return reply.status(401).send({ error: 'Invalid credentials' });
+    }
+    loginAttempts.delete(key);
 
     const user = getUserById(db, userId);
     if (!user) return reply.status(401).send({ error: 'Invalid credentials' });
 
+    // Regenerate the session to close the session-fixation window.
+    await (request as any).session.regenerate();
     const session = (request as any).session;
     session.userId = user.id;
     session.username = user.username;
@@ -94,6 +124,9 @@ export function registerAuthManagementRoutes(app: FastifyInstance, db: Database.
 
     if (username.length === 0) return reply.status(400).send({ error: 'Username is required' });
     if (password.length === 0) return reply.status(400).send({ error: 'Password is required' });
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      return reply.status(400).send({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+    }
 
     const passwordHash = await hashPassword(password);
     const subsonicPasswordEncrypted = encryptSubsonicPassword(password, sessionSecret);
@@ -101,6 +134,8 @@ export function registerAuthManagementRoutes(app: FastifyInstance, db: Database.
     const now = new Date().toISOString();
     createUser(db, { id, username, passwordHash, subsonicPasswordEncrypted, isAdmin: true, createdAt: now, name, surname, email });
 
+    // Regenerate the session to close the session-fixation window.
+    await (request as any).session.regenerate();
     const session = (request as any).session;
     session.userId = id;
     session.username = username;

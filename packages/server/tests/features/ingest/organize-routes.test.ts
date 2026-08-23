@@ -43,11 +43,15 @@ describe('organize management routes', () => {
     db.close();
   });
 
-  it('POST /api/organize returns stats synchronously', async () => {
+  it('POST /api/organize enqueues an organize job', async () => {
     const res = await app.inject({ method: 'POST', url: '/api/organize' });
-    expect(res.statusCode).toBe(200);
+    expect(res.statusCode).toBe(202);
     const body = JSON.parse(res.body);
-    expect(body.stats).toEqual({ scanned: 0, moved: 0, skipped: 0, failed: 0 });
+    expect(body.jobId).toMatch(/^[0-9a-f-]{36}$/);
+
+    const row = db.prepare('SELECT type, status FROM scan_jobs WHERE id = ?').get(body.jobId) as any;
+    expect(row.type).toBe('organize');
+    expect(row.status).toBe('pending');
   });
 
   it('POST /api/organize/job returns a job id', async () => {

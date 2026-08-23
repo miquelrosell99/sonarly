@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { User } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
+import { PageState } from '../../../components/PageState.js';
 import { Table } from '../../../components/ui/Table.js';
 import type { TableColumn } from '../../../components/ui/Table.js';
 import { Icon } from '../../../components/ui/Icon.js';
@@ -183,9 +184,9 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
       header: 'Status',
       render: (row) => <StatusPill status={row.status} />,
     },
-    { key: 'started', header: 'Started', render: (row) => formatLastRun(row.startedAt) },
-    { key: 'finished', header: 'Finished', render: (row) => formatLastRun(row.finishedAt) },
-    { key: 'duration', header: 'Duration', render: (row) => formatDuration(row.startedAt, row.finishedAt) },
+    { key: 'started', header: 'Started', render: (row) => <span className="font-mono">{formatLastRun(row.startedAt)}</span> },
+    { key: 'finished', header: 'Finished', render: (row) => <span className="font-mono">{formatLastRun(row.finishedAt)}</span> },
+    { key: 'duration', header: 'Duration', render: (row) => <span className="font-mono">{formatDuration(row.startedAt, row.finishedAt)}</span> },
     { key: 'details', header: 'Details', render: (row) => <span className="text-muted">{formatStats(row.stats)}</span> },
   ];
 
@@ -198,13 +199,7 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
             Background maintenance tasks run automatically on a schedule. You can also queue them manually.
           </p>
 
-          {loading && <p className="text-sm text-muted">Loading...</p>}
-
-          {!loading && tasks.length === 0 && (
-            <p className="text-sm text-muted">No system tasks configured.</p>
-          )}
-
-          {!loading && tasks.length > 0 && (
+          <PageState loading={loading} isEmpty={tasks.length === 0} emptyMessage="No system tasks configured.">
             <div className="space-y-3">
               {tasks.map((task) => (
                 <div
@@ -231,7 +226,7 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
                 </div>
               ))}
             </div>
-          )}
+          </PageState>
         </div>
 
         <div className="space-y-4">
@@ -253,13 +248,11 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
 
           {historyOpen && (
             <div className="space-y-4">
-              {historyLoading && <p className="text-sm text-muted">Loading...</p>}
-
-              {!historyLoading && history.length === 0 && (
-                <p className="text-sm text-muted">No task history yet.</p>
-              )}
-
-              {!historyLoading && history.length > 0 && (
+              <PageState
+                loading={historyLoading}
+                isEmpty={history.length === 0}
+                emptyMessage="No task history yet."
+              >
                 <div className="rounded-md border border-rule">
                   <Table
                     columns={historyColumns}
@@ -268,7 +261,7 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
                     empty={<p className="text-sm text-muted">No task history yet.</p>}
                   />
                 </div>
-              )}
+              </PageState>
 
               {!historyLoading && totalPages > 1 && (
                 <div className="flex items-center justify-between">
@@ -276,6 +269,7 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page <= 1}
                     variant="ghost"
+                    aria-label="Previous page"
                   >
                     Previous
                   </Button>
@@ -286,6 +280,7 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page >= totalPages}
                     variant="ghost"
+                    aria-label="Next page"
                   >
                     Next
                   </Button>

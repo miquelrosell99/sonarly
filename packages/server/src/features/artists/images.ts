@@ -1,7 +1,6 @@
 import Database from 'better-sqlite3';
 import { writeFile, unlink, mkdir } from 'node:fs/promises';
 import { join, extname } from 'node:path';
-import { updateArtistImageUrl } from './repository.js';
 
 interface DeezerArtist {
   id: number;
@@ -61,6 +60,20 @@ async function fetchWithTimeout(url: string): Promise<Response> {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+// Sniff magic bytes so HTML error pages or other non-image content is never
+// saved as an artist image.
+function sniffImageFormat(buffer: Buffer): 'jpeg' | 'png' | 'gif' | 'webp' | undefined {
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'jpeg';
+  if (buffer.length >= 4 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) return 'png';
+  if (buffer.length >= 4 && buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38) return 'gif';
+  if (
+    buffer.length >= 12 &&
+    buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+    buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50
+  ) return 'webp';
+  return undefined;
 }
 
 export async function fetchArtistImageUrl(artistName: string): Promise<string | undefined> {
@@ -131,9 +144,16 @@ export async function syncMissingArtistImages(
       if (imageBuffer.length === 0) {
         throw new Error('Downloaded image is empty');
       }
+      if (!sniffImageFormat(imageBuffer)) {
+        throw new Error('Downloaded content is not a supported image');
+      }
 
       const extension = extensionFromResponse(imageResponse, imageUrl);
       const localPath = join(imagesDir, `${row.id}${extension}`);
+
+      // Write the new image before removing the old one so a failed write
+      // cannot leave the artist without any image on disk.
+      await writeFile(localPath, imageBuffer);
 
       if (row.artist_image_local_path && row.artist_image_local_path !== localPath) {
         try {
@@ -142,8 +162,6 @@ export async function syncMissingArtistImages(
           // Ignore cleanup errors.
         }
       }
-
-      await writeFile(localPath, imageBuffer);
       db.prepare('UPDATE artists SET artist_image_url = ?, artist_image_local_path = ? WHERE id = ?').run(
         imageUrl,
         localPath,

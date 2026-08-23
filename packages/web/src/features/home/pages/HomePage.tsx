@@ -1,8 +1,9 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { Link } from 'wouter';
 import type { Album, Song, User } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Icon } from '../../../components/ui/Icon.js';
+import { PageState } from '../../../components/PageState.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useDominantColor } from '../../../hooks/useDominantColor.js';
@@ -245,9 +246,10 @@ function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) 
 
 interface FeaturedAlbumSlideProps {
   album: Album;
+  active: boolean;
 }
 
-function FeaturedAlbumSlide({ album }: FeaturedAlbumSlideProps) {
+function FeaturedAlbumSlide({ album, active }: FeaturedAlbumSlideProps) {
   const { playSongs } = usePlayActions();
   const [loading, setLoading] = useState(false);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
@@ -263,7 +265,11 @@ function FeaturedAlbumSlide({ album }: FeaturedAlbumSlideProps) {
   };
 
   return (
-    <div className="relative z-10 flex w-full shrink-0 flex-col gap-6 md:flex-row md:items-end">
+    <div
+      ref={(el) => el?.toggleAttribute('inert', !active)}
+      aria-hidden={!active || undefined}
+      className="relative z-10 flex w-full shrink-0 flex-col gap-6 md:flex-row md:items-end"
+    >
       <div className="shrink-0 overflow-hidden rounded-2xl shadow-2xl shadow-black/30 md:w-64 lg:w-72">
         <CoverArt
           coverArt={album.coverArt}
@@ -276,11 +282,11 @@ function FeaturedAlbumSlide({ album }: FeaturedAlbumSlideProps) {
         <span className="text-xs font-semibold uppercase tracking-widest text-fg-secondary">
           Featured album
         </span>
-        <h1 className="font-display text-4xl font-bold tracking-tight text-fg-primary md:text-5xl lg:text-6xl">
+        <h2 className="font-display text-4xl font-bold tracking-tight text-fg-primary md:text-5xl lg:text-6xl">
           <Link href={`/albums/${album.id}`} className="hover:text-muted">
             {album.name}
           </Link>
-        </h1>
+        </h2>
         <p className="text-lg text-fg-secondary">
           {album.artistId ? (
             <Link href={`/artists/${album.artistId}`} className="hover:text-muted">
@@ -331,6 +337,10 @@ function FeaturedAlbumSlide({ album }: FeaturedAlbumSlideProps) {
 function FeaturedAlbum({ albums }: { albums: Album[] }) {
   const [index, setIndex] = useState(0);
   const [transitionEnabled, setTransitionEnabled] = useState(true);
+  const [paused, setPaused] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
 
   const hasMultiple = albums.length > 1;
   const slides = hasMultiple ? [...albums, albums[0]] : albums;
@@ -340,17 +350,24 @@ function FeaturedAlbum({ albums }: { albums: Album[] }) {
   const dominantColor = useDominantColor(coverUrl);
 
   useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleChange = () => setReducedMotion(media.matches);
+    media.addEventListener('change', handleChange);
+    return () => media.removeEventListener('change', handleChange);
+  }, []);
+
+  useEffect(() => {
     setIndex(0);
     setTransitionEnabled(true);
   }, [albums.map((a) => a.id).join(',')]);
 
   useEffect(() => {
-    if (!hasMultiple) return undefined;
+    if (!hasMultiple || paused || reducedMotion) return undefined;
     const timer = setInterval(() => {
       setIndex((current) => (current >= albums.length ? current : current + 1));
     }, 5000);
     return () => clearInterval(timer);
-  }, [hasMultiple, albums.length]);
+  }, [hasMultiple, albums.length, paused, reducedMotion]);
 
   useEffect(() => {
     if (!hasMultiple || index !== albums.length) return undefined;
@@ -370,6 +387,12 @@ function FeaturedAlbum({ albums }: { albums: Album[] }) {
 
   return (
     <section
+      aria-roledescription="carousel"
+      aria-label="Featured albums"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
       className="relative mb-8 overflow-hidden rounded-3xl px-6 pb-6 pt-6"
       style={
         dominantColor
@@ -388,7 +411,7 @@ function FeaturedAlbum({ albums }: { albums: Album[] }) {
           style={{ transform: `translateX(-${index * 100}%)` }}
         >
           {slides.map((album, i) => (
-            <FeaturedAlbumSlide key={`${album.id}-${i}`} album={album} />
+            <FeaturedAlbumSlide key={`${album.id}-${i}`} album={album} active={i === index} />
           ))}
         </div>
       </div>
@@ -417,16 +440,16 @@ export function HomePage({ user }: { user: User }) {
   const [error, setError] = useState<string | null>(null);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
-  useEffect(() => {
-    const loadHome = () => {
-      setLoading(true);
-      setError(null);
-      api<HomeData>(`/home${buildLibraryQuery(selectedLibraryId)}`)
-        .then(setData)
-        .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load home'))
-        .finally(() => setLoading(false));
-    };
+  const loadHome = () => {
+    setLoading(true);
+    setError(null);
+    api<HomeData>(`/home${buildLibraryQuery(selectedLibraryId)}`)
+      .then(setData)
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load home'))
+      .finally(() => setLoading(false));
+  };
 
+  useEffect(() => {
     loadHome();
 
     const handleLibraryChanged = () => loadHome();
@@ -450,20 +473,23 @@ export function HomePage({ user }: { user: User }) {
     return candidates;
   }, [data]);
 
-  if (loading) {
-    return <p className="p-6 text-sm text-fg-secondary">Loading…</p>;
-  }
-
-  if (error) {
-    return <p className="p-6 text-sm text-danger">{error}</p>;
-  }
-
-  if (!data) {
-    return <p className="p-6 text-sm text-fg-secondary">No data available.</p>;
+  if (loading || error || !data) {
+    return (
+      <PageState
+        loading={loading}
+        error={error}
+        isEmpty={!data}
+        emptyMessage="No data available."
+        onRetry={loadHome}
+      >
+        {null}
+      </PageState>
+    );
   }
 
   return (
-    <div className="space-y-10 p-6">
+    <div className="space-y-10">
+      <h1 className="sr-only">Home</h1>
       {featuredAlbums.length > 0 && <FeaturedAlbum albums={featuredAlbums} />}
 
       <ScrollRow title="Most played">

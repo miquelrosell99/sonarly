@@ -153,7 +153,7 @@ export function ListRow({
             )}
           </span>
           {onPlay && (
-            <span className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition group-hover/play:opacity-100">
+            <span className="hover-reveal pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition group-focus-within/play:opacity-100 group-hover/play:opacity-100">
               <span className="pointer-events-auto">
                 <PlayButton
                   variant="inline"

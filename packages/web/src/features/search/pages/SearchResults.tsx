@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useSearch, Link } from 'wouter';
 import type { Song, Album, Artist, Playlist, FavoriteEntityType, User } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
+import { PageState } from '../../../components/PageState.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
@@ -263,7 +264,11 @@ export function SearchResults({ user }: SearchResultsProps) {
         key: 'duration',
         header: 'Duration',
         className: 'w-24',
-        render: (song) => (song.duration ? formatDuration(song.duration) : '-'),
+        render: (song) => (
+          <span className="font-mono tabular-nums">
+            {song.duration ? formatDuration(song.duration) : '-'}
+          </span>
+        ),
       },
     ];
     const cardFields: LibraryViewCardField<Song>[] = [
@@ -476,13 +481,24 @@ export function SearchResults({ user }: SearchResultsProps) {
     album: song.albumName,
   }));
 
-  if (!data) {
+  if (!query.trim()) {
     return (
-      <div>
-        <h2 className="mb-4 text-lg font-semibold">Search</h2>
-        <p className="text-sm text-muted">Loading...</p>
-      </div>
+      <PageState isEmpty emptyMessage="Type to search" emptyIcon="mdi-magnify">
+        {null}
+      </PageState>
     );
+  }
+
+  if (error) {
+    return (
+      <PageState error={error} onRetry={load}>
+        {null}
+      </PageState>
+    );
+  }
+
+  if (!data || loading) {
+    return <PageState loading>{null}</PageState>;
   }
 
   const result = (() => {

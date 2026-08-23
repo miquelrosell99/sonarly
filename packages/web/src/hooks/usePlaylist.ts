@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Playlist } from '@sonarly/shared';
-import { api } from '../api.js';
+import { api } from '../lib/api.js';
+import { getShareToken, withShareToken } from '../lib/shareToken.js';
 
 export interface PlaylistDetailEntry {
   id: string;
@@ -27,8 +28,8 @@ export interface PlaylistDetail extends Playlist {
 
 export function usePlaylist(id: string | undefined) {
   return useQuery<{ playlist: PlaylistDetail }, Error, PlaylistDetail>({
-    queryKey: ['playlist', id],
-    queryFn: () => api(`/playlists/${id}`),
+    queryKey: ['playlist', id, getShareToken()],
+    queryFn: () => api(withShareToken(`/playlists/${id}`)),
     select: (data) => data.playlist,
     enabled: !!id,
   });

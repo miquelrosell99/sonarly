@@ -203,7 +203,7 @@ describe('LibraryView', () => {
   it('clears selection on Escape', () => {
     renderView();
     const alphaRow = getRowByText('Alpha');
-    const container = screen.getByRole('grid');
+    const container = screen.getByRole('table');
 
     fireEvent.click(alphaRow);
     expect(alphaRow.getAttribute('aria-selected')).toBe('true');

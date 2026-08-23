@@ -8,6 +8,7 @@ export interface DbAlbum {
   name: string;
   artist_id: string | null;
   artist_name: string | null;
+  album_type: string | null;
   year: number | null;
   genre: string | null;
   genre_id: string | null;
@@ -31,6 +32,7 @@ export function toAlbum(row: DbAlbum): Album {
     name: row.name,
     artistId: row.artist_id ?? undefined,
     artistName: row.artist_name ?? undefined,
+    albumType: row.album_type ?? undefined,
     year: row.year ?? undefined,
     genre: row.genre ?? undefined,
     genreId: row.genre_id ?? undefined,
@@ -80,12 +82,13 @@ export function deleteAlbumById(db: Database.Database, id: string): void {
 
 export function upsertAlbum(db: Database.Database, album: Album): void {
   const stmt = db.prepare(`
-    INSERT INTO albums (id, name, artist_id, artist_name, year, genre, genre_id, cover_art_id, active, catalog_numbers, barcode, asin, musicbrainz_album_id, musicbrainz_release_group_id, musicbrainz_album_artist_ids, original_year, compilation, total_tracks, total_discs)
-    VALUES (@id, @name, @artistId, @artistName, @year, @genre, @genreId, @coverArt, @active, @catalogNumbers, @barcode, @asin, @musicBrainzAlbumId, @musicBrainzReleaseGroupId, @musicBrainzAlbumArtistIds, @originalYear, @compilation, @totalTracks, @totalDiscs)
+    INSERT INTO albums (id, name, artist_id, artist_name, album_type, year, genre, genre_id, cover_art_id, active, catalog_numbers, barcode, asin, musicbrainz_album_id, musicbrainz_release_group_id, musicbrainz_album_artist_ids, original_year, compilation, total_tracks, total_discs)
+    VALUES (@id, @name, @artistId, @artistName, @albumType, @year, @genre, @genreId, @coverArt, @active, @catalogNumbers, @barcode, @asin, @musicBrainzAlbumId, @musicBrainzReleaseGroupId, @musicBrainzAlbumArtistIds, @originalYear, @compilation, @totalTracks, @totalDiscs)
     ON CONFLICT(id) DO UPDATE SET
       name = excluded.name,
       artist_id = excluded.artist_id,
       artist_name = excluded.artist_name,
+      album_type = COALESCE(album_type, excluded.album_type),
       year = excluded.year,
       genre = excluded.genre,
       genre_id = excluded.genre_id,
@@ -107,6 +110,7 @@ export function upsertAlbum(db: Database.Database, album: Album): void {
     name: album.name,
     artistId: album.artistId ?? null,
     artistName: album.artistName ?? null,
+    albumType: album.albumType ?? null,
     year: album.year ?? null,
     genre: album.genre ?? null,
     genreId: album.genreId ?? null,

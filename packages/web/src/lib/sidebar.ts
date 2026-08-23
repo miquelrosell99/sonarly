@@ -17,7 +17,6 @@ export const SIDEBAR_ITEM_DEFINITIONS: SidebarItemDefinition[] = [
   { id: 'years', type: 'link', label: 'Years', default: true },
   { id: 'composers', type: 'link', label: 'Composers' },
   { id: 'labels', type: 'link', label: 'Labels' },
-  { id: 'album-types', type: 'link', label: 'Album Types' },
 ];
 
 export const DEFAULT_PLAYLISTS_ITEM: Extract<SidebarItem, { type: 'playlists' }> = {

@@ -8,7 +8,7 @@ import { getSongByPath } from '../songs/index.js';
 import { getArtistByName } from '../artists/index.js';
 import { getAlbumByNameAndArtist } from '../albums/index.js';
 import { getOrganizePattern } from '../settings/index.js';
-import { readTags, writeCoverArt } from '../tags/index.js';
+import { readMetadata, writeCoverArt } from '../tags/index.js';
 import { buildTargetPath, moveToLibrary } from './organizer.js';
 import {
   getCoverArtById,
@@ -27,12 +27,14 @@ export interface OrganizeStats {
 }
 
 function resolveLibraryIdForPath(db: Database.Database, filePath: string): string | undefined {
+  // Match exact path or path prefix with a separator boundary so that
+  // library /music does not claim files under /music2.
   const row = db.prepare(`
     SELECT id FROM libraries
-    WHERE ? LIKE path || '%'
+    WHERE ? = path OR ? LIKE path || '/%'
     ORDER BY length(path) DESC
     LIMIT 1
-  `).get(filePath) as { id: string } | undefined;
+  `).get(filePath, filePath) as { id: string } | undefined;
   return row?.id;
 }
 
@@ -42,7 +44,7 @@ export async function getTargetPathForFile(
   filePath: string,
   tags?: SongTags,
 ): Promise<string> {
-  const meta = tags ? { tags } : await readTags(filePath);
+  const meta = tags ? { tags } : await readMetadata(filePath);
   const libraryId = resolveLibraryIdForPath(db, filePath);
   const library = libraryId ? getLibraryById(db, libraryId) : undefined;
   const pattern = library?.organizePattern ?? getOrganizePattern(db, config);
@@ -52,7 +54,7 @@ export async function getTargetPathForFile(
 
 export async function organizeSongFile(config: Config, db: Database.Database, filePath: string): Promise<string> {
   const dbSong = getSongByPath(db, filePath);
-  const meta = await readTags(filePath);
+  const meta = await readMetadata(filePath);
   const targetPath = await getTargetPathForFile(config, db, filePath, meta.tags);
 
   if (filePath === targetPath) {

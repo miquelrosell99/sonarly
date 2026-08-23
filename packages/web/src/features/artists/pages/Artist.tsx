@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'wouter';
 import type { Song, User } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Card } from '../../../components/Card.js';
 import { CoverArt } from '../../../components/CoverArt.js';
 import { ArtistImage } from '../../../components/ArtistImage.js';
@@ -199,7 +199,11 @@ export function Artist({ user }: { user: User }) {
       key: 'duration',
       header: 'Duration',
       className: 'w-24',
-      render: (track) => (track.duration ? formatDuration(track.duration) : '-'),
+      render: (track) => (
+        <span className="font-mono tabular-nums">
+          {track.duration ? formatDuration(track.duration) : '-'}
+        </span>
+      ),
     },
   ];
 
@@ -304,7 +308,7 @@ export function Artist({ user }: { user: User }) {
       )}
 
       <LibraryView
-        title="Top tracks"
+        title="Tracks"
         data={topTracks}
         columns={columns}
         cardFields={cardFields}

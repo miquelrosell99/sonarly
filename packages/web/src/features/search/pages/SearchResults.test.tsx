@@ -4,7 +4,7 @@ import { Router } from 'wouter';
 import type { User } from '@sonarly/shared';
 import { SearchResults } from './SearchResults.js';
 import { NotificationProvider } from '../../../contexts/NotificationContext.js';
-import * as apiModule from '../../../api.js';
+import * as apiModule from '../../../lib/api.js';
 
 const mockUser = { id: 'u1', username: 'test', isAdmin: false } as User;
 
@@ -32,9 +32,9 @@ afterEach(() => {
 });
 
 describe('SearchResults', () => {
-  it('renders empty state when query is empty', () => {
+  it('renders a type-to-search prompt when query is empty', () => {
     renderWithRouter('');
-    expect(screen.getByText('No songs match "".')).toBeTruthy();
+    expect(screen.getByText('Type to search')).toBeTruthy();
   });
 
   it('fetches and renders songs for the selected type', async () => {

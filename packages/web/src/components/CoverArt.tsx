@@ -34,7 +34,7 @@ export function CoverArt({ coverArt, alt, iconSize = 32, className }: CoverArtPr
         loading="lazy"
         draggable={false}
         className={cn(
-          'h-full w-full object-cover transition-all duration-700 ease-out',
+          'h-full w-full object-cover motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out',
           loaded ? 'opacity-100 blur-0 scale-100' : 'opacity-0 blur-sm scale-105',
         )}
         onLoad={() => setLoaded(true)}

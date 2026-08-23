@@ -2,7 +2,7 @@
 
 Sonarly uses **SQLite** (via `better-sqlite3`). The database file is created at `${DATA_DIR}/sonarly.db` (default `/data/sonarly.db`). Migrations run automatically on startup from `packages/server/src/db/migrations/`.
 
-This document reflects the schema produced by migrations `001` through `042`.
+This document reflects the schema produced by migrations `001` through `046`.
 
 ## Conventions
 
@@ -95,7 +95,7 @@ Music albums.
 | `year` | `INTEGER` | Release year |
 | `genre` | `TEXT` | Legacy text genre (kept for compatibility) |
 | `genre_id` | `TEXT` | FK → `genres(id)` `ON DELETE SET NULL` |
-| `cover_art` | `TEXT` | Legacy column; no longer populated |
+| `album_type` | `TEXT` | Release type (album, ep, single, compilation, …); from the `RELEASETYPE` tag or the metadata editor |
 | `cover_art_id` | `TEXT` | FK → `cover_arts(id)` |
 | `active` | `INTEGER` | Default `1`; set to `0` when all songs become inactive |
 
@@ -103,6 +103,7 @@ Music albums.
 - `idx_albums_artist` on `artist_id`
 - `idx_albums_active` on `active`
 - `idx_albums_genre_id` on `genre_id`
+- `idx_albums_name` on `name`
 
 ### `labels`
 
@@ -158,13 +159,13 @@ Individual audio tracks.
 | `genre_id` | `TEXT` | FK → `genres(id)` `ON DELETE SET NULL` |
 | `year` | `INTEGER` | Release year |
 | `explicit` | `INTEGER` | Default `0`; explicit content flag |
-| `cover_art` | `TEXT` | Legacy column; no longer populated |
 | `cover_art_id` | `TEXT` | FK → `cover_arts(id)` |
 | `cover_art_missing` | `INTEGER` | Default `0`; set to `1` when no embedded cover is found |
 | `mtime` | `INTEGER` | File modification time (Unix ms) |
 | `checksum` | `TEXT` | File checksum used for change detection |
 | `active` | `INTEGER` | Default `1`; set to `0` when the file is missing during scan |
-| `bit_rate` | `INTEGER` | Audio bitrate |
+| `library_id` | `TEXT` | FK → `libraries(id)`; owning library for per-library scoping |
+| `bit_rate` | `INTEGER` | Audio bitrate in bits per second (divide by 1000 for kbps) |
 | `bits_per_sample` | `INTEGER` | Bit depth |
 | `sample_rate` | `INTEGER` | Sample rate in Hz |
 | `channels` | `INTEGER` | Channel count |
@@ -189,6 +190,8 @@ Individual audio tracks.
 - `idx_songs_artist` on `artist_id`
 - `idx_songs_active` on `active`
 - `idx_songs_genre_id` on `genre_id`
+- `idx_songs_checksum` on `checksum`
+- `idx_songs_library_id` on `library_id`
 
 ### `song_composers`
 

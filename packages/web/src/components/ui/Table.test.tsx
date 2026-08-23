@@ -119,7 +119,7 @@ describe('Table', () => {
   it('clears selection on Escape', () => {
     renderTable({ onPlaySelection: vi.fn() });
     const alphaRow = getRowByText('Alpha');
-    const container = screen.getByRole('grid');
+    const container = screen.getByRole('table');
 
     fireEvent.click(alphaRow);
     expect(alphaRow.getAttribute('aria-selected')).toBe('true');

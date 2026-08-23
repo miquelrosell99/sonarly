@@ -31,9 +31,11 @@ export function FilterPanel({ filters, className }: FilterPanelProps) {
           const value = get(filter.key) ?? '';
           return (
             <div key={filter.key} className="space-y-1">
-              <label htmlFor={`filter-${filter.key}`} className="block text-xs font-medium text-muted">
-                {filter.label}
-              </label>
+              {filter.type !== 'boolean' && (
+                <label htmlFor={`filter-${filter.key}`} className="block text-xs font-medium text-muted">
+                  {filter.label}
+                </label>
+              )}
               {filter.type === 'text' && (
                 <input
                   id={`filter-${filter.key}`}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { LrcLibMatch, LrcLibSearchResult, SyncedLyricLine } from '@sonarly/shared';
-import { api } from '../api.js';
+import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
 import { Button } from './ui/Button.js';
 import { Input } from './ui/Input.js';

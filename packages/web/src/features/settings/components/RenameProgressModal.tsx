@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { ProgressBar } from '../../../components/ui/ProgressBar.js';
 import { Button } from '../../../components/ui/Button.js';
+import { Modal } from '../../../components/ui/Modal.js';
 
 interface OrganizeStatus {
   id: string;
@@ -98,66 +99,58 @@ export function RenameProgressModal({ jobId, onClose, onComplete }: RenameProgre
   const isFailed = status?.status === 'failed';
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="rename-modal-title"
-    >
-      <div className="w-full max-w-md rounded-xl border border-rule bg-surface p-6 shadow-lg">
-        <h2 id="rename-modal-title" className="mb-4 text-lg font-semibold">
-          Renaming library…
-        </h2>
-
-        {error ? (
-          <div className="space-y-4">
-            <p className="text-sm text-red-500">{error}</p>
+    <Modal open onClose={onClose} title="Renaming library…" className="max-w-md">
+      {error ? (
+        <div className="space-y-4">
+          <p className="text-sm text-danger" role="alert">{error}</p>
+          <div className="flex justify-end">
+            <Button onClick={onClose}>Close</Button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <ProgressBar
+            value={isRunning && total === 0 ? 0 : percent}
+            aria-label="Rename progress"
+          />
+          <p className="text-sm text-fg-primary" aria-live="polite">
+            {status?.status === 'completed' && total === 0
+              ? 'Nothing to rename'
+              : total === 0
+                ? 'Scanning…'
+                : `${done} of ${total} files renamed (${percent}%)`}
+          </p>
+          {status?.stats?.currentPath && (
+            <p className="break-all text-xs text-muted" title={status.stats.currentPath}>
+              {status.stats.currentPath}
+            </p>
+          )}
+          {isFailed && (
+            <p className="text-sm text-danger">
+              {status.stats?.error || 'Rename failed'}
+            </p>
+          )}
+          {showFailures && (
+            <div className="rounded-md border border-danger/30 bg-danger/10 p-3">
+              <p className="text-sm font-medium text-danger">
+                {failed} file{failed === 1 ? '' : 's'} failed
+              </p>
+              <ul className="mt-2 max-h-32 overflow-y-auto text-xs text-muted">
+                {failedPaths.map((path) => (
+                  <li key={path} className="break-all py-0.5" title={path}>
+                    {path}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {(showFailures || isFailed) && (
             <div className="flex justify-end">
               <Button onClick={onClose}>Close</Button>
             </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <ProgressBar value={isRunning && total === 0 ? 0 : percent} />
-            <p className="text-sm text-fg-primary">
-              {status?.status === 'completed' && total === 0
-                ? 'Nothing to rename'
-                : total === 0
-                  ? 'Scanning…'
-                  : `${done} of ${total} files renamed (${percent}%)`}
-            </p>
-            {status?.stats?.currentPath && (
-              <p className="break-all text-xs text-muted" title={status.stats.currentPath}>
-                {status.stats.currentPath}
-              </p>
-            )}
-            {isFailed && (
-              <p className="text-sm text-red-500">
-                {status.stats?.error || 'Rename failed'}
-              </p>
-            )}
-            {showFailures && (
-              <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3">
-                <p className="text-sm font-medium text-red-500">
-                  {failed} file{failed === 1 ? '' : 's'} failed
-                </p>
-                <ul className="mt-2 max-h-32 overflow-y-auto text-xs text-muted">
-                  {failedPaths.map((path) => (
-                    <li key={path} className="break-all py-0.5" title={path}>
-                      {path}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {(showFailures || isFailed) && (
-              <div className="flex justify-end">
-                <Button onClick={onClose}>Close</Button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+          )}
+        </div>
+      )}
+    </Modal>
   );
 }

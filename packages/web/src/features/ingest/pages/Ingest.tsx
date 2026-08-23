@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Library } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
+import { PageState } from '../../../components/PageState.js';
+import { ProgressBar } from '../../../components/ui/ProgressBar.js';
+import { StatusPill } from '../../admin/components/StatusPill.js';
+
+const ACTIVE_STATUSES = new Set(['pending', 'running']);
+const POLL_INTERVAL_MS = 2000;
 
 interface IngestJob {
   id: string;
@@ -47,6 +53,21 @@ export function Ingest() {
     load();
   }, []);
 
+  const hasActiveJobs = jobs.some((j) => ACTIVE_STATUSES.has(j.status));
+
+  useEffect(() => {
+    if (!hasActiveJobs) return;
+    const interval = setInterval(() => {
+      api<{ jobs: IngestJob[] }>('/ingest')
+        .then((r) => setJobs(r.jobs))
+        .catch(() => {});
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [hasActiveJobs]);
+
+  const doneCount = jobs.filter((j) => !ACTIVE_STATUSES.has(j.status)).length;
+  const progress = jobs.length > 0 ? Math.round((doneCount / jobs.length) * 100) : 0;
+
   const trigger = async () => {
     const libraryId = selectedLibraryId || defaultLibrary?.id;
     if (!libraryId) {
@@ -81,7 +102,7 @@ export function Ingest() {
           </span>
         ) : null,
     },
-    { key: 'status', header: 'Status', className: 'w-32', render: (j) => j.status },
+    { key: 'status', header: 'Status', className: 'w-32', render: (j) => <StatusPill status={j.status} /> },
     {
       key: 'error',
       header: 'Error',
@@ -105,6 +126,7 @@ export function Ingest() {
             onChange={(e) => setSelectedLibraryId(e.target.value)}
             disabled={triggering || libraries.length === 0}
             className="input"
+            aria-label="Library"
           >
             {libraries.map((library) => (
               <option key={library.id} value={library.id}>
@@ -117,12 +139,18 @@ export function Ingest() {
           </Button>
         </div>
       </div>
-      {error && <p className="mb-4 text-sm text-danger">{error}</p>}
-      {loading ? (
-        <p className="text-sm text-muted">Loading...</p>
-      ) : (
-        <Table columns={columns} rows={jobs} rowKey={(j) => j.id} empty="No ingest jobs." />
+      {error && <p className="mb-4 text-sm text-danger" role="alert">{error}</p>}
+      {hasActiveJobs && (
+        <div className="mb-4 space-y-2">
+          <ProgressBar value={progress} aria-label="Ingest progress" />
+          <p className="text-sm text-muted" aria-live="polite">
+            Processing ingest queue: {doneCount} of {jobs.length} files done
+          </p>
+        </div>
       )}
+      <PageState loading={loading}>
+        <Table columns={columns} rows={jobs} rowKey={(j) => j.id} empty="No ingest jobs." />
+      </PageState>
     </div>
   );
 }

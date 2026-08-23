@@ -34,12 +34,21 @@ export function TrackList({
         const details: string[] = [];
         if (showArtist && artistName) details.push(artistName);
         if (showAlbum && albumName) details.push(albumName);
-        if (showDuration && track.duration) details.push(formatDuration(track.duration));
 
         const content = (
           <>
             <span>{track.title}</span>
-            {details.length > 0 && <span className="text-muted">{details.join(' • ')}</span>}
+            {(details.length > 0 || (showDuration && track.duration)) && (
+              <span className="text-muted">
+                {details.join(' • ')}
+                {showDuration && track.duration !== undefined && (
+                  <>
+                    {details.length > 0 && ' • '}
+                    <span className="font-mono tabular-nums">{formatDuration(track.duration)}</span>
+                  </>
+                )}
+              </span>
+            )}
           </>
         );
 
@@ -49,14 +58,14 @@ export function TrackList({
               <button
                 type="button"
                 onClick={() => onItemClick(track)}
-                className="flex w-full items-center justify-between py-2 text-left text-sm hover:bg-surface-hover"
+                className="flex min-h-11 w-full items-center justify-between rounded-md px-2 py-2 text-left text-sm hover:bg-surface-hover"
               >
                 {content}
               </button>
             ) : (
               <Link
                 href={`/tracks/${track.id}`}
-                className="flex items-center justify-between py-2 text-sm hover:bg-surface-hover"
+                className="flex min-h-11 items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-surface-hover"
               >
                 {content}
               </Link>

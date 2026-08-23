@@ -79,11 +79,14 @@ export function registerStatisticsRoutes(app: FastifyInstance, db: Database.Data
     if (!session) return;
 
     const range = parseRange((request.query as Record<string, unknown>).range);
-    const groupBy = groupBySchema.parse((request.query as Record<string, unknown>).groupBy);
     try {
+      const groupBy = groupBySchema.parse((request.query as Record<string, unknown>).groupBy);
       const data = getMonthlyGroupedPlays(db, session.userId, range, groupBy);
       reply.send({ data });
     } catch (err) {
+      if (err instanceof z.ZodError) {
+        return reply.status(400).send({ error: 'Invalid query parameters' });
+      }
       const message = err instanceof Error ? err.message : 'Failed to load statistics';
       reply.status(500).send({ error: message });
     }
@@ -98,11 +101,14 @@ export function registerStatisticsRoutes(app: FastifyInstance, db: Database.Data
 
     const { id } = request.params as { id: string };
     const range = parseRange((request.query as Record<string, unknown>).range);
-    const groupBy = groupBySchema.parse((request.query as Record<string, unknown>).groupBy);
     try {
+      const groupBy = groupBySchema.parse((request.query as Record<string, unknown>).groupBy);
       const data = getMonthlyGroupedPlays(db, id, range, groupBy);
       reply.send({ data });
     } catch (err) {
+      if (err instanceof z.ZodError) {
+        return reply.status(400).send({ error: 'Invalid query parameters' });
+      }
       const message = err instanceof Error ? err.message : 'Failed to load statistics';
       reply.status(500).send({ error: message });
     }

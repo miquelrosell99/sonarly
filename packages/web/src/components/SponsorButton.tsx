@@ -31,7 +31,7 @@ export function SponsorButton() {
         title="Support Sonarly"
         aria-label="Support Sonarly"
         className={cn(
-          'flex h-9 w-9 items-center justify-center rounded-full text-accent transition',
+          'flex h-11 w-11 items-center justify-center rounded-full text-accent transition',
           'hover:bg-surface-hover hover:text-accent',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         )}

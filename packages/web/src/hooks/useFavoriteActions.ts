@@ -1,5 +1,5 @@
 import type { FavoriteEntityType } from '@sonarly/shared';
-import { api } from '../api.js';
+import { api } from '../lib/api.js';
 
 export interface FavoriteActions {
   setFavorite: (entityType: FavoriteEntityType, entityId: string, starred: boolean) => Promise<void>;

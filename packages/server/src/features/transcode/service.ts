@@ -33,8 +33,11 @@ function sourceSuffix(filePath: string): string {
   return ext ?? '';
 }
 
+// The songs.bit_rate column stores bits per second (e.g. 320000); the
+// transcode decision works in kbps. Conversion happens here at the use site —
+// the stored column intentionally keeps its raw unit.
 function sourceBitrateKbps(song: Song): number | undefined {
-  if (typeof song.bitRate === 'number') return song.bitRate;
+  if (typeof song.bitRate === 'number') return Math.round(song.bitRate / 1000);
   return undefined;
 }
 

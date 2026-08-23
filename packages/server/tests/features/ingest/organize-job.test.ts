@@ -12,7 +12,7 @@ import * as reader from '../../../src/features/tags/reader.js';
 
 const fixturePath = new URL('../../fixtures/sample.mp3', import.meta.url).pathname;
 
-const originalReadTags = reader.readTags;
+const originalReadMetadata = reader.readMetadata;
 
 describe('runOrganizeJob', () => {
   let db: Database.Database;
@@ -50,8 +50,8 @@ describe('runOrganizeJob', () => {
     copyFileSync(fixturePath, join(organizedDir, 'Sample Song.mp3'));
     copyFileSync(fixturePath, join(libraryPath, 'loose.mp3'));
 
-    db.prepare("INSERT INTO songs (id, file_path, title, track_number, disc_number, duration, artist_id, album_id, genre, year, cover_art, mtime, checksum) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .run('song-1', join(libraryPath, 'loose.mp3'), 'Sample Song', null, null, null, null, null, null, null, null, 0, 'checksum');
+    db.prepare("INSERT INTO songs (id, file_path, title, track_number, disc_number, duration, artist_id, album_id, genre, year, mtime, checksum) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .run('song-1', join(libraryPath, 'loose.mp3'), 'Sample Song', null, null, null, null, null, null, null, 0, 'checksum');
 
     const jobId = pushJob(db, 'organize', '');
     markJobRunning(db, jobId);
@@ -73,11 +73,11 @@ describe('runOrganizeJob', () => {
     const badPath = join(libraryPath, 'corrupt.mp3');
     writeFileSync(badPath, 'not a real mp3');
 
-    const readTagsSpy = vi.spyOn(reader, 'readTags').mockImplementation(async (filePath: string) => {
+    const readMetadataSpy = vi.spyOn(reader, 'readMetadata').mockImplementation(async (filePath: string) => {
       if (filePath === badPath) {
         throw new Error('Unreadable audio file');
       }
-      return originalReadTags(filePath);
+      return originalReadMetadata(filePath);
     });
 
     const jobId = pushJob(db, 'organize', '');
@@ -85,7 +85,7 @@ describe('runOrganizeJob', () => {
 
     const stats = await runOrganizeJob(config, db, jobId);
 
-    readTagsSpy.mockRestore();
+    readMetadataSpy.mockRestore();
 
     expect(stats.failed).toBe(1);
     expect(stats.failedPaths).toContain(badPath);

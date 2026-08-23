@@ -8,6 +8,9 @@ import { syncMissingArtistImages } from '../../../src/features/artists/images.js
 
 const originalFetch = global.fetch;
 
+// Minimal JPEG magic bytes followed by dummy payload (sniffed before saving).
+const FAKE_JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.from('fake-image')]);
+
 describe('syncMissingArtistImages', () => {
   let root: string;
   let db: Database.Database;
@@ -35,7 +38,7 @@ describe('syncMissingArtistImages', () => {
         });
       }
       if (url === 'https://cdn.deezer.com/artist.jpg') {
-        return new Response(Buffer.from('fake-image'), {
+        return new Response(FAKE_JPEG, {
           status: 200,
           headers: { 'content-type': 'image/jpeg' },
         });
@@ -79,7 +82,7 @@ describe('syncMissingArtistImages', () => {
         });
       }
       if (url === 'https://cdn.deezer.com/artist.jpg') {
-        return new Response(Buffer.from('fake-image'), {
+        return new Response(FAKE_JPEG, {
           status: 200,
           headers: { 'content-type': 'image/jpeg' },
         });

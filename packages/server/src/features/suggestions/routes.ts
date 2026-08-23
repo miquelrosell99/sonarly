@@ -2,8 +2,10 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { buildGenrePaths } from '../genres/repository.js';
 
-const ALLOWED_FIELDS = new Set(['artist', 'album', 'genre', 'albumArtist']);
+const ALLOWED_FIELDS = new Set(['artist', 'album', 'genre', 'albumArtist', 'albumType']);
 const MAX_LIMIT = 50;
+
+const ALBUM_TYPE_SEEDS = ['Album', 'EP', 'Single', 'Compilation', 'Live', 'Soundtrack', 'Remix'];
 
 interface SuggestionParams {
   field: string;
@@ -12,22 +14,34 @@ interface SuggestionParams {
 }
 
 function getSuggestions(db: Database.Database, field: string, query: string, limit: number): string[] {
-  const like = `%${query}%`;
+  const like = `%${query.replace(/%/g, '\\%').replace(/_/g, '\\_')}%`;
   const lowerQuery = query.toLowerCase();
   if (field === 'artist') {
-    const rows = db.prepare('SELECT name FROM artists WHERE active = 1 AND name LIKE ? COLLATE NOCASE ORDER BY name LIMIT ?')
+    const rows = db.prepare("SELECT name FROM artists WHERE active = 1 AND name LIKE ? COLLATE NOCASE ESCAPE '\\' ORDER BY name LIMIT ?")
       .all(like, limit) as { name: string }[];
     return rows.map((r) => r.name);
   }
   if (field === 'album') {
-    const rows = db.prepare('SELECT name FROM albums WHERE active = 1 AND name LIKE ? COLLATE NOCASE ORDER BY name LIMIT ?')
+    const rows = db.prepare("SELECT name FROM albums WHERE active = 1 AND name LIKE ? COLLATE NOCASE ESCAPE '\\' ORDER BY name LIMIT ?")
       .all(like, limit) as { name: string }[];
     return rows.map((r) => r.name);
   }
   if (field === 'albumArtist') {
-    const rows = db.prepare("SELECT DISTINCT artist_name AS name FROM albums WHERE active = 1 AND artist_name IS NOT NULL AND artist_name LIKE ? COLLATE NOCASE ORDER BY artist_name LIMIT ?")
+    const rows = db.prepare("SELECT DISTINCT artist_name AS name FROM albums WHERE active = 1 AND artist_name IS NOT NULL AND artist_name LIKE ? COLLATE NOCASE ESCAPE '\\' ORDER BY artist_name LIMIT ?")
       .all(like, limit) as { name: string }[];
     return rows.map((r) => r.name);
+  }
+  if (field === 'albumType') {
+    const rows = db.prepare("SELECT DISTINCT album_type AS name FROM albums WHERE album_type IS NOT NULL AND album_type <> '' AND album_type LIKE ? COLLATE NOCASE ESCAPE '\\' ORDER BY album_type LIMIT ?")
+      .all(like, limit) as { name: string }[];
+    // Seeds give canonical casing; stored values fill in anything else.
+    const merged = ALBUM_TYPE_SEEDS.filter((seed) => seed.toLowerCase().includes(lowerQuery));
+    for (const { name } of rows) {
+      if (!merged.some((existing) => existing.toLowerCase() === name.toLowerCase())) {
+        merged.push(name);
+      }
+    }
+    return merged.slice(0, limit);
   }
   // genre: return full paths from the genres table, filtered case-insensitively
   const paths = buildGenrePaths(db);

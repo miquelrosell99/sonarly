@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { User } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { AdminShell } from '../components/AdminShell.js';
 import { IngestStatusCard } from '../components/IngestStatusCard.js';
+import { StatCard } from '../components/StatCard.js';
 import { StatusWidget } from '../components/StatusWidget.js';
 import { ConflictsModal } from '../components/ConflictsModal.js';
 import { MissingModal } from '../components/MissingModal.js';
@@ -73,22 +74,10 @@ export function AdminStatus({ user }: AdminStatusProps) {
       <div className="space-y-4">
         {error && <p className="text-sm text-danger" role="alert">{error}</p>}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded border border-rule p-4">
-            <p className="text-xs text-muted">Users</p>
-            <p className="text-2xl font-semibold">{status?.counts.users ?? '-'}</p>
-          </div>
-          <div className="rounded border border-rule p-4">
-            <p className="text-xs text-muted">Songs</p>
-            <p className="text-2xl font-semibold">{status?.counts.songs ?? '-'}</p>
-          </div>
-          <div className="rounded border border-rule p-4">
-            <p className="text-xs text-muted">Albums</p>
-            <p className="text-2xl font-semibold">{status?.counts.albums ?? '-'}</p>
-          </div>
-          <div className="rounded border border-rule p-4">
-            <p className="text-xs text-muted">Artists</p>
-            <p className="text-2xl font-semibold">{status?.counts.artists ?? '-'}</p>
-          </div>
+          <StatCard icon="mdi-account-group" label="Users" value={status?.counts.users ?? 0} />
+          <StatCard icon="mdi-music" label="Songs" value={status?.counts.songs ?? 0} />
+          <StatCard icon="mdi-album" label="Albums" value={status?.counts.albums ?? 0} />
+          <StatCard icon="mdi-account-music" label="Artists" value={status?.counts.artists ?? 0} />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

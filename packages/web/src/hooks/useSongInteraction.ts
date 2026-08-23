@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Song } from '@sonarly/shared';
-import { api } from '../api.js';
+import { api } from '../lib/api.js';
 import { useFavoriteActions } from './useFavoriteActions.js';
 
 export interface UseSongInteractionResult {
@@ -18,6 +18,9 @@ export function useSongInteraction(
   const [rating, setRating] = useState<number | undefined>(fallback.rating);
   const { setFavorite: setFavoriteApi, setRating: setRatingApi } = useFavoriteActions();
   const songIdRef = useRef(songId);
+  // Bumped on every optimistic mutation so a slower initial GET cannot
+  // overwrite a fresher favorite/rating change.
+  const mutationVersionRef = useRef(0);
 
   useEffect(() => {
     songIdRef.current = songId;
@@ -28,9 +31,10 @@ export function useSongInteraction(
     setStarred(fallback.starred);
     setRating(fallback.rating);
     let cancelled = false;
+    const versionAtFetch = mutationVersionRef.current;
     api<{ song: Song }>(`/songs/${songId}`)
       .then((res) => {
-        if (cancelled) return;
+        if (cancelled || versionAtFetch !== mutationVersionRef.current) return;
         setStarred(res.song.starred);
         setRating(res.song.rating);
       })
@@ -48,6 +52,7 @@ export function useSongInteraction(
       if (!songId) return;
       const targetId = songId;
       const previousStarred = starred;
+      mutationVersionRef.current += 1;
       setStarred(nextStarred);
       try {
         await setFavoriteApi('song', songId, nextStarred);
@@ -67,6 +72,7 @@ export function useSongInteraction(
       if (!songId) return;
       const targetId = songId;
       const previousRating = rating;
+      mutationVersionRef.current += 1;
       setRating(nextRating);
       try {
         await setRatingApi('song', songId, nextRating);

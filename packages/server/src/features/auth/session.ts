@@ -7,10 +7,30 @@ export interface SessionData {
   isAdmin: boolean;
 }
 
+export function deleteSessionsForUser(db: Database.Database, userId: string): void {
+  const rows = db.prepare('SELECT sid, sess FROM sessions').all() as { sid: string; sess: string }[];
+  const del = db.prepare('DELETE FROM sessions WHERE sid = ?');
+  for (const row of rows) {
+    try {
+      const sess = JSON.parse(row.sess);
+      if (sess?.userId === userId) del.run(row.sid);
+    } catch {
+      // Ignore malformed session payloads.
+    }
+  }
+}
+
+export function sweepExpiredSessions(db: Database.Database): void {
+  db.prepare('DELETE FROM sessions WHERE expire <= ?').run(new Date().toISOString());
+}
+
 export function createSessionStore(db: Database.Database): SessionStore {
   const get = (sid: string, callback: (err: Error | null, session?: any) => void) => {
     try {
-      const row = db.prepare("SELECT sess FROM sessions WHERE sid = ? AND expire > datetime('now')").get(sid) as any;
+      // expire is stored as ISO 8601 text; compare against an ISO 8601 "now"
+      // so the string comparison is consistent ('T' vs ' ' in datetime('now')
+      // would otherwise keep expired sessions alive).
+      const row = db.prepare('SELECT sess FROM sessions WHERE sid = ? AND expire > ?').get(sid, new Date().toISOString()) as any;
       callback(null, row ? JSON.parse(row.sess) : undefined);
     } catch (err) {
       callback(err as Error);

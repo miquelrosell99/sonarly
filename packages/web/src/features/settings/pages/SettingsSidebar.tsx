@@ -3,6 +3,7 @@ import type { UserPreferences } from '@sonarly/shared';
 import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferences.js';
 import { Settings } from '../components/Settings.js';
 import { Icon } from '../../../components/ui/Icon.js';
+import { Checkbox } from '../../../components/ui/Checkbox.js';
 import { DEFAULT_SIDEBAR_ITEMS, SIDEBAR_LABELS } from '../../../lib/sidebar.js';
 import { cn } from '../../../lib/cn.js';
 
@@ -53,7 +54,7 @@ export function SettingsSidebar() {
       <div className="max-w-2xl">
         <h3 className="mb-4 text-base font-medium">Sidebar layout</h3>
         <p className="mb-4 text-sm text-muted">
-          Choose which sections appear in the sidebar and drag them into your preferred order.
+          Choose which sections appear in the sidebar and use the arrow buttons to reorder them.
         </p>
 
         <ul className="space-y-2">
@@ -65,24 +66,18 @@ export function SettingsSidebar() {
                 item.visible ? 'border-rule bg-bg-primary' : 'border-rule bg-surface opacity-60',
               )}
             >
-              <div className="flex items-center gap-3">
-                <input
-                  id={`sidebar-item-${item.id}`}
-                  type="checkbox"
-                  checked={item.visible}
-                  onChange={() => toggleVisible(index)}
-                  className="h-4 w-4 accent-accent"
-                />
-                <label htmlFor={`sidebar-item-${item.id}`} className="text-sm font-medium">
-                  {itemLabel(item)}
-                </label>
-              </div>
+              <Checkbox
+                id={`sidebar-item-${item.id}`}
+                checked={item.visible}
+                onChange={() => toggleVisible(index)}
+                label={itemLabel(item)}
+              />
 
               <div className="flex items-center gap-1">
                 {item.type === 'playlists' && item.visible && (
                   <button
                     onClick={() => toggleCollapsed(index)}
-                    className="rounded p-1.5 text-muted hover:bg-surface-hover"
+                    className="rounded p-1.5 text-muted hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                     aria-label={item.collapsed ? 'Expand playlists by default' : 'Collapse playlists by default'}
                     title={item.collapsed ? 'Expand by default' : 'Collapse by default'}
                   >
@@ -92,7 +87,7 @@ export function SettingsSidebar() {
                 <button
                   onClick={() => move(index, -1)}
                   disabled={index === 0}
-                  className="rounded p-1.5 text-muted hover:bg-surface-hover disabled:opacity-30"
+                  className="rounded p-1.5 text-muted hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-30"
                   aria-label="Move up"
                 >
                   <Icon name="mdi-chevron-up" size={18} />
@@ -100,7 +95,7 @@ export function SettingsSidebar() {
                 <button
                   onClick={() => move(index, 1)}
                   disabled={index === items.length - 1}
-                  className="rounded p-1.5 text-muted hover:bg-surface-hover disabled:opacity-30"
+                  className="rounded p-1.5 text-muted hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-30"
                   aria-label="Move down"
                 >
                   <Icon name="mdi-chevron-down" size={18} />

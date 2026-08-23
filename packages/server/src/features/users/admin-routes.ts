@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { hashPassword, encryptSubsonicPassword } from '../auth/index.js';
+import { hashPassword, encryptSubsonicPassword, deleteSessionsForUser } from '../auth/index.js';
 import {
   createUser,
   listUsers,
@@ -47,8 +47,13 @@ function buildAvatarUrl(userId: string): string {
   return `/api/avatars/${userId}`;
 }
 
-function requireAdmin(session: { userId: string; isAdmin: boolean } | undefined, reply: FastifyReply): boolean {
-  if (!session?.isAdmin) {
+function requireAdmin(db: Database.Database, session: { userId: string; isAdmin: boolean } | undefined, reply: FastifyReply): boolean {
+  // Re-read is_admin from the database instead of trusting the session, so
+  // demoted (or deleted) users lose admin access immediately.
+  const row = session?.userId
+    ? db.prepare('SELECT is_admin FROM users WHERE id = ?').get(session.userId) as { is_admin: number } | undefined
+    : undefined;
+  if (!row || row.is_admin !== 1) {
     reply.status(403).send({ error: 'Forbidden' });
     return false;
   }
@@ -56,6 +61,8 @@ function requireAdmin(session: { userId: string; isAdmin: boolean } | undefined,
 }
 
 type SystemTaskStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+const MIN_PASSWORD_LENGTH = 8;
 
 interface SystemTask {
   id: string;
@@ -162,7 +169,7 @@ const assignLibrariesSchema = z.object({
 export function registerAdminRoutes(app: FastifyInstance, db: Database.Database, sessionSecret: string, config: Config): void {
   app.get('/api/admin/system-tasks', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const tasks = getSystemTasks(config).map((def) => buildSystemTaskResponse(def, db));
     reply.send({ tasks });
@@ -170,7 +177,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.post('/api/admin/system-tasks/:taskId/run', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const parseResult = taskRunParamsSchema.safeParse(request.params);
     if (!parseResult.success) {
@@ -189,7 +196,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.get('/api/admin/system-tasks/history', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const query = request.query as { page?: string; limit?: string };
     const page = Math.max(1, parseInt(query.page ?? '1', 10) || 1);
@@ -245,7 +252,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.post('/api/admin/users', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const input = request.body as CreateUserInput;
     if (typeof input.username !== 'string' || input.username.length === 0) {
@@ -253,6 +260,9 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
     }
     if (typeof input.password !== 'string' || input.password.length === 0) {
       return reply.status(400).send({ error: 'Password is required' });
+    }
+    if (input.password.length < MIN_PASSWORD_LENGTH) {
+      return reply.status(400).send({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
     }
 
     const passwordHash = await hashPassword(input.password);
@@ -282,7 +292,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.get('/api/admin/users', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const users = listUsers(db).map((u) => ({
       ...u,
@@ -293,7 +303,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.put('/api/admin/users/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const { id } = request.params as { id: string };
     const existing = getUserById(db, id);
@@ -331,43 +341,61 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
       return reply.status(400).send({ error: 'Invalid max bitrate' });
     }
 
-    if (body.isAdmin !== undefined) {
-      db.prepare('UPDATE users SET is_admin = ? WHERE id = ?').run(body.isAdmin ? 1 : 0, id);
+    if (body.password !== undefined && body.password !== null && body.password.length < MIN_PASSWORD_LENGTH) {
+      return reply.status(400).send({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
     }
 
-    updateUserTranscoding(db, id, {
-      maxBitrateKbps: bitrate === null ? undefined : bitrate,
-      transcodeFormat: format === null ? undefined : format,
-    });
-
-    const hasContentFilterUpdate =
-      body.hideExplicit !== undefined ||
-      body.blurExplicitTitles !== undefined ||
-      body.blurExplicitCovers !== undefined;
-    if (hasContentFilterUpdate) {
-      updateUserContentFilters(db, id, {
-        hideExplicit: body.hideExplicit,
-        blurExplicitTitles: body.blurExplicitTitles,
-        blurExplicitCovers: body.blurExplicitCovers,
-      });
-    }
-
+    // Hash the password before entering the synchronous transaction.
+    const profileInput: Parameters<typeof updateUserAdminFields>[2] = {
+      name: body.name,
+      surname: body.surname,
+      email: body.email,
+    };
     const hasProfileUpdate =
       body.name !== undefined ||
       body.surname !== undefined ||
       body.email !== undefined ||
       body.password !== undefined;
-    if (hasProfileUpdate) {
-      const profileInput: Parameters<typeof updateUserAdminFields>[2] = {
-        name: body.name,
-        surname: body.surname,
-        email: body.email,
-      };
-      if (body.password) {
-        profileInput.passwordHash = await hashPassword(body.password);
-        profileInput.subsonicPasswordEncrypted = encryptSubsonicPassword(body.password, sessionSecret);
+    if (hasProfileUpdate && body.password) {
+      profileInput.passwordHash = await hashPassword(body.password);
+      profileInput.subsonicPasswordEncrypted = encryptSubsonicPassword(body.password, sessionSecret);
+    }
+
+    const applyUpdates = db.transaction(() => {
+      if (body.isAdmin !== undefined) {
+        db.prepare('UPDATE users SET is_admin = ? WHERE id = ?').run(body.isAdmin ? 1 : 0, id);
       }
-      updateUserAdminFields(db, id, profileInput);
+
+      // Only touch transcoding fields when they are present in the request;
+      // otherwise any unrelated edit would reset them to NULL.
+      if (bitrate !== undefined || format !== undefined) {
+        updateUserTranscoding(db, id, {
+          maxBitrateKbps: bitrate === null ? undefined : bitrate,
+          transcodeFormat: format === null ? undefined : format,
+        });
+      }
+
+      const hasContentFilterUpdate =
+        body.hideExplicit !== undefined ||
+        body.blurExplicitTitles !== undefined ||
+        body.blurExplicitCovers !== undefined;
+      if (hasContentFilterUpdate) {
+        updateUserContentFilters(db, id, {
+          hideExplicit: body.hideExplicit,
+          blurExplicitTitles: body.blurExplicitTitles,
+          blurExplicitCovers: body.blurExplicitCovers,
+        });
+      }
+
+      if (hasProfileUpdate) {
+        updateUserAdminFields(db, id, profileInput);
+      }
+    });
+    applyUpdates();
+
+    // A role change must invalidate existing sessions immediately.
+    if (body.isAdmin !== undefined) {
+      deleteSessionsForUser(db, id);
     }
 
     reply.send({ ok: true });
@@ -375,7 +403,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.delete('/api/admin/users/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const { id } = request.params as { id: string };
     const existing = getUserById(db, id);
@@ -400,7 +428,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.get('/api/admin/users/:id/libraries', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const { id } = request.params as { id: string };
     const existing = getUserById(db, id);
@@ -413,7 +441,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.post('/api/admin/users/:id/libraries', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const { id } = request.params as { id: string };
     const existing = getUserById(db, id);
@@ -432,7 +460,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.delete('/api/admin/users/:id/libraries/:libraryId', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const { id, libraryId } = request.params as { id: string; libraryId: string };
     const existing = getUserById(db, id);
@@ -446,7 +474,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.get('/api/admin/status', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const usersCount = (db.prepare('SELECT COUNT(*) AS count FROM users').get() as { count: number }).count;
     const songsCount = (db.prepare('SELECT COUNT(*) AS count FROM songs').get() as { count: number }).count;
@@ -484,7 +512,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.get('/api/admin/ingest-runs/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const { id } = request.params as { id: string };
     const run = db
@@ -542,7 +570,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.get('/api/admin/ingest-runs', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const rows = db
       .prepare(
@@ -571,7 +599,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.delete('/api/admin/ingest-runs/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const { id } = request.params as { id: string };
     const deleteRun = db.transaction(() => {
@@ -588,7 +616,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.delete('/api/admin/ingest-runs', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const clearRuns = db.transaction(() => {
       db.prepare('DELETE FROM ingest_jobs').run();
@@ -600,7 +628,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.get('/api/admin/missing', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     reply.send({
       songs: listInactiveSongs(db),
@@ -611,7 +639,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.delete('/api/admin/missing/songs/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const { id } = request.params as { id: string };
     deleteSongById(db, id);
@@ -620,7 +648,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.delete('/api/admin/missing/albums/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const { id } = request.params as { id: string };
     deleteAlbumById(db, id);
@@ -629,7 +657,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.delete('/api/admin/missing/artists/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const { id } = request.params as { id: string };
     deleteArtistById(db, id);
@@ -638,7 +666,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.delete('/api/admin/missing/songs', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     for (const song of listInactiveSongs(db)) {
       deleteSongById(db, song.id);
@@ -648,7 +676,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.delete('/api/admin/missing/albums', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     for (const album of listInactiveAlbums(db)) {
       deleteAlbumById(db, album.id);
@@ -658,7 +686,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.delete('/api/admin/missing/artists', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     for (const artist of listInactiveArtists(db)) {
       deleteArtistById(db, artist.id);
@@ -668,7 +696,7 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
 
   app.post('/api/admin/artists/refetch', async (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
-    if (!requireAdmin(session, reply)) return;
+    if (!requireAdmin(db, session, reply)) return;
 
     const jobId = pushJob(db, 'artist_images', JSON.stringify({ refetchExisting: true }));
     reply.status(202).send({ ok: true, jobId });

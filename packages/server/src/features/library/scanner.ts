@@ -1,9 +1,9 @@
 import { readdir, stat } from 'node:fs/promises';
-import { join, extname } from 'node:path';
+import { join, extname, sep } from 'node:path';
 import { lookup } from 'mime-types';
 import Database from 'better-sqlite3';
 import type { Config } from '../../config.js';
-import { readTags, computeChecksum, writeCoverArt, type AudioMetadata } from '../tags/index.js';
+import { readMetadata, computeChecksum, writeCoverArt, type AudioMetadata } from '../tags/index.js';
 import {
   upsertSong,
   getSongById,
@@ -67,12 +67,14 @@ export interface ScanStats extends Record<string, number | ScanFailure[]> {
 }
 
 function resolveLibraryId(db: Database.Database, filePath: string): string | undefined {
+  // Match exact path or path prefix with a separator boundary so that
+  // library /music does not claim files under /music2.
   const row = db.prepare(`
     SELECT id FROM libraries
-    WHERE ? LIKE path || '%'
+    WHERE ? = path OR ? LIKE path || '/%'
     ORDER BY length(path) DESC
     LIMIT 1
-  `).get(filePath) as { id: string } | undefined;
+  `).get(filePath, filePath) as { id: string } | undefined;
   return row?.id;
 }
 
@@ -85,7 +87,18 @@ export async function scanLibrary(config: Config, db: Database.Database): Promis
   const libraryPaths = db.prepare('SELECT path FROM libraries').pluck().all() as string[];
   const pathsToScan = libraryPaths.length > 0 ? libraryPaths : [config.LIBRARY_PATH];
 
+  // Probe each library root first; an unreadable root (e.g. an unmounted
+  // drive) must not trigger the deactivation pass for its paths.
+  const failedRoots: string[] = [];
+
   for (const libraryPath of pathsToScan) {
+    try {
+      await readdir(libraryPath);
+    } catch (err) {
+      console.error(`Scanner: library root ${libraryPath} is not readable; skipping it`, err);
+      failedRoots.push(libraryPath);
+      continue;
+    }
     for await (const filePath of walkAudioFiles(libraryPath)) {
     stats.scanned++;
     foundPaths.add(filePath);
@@ -98,7 +111,7 @@ export async function scanLibrary(config: Config, db: Database.Database): Promis
 
       if (unchanged && !needsCover) continue;
 
-      const meta = await readTags(filePath);
+      const meta = await readMetadata(filePath);
 
       if (unchanged && needsCover) {
         // File metadata is unchanged; only reconcile cover art.
@@ -139,13 +152,14 @@ export async function scanLibrary(config: Config, db: Database.Database): Promis
     }
   }
 
-  // Deactivate missing files instead of deleting them
+  // Deactivate missing files instead of deleting them, but never for paths
+  // under a library root we failed to read during this scan.
   const allDbPaths = db.prepare('SELECT file_path FROM songs').pluck().all() as string[];
   for (const dbPath of allDbPaths) {
-    if (!foundPaths.has(dbPath) && !movedFromPaths.has(dbPath)) {
-      deactivateSongByPath(db, dbPath);
-      stats.removed++;
-    }
+    if (foundPaths.has(dbPath) || movedFromPaths.has(dbPath)) continue;
+    if (failedRoots.some((root) => isPathUnderRoot(dbPath, root))) continue;
+    deactivateSongByPath(db, dbPath);
+    stats.removed++;
   }
 
   recomputeAlbumAndArtistActivity(db);
@@ -162,6 +176,9 @@ async function* walkAudioFiles(dir: string): AsyncGenerator<string> {
     return;
   }
   for (const entry of entries) {
+    // Skip dotfiles/dot-directories, including crashed atomicTagRewrite
+    // leftovers such as .sonarly-tmp-* files.
+    if (entry.name.startsWith('.')) continue;
     const fullPath = join(dir, entry.name);
     if (entry.isDirectory()) {
       yield* walkAudioFiles(fullPath);
@@ -169,6 +186,11 @@ async function* walkAudioFiles(dir: string): AsyncGenerator<string> {
       yield fullPath;
     }
   }
+}
+
+function isPathUnderRoot(filePath: string, root: string): boolean {
+  const normalizedRoot = root.endsWith(sep) ? root.slice(0, -sep.length) : root;
+  return filePath === normalizedRoot || filePath.startsWith(normalizedRoot + sep);
 }
 
 function findMovedSong(db: Database.Database, checksum: string, foundPaths: Set<string>): Song | undefined {
@@ -251,6 +273,7 @@ export async function persistSong(
         compilation: meta.compilation,
         totalTracks: meta.totalTracks,
         totalDiscs: meta.totalDiscs,
+        albumType: normalizeAlbumType(meta.albumType),
       })
     : undefined;
   const composerNames = meta.composers;
@@ -594,6 +617,12 @@ interface AlbumMeta {
   compilation?: boolean;
   totalTracks?: string;
   totalDiscs?: string;
+  albumType?: string;
+}
+
+function normalizeAlbumType(value: string | undefined): string | undefined {
+  const trimmed = value?.trim().toLowerCase();
+  return trimmed ? trimmed : undefined;
 }
 
 export function ensureAlbum(
@@ -619,6 +648,11 @@ export function ensureAlbum(
     if (labelIds?.length) {
       setAlbumLabels(db, existing.id, labelIds);
     }
+    // Fill in the release type from tags, but never overwrite a value that
+    // is already set (it may have been edited by the user).
+    if (meta.albumType) {
+      db.prepare('UPDATE albums SET album_type = ? WHERE id = ? AND album_type IS NULL').run(meta.albumType, existing.id);
+    }
     return existing.id;
   }
   const id = randomUUID();
@@ -640,6 +674,7 @@ export function ensureAlbum(
     compilation: meta.compilation,
     totalTracks: meta.totalTracks,
     totalDiscs: meta.totalDiscs,
+    albumType: meta.albumType,
   });
   if (artistIds.length) {
     setAlbumArtists(db, id, artistIds);

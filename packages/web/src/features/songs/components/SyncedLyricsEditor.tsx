@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SyncedLyricLine } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { cn } from '../../../lib/cn.js';
@@ -52,6 +52,14 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load lyrics'))
       .finally(() => setLoading(false));
   }, [songId]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -127,6 +135,12 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
     window.addEventListener('pointerup', handleUp);
   };
 
+  const nudgeLine = (index: number, deltaSeconds: number) => {
+    setLines((prev) =>
+      prev.map((line, i) => (i === index ? { ...line, time: Math.max(0, line.time + deltaSeconds) } : line)),
+    );
+  };
+
   const addLine = () => {
     let time = currentTime;
     while (lines.some((l) => Math.abs(l.time - time) < COLLISION_THRESHOLD)) {
@@ -172,7 +186,12 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
   if (loading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-        <div className="w-full max-w-3xl bg-surface p-6 shadow-lg">Loading…</div>
+        <div
+          role="status"
+          className="w-full max-w-3xl rounded-2xl border border-rule bg-surface p-6 shadow-2xl"
+        >
+          Loading…
+        </div>
       </div>
     );
   }
@@ -182,13 +201,16 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
       ref={containerRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
       onWheel={handleWheel}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="synced-lyrics-title"
     >
       <audio ref={audioRef} preload="metadata" src={`/rest/stream.view?id=${songId}`} className="hidden" />
 
-      <div className="flex h-full max-h-[800px] w-full max-w-3xl flex-col overflow-hidden border border-rule bg-surface shadow-lg">
+      <div className="flex h-full max-h-[800px] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-rule bg-surface shadow-2xl">
         <div className="flex items-center justify-between border-b border-rule px-6 py-4">
           <div>
             <h3 id="synced-lyrics-title" className="text-lg font-semibold">Synced Lyrics Editor</h3>
@@ -209,7 +231,7 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
             <Icon name={isPlaying ? 'mdi-pause' : 'mdi-play'} size={18} />
             {isPlaying ? 'Pause' : 'Play'}
           </Button>
-          <span className="tabular-nums text-sm text-fg-secondary">{formatTime(currentTime)} / {formatTime(effectiveDuration)}</span>
+          <span className="font-mono tabular-nums text-sm text-fg-secondary">{formatTime(currentTime)} / {formatTime(effectiveDuration)}</span>
           <span className="ml-auto text-xs text-fg-secondary">Scroll to seek • Drag handle to retime</span>
         </div>
 
@@ -237,18 +259,28 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
                   <button
                     type="button"
                     onPointerDown={(e) => handleDragStart(index, e)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        nudgeLine(index, -COLLISION_STEP);
+                      } else if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        nudgeLine(index, COLLISION_STEP);
+                      }
+                    }}
                     className={cn(
                       'flex h-5 w-5 shrink-0 cursor-ns-resize items-center justify-center rounded bg-accent text-bg-primary',
                       draggingIndex === index && 'cursor-grabbing'
                     )}
-                    title="Drag to change time"
+                    title="Drag to change time, arrow keys to nudge"
+                    aria-label={`Adjust timestamp for line ${index + 1}`}
                   >
-                    <span className="text-[8px]">⋮⋮</span>
+                    <Icon name="mdi-drag-vertical" size={12} />
                   </button>
                   <div className="h-px w-6 bg-fg-secondary/40" />
                   <div className="max-w-md flex-1 rounded-md border border-rule bg-surface px-3 py-2 shadow-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-fg-secondary tabular-nums">{formatTime(line.time)}</span>
+                      <span className="font-mono text-xs tabular-nums text-fg-secondary">{formatTime(line.time)}</span>
                       <button
                         type="button"
                         onClick={() => removeLine(index)}
@@ -262,7 +294,7 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
                       type="text"
                       value={line.text}
                       onChange={(e) => updateText(index, e.target.value)}
-                      className="mt-1 w-full bg-transparent text-sm outline-none"
+                      className="mt-1 w-full rounded-sm bg-transparent text-sm outline-none focus-visible:ring-2 focus-visible:ring-accent"
                       placeholder="Lyric line"
                     />
                   </div>

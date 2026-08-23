@@ -29,7 +29,9 @@ export function startLibraryWatcher(config: Config, db: Database.Database): Libr
       .on('change', scheduleResync)
       .on('unlink', scheduleResync)
       .on('addDir', scheduleResync)
-      .on('unlinkDir', scheduleResync);
+      .on('unlinkDir', scheduleResync)
+      // An unhandled 'error' event would crash the process.
+      .on('error', (err) => console.error('Library watcher error', err));
   }
 
   function createWatcher(cfg: Config, database: Database.Database) {
@@ -81,6 +83,8 @@ export function startIngestWatcher(config: Config, db: Database.Database): () =>
   };
 
   watcher.on('add', scheduleIngest).on('addDir', scheduleIngest);
+  // An unhandled 'error' event would crash the process.
+  watcher.on('error', (err) => console.error('Ingest watcher error', err));
   return () => {
     if (debounceTimer) {
       clearTimeout(debounceTimer);

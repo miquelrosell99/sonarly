@@ -15,7 +15,7 @@ export function StatisticsPage({ mode, userId, title, subtitle }: StatisticsPage
   const { data, isLoading, error } = useStatistics(mode, userId, range);
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <StatisticsView
         data={data}
         range={range}

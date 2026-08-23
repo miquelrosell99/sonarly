@@ -5,6 +5,7 @@ import type { SongTags } from '@sonarly/shared';
 import { atomicTagRewrite } from './atomic.js';
 
 const SUPPORTED = new Set(['.mp3', '.flac', '.ogg', '.m4a', '.mp4']);
+const MUTAGEN_TIMEOUT_MS = 60_000;
 
 const MUTAGEN_SCRIPT = `
 import sys, json, base64
@@ -168,7 +169,8 @@ def write_cover_art(path, data_b64, format):
         audio = MP3(path)
         if audio.tags is None:
             audio.add_tags()
-        # Replace any existing APIC frames.
+        # Replace any existing APIC frames; assigning alone leaves old frames behind.
+        audio.tags.delall('APIC')
         audio.tags['APIC'] = APIC(encoding=3, mime=format, type=3, desc='Cover', data=data)
         audio.save()
 
@@ -188,19 +190,20 @@ def write_cover_art(path, data_b64, format):
         from mutagen.oggvorbis import OggVorbis
         from mutagen.flac import Picture
         audio = OggVorbis(path)
-        audio['METADATA_BLOCK_PICTURE'] = []
         pic = Picture()
         pic.type = 3
         pic.mime = format
         pic.desc = 'Cover'
         pic.data = data
-        audio['METADATA_BLOCK_PICTURE'] = [pic.write()]
+        # Vorbis comments expect the FLAC picture block base64-encoded.
+        audio['METADATA_BLOCK_PICTURE'] = [base64.b64encode(pic.write()).decode('ascii')]
         audio.save()
 
     elif ext in ('m4a', 'mp4'):
-        from mutagen.mp4 import MP4
+        from mutagen.mp4 import MP4, MP4Cover
         audio = MP4(path)
-        audio['covr'] = [data]
+        imageformat = MP4Cover.FORMAT_PNG if format == 'image/png' else MP4Cover.FORMAT_JPEG
+        audio['covr'] = [MP4Cover(data, imageformat=imageformat)]
         audio.save()
 
     else:
@@ -249,11 +252,26 @@ function runMutagen(path: string, payload: MutagenPayload): Promise<void> {
   return new Promise((resolve, reject) => {
     const proc = spawn('python3', ['-c', MUTAGEN_SCRIPT]);
     let stderr = '';
+    let settled = false;
+    // A hung python3 must not stall the worker forever.
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      proc.kill('SIGKILL');
+      reject(new Error('Mutagen timed out'));
+    }, MUTAGEN_TIMEOUT_MS);
+    const finish = (err?: Error) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (err) reject(err);
+      else resolve();
+    };
     proc.stderr.on('data', (d) => (stderr += d.toString()));
-    proc.on('error', reject);
+    proc.on('error', finish);
     proc.on('close', (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`Mutagen failed (${code}): ${stderr.trim()}`));
+      if (code === 0) finish();
+      else finish(new Error(`Mutagen failed (${code}): ${stderr.trim()}`));
     });
     proc.stdin.write(JSON.stringify({ path, ...payload }));
     proc.stdin.end();

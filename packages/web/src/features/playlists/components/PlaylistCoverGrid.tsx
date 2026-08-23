@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Album } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
+import { withShareToken } from '../../../lib/shareToken.js';
 import { CoverArt } from '../../../components/CoverArt.js';
 import { fillCoverAlbums } from '../../../lib/coverGrid.js';
 
@@ -15,7 +16,7 @@ export function PlaylistCoverGrid({ playlistId }: PlaylistCoverGridProps) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    api<{ albums: Album[] }>(`/playlists/${encodeURIComponent(playlistId)}/albums?limit=4`)
+    api<{ albums: Album[] }>(withShareToken(`/playlists/${encodeURIComponent(playlistId)}/albums?limit=4`))
       .then((res) => {
         if (!cancelled) setAlbums(res.albums ?? []);
       })

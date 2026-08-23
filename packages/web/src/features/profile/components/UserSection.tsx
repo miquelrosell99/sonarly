@@ -1,34 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import type { User } from '@sonarly/shared';
+import { Avatar } from '../../../components/Avatar.js';
 
 interface UserSectionProps {
   user: User;
   onSettings: () => void;
   onAdmin: () => void;
   onLogout: () => void;
-}
-
-function Avatar({ user, className }: { user: User; className?: string }) {
-  const initials = user.name && user.surname
-    ? `${user.name[0]}${user.surname[0]}`.toUpperCase()
-    : user.name
-      ? user.name[0].toUpperCase()
-      : user.username[0].toUpperCase();
-
-  if (user.avatarUrl) {
-    return (
-      <img
-        src={user.avatarUrl}
-        alt=""
-        className={`rounded-full object-cover ${className}`}
-      />
-    );
-  }
-  return (
-    <div className={`flex items-center justify-center rounded-full bg-surface text-xs font-semibold text-muted ${className}`}>
-      {initials}
-    </div>
-  );
 }
 
 export function UserSection({ user, onSettings, onAdmin, onLogout }: UserSectionProps) {
@@ -64,7 +42,7 @@ export function UserSection({ user, onSettings, onAdmin, onLogout }: UserSection
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <Avatar user={user} className="h-8 w-8 shrink-0" />
+        <Avatar user={user} variant="surface" className="h-8 w-8 shrink-0" />
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-fg-primary">{displayName}</p>
           {user.email && <p className="truncate text-xs text-muted">{user.email}</p>}

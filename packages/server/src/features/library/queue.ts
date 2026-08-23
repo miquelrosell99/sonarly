@@ -10,10 +10,41 @@ export interface Job {
 }
 
 export function pushJob(db: Database.Database, type: JobType, payload: string): string {
+  // Coalesce resync jobs: tagging a whole album would otherwise queue one
+  // full library scan per track.
+  if (type === 'resync') {
+    const existing = db.prepare(
+      "SELECT id FROM scan_jobs WHERE type = 'resync' AND status IN ('pending', 'running') LIMIT 1"
+    ).get() as { id: string } | undefined;
+    if (existing) return existing.id;
+  }
   const id = randomUUID();
   db.prepare('INSERT INTO scan_jobs (id, type, status, stats) VALUES (?, ?, ?, ?)')
     .run(id, type, 'pending', JSON.stringify({ path: payload }));
   return id;
+}
+
+const MAX_TERMINAL_JOBS = 50;
+
+export function pruneScanJobs(db: Database.Database, keep: number = MAX_TERMINAL_JOBS): void {
+  db.prepare(`
+    DELETE FROM scan_jobs
+    WHERE status IN ('completed', 'failed')
+      AND rowid NOT IN (
+        SELECT rowid FROM scan_jobs
+        WHERE status IN ('completed', 'failed')
+        ORDER BY rowid DESC
+        LIMIT ?
+      )
+  `).run(keep);
+}
+
+export function failStaleRunningJobs(db: Database.Database): void {
+  db.prepare(`
+    UPDATE scan_jobs
+    SET status = 'failed', finished_at = datetime('now'), error = 'Worker restarted while job was running'
+    WHERE status = 'running'
+  `).run();
 }
 
 export function updateJobStats(db: Database.Database, id: string, stats: Record<string, unknown>): void {

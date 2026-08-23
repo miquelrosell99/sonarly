@@ -18,10 +18,18 @@ export interface Playlist {
   songCount?: number;
   starred?: boolean;
   rating?: number;
+  /** Owner-only: current user shares, included on the detail response. */
+  shares?: PlaylistShareEntry[];
 }
 
 export interface PlaylistShare {
   playlistId: string;
   userId: string;
+  canEdit: boolean;
+}
+
+export interface PlaylistShareEntry {
+  userId: string;
+  username: string;
   canEdit: boolean;
 }

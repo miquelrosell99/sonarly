@@ -3,7 +3,6 @@ import Database from 'better-sqlite3';
 import { Config } from '../../config.js';
 import { getOrganizePattern } from '../settings/index.js';
 import { pushJob } from '../library/queue.js';
-import { organizeExistingLibrary } from '../ingest/index.js';
 
 function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | undefined): boolean {
   if (!session?.isAdmin) {
@@ -49,8 +48,10 @@ export function registerOrganizeManagementRoutes(app: FastifyInstance, config: C
     const session = (request as any).session as { isAdmin?: boolean } | undefined;
     if (!requireAdmin(reply, session)) return;
 
-    const stats = await organizeExistingLibrary(config, db);
-    reply.send({ stats });
+    // Enqueue the organize like /api/organize/job does; running it inline on
+    // the main thread stalls streaming and races the worker.
+    const jobId = pushJob(db, 'organize', '');
+    reply.status(202).send({ jobId });
   });
 
   app.post('/api/organize/job', async (request: FastifyRequest, reply: FastifyReply) => {
