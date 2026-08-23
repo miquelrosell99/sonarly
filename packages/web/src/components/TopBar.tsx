@@ -389,7 +389,7 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
           <Icon name="mdi-menu" size={20} />
         </button>
         <Link
-          href="/"
+          href="/home"
           className="flex items-center gap-2 text-xl font-bold tracking-tight text-fg-primary hover:text-fg-primary"
         >
           <img
