@@ -26,11 +26,19 @@ export function useClickAndHold({
   const timerRef = useRef<number | null>(null);
   const holdTriggeredRef = useRef(false);
   const suppressNextClickRef = useRef(false);
+  const suppressTimerRef = useRef<number | null>(null);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
       window.clearTimeout(timerRef.current);
       timerRef.current = null;
+    }
+  }, []);
+
+  const clearSuppressTimer = useCallback(() => {
+    if (suppressTimerRef.current !== null) {
+      window.clearTimeout(suppressTimerRef.current);
+      suppressTimerRef.current = null;
     }
   }, []);
 
@@ -43,15 +51,18 @@ export function useClickAndHold({
     if (suppressNextClickRef.current) {
       e.preventDefault();
       e.stopPropagation();
+      // The synthetic click consumes the suppression flag.
       suppressNextClickRef.current = false;
+      clearSuppressTimer();
       return;
     }
     onClick();
-  }, [onClick]);
+  }, [onClick, clearSuppressTimer]);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return;
     clearTimer();
+    clearSuppressTimer();
     holdTriggeredRef.current = false;
     suppressNextClickRef.current = false;
     setIsHolding(true);
@@ -60,7 +71,7 @@ export function useClickAndHold({
       setIsHolding(false);
       onHold();
     }, threshold);
-  }, [clearTimer, onHold, threshold]);
+  }, [clearTimer, clearSuppressTimer, onHold, threshold]);
 
   const onPointerUp = useCallback(
     (e: React.PointerEvent) => {
@@ -71,23 +82,28 @@ export function useClickAndHold({
       if (e.currentTarget.contains(target)) {
         // Suppress the synthetic click event that follows pointer-based
         // activation so onClick is not invoked twice for mouse/touch users.
+        // The click wrapper consumes the flag; the timeout is only a
+        // fallback in case the click never arrives.
         suppressNextClickRef.current = true;
-        window.setTimeout(() => {
+        clearSuppressTimer();
+        suppressTimerRef.current = window.setTimeout(() => {
           suppressNextClickRef.current = false;
-        }, 0);
+          suppressTimerRef.current = null;
+        }, 400);
         if (!holdTriggeredRef.current) {
           onClick();
         }
       }
     },
-    [clearTimer, onClick]
+    [clearTimer, clearSuppressTimer, onClick]
   );
 
   useEffect(() => {
     return () => {
       clearTimer();
+      clearSuppressTimer();
     };
-  }, [clearTimer]);
+  }, [clearTimer, clearSuppressTimer]);
 
   return {
     isHolding,

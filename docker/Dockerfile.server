@@ -27,7 +27,7 @@ FROM node:20-alpine AS runner
 # Runtime tooling for the scanner/tag writer and audio transcoding.
 # su-exec is used by the entrypoint to drop privileges after adjusting UID/GID.
 RUN apk add --no-cache python3 py3-pip ffmpeg libstdc++ su-exec \
-  && pip3 install --no-cache-dir mutagen --break-system-packages
+  && pip3 install --no-cache-dir mutagen==1.48.1 --break-system-packages
 
 WORKDIR /app
 ENV NODE_ENV=production

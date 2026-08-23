@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Icon } from '../components/ui/Icon.js';
 
 export type NotificationType = 'success' | 'error' | 'info';
 
@@ -34,36 +35,48 @@ function NotificationItem({
   const cardRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const [exiting, setExiting] = useState(false);
+  const reducedMotion = useRef(
+    typeof window !== 'undefined' &&
+      (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false)
+  );
 
   useEffect(() => {
     const card = cardRef.current;
     const progress = progressRef.current;
     if (!card || !progress) return;
 
-    const enter = card.animate(
-      [
-        { opacity: 0, transform: 'translateX(1rem) scale(0.96)' },
-        { opacity: 1, transform: 'translateX(0) scale(1)' },
-      ],
-      { duration: ENTER_MS, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }
-    );
+    let enter: Animation | undefined;
+    let bar: Animation | undefined;
+    if (!reducedMotion.current) {
+      enter = card.animate(
+        [
+          { opacity: 0, transform: 'translateX(1rem) scale(0.96)' },
+          { opacity: 1, transform: 'translateX(0) scale(1)' },
+        ],
+        { duration: ENTER_MS, easing: 'cubic-bezier(0.16, 1, 0.3, 1)', fill: 'forwards' }
+      );
 
-    const bar = progress.animate(
-      [{ width: '100%' }, { width: '0%' }],
-      { duration: DISMISS_MS, easing: 'linear', fill: 'forwards' }
-    );
+      bar = progress.animate(
+        [{ width: '100%' }, { width: '0%' }],
+        { duration: DISMISS_MS, easing: 'linear', fill: 'forwards' }
+      );
+    }
 
     const timeout = setTimeout(() => setExiting(true), DISMISS_MS);
 
     return () => {
       clearTimeout(timeout);
-      enter.cancel();
-      bar.cancel();
+      enter?.cancel();
+      bar?.cancel();
     };
   }, []);
 
   useEffect(() => {
     if (!exiting) return;
+    if (reducedMotion.current) {
+      onDone();
+      return;
+    }
     const card = cardRef.current;
     if (!card) return;
     const exit = card.animate(
@@ -79,29 +92,37 @@ function NotificationItem({
 
   const bgClass =
     notification.type === 'error'
-      ? 'bg-red-500'
+      ? 'bg-danger'
       : notification.type === 'success'
-        ? 'bg-green-500'
-        : 'bg-gray-500';
+        ? 'bg-success'
+        : 'bg-info';
 
   const cardClass =
     notification.type === 'error'
-      ? 'bg-surface text-red-500 border-red-500/30'
+      ? 'bg-surface text-danger border-danger/30'
       : notification.type === 'success'
-        ? 'bg-surface text-green-500 border-green-500/30'
+        ? 'bg-surface text-success border-success/30'
         : 'bg-surface text-fg-primary border-rule';
+
+  const iconName =
+    notification.type === 'error'
+      ? 'mdi-alert-circle-outline'
+      : notification.type === 'success'
+        ? 'mdi-check-circle-outline'
+        : 'mdi-information-outline';
 
   return (
     <div
       ref={cardRef}
       className={`flex max-w-sm flex-col rounded-md border shadow-lg ${cardClass}`}
       role="alert"
-      style={{ opacity: 0 }}
+      style={reducedMotion.current ? undefined : { opacity: 0 }}
     >
-      <div className="h-1 w-full overflow-hidden rounded-t-md bg-black/10">
+      <div className="h-1 w-full overflow-hidden rounded-t-md bg-rule">
         <div ref={progressRef} className={`h-full w-full ${bgClass}`} />
       </div>
       <div className="flex items-start gap-3 px-4 py-3">
+        <Icon name={iconName} size={20} className="mt-0.5" />
         <span className="flex-1 text-sm">{notification.message}</span>
         <button
           onClick={() => setExiting(true)}

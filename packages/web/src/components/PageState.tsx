@@ -1,4 +1,6 @@
 import { cn } from '../lib/cn.js';
+import { Button } from './ui/Button.js';
+import { Icon } from './ui/Icon.js';
 
 interface PageStateProps {
   loading?: boolean;
@@ -6,6 +8,8 @@ interface PageStateProps {
   isEmpty?: boolean;
   emptyMessage?: string;
   loadingMessage?: string;
+  emptyIcon?: string;
+  onRetry?: () => void;
   className?: string;
   children: React.ReactNode;
 }
@@ -16,15 +20,51 @@ export function PageState({
   isEmpty,
   emptyMessage = 'No items found.',
   loadingMessage = 'Loading...',
+  emptyIcon = 'mdi-information-outline',
+  onRetry,
   className,
   children,
 }: PageStateProps) {
-  if (loading) return <p className={cn('text-sm text-muted', className)}>{loadingMessage}</p>;
+  if (loading) {
+    return (
+      <div
+        role="status"
+        className={cn('flex flex-col items-center justify-center gap-2 py-8 text-sm text-muted', className)}
+      >
+        <Icon name="mdi-loading" size={24} className="animate-spin motion-reduce:animate-none" />
+        <p>{loadingMessage}</p>
+      </div>
+    );
+  }
 
   const errorText = error instanceof Error ? error.message : error;
-  if (errorText) return <p className={cn('text-sm text-danger', className)}>{errorText}</p>;
+  if (errorText) {
+    return (
+      <div
+        role="alert"
+        className={cn('flex flex-col items-center justify-center gap-3 py-8 text-sm text-danger', className)}
+      >
+        <Icon name="mdi-alert-circle-outline" size={24} />
+        <p>{errorText}</p>
+        {onRetry && (
+          <Button variant="ghost" onClick={onRetry}>
+            Try again
+          </Button>
+        )}
+      </div>
+    );
+  }
 
-  if (isEmpty) return <p className={cn('text-sm text-muted', className)}>{emptyMessage}</p>;
+  if (isEmpty) {
+    return (
+      <div
+        className={cn('flex flex-col items-center justify-center gap-2 py-8 text-sm text-muted', className)}
+      >
+        <Icon name={emptyIcon} size={24} className="text-fg-secondary" />
+        <p>{emptyMessage}</p>
+      </div>
+    );
+  }
 
   return <>{children}</>;
 }

@@ -1,13 +1,13 @@
 import { useRef, useCallback, useState } from 'react';
 import { cn } from '../../lib/cn.js';
-import { AutocompleteInput } from './AutocompleteInput.js';
+import { AutocompleteInput, type AutocompleteField } from './AutocompleteInput.js';
 import { Icon } from './Icon.js';
 
 interface PillInputProps {
   id?: string;
   values: string[];
   onChange: (values: string[]) => void;
-  autocomplete?: 'artist' | 'album' | 'albumArtist' | 'genre';
+  autocomplete?: AutocompleteField;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -82,15 +82,13 @@ export function PillInput({
         className,
       )}
       onClick={focusInput}
-      role="listbox"
+      role="group"
       aria-label={placeholder ?? 'Values'}
     >
       {values.map((value, index) => (
         <span
           key={`${value}-${index}`}
           className="inline-flex items-center gap-1 rounded-full bg-surface-hover px-2.5 py-0.5 text-sm text-fg-primary"
-          role="option"
-          aria-selected="true"
         >
           {value}
           {!disabled && (

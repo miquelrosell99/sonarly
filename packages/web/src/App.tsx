@@ -5,7 +5,6 @@ import { Layout } from './components/Layout.js';
 import { Login } from './features/auth/index.js';
 import { Setup } from './features/setup/index.js';
 import { HomePage } from './features/home/index.js';
-import { Songs } from './features/songs/index.js';
 import { Playlists } from './features/playlists/index.js';
 import { PlaylistDetail } from './features/playlists/index.js';
 import { Organize } from './features/organize/index.js';
@@ -29,12 +28,13 @@ import { AlbumArtists } from './features/album-artists/index.js';
 import { Genres, Genre } from './features/genres/index.js';
 import { Years, Year } from './features/years/index.js';
 import { Composers } from './features/composers/index.js';
+import { Composer } from './features/composers/pages/Composer.js';
 import { Labels } from './features/labels/index.js';
-import { AlbumTypes } from './features/album-types/index.js';
+import { Label } from './features/labels/pages/Label.js';
 import { StatisticsPage } from './features/statistics/index.js';
 import { AdminRefreshProvider } from './features/admin/contexts/AdminRefreshContext.js';
 import { useServerEvents } from './hooks/useServerEvents.js';
-import { api } from './api.js';
+import { api } from './lib/api.js';
 
 function Redirect({ to }: { to: string }) {
   const [, setLocation] = useLocation();
@@ -47,6 +47,8 @@ function Redirect({ to }: { to: string }) {
 export default function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [needsSetup, setNeedsSetup] = useState<boolean | undefined>(undefined);
+  const [bootError, setBootError] = useState(false);
+  const [bootAttempt, setBootAttempt] = useState(0);
 
   useServerEvents({ enabled: Boolean(user) });
 
@@ -57,13 +59,36 @@ export default function App() {
   );
 
   useEffect(() => {
+    let cancelled = false;
+    setBootError(false);
     Promise.all([
       api<{ needsSetup: boolean }>('/setup').catch(() => ({ needsSetup: false })),
-      api<{ user: User }>('/me').catch(() => null),
-    ]).then(([setup, me]) => {
-      setNeedsSetup(setup.needsSetup);
-      setUser(me?.user ?? null);
-    });
+      // Use fetch directly so a 401 (logged out) can be told apart from
+      // network/server errors, which should not bounce the user to login.
+      fetch('/api/me', { credentials: 'include' }).then(async (res) => {
+        if (res.status === 401) return null;
+        if (!res.ok) throw new Error(await res.text());
+        const data = (await res.json()) as { user: User };
+        return data.user;
+      }),
+    ])
+      .then(([setup, me]) => {
+        if (cancelled) return;
+        setNeedsSetup(setup.needsSetup);
+        setUser(me);
+      })
+      .catch(() => {
+        if (!cancelled) setBootError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bootAttempt]);
+
+  useEffect(() => {
+    const handler = () => setUser(null);
+    window.addEventListener('sonarly:unauthorized', handler);
+    return () => window.removeEventListener('sonarly:unauthorized', handler);
   }, []);
 
   useEffect(() => {
@@ -74,7 +99,8 @@ export default function App() {
         target instanceof HTMLTextAreaElement ||
         target.isContentEditable ||
         target instanceof HTMLImageElement ||
-        target.getAttribute('role') === 'img'
+        target.getAttribute('role') === 'img' ||
+        target.closest('a') !== null
       ) {
         return;
       }
@@ -104,9 +130,33 @@ export default function App() {
     };
   }, []);
 
+  if (bootError) {
+    return (
+      <div
+        role="alert"
+        className="flex h-screen items-center justify-center bg-bg-primary text-fg-secondary"
+      >
+        <div className="flex flex-col items-center gap-3">
+          <span className="font-display text-xl font-bold text-fg-primary">Sonarly</span>
+          <span className="text-sm">Could not reach the server.</span>
+          <button
+            type="button"
+            onClick={() => setBootAttempt((n) => n + 1)}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-bg-primary transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (user === undefined || needsSetup === undefined) {
     return (
-      <div className="flex h-screen items-center justify-center bg-bg-primary text-fg-secondary">
+      <div
+        role="status"
+        className="flex h-screen items-center justify-center bg-bg-primary text-fg-secondary"
+      >
         <div className="flex items-center gap-3">
           <span className="font-display text-xl font-bold text-fg-primary">Sonarly</span>
           <span className="text-sm">Loading…</span>
@@ -143,13 +193,12 @@ export default function App() {
         <Switch>
           <Route path="/" component={() => <HomePage user={user} />} />
           <Route path="/home" component={() => <HomePage user={user} />} />
-          <Route path="/songs" component={() => <Songs user={user} />} />
           <Route path="/tracks" component={() => <Tracks user={user} />} />
           <Route path="/tracks/:id" component={Track} />
           <Route path="/search" component={() => <SearchResults user={user} />} />
           <Route path="/playlists" component={Playlists} />
           <Route path="/playlists/:id" component={() => <PlaylistDetail user={user} />} />
-          <Route path="/albums" component={Albums} />
+          <Route path="/albums" component={() => <Albums user={user} />} />
           <Route path="/albums/:id" component={() => <Album user={user} />} />
           <Route path="/artists" component={Artists} />
           <Route path="/artists/:id" component={() => <Artist user={user} />} />
@@ -160,8 +209,9 @@ export default function App() {
           <Route path="/years" component={Years} />
           <Route path="/years/:year" component={Year} />
           <Route path="/composers" component={Composers} />
+          <Route path="/composers/:name" component={Composer} />
           <Route path="/labels" component={Labels} />
-          <Route path="/album-types" component={AlbumTypes} />
+          <Route path="/labels/:name" component={Label} />
           <Route path="/organize" component={Organize} />
           <Route path="/admin" component={() => <Redirect to="/admin/status" />} />
           <Route path="/admin/status" component={AdminRoute(AdminStatus)} />

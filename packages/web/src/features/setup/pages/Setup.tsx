@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { User } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 
@@ -52,7 +52,7 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
         </p>
         {error && (
           <div
-            className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-500"
+            className="rounded-md border border-danger/30 bg-danger/10 p-3 text-sm text-danger"
             role="alert"
           >
             {error}
@@ -66,6 +66,7 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
             id="username"
             type="text"
             autoComplete="username"
+            autoFocus
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required

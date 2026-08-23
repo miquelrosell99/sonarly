@@ -171,6 +171,14 @@ Serve a user's avatar image.
 
 ---
 
+#### `GET /api/users/lookup?q=`
+
+Search users by username (case-insensitive substring match) for sharing pickers. Any authenticated user. Returns at most 10 matches, excluding the requesting user. Only `id` and `username` are returned — no emails or other profile fields.
+
+**Response:** `200 OK` `{ "users": [ { "id": "uuid", "username": "string" } ] }`
+
+---
+
 ### Users (admin)
 
 #### `GET /api/admin/users`
@@ -756,10 +764,13 @@ Get a playlist and its entries. Public/shared/link playlists can be accessed by 
     "songCount": 0,
     "entries": [SongEntry],
     "starred": false,
-    "rating?": 5
+    "rating?": 5,
+    "shares?": [ { "userId": "uuid", "username": "string", "canEdit": false } ]
   }
 }
 ```
+
+`shares` is only included for the playlist owner.
 
 ---
 

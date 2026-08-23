@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import type { Song, User } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
@@ -115,7 +115,11 @@ export function Tracks({ user }: TracksProps) {
       key: 'duration',
       header: 'Duration',
       className: 'w-24',
-      render: (track) => (track.duration ? formatDuration(track.duration) : '-'),
+      render: (track) => (
+        <span className="font-mono tabular-nums">
+          {track.duration ? formatDuration(track.duration) : '-'}
+        </span>
+      ),
     },
   ];
 

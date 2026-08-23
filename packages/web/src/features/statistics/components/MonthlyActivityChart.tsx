@@ -115,7 +115,7 @@ function BarStack({
           {data.groups.map((group) => (
             <div
               key={group.key}
-              className="w-full transition-all duration-500 ease-out"
+              className="w-full transition-all duration-500 ease-out motion-reduce:transition-none"
               style={{
                 height: `${data.total > 0 ? (group.plays / data.total) * 100 : 0}%`,
                 backgroundColor: group.color,
@@ -171,6 +171,7 @@ function GroupBySelect({
       value={value}
       onChange={(e) => onChange(e.target.value as MonthlyPlaysGroupBy | 'total')}
       className="rounded-lg border border-rule bg-surface px-2 py-1 text-xs text-fg-primary outline-none focus:border-accent"
+      aria-label="Group by"
     >
       {GROUP_BY_OPTIONS.map((option) => (
         <option key={option.value} value={option.value}>

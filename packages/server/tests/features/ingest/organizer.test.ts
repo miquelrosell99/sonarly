@@ -19,7 +19,7 @@ describe('buildTargetPath', () => {
     expect(path).toBe('/lib/Album Artist/(2024) The Album/0105 - Song Title.mp3');
   });
 
-  it('builds legacy pattern containing {ext}', () => {
+  it('expands unknown tokens like {ext} to an empty string', () => {
     const path = buildTargetPath('{artist}/{album}/{track:00} - {title}{ext}', '/lib', tags, '/tmp/song.mp3');
     expect(path).toBe('/lib/The Artist/The Album/05 - Song Title.mp3');
   });

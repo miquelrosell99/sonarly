@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Album } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { CoverArt } from '../../../components/CoverArt.js';
 import { fillCoverAlbums } from '../../../lib/coverGrid.js';
 

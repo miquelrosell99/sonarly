@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Library, User } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 import { Checkbox } from '../../../components/ui/Checkbox.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
+import { Table, TableColumn } from '../../../components/ui/Table.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { AdminShell } from '../components/AdminShell.js';
 import { useStatistics, StatisticsView } from '../../statistics/index.js';
@@ -256,6 +257,42 @@ export function AdminUsers({ user }: AdminUsersProps) {
   const canDemoteOrDeleteAdmin = useMemo(() => {
     return users.filter((u) => u.isAdmin).length > 1;
   }, [users]);
+
+  const columns: TableColumn<User>[] = [
+    { key: 'username', header: 'Username', render: (u) => u.username },
+    { key: 'name', header: 'Name', render: (u) => [u.name, u.surname].filter(Boolean).join(' ') || '-' },
+    { key: 'role', header: 'Role', render: (u) => formatRole(u.isAdmin) },
+    { key: 'format', header: 'Format', render: (u) => formatLabel(u.transcodeFormat) },
+    {
+      key: 'bitrate',
+      header: 'Max bitrate',
+      render: (u) => (u.maxBitrateKbps ? `${u.maxBitrateKbps} kbps` : 'Unlimited'),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (u) => {
+        const isSelf = u.id === user.id;
+        return (
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => setStatsUser(u)}>
+              Stats
+            </Button>
+            <Button variant="ghost" onClick={() => startEdit(u)}>
+              Edit
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => promptDelete(u.id)}
+              disabled={deletingId === u.id || isSelf || (u.isAdmin && !canDemoteOrDeleteAdmin)}
+            >
+              Delete
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
 
   const createFooter = (
     <div className="flex justify-end gap-2">
@@ -516,50 +553,8 @@ export function AdminUsers({ user }: AdminUsersProps) {
           />
         </Modal>
 
-        <div className="overflow-x-auto rounded-md border border-rule">
-          <table className="w-full text-sm">
-            <thead className="bg-surface">
-              <tr>
-                <th className="px-4 py-2 text-left font-medium text-fg-primary">Username</th>
-                <th className="px-4 py-2 text-left font-medium text-fg-primary">Name</th>
-                <th className="px-4 py-2 text-left font-medium text-fg-primary">Role</th>
-                <th className="px-4 py-2 text-left font-medium text-fg-primary">Format</th>
-                <th className="px-4 py-2 text-left font-medium text-fg-primary">Max bitrate</th>
-                <th className="px-4 py-2 text-left font-medium text-fg-primary">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => {
-                const isSelf = u.id === user.id;
-                return (
-                  <tr key={u.id} className="border-t border-rule">
-                    <td className="px-4 py-2">{u.username}</td>
-                    <td className="px-4 py-2">{[u.name, u.surname].filter(Boolean).join(' ') || '-'}</td>
-                    <td className="px-4 py-2">{formatRole(u.isAdmin)}</td>
-                    <td className="px-4 py-2">{formatLabel(u.transcodeFormat)}</td>
-                    <td className="px-4 py-2">{u.maxBitrateKbps ? `${u.maxBitrateKbps} kbps` : 'Unlimited'}</td>
-                    <td className="px-4 py-2">
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" onClick={() => setStatsUser(u)}>
-                          Stats
-                        </Button>
-                        <Button variant="ghost" onClick={() => startEdit(u)}>
-                          Edit
-                        </Button>
-                        <Button
-                          variant="danger"
-                          onClick={() => promptDelete(u.id)}
-                          disabled={deletingId === u.id || isSelf || (u.isAdmin && !canDemoteOrDeleteAdmin)}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="rounded-md border border-rule">
+          <Table columns={columns} rows={users} rowKey={(u) => u.id} empty="No users found." />
         </div>
       </div>
 

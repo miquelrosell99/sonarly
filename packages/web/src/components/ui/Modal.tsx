@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/cn.js';
 import { Icon } from './Icon.js';
@@ -12,12 +12,55 @@ export interface ModalProps {
   className?: string;
 }
 
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export function Modal({ open, onClose, title, children, footer, className }: ModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    restoreFocusRef.current = document.activeElement as HTMLElement | null;
+
+    const dialog = dialogRef.current;
+    if (dialog) {
+      const firstFocusable = dialog.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+      (firstFocusable ?? dialog).focus();
+    }
+
+    return () => {
+      restoreFocusRef.current?.focus?.();
+      restoreFocusRef.current = null;
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const currentDialog = dialogRef.current;
+      if (!currentDialog) return;
+      const focusable = Array.from(currentDialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      if (focusable.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first || !currentDialog.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !currentDialog.contains(active)) {
+        e.preventDefault();
+        first.focus();
       }
     };
     document.addEventListener('keydown', onKeyDown);
@@ -37,8 +80,10 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
       }}
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         className={cn(
-          'flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-rule bg-surface shadow-2xl',
+          'flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-rule bg-surface shadow-2xl outline-none',
           className,
         )}
       >

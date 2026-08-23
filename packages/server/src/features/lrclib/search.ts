@@ -108,7 +108,20 @@ function buildSearchUrl(query: {
   params.set('track_name', query.title);
   if (query.artist) params.set('artist_name', query.artist);
   if (query.album) params.set('album_name', query.album);
+  if (query.duration) params.set('duration', String(Math.round(query.duration)));
   return `${LRCLIB_BASE_URL}/search?${params.toString()}`;
+}
+
+const RETRY_DELAY_MS = 1_000;
+
+async function fetchWithRetry(url: string): Promise<Response> {
+  let response = await fetchWithTimeout(url);
+  // Retry once with backoff on rate limiting / transient unavailability.
+  if (response.status === 429 || response.status === 503) {
+    await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    response = await fetchWithTimeout(url);
+  }
+  return response;
 }
 
 export async function searchLrcLib(query: {
@@ -118,7 +131,7 @@ export async function searchLrcLib(query: {
   duration?: number;
 }): Promise<LrcLibMatch[]> {
   const url = buildSearchUrl(query);
-  const response = await fetchWithTimeout(url);
+  const response = await fetchWithRetry(url);
   if (!response.ok) {
     throw new Error(`LRCLIB search returned ${response.status}`);
   }

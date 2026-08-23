@@ -32,7 +32,7 @@ export function MetadataBreadcrumb({ items, className }: MetadataBreadcrumbProps
         return (
           <span key={`${item.label}-${index}`}>
             {content}
-            {!isLast && <span className="mx-1">•</span>}
+            {!isLast && <span aria-hidden="true" className="mx-1">•</span>}
           </span>
         );
       })}

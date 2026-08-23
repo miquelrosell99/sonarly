@@ -6,7 +6,7 @@ import type { User } from '@sonarly/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockApi = vi.fn();
-vi.mock('../../../api.js', () => ({
+vi.mock('../../../lib/api.js', () => ({
   api: (...args: any[]) => mockApi(...args),
 }));
 

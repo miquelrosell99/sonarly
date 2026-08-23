@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'wouter';
 import type { Song, Album } from '@sonarly/shared';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { PlayButton } from '../../../components/PlayButton.js';
@@ -48,7 +48,7 @@ export function Year() {
   const title = Number.isNaN(year) ? undefined : String(year);
   const actions = tracks.length > 0 && (
     <>
-      <PlayButton variant="default" onPlay={() => playSongs(tracks as Song[])} onShufflePlay={() => shufflePlay(tracks as Song[])}>
+      <PlayButton variant="default" onPlay={() => playSongs(tracks as Song[])}>
         Play all
       </PlayButton>
       <Button variant="ghost" onClick={() => shufflePlay(tracks as Song[])}>

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UserPreferences } from '@sonarly/shared';
-import { api } from '../api.js';
+import { api } from '../lib/api.js';
 
 export function usePreferences() {
   return useQuery<{ preferences: UserPreferences }, Error, UserPreferences>({

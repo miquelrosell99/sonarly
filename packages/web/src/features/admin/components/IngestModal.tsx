@@ -1,5 +1,5 @@
 import { useEffect, useState, cloneElement, type ReactElement } from 'react';
-import { api } from '../../../api.js';
+import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { Table } from '../../../components/ui/Table.js';
@@ -128,24 +128,24 @@ export function IngestModal({ open, onClose, onSelectRun }: IngestModalProps) {
                     key: 'started',
                     header: 'Started',
                     className: 'w-48',
-                    render: (r) => formatDateTime(r.startedAt),
+                    render: (r) => <span className="font-mono">{formatDateTime(r.startedAt)}</span>,
                   },
                   {
                     key: 'finished',
                     header: 'Finished',
                     className: 'w-48',
-                    render: (r) => formatDateTime(r.finishedAt),
+                    render: (r) => <span className="font-mono">{formatDateTime(r.finishedAt)}</span>,
                   },
                   {
                     key: 'duration',
                     header: 'Duration',
                     className: 'w-28',
-                    render: (r) => formatDuration(r.startedAt, r.finishedAt),
+                    render: (r) => <span className="font-mono">{formatDuration(r.startedAt, r.finishedAt)}</span>,
                   },
                   {
                     key: 'summary',
                     header: 'Summary',
-                    render: (r) => <span className="text-muted">{formatRunStats(r.stats)}</span>,
+                    render: (r) => <span className="font-mono text-muted">{formatRunStats(r.stats)}</span>,
                   },
                   {
                     key: 'actions',
@@ -158,7 +158,7 @@ export function IngestModal({ open, onClose, onSelectRun }: IngestModalProps) {
                           e.stopPropagation();
                           setRunToDelete(r.id);
                         }}
-                        className="rounded p-1 text-fg-secondary transition-colors hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+                        className="rounded p-3 text-fg-secondary transition-colors hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
                         aria-label="Delete ingest run"
                         title="Delete"
                       >
@@ -173,7 +173,14 @@ export function IngestModal({ open, onClose, onSelectRun }: IngestModalProps) {
                 renderRow={(run, element) =>
                   cloneElement(element as ReactElement, {
                     onClick: () => onSelectRun?.(run.id),
-                    className: `${(element as ReactElement<{ className?: string }>).props.className ?? ''} cursor-pointer hover:bg-surface-hover`,
+                    tabIndex: 0,
+                    onKeyDown: (e: React.KeyboardEvent) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onSelectRun?.(run.id);
+                      }
+                    },
+                    className: `${(element as ReactElement<{ className?: string }>).props.className ?? ''} cursor-pointer hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent`,
                   })
                 }
               />

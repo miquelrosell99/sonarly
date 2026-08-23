@@ -20,6 +20,8 @@ export function ScrollRow({ title, children }: ScrollRowProps) {
 
   useEffect(() => {
     updateScrollState();
+    window.addEventListener('resize', updateScrollState);
+    return () => window.removeEventListener('resize', updateScrollState);
   }, [children]);
 
   const scroll = (direction: 'left' | 'right') => {
@@ -39,7 +41,7 @@ export function ScrollRow({ title, children }: ScrollRowProps) {
             onClick={() => scroll('left')}
             disabled={!canScrollLeft}
             aria-label={`Scroll ${title} left`}
-            className="rounded-full p-1 text-fg-secondary transition hover:bg-surface hover:text-fg-primary disabled:cursor-not-allowed disabled:opacity-30"
+            className="-my-1.5 flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-30"
           >
             <Icon name="mdi-chevron-left" size={24} />
           </button>
@@ -48,7 +50,7 @@ export function ScrollRow({ title, children }: ScrollRowProps) {
             onClick={() => scroll('right')}
             disabled={!canScrollRight}
             aria-label={`Scroll ${title} right`}
-            className="rounded-full p-1 text-fg-secondary transition hover:bg-surface hover:text-fg-primary disabled:cursor-not-allowed disabled:opacity-30"
+            className="-my-1.5 flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-30"
           >
             <Icon name="mdi-chevron-right" size={24} />
           </button>

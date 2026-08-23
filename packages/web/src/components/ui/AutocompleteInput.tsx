@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState, useCallback, forwardRef } from 'react';
-import { api } from '../../api.js';
+import { useEffect, useRef, useState, useCallback, useId, forwardRef } from 'react';
+import { api } from '../../lib/api.js';
 import { cn } from '../../lib/cn.js';
+import { Icon } from './Icon.js';
+
+export type AutocompleteField = 'artist' | 'album' | 'albumArtist' | 'genre' | 'albumType';
 
 interface AutocompleteInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  field: 'artist' | 'album' | 'genre' | 'albumArtist';
+  field: AutocompleteField;
   delay?: number;
   defaultLimit?: number;
   onValueSelect?: (value: string) => void;
@@ -32,6 +35,7 @@ export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputP
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ignoreBlurRef = useRef(false);
   const initialFetchRef = useRef(false);
+  const listboxId = useId();
 
   useEffect(() => {
     setQuery(String(value ?? ''));
@@ -127,6 +131,13 @@ export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputP
         {...props}
         ref={ref}
         type="text"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={open}
+        aria-controls={listboxId}
+        aria-activedescendant={
+          open && options.length > 0 ? `${listboxId}-option-${highlighted}` : undefined
+        }
         value={query}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
@@ -140,6 +151,8 @@ export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputP
       />
       {open && (
         <ul
+          id={listboxId}
+          role="listbox"
           className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-rule bg-surface shadow-lg"
           onMouseDown={() => {
             ignoreBlurRef.current = true;
@@ -156,6 +169,9 @@ export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputP
             return (
               <li
                 key={option}
+                id={`${listboxId}-option-${i}`}
+                role="option"
+                aria-selected={i === highlighted}
                 onClick={() => selectOption(option)}
                 className={cn(
                   'cursor-pointer px-3 py-2 text-sm hover:bg-surface-hover',
@@ -163,14 +179,16 @@ export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputP
                   isCreateOption && 'font-medium text-accent',
                 )}
               >
-                {isCreateOption ? option : option}
+                {option}
               </li>
             );
           })}
         </ul>
       )}
       {loading && (
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted">...</span>
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted">
+          <Icon name="mdi-loading" size={16} className="animate-spin motion-reduce:animate-none" />
+        </span>
       )}
     </div>
   );

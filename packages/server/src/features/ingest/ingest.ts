@@ -128,7 +128,7 @@ export async function processIngestFolder(
   return stats;
 }
 
-async function* walkIngestFiles(dir: string): AsyncGenerator<string> {
+async function* walkIngestFiles(dir: string, root: string = dir): AsyncGenerator<string> {
   let entries;
   try {
     entries = await readdir(dir, { withFileTypes: true });
@@ -136,10 +136,12 @@ async function* walkIngestFiles(dir: string): AsyncGenerator<string> {
     return;
   }
   for (const entry of entries) {
-    if (entry.name === 'review') continue;
     const fullPath = join(dir, entry.name);
     if (entry.isDirectory()) {
-      yield* walkIngestFiles(fullPath);
+      // Only skip the top-level review directory; a 'review' folder nested
+      // deeper is legitimate user content.
+      if (dir === root && entry.name === 'review') continue;
+      yield* walkIngestFiles(fullPath, root);
     } else if (AUDIO_EXTS.has(extname(entry.name).toLowerCase())) {
       yield fullPath;
     }

@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { DuplicateStrategy } from '@sonarly/shared';
-import { api } from '../api.js';
+import { api } from '../lib/api.js';
 
 const CHUNK_SIZE = 5 * 1024 * 1024;
 
@@ -67,7 +67,6 @@ export function useUpload(): UseUploadReturn {
     currentFile: '',
     currentFileProgress: 0,
   });
-  const abortRef = useRef(false);
 
   const uploadFiles = useCallback(async (
     files: UploadFile[],
@@ -82,7 +81,6 @@ export function useUpload(): UseUploadReturn {
       currentFile: '',
       currentFileProgress: 0,
     });
-    abortRef.current = false;
 
     try {
       const body: { libraryId: string; duplicateStrategy?: DuplicateStrategy } = { libraryId };
@@ -95,8 +93,6 @@ export function useUpload(): UseUploadReturn {
       });
 
       for (let i = 0; i < files.length; i++) {
-        if (abortRef.current) throw new Error('Upload cancelled');
-
         const { file, relativePath } = files[i];
         const fileId = generateFileId();
         const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
@@ -108,8 +104,6 @@ export function useUpload(): UseUploadReturn {
         }));
 
         for (let index = 0; index < totalChunks; index++) {
-          if (abortRef.current) throw new Error('Upload cancelled');
-
           const start = index * CHUNK_SIZE;
           const end = Math.min(file.size, start + CHUNK_SIZE);
           const chunk = file.slice(start, end);
@@ -144,8 +138,4 @@ export function useUpload(): UseUploadReturn {
   }, []);
 
   return { progress, isUploading, error, uploadFiles };
-}
-
-export function abortUpload(): void {
-  // Reserved for future use; current implementation does not expose abort from hook result.
 }

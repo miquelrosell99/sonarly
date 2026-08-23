@@ -101,7 +101,7 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
       key: 'duration',
       header: '',
       className: 'w-16 text-right',
-      render: (item) => <span className="tabular-nums text-fg-secondary">{formatTime(item.song.duration ?? 0)}</span>,
+      render: (item) => <span className="font-mono text-fg-secondary">{formatTime(item.song.duration ?? 0)}</span>,
     },
   ];
 
@@ -167,11 +167,16 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
         const nextPosition = position + 1;
         if (nextPosition < store.shuffledIndices.length) {
           nextIndex = store.shuffledIndices[nextPosition];
+        } else if (position > 0) {
+          // No next item in the shuffled order; fall back to the previous one.
+          nextIndex = store.shuffledIndices[position - 1];
         }
       } else {
         nextIndex = index + 1;
         if (nextIndex >= store.queue.length) {
-          nextIndex = null;
+          // Removing the last item: fall back to the previous one instead of
+          // nulling the current song while tracks remain.
+          nextIndex = index > 0 ? index - 1 : null;
         }
       }
 

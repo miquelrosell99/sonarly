@@ -148,6 +148,23 @@ describe('OpenSubsonic starring and interaction endpoints', () => {
     expect(body['subsonic-response'].error.code).toBe(10);
   });
 
+  it('rejects a rating for an unknown song', async () => {
+    const res = await app.inject({ method: 'GET', url: query('/rest/setRating.view?id=no-such-song&rating=4', 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(70);
+    expect(getUserSong('no-such-song')).toBeUndefined();
+  });
+
+  it('rejects a missing id parameter', async () => {
+    const res = await app.inject({ method: 'GET', url: query('/rest/setRating.view?rating=4', 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(10);
+  });
+
   it('scrobbles a single song and increments play count', async () => {
     const res = await app.inject({ method: 'GET', url: query('/rest/scrobble.view?id=song-1', 'json') });
     expect(res.statusCode).toBe(200);
