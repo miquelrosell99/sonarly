@@ -110,6 +110,27 @@ describe('useSongContextMenu', () => {
     expect(onEdit).toHaveBeenCalledTimes(1);
   });
 
+  it('shows Go to album and Go to artist when the song has ids and navigates', () => {
+    const linkedSong: Song = { ...song, albumId: 'album-1', artistId: 'artist-1' };
+    const Harness = createHarness(linkedSong, vi.fn());
+    render(React.createElement(Harness));
+
+    fireEvent.click(screen.getByTestId('go-to-album'));
+    expect(window.location.pathname).toBe('/albums/album-1');
+
+    fireEvent.click(screen.getByTestId('go-to-artist'));
+    expect(window.location.pathname).toBe('/artists/artist-1');
+    window.history.pushState({}, '', '/');
+  });
+
+  it('omits navigation items when the song has no albumId or artistId', () => {
+    const Harness = createHarness(song, vi.fn());
+    render(React.createElement(Harness));
+
+    expect(screen.queryByTestId('go-to-album')).toBeNull();
+    expect(screen.queryByTestId('go-to-artist')).toBeNull();
+  });
+
   it('hides Edit item for non-admin users', () => {
     const Harness = createHarness(song, vi.fn(), false);
     render(React.createElement(Harness));

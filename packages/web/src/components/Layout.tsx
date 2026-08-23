@@ -99,6 +99,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
         <Sidebar
           config={preferences?.sidebarConfig}
           playlists={playlists}
+          user={user}
           mobileOpen={mobileNavOpen}
           onMobileClose={closeMobileNav}
         />
