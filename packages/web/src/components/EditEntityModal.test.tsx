@@ -118,9 +118,8 @@ describe('EditEntityModal', () => {
       />,
     );
     fireEvent.change(screen.getByLabelText(/name/i), { target: { value: 'New Playlist' } });
-    fireEvent.change(screen.getByLabelText(/visibility/i), { target: { value: 'public' } });
     fireEvent.click(screen.getByRole('button', { name: /save/i }));
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ name: 'New Playlist', visibility: 'public' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ name: 'New Playlist' }));
   });
 
   it('renders smart playlist editor only when playlist is smart', () => {

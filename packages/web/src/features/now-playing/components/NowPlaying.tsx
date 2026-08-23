@@ -61,7 +61,10 @@ function TabButton({
       tabIndex={active ? 0 : -1}
       className={cn(
         'inline-flex min-h-11 items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition',
-        active ? 'bg-accent text-bg-primary' : 'text-fg-secondary hover:bg-surface-hover'
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        active
+          ? 'bg-accent text-bg-primary shadow-sm'
+          : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary'
       )}
     >
       <Icon name={icon} size={16} />
@@ -208,22 +211,26 @@ export function NowPlaying({ user }: NowPlayingProps) {
         <Icon name="mdi-chevron-down" size={24} />
       </button>
 
-      {/* Content */}
+      {/* Content: stacked and scrollable on narrow screens, two-column hero on wide */}
       <div
         className={cn(
-          'relative z-0 mx-auto flex h-full min-h-0 w-full max-w-7xl items-center p-6 md:p-12',
+          'relative z-0 h-full min-h-0 w-full overflow-y-auto',
           closing ? 'now-playing-content-exit' : 'now-playing-content'
         )}
       >
-        <div className="grid h-full min-h-0 w-full grid-cols-1 gap-8 md:grid-cols-[1fr_1.2fr] md:gap-12">
+        <div className="mx-auto grid w-full max-w-xl grid-cols-1 gap-6 px-4 pb-8 pt-20 sm:gap-8 sm:px-6 md:h-full md:min-h-0 md:max-w-7xl md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] md:items-center md:gap-12 md:p-12">
           {/* Left: cover + metadata */}
-          <div className="flex flex-col items-center justify-center gap-6 text-center">
+          <div className="flex min-w-0 flex-col items-center gap-5 text-center md:justify-center md:gap-6">
             <NowPlayingCover
               coverArt={currentSong.albumCoverArt ?? currentSong.coverArt}
               alt={`Cover art for ${currentSong.title}`}
+              className="max-w-[min(62vw,240px)] sm:max-w-[300px] md:max-w-[min(420px,44vh)]"
             />
-            <div className="space-y-1">
-              <h2 className="font-display text-2xl font-bold text-fg-primary">
+            <div className="w-full min-w-0 space-y-1.5">
+              <h2
+                className="line-clamp-2 break-words font-display text-2xl font-bold leading-tight text-fg-primary sm:text-3xl"
+                title={currentSong.title}
+              >
                 <ExplicitTitle
                   explicit={currentSong.explicit}
                   blur={user.blurExplicitTitles === true}
@@ -237,12 +244,12 @@ export function NowPlaying({ user }: NowPlayingProps) {
                   </Link>
                 </ExplicitTitle>
               </h2>
-              <p className="text-lg text-fg-secondary">
+              <p className="truncate text-lg text-fg-secondary" title={currentSong.artistName || 'Unknown artist'}>
                 {currentSong.artistId ? (
                   <Link
                     href={`/artists/${currentSong.artistId}`}
                     onClick={() => close()}
-                    className="transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    className="transition hover:text-fg-primary hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                   >
                     {currentSong.artistName || 'Unknown artist'}
                   </Link>
@@ -251,7 +258,10 @@ export function NowPlaying({ user }: NowPlayingProps) {
                 )}
               </p>
               {(currentSong.albumName || currentSong.year) && (
-                <p className="text-sm text-fg-secondary/70">
+                <p
+                  className="truncate text-sm text-fg-secondary/70"
+                  title={[currentSong.albumName, currentSong.year].filter(Boolean).join(' · ')}
+                >
                   {currentSong.albumId && currentSong.albumName ? (
                     <Link
                       href={`/albums/${currentSong.albumId}`}
@@ -290,10 +300,10 @@ export function NowPlaying({ user }: NowPlayingProps) {
           </div>
 
           {/* Right: card with tabs */}
-          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-rule/50 bg-surface/80 backdrop-blur-xl">
-            <div className="flex items-center justify-between border-b border-rule/50 px-4 py-3">
+          <div className="flex h-[58vh] min-h-[320px] min-w-0 flex-col overflow-hidden rounded-2xl border border-rule/50 bg-surface/80 backdrop-blur-xl md:h-full md:min-h-0">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rule/50 px-3 py-2.5 sm:px-4">
               <div
-                className="flex items-center gap-2"
+                className="flex items-center gap-1 rounded-full border border-rule/50 bg-bg-primary/60 p-1"
                 role="tablist"
                 aria-label="Now playing panels"
                 onKeyDown={handleTabListKeyDown}

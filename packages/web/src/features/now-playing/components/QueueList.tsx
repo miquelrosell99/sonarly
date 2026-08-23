@@ -4,6 +4,7 @@ import type { User } from '@sonarly/shared';
 import { LibraryView, type LibraryViewColumn } from '../../../components/LibraryView.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
+import { cn } from '../../../lib/cn.js';
 import { usePlayer, type PlayerSong } from '../../../stores/playerStore.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 
@@ -81,8 +82,13 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
       key: 'title',
       header: 'Title',
       render: (item) => (
-        <span className="flex items-center gap-2">
-          <span className="truncate">{item.song.title}</span>
+        <span className="flex min-w-0 items-center gap-2">
+          <span
+            className={cn('truncate', item.status === 'current' && 'font-medium text-accent')}
+            title={item.song.title}
+          >
+            {item.song.title}
+          </span>
           {item.song.addedByAutoDj && (
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent/70">
               <Icon name="mdi-robot" size={12} />
@@ -101,7 +107,7 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
       key: 'duration',
       header: '',
       className: 'w-16 text-right',
-      render: (item) => <span className="font-mono text-fg-secondary">{formatTime(item.song.duration ?? 0)}</span>,
+      render: (item) => <span className="font-mono tabular-nums text-fg-secondary">{formatTime(item.song.duration ?? 0)}</span>,
     },
   ];
 

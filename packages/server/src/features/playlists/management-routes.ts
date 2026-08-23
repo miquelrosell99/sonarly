@@ -30,7 +30,10 @@ function canViewPlaylist(
 ): boolean {
   if (userId && playlist.ownerId === userId) return true;
   if (playlist.visibility === 'public') return true;
-  if (playlist.visibility === 'link' && shareToken && shareToken === playlist.shareToken) return true;
+  // A set share token always authorizes anonymous token viewers, independent
+  // of the visibility value — a playlist can be public AND have a link, or
+  // have a link without being public.
+  if (playlist.shareToken && shareToken && shareToken === playlist.shareToken) return true;
   if (!userId) return false;
   const share = db.prepare('SELECT 1 FROM playlist_shares WHERE playlist_id = ? AND user_id = ?')
     .get(playlist.id, userId) as { 1: number } | undefined;
@@ -285,6 +288,18 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       isSmart = false;
       rules = undefined;
       songIds = resolvePlaylistSongIds(db, existing, userId);
+    } else if (!existing.isSmart && body.isSmart === true) {
+      if (body.rules === undefined) {
+        return reply.status(400).send({ error: 'Rules are required when converting to a smart playlist' });
+      }
+      try {
+        rules = serializeRules(body.rules);
+      } catch {
+        return reply.status(400).send({ error: 'Invalid rules' });
+      }
+      // Converting to smart drops the manually curated members.
+      isSmart = true;
+      songIds = [];
     } else {
       if (existing.isSmart && body.songIds !== undefined) {
         return reply.status(400).send({ error: 'Cannot manually edit songs of a smart playlist' });
@@ -302,11 +317,11 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
     }
 
     const visibility = isVisibility(body.visibility) ? body.visibility : existing.visibility;
+    // The share token lifecycle is managed via the share-link endpoints, not
+    // visibility changes; only auto-generate for an explicit 'link' request.
     let shareToken = existing.shareToken;
     if (visibility === 'link' && !shareToken) {
       shareToken = generateShareToken();
-    } else if (visibility !== 'link') {
-      shareToken = undefined;
     }
 
     const updated: Playlist = {
@@ -347,6 +362,31 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
     if (!target) return reply.status(400).send({ error: 'User not found' });
 
     sharePlaylistWithUser(db, id, targetUserId, Boolean(canEdit));
+    reply.send({ ok: true });
+  });
+
+  app.post('/api/playlists/:id/share-link', async (request: FastifyRequest, reply: FastifyReply) => {
+    const userId = (request as any).session.userId as string;
+    const { id } = request.params as { id: string };
+    const existing = getPlaylistById(db, id);
+    if (!existing) return reply.status(404).send({ error: 'Playlist not found' });
+    if (existing.ownerId !== userId) return reply.status(403).send({ error: 'Forbidden' });
+
+    // Always mint a fresh token: this doubles as "regenerate", invalidating
+    // any previously shared link.
+    const shareToken = generateShareToken();
+    db.prepare('UPDATE playlists SET share_token = ? WHERE id = ?').run(shareToken, id);
+    reply.send({ shareToken });
+  });
+
+  app.delete('/api/playlists/:id/share-link', async (request: FastifyRequest, reply: FastifyReply) => {
+    const userId = (request as any).session.userId as string;
+    const { id } = request.params as { id: string };
+    const existing = getPlaylistById(db, id);
+    if (!existing) return reply.status(404).send({ error: 'Playlist not found' });
+    if (existing.ownerId !== userId) return reply.status(403).send({ error: 'Forbidden' });
+
+    db.prepare('UPDATE playlists SET share_token = NULL WHERE id = ?').run(id);
     reply.send({ ok: true });
   });
 

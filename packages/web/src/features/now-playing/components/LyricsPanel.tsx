@@ -162,11 +162,14 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
 
   if (!hasLyrics) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 text-fg-secondary">
+      <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-fg-secondary">
         <Icon name="mdi-text" size={48} />
         <p className="text-sm">No lyrics for this track.</p>
+        <p className="max-w-xs text-xs text-fg-secondary/70">
+          Once added, synced lyrics highlight in time with the music.
+        </p>
         {user.isAdmin && (
-          <div className="flex gap-3">
+          <div className="flex flex-wrap justify-center gap-3">
             <button type="button" onClick={() => setEditorOpen(true)} className="text-sm text-accent hover:underline">
               Add lyrics
             </button>
@@ -225,15 +228,16 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 rounded-full border border-rule/50 p-1">
           <button
             type="button"
             onClick={() => setMode('dynamic')}
             aria-label="Dynamic lyrics"
             aria-pressed={mode === 'dynamic'}
             className={cn(
-              'inline-flex h-11 items-center gap-1 rounded-full px-3 text-xs font-medium transition',
-              mode === 'dynamic' ? 'bg-accent text-bg-primary' : 'text-fg-secondary hover:bg-surface-hover'
+              'inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-xs font-medium transition',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              mode === 'dynamic' ? 'bg-accent text-bg-primary' : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary'
             )}
           >
             <Icon name="mdi-sync" size={14} />
@@ -245,8 +249,9 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
             aria-label="Static lyrics"
             aria-pressed={mode === 'static'}
             className={cn(
-              'inline-flex h-11 items-center gap-1 rounded-full px-3 text-xs font-medium transition',
-              mode === 'static' ? 'bg-accent text-bg-primary' : 'text-fg-secondary hover:bg-surface-hover'
+              'inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-xs font-medium transition',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              mode === 'static' ? 'bg-accent text-bg-primary' : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary'
             )}
           >
             <Icon name="mdi-text" size={14} />
@@ -260,16 +265,26 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
           <div className="space-y-4 py-8">
             {syncedLyrics.map((line, index) => {
               const isActive = index === activeIndex;
+              const distance = activeIndex < 0 ? 0 : Math.abs(index - activeIndex);
               return (
                 <button
                   key={index}
                   ref={(el) => { lineRefs.current[index] = el; }}
                   type="button"
                   onClick={() => seek(line.time)}
+                  title="Seek to this line"
                   className={cn(
-                    'block w-full break-words text-center text-lg transition duration-300',
+                    'mx-auto block w-full max-w-prose break-words px-2 text-center text-lg leading-relaxed transition duration-300',
                     'cursor-pointer hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary',
-                    isActive ? 'scale-105 font-semibold text-accent' : 'text-fg-secondary/60'
+                    isActive
+                      ? 'scale-105 font-semibold text-accent'
+                      : activeIndex < 0
+                        ? 'text-fg-secondary'
+                        : distance === 1
+                          ? 'text-fg-secondary/80'
+                          : distance === 2
+                            ? 'text-fg-secondary/60'
+                            : 'text-fg-secondary/40'
                   )}
                 >
                   {line.text}
@@ -279,7 +294,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
           </div>
         </div>
       ) : mode === 'dynamic' && plainLyrics ? (
-        <div className="flex h-full flex-col items-center justify-center gap-2 text-fg-secondary">
+        <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-fg-secondary">
           <p className="text-sm">This track has plain lyrics only.</p>
           {user.isAdmin && (
             <button type="button" onClick={() => setEditorOpen(true)} className="text-sm text-accent hover:underline">
@@ -290,8 +305,10 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
           {fetchModal}
         </div>
       ) : (
-        <div ref={containerRef} className="flex-1 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words px-2 text-center text-fg-primary" style={lyricsMaskStyle}>
-          {syncedLyrics ? syncedLyrics.map((line) => line.text).join('\n') : plainLyrics}
+        <div ref={containerRef} className="flex-1 overflow-y-auto overflow-x-hidden px-2" style={lyricsMaskStyle}>
+          <p className="mx-auto max-w-prose whitespace-pre-wrap break-words py-4 text-center leading-relaxed text-fg-primary">
+            {syncedLyrics ? syncedLyrics.map((line) => line.text).join('\n') : plainLyrics}
+          </p>
         </div>
       )}
       {editorModal}

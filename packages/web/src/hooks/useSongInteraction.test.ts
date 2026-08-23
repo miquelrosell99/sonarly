@@ -36,8 +36,10 @@ describe('useSongInteraction', () => {
     expect(result.current.rating).toBeUndefined();
 
     await waitFor(() => expect(mockApi).toHaveBeenCalledWith('/songs/song-1'));
-    expect(result.current.starred).toBe(true);
-    expect(result.current.rating).toBe(4);
+    await waitFor(() => {
+      expect(result.current.starred).toBe(true);
+      expect(result.current.rating).toBe(4);
+    });
   });
 
   it('uses fallback values while loading', async () => {

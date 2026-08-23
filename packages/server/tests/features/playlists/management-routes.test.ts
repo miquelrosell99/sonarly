@@ -383,14 +383,14 @@ describe('management playlist endpoints', () => {
     expect(body.rating).toBeUndefined();
   });
 
-  it('clears the share token when visibility is changed away from link', async () => {
+  it('keeps the share token when visibility changes; revoking is explicit', async () => {
     const create = await app.inject({
       method: 'POST',
       url: '/api/playlists',
       cookies: { sessionId: ownerCookie },
       payload: { name: 'Link', visibility: 'link' },
     });
-    const id = JSON.parse(create.body).playlist.id;
+    const { id, shareToken } = JSON.parse(create.body).playlist;
 
     const update = await app.inject({
       method: 'PUT',
@@ -399,7 +399,143 @@ describe('management playlist endpoints', () => {
       payload: { visibility: 'private' },
     });
     expect(update.statusCode).toBe(200);
-    expect(JSON.parse(update.body).playlist.shareToken).toBeUndefined();
+    expect(JSON.parse(update.body).playlist.shareToken).toBe(shareToken);
+
+    // The token still authorizes anonymous viewers even though the playlist
+    // is now private.
+    const withToken = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}?shareToken=${shareToken}`,
+    });
+    expect(withToken.statusCode).toBe(200);
+
+    const revoke = await app.inject({
+      method: 'DELETE',
+      url: `/api/playlists/${id}/share-link`,
+      cookies: { sessionId: ownerCookie },
+    });
+    expect(revoke.statusCode).toBe(200);
+
+    const afterRevoke = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}?shareToken=${shareToken}`,
+    });
+    expect(afterRevoke.statusCode).toBe(403);
+  });
+
+  it('generates and regenerates share links, owner only', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/playlists',
+      cookies: { sessionId: ownerCookie },
+      payload: { name: 'Private', visibility: 'private', songIds: ['song-1'] },
+    });
+    const id = JSON.parse(create.body).playlist.id;
+
+    const forbidden = await app.inject({
+      method: 'POST',
+      url: `/api/playlists/${id}/share-link`,
+      cookies: { sessionId: friendCookie },
+    });
+    expect(forbidden.statusCode).toBe(403);
+
+    const first = await app.inject({
+      method: 'POST',
+      url: `/api/playlists/${id}/share-link`,
+      cookies: { sessionId: ownerCookie },
+    });
+    expect(first.statusCode).toBe(200);
+    const firstToken = JSON.parse(first.body).shareToken;
+    expect(firstToken).toBeDefined();
+
+    // Token works even though visibility stays private.
+    const anon = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}?shareToken=${firstToken}`,
+    });
+    expect(anon.statusCode).toBe(200);
+
+    const second = await app.inject({
+      method: 'POST',
+      url: `/api/playlists/${id}/share-link`,
+      cookies: { sessionId: ownerCookie },
+    });
+    const secondToken = JSON.parse(second.body).shareToken;
+    expect(secondToken).not.toBe(firstToken);
+
+    const oldToken = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}?shareToken=${firstToken}`,
+    });
+    expect(oldToken.statusCode).toBe(403);
+
+    const newToken = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}?shareToken=${secondToken}`,
+    });
+    expect(newToken.statusCode).toBe(200);
+  });
+
+  it('supports a public playlist with a token link and member edit access at once', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/playlists',
+      cookies: { sessionId: ownerCookie },
+      payload: { name: 'Public', visibility: 'public', songIds: ['song-1'] },
+    });
+    const id = JSON.parse(create.body).playlist.id;
+
+    await app.inject({
+      method: 'POST',
+      url: `/api/playlists/${id}/share`,
+      cookies: { sessionId: ownerCookie },
+      payload: { userId: 'friend-1', canEdit: true },
+    });
+    const link = await app.inject({
+      method: 'POST',
+      url: `/api/playlists/${id}/share-link`,
+      cookies: { sessionId: ownerCookie },
+    });
+    const { shareToken } = JSON.parse(link.body);
+
+    // Anonymous token viewer.
+    const anon = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}?shareToken=${shareToken}`,
+    });
+    expect(anon.statusCode).toBe(200);
+
+    // Any authenticated user can view because it is public.
+    const strangerLogin = await app.inject({
+      method: 'POST',
+      url: '/api/login',
+      payload: { username: 'stranger', password: 'pass' },
+    });
+    const strangerCookie = strangerLogin.cookies.find((c) => c.name === 'sessionId')!.value;
+    const strangerGet = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}`,
+      cookies: { sessionId: strangerCookie },
+    });
+    expect(strangerGet.statusCode).toBe(200);
+
+    // The member with can_edit can still edit.
+    const friendUpdate = await app.inject({
+      method: 'PUT',
+      url: `/api/playlists/${id}`,
+      cookies: { sessionId: friendCookie },
+      payload: { name: 'EditedByFriend' },
+    });
+    expect(friendUpdate.statusCode).toBe(200);
+
+    // But a stranger cannot edit.
+    const strangerUpdate = await app.inject({
+      method: 'PUT',
+      url: `/api/playlists/${id}`,
+      cookies: { sessionId: strangerCookie },
+      payload: { name: 'Nope' },
+    });
+    expect(strangerUpdate.statusCode).toBe(403);
   });
 
   it('includes the shares list for the owner only', async () => {
@@ -490,5 +626,43 @@ describe('management playlist endpoints', () => {
     const body = JSON.parse(getRes.body) as { playlist: { isSmart: boolean; songCount: number } };
     expect(body.playlist.isSmart).toBe(false);
     expect(body.playlist.songCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it('converts a standard playlist to smart, removing its members', async () => {
+    const createRes = await app.inject({
+      method: 'POST',
+      url: '/api/playlists',
+      cookies: { sessionId: ownerCookie },
+      payload: { name: 'Standard', songIds: ['song-1', 'song-2'] },
+    });
+    const { playlist } = JSON.parse(createRes.body) as { playlist: { id: string } };
+
+    const noRules = await app.inject({
+      method: 'PUT',
+      url: `/api/playlists/${playlist.id}`,
+      cookies: { sessionId: ownerCookie },
+      payload: { isSmart: true },
+    });
+    expect(noRules.statusCode).toBe(400);
+
+    const putRes = await app.inject({
+      method: 'PUT',
+      url: `/api/playlists/${playlist.id}`,
+      cookies: { sessionId: ownerCookie },
+      payload: {
+        isSmart: true,
+        rules: { rules: { all: [{ field: 'title', operator: 'contains', value: 'Track' }] } },
+      },
+    });
+    expect(putRes.statusCode).toBe(200);
+
+    const getRes = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${playlist.id}`,
+      cookies: { sessionId: ownerCookie },
+    });
+    const body = JSON.parse(getRes.body) as { playlist: { isSmart: boolean; songIds?: string[] } };
+    expect(body.playlist.isSmart).toBe(true);
+    expect(body.playlist.songIds ?? []).toEqual([]);
   });
 });
