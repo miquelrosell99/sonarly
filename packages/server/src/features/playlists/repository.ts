@@ -105,8 +105,9 @@ export function updatePlaylist(db: Database.Database, playlist: Playlist): void 
     isSmart && playlist.rules ? JSON.stringify(playlist.rules) : null,
     playlist.id,
   );
+  // Members only exist for standard playlists; clear stale rows when smart.
+  db.prepare('DELETE FROM playlist_songs WHERE playlist_id = ?').run(playlist.id);
   if (!isSmart) {
-    db.prepare('DELETE FROM playlist_songs WHERE playlist_id = ?').run(playlist.id);
     insertPlaylistSongs(db, playlist.id, playlist.songIds);
   }
 }

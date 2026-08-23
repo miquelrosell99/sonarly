@@ -64,8 +64,6 @@ const ALBUM_FIELDS: TagField[] = [
   { key: 'albumType', label: 'Album type', autocomplete: 'albumType' },
 ];
 
-const VISIBILITY_OPTIONS = ['private', 'shared', 'public', 'link'] as const;
-
 function parseNumber(value: string): number | undefined {
   const trimmed = value.trim();
   if (trimmed === '') return undefined;
@@ -190,7 +188,6 @@ export function EditEntityModal({
     if (entityType === 'playlist') {
       return {
         name: String(getCommonValue(activeEntities, 'name') ?? ''),
-        visibility: String(getCommonValue(activeEntities, 'visibility') ?? 'private'),
       };
     }
     if (entityType === 'artist') {
@@ -219,7 +216,6 @@ export function EditEntityModal({
         if (entityType === 'playlist') {
           return {
             name: String(getCommonValue(activeEntities, 'name') ?? ''),
-            visibility: String(getCommonValue(activeEntities, 'visibility') ?? 'private'),
           };
         }
         if (entityType === 'artist') {
@@ -281,7 +277,6 @@ export function EditEntityModal({
 
     if (entityType === 'playlist') {
       patched.name = values.name;
-      patched.visibility = values.visibility;
       const isSmart = getCommonValue(activeEntities, 'isSmart');
       if (isSmart) {
         patched.rules = rules;
@@ -436,21 +431,6 @@ export function EditEntityModal({
                 placeholder="Name"
                 disabled={readOnly}
               />
-            </Field>
-            <Field label="Visibility" htmlFor="edit-visibility">
-              <select
-                id="edit-visibility"
-                value={String(values.visibility ?? 'private')}
-                onChange={(e) => updateValue('visibility', e.target.value)}
-                disabled={readOnly}
-                className="input w-full"
-              >
-                {VISIBILITY_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
             </Field>
             {Boolean(getCommonValue(activeEntities, 'isSmart')) && <SmartPlaylistBlockEditor initialRules={rules} onChange={setRules} />}
           </div>

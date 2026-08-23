@@ -32,23 +32,29 @@ export function TransportControls() {
 
   return (
     <div className={cn('flex w-full max-w-md flex-col items-center gap-3')}>
-      <div className={cn('flex items-center gap-1')}>
+      <div className={cn('flex flex-wrap items-center justify-center gap-1 sm:gap-2')}>
         <ControlButton onClick={toggleShuffle} label="Shuffle" active={shuffle} className="h-11 w-11">
-          <Icon name="mdi-shuffle" size={22} />
+          <Icon name="mdi-shuffle" size={20} />
         </ControlButton>
         <ControlButton onClick={previous} label="Previous" disabled={!hasTrack} className="h-11 w-11">
-          <Icon name="mdi-skip-previous" size={28} />
+          <Icon name="mdi-skip-previous" size={30} />
         </ControlButton>
-        <PlayButton isPlaying={isPlaying} disabled={!hasTrack} onClick={togglePlay} className="mx-2 h-14 w-14" iconSize={32} />
+        <PlayButton
+          isPlaying={isPlaying}
+          disabled={!hasTrack}
+          onClick={togglePlay}
+          className="mx-2 h-14 w-14 shadow-lg shadow-accent/30"
+          iconSize={32}
+        />
         <ControlButton onClick={next} label="Next" disabled={!hasTrack} className="h-11 w-11">
-          <Icon name="mdi-skip-next" size={28} />
+          <Icon name="mdi-skip-next" size={30} />
         </ControlButton>
         <ControlButton onClick={cycleRepeat} label={`Repeat: ${repeat}`} active={repeat !== 'off'} className="h-11 w-11">
-          <Icon name={repeat === 'one' ? 'mdi-repeat-once' : 'mdi-repeat'} size={22} />
+          <Icon name={repeat === 'one' ? 'mdi-repeat-once' : 'mdi-repeat'} size={20} />
         </ControlButton>
       </div>
       <div className={cn('flex w-full items-center gap-3')}>
-        <span className="w-10 text-right text-xs font-mono text-fg-secondary">{formatTime(displayTime)}</span>
+        <span className="w-11 shrink-0 text-right text-xs font-mono tabular-nums text-fg-secondary">{formatTime(displayTime)}</span>
         <Slider
           min={0}
           max={displayDuration || 1}
@@ -60,7 +66,7 @@ export function TransportControls() {
           variant="progress"
           className="h-2"
         />
-        <span className="w-10 text-xs font-mono text-fg-secondary">{formatTime(displayDuration)}</span>
+        <span className="w-11 shrink-0 text-xs font-mono tabular-nums text-fg-secondary">{formatTime(displayDuration)}</span>
       </div>
     </div>
   );
