@@ -1,10 +1,10 @@
 import type { Song } from '@sonarly/shared';
-import { usePlayer, type PlayerSong } from '../stores/playerStore.js';
+import { usePlayer, type PlayerSong, type QueueContext } from '../stores/playerStore.js';
 
 export interface UsePlayActionsResult {
   playSong: (song: Song) => void;
-  playSongs: (songs: Song[], startIndex?: number, shuffle?: boolean) => void;
-  shufflePlay: (songs: Song[]) => void;
+  playSongs: (songs: Song[], startIndex?: number, shuffle?: boolean, context?: QueueContext) => void;
+  shufflePlay: (songs: Song[], context?: QueueContext) => void;
   playNext: (song: Song | Song[]) => void;
   addToQueue: (songs: Song[]) => void;
 }
@@ -19,12 +19,12 @@ export function usePlayActions(): UsePlayActionsResult {
     playNow(song as PlayerSong);
   };
 
-  const playSongs = (songs: Song[], startIndex?: number, shuffle?: boolean) => {
-    playQueue(songs as PlayerSong[], startIndex, shuffle);
+  const playSongs = (songs: Song[], startIndex?: number, shuffle?: boolean, context?: QueueContext) => {
+    playQueue(songs as PlayerSong[], startIndex, shuffle, context);
   };
 
-  const shufflePlay = (songs: Song[]) => {
-    playSongs(songs, undefined, true);
+  const shufflePlay = (songs: Song[], context?: QueueContext) => {
+    playSongs(songs, undefined, true, context);
   };
 
   const playNext = (song: Song | Song[]) => {

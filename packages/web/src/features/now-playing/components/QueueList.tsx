@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
-import type { User } from '@sonarly/shared';
+import type { AutoDjMode, User } from '@sonarly/shared';
 import { LibraryView, type LibraryViewColumn } from '../../../components/LibraryView.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { cn } from '../../../lib/cn.js';
 import { usePlayer, type PlayerSong } from '../../../stores/playerStore.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
+import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferences.js';
 import { SaveQueueAsPlaylistModal } from './SaveQueueAsPlaylistModal.js';
 
 interface QueueListProps {
@@ -69,6 +70,15 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
   const playAtIndex = usePlayer((state) => state.playAtIndex);
   const toggleShuffle = usePlayer((state) => state.toggleShuffle);
   const clearQueue = usePlayer((state) => state.clearQueue);
+  const { data: preferences } = usePreferences();
+  const updatePreferences = useUpdatePreferences();
+  const autoDjEnabled = preferences?.autoDjEnabled ?? false;
+  const autoDjMode = preferences?.autoDjMode ?? 'smart';
+  const djModeItems: { id: AutoDjMode; label: string; icon: string }[] = [
+    { id: 'similar', label: 'Similar', icon: 'mdi-account-music' },
+    { id: 'random', label: 'Random', icon: 'mdi-shuffle' },
+    { id: 'smart', label: 'Smart', icon: 'mdi-brain' },
+  ];
   const { notify } = useNotification();
 
   const displayItems = useMemo(
@@ -263,6 +273,38 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
   return (
     <div className={cn('flex h-full flex-col', className)}>
       <div className="flex shrink-0 justify-end gap-1 pb-1">
+        <ItemContextMenu
+          sections={[
+            {
+              items: djModeItems.map((mode) => ({
+                id: mode.id,
+                label: mode.label,
+                icon: mode.icon,
+                active: autoDjMode === mode.id,
+                onClick: () => updatePreferences.mutate({ autoDjMode: mode.id }),
+              })),
+            },
+          ]}
+          anchorToTrigger
+          placement="top-end"
+        >
+          <button
+            type="button"
+            onClick={() => updatePreferences.mutate({ autoDjEnabled: !autoDjEnabled })}
+            aria-label={`Auto DJ: ${autoDjEnabled ? 'on' : 'off'}`}
+            aria-pressed={autoDjEnabled}
+            title="Auto DJ (right-click for mode)"
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              autoDjEnabled
+                ? 'bg-accent/15 text-accent hover:bg-accent/25'
+                : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
+            )}
+          >
+            <Icon name="mdi-record-player" size={14} />
+            Auto DJ
+          </button>
+        </ItemContextMenu>
         <button
           type="button"
           onClick={() => setSaveModalOpen(true)}

@@ -101,22 +101,26 @@ export function Album({ user }: { user: User }) {
   const blurExplicitTitles = user.blurExplicitTitles === true;
   const blurExplicitCovers = user.blurExplicitCovers === true;
 
+  const queueContext = id ? { type: 'album' as const, id } : undefined;
+
   const handlePlay = (song: SongListItem) => {
-    playSongs([song as SharedSong], 0);
+    const songs = (detail?.songs ?? []) as SharedSong[];
+    const startIndex = songs.findIndex((entry) => entry.id === song.id);
+    playSongs(songs.length > 0 ? songs : [song as SharedSong], Math.max(0, startIndex), undefined, queueContext);
   };
 
   const handlePlaySelection = (songs: SongListItem[], startIndex: number) => {
-    playSongs(songs as SharedSong[], startIndex);
+    playSongs(songs as SharedSong[], startIndex, undefined, queueContext);
   };
 
   const handlePlayAlbum = () => {
     if (!detail) return;
-    playSongs(detail.songs as SharedSong[]);
+    playSongs(detail.songs as SharedSong[], undefined, undefined, queueContext);
   };
 
   const handleShuffleAlbumSongs = () => {
     if (!detail) return;
-    shufflePlay(detail.songs as SharedSong[]);
+    shufflePlay(detail.songs as SharedSong[], queueContext);
   };
 
   const handleFavorite = async (starred: boolean) => {
