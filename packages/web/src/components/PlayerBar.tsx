@@ -6,6 +6,8 @@ import { FavoriteButton, StarRating } from './ActionButtons.js';
 import { ItemContextMenu } from './ItemContextMenu.js';
 import { ControlButton, PlayButton, Slider } from './PlayerControls.js';
 import { ExplicitTitle } from './ExplicitTitle.js';
+import { SleepTimerButton } from './SleepTimerButton.js';
+import { TrackActionsMenu } from './TrackActionsMenu.js';
 import { usePlayer } from '../stores/playerStore.js';
 import { useSongInteraction } from '../hooks/useSongInteraction.js';
 import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
@@ -265,6 +267,9 @@ export function PlayerBar({ user }: PlayerBarProps) {
               </ControlButton>
             </ItemContextMenu>
             {user && <QueueModal user={user} />}
+            <div className="hidden lg:block">
+              <SleepTimerButton />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <FavoriteButton
@@ -273,6 +278,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
               label={starred ? 'Remove favorite' : 'Add favorite'}
               disabled={!hasTrack}
             />
+            <TrackActionsMenu song={currentSong} />
             <ControlButton
               onClick={() => setVolume(volume > 0 ? 0 : 1)}
               label={volume > 0 ? 'Mute' : 'Unmute'}

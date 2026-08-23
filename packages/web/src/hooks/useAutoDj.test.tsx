@@ -5,7 +5,10 @@ import { useAutoDj } from './useAutoDj.js';
 import type { PlayerSong } from '../stores/playerStore.js';
 import type { UserPreferences, AutoDjMode } from '@sonarly/shared';
 
-const mockApi = vi.hoisted(() => vi.fn(((_path: string) => Promise.resolve({ songs: [] as PlayerSong[] }))));
+const mockApi = vi.hoisted(() =>
+  vi.fn(((_path: string, _options?: { method?: string; body?: string }) =>
+    Promise.resolve({ songs: [] as PlayerSong[] }))),
+);
 const mockAddToQueue = vi.hoisted(() => vi.fn<(songs: PlayerSong[], options?: { addedByAutoDj?: boolean }) => void>());
 const mockRemoveAutoDjItems = vi.hoisted(() => vi.fn(() => {
   const { queue, queueIndex } = mockUsePlayerData.current;
@@ -163,7 +166,10 @@ describe('useAutoDj', () => {
     );
 
     await waitFor(() => expect(mockApi).toHaveBeenCalledTimes(1));
-    expect(mockApi).toHaveBeenLastCalledWith(expect.stringContaining('/playback/auto-dj?'));
+    expect(mockApi).toHaveBeenLastCalledWith(
+      '/playback/auto-dj',
+      expect.objectContaining({ method: 'POST' }),
+    );
   });
 
   it('fetches when remaining tracks are below the threshold', async () => {
@@ -190,9 +196,10 @@ describe('useAutoDj', () => {
     );
 
     await waitFor(() => expect(mockApi).toHaveBeenCalledTimes(1));
-    const [url] = mockApi.mock.calls[0];
-    expect(url).toContain('mode=random');
-    expect(url).toContain('count=7');
+    const [, options] = mockApi.mock.calls[0];
+    const body = JSON.parse((options as { body: string }).body);
+    expect(body.mode).toBe('random');
+    expect(body.count).toBe(7);
   });
 
   it('adds returned songs to the queue via addToQueue', async () => {
@@ -226,11 +233,10 @@ describe('useAutoDj', () => {
     );
 
     await waitFor(() => expect(mockApi).toHaveBeenCalledTimes(1));
-    const [url] = mockApi.mock.calls[0];
-    const params = new URLSearchParams(url.split('?')[1]);
-    const excludeIds = params.get('excludeIds')?.split(',') ?? [];
-    expect(excludeIds).toContain('current');
-    expect(excludeIds).toContain('existing');
+    const [, options] = mockApi.mock.calls[0];
+    const body = JSON.parse((options as { body: string }).body);
+    expect(body.excludeIds).toContain('current');
+    expect(body.excludeIds).toContain('existing');
   });
 
   it('marks fetched songs as added by Auto DJ', async () => {
@@ -317,6 +323,38 @@ describe('useAutoDj', () => {
 
     await waitFor(() => expect(mockRemoveAutoDjItems).toHaveBeenCalled());
     await waitFor(() => expect(mockApi.mock.calls.length).toBeGreaterThan(fetchCountBeforeModeChange));
-    expect(mockApi.mock.calls.some(([url]) => (url as string).includes('mode=random'))).toBe(true);
+    expect(
+      mockApi.mock.calls.some(
+        ([, opts]) => JSON.parse((opts as { body: string }).body).mode === 'random',
+      ),
+    ).toBe(true);
+  });
+
+  it('removes unplayed Auto DJ items and refills when the DJ config changes', async () => {
+    mockApi.mockResolvedValue({ songs: [song('refill1')] });
+
+    const { rerender } = render(
+      <ControlledTestComponent
+        preferences={preferences({ autoDjExcludeWindow: '24h' })}
+        currentSong={song('current')}
+        queue={[song('current'), autoDjSong('auto1'), autoDjSong('auto2'), song('user1')]}
+        queueIndex={0}
+      />,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const fetchCountBeforeConfigChange = mockApi.mock.calls.length;
+
+    rerender(
+      <ControlledTestComponent
+        preferences={preferences({ autoDjExcludeWindow: '30d' })}
+        currentSong={song('current')}
+        queue={[song('current'), autoDjSong('auto1'), autoDjSong('auto2'), song('user1')]}
+        queueIndex={0}
+      />,
+    );
+
+    await waitFor(() => expect(mockRemoveAutoDjItems).toHaveBeenCalled());
+    await waitFor(() => expect(mockApi.mock.calls.length).toBeGreaterThan(fetchCountBeforeConfigChange));
   });
 });

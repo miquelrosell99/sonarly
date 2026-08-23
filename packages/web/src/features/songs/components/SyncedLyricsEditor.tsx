@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { LrcLibMatch, LrcLibSearchResult, SyncedLyricLine } from '@sonarly/shared';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
@@ -147,7 +148,15 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
     api<{ lyrics?: string; syncedLyrics?: SyncedLyricLine[] }>(`/songs/${songId}/lyrics`)
       .then((res) => {
         setLyrics(res.lyrics ?? '');
-        setLines(toEditLines(res.syncedLyrics ?? []));
+        const loaded = toEditLines(res.syncedLyrics ?? []);
+        setLines(loaded);
+        // Start the tape just before the first line so existing lyrics are
+        // visible on open instead of an empty viewport at 0:00.
+        if (loaded.length > 0) {
+          const start = Math.max(0, loaded[0].time - 2);
+          setCurrentTime(start);
+          if (audioRef.current) audioRef.current.currentTime = start;
+        }
       })
       .catch((err) => setLoadError(err instanceof Error ? err.message : 'Failed to load lyrics'))
       .finally(() => setLoading(false));
@@ -500,7 +509,7 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
     (line) => Math.abs(line.time - currentTime) * PX_PER_SECOND <= centerY + 80,
   );
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex bg-black/70 sm:items-center sm:justify-center sm:p-4"
       onClick={(e) => {
@@ -698,6 +707,7 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
         confirmLabel="Apply"
         onConfirm={() => pendingMatch && applyMatch(pendingMatch)}
       />
-    </div>
+    </div>,
+    document.body,
   );
 }

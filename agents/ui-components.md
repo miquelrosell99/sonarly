@@ -24,6 +24,9 @@ Shared components live in `packages/web/src/components/`. Use them for consisten
 | `ExplicitTitle` | `components/ExplicitTitle.tsx` | Title text with explicit-content badge and blur toggle. |
 | `PageState` | `components/PageState.tsx` | Loading, empty, and error states for pages. Loading renders `role="status"` with a spinner; error renders `role="alert"` with an icon and an optional `onRetry` button; empty accepts an optional `emptyIcon`. All pages must use it instead of hand-rolled state blocks. |
 | `Avatar` | `components/Avatar.tsx` | User avatar with placeholder fallback. |
+| `SidebarPlaylistItem` | `components/SidebarPlaylistItem.tsx` | Sidebar playlist link with right-click/long-press menu (play, shuffle, edit, share, delete). |
+| `SleepTimerButton` | `components/SleepTimerButton.tsx` | Player-bar sleep timer with countdown and option popover. |
+| `TrackActionsMenu` | `components/TrackActionsMenu.tsx` | "More actions" popover for the current track (go to album/artist, save queue as playlist). |
 | `Button` | `components/ui/Button.tsx` | Button primitive. Optional `loading` prop shows a spinner and disables the button. |
 | `Input` | `components/ui/Input.tsx` | Text input primitive. |
 | `Icon` | `components/ui/Icon.tsx` | Icon renderer. |

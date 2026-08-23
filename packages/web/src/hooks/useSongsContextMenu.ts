@@ -1,4 +1,5 @@
 import type { Song } from '@sonarly/shared';
+import { useLocation } from 'wouter';
 import type { ContextMenuSection } from '../components/ItemContextMenu.js';
 import { usePlayActions } from './usePlayActions.js';
 
@@ -8,6 +9,7 @@ export function useSongsContextMenu(
   isAdmin?: boolean,
 ): ContextMenuSection[] {
   const { playSong, playSongs, playNext, addToQueue } = usePlayActions();
+  const [, navigate] = useLocation();
 
   if (songs.length === 0) return [];
 
@@ -23,6 +25,17 @@ export function useSongsContextMenu(
         { id: 'add-to-queue', label: 'Add to queue', icon: 'mdi-playlist-play', onClick: () => addToQueue([song]) },
       ],
     });
+    const navigateItems = [
+      ...(song.albumId
+        ? [{ id: 'go-to-album', label: 'Go to album', icon: 'mdi-album', onClick: () => navigate(`/albums/${song.albumId}`) }]
+        : []),
+      ...(song.artistId
+        ? [{ id: 'go-to-artist', label: 'Go to artist', icon: 'mdi-account-music', onClick: () => navigate(`/artists/${song.artistId}`) }]
+        : []),
+    ];
+    if (navigateItems.length > 0) {
+      sections.push({ items: navigateItems });
+    }
   } else {
     sections.push({
       title: 'Playback',

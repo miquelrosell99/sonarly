@@ -665,4 +665,33 @@ describe('management playlist endpoints', () => {
     expect(body.playlist.isSmart).toBe(true);
     expect(body.playlist.songIds ?? []).toEqual([]);
   });
+
+  it('resolves smart playlist songs for anonymous share-token viewers', async () => {
+    const createRes = await app.inject({
+      method: 'POST',
+      url: '/api/playlists',
+      cookies: { sessionId: ownerCookie },
+      payload: {
+        name: 'Smart Link',
+        visibility: 'link',
+        isSmart: true,
+        rules: { rules: { all: [{ field: 'title', operator: 'contains', value: 'Track One' }] } },
+      },
+    });
+    expect(createRes.statusCode).toBe(201);
+    const { playlist } = JSON.parse(createRes.body) as { playlist: { id: string; shareToken: string } };
+    expect(playlist.shareToken).toBeDefined();
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${playlist.id}?shareToken=${playlist.shareToken}`,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body) as {
+      playlist: { isSmart: boolean; songCount: number; entries: { id: string; title: string }[] };
+    };
+    expect(body.playlist.isSmart).toBe(true);
+    expect(body.playlist.songCount).toBe(1);
+    expect(body.playlist.entries.map((e) => e.id)).toEqual(['song-1']);
+  });
 });

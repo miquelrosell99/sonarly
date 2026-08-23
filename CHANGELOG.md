@@ -42,6 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Now Playing redesign: responsive hero layout (stacked, scrollable on narrow windows), cover scale-in transition, segmented Queue/Lyrics tabs, accent play button hierarchy, distance-faded synced lyrics, and narrow-safe queue modal.
 - Synced lyrics editor rebuilt as a vertical waveform timeline: the song's waveform (decoded client-side) scrolls under a pinned center "now" line, lyric lines are pills tethered to their timestamp by a connector and dot, click a pill to edit its text in a modal, drag to retime, and an insert button adds a pill at the current position. Full-screen on phones; LRCLIB auto-fill kept.
 - Playlist sharing reworked into a two-tab modal: Members (public toggle for read access by all users, per-user list with view/edit role dropdowns, add-user search) and Share links (generate/regenerate/revoke tokenized links). Share tokens now authorize independently of the visibility setting.
+- Gapless playback aid: the next track (shuffle/repeat aware) is preloaded on a hidden audio element in the last 30s so transitions are seamless; works for guest share-link streams too.
+- Sleep timer in the player bar (5–60 minutes or end of track) with a live countdown; pauses and notifies when it fires.
+- Save the current queue as a playlist from the queue panel or the player bar's new track-actions menu (go to album/artist, save queue).
+- Sidebar playlists have right-click/long-press menus (play, shuffle, play next, add to queue, edit, share, delete with confirmation); track/album/artist menus gained go-to and shuffle actions.
+- Auto DJ: sharpened modes (Similar / Random / Smart), new settings — exclude-recently-played window (24h/7d/30d), prefer favorites, and a familiar↔adventurous discovery dial; config changes refill the DJ queue immediately; DJ suggestions moved to a POST body.
+- Anonymous share links now work for smart playlists too (token grants resolve smart rules, cached 30s).
 - Playlist type is a Standard/Smart pill selector in the playlist modal: smart→standard keeps the current tracks as members (with confirmation), standard→smart clears members (with confirmation), and the query builder only shows in smart mode. Visibility was removed from edit modals — it's managed by sharing.
 
 ### Fixed
@@ -55,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tag writer: OGG cover art base64, duplicate MP3 APIC frames, m4a cover format, mutagen hang timeout.
 - Search error state never displayed (infinite loading), Auto DJ stale-add race, empty-queue "Play next" stranding tracks.
 - Listening time always showed 0m: web scrobbles never sent `durationListened`, so every `listening_history` row had NULL duration. The player now reports seconds listened + completion, and migration 047 backfills existing plays from song durations.
+- Synced lyrics editor opened trapped inside the Now Playing panel (no portal), collapsing the waveform area so neither waveform nor existing pills rendered; it now portals to the body and opens scrolled to the first lyric line.
 
 ### Removed
 

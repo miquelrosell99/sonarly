@@ -24,6 +24,8 @@ interface ItemContextMenuProps {
   children: ReactNode;
   anchorToTrigger?: boolean;
   placement?: 'top-end' | 'bottom-start';
+  /** Also open the menu after a ~500ms touch/pen press on the trigger. */
+  openOnLongPress?: boolean;
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -59,11 +61,24 @@ function computeAnchorPosition(
   return { top, left };
 }
 
-export function ItemContextMenu({ sections, children, anchorToTrigger = false, placement = 'top-end' }: ItemContextMenuProps) {
+export function ItemContextMenu({ sections, children, anchorToTrigger = false, placement = 'top-end', openOnLongPress = false }: ItemContextMenuProps) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const childRef = useRef<HTMLElement | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const longPressFiredRef = useRef(false);
+
+  const cancelLongPress = () => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    longPressOriginRef.current = null;
+  };
+
+  useEffect(() => cancelLongPress, []);
 
   useEffect(() => {
     if (!open) return;
@@ -147,10 +162,68 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
     setOpen(true);
   };
 
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!openOnLongPress || e.pointerType === 'mouse') return;
+    longPressFiredRef.current = false;
+    const { clientX: x, clientY: y } = e;
+    longPressOriginRef.current = { x, y };
+    childRef.current = e.currentTarget as HTMLElement;
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressTimerRef.current = null;
+      longPressOriginRef.current = null;
+      longPressFiredRef.current = true;
+      setPos({ x: clampPointer(x, window.innerWidth), y: clampPointer(y, window.innerHeight) });
+      setOpen(true);
+    }, 500);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    const origin = longPressOriginRef.current;
+    if (!origin) return;
+    if (Math.abs(e.clientX - origin.x) > 10 || Math.abs(e.clientY - origin.y) > 10) {
+      cancelLongPress();
+    }
+  };
+
+  // Swallow the synthetic click that follows a long-press so the trigger
+  // (e.g. a Link) does not also activate when the menu opens.
+  const handleClickCapture = (e: React.MouseEvent) => {
+    if (longPressFiredRef.current) {
+      longPressFiredRef.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
   const child = Children.only(children);
   if (!isValidElement(child)) {
     return <>{children}</>;
   }
+
+  type Handler<E> = ((e: E) => void) | undefined;
+  const compose = <E,>(childHandler: Handler<E>, menuHandler: (e: E) => void) =>
+    (e: E) => {
+      childHandler?.(e);
+      menuHandler(e);
+    };
+
+  const childProps = child.props as {
+    onPointerDown?: Handler<React.PointerEvent>;
+    onPointerMove?: Handler<React.PointerEvent>;
+    onPointerUp?: Handler<React.PointerEvent>;
+    onPointerCancel?: Handler<React.PointerEvent>;
+    onClickCapture?: Handler<React.MouseEvent>;
+  };
+
+  const longPressProps = openOnLongPress
+    ? {
+        onPointerDown: compose(childProps.onPointerDown, handlePointerDown),
+        onPointerMove: compose(childProps.onPointerMove, handlePointerMove),
+        onPointerUp: compose(childProps.onPointerUp, cancelLongPress),
+        onPointerCancel: compose(childProps.onPointerCancel, cancelLongPress),
+        onClickCapture: compose(childProps.onClickCapture, handleClickCapture),
+      }
+    : {};
 
   const menu = open ? (
     <div
@@ -202,6 +275,7 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
     <>
       {cloneElement(child as ReactElement<{ onContextMenu?: (e: React.MouseEvent) => void }>, {
         onContextMenu: handleContextMenu,
+        ...longPressProps,
       })}
       {menu && createPortal(menu, document.body)}
     </>

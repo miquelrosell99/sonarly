@@ -2,8 +2,9 @@ import { useEffect, useRef } from 'react';
 import { api } from '../lib/api.js';
 import { getShareToken, withShareToken } from '../lib/shareToken.js';
 import { useNotification } from '../contexts/NotificationContext.js';
-import { usePlayer } from '../stores/playerStore.js';
+import { usePlayer, getNextSong } from '../stores/playerStore.js';
 import { useAutoDj } from '../hooks/useAutoDj.js';
+import { useSleepTimer, SLEEP_TIMER_ENDED_MESSAGE } from '../hooks/useSleepTimer.js';
 
 // Subsonic-style scrobble rule: 50% of the track or 4 minutes, whichever
 // comes first.
@@ -11,9 +12,23 @@ const SCROBBLE_MIN_FRACTION = 0.5;
 const SCROBBLE_MAX_SECONDS = 240;
 // How long playback may stall before surfacing an error.
 const STALLED_ERROR_DELAY_MS = 15000;
+// Start buffering the next track when this much of the current one remains.
+const PRELOAD_REMAINING_SECONDS = 30;
+
+// /rest/stream.view needs a session; anonymous share-link viewers use
+// the token-scoped /api/stream endpoint instead. The gapless preloader
+// uses this too so both audio elements always request identical URLs.
+function streamUrl(songId: string): string {
+  const shareToken = getShareToken();
+  return shareToken
+    ? `/api/stream/${songId}?shareToken=${encodeURIComponent(shareToken)}`
+    : `/rest/stream.view?id=${songId}`;
+}
 
 export function AudioController() {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const preloadRef = useRef<HTMLAudioElement>(null);
+  const preloadedUrlRef = useRef<string | null>(null);
   const lastScrobbledRef = useRef<string | null>(null);
   const stalledTimerRef = useRef<number | null>(null);
   const { notify } = useNotification();
@@ -23,6 +38,11 @@ export function AudioController() {
   const volume = usePlayer((state) => state.volume);
   const currentTime = usePlayer((state) => state.currentTime);
   const duration = usePlayer((state) => state.duration);
+  const queue = usePlayer((state) => state.queue);
+  const queueIndex = usePlayer((state) => state.queueIndex);
+  const shuffle = usePlayer((state) => state.shuffle);
+  const repeat = usePlayer((state) => state.repeat);
+  const shuffledIndices = usePlayer((state) => state.shuffledIndices);
 
   const play = usePlayer((state) => state.play);
   const setStatus = usePlayer((state) => state.setStatus);
@@ -31,6 +51,7 @@ export function AudioController() {
   const onEnded = usePlayer((state) => state.onEnded);
 
   useAutoDj();
+  useSleepTimer();
 
   const clearStalledTimer = () => {
     if (stalledTimerRef.current !== null) {
@@ -61,12 +82,7 @@ export function AudioController() {
 
     if (currentSong) {
       setStatus('loading');
-      // /rest/stream.view needs a session; anonymous share-link viewers use
-      // the token-scoped /api/stream endpoint instead.
-      const shareToken = getShareToken();
-      audio.src = shareToken
-        ? `/api/stream/${currentSong.id}?shareToken=${encodeURIComponent(shareToken)}`
-        : `/rest/stream.view?id=${currentSong.id}`;
+      audio.src = streamUrl(currentSong.id);
       audio.load();
       audio.play().catch(handlePlayError);
     } else {
@@ -92,6 +108,35 @@ export function AudioController() {
       audio.volume = volume;
     }
   }, [volume]);
+
+  // Gapless aid: when the current track is almost over, silently buffer the
+  // next queue item on a second audio element so the browser cache is warm
+  // when `ended` fires. Track changes and rapid skips re-run this effect and
+  // replace or abort any in-flight preload; pausing keeps it.
+  useEffect(() => {
+    const preloader = preloadRef.current;
+    if (!preloader) return;
+
+    const trackDuration = duration || currentSong?.duration || 0;
+    const remaining = trackDuration - currentTime;
+    let url: string | null = null;
+    if (currentSong && trackDuration > 0 && remaining <= PRELOAD_REMAINING_SECONDS) {
+      const nextSong = getNextSong({ queue, queueIndex, shuffle, repeat, shuffledIndices });
+      if (nextSong) {
+        url = streamUrl(nextSong.id);
+      }
+    }
+
+    if (url === preloadedUrlRef.current) return;
+    preloadedUrlRef.current = url;
+    if (url) {
+      preloader.src = url;
+    } else {
+      preloader.removeAttribute('src');
+    }
+    // load() starts the fetch for a new src and aborts it when src was removed.
+    preloader.load();
+  }, [currentTime, duration, currentSong?.id, queue, queueIndex, shuffle, repeat, shuffledIndices]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -262,6 +307,16 @@ export function AudioController() {
       lastScrobbledRef.current = null;
     }
     onEnded();
+    // Sleep timer "end of track": the current song has finished and the
+    // store has advanced; stop playback here instead of playing on.
+    const afterAdvance = usePlayer.getState();
+    if (afterAdvance.sleepTimer.mode === 'endOfTrack') {
+      if (afterAdvance.status === 'playing') {
+        afterAdvance.pause();
+      }
+      afterAdvance.clearSleepTimer();
+      notify(SLEEP_TIMER_ENDED_MESSAGE, 'info');
+    }
   };
 
   const handleError = () => {
@@ -271,18 +326,22 @@ export function AudioController() {
   };
 
   return (
-    <audio
-      ref={audioRef}
-      preload="metadata"
-      onLoadedMetadata={handleLoadedMetadata}
-      onTimeUpdate={handleTimeUpdate}
-      onEnded={handleEnded}
-      onPlay={handlePlay}
-      onPlaying={handlePlaying}
-      onWaiting={handleWaiting}
-      onStalled={handleWaiting}
-      onError={handleError}
-      className="hidden"
-    />
+    <>
+      <audio
+        ref={audioRef}
+        preload="metadata"
+        onLoadedMetadata={handleLoadedMetadata}
+        onTimeUpdate={handleTimeUpdate}
+        onEnded={handleEnded}
+        onPlay={handlePlay}
+        onPlaying={handlePlaying}
+        onWaiting={handleWaiting}
+        onStalled={handleWaiting}
+        onError={handleError}
+        className="hidden"
+      />
+      {/* Gapless aid: hidden preloader for the next track; never plays. */}
+      <audio ref={preloadRef} preload="auto" aria-hidden="true" className="hidden" />
+    </>
   );
 }

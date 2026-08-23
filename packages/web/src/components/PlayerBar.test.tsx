@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import type { User } from '@sonarly/shared';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PlayerBar } from './PlayerBar.js';
 import { usePlayer, resetPlayer } from '../stores/playerStore.js';
 import { useNowPlaying, resetNowPlaying } from '../features/now-playing/index.js';
@@ -21,6 +22,18 @@ const mockPreferences = vi.hoisted(() => ({
 }));
 
 const mockUser = { id: 'u1', username: 'test', isAdmin: false } as User;
+
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+function renderPlayerBar(props?: { user?: User }) {
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <NotificationProvider>
+        <PlayerBar {...props} />
+      </NotificationProvider>
+    </QueryClientProvider>,
+  );
+}
 
 vi.mock('../hooks/useSongInteraction.js', () => ({
   useSongInteraction: (songId: string | undefined, fallback: { starred?: boolean; rating?: number }) => ({
@@ -51,7 +64,7 @@ afterEach(() => {
 
 describe('PlayerBar', () => {
   it('disables favorite and rating when no track is playing', () => {
-    render(<PlayerBar />);
+    renderPlayerBar();
     expect((screen.getByRole('button', { name: /add favorite/i }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: /rate 3 stars/i }));
     expect(mockSetRating).not.toHaveBeenCalled();
@@ -62,7 +75,7 @@ describe('PlayerBar', () => {
       { id: 's1', title: 'Now Playing', artistName: 'Artist', starred: true, rating: 4 } as any,
     ], 0);
 
-    render(<PlayerBar />);
+    renderPlayerBar();
     expect(screen.getByText('Now Playing')).toBeTruthy();
     expect((screen.getByRole('button', { name: /remove favorite/i }) as HTMLButtonElement).disabled).toBe(false);
   });
@@ -72,7 +85,7 @@ describe('PlayerBar', () => {
       { id: 's1', title: 'Now Playing', artistName: 'Artist', starred: false, rating: 0 } as any,
     ], 0);
 
-    render(<PlayerBar />);
+    renderPlayerBar();
     fireEvent.click(screen.getByRole('button', { name: /add favorite/i }));
     expect(mockSetFavorite).toHaveBeenCalledWith(true);
     await waitFor(() => expect(mockUpdateCurrentSong).toHaveBeenCalledWith({ starred: true }));
@@ -83,7 +96,7 @@ describe('PlayerBar', () => {
       { id: 's1', title: 'Now Playing', artistName: 'Artist', starred: false, rating: 0 } as any,
     ], 0);
 
-    render(<PlayerBar />);
+    renderPlayerBar();
     fireEvent.click(screen.getByRole('button', { name: /rate 3 stars/i }));
     expect(mockSetRating).toHaveBeenCalledWith(3);
     await waitFor(() => expect(mockUpdateCurrentSong).toHaveBeenCalledWith({ rating: 3 }));
@@ -101,7 +114,7 @@ describe('PlayerBar', () => {
       } as any,
     ], 0);
 
-    render(<PlayerBar />);
+    renderPlayerBar();
     const links = screen.getAllByRole('link');
     expect(links).toHaveLength(2);
     expect(links[0].getAttribute('href')).toBe('/artists/a1');
@@ -115,7 +128,7 @@ describe('PlayerBar', () => {
       { id: 's1', title: 'Now Playing', artistId: 'a1', artistName: 'Artist One' } as any,
     ], 0);
 
-    render(<PlayerBar />);
+    renderPlayerBar();
     const link = screen.getByRole('link');
     expect(link.getAttribute('href')).toBe('/artists/a1');
     expect(screen.getByText('Artist One')).toBeTruthy();
@@ -132,7 +145,7 @@ describe('PlayerBar', () => {
       } as any,
     ], 0);
 
-    render(<PlayerBar />);
+    renderPlayerBar();
     const albumLink = screen.getByRole('link', { name: 'Album' });
     const yearLink = screen.getByRole('link', { name: '2020' });
     expect(albumLink.getAttribute('href')).toBe('/albums/alb1');
@@ -145,13 +158,13 @@ describe('PlayerBar', () => {
       { id: 's1', title: 'Now Playing', year: 1999 } as any,
     ], 0);
 
-    render(<PlayerBar />);
+    renderPlayerBar();
     const yearLink = screen.getByRole('link', { name: '1999' });
     expect(yearLink.getAttribute('href')).toBe('/years/1999');
   });
 
   it('toggles Auto DJ on click, persists the change, and updates its visual state', () => {
-    render(<PlayerBar />);
+    renderPlayerBar();
     const djButton = screen.getByRole('button', { name: /auto dj/i });
     expect(djButton).toBeTruthy();
     expect(djButton.className).toContain('text-fg-secondary');
@@ -163,7 +176,7 @@ describe('PlayerBar', () => {
 
     mockPreferences.autoDjEnabled = true;
     cleanup();
-    render(<PlayerBar />);
+    renderPlayerBar();
     const activeDjButton = screen.getByRole('button', { name: /auto dj/i });
     expect(activeDjButton.className).toContain('text-accent');
     expect(activeDjButton.className).toContain('bg-accent/15');
@@ -173,7 +186,7 @@ describe('PlayerBar', () => {
   });
 
   it('opens the DJ mode menu on right click', () => {
-    render(<PlayerBar />);
+    renderPlayerBar();
     const djButton = screen.getByRole('button', { name: /auto dj/i });
 
     fireEvent.contextMenu(djButton);
@@ -184,7 +197,7 @@ describe('PlayerBar', () => {
   });
 
   it('selects a DJ mode and persists the change', () => {
-    render(<PlayerBar />);
+    renderPlayerBar();
     const djButton = screen.getByRole('button', { name: /auto dj/i });
 
     fireEvent.contextMenu(djButton);
@@ -198,7 +211,7 @@ describe('PlayerBar', () => {
       { id: 's1', title: 'Now Playing', artistName: 'Artist', coverArt: 'cover-1' } as any,
     ], 0);
 
-    render(<PlayerBar />);
+    renderPlayerBar();
     fireEvent.click(screen.getByRole('button', { name: /open now playing/i }));
     expect(useNowPlaying.getState().isOpen).toBe(true);
   });
@@ -208,7 +221,7 @@ describe('PlayerBar', () => {
       { id: 's1', title: 'Now Playing', artistName: 'Artist', coverArt: 'song-cover', albumCoverArt: 'album-cover' } as any,
     ], 0);
 
-    render(<PlayerBar />);
+    renderPlayerBar();
     expect(screen.getByAltText('Cover art for Now Playing').getAttribute('src')).toBe('/api/cover-art/album-cover');
   });
 
@@ -217,12 +230,12 @@ describe('PlayerBar', () => {
       { id: 's1', title: 'Now Playing', artistName: 'Artist', coverArt: 'song-cover' } as any,
     ], 0);
 
-    render(<PlayerBar />);
+    renderPlayerBar();
     expect(screen.getByAltText('Cover art for Now Playing').getAttribute('src')).toBe('/api/cover-art/song-cover');
   });
 
   it('renders the queue button when a user is provided', () => {
-    render(<PlayerBar user={mockUser} />, { wrapper: NotificationProvider });
+    renderPlayerBar({ user: mockUser });
     expect(screen.getByRole('button', { name: /queue/i })).toBeTruthy();
   });
 
@@ -231,7 +244,7 @@ describe('PlayerBar', () => {
       { id: 's1', title: 'Explicit Song', artistName: 'Artist', explicit: true } as any,
     ], 0);
 
-    render(<PlayerBar user={mockUser} />, { wrapper: NotificationProvider });
+    renderPlayerBar({ user: mockUser });
     expect(screen.getByText('Explicit Song')).toBeTruthy();
     expect(screen.getByLabelText('Explicit')).toBeTruthy();
   });
@@ -241,7 +254,7 @@ describe('PlayerBar', () => {
       { id: 's1', title: 'Clean Song', artistName: 'Artist', explicit: false } as any,
     ], 0);
 
-    render(<PlayerBar user={mockUser} />, { wrapper: NotificationProvider });
+    renderPlayerBar({ user: mockUser });
     expect(screen.getByText('Clean Song')).toBeTruthy();
     expect(screen.queryByLabelText('Explicit')).toBeNull();
   });
@@ -251,7 +264,7 @@ describe('PlayerBar', () => {
       { id: 's1', title: 'Explicit Song', artistName: 'Artist', explicit: true } as any,
     ], 0);
 
-    render(<PlayerBar user={{ ...mockUser, blurExplicitTitles: true }} />, { wrapper: NotificationProvider });
+    renderPlayerBar({ user: { ...mockUser, blurExplicitTitles: true } });
     const title = screen.getByText('Explicit Song');
     expect((title as HTMLElement).className.includes('blur-sm')).toBe(true);
   });
@@ -262,7 +275,7 @@ describe('PlayerBar', () => {
       { id: 's2', title: 'Up Next', artistName: 'Artist' } as any,
     ], 0);
 
-    render(<PlayerBar user={mockUser} />, { wrapper: NotificationProvider });
+    renderPlayerBar({ user: mockUser });
     fireEvent.click(screen.getByRole('button', { name: /queue/i }));
 
     expect(screen.getByRole('dialog', { name: /queue/i })).toBeTruthy();
@@ -276,7 +289,7 @@ describe('PlayerBar', () => {
       { id: 's2', title: 'Up Next', artistName: 'Artist' } as any,
     ], 0);
 
-    render(<PlayerBar user={mockUser} />, { wrapper: NotificationProvider });
+    renderPlayerBar({ user: mockUser });
     fireEvent.click(screen.getByRole('button', { name: /queue/i }));
     expect(screen.getByRole('dialog', { name: /queue/i })).toBeTruthy();
 
@@ -291,7 +304,7 @@ describe('PlayerBar', () => {
       { id: 's1', title: 'Now Playing', artistName: 'Artist' } as any,
     ], 0);
 
-    render(<PlayerBar />);
+    renderPlayerBar();
     const shuffleButton = screen.getByRole('button', { name: 'Shuffle' });
     expect(shuffleButton.className).not.toContain('text-accent');
     expect(shuffleButton.className).not.toContain('bg-accent/15');
@@ -300,7 +313,7 @@ describe('PlayerBar', () => {
     expect(usePlayer.getState().shuffle).toBe(true);
 
     cleanup();
-    render(<PlayerBar />);
+    renderPlayerBar();
     const activeShuffleButton = screen.getByRole('button', { name: 'Shuffle' });
     expect(activeShuffleButton.className).toContain('text-accent');
     expect(activeShuffleButton.className).toContain('bg-accent/15');
@@ -311,7 +324,7 @@ describe('PlayerBar', () => {
       { id: 's1', title: 'Now Playing', artistName: 'Artist' } as any,
     ], 0);
 
-    render(<PlayerBar />);
+    renderPlayerBar();
     const repeatButton = screen.getByRole('button', { name: /Repeat:/i });
     const repeatUse = repeatButton.querySelector('use');
     expect(repeatButton.className).not.toContain('text-accent');
@@ -322,7 +335,7 @@ describe('PlayerBar', () => {
     expect(usePlayer.getState().repeat).toBe('all');
 
     cleanup();
-    render(<PlayerBar />);
+    renderPlayerBar();
     const allRepeatButton = screen.getByRole('button', { name: /Repeat: all/i });
     const allRepeatUse = allRepeatButton.querySelector('use');
     expect(allRepeatButton.className).toContain('text-accent');
@@ -333,7 +346,7 @@ describe('PlayerBar', () => {
     expect(usePlayer.getState().repeat).toBe('one');
 
     cleanup();
-    render(<PlayerBar />);
+    renderPlayerBar();
     const oneRepeatButton = screen.getByRole('button', { name: /Repeat: one/i });
     const oneRepeatUse = oneRepeatButton.querySelector('use');
     expect(oneRepeatButton.className).toContain('text-accent');
