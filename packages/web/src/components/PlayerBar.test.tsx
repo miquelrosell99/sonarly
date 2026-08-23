@@ -206,14 +206,26 @@ describe('PlayerBar', () => {
     expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjMode: 'random' });
   });
 
-  it('opens the Now Playing overlay when the cover art is clicked', () => {
+  it('navigates to the now-playing URL when the cover art is clicked', () => {
     usePlayer.getState().playQueue([
       { id: 's1', title: 'Now Playing', artistName: 'Artist', coverArt: 'cover-1' } as any,
     ], 0);
 
     renderPlayerBar();
     fireEvent.click(screen.getByRole('button', { name: /open now playing/i }));
-    expect(useNowPlaying.getState().isOpen).toBe(true);
+    // No queue context here, so the lone-track URL shape is used; the route
+    // opens the overlay.
+    expect(window.location.pathname).toBe('/now-playing/s1');
+  });
+
+  it('navigates to the contextual now-playing URL when the queue has an origin', () => {
+    usePlayer.getState().playQueue([
+      { id: 's1', title: 'Track', artistName: 'Artist' } as any,
+    ], 0, false, { type: 'album', id: 'alb-1' });
+
+    renderPlayerBar();
+    fireEvent.click(screen.getByRole('button', { name: /open now playing/i }));
+    expect(window.location.pathname).toBe('/now-playing/album/alb-1/s1');
   });
 
   it('renders the album cover art when available', () => {
