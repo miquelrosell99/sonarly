@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { cn } from '../lib/cn.js';
+import { withShareToken } from '../lib/shareToken.js';
 import { Icon } from './ui/Icon.js';
 
 interface CoverArtProps {
@@ -29,7 +30,7 @@ export function CoverArt({ coverArt, alt, iconSize = 32, className }: CoverArtPr
   return (
     <div className={cn('aspect-square overflow-hidden bg-surface-hover', className)}>
       <img
-        src={`/api/cover-art/${coverArt}`}
+        src={withShareToken(`/api/cover-art/${coverArt}`)}
         alt={alt}
         loading="lazy"
         draggable={false}

@@ -119,6 +119,34 @@ function insertPlaylistSongs(db: Database.Database, playlistId: string, songIds:
   }
 }
 
+// A share token only ever authorizes content belonging to the link-shared
+// playlist it was minted for; both checks scope the EXISTS to that playlist.
+export function shareTokenGrantsSong(db: Database.Database, shareToken: string, songId: string): boolean {
+  const row = db.prepare(`
+    SELECT 1
+    FROM playlists p
+    JOIN playlist_songs ps ON ps.playlist_id = p.id
+    JOIN songs s ON s.id = ps.song_id AND s.active = 1
+    WHERE p.visibility = 'link' AND p.share_token = ? AND ps.song_id = ?
+    LIMIT 1
+  `).get(shareToken, songId);
+  return row !== undefined;
+}
+
+export function shareTokenGrantsCoverArt(db: Database.Database, shareToken: string, coverArtId: string): boolean {
+  const row = db.prepare(`
+    SELECT 1
+    FROM playlists p
+    JOIN playlist_songs ps ON ps.playlist_id = p.id
+    JOIN songs s ON s.id = ps.song_id AND s.active = 1
+    LEFT JOIN albums a ON a.id = s.album_id
+    WHERE p.visibility = 'link' AND p.share_token = ?
+      AND (s.cover_art_id = ? OR a.cover_art_id = ?)
+    LIMIT 1
+  `).get(shareToken, coverArtId, coverArtId);
+  return row !== undefined;
+}
+
 export function sharePlaylistWithUser(db: Database.Database, playlistId: string, userId: string, canEdit: boolean): void {
   db.prepare(`
     INSERT INTO playlist_shares (playlist_id, user_id, can_edit) VALUES (?, ?, ?)

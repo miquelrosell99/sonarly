@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import type { Album } from '@sonarly/shared';
 import { getUserById } from '../users/index.js';
 import { getCoverArtById } from '../cover-art/index.js';
+import { shareTokenGrantsCoverArt } from '../playlists/index.js';
 
 interface AlbumRow {
   id: string;
@@ -127,6 +128,13 @@ export function registerHomeRoutes(app: FastifyInstance, db: Database.Database):
 
   app.get('/api/cover-art/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
+    const userId = (request as any).session?.userId as string | undefined;
+    if (!userId) {
+      const { shareToken } = request.query as { shareToken?: string };
+      if (!shareToken || !shareTokenGrantsCoverArt(db, shareToken, id)) {
+        return reply.status(403).send({ error: 'Forbidden' });
+      }
+    }
     const coverArt = getCoverArtById(db, id);
     if (!coverArt) {
       return reply.status(404).send('Not found');
