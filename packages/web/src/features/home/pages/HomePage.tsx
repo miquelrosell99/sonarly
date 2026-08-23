@@ -51,7 +51,7 @@ function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) 
     setError(null);
     try {
       const detail = await api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
-      playSongs(detail.songs);
+      playSongs(detail.songs, undefined, undefined, { type: 'album', id: album.id });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to play album');
     }
@@ -61,7 +61,7 @@ function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) 
     setError(null);
     try {
       const detail = await api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
-      shufflePlay(detail.songs);
+      shufflePlay(detail.songs, { type: 'album', id: album.id });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to shuffle play album');
     }
@@ -258,7 +258,7 @@ function FeaturedAlbumSlide({ album, active }: FeaturedAlbumSlideProps) {
     setLoading(true);
     try {
       const detail = await api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
-      playSongs(detail.songs);
+      playSongs(detail.songs, undefined, undefined, { type: 'album', id: album.id });
     } finally {
       setLoading(false);
     }
