@@ -5,7 +5,9 @@ import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
 import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
+import { useLibraryStore } from '../stores/libraryStore.js';
 import { mergeSidebarItems } from '../lib/sidebar.js';
+import { LibrarySelector } from './LibrarySelector.js';
 
 interface SidebarProps {
   config: UserPreferences['sidebarConfig'];
@@ -75,6 +77,7 @@ export function Sidebar({ config, playlists, mobileOpen = false, onMobileClose }
   const { data: preferences } = usePreferences();
   const updatePreferences = useUpdatePreferences();
   const { open: openCreatePlaylist } = useCreatePlaylistModal();
+  const { libraries, selectedLibraryId, setSelectedLibraryId } = useLibraryStore();
   const items = mergeSidebarItems(config);
   const collapsed = preferences?.playlistsCollapsed ?? false;
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
@@ -110,6 +113,13 @@ export function Sidebar({ config, playlists, mobileOpen = false, onMobileClose }
 
   const body = (
     <div className="flex flex-1 flex-col overflow-hidden p-3">
+      <div className="mb-2 shrink-0 border-b border-rule pb-3">
+        <LibrarySelector
+          libraries={libraries}
+          selectedLibraryId={selectedLibraryId}
+          onSelect={setSelectedLibraryId}
+        />
+      </div>
       <nav className="space-y-0.5 overflow-y-auto">
         {orderedLibraryLinks.map((link) => (
           <SidebarNavLink

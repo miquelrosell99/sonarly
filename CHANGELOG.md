@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Statistics view redesigned: hero listening-time band with gradient display numeral and count-up, segmented range control, animated genre/year bars, interactive donut with synced legend hover, ranked top lists with proportional play-count bars, and staggered section reveals (all reduced-motion safe).
 - Home carousel: cover size capped on narrow screens, album titles clamp to two lines with ellipsis (full name in tooltip), and slide boxes can no longer overflow into neighbors.
 - Upload moved from the top bar into the user menu (between Statistics and Settings); the library selector collapses to an icon on narrow screens and the top-bar grid no longer squeezes the wordmark.
+- Library selector moved from the top bar to the top of the sidebar (and the mobile nav drawer), ending the narrow-screen overlap; the top bar is now just logo, search, and user actions.
+- Home carousel: "Featured albums" is now a section header above the carousel (matching ScrollRow headers), and the album text block top-aligns with the cover instead of bottom-aligning.
 
 ### Fixed
 
