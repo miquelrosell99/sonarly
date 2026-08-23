@@ -41,14 +41,16 @@ export function LibrarySelector({ libraries, selectedLibraryId, onSelect }: Libr
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-label={`Library: ${label}`}
+        title={label}
         className="flex items-center gap-1 rounded-lg p-2 text-sm font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:px-2 sm:py-1"
       >
         <Icon name="mdi-music-box-multiple" size={18} className="text-accent" />
-        <span className="hidden max-w-[8rem] truncate sm:block">{label}</span>
+        <span className="hidden max-w-[8rem] truncate lg:block">{label}</span>
         <Icon
           name="mdi-chevron-down"
           size={16}
-          className={cn('hidden text-fg-secondary transition-transform sm:block', open && 'rotate-180')}
+          className={cn('hidden text-fg-secondary transition-transform lg:block', open && 'rotate-180')}
         />
       </button>
 
