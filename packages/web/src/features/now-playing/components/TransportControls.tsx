@@ -24,6 +24,8 @@ export function TransportControls() {
   const seek = usePlayer((state) => state.seek);
   const toggleShuffle = usePlayer((state) => state.toggleShuffle);
   const cycleRepeat = usePlayer((state) => state.cycleRepeat);
+  const volume = usePlayer((state) => state.volume);
+  const setVolume = usePlayer((state) => state.setVolume);
 
   const isPlaying = status === 'playing';
   const hasTrack = currentSong !== null;
@@ -67,6 +69,24 @@ export function TransportControls() {
           className="h-2"
         />
         <span className="w-11 shrink-0 text-xs font-mono tabular-nums text-fg-secondary">{formatTime(displayDuration)}</span>
+      </div>
+      <div className={cn('flex items-center justify-center gap-1')}>
+        <ControlButton
+          onClick={() => setVolume(volume > 0 ? 0 : 1)}
+          label={volume > 0 ? 'Mute' : 'Unmute'}
+          className="h-11 w-11"
+        >
+          <Icon name={volume > 0 ? 'mdi-volume-high' : 'mdi-volume-mute'} size={20} />
+        </ControlButton>
+        <Slider
+          min={0}
+          max={1}
+          step={0.01}
+          value={volume}
+          onChange={setVolume}
+          ariaLabel="Volume"
+          className="w-28"
+        />
       </div>
     </div>
   );
