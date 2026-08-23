@@ -22,6 +22,7 @@ export function AudioController() {
   const status = usePlayer((state) => state.status);
   const volume = usePlayer((state) => state.volume);
   const currentTime = usePlayer((state) => state.currentTime);
+  const duration = usePlayer((state) => state.duration);
 
   const play = usePlayer((state) => state.play);
   const setStatus = usePlayer((state) => state.setStatus);
@@ -112,6 +113,17 @@ export function AudioController() {
       ['pause', () => usePlayer.getState().pause()],
       ['previoustrack', () => usePlayer.getState().previous()],
       ['nexttrack', () => usePlayer.getState().next()],
+      ['seekto', (details) => {
+        if (details.seekTime !== undefined) usePlayer.getState().seek(details.seekTime);
+      }],
+      ['seekbackward', () => {
+        const s = usePlayer.getState();
+        s.seek(Math.max(0, s.currentTime - 10));
+      }],
+      ['seekforward', () => {
+        const s = usePlayer.getState();
+        s.seek(Math.min(s.duration || s.currentTime + 10, s.currentTime + 10));
+      }],
     ];
     for (const [action, handler] of handlers) {
       try {
@@ -145,6 +157,27 @@ export function AudioController() {
       artwork: coverId ? [{ src: withShareToken(`/api/cover-art/${coverId}`), sizes: '512x512' }] : [],
     });
   }, [currentSong?.id]);
+
+  // Lock-screen/notification playback state + progress bar.
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    navigator.mediaSession.playbackState = status === 'playing' ? 'playing' : 'paused';
+  }, [status]);
+
+  const positionSecond = Math.floor(currentTime);
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || !('setPositionState' in navigator.mediaSession)) return;
+    if (!duration || !Number.isFinite(duration) || duration <= 0) return;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration,
+        position: Math.min(currentTime, duration),
+        playbackRate: 1,
+      });
+    } catch {
+      // Invalid position state (e.g. position beyond duration) — ignore.
+    }
+  }, [positionSecond, duration]);
 
   useEffect(() => {
     return () => {

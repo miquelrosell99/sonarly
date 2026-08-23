@@ -27,6 +27,7 @@ interface PlayerActions {
   playNext: (song: PlayerSong | PlayerSong[]) => void;
   addToQueue: (songs: PlayerSong[], options?: { addedByAutoDj?: boolean }) => void;
   removeAutoDjItems: () => void;
+  clearQueue: () => void;
   togglePlay: () => void;
   play: () => void;
   pause: () => void;
@@ -178,6 +179,16 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
           nextShuffled = [...shuffledIndices, ...shuffleArray(newIndices)];
         }
         set({ queue: nextQueue, shuffledIndices: nextShuffled });
+      },
+
+      clearQueue: () => {
+        const { currentSong, shuffle } = get();
+        // Spotify-style: keep the current track playing, drop the rest.
+        set({
+          queue: currentSong ? [currentSong] : [],
+          queueIndex: 0,
+          shuffledIndices: shuffle ? [0] : [],
+        });
       },
 
       removeAutoDjItems: () => {
