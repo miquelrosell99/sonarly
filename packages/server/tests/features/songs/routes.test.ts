@@ -11,6 +11,7 @@ import { upsertSong } from '../../../src/features/songs/repository.js';
 import { upsertArtist } from '../../../src/features/artists/repository.js';
 import { upsertAlbum } from '../../../src/features/albums/repository.js';
 import { registerDefaultWriters } from '../../../src/features/tags/index.js';
+import { createPlaylist } from '../../../src/features/playlists/repository.js';
 import type { Config } from '../../../src/config.js';
 
 registerDefaultWriters();
@@ -413,5 +414,88 @@ describe('management song endpoints', () => {
       payload: body,
     });
     expect(res.statusCode).toBe(403);
+  });
+
+  describe('GET /api/stream/:id share-token access', () => {
+    const SHARE_TOKEN = 'share-token-123';
+
+    function seedSharedPlaylist() {
+      upsertSong(db, {
+        id: 'song-2',
+        filePath: join(config.LIBRARY_PATH, 'song2.mp3'),
+        title: 'Other Track',
+        artistId: 'artist-1',
+        mtime: Date.now(),
+        checksum: 'checksum-2',
+      });
+      createPlaylist(db, {
+        id: 'playlist-1',
+        name: 'Link',
+        ownerId: 'user-1',
+        visibility: 'link',
+        shareToken: SHARE_TOKEN,
+        songIds: ['song-1'],
+        isSmart: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    it('streams a song in the linked playlist to anonymous token holders', async () => {
+      seedSharedPlaylist();
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/stream/song-1?shareToken=${SHARE_TOKEN}`,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['accept-ranges']).toBe('bytes');
+      expect(res.rawPayload.length).toBeGreaterThan(0);
+    });
+
+    it('supports range requests with a share token', async () => {
+      seedSharedPlaylist();
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/stream/song-1?shareToken=${SHARE_TOKEN}`,
+        headers: { range: 'bytes=0-99' },
+      });
+      expect(res.statusCode).toBe(206);
+      expect(res.rawPayload.length).toBe(100);
+    });
+
+    it('rejects a song outside the linked playlist', async () => {
+      seedSharedPlaylist();
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/stream/song-2?shareToken=${SHARE_TOKEN}`,
+      });
+      expect(res.statusCode).toBe(403);
+    });
+
+    it('rejects an unknown share token', async () => {
+      seedSharedPlaylist();
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/stream/song-1?shareToken=wrong-token',
+      });
+      expect(res.statusCode).toBe(403);
+    });
+
+    it('rejects anonymous requests without a share token', async () => {
+      seedSharedPlaylist();
+      const res = await app.inject({ method: 'GET', url: '/api/stream/song-1' });
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('still streams for signed-in users', async () => {
+      seedSharedPlaylist();
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/stream/song-2',
+        cookies: { sessionId: cookieValue },
+      });
+      // song-2 has no file on disk, but auth must pass before the 404.
+      expect(res.statusCode).toBe(404);
+    });
   });
 });

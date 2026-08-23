@@ -268,9 +268,9 @@ function FeaturedAlbumSlide({ album, active }: FeaturedAlbumSlideProps) {
     <div
       ref={(el) => el?.toggleAttribute('inert', !active)}
       aria-hidden={!active || undefined}
-      className="relative z-10 flex w-full shrink-0 flex-col gap-6 md:flex-row md:items-end"
+      className="relative z-10 flex w-full min-w-0 shrink-0 flex-col gap-4 md:flex-row md:items-end md:gap-6"
     >
-      <div className="shrink-0 overflow-hidden rounded-2xl shadow-2xl shadow-black/30 md:w-64 lg:w-72">
+      <div className="w-40 shrink-0 overflow-hidden rounded-2xl shadow-2xl shadow-black/30 sm:w-52 md:w-64 lg:w-72">
         <CoverArt
           coverArt={album.coverArt}
           alt={`Cover art for ${album.name}`}
@@ -282,12 +282,15 @@ function FeaturedAlbumSlide({ album, active }: FeaturedAlbumSlideProps) {
         <span className="text-xs font-semibold uppercase tracking-widest text-fg-secondary">
           Featured album
         </span>
-        <h2 className="font-display text-4xl font-bold tracking-tight text-fg-primary md:text-5xl lg:text-6xl">
+        <h2
+          className="line-clamp-2 break-words font-display text-2xl font-bold tracking-tight text-fg-primary sm:text-4xl md:text-5xl lg:text-6xl"
+          title={album.name}
+        >
           <Link href={`/albums/${album.id}`} className="hover:text-muted">
             {album.name}
           </Link>
         </h2>
-        <p className="text-lg text-fg-secondary">
+        <p className="truncate text-base text-fg-secondary sm:text-lg">
           {album.artistId ? (
             <Link href={`/artists/${album.artistId}`} className="hover:text-muted">
               {album.artistName ?? 'Unknown artist'}
@@ -393,7 +396,7 @@ function FeaturedAlbum({ albums }: { albums: Album[] }) {
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
-      className="relative mb-8 overflow-hidden rounded-3xl px-6 pb-6 pt-6"
+      className="relative mb-8 overflow-hidden rounded-3xl p-4 sm:p-6"
       style={
         dominantColor
           ? ({

@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mobile navigation drawer, mobile search affordance, responsive player bar, and a skip-to-content link.
 - Login throttling against brute force, session regeneration on login/setup, session invalidation on user delete/demote, and a periodic expired-session sweep.
 - Performance indexes (migration 044): `songs(checksum)`, `songs(library_id)`, `albums(name)`.
+- Full anonymous access for link-shared playlists: `/playlists/:id?shareToken=…` renders a guest view (cover grid, track list, playback) without an account; cover-art and the new `/api/stream/:id` endpoint authorize the token scoped to the linked playlist's own songs.
 
 ### Changed
 
@@ -33,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OpenSubsonic XML responses now use attribute-based serialization matching the Subsonic schema; `getAlbumList` types order correctly; song `path` is library-relative.
 - Transcode bitrate math corrected (stored bits/sec vs kbps comparisons).
 - Web API client moved to `src/lib/api.ts`; all pages route loading/error/empty states through `PageState`.
+- Statistics view redesigned: hero listening-time band with gradient display numeral and count-up, segmented range control, animated genre/year bars, interactive donut with synced legend hover, ranked top lists with proportional play-count bars, and staggered section reveals (all reduced-motion safe).
+- Home carousel: cover size capped on narrow screens, album titles clamp to two lines with ellipsis (full name in tooltip), and slide boxes can no longer overflow into neighbors.
+- Upload moved from the top bar into the user menu (between Statistics and Settings); the library selector collapses to an icon on narrow screens and the top-bar grid no longer squeezes the wordmark.
 
 ### Fixed
 

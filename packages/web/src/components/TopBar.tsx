@@ -18,6 +18,7 @@ interface TopBarProps {
   user: User;
   onLogout: () => void;
   onMenuClick?: () => void;
+  onUpload?: () => void;
 }
 
 interface PlaylistListItem {
@@ -107,7 +108,7 @@ function PlayersDropdown({ user }: { user: User }) {
   );
 }
 
-function UserMenu({ user, onLogout }: TopBarProps) {
+function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
   const [open, setOpen] = useState(false);
   const [, setLocation] = useLocation();
   const ref = useRef<HTMLDivElement>(null);
@@ -212,6 +213,17 @@ function UserMenu({ user, onLogout }: TopBarProps) {
             <Icon name="mdi-chart-bar" size={18} className="text-fg-secondary" />
             Statistics
           </button>
+          {user.isAdmin && onUpload && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => { setOpen(false); onUpload(); }}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+            >
+              <Icon name="mdi-upload" size={18} className="text-fg-secondary" />
+              Upload
+            </button>
+          )}
           <button
             type="button"
             role="menuitem"
@@ -367,8 +379,8 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
   }, [loadLibraries]);
 
   return (
-    <header className="relative z-50 grid h-16 shrink-0 grid-cols-[1fr_2fr_1fr] items-center gap-4 bg-bg-primary/80 px-6 backdrop-blur-md">
-      <div className="flex items-center gap-2">
+    <header className="relative z-50 grid h-16 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-4 bg-bg-primary/80 px-4 backdrop-blur-md sm:grid-cols-[1fr_2fr_1fr] sm:px-6">
+      <div className="flex min-w-0 items-center gap-2">
         <button
           type="button"
           onClick={onMenuClick}
@@ -412,20 +424,9 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
         >
           <Icon name="mdi-magnify" size={20} />
         </Link>
-        {user.isAdmin && (
-          <button
-            type="button"
-            onClick={() => setUploadOpen(true)}
-            title="Upload"
-            aria-label="Upload"
-            className="flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          >
-            <Icon name="mdi-upload" size={20} />
-          </button>
-        )}
         <SponsorButton />
         <PlayersDropdown user={user} />
-        <UserMenu user={user} onLogout={onLogout} />
+        <UserMenu user={user} onLogout={onLogout} onUpload={() => setUploadOpen(true)} />
       </div>
 
       <UploadModal
