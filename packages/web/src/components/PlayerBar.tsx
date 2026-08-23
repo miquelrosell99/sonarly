@@ -1,4 +1,4 @@
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import type { AutoDjMode, User } from '@sonarly/shared';
 import { Icon } from './ui/Icon.js';
 import { CoverArt } from './CoverArt.js';
@@ -53,6 +53,19 @@ export function PlayerBar({ user }: PlayerBarProps) {
   const updatePreferences = useUpdatePreferences();
 
   const openNowPlaying = useNowPlaying((state) => state.open);
+  const queueContext = usePlayer((state) => state.queueContext);
+  const [, setLocation] = useLocation();
+
+  // When the queue has a known origin, opening Now Playing goes through the
+  // /now-playing/<context>/<id>/<song> route so the URL carries the context
+  // (and the overlay becomes back-button/refresh/share friendly).
+  const handleOpenNowPlaying = () => {
+    if (queueContext && currentSong) {
+      setLocation(`/now-playing/${queueContext.type}/${queueContext.id}/${currentSong.id}`);
+    } else {
+      openNowPlaying();
+    }
+  };
 
   const isPlaying = status === 'playing';
   const hasTrack = currentSong !== null;
@@ -97,7 +110,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
             <>
               <button
                 type="button"
-                onClick={openNowPlaying}
+                onClick={handleOpenNowPlaying}
                 aria-label="Open Now Playing"
                 className="h-14 w-14 shrink-0 overflow-hidden rounded-md shadow-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
