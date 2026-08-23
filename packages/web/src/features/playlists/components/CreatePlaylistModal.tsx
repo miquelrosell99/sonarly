@@ -1,16 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { PlaylistVisibility, SmartPlaylistRules } from '@sonarly/shared';
+import type { SmartPlaylistRules } from '@sonarly/shared';
 import { api } from '../../../lib/api.js';
 import { Modal } from '../../../components/ui/Modal.js';
+import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
-import { Checkbox } from '../../../components/ui/Checkbox.js';
+import { cn } from '../../../lib/cn.js';
 
 import { SmartPlaylistBlockEditor } from './SmartPlaylistBlockEditor.js';
 import { usePlaylist } from '../../../hooks/usePlaylist.js';
-
-const VISIBILITIES: PlaylistVisibility[] = ['private', 'shared', 'public', 'link'];
 
 interface CreatePlaylistModalProps {
   open: boolean;
@@ -30,9 +29,9 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [visibility, setVisibility] = useState<PlaylistVisibility>('private');
   const [isSmart, setIsSmart] = useState(false);
   const [rules, setRules] = useState<SmartPlaylistRules>(DEFAULT_RULES);
+  const [pendingMode, setPendingMode] = useState<'standard' | 'smart' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const wasOpenRef = useRef(open);
   const wasEditingRef = useRef(isEditing);
@@ -42,31 +41,44 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
       if (isEditing && playlist) {
         setName(playlist.name);
         setDescription(playlist.description ?? '');
-        setVisibility(playlist.visibility);
         setIsSmart(playlist.isSmart ?? false);
         setRules(playlist.rules ?? DEFAULT_RULES);
       } else if (!isEditing) {
         setName('');
         setDescription('');
-        setVisibility('private');
         setIsSmart(false);
         setRules(DEFAULT_RULES);
       }
       setError(null);
+      setPendingMode(null);
     }
     wasOpenRef.current = open;
     wasEditingRef.current = isEditing;
   }, [open, isEditing, playlist]);
+
+  const requestModeSwitch = (target: 'standard' | 'smart') => {
+    if (target === 'smart' ? isSmart : !isSmart) return;
+    setPendingMode(target);
+  };
+
+  const confirmModeSwitch = () => {
+    if (pendingMode === 'smart') {
+      setIsSmart(true);
+    } else if (pendingMode === 'standard') {
+      setIsSmart(false);
+      setRules(DEFAULT_RULES);
+    }
+    setPendingMode(null);
+  };
 
   const save = useMutation({
     mutationFn: async () => {
       const body: Record<string, unknown> = {
         name: name.trim(),
         description: description.trim(),
-        visibility,
+        isSmart,
       };
       if (isSmart) {
-        body.isSmart = true;
         body.rules = rules;
       }
 
@@ -89,9 +101,9 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
       }
       setName('');
       setDescription('');
-      setVisibility('private');
       setIsSmart(false);
       setRules(DEFAULT_RULES);
+      setPendingMode(null);
       setError(null);
       onClose();
     },
@@ -166,34 +178,48 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
             />
           </div>
           <div>
-            <label htmlFor="create-playlist-visibility" className="mb-1.5 block text-sm font-medium text-fg-secondary">
-              Visibility
-            </label>
-            <select
-              id="create-playlist-visibility"
-              value={visibility}
-              onChange={(e) => setVisibility(e.target.value as PlaylistVisibility)}
-              disabled={save.isPending || loadingPlaylist}
-              className="input w-full"
-            >
-              {VISIBILITIES.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
+            <span className="mb-1.5 block text-sm font-medium text-fg-secondary">Playlist type</span>
+            <div role="group" aria-label="Playlist type" className="inline-flex rounded-full border border-rule bg-surface p-1">
+              {(['standard', 'smart'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  aria-pressed={isSmart === (mode === 'smart')}
+                  onClick={() => requestModeSwitch(mode)}
+                  disabled={save.isPending || loadingPlaylist}
+                  className={cn(
+                    'rounded-full px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                    isSmart === (mode === 'smart')
+                      ? 'bg-accent text-bg-primary'
+                      : 'text-fg-secondary hover:text-fg-primary',
+                  )}
+                >
+                  {mode === 'smart' ? 'Smart' : 'Standard'}
+                </button>
               ))}
-            </select>
+            </div>
+            <p className="mt-1.5 text-xs text-fg-secondary">
+              {isSmart
+                ? 'Automatically populated based on rules.'
+                : 'You choose which tracks belong to this playlist.'}
+            </p>
           </div>
-          <Checkbox
-            id="create-playlist-smart"
-            label="Smart playlist"
-            description="Automatically populate this playlist based on rules"
-            checked={isSmart}
-            onChange={(e) => setIsSmart(e.target.checked)}
-            disabled={save.isPending || loadingPlaylist || isEditing}
-          />
           {isSmart && <SmartPlaylistBlockEditor initialRules={rules} onChange={setRules} />}
         </form>
       )}
+      <ConfirmModal
+        open={pendingMode !== null}
+        onClose={() => setPendingMode(null)}
+        title={pendingMode === 'smart' ? 'Convert to smart playlist?' : 'Convert to standard playlist?'}
+        message={
+          pendingMode === 'smart'
+            ? 'All current members will be removed and the playlist will be populated automatically from the rules you define.'
+            : 'The current tracks will be kept as members and the smart rules will be cleared.'
+        }
+        confirmLabel={pendingMode === 'smart' ? 'Convert to smart' : 'Convert to standard'}
+        danger={pendingMode === 'smart'}
+        onConfirm={confirmModeSwitch}
+      />
     </Modal>
   );
 }

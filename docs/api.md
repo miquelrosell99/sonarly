@@ -751,9 +751,9 @@ List playlists visible to the current user.
 
 #### `GET /api/playlists/:id`
 
-Get a playlist and its entries. Public/shared/link playlists can be accessed by other users; link playlists require the matching `shareToken`.
+Get a playlist and its entries. Public/shared playlists can be accessed by other users; any playlist with a share token set can be accessed anonymously via the matching `shareToken`, independent of its visibility.
 
-**Query:** `?shareToken=string` (required for `link` visibility when not owner)
+**Query:** `?shareToken=string` (required for anonymous access to non-public playlists)
 
 **Response:** `200 OK`
 
@@ -839,6 +839,22 @@ Share a playlist with another user.
 #### `DELETE /api/playlists/:id/share/:userId`
 
 Revoke a share.
+
+**Response:** `200 OK` `{ "ok": true }`
+
+---
+
+#### `POST /api/playlists/:id/share-link`
+
+**Owner only.** Generate a share token for the playlist, or regenerate it (invalidating the previous link). The token works independently of the playlist's `visibility`.
+
+**Response:** `200 OK` `{ "shareToken": "uuid" }`
+
+---
+
+#### `DELETE /api/playlists/:id/share-link`
+
+**Owner only.** Revoke the share token; existing links stop working.
 
 **Response:** `200 OK` `{ "ok": true }`
 

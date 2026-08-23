@@ -95,7 +95,7 @@ export function QueueModal({ user }: QueueModalProps) {
             aria-label="Queue"
             style={style}
             className={cn(
-              'fixed z-50 flex w-80 max-h-[60vh] flex-col overflow-hidden rounded-xl border border-rule/50 bg-surface shadow-2xl',
+              'fixed z-50 flex w-[min(20rem,calc(100vw-1rem))] max-h-[60vh] flex-col overflow-hidden rounded-xl border border-rule/50 bg-surface shadow-2xl',
             )}
           >
             <div className="flex items-center justify-between border-b border-rule/50 px-3 py-2">
