@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upload moved from the top bar into the user menu (between Statistics and Settings); the library selector collapses to an icon on narrow screens and the top-bar grid no longer squeezes the wordmark.
 - Library selector moved from the top bar to the top of the sidebar (and the mobile nav drawer), ending the narrow-screen overlap; the top bar is now just logo, search, and user actions.
 - Home carousel: "Featured albums" is now a section header above the carousel (matching ScrollRow headers), and the album text block top-aligns with the cover instead of bottom-aligning.
+- Now Playing redesign: responsive hero layout (stacked, scrollable on narrow windows), cover scale-in transition, segmented Queue/Lyrics tabs, accent play button hierarchy, distance-faded synced lyrics, and narrow-safe queue modal.
+- Synced lyrics editor rebuilt as a vertical waveform timeline: the song's waveform (decoded client-side) scrolls under a pinned center "now" line, lyric lines are pills tethered to their timestamp by a connector and dot, click a pill to edit its text in a modal, drag to retime, and an insert button adds a pill at the current position. Full-screen on phones; LRCLIB auto-fill kept.
+- Playlist sharing reworked into a two-tab modal: Members (public toggle for read access by all users, per-user list with view/edit role dropdowns, add-user search) and Share links (generate/regenerate/revoke tokenized links). Share tokens now authorize independently of the visibility setting.
+- Playlist type is a Standard/Smart pill selector in the playlist modal: smart→standard keeps the current tracks as members (with confirmation), standard→smart clears members (with confirmation), and the query builder only shows in smart mode. Visibility was removed from edit modals — it's managed by sharing.
 
 ### Fixed
 
