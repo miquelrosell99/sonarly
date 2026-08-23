@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scanner deactivating the whole library when a drive is unmounted; library path prefix matching (`/music` claiming `/music2`); dotfile ingestion of temp files.
 - Tag writer: OGG cover art base64, duplicate MP3 APIC frames, m4a cover format, mutagen hang timeout.
 - Search error state never displayed (infinite loading), Auto DJ stale-add race, empty-queue "Play next" stranding tracks.
+- Listening time always showed 0m: web scrobbles never sent `durationListened`, so every `listening_history` row had NULL duration. The player now reports seconds listened + completion, and migration 047 backfills existing plays from song durations.
 
 ### Removed
 

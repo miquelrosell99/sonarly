@@ -202,20 +202,26 @@ export function AudioController() {
     if (duration <= 0) return;
     const threshold = Math.min(duration * SCROBBLE_MIN_FRACTION, SCROBBLE_MAX_SECONDS);
     if (audio.currentTime >= threshold) {
-      scrobble(currentSong.id);
+      scrobble(currentSong.id, audio.currentTime, duration);
     }
   };
 
-  const scrobble = (songId: string) => {
+  const scrobble = (songId: string, listenedSeconds?: number, trackDuration?: number) => {
     if (songId === lastScrobbledRef.current) return;
-    api(`/songs/${songId}/scrobble`, { method: 'POST' }).catch(() => {});
+    const body: Record<string, unknown> = { client: 'web', source: 'web' };
+    if (listenedSeconds !== undefined && trackDuration && trackDuration > 0) {
+      body.durationListened = Math.round(listenedSeconds);
+      body.completion = Math.min(1, listenedSeconds / trackDuration);
+    }
+    api(`/songs/${songId}/scrobble`, { method: 'POST', body: JSON.stringify(body) }).catch(() => {});
     lastScrobbledRef.current = songId;
   };
 
   const handleEnded = () => {
     clearStalledTimer();
     if (currentSong) {
-      scrobble(currentSong.id);
+      const duration = audioRef.current?.duration || currentSong.duration || 0;
+      scrobble(currentSong.id, duration, duration);
     }
     // Repeat-one replays the same song id, so the song-change effect never
     // resets the scrobble guard; reset it here or replays never scrobble.
