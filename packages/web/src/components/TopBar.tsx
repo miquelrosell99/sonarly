@@ -7,7 +7,6 @@ import { Icon } from './ui/Icon.js';
 import { api } from '../lib/api.js';
 import { Avatar } from './Avatar.js';
 import { SearchBox } from './SearchBox.js';
-import { LibrarySelector } from './LibrarySelector.js';
 import { SponsorButton } from './SponsorButton.js';
 import { UploadModal, UploadResultsModal, type UploadSummary } from './UploadModal.js';
 import { useLibraryStore, buildLibraryQuery } from '../stores/libraryStore.js';
@@ -372,7 +371,7 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
   const [resultsOpen, setResultsOpen] = useState(false);
   const [uploadSummary, setUploadSummary] = useState<UploadSummary | null>(null);
   const filters = useFilterDefinitions(location);
-  const { libraries, selectedLibraryId, setSelectedLibraryId, loadLibraries } = useLibraryStore();
+  const { libraries, selectedLibraryId, loadLibraries } = useLibraryStore();
 
   useEffect(() => {
     loadLibraries().catch(() => undefined);
@@ -400,11 +399,6 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
           />
           <span className="hidden font-display min-[420px]:block">Sonarly</span>
         </Link>
-        <LibrarySelector
-          libraries={libraries}
-          selectedLibraryId={selectedLibraryId}
-          onSelect={setSelectedLibraryId}
-        />
       </div>
 
       <div className="relative hidden w-full max-w-xl justify-self-center sm:block">

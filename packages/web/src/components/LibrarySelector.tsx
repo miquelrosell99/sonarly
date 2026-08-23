@@ -43,21 +43,21 @@ export function LibrarySelector({ libraries, selectedLibraryId, onSelect }: Libr
         aria-expanded={open}
         aria-label={`Library: ${label}`}
         title={label}
-        className="flex items-center gap-1 rounded-lg p-2 text-sm font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:px-2 sm:py-1"
+        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
-        <Icon name="mdi-music-box-multiple" size={18} className="text-accent" />
-        <span className="hidden max-w-[8rem] truncate lg:block">{label}</span>
+        <Icon name="mdi-music-box-multiple" size={18} className="shrink-0 text-accent" />
+        <span className="min-w-0 flex-1 truncate text-left">{label}</span>
         <Icon
           name="mdi-chevron-down"
           size={16}
-          className={cn('hidden text-fg-secondary transition-transform lg:block', open && 'rotate-180')}
+          className={cn('shrink-0 text-fg-secondary transition-transform', open && 'rotate-180')}
         />
       </button>
 
       {open && (
         <div
           role="listbox"
-          className="absolute left-0 top-full z-40 mt-2 w-56 rounded-xl border border-rule bg-surface p-1 shadow-xl"
+          className="absolute left-0 top-full z-40 mt-2 w-full rounded-xl border border-rule bg-surface p-1 shadow-xl"
         >
           <button
             type="button"

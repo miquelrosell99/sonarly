@@ -268,7 +268,7 @@ function FeaturedAlbumSlide({ album, active }: FeaturedAlbumSlideProps) {
     <div
       ref={(el) => el?.toggleAttribute('inert', !active)}
       aria-hidden={!active || undefined}
-      className="relative z-10 flex w-full min-w-0 shrink-0 flex-col gap-4 md:flex-row md:items-end md:gap-6"
+      className="relative z-10 flex w-full min-w-0 shrink-0 flex-col gap-4 md:flex-row md:items-start md:gap-6"
     >
       <div className="w-40 shrink-0 overflow-hidden rounded-2xl shadow-2xl shadow-black/30 sm:w-52 md:w-64 lg:w-72">
         <CoverArt
@@ -279,9 +279,6 @@ function FeaturedAlbumSlide({ album, active }: FeaturedAlbumSlideProps) {
         />
       </div>
       <div className="flex min-w-0 flex-col gap-3">
-        <span className="text-xs font-semibold uppercase tracking-widest text-fg-secondary">
-          Featured album
-        </span>
         <h2
           className="line-clamp-2 break-words font-display text-2xl font-bold tracking-tight text-fg-primary sm:text-4xl md:text-5xl lg:text-6xl"
           title={album.name}
@@ -389,14 +386,16 @@ function FeaturedAlbum({ albums }: { albums: Album[] }) {
   if (!album) return null;
 
   return (
-    <section
-      aria-roledescription="carousel"
-      aria-label="Featured albums"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
-      onBlur={() => setPaused(false)}
-      className="relative mb-8 overflow-hidden rounded-3xl p-4 sm:p-6"
+    <div className="mb-8">
+      <h2 className="mb-4 font-display text-xl font-bold tracking-tight">Featured albums</h2>
+      <section
+        aria-roledescription="carousel"
+        aria-label="Featured albums"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        onFocus={() => setPaused(true)}
+        onBlur={() => setPaused(false)}
+        className="relative overflow-hidden rounded-3xl p-4 sm:p-6"
       style={
         dominantColor
           ? ({
@@ -433,7 +432,8 @@ function FeaturedAlbum({ albums }: { albums: Album[] }) {
           ))}
         </div>
       )}
-    </section>
+      </section>
+    </div>
   );
 }
 
