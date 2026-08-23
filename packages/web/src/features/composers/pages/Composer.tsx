@@ -39,10 +39,10 @@ export function Composer() {
 
   const actions = tracks.length > 0 && (
     <>
-      <PlayButton variant="default" onPlay={() => playSongs(tracks as Song[])}>
+      <PlayButton variant="default" onPlay={() => playSongs(tracks as Song[], undefined, undefined, { type: 'composer', id: composer })}>
         Play all
       </PlayButton>
-      <Button variant="ghost" onClick={() => shufflePlay(tracks as Song[])}>
+      <Button variant="ghost" onClick={() => shufflePlay(tracks as Song[], { type: 'composer', id: composer })}>
         Shuffle
       </Button>
     </>

@@ -54,7 +54,7 @@ interface PlayerActions {
 }
 
 export interface QueueContext {
-  type: 'playlist' | 'album' | 'genre';
+  type: 'playlist' | 'album' | 'genre' | 'composer' | 'label';
   id: string;
 }
 
