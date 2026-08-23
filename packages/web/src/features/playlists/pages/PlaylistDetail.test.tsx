@@ -61,7 +61,7 @@ function renderPlaylistDetail() {
 describe('PlaylistDetail', () => {
   beforeEach(() => {
     mockApi.mockImplementation(async (path: string) => {
-      if (path === '/playlists/playlist-1') {
+      if (path === '/playlists/playlist-1' || path.startsWith('/playlists/playlist-1?')) {
         return {
           playlist: {
             id: 'playlist-1',
@@ -94,5 +94,27 @@ describe('PlaylistDetail', () => {
 
     expect(screen.getByRole('menu')).toBeTruthy();
     expect(screen.getByRole('menuitem', { name: /play$/i })).toBeTruthy();
+  });
+
+  it('hides account-only actions from anonymous guests', async () => {
+    window.history.pushState({}, '', '/playlists/playlist-1?shareToken=token-123');
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <NotificationProvider>
+            <Route path="/playlists/:id" component={() => <PlaylistDetail user={null} />} />
+          </NotificationProvider>
+        </Router>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Track One')).toBeTruthy();
+    });
+
+    expect(screen.getAllByRole('button', { name: 'Play (hold to shuffle)' }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: /edit/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /share/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /favorite/i })).toBeNull();
   });
 });

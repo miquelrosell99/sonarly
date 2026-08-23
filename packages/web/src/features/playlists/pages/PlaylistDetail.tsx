@@ -63,7 +63,7 @@ function PlaylistSongContextMenu({
 }
 
 interface PlaylistDetailProps {
-  user: User;
+  user: User | null;
 }
 
 export function PlaylistDetail({ user }: PlaylistDetailProps) {
@@ -82,8 +82,8 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const blurExplicitTitles = user.blurExplicitTitles === true;
-  const isOwner = playlist?.ownerId === user.id;
+  const blurExplicitTitles = user?.blurExplicitTitles === true;
+  const isOwner = user !== null && playlist?.ownerId === user.id;
 
   const displayEntries: DisplaySong[] = playlist?.entries.map((entry) => ({
     ...entry,
@@ -219,23 +219,27 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
             >
               Play
             </PlayButton>
-            <Button variant="ghost" onClick={() => openForEdit(playlist.id)}>
-              <Icon name="mdi-pencil" size={18} className="mr-1.5" />
-              Edit
-            </Button>
-            {isOwner && (
-              <Button variant="ghost" onClick={() => setShareOpen(true)}>
-                <Icon name="mdi-share-variant" size={18} className="mr-1.5" />
-                Share
-              </Button>
+            {user && (
+              <>
+                <Button variant="ghost" onClick={() => openForEdit(playlist.id)}>
+                  <Icon name="mdi-pencil" size={18} className="mr-1.5" />
+                  Edit
+                </Button>
+                {isOwner && (
+                  <Button variant="ghost" onClick={() => setShareOpen(true)}>
+                    <Icon name="mdi-share-variant" size={18} className="mr-1.5" />
+                    Share
+                  </Button>
+                )}
+                <FavoriteRatingGroup
+                  starred={playlist.starred}
+                  onToggleFavorite={() => handleFavorite(!playlist.starred)}
+                  rating={playlist.rating}
+                  onRate={(rating) => handleRate(rating || undefined)}
+                  favoriteLabel={playlist.name}
+                />
+              </>
             )}
-            <FavoriteRatingGroup
-              starred={playlist.starred}
-              onToggleFavorite={() => handleFavorite(!playlist.starred)}
-              rating={playlist.rating}
-              onRate={(rating) => handleRate(rating || undefined)}
-              favoriteLabel={playlist.name}
-            />
           </>
         )
       }
@@ -257,7 +261,7 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
         )
       }
       renderHeader={(header) =>
-        playlist ? (
+        playlist && user ? (
           <PlaylistHeaderContextMenu
             playlist={playlist}
             onEdit={() => openForEdit(playlist.id)}
@@ -277,11 +281,15 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
         onPlay={handlePlay}
         onShufflePlay={handleShufflePlay}
         onPlaySelection={handlePlaySelection}
-        renderRow={(song, row, selectedRows) => (
-          <PlaylistSongContextMenu songs={selectedRows} onEdit={() => setSongEditing(selectedRows)} isAdmin={user.isAdmin}>
-            {row}
-          </PlaylistSongContextMenu>
-        )}
+        renderRow={
+          user
+            ? (song, row, selectedRows) => (
+              <PlaylistSongContextMenu songs={selectedRows} onEdit={() => setSongEditing(selectedRows)} isAdmin={user.isAdmin}>
+                {row}
+              </PlaylistSongContextMenu>
+            )
+            : undefined
+        }
         empty="No songs in this playlist."
       />
 

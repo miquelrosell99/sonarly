@@ -2,12 +2,15 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import { unlink } from 'node:fs/promises';
+import { createReadStream, statSync } from 'node:fs';
+import { lookup } from 'mime-types';
 import type { Song, SongTags, ScrobbleDetails } from '@sonarly/shared';
 import { getSongById, deleteSongByPath, scrobbleSong, attachSongArtistEntries, attachSongComposerEntries, setSongArtists } from './repository.js';
 import { getSongGenreNamesForMany, getSongGenreNames, setSongGenres } from '../genres/repository.js';
 import { getUserById } from '../users/index.js';
 import { writeTags, writeCoverArt } from '../tags/index.js';
 import { createCoverArt, deleteCoverArt, setSongCoverArtId, getSongCoverArtId } from '../cover-art/index.js';
+import { shareTokenGrantsSong } from '../playlists/index.js';
 import { organizeSongFile } from '../ingest/index.js';
 import { resolveGenreForTagWrite, resolveGenreForFilter } from '../genres/index.js';
 import { ensureArtist } from '../artists/repository.js';
@@ -619,4 +622,81 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
     if (oldCoverArtId) cleanupOrphanCoverArt(db, oldCoverArtId);
     reply.send({ ok: true });
   });
+
+  // Direct file streaming for the web player. Unlike /rest/stream.view this
+  // never transcodes; it exists so anonymous share-link viewers can play the
+  // linked playlist's songs with a shareToken instead of a session.
+  app.get('/api/stream/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const userId = (request as any).session?.userId as string | undefined;
+    if (!userId) {
+      const { shareToken } = request.query as { shareToken?: string };
+      if (!shareToken || !shareTokenGrantsSong(db, shareToken, id)) {
+        return reply.status(403).send({ error: 'Forbidden' });
+      }
+    }
+
+    const song = getSongById(db, id);
+    if (!song) return reply.status(404).send({ error: 'Song not found' });
+
+    const mime = lookup(song.filePath) || 'application/octet-stream';
+    let size: number;
+    try {
+      size = statSync(song.filePath).size;
+    } catch {
+      // File vanished from disk after being indexed.
+      return reply.status(404).send({ error: 'Song not found' });
+    }
+
+    const rangeHeader = request.headers.range;
+    if (!rangeHeader) {
+      return reply.header('Accept-Ranges', 'bytes').header('Content-Length', size).type(mime).send(createReadStream(song.filePath));
+    }
+
+    const range = parseByteRange(rangeHeader, size);
+    if (!range) return reply.status(416).send({ error: 'Invalid range' });
+
+    const { start, end } = range;
+    return reply
+      .status(206)
+      .header('Content-Range', `bytes ${start}-${end}/${size}`)
+      .header('Content-Length', end - start + 1)
+      .header('Accept-Ranges', 'bytes')
+      .type(mime)
+      .send(createReadStream(song.filePath, { start, end }));
+  });
+}
+
+function parseByteRange(rangeHeader: string, size: number): { start: number; end: number } | undefined {
+  const match = rangeHeader.match(/^bytes=(.*)$/);
+  if (!match) return undefined;
+
+  const spec = match[1];
+  // Multi-range requests are not supported.
+  if (spec.includes(',')) return undefined;
+  if (spec.startsWith('-')) {
+    // suffix range: bytes=-suffix
+    const suffix = parseInt(spec.slice(1), 10);
+    if (Number.isNaN(suffix) || suffix <= 0) return undefined;
+    const start = Math.max(0, size - suffix);
+    return { start, end: size - 1 };
+  }
+
+  const parts = spec.split('-');
+  if (parts.length !== 2) return undefined;
+
+  const start = parseInt(parts[0], 10);
+  if (Number.isNaN(start) || start < 0 || start >= size) return undefined;
+
+  let end: number;
+  if (parts[1] === '') {
+    // open-ended range: bytes=start-
+    end = size - 1;
+  } else {
+    end = parseInt(parts[1], 10);
+    if (Number.isNaN(end) || end < start || start > end) return undefined;
+  }
+
+  end = Math.min(end, size - 1);
+  return { start, end };
 }

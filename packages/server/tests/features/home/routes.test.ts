@@ -10,6 +10,8 @@ import { createUser } from '../../../src/features/users/repository.js';
 import { upsertSong } from '../../../src/features/songs/repository.js';
 import { upsertArtist } from '../../../src/features/artists/repository.js';
 import { upsertAlbum } from '../../../src/features/albums/repository.js';
+import { createCoverArt, setSongCoverArtId, setAlbumCoverArtId } from '../../../src/features/cover-art/repository.js';
+import { createPlaylist } from '../../../src/features/playlists/repository.js';
 import type { Config } from '../../../src/config.js';
 
 vi.mock('node:worker_threads', () => {
@@ -142,5 +144,105 @@ describe('home endpoints', () => {
     expect(body.genres).toContain('Rock');
     expect(body.genres).toContain('Pop');
     expect(body.genres).not.toContain('');
+  });
+
+  describe('GET /api/cover-art/:id share-token access', () => {
+    const SHARE_TOKEN = 'share-token-123';
+
+    function seedSharedPlaylist() {
+      upsertArtist(db, { id: 'artist-1', name: 'Artist' });
+      upsertAlbum(db, { id: 'album-1', name: 'Album', artistId: 'artist-1', artistName: 'Artist' });
+      upsertSong(db, {
+        id: 'song-1',
+        filePath: '/data/library/song1.mp3',
+        title: 'Shared Track',
+        duration: 180,
+        artistId: 'artist-1',
+        albumId: 'album-1',
+        mtime: Date.now(),
+        checksum: 'c1',
+      });
+      upsertSong(db, {
+        id: 'song-2',
+        filePath: '/data/library/song2.mp3',
+        title: 'Other Track',
+        duration: 180,
+        artistId: 'artist-1',
+        mtime: Date.now(),
+        checksum: 'c2',
+      });
+      const songCoverId = createCoverArt(db, Buffer.from('song-cover'), 'image/jpeg');
+      setSongCoverArtId(db, 'song-1', songCoverId);
+      const albumCoverId = createCoverArt(db, Buffer.from('album-cover'), 'image/jpeg');
+      setAlbumCoverArtId(db, 'album-1', albumCoverId);
+      const otherCoverId = createCoverArt(db, Buffer.from('other-cover'), 'image/jpeg');
+      setSongCoverArtId(db, 'song-2', otherCoverId);
+      createPlaylist(db, {
+        id: 'playlist-1',
+        name: 'Link',
+        ownerId: 'user-1',
+        visibility: 'link',
+        shareToken: SHARE_TOKEN,
+        songIds: ['song-1'],
+        isSmart: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      return { songCoverId, albumCoverId, otherCoverId };
+    }
+
+    it('grants a song cover in the linked playlist to anonymous token holders', async () => {
+      const { songCoverId } = seedSharedPlaylist();
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/cover-art/${songCoverId}?shareToken=${SHARE_TOKEN}`,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toBe('song-cover');
+    });
+
+    it('grants the album cover of a song in the linked playlist', async () => {
+      const { albumCoverId } = seedSharedPlaylist();
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/cover-art/${albumCoverId}?shareToken=${SHARE_TOKEN}`,
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toBe('album-cover');
+    });
+
+    it('rejects a cover that belongs to a song outside the linked playlist', async () => {
+      const { otherCoverId } = seedSharedPlaylist();
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/cover-art/${otherCoverId}?shareToken=${SHARE_TOKEN}`,
+      });
+      expect(res.statusCode).toBe(403);
+    });
+
+    it('rejects an unknown share token', async () => {
+      const { songCoverId } = seedSharedPlaylist();
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/cover-art/${songCoverId}?shareToken=wrong-token`,
+      });
+      expect(res.statusCode).toBe(403);
+    });
+
+    it('rejects anonymous requests without a share token', async () => {
+      const { songCoverId } = seedSharedPlaylist();
+      const res = await app.inject({ method: 'GET', url: `/api/cover-art/${songCoverId}` });
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('still serves any cover to signed-in users', async () => {
+      const { otherCoverId } = seedSharedPlaylist();
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/cover-art/${otherCoverId}`,
+        cookies: { sessionId: cookieValue },
+      });
+      expect(res.statusCode).toBe(200);
+    });
   });
 });

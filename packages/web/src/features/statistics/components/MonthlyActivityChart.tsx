@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import type {
   MonthlyGroupedPlaysItem,
   MonthlyPlaysGroupBy,
   StatisticsMonthlyPlaysItem,
   StatisticsTimeRange,
 } from '@sonarly/shared';
+import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { useMonthlyGroupedPlays, type StatisticsMode } from '../hooks/useStatistics.js';
@@ -54,14 +55,14 @@ function getGroupColor(index: number): string {
 interface ChartDataItem {
   month: string;
   total: number;
-  groups: { key: string; plays: number; color: string }[];
+  groups: { key: string; plays: number; color: string; gradient?: boolean }[];
 }
 
 function buildSimpleData(monthlyPlays: StatisticsMonthlyPlaysItem[]): ChartDataItem[] {
   return monthlyPlays.map((item) => ({
     month: item.month,
     total: item.plays,
-    groups: [{ key: 'Plays', plays: item.plays, color: 'hsl(var(--accent))' }],
+    groups: [{ key: 'Plays', plays: item.plays, color: 'hsl(var(--accent))', gradient: true }],
   }));
 }
 
@@ -88,29 +89,52 @@ function BarStack({
   max,
   size,
   showLabels = false,
+  stagger = 0,
+  selected = false,
+  onSelect,
 }: {
   data: ChartDataItem;
   max: number;
   size: 'sm' | 'lg';
   showLabels?: boolean;
+  stagger?: number;
+  selected?: boolean;
+  onSelect?: () => void;
 }) {
   const heightPercent = max > 0 ? (data.total / max) * 100 : 0;
   const displayHeight = Math.max(heightPercent, 2);
-  const barWidth = size === 'lg' ? 'w-full' : 'w-full';
 
   return (
     <div className={`group/bar flex flex-1 flex-col justify-end ${size === 'lg' ? 'gap-2' : 'gap-1'} min-w-0`}>
       {showLabels && (
         <div className="text-center">
-          <span className="text-xs font-semibold text-fg-primary">{formatNumber(data.total)}</span>
+          <span className="font-mono text-xs font-semibold text-fg-primary tabular-nums">{formatNumber(data.total)}</span>
         </div>
       )}
       <div
-        className={`relative ${barWidth} rounded-t-md bg-surface-hover ${size === 'lg' ? 'h-64' : 'h-48'}`}
+        role="button"
+        tabIndex={0}
+        aria-label={`${formatMonthLabel(data.month)}: ${formatNumber(data.total)} plays`}
+        aria-pressed={selected}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect?.();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            onSelect?.();
+          }
+        }}
+        className={`relative w-full cursor-pointer rounded-t-md bg-surface-hover outline-none focus-visible:ring-2 focus-visible:ring-accent ${size === 'lg' ? 'h-64' : 'h-48'}`}
       >
         <div
-          className="absolute bottom-0 left-0 right-0 flex flex-col-reverse rounded-t-md overflow-hidden"
-          style={{ height: `${displayHeight}%` }}
+          className={cn(
+            'stat-grow-y absolute bottom-0 left-0 right-0 flex flex-col-reverse rounded-t-md overflow-hidden transition group-hover/bar:brightness-110',
+            selected && 'brightness-110',
+          )}
+          style={{ height: `${displayHeight}%`, '--stagger': Math.min(stagger, 12) } as CSSProperties}
         >
           {data.groups.map((group) => (
             <div
@@ -118,15 +142,22 @@ function BarStack({
               className="w-full transition-all duration-500 ease-out motion-reduce:transition-none"
               style={{
                 height: `${data.total > 0 ? (group.plays / data.total) * 100 : 0}%`,
-                backgroundColor: group.color,
+                ...(group.gradient
+                  ? { background: `linear-gradient(to top, hsl(var(--accent) / 0.45), ${group.color})` }
+                  : { backgroundColor: group.color }),
               }}
               title={`${group.key}: ${formatNumber(group.plays)}`}
             />
           ))}
         </div>
-        <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded-md bg-fg-primary px-2 py-1 text-xs text-bg-primary group-hover/bar:block whitespace-nowrap z-10">
+        <div
+          className={cn(
+            'absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded-md bg-fg-primary px-2 py-1 text-xs text-bg-primary whitespace-nowrap z-10',
+            selected ? 'block' : 'hidden group-hover/bar:block group-focus-visible/bar:block',
+          )}
+        >
           <div className="font-medium">{formatMonthLabel(data.month)}</div>
-          <div>{formatNumber(data.total)} plays</div>
+          <div className="font-mono tabular-nums">{formatNumber(data.total)} plays</div>
           {data.groups.length > 1 && (
             <div className="mt-1 space-y-0.5">
               {data.groups.map((group) => (
@@ -139,7 +170,13 @@ function BarStack({
           )}
         </div>
       </div>
-      <span className={`truncate text-center text-fg-secondary ${size === 'lg' ? 'text-xs' : 'text-[10px]'}`}>
+      <span
+        className={cn(
+          'truncate text-center font-mono tabular-nums transition',
+          size === 'lg' ? 'text-xs' : 'text-[10px]',
+          selected ? 'text-accent' : 'text-fg-secondary group-hover/bar:text-fg-primary',
+        )}
+      >
         {formatShortMonth(data.month)}
       </span>
     </div>
@@ -170,7 +207,7 @@ function GroupBySelect({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value as MonthlyPlaysGroupBy | 'total')}
-      className="rounded-lg border border-rule bg-surface px-2 py-1 text-xs text-fg-primary outline-none focus:border-accent"
+      className="h-11 rounded-lg border border-rule bg-surface px-3 text-xs text-fg-primary outline-none transition focus:border-accent focus-visible:ring-2 focus-visible:ring-accent"
       aria-label="Group by"
     >
       {GROUP_BY_OPTIONS.map((option) => (
@@ -193,19 +230,33 @@ function ChartBody({
   size: 'sm' | 'lg';
   showLabels?: boolean;
 }) {
-  if (data.length === 0) return null;
-  const max = Math.max(...data.map((d) => d.total));
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const legendGroups = useMemo(() => {
     if (groupBy === 'total') return [];
     const keys = Array.from(new Set(data.flatMap((d) => d.groups.map((g) => g.key))));
     return keys.map((key, index) => ({ key, color: getGroupColor(index) }));
   }, [data, groupBy]);
 
+  if (data.length === 0) return null;
+  const max = Math.max(...data.map((d) => d.total));
+  const chartSummary = `Listening activity by month: ${data
+    .map((d) => `${formatMonthLabel(d.month)} ${d.total} plays`)
+    .join(', ')}`;
+
   return (
     <div className="space-y-3">
-      <div className="flex items-end gap-2">
-        {data.map((item) => (
-          <BarStack key={item.month} data={item} max={max} size={size} showLabels={showLabels} />
+      <div className="flex items-end gap-2" role="group" aria-label={chartSummary}>
+        {data.map((item, index) => (
+          <BarStack
+            key={item.month}
+            data={item}
+            max={max}
+            size={size}
+            showLabels={showLabels}
+            stagger={index}
+            selected={selectedMonth === item.month}
+            onSelect={() => setSelectedMonth((prev) => (prev === item.month ? null : item.month))}
+          />
         ))}
       </div>
       {legendGroups.length > 0 && <Legend groups={legendGroups} />}
@@ -241,31 +292,25 @@ export function MonthlyActivityChart({ monthlyPlays, mode, userId, range }: Mont
 
   return (
     <>
-      <div className="rounded-2xl border border-rule bg-surface p-4">
+      <div className="rounded-2xl border border-rule bg-surface p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Icon name="mdi-chart-bar" size={20} className="text-accent" />
-            <h3 className="font-display text-lg font-bold text-fg-primary">Listening Activity</h3>
+            <h3 className="font-display text-lg font-bold tracking-tight text-fg-primary">Listening Activity</h3>
           </div>
           <div className="flex items-center gap-2">
             <GroupBySelect value={groupBy} onChange={setGroupBy} />
             <button
               type="button"
               onClick={() => setModalOpen(true)}
-              className="rounded-lg border border-rule p-1.5 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary"
+              className="flex h-11 w-11 items-center justify-center rounded-lg border border-rule text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               aria-label="Expand chart"
             >
               <Icon name="mdi-arrow-expand" size={18} />
             </button>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setModalOpen(true)}
-          className="w-full text-left"
-        >
-          <ChartBody data={chartData} groupBy={groupBy} size="sm" />
-        </button>
+        <ChartBody data={chartData} groupBy={groupBy} size="sm" />
       </div>
 
       <Modal

@@ -199,7 +199,12 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
     if (exempt.some((p) => url === p || url.startsWith(`${p}/`) || url.startsWith(`${p}?`))) return;
 
     if (request.method === 'GET'
-      && (request.routeOptions.url === '/api/playlists/:id' || request.routeOptions.url === '/api/playlists/:id/albums')) {
+      && (request.routeOptions.url === '/api/playlists/:id'
+        || request.routeOptions.url === '/api/playlists/:id/albums'
+        || request.routeOptions.url === '/api/cover-art/:id'
+        || request.routeOptions.url === '/api/stream/:id')) {
+      // Let anonymous share-link viewers through; each handler still verifies
+      // the token against the linked playlist's own content.
       const { shareToken } = request.query as { shareToken?: string };
       if (shareToken) return;
     }
