@@ -91,16 +91,19 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
     albumName: entry.album,
   })) ?? [];
 
+  const queueContext = id ? { type: 'playlist' as const, id } : undefined;
+
   const handlePlay = (song: SongListItem) => {
-    playSongs([song as unknown as Song], 0);
+    const startIndex = displayEntries.findIndex((entry) => entry.id === song.id);
+    playSongs(displayEntries as unknown as Song[], Math.max(0, startIndex), undefined, queueContext);
   };
 
   const handlePlaySelection = (songs: SongListItem[], startIndex: number) => {
-    playSongs(songs as unknown as Song[], startIndex);
+    playSongs(songs as unknown as Song[], startIndex, undefined, queueContext);
   };
 
   const handleShufflePlay = (_song: SongListItem) => {
-    shufflePlay(displayEntries as unknown as Song[]);
+    shufflePlay(displayEntries as unknown as Song[], queueContext);
   };
 
   const handleFavorite = async (starred: boolean) => {
@@ -214,8 +217,8 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
         playlist && (
           <>
             <PlayButton
-              onPlay={() => playSongs(displayEntries as unknown as Song[], 0)}
-              onShufflePlay={() => shufflePlay(displayEntries as unknown as Song[])}
+              onPlay={() => playSongs(displayEntries as unknown as Song[], 0, undefined, queueContext)}
+              onShufflePlay={() => shufflePlay(displayEntries as unknown as Song[], queueContext)}
             >
               Play
             </PlayButton>

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { QueuePanel } from './QueuePanel.js';
 import { usePlayer, resetPlayer } from '../../../stores/playerStore.js';
 import { NotificationProvider } from '../../../contexts/NotificationContext.js';
@@ -12,8 +13,14 @@ vi.mock('wouter', () => ({
 
 const mockUser = { id: 'u1', username: 'test', isAdmin: false } as User;
 
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
 function Wrapper({ children }: { children: React.ReactNode }) {
-  return <NotificationProvider>{children}</NotificationProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <NotificationProvider>{children}</NotificationProvider>
+    </QueryClientProvider>
+  );
 }
 
 beforeEach(() => {
@@ -102,7 +109,9 @@ describe('QueuePanel', () => {
     ], 0);
 
     render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
-    expect(screen.getByText('Auto DJ')).toBeTruthy();
+    // The queue action row also has an Auto DJ toggle; assert the per-row pill specifically.
+    const pills = screen.getAllByText('Auto DJ').filter((el) => el.closest('button') === null);
+    expect(pills).toHaveLength(1);
   });
 
   it('renders drag handles for reordering queue items', () => {
