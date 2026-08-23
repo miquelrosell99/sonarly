@@ -398,7 +398,7 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
             alt=""
             className="app-icon h-8 w-8 rounded-md"
           />
-          <span className="font-display">Sonarly</span>
+          <span className="hidden font-display min-[420px]:block">Sonarly</span>
         </Link>
         <LibrarySelector
           libraries={libraries}
