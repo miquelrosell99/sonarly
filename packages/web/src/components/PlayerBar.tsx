@@ -52,18 +52,21 @@ export function PlayerBar({ user }: PlayerBarProps) {
   const autoDjMode = preferences?.autoDjMode ?? 'smart';
   const updatePreferences = useUpdatePreferences();
 
-  const openNowPlaying = useNowPlaying((state) => state.open);
   const queueContext = usePlayer((state) => state.queueContext);
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
 
   // When the queue has a known origin, opening Now Playing goes through the
   // /now-playing/<context>/<id>/<song> route so the URL carries the context
   // (and the overlay becomes back-button/refresh/share friendly).
   const handleOpenNowPlaying = () => {
+    // Remember where the user is so closing the overlay can return there.
+    useNowPlaying.getState().setReturnPath(location);
     if (queueContext && currentSong) {
-      setLocation(`/now-playing/${queueContext.type}/${queueContext.id}/${currentSong.id}`);
+      setLocation(`/now-playing/${queueContext.type}/${encodeURIComponent(queueContext.id)}/${currentSong.id}`);
+    } else if (currentSong) {
+      setLocation(`/now-playing/${currentSong.id}`);
     } else {
-      openNowPlaying();
+      setLocation('/now-playing');
     }
   };
 

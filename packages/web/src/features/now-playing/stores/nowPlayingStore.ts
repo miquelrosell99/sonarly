@@ -6,6 +6,8 @@ export type NowPlayingTab = 'queue' | 'lyrics';
 interface NowPlayingState {
   isOpen: boolean;
   activeTab: NowPlayingTab;
+  // Where to navigate when the overlay closes after a URL-driven open.
+  returnPath: string | null;
 }
 
 interface NowPlayingActions {
@@ -13,11 +15,13 @@ interface NowPlayingActions {
   close: () => void;
   toggle: () => void;
   setActiveTab: (tab: NowPlayingTab) => void;
+  setReturnPath: (path: string | null) => void;
 }
 
 const initialState: NowPlayingState = {
   isOpen: false,
   activeTab: 'queue',
+  returnPath: null,
 };
 
 export const useNowPlaying = create<NowPlayingState & NowPlayingActions>()(
@@ -28,6 +32,7 @@ export const useNowPlaying = create<NowPlayingState & NowPlayingActions>()(
       close: () => set({ isOpen: false }),
       toggle: () => set((state) => ({ isOpen: !state.isOpen })),
       setActiveTab: (tab) => set({ activeTab: tab }),
+      setReturnPath: (path) => set({ returnPath: path }),
     }),
     {
       name: 'sonarly-now-playing',

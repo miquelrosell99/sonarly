@@ -212,6 +212,8 @@ export default function App() {
           <Route path="/playlists" component={Playlists} />
           <Route path="/playlists/:id" component={() => <PlaylistDetail user={user} />} />
           <Route path="/now-playing/:context/:contextId/:songId" component={() => <NowPlayingRoute user={user} />} />
+          <Route path="/now-playing/:songId" component={() => <NowPlayingRoute user={user} />} />
+          <Route path="/now-playing" component={() => <NowPlayingRoute user={user} />} />
           <Route path="/albums" component={() => <Albums user={user} />} />
           <Route path="/albums/:id" component={() => <Album user={user} />} />
           <Route path="/artists" component={Artists} />
