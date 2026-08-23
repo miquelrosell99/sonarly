@@ -16,6 +16,7 @@ interface PlayerState {
   currentSong: PlayerSong | null;
   queue: PlayerSong[];
   queueIndex: number;
+  queueContext: QueueContext | null;
   status: PlayerStatus;
   currentTime: number;
   duration: number;
@@ -28,7 +29,7 @@ interface PlayerState {
 
 interface PlayerActions {
   playNow: (song: PlayerSong) => void;
-  playQueue: (songs: PlayerSong[], startIndex?: number, shuffle?: boolean) => void;
+  playQueue: (songs: PlayerSong[], startIndex?: number, shuffle?: boolean, context?: QueueContext) => void;
   playAtIndex: (index: number) => void;
   playNext: (song: PlayerSong | PlayerSong[]) => void;
   addToQueue: (songs: PlayerSong[], options?: { addedByAutoDj?: boolean }) => void;
@@ -52,10 +53,16 @@ interface PlayerActions {
   clearSleepTimer: () => void;
 }
 
+export interface QueueContext {
+  type: 'playlist' | 'album';
+  id: string;
+}
+
 const initialState: PlayerState = {
   currentSong: null,
   queue: [],
   queueIndex: 0,
+  queueContext: null,
   status: 'idle',
   currentTime: 0,
   duration: 0,
@@ -122,10 +129,11 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
           currentTime: 0,
           duration: song.duration ?? 0,
           shuffledIndices,
+          queueContext: null,
         });
       },
 
-      playQueue: (songs, startIndex, shuffle) => {
+      playQueue: (songs, startIndex, shuffle, context) => {
         const nextShuffle = shuffle ?? get().shuffle;
         let safeIndex: number;
         if (songs.length === 0) {
@@ -148,6 +156,7 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
           duration: currentSong?.duration ?? 0,
           shuffle: nextShuffle,
           shuffledIndices,
+          queueContext: context ?? null,
         });
       },
 
@@ -443,6 +452,7 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
       partialize: (state) => ({
         queue: state.queue,
         queueIndex: state.queueIndex,
+        queueContext: state.queueContext,
         volume: state.volume,
         shuffle: state.shuffle,
         repeat: state.repeat,
