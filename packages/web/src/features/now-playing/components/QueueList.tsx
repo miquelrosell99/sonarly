@@ -67,6 +67,7 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
   const shuffledIndices = usePlayer((state) => state.shuffledIndices);
   const playAtIndex = usePlayer((state) => state.playAtIndex);
   const toggleShuffle = usePlayer((state) => state.toggleShuffle);
+  const clearQueue = usePlayer((state) => state.clearQueue);
   const { notify } = useNotification();
 
   const displayItems = useMemo(
@@ -257,23 +258,41 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
   }
 
   return (
-    <LibraryView<QueueDisplayItem>
-      title={showHeader ? (title ?? 'Up next') : undefined}
-      data={items}
-      columns={columns}
-      cardFields={[]}
-      getId={(item) => item.id}
-      getHref={() => ''}
-      onPlay={handlePlay}
-      onPlaySelection={handlePlaySelection}
-      renderContextMenu={renderContextMenu}
-      availableViews={['list']}
-      defaultView="list"
-      playingId={currentSong ? `${currentSong.id}-${queueIndex}` : undefined}
-      emptyMessage="The queue is empty."
-      sortable
-      onReorder={handleReorder}
-      getRowClassName={getRowClassName}
-    />
+    <div className={cn('flex h-full flex-col', className)}>
+      {queue.length > 1 && (
+        <div className="flex shrink-0 justify-end pb-1">
+          <button
+            type="button"
+            onClick={() => {
+              clearQueue();
+              notify('Queue cleared', 'info');
+            }}
+            className="rounded-full px-3 py-2 text-xs font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            Clear queue
+          </button>
+        </div>
+      )}
+      <div className="min-h-0 flex-1">
+        <LibraryView<QueueDisplayItem>
+          title={showHeader ? (title ?? 'Up next') : undefined}
+          data={items}
+          columns={columns}
+          cardFields={[]}
+          getId={(item) => item.id}
+          getHref={() => ''}
+          onPlay={handlePlay}
+          onPlaySelection={handlePlaySelection}
+          renderContextMenu={renderContextMenu}
+          availableViews={['list']}
+          defaultView="list"
+          playingId={currentSong ? `${currentSong.id}-${queueIndex}` : undefined}
+          emptyMessage="The queue is empty."
+          sortable
+          onReorder={handleReorder}
+          getRowClassName={getRowClassName}
+        />
+      </div>
+    </div>
   );
 }
