@@ -7,6 +7,7 @@ import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { cn } from '../../../lib/cn.js';
 import { usePlayer, type PlayerSong } from '../../../stores/playerStore.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
+import { SaveQueueAsPlaylistModal } from './SaveQueueAsPlaylistModal.js';
 
 interface QueueListProps {
   user: User;
@@ -77,6 +78,8 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
 
   const [items, setItems] = useState(displayItems);
   useEffect(() => setItems(displayItems), [displayItems]);
+
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
 
   const columns: LibraryViewColumn<QueueDisplayItem>[] = [
     {
@@ -259,8 +262,16 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
 
   return (
     <div className={cn('flex h-full flex-col', className)}>
-      {queue.length > 1 && (
-        <div className="flex shrink-0 justify-end pb-1">
+      <div className="flex shrink-0 justify-end gap-1 pb-1">
+        <button
+          type="button"
+          onClick={() => setSaveModalOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <Icon name="mdi-playlist-plus" size={14} />
+          Save as playlist
+        </button>
+        {queue.length > 1 && (
           <button
             type="button"
             onClick={() => {
@@ -271,8 +282,8 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
           >
             Clear queue
           </button>
-        </div>
-      )}
+        )}
+      </div>
       <div className="min-h-0 flex-1">
         <LibraryView<QueueDisplayItem>
           title={showHeader ? (title ?? 'Up next') : undefined}
@@ -293,6 +304,13 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
           getRowClassName={getRowClassName}
         />
       </div>
+      {saveModalOpen && (
+        <SaveQueueAsPlaylistModal
+          open={saveModalOpen}
+          onClose={() => setSaveModalOpen(false)}
+          songIds={queue.map((song) => song.id)}
+        />
+      )}
     </div>
   );
 }

@@ -13,6 +13,10 @@ export type AccentColor =
 
 export type AutoDjMode = 'similar' | 'random' | 'smart';
 
+export type AutoDjExcludeWindow = '24h' | '7d' | '30d';
+
+export const AUTO_DJ_EXCLUDE_WINDOWS: AutoDjExcludeWindow[] = ['24h', '7d', '30d'];
+
 export interface SidebarLinkItem {
   id: string;
   type: 'link';
@@ -48,6 +52,10 @@ export interface UserPreferences {
   autoDjMode?: AutoDjMode;
   autoDjTopUpThreshold?: number;
   autoDjBatchSize?: number;
+  autoDjExcludeWindow?: AutoDjExcludeWindow;
+  autoDjPreferFavorites?: boolean;
+  /** 0 = familiar (known, well-played tracks), 100 = adventurous (deep cuts). */
+  autoDjDiscovery?: number;
   hideSponsorButton?: boolean;
 }
 
@@ -56,6 +64,9 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   autoDjMode: 'smart',
   autoDjTopUpThreshold: 5,
   autoDjBatchSize: 10,
+  autoDjExcludeWindow: '24h',
+  autoDjPreferFavorites: false,
+  autoDjDiscovery: 50,
 };
 
 export const MAX_EXCLUDE_IDS = 500;

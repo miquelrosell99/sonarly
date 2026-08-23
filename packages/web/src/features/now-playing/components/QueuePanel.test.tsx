@@ -44,7 +44,7 @@ describe('QueuePanel', () => {
     ], 0);
 
     render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
-    const playButtons = screen.getAllByRole('button', { name: /play/i });
+    const playButtons = screen.getAllByRole('button', { name: /^play/i });
     expect(playButtons.length).toBeGreaterThanOrEqual(2);
     fireEvent.click(playButtons[1]);
     expect(usePlayer.getState().queueIndex).toBe(1);
@@ -60,7 +60,7 @@ describe('QueuePanel', () => {
     usePlayer.setState({ shuffle: true, shuffledIndices: [0, 2, 1] });
 
     render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
-    const playButtons = screen.getAllByRole('button', { name: /play/i });
+    const playButtons = screen.getAllByRole('button', { name: /^play/i });
     fireEvent.click(playButtons[2]);
 
     const state = usePlayer.getState();

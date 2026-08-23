@@ -107,6 +107,33 @@ describe('useAlbumContextMenu', () => {
     expect(playActions.playSongs).toHaveBeenCalledWith(albumSongs);
   });
 
+  it('fetches album details and calls shufflePlay when Shuffle play is clicked', async () => {
+    mockedApi.mockResolvedValueOnce({ album, songs: albumSongs } as AlbumDetail);
+
+    const Harness = createHarness(album);
+    render(React.createElement(Harness));
+
+    fireEvent.click(screen.getByTestId('shuffle-play'));
+
+    await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/albums/album-1'));
+    expect(playActions.shufflePlay).toHaveBeenCalledTimes(1);
+    expect(playActions.shufflePlay).toHaveBeenCalledWith(albumSongs);
+  });
+
+  it('shows Go to artist only when the album has an artistId and navigates when clicked', () => {
+    const withoutArtist = createHarness(album);
+    const { unmount } = render(React.createElement(withoutArtist));
+    expect(screen.queryByTestId('go-to-artist')).toBeNull();
+    unmount();
+
+    const withArtist = createHarness({ ...album, artistId: 'artist-9' });
+    render(React.createElement(withArtist));
+
+    fireEvent.click(screen.getByTestId('go-to-artist'));
+    expect(window.location.pathname).toBe('/artists/artist-9');
+    window.history.pushState({}, '', '/');
+  });
+
   it('fetches album details and calls playNext with all songs when Play next is clicked', async () => {
     mockedApi.mockResolvedValueOnce({ album, songs: albumSongs } as AlbumDetail);
 

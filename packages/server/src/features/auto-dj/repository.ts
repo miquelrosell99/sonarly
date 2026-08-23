@@ -1,8 +1,44 @@
 import Database from 'better-sqlite3';
 import type { Song } from '@sonarly/shared';
 import { MAX_EXCLUDE_IDS } from '@sonarly/shared';
+import type { AutoDjExcludeWindow } from '@sonarly/shared';
 import type { DbSong } from '../songs/repository.js';
 import { attachSongComposerEntries } from '../songs/repository.js';
+
+export interface AutoDjCandidateOptions {
+  excludeWindow?: AutoDjExcludeWindow;
+  preferFavorites?: boolean;
+}
+
+// Whitelisted sqlite datetime modifiers — never interpolate user input.
+const EXCLUDE_WINDOW_MODIFIERS: Record<AutoDjExcludeWindow, string> = {
+  '24h': '-24 hours',
+  '7d': '-7 days',
+  '30d': '-30 days',
+};
+
+function windowModifier(window: AutoDjExcludeWindow | undefined): string {
+  return EXCLUDE_WINDOW_MODIFIERS[window ?? '24h'] ?? EXCLUDE_WINDOW_MODIFIERS['24h'];
+}
+
+// Excludes songs the user has played within the window, per listening_history.
+function buildRecentHistoryClause(
+  userId: string,
+  window: AutoDjExcludeWindow | undefined,
+): { sql: string; params: string[] } {
+  return {
+    sql: `AND NOT EXISTS (
+      SELECT 1 FROM listening_history lh
+      WHERE lh.song_id = s.id AND lh.user_id = ?
+        AND lh.played_at >= datetime('now', ?)
+    )`,
+    params: [userId, windowModifier(window)],
+  };
+}
+
+function favoritesFirst(preferFavorites: boolean | undefined): string {
+  return preferFavorites ? 'ORDER BY (us.starred = 1) DESC, RANDOM()' : 'ORDER BY RANDOM()';
+}
 
 interface CandidateRow extends DbSong {
   artist_name: string | null;
@@ -137,8 +173,10 @@ export function getSimilarCandidates(
   context: SongContext | undefined,
   count: number,
   excludeIds: string[],
+  options: AutoDjCandidateOptions = {},
 ): Song[] {
   const exclude = buildExcludeClause(excludeIds);
+  const recent = buildRecentHistoryClause(userId, options.excludeWindow);
   let rows: CandidateRow[] = [];
 
   if (context && (context.artistId || context.albumId || context.genreIds.length > 0)) {
@@ -154,18 +192,20 @@ export function getSimilarCandidates(
       WHERE s.active = 1
         AND s.id != ?
         ${exclude.sql}
+        ${recent.sql}
         AND (
           s.artist_id = ?
           OR s.album_id = ?
           ${genrePlaceholders ? `OR EXISTS (SELECT 1 FROM song_genres sg WHERE sg.song_id = s.id AND sg.genre_id IN (${genrePlaceholders}))` : ''}
         )
-      ORDER BY RANDOM()
+      ${favoritesFirst(options.preferFavorites)}
       LIMIT ?
     `;
     const params: (string | number | null)[] = [
       userId,
       context.id,
       ...exclude.params,
+      ...recent.params,
       context.artistId ?? null,
       context.albumId ?? null,
       ...(genrePlaceholders ? context.genreIds : []),
@@ -182,7 +222,7 @@ export function getSimilarCandidates(
       ...excludeIds,
       ...songs.map((s) => s.id),
       ...(context ? [context.id] : []),
-    ]);
+    ], options);
     songs.push(...more);
   }
 
@@ -194,8 +234,10 @@ export function getRandomCandidates(
   userId: string,
   count: number,
   excludeIds: string[],
+  options: AutoDjCandidateOptions = {},
 ): Song[] {
   const exclude = buildExcludeClause(excludeIds);
+  const order = favoritesFirst(options.preferFavorites);
   let rows = db.prepare(`
     SELECT s.*, ar.name AS artist_name, al.name AS album_name, us.starred, us.rating, us.play_count, us.last_played
     FROM songs s
@@ -204,10 +246,10 @@ export function getRandomCandidates(
     LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
     WHERE s.active = 1
       ${exclude.sql}
-      AND (us.last_played IS NULL OR us.last_played < datetime('now', '-24 hours'))
-    ORDER BY RANDOM()
+      AND (us.last_played IS NULL OR us.last_played < datetime('now', ?))
+    ${order}
     LIMIT ?
-  `).all(userId, ...exclude.params, count) as CandidateRow[];
+  `).all(userId, ...exclude.params, windowModifier(options.excludeWindow), count) as CandidateRow[];
 
   if (rows.length < count) {
     const fallbackExclude = buildExcludeClause([...excludeIds, ...rows.map((r) => r.id)]);
@@ -219,7 +261,7 @@ export function getRandomCandidates(
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
       WHERE s.active = 1
         ${fallbackExclude.sql}
-      ORDER BY RANDOM()
+      ${order}
       LIMIT ?
     `).all(userId, ...fallbackExclude.params, count - rows.length) as CandidateRow[];
     rows = [...rows, ...more];
@@ -243,8 +285,10 @@ export function getSmartCandidateRows(
   userId: string,
   context: SongContext | undefined,
   excludeIds: string[],
+  options: AutoDjCandidateOptions = {},
 ): SmartCandidate[] {
   const exclude = buildExcludeClause(excludeIds);
+  const recent = buildRecentHistoryClause(userId, options.excludeWindow);
   const genreOverlapSql = context && context.genreIds.length > 0
     ? `(
         SELECT COUNT(*)
@@ -263,16 +307,19 @@ export function getSmartCandidateRows(
     LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
     WHERE s.active = 1
       ${exclude.sql}
+      ${recent.sql}
     ORDER BY RANDOM()
     LIMIT 500
   `;
 
   // Placeholders appear textually in SELECT (genre ids), then the
-  // user_songs join (userId), then WHERE (excluded ids) — bind in that order.
+  // user_songs join (userId), then WHERE (excluded ids, recent-history
+  // userId + window) — bind in that order.
   const params: (string | number | null)[] = [
     ...(context && context.genreIds.length > 0 ? context.genreIds : []),
     userId,
     ...exclude.params,
+    ...recent.params,
   ];
 
   const rows = db.prepare(sql).all(...params) as CandidateRow[];

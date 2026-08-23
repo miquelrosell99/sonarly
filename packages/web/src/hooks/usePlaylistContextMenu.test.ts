@@ -38,9 +38,14 @@ interface PlaylistDetail {
   playlist: Playlist & { songCount: number; entries: Song[] };
 }
 
-function createHarness(playlist: Playlist, onEdit: () => void, onConvert: () => void) {
+function createHarness(
+  playlist: Playlist,
+  onEdit: () => void,
+  onConvert: () => void,
+  options?: { onShare?: () => void; onDelete?: () => void },
+) {
   return function PlaylistMenuHarness() {
-    const sections = usePlaylistContextMenu(playlist, onEdit, onConvert);
+    const sections = usePlaylistContextMenu(playlist, onEdit, onConvert, options);
     return React.createElement(
       'div',
       { 'data-testid': 'menu' },
@@ -50,6 +55,7 @@ function createHarness(playlist: Playlist, onEdit: () => void, onConvert: () => 
             key: item.id,
             'data-testid': item.id,
             'data-section': String(sectionIndex),
+            'data-variant': item.variant,
             disabled: item.disabled,
             onClick: item.onClick,
           }, item.label),
@@ -160,6 +166,45 @@ describe('usePlaylistContextMenu', () => {
     await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/playlists/playlist-1'));
     expect(playActions.addToQueue).toHaveBeenCalledTimes(1);
     expect(playActions.addToQueue).toHaveBeenCalledWith(playlistSongs);
+  });
+
+  it('fetches playlist entries and calls shufflePlay when Shuffle play is clicked', async () => {
+    mockedApi.mockResolvedValueOnce(makeDetail(basePlaylist));
+
+    const Harness = createHarness(basePlaylist, vi.fn(), vi.fn());
+    render(React.createElement(Harness));
+
+    fireEvent.click(screen.getByTestId('shuffle-play'));
+
+    await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/playlists/playlist-1'));
+    expect(playActions.shufflePlay).toHaveBeenCalledTimes(1);
+    expect(playActions.shufflePlay).toHaveBeenCalledWith(playlistSongs);
+  });
+
+  it('shows Share only when onShare is provided and calls it when clicked', () => {
+    const withoutShare = createHarness(basePlaylist, vi.fn(), vi.fn());
+    const { unmount } = render(React.createElement(withoutShare));
+    expect(screen.queryByTestId('share')).toBeNull();
+    unmount();
+
+    const onShare = vi.fn();
+    const withShare = createHarness(basePlaylist, vi.fn(), vi.fn(), { onShare });
+    render(React.createElement(withShare));
+
+    fireEvent.click(screen.getByTestId('share'));
+    expect(onShare).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a danger Delete item only when onDelete is provided and calls it when clicked', () => {
+    const onDelete = vi.fn();
+    const Harness = createHarness(basePlaylist, vi.fn(), vi.fn(), { onDelete });
+    render(React.createElement(Harness));
+
+    const deleteItem = screen.getByTestId('delete');
+    expect(deleteItem.getAttribute('data-variant')).toBe('danger');
+
+    fireEvent.click(deleteItem);
+    expect(onDelete).toHaveBeenCalledTimes(1);
   });
 
   it('calls onEdit when Edit is clicked', () => {

@@ -71,7 +71,7 @@ describe('Albums', () => {
     fireEvent.contextMenu(firstDataRow);
 
     expect(screen.getByRole('menu')).toBeTruthy();
-    expect(screen.getByRole('menuitem', { name: /play$/i })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: /^play$/i })).toBeTruthy();
     expect(screen.getByRole('menuitem', { name: /edit/i })).toBeTruthy();
   });
 });

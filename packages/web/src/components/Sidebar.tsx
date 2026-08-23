@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
-import type { Playlist, UserPreferences, SidebarItem } from '@sonarly/shared';
+import type { Playlist, User, UserPreferences, SidebarItem } from '@sonarly/shared';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
@@ -8,10 +8,12 @@ import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
 import { useLibraryStore } from '../stores/libraryStore.js';
 import { mergeSidebarItems } from '../lib/sidebar.js';
 import { LibrarySelector } from './LibrarySelector.js';
+import { SidebarPlaylistItem } from './SidebarPlaylistItem.js';
 
 interface SidebarProps {
   config: UserPreferences['sidebarConfig'];
   playlists: Playlist[] | undefined;
+  user: User;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
 }
@@ -72,7 +74,7 @@ function SidebarNavLink({
   );
 }
 
-export function Sidebar({ config, playlists, mobileOpen = false, onMobileClose }: SidebarProps) {
+export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileClose }: SidebarProps) {
   const [location] = useLocation();
   const { data: preferences } = usePreferences();
   const updatePreferences = useUpdatePreferences();
@@ -189,30 +191,13 @@ export function Sidebar({ config, playlists, mobileOpen = false, onMobileClose }
               const href = `/playlists/${playlist.id}`;
               const active = isActive(location, href);
               return (
-                <Link
+                <SidebarPlaylistItem
                   key={playlist.id}
+                  playlist={playlist}
                   href={href}
-                  className={cn(
-                    'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                    active
-                      ? 'bg-surface-hover text-accent'
-                      : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
-                  )}
-                >
-                  {active && (
-                    <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-accent" />
-                  )}
-                  <Icon
-                    name="mdi-playlist-play"
-                    size={20}
-                    className={cn(
-                      'transition',
-                      active ? 'text-accent' : 'text-fg-secondary group-hover:text-fg-primary',
-                    )}
-                  />
-                  <span className="truncate">{playlist.name}</span>
-                </Link>
+                  active={active}
+                  isOwner={playlist.ownerId === user.id}
+                />
               );
             })}
           </nav>

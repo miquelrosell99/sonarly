@@ -9,14 +9,20 @@ interface PlaylistDetail {
   playlist: Playlist & { songCount: number; entries: Song[] };
 }
 
-type LoadingId = 'play' | 'play-next' | 'add-to-queue' | 'convert' | null;
+type LoadingId = 'play' | 'shuffle-play' | 'play-next' | 'add-to-queue' | 'convert' | null;
+
+interface PlaylistContextMenuOptions {
+  onShare?: () => void;
+  onDelete?: () => void;
+}
 
 export function usePlaylistContextMenu(
   playlist: Playlist,
   onEdit: () => void,
   onConvert: () => void,
+  options?: PlaylistContextMenuOptions,
 ): ContextMenuSection[] {
-  const { playSongs, playNext, addToQueue } = usePlayActions();
+  const { playSongs, shufflePlay, playNext, addToQueue } = usePlayActions();
   const { notify } = useNotification();
   const [loadingId, setLoadingId] = useState<LoadingId>(null);
 
@@ -40,6 +46,12 @@ export function usePlaylistContextMenu(
       playSongs(songs);
     });
   }, [withEntries, playSongs]);
+
+  const handleShufflePlay = useCallback(async () => {
+    await withEntries('shuffle-play', (songs) => {
+      shufflePlay(songs);
+    });
+  }, [withEntries, shufflePlay]);
 
   const handlePlayNext = useCallback(async () => {
     await withEntries('play-next', (songs) => {
@@ -73,12 +85,18 @@ export function usePlaylistContextMenu(
       title: 'Playback',
       items: [
         { id: 'play', label: 'Play', icon: 'mdi-play', loading: loadingId === 'play', onClick: handlePlay },
+        { id: 'shuffle-play', label: 'Shuffle play', icon: 'mdi-shuffle', loading: loadingId === 'shuffle-play', onClick: handleShufflePlay },
         { id: 'play-next', label: 'Play next', icon: 'mdi-playlist-plus', loading: loadingId === 'play-next', onClick: handlePlayNext },
         { id: 'add-to-queue', label: 'Add to queue', icon: 'mdi-playlist-play', loading: loadingId === 'add-to-queue', onClick: handleAddToQueue },
       ],
     },
     {
-      items: [{ id: 'edit', label: 'Edit', icon: 'mdi-pencil', onClick: onEdit }],
+      items: [
+        { id: 'edit', label: 'Edit', icon: 'mdi-pencil', onClick: onEdit },
+        ...(options?.onShare
+          ? [{ id: 'share', label: 'Share…', icon: 'mdi-share-variant', onClick: options.onShare }]
+          : []),
+      ],
     },
   ];
 
@@ -91,6 +109,20 @@ export function usePlaylistContextMenu(
           icon: 'mdi-playlist-music',
           loading: loadingId === 'convert',
           onClick: handleConvert,
+        },
+      ],
+    });
+  }
+
+  if (options?.onDelete) {
+    sections.push({
+      items: [
+        {
+          id: 'delete',
+          label: 'Delete',
+          icon: 'mdi-delete',
+          variant: 'danger',
+          onClick: options.onDelete,
         },
       ],
     });
