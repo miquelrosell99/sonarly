@@ -220,6 +220,9 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
     reply.send({
       playlist: {
         ...playlist,
+        // The share token is a secret of the owner; other viewers authorize
+        // with it but never see it.
+        shareToken: userId === playlist.ownerId ? playlist.shareToken : undefined,
         songCount: visibleEntries.length,
         entries: visibleEntries,
         starred: interactionRow?.starred === 1,
