@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdirSync, rmSync, copyFileSync, mkdtempSync } from 'node:fs';
+import { mkdirSync, rmSync, copyFileSync, mkdtempSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import Database from 'better-sqlite3';
@@ -114,7 +114,7 @@ describe('management album endpoints', () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it('writes tags to every album song and queues resync jobs', async () => {
+  it('writes tags to every album song and queues a coalesced resync job', async () => {
     const res = await app.inject({
       method: 'PUT',
       url: '/api/albums/album-1/tags',
@@ -124,12 +124,13 @@ describe('management album endpoints', () => {
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toEqual({ updated: 2 });
 
-    const jobs = db.prepare("SELECT * FROM scan_jobs WHERE type = 'resync'").all() as any[];
-    expect(jobs).toHaveLength(2);
-    expect(jobs.map((j) => JSON.parse(j.stats).path).sort()).toEqual([
-      join(config.LIBRARY_PATH, 'Album Artist', '(2024) Sample Album', '- Album Title (1).mp3'),
-      join(config.LIBRARY_PATH, 'Album Artist', '(2024) Sample Album', '- Album Title.mp3'),
-    ]);
+    // Both files are reorganized; the resync jobs coalesce into one pending job.
+    expect(existsSync(join(config.LIBRARY_PATH, 'Album Artist', '(2024) Sample Album', '- Album Title.mp3'))).toBe(true);
+    expect(existsSync(join(config.LIBRARY_PATH, 'Album Artist', '(2024) Sample Album', '- Album Title (1).mp3'))).toBe(true);
+
+    const jobs = db.prepare("SELECT * FROM scan_jobs WHERE type = 'resync' AND status = 'pending'").all() as any[];
+    expect(jobs).toHaveLength(1);
+    expect(JSON.parse(jobs[0].stats).path).toBe(join(config.LIBRARY_PATH, 'Album Artist', '(2024) Sample Album', '- Album Title.mp3'));
   });
 
   it('returns 500 when resync queue fails during album tag write', async () => {
