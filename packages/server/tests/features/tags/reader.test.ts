@@ -105,7 +105,7 @@ describe('readMetadata', () => {
       'RELEASETYPE=soundtrack',
     ]));
     const meta = await readMetadata(path);
-    expect(meta.albumType).toBe('soundtrack');
+    expect(meta.releaseType).toBe('soundtrack');
   });
 
   it('falls back to the first release type when soundtrack is not tagged', async () => {
@@ -115,14 +115,14 @@ describe('readMetadata', () => {
       'RELEASETYPE=EP',
     ]));
     const meta = await readMetadata(path);
-    expect(meta.albumType).toBe('EP');
+    expect(meta.releaseType).toBe('EP');
   });
 
-  it('leaves album type undefined when no RELEASETYPE tag exists', async () => {
+  it('leaves release type undefined when no RELEASETYPE tag exists', async () => {
     const path = join(tmpdir(), `reader-release-type-none-${Date.now()}.flac`);
     writeFileSync(path, createMinimalFlacWithComments(['TITLE=Plain']));
     const meta = await readMetadata(path);
-    expect(meta.albumType).toBeUndefined();
+    expect(meta.releaseType).toBeUndefined();
   });
 });
 

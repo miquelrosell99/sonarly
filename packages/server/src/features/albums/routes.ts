@@ -19,7 +19,7 @@ interface AlbumRow {
   name: string;
   artist_id: string | null;
   artist_name: string | null;
-  album_type: string | null;
+  release_type: string | null;
   year: number | null;
   genre: string | null;
   cover_art_id: string | null;
@@ -45,7 +45,7 @@ function rowToAlbum(row: AlbumRow): Album {
     name: row.name,
     artistId: row.artist_id ?? undefined,
     artistName: row.artist_name ?? undefined,
-    albumType: row.album_type ?? undefined,
+    releaseType: row.release_type ?? undefined,
     year: row.year ?? undefined,
     genre: row.genre ?? undefined,
     coverArt: row.cover_art_id ?? undefined,
@@ -177,11 +177,11 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
     const album = db.prepare('SELECT * FROM albums WHERE id = ? AND active = 1').get(id) as Album | undefined;
     if (!album) return reply.status(404).send({ error: 'Album not found' });
 
-    // albumType is album-level metadata, not a file tag: pull it out before
+    // releaseType is album-level metadata, not a file tag: pull it out before
     // validating the song-tag payload.
-    const { albumType, ...tagInput } = request.body as Record<string, unknown>;
-    if (albumType !== undefined && albumType !== null && typeof albumType !== 'string') {
-      return reply.status(400).send({ error: 'albumType must be a string' });
+    const { releaseType, ...tagInput } = request.body as Record<string, unknown>;
+    if (releaseType !== undefined && releaseType !== null && typeof releaseType !== 'string') {
+      return reply.status(400).send({ error: 'releaseType must be a string' });
     }
 
     let tags: SongTags;
@@ -250,8 +250,8 @@ export function registerAlbumManagementRoutes(app: FastifyInstance, config: Conf
     if (genreResolutions !== undefined) {
       setAlbumGenres(db, id, genreResolutions.map((g) => g.id));
     }
-    if (albumType !== undefined) {
-      db.prepare('UPDATE albums SET album_type = ? WHERE id = ?').run(normalizeName(albumType) ?? null, id);
+    if (releaseType !== undefined) {
+      db.prepare('UPDATE albums SET release_type = ? WHERE id = ?').run(normalizeName(releaseType) ?? null, id);
     }
 
     reply.send({ updated: songs.length });

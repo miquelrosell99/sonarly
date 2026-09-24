@@ -51,7 +51,7 @@ export const SMART_PLAYLIST_FIELDS: { field: string; type: SmartPlaylistFieldTyp
   { field: 'artist', type: 'string', label: 'Artist' },
   { field: 'albumArtist', type: 'string', label: 'Album Artist' },
   { field: 'genre', type: 'string', label: 'Genre' },
-  { field: 'albumType', type: 'string', label: 'Album type' },
+  { field: 'releaseType', type: 'string', label: 'Release type' },
   { field: 'year', type: 'number', label: 'Year' },
   { field: 'duration', type: 'number', label: 'Duration (seconds)' },
   { field: 'bitDepth', type: 'number', label: 'Bit depth' },

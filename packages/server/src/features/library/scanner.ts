@@ -273,7 +273,7 @@ export async function persistSong(
         compilation: meta.compilation,
         totalTracks: meta.totalTracks,
         totalDiscs: meta.totalDiscs,
-        albumType: normalizeAlbumType(meta.albumType),
+        releaseType: normalizeReleaseType(meta.releaseType),
       })
     : undefined;
   const composerNames = meta.composers;
@@ -617,10 +617,10 @@ interface AlbumMeta {
   compilation?: boolean;
   totalTracks?: string;
   totalDiscs?: string;
-  albumType?: string;
+  releaseType?: string;
 }
 
-function normalizeAlbumType(value: string | undefined): string | undefined {
+function normalizeReleaseType(value: string | undefined): string | undefined {
   const trimmed = value?.trim().toLowerCase();
   return trimmed ? trimmed : undefined;
 }
@@ -650,8 +650,8 @@ export function ensureAlbum(
     }
     // Fill in the release type from tags, but never overwrite a value that
     // is already set (it may have been edited by the user).
-    if (meta.albumType) {
-      db.prepare('UPDATE albums SET album_type = ? WHERE id = ? AND album_type IS NULL').run(meta.albumType, existing.id);
+    if (meta.releaseType) {
+      db.prepare('UPDATE albums SET release_type = ? WHERE id = ? AND release_type IS NULL').run(meta.releaseType, existing.id);
     }
     return existing.id;
   }
@@ -674,7 +674,7 @@ export function ensureAlbum(
     compilation: meta.compilation,
     totalTracks: meta.totalTracks,
     totalDiscs: meta.totalDiscs,
-    albumType: meta.albumType,
+    releaseType: meta.releaseType,
   });
   if (artistIds.length) {
     setAlbumArtists(db, id, artistIds);

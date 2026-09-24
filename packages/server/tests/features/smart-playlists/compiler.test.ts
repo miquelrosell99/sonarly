@@ -235,11 +235,11 @@ describe('smart playlist compiler', () => {
     expect(ids).toEqual(['song-1']);
   });
 
-  it('filters by album type', () => {
-    db.prepare("UPDATE albums SET album_type = 'soundtrack' WHERE id = 'album-1'").run();
+  it('filters by release type', () => {
+    db.prepare("UPDATE albums SET release_type = 'soundtrack' WHERE id = 'album-1'").run();
     const rules: SmartPlaylistRules = {
       rules: {
-        all: [{ field: 'albumType', operator: 'is', value: 'soundtrack' }],
+        all: [{ field: 'releaseType', operator: 'is', value: 'soundtrack' }],
       },
     };
     const compiled = compileSmartPlaylist(db, rules, 'user-1');
@@ -247,11 +247,11 @@ describe('smart playlist compiler', () => {
     expect(ids).toHaveLength(3);
   });
 
-  it('filters by album type case-insensitively', () => {
-    db.prepare("UPDATE albums SET album_type = 'Soundtrack' WHERE id = 'album-1'").run();
+  it('filters by release type case-insensitively', () => {
+    db.prepare("UPDATE albums SET release_type = 'Soundtrack' WHERE id = 'album-1'").run();
     const rules: SmartPlaylistRules = {
       rules: {
-        all: [{ field: 'albumType', operator: 'is', value: 'soundtrack' }],
+        all: [{ field: 'releaseType', operator: 'is', value: 'soundtrack' }],
       },
     };
     const compiled = compileSmartPlaylist(db, rules, 'user-1');
