@@ -46,7 +46,11 @@ Phases:
 
 Continues regardless of v2 outcome. Done 2026-09-24: CI workflow (`61ac4a6`), transactional playlist writes (`afdf545`), `average_rating` preservation (`48123b2`), conflicts file deletion (`1554b0d`), resync coalescing (`a5c19eb`) — 515/515 tests green.
 
-**F1 DECISION (2026-09-24, product owner): per-user library assignment IS a security boundary.** `user_libraries` must be enforced in every content query and stream/download path on v1 (admins bypass; share-token grants stay scoped to playlist content). v2 builds with the same enforcement from the start. Remaining Phase 2 security items: audit §20 (B8–B14).
+**F1 DECISION (2026-09-24, product owner): per-user library assignment IS a security boundary.** `user_libraries` must be enforced in every content query and stream/download path on v1 (admins bypass; share-token grants stay scoped to playlist content). **Done (`0a8a354`): enforced across all native + OpenSubsonic content paths with an authorization-matrix suite — 525 tests green.**
+
+Phase 2 security batch done 2026-09-24: SIGTERM graceful shutdown (`b3469ce`), authenticated+scoped `/api/libraries` (`7d181e7`), session invalidation on password reset (`579ce1c`), shareToken owner-only (`4f27147`), ffmpeg spawn fallback + maxBitRate clamp (`ff4a1ec`), scrobble validation (`4cca221`), `/healthz` + container healthchecks (`3fe9abd`) — **541 tests green**. v2 builds with the same enforcement from the start. CI pinned to Node 22 (`278785f`).
+
+Remaining Phase 2 (lower priority): ffmpeg concurrency cap + rate limiting, login hardening (timing equalization, throttle eviction, trustProxy), default-secret warning, upload reassembly streaming.
 
 ### Track 3 — Frontend audit (TRIGGER: S3 contract spike lands — runs IN PARALLEL with v2 P4–P8, not after "backend done")
 
