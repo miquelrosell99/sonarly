@@ -85,4 +85,24 @@ describe('buildApp', () => {
     await app.close();
     expect(workerInstance.postMessage).toHaveBeenCalledWith({ type: 'shutdown' });
   });
+
+  it('closes gracefully without throwing and shuts the worker down', async () => {
+    const { Worker } = await import('node:worker_threads');
+
+    const app = await buildApp(config, db);
+    const workerInstance = (Worker as any).mock.results[0].value;
+
+    await expect(app.close()).resolves.toBeUndefined();
+    expect(workerInstance.postMessage).toHaveBeenCalledWith({ type: 'shutdown' });
+  });
+
+  it('serves an unauthenticated health probe that pings the database', async () => {
+    const app = await buildApp(config, db);
+
+    const res = await app.inject({ method: 'GET', url: '/healthz' });
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual({ status: 'ok' });
+
+    await app.close();
+  });
 });
