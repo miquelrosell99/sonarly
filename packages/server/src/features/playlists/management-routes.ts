@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
-import type { Playlist, PlaylistVisibility, SmartPlaylistRules } from '@sonarly/shared';
+import type { Playlist, PlaylistResolveMode, PlaylistVisibility, SmartPlaylistRules } from '@sonarly/shared';
 import { isSmartPlaylistRuleGroup } from '@sonarly/shared';
 import {
   getPlaylistById,
@@ -20,6 +20,10 @@ const VISIBILITIES: PlaylistVisibility[] = ['private', 'shared', 'public', 'link
 
 function isVisibility(value: unknown): value is PlaylistVisibility {
   return typeof value === 'string' && VISIBILITIES.includes(value as PlaylistVisibility);
+}
+
+function isResolveMode(value: unknown): value is PlaylistResolveMode {
+  return value === 'tracks' || value === 'query';
 }
 
 function canViewPlaylist(
@@ -171,6 +175,7 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
         visibility: r.visibility,
         shareToken: r.owner_id === userId ? (r.share_token ?? undefined) : undefined,
         isSmart,
+        resolveMode: base.resolveMode,
         songCount: isSmart ? resolvePlaylistSongCount(db, base, userId) : r.song_count,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
@@ -233,9 +238,13 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       songIds?: string[];
       isSmart?: boolean;
       rules?: SmartPlaylistRules;
+      resolveMode?: PlaylistResolveMode;
     };
     if (typeof body.name !== 'string' || body.name.length === 0) {
       return reply.status(400).send({ error: 'Name is required' });
+    }
+    if (body.resolveMode !== undefined && !isResolveMode(body.resolveMode)) {
+      return reply.status(400).send({ error: 'Invalid resolveMode' });
     }
     const visibility = isVisibility(body.visibility) ? body.visibility : 'private';
     const isSmart = body.isSmart === true;
@@ -257,6 +266,7 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       songIds,
       isSmart,
       rules,
+      resolveMode: body.resolveMode ?? 'tracks',
       createdAt: now,
       updatedAt: now,
     };
@@ -278,11 +288,17 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       songIds: string[];
       rules: SmartPlaylistRules;
       isSmart: boolean;
+      resolveMode: PlaylistResolveMode;
     }>;
+
+    if (body.resolveMode !== undefined && !isResolveMode(body.resolveMode)) {
+      return reply.status(400).send({ error: 'Invalid resolveMode' });
+    }
 
     let songIds = existing.songIds;
     let isSmart = existing.isSmart;
     let rules = existing.rules;
+    let resolveMode = existing.resolveMode;
 
     if (existing.isSmart && body.isSmart === false) {
       isSmart = false;
@@ -332,6 +348,7 @@ export function registerPlaylistManagementRoutes(app: FastifyInstance, db: Datab
       shareToken,
       isSmart,
       rules,
+      resolveMode: body.resolveMode ?? resolveMode,
       songIds,
       updatedAt: new Date().toISOString(),
     };

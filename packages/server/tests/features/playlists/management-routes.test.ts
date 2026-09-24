@@ -158,6 +158,65 @@ describe('management playlist endpoints', () => {
     expect(playlists[0].ownerUsername).toBe('owner');
   });
 
+  it('rejects an invalid resolveMode', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/playlists',
+      cookies: { sessionId: ownerCookie },
+      payload: {
+        name: 'Bad Mode',
+        isSmart: true,
+        rules: { rules: { all: [{ field: 'title', operator: 'contains', value: 'x' }] } },
+        resolveMode: 'live',
+      },
+    });
+    expect(create.statusCode).toBe(400);
+  });
+
+  it('serves the owner-derived track list of a public smart playlist to other users', async () => {
+    db.prepare(`
+      INSERT INTO user_songs (user_id, song_id, starred, rating, play_count, last_played)
+      VALUES ('owner-1', 'song-1', 0, 5, 0, NULL)
+    `).run();
+    db.prepare(`
+      INSERT INTO user_songs (user_id, song_id, starred, rating, play_count, last_played)
+      VALUES ('friend-1', 'song-2', 0, 5, 0, NULL)
+    `).run();
+
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/playlists',
+      cookies: { sessionId: ownerCookie },
+      payload: {
+        name: 'Owner Picks',
+        visibility: 'public',
+        isSmart: true,
+        rules: { rules: { all: [{ field: 'rating', operator: 'gte', value: 4 }] } },
+      },
+    });
+    expect(create.statusCode).toBe(201);
+    const id = JSON.parse(create.body).playlist.id;
+    expect(JSON.parse(create.body).playlist.resolveMode).toBe('tracks');
+
+    const list = await app.inject({
+      method: 'GET',
+      url: '/api/playlists',
+      cookies: { sessionId: friendCookie },
+    });
+    const entry = JSON.parse(list.body).playlists.find((p: { id: string }) => p.id === id);
+    expect(entry.songCount).toBe(1);
+
+    const detail = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}`,
+      cookies: { sessionId: friendCookie },
+    });
+    expect(detail.statusCode).toBe(200);
+    const body = JSON.parse(detail.body).playlist;
+    expect(body.entries.map((s: { id: string }) => s.id)).toEqual(['song-1']);
+    expect(body.resolveMode).toBe('tracks');
+  });
+
   it('updates a playlist and returns the new state', async () => {
     const create = await app.inject({
       method: 'POST',
