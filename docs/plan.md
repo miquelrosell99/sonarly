@@ -27,7 +27,7 @@ Phases:
 
 - [x] P0 — scaffold: config, db+migrate, httpserver, `/health`+`/ready`, smoke-tested
 - [x] P1 — baseline schema distilled from v1 migrations (+ audit schema fixes)
-- [ ] **S1 — metadata spike (gates P4)**: `dhowden/tag` against real library corpus. **Deliverable is not "it works" — it is an explicit accept/reject list of every tag semantic v1 supports** (multi-value tags, embedded art, ReplayGain, ISRC, MBIDs, explicit-flag variants, SYLT/LRC lyrics, classical/composer handling, ID3v1 character-encoding quirks) with **product sign-off**, since several gaps are user-visible features (DR-2 risk 1)
+- [x] **S1 — metadata spike (gates P4)** ✅ DONE (`7f5b5aa`, verdict **GO**, pending product sign-off): `dhowden/tag` + own fork (multi-value W1, m4a `rtng`/`tmpo` W2) + ~300-line pure-Go properties reader (W5) reaches full v1 parity without CGO. Deliverable: `docs/v2-s1-metadata-findings.md` §6 sign-off list (m4a explicit flag, multi-value tags, ID3v1 mojibake, properties-reader quirks, dead-SYLT confirmation). Surprise finding: v1's native SYLT branch is dead code — synced-lyrics parity is the LRC-in-tag path.
 - [ ] P2 — auth + users (sessions, API keys, admin) with enforced library isolation (see F1 decision below)
 - [ ] P3 — catalog (artists/albums/songs/genres) + repositories + native API
 - [ ] **S2 — streaming spike (gates P5)**: range, ffmpeg pipe, disconnect-kill, concurrency cap
