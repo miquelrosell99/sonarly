@@ -211,14 +211,14 @@ function parseScrobbleBody(body: unknown): ScrobbleDetails | undefined {
     if (typeof input.durationListened !== 'number' || !Number.isFinite(input.durationListened)) {
       throw new Error('durationListened must be a finite number');
     }
-    details.durationListened = input.durationListened;
+    details.durationListened = Math.max(0, input.durationListened);
   }
 
   if ('completion' in input) {
     if (typeof input.completion !== 'number' || !Number.isFinite(input.completion)) {
       throw new Error('completion must be a finite number');
     }
-    details.completion = input.completion;
+    details.completion = Math.min(100, Math.max(0, input.completion));
   }
 
   if ('client' in input) {
@@ -232,7 +232,9 @@ function parseScrobbleBody(body: unknown): ScrobbleDetails | undefined {
   }
 
   if ('playedAt' in input) {
-    if (typeof input.playedAt !== 'string') throw new Error('playedAt must be an ISO date string');
+    if (typeof input.playedAt !== 'string' || Number.isNaN(Date.parse(input.playedAt))) {
+      throw new Error('playedAt must be a valid date string');
+    }
     details.playedAt = input.playedAt;
   }
 
@@ -563,7 +565,12 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
       return reply.status(404).send({ error: 'Song not found' });
     }
 
-    const details = parseScrobbleBody(request.body);
+    let details: ScrobbleDetails | undefined;
+    try {
+      details = parseScrobbleBody(request.body);
+    } catch (err) {
+      return reply.status(400).send({ error: err instanceof Error ? err.message : 'Invalid scrobble payload' });
+    }
     scrobbleSong(db, userId, id, details);
     reply.send({ ok: true });
   });
