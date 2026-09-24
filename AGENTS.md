@@ -19,3 +19,4 @@ This project is developed with assistance from AI coding agents. Human review an
 - [User Settings & Preferences Storage](agents/user-settings.md)
 - [Security Considerations](agents/security.md)
 - [Skill References](agents/skills.md)
+- [Project Documentation](docs/README.md) — docs index: deployment, development, architecture, smart playlists, API, DB schema
