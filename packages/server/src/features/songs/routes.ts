@@ -1,6 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
-import { randomUUID } from 'node:crypto';
 import { unlink } from 'node:fs/promises';
 import { createReadStream, statSync } from 'node:fs';
 import { lookup } from 'mime-types';
@@ -15,6 +14,7 @@ import { organizeSongFile } from '../ingest/index.js';
 import { resolveGenreForTagWrite, resolveGenreForFilter } from '../genres/index.js';
 import { ensureArtist } from '../artists/repository.js';
 import { ensureAlbum } from '../albums/repository.js';
+import { pushJob } from '../library/queue.js';
 import type { Config } from '../../config.js';
 
 const ALLOWED_TAG_KEYS = new Set<keyof SongTags>([
@@ -294,8 +294,7 @@ function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | unde
 }
 
 export function queueResync(db: Database.Database, path: string): void {
-  db.prepare("INSERT INTO scan_jobs (id, type, status, stats) VALUES (?, 'resync', 'pending', ?)")
-    .run(randomUUID(), JSON.stringify({ path }));
+  pushJob(db, 'resync', path);
 }
 
 interface SongDetailRow {
