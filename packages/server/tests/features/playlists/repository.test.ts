@@ -146,4 +146,58 @@ describe('playlist repository', () => {
       expect(getPlaylistById(db, 'smart-1')!.resolveMode).toBe('query');
     });
   });
+
+  describe('transactional writes', () => {
+    const owner: User & { passwordHash: string; subsonicPasswordEncrypted: string } = {
+      id: 'owner-1',
+      username: 'owner',
+      isAdmin: false,
+      createdAt: new Date().toISOString(),
+      passwordHash: 'hash',
+      subsonicPasswordEncrypted: 'encrypted',
+    };
+
+    const insertSong = (id: string) => {
+      db.prepare(`
+        INSERT INTO songs (id, file_path, title, mtime, checksum, active)
+        VALUES (?, ?, ?, 1, ?, 1)
+      `).run(id, `/${id}.mp3`, `Song ${id}`, `c-${id}`);
+    };
+
+    const playlist = (songIds: string[]): Playlist => ({
+      id: 'playlist-1',
+      name: 'My Playlist',
+      ownerId: owner.id,
+      visibility: 'private',
+      songIds,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    beforeEach(() => {
+      // Enforce FKs so a re-insert referencing a missing song throws.
+      db.pragma('foreign_keys = ON');
+      createUser(db, owner);
+      insertSong('s1');
+      insertSong('s2');
+    });
+
+    it('rolls back the whole rewrite when a song re-insert fails', () => {
+      createPlaylist(db, playlist(['s1']));
+
+      expect(() => updatePlaylist(db, { ...playlist(['s2', 'missing-song']), name: 'Updated' })).toThrow();
+
+      const after = getPlaylistById(db, 'playlist-1')!;
+      expect(after.name).toBe('My Playlist');
+      expect(after.songIds).toEqual(['s1']);
+    });
+
+    it('leaves no partial playlist when create fails mid-insert', () => {
+      expect(() => createPlaylist(db, playlist(['s1', 'missing-song']))).toThrow();
+
+      expect(getPlaylistById(db, 'playlist-1')).toBeUndefined();
+      const members = db.prepare('SELECT * FROM playlist_songs WHERE playlist_id = ?').all('playlist-1');
+      expect(members).toEqual([]);
+    });
+  });
 });
