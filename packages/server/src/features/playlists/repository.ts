@@ -110,46 +110,50 @@ function sumSongDurations(db: Database.Database, songIds: string[]): number {
 
 export function createPlaylist(db: Database.Database, playlist: Playlist): void {
   const isSmart = playlist.isSmart === true;
-  db.prepare(`
-    INSERT INTO playlists (id, name, description, owner_id, visibility, share_token, is_smart, rules_json, resolve_mode)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    playlist.id,
-    playlist.name,
-    playlist.description ?? null,
-    playlist.ownerId,
-    playlist.visibility,
-    playlist.shareToken ?? null,
-    isSmart ? 1 : 0,
-    isSmart && playlist.rules ? JSON.stringify(playlist.rules) : null,
-    normalizeResolveMode(playlist.resolveMode),
-  );
-  if (!isSmart) {
-    insertPlaylistSongs(db, playlist.id, playlist.songIds);
-  }
+  db.transaction(() => {
+    db.prepare(`
+      INSERT INTO playlists (id, name, description, owner_id, visibility, share_token, is_smart, rules_json, resolve_mode)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      playlist.id,
+      playlist.name,
+      playlist.description ?? null,
+      playlist.ownerId,
+      playlist.visibility,
+      playlist.shareToken ?? null,
+      isSmart ? 1 : 0,
+      isSmart && playlist.rules ? JSON.stringify(playlist.rules) : null,
+      normalizeResolveMode(playlist.resolveMode),
+    );
+    if (!isSmart) {
+      insertPlaylistSongs(db, playlist.id, playlist.songIds);
+    }
+  })();
 }
 
 export function updatePlaylist(db: Database.Database, playlist: Playlist): void {
   const isSmart = playlist.isSmart === true;
-  db.prepare(`
-    UPDATE playlists
-    SET name = ?, description = ?, visibility = ?, share_token = ?, is_smart = ?, rules_json = ?, resolve_mode = ?, updated_at = datetime('now')
-    WHERE id = ?
-  `).run(
-    playlist.name,
-    playlist.description ?? null,
-    playlist.visibility,
-    playlist.shareToken ?? null,
-    isSmart ? 1 : 0,
-    isSmart && playlist.rules ? JSON.stringify(playlist.rules) : null,
-    normalizeResolveMode(playlist.resolveMode),
-    playlist.id,
-  );
-  // Members only exist for standard playlists; clear stale rows when smart.
-  db.prepare('DELETE FROM playlist_songs WHERE playlist_id = ?').run(playlist.id);
-  if (!isSmart) {
-    insertPlaylistSongs(db, playlist.id, playlist.songIds);
-  }
+  db.transaction(() => {
+    db.prepare(`
+      UPDATE playlists
+      SET name = ?, description = ?, visibility = ?, share_token = ?, is_smart = ?, rules_json = ?, resolve_mode = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `).run(
+      playlist.name,
+      playlist.description ?? null,
+      playlist.visibility,
+      playlist.shareToken ?? null,
+      isSmart ? 1 : 0,
+      isSmart && playlist.rules ? JSON.stringify(playlist.rules) : null,
+      normalizeResolveMode(playlist.resolveMode),
+      playlist.id,
+    );
+    // Members only exist for standard playlists; clear stale rows when smart.
+    db.prepare('DELETE FROM playlist_songs WHERE playlist_id = ?').run(playlist.id);
+    if (!isSmart) {
+      insertPlaylistSongs(db, playlist.id, playlist.songIds);
+    }
+  })();
 }
 
 function insertPlaylistSongs(db: Database.Database, playlistId: string, songIds: string[]): void {
