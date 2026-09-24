@@ -204,8 +204,8 @@ describe('OpenSubsonic extra browsing endpoints', () => {
     });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    expect(body['subsonic-response'].albumInfo2.notes).toBe('');
-    expect(body['subsonic-response'].albumInfo2.musicBrainzId).toBe('mb-album-1');
+    expect(body['subsonic-response'].albumInfo.notes).toBe('');
+    expect(body['subsonic-response'].albumInfo.musicBrainzId).toBe('mb-album-1');
   });
 
   it('returns similar songs from getSimilarSongs2', async () => {
