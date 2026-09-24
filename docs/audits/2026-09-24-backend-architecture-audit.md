@@ -458,6 +458,22 @@ The external proposal: Go (or TS) + PostgreSQL + FTS/trigram + DB-backed jobs + 
 
 > **STATUS CHANGE (2026-09-24, same day):** Trigger (c) has fired as an explicit **product decision**. A full greenfield Go rewrite is now **open as a parallel exploration track** on dedicated branch `feat/go-rewrite` (worktree `.worktrees/go-rewrite`), proceeding alongside — not instead of — the Phase 0–1 correctness/security fixes on the TypeScript codebase. The analysis above stands unchanged (Go is the preferred *greenfield* implementation; the TS stack remains correct and maintained for v1). The Go track is treated as Sonarly v2 exploration: it must reach functional parity with the audit's target architecture (§16–§19) before any cutover discussion, and v1 continues to receive fixes regardless of v2's outcome.
 
+### Decision Record DR-2 — v2 stack selection (recorded 2026-09-24)
+
+- **Decision:** v2 = **Go 1.23 backend + TypeScript/React frontend** (unchanged), with the stack split by layer: Go where the system is I/O/concurrency-shaped, TypeScript where the UI ecosystem is strongest.
+- **Quality bar (owner directive):** best possible implementation — no hacky solutions or shortcuts in stack choice, coding, schema, or testing.
+- **Verified facts (2026-09-24, not memory):** FTS5 works on `modernc.org/sqlite` (compiled + executed an FTS5 virtual table + MATCH query); pure-Go, no CGO, static binary. Tag writing stays with pinned mutagen (language-agnostic, same as v1).
+- **Accepted risks (recorded so they are managed, not discovered):**
+  1. **Go's audio-metadata reading is the ecosystem's weak spot.** `dhowden/tag` (last commit 2024-04) covers ID3v1/v2, MP4, FLAC, OGG + artwork but not v1's depth (ReplayGain, ISRC, SYLT, explicit-flag variants). Mitigations: extend the library, CGO TagLib (breaks pure-Go), or reduced initial richness.
+  2. **`@sonarly/shared` type sharing is lost.** Mitigation: OpenAPI spec as the contract source, codegen both sides (oapi-codegen + orval). New discipline required.
+  3. Development velocity if Go proficiency is still growing — accepted because v1 remains the production server; the branch isolates the cost.
+- **De-risking spikes (gate the phases noted in `docs/plan.md`):**
+  - **S1 Metadata** (gates scanner): `dhowden/tag` against the real library corpus; gap catalog vs v1's `music-metadata` reader.
+  - **S2 Streaming** (gates playback): range requests, ffmpeg pipe, disconnect-kill, concurrency cap.
+  - **S3 Contract** (gates frontend work): OpenAPI generation from Go routes + client codegen proof.
+- **Alternatives considered and set aside:** TS/Fastify greenfield (forfeits the rewrite's purpose), Rust/axum (velocity + equally thin tag ecosystem), .NET (off-ecosystem), Elixir (thin metadata ecosystem), Python/FastAPI (weakest for streaming/scanning concurrency).
+- **Why this is safe even if imperfect:** reversibility — v1 stays production and keeps receiving fixes; v2 is branch-isolated; cutover requires passing a parity bar. Worst case is a documented experiment, not a stranded product.
+
 ---
 
 ## 16. Recommended Target Architecture
