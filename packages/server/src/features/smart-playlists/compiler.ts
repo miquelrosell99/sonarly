@@ -60,10 +60,14 @@ function fieldColumn(field: string): { expr: string; needsJoin: string | null; i
       return { expr: 'aar.name', needsJoin: 'albumArtist', isUserField: false };
     case 'genre':
       return { expr: 'g.name', needsJoin: 'genre', isUserField: false };
+    case 'albumType':
+      return { expr: 'a.album_type', needsJoin: 'albums', isUserField: false };
     case 'year':
       return { expr: 's.year', needsJoin: null, isUserField: false };
     case 'duration':
       return { expr: 's.duration', needsJoin: null, isUserField: false };
+    case 'bitDepth':
+      return { expr: 's.bits_per_sample', needsJoin: null, isUserField: false };
     case 'loved':
       return { expr: 'COALESCE(us.starred, 0)', needsJoin: 'userSongs', isUserField: true };
     case 'rating':
