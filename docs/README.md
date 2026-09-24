@@ -9,6 +9,7 @@ This folder contains the project documentation. Start here.
 | [deployment.md](deployment.md) | Docker deployment: production and development compose files, environment variables, volumes, permissions, updates, troubleshooting |
 | [development.md](development.md) | Local and Docker-based development: setup, scripts, testing, database migrations, code conventions |
 | [architecture.md](architecture.md) | Application structure: monorepo layout, server request pipeline, background workers, data flow, web app structure |
+| [plan.md](plan.md) | Living engineering plan: v2 Go rewrite track, v1 hardening track, frontend audit trigger + prompt |
 
 ## Feature deep dives
 
