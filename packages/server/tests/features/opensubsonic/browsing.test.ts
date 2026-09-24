@@ -418,6 +418,30 @@ describe('OpenSubsonic browsing endpoints', () => {
     expect(body['subsonic-response'].error.code).toBe(70);
   });
 
+  it('returns an albumInfo element from getAlbumInfo2', async () => {
+    const res = await app.inject({ method: 'GET', url: query('/rest/getAlbumInfo2.view?id=album-1', 'json') });
+    expect(res.statusCode).toBe(200);
+    const response = JSON.parse(res.body)['subsonic-response'];
+    expect(response.albumInfo).toBeDefined();
+    expect(response.albumInfo2).toBeUndefined();
+  });
+
+  it('returns an albumInfo element from getAlbumInfo', async () => {
+    const res = await app.inject({ method: 'GET', url: query('/rest/getAlbumInfo.view?id=album-1', 'json') });
+    expect(res.statusCode).toBe(200);
+    const response = JSON.parse(res.body)['subsonic-response'];
+    expect(response.albumInfo).toBeDefined();
+    expect(response.albumInfo2).toBeUndefined();
+  });
+
+  it('returns a controlled error for album info of a missing album', async () => {
+    const res = await app.inject({ method: 'GET', url: query('/rest/getAlbumInfo2.view?id=missing', 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(70);
+  });
+
   it('returns an artist with their albums', async () => {
     const res = await app.inject({ method: 'GET', url: query('/rest/getArtist.view?id=artist-1', 'json') });
     expect(res.statusCode).toBe(200);
