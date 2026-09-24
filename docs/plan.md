@@ -7,9 +7,19 @@
 
 ### Track 1 — v2 Go rewrite (branch `feat/go-rewrite`, worktree `.worktrees/go-rewrite`, code in `v2/`)
 
-Greenfield backend per DR-1 status change. **Quality bar: best possible implementation — no hacky solutions or shortcuts in stack choice, coding, schema, or testing.**
+Greenfield backend per DR-1 status change. **Quality bar: no hacky solutions or shortcuts in stack choice, coding, schema, or testing — with explicitly accepted trade-offs (see below), so ambition can't silently inflate later phases.**
 
 Stack: Go 1.23 · chi v5 · `modernc.org/sqlite` (pure Go, WAL/FK/busy_timeout/synchronous=NORMAL, single writer conn) · embedded SQL migrations with ledger · `signal.NotifyContext` graceful shutdown · slog JSON logging.
+
+### Accepted trade-offs (written down so phases can't silently absorb ambition)
+
+- **Single-node only.** No clustering, no multi-replica, no read replicas. SQLite single writer is a feature, not a limitation to engineer around.
+- **FTS5 without ranking tuning.** Prefix/substring search over title/artist/album; bm25 ranking refinement only if the S1-era product review demands it.
+- **Coarse ACL.** Library-level assignment only (enforced `user_libraries`); no per-album/per-artist grants, no roles beyond admin/user.
+- **Quirk preservation over spec purity** in the OpenSubsonic adapter where real clients depend on v1 behavior; deviations from spec documented in the quirks checklist.
+- **Tag richness may be reduced at v2.0** vs v1's `music-metadata` reader, pending the S1 accept/reject list and product sign-off — not silently.
+- **No transcode cache, no artwork derivatives at v2.0** — concurrency cap and original-blob serving first; caches only if usage proves the need.
+- **Parity is defined by the v1 behavior checklist, not the OpenSubsonic spec text.**
 
 Target architecture: audit §16–§19 (modular monolith, `internal/modules/<domain>`, OpenSubsonic as adapter over one application core, typed DB-backed job queue, FTS5 search, enforced library isolation, Track/MediaFile separation where justified).
 
@@ -17,26 +27,30 @@ Phases:
 
 - [x] P0 — scaffold: config, db+migrate, httpserver, `/health`+`/ready`, smoke-tested
 - [x] P1 — baseline schema distilled from v1 migrations (+ audit schema fixes)
-- [ ] **S1 — metadata spike (gates P4)**: `dhowden/tag` against real library corpus; gap catalog vs v1 reader (DR-2 risk 1)
-- [ ] P2 — auth + users (sessions, API keys, admin) with enforced library isolation
+- [ ] **S1 — metadata spike (gates P4)**: `dhowden/tag` against real library corpus. **Deliverable is not "it works" — it is an explicit accept/reject list of every tag semantic v1 supports** (multi-value tags, embedded art, ReplayGain, ISRC, MBIDs, explicit-flag variants, SYLT/LRC lyrics, classical/composer handling, ID3v1 character-encoding quirks) with **product sign-off**, since several gaps are user-visible features (DR-2 risk 1)
+- [ ] P2 — auth + users (sessions, API keys, admin) with enforced library isolation (see F1 decision below)
 - [ ] P3 — catalog (artists/albums/songs/genres) + repositories + native API
 - [ ] **S2 — streaming spike (gates P5)**: range, ffmpeg pipe, disconnect-kill, concurrency cap
 - [ ] P4 — library runtime: scanner, watcher, scheduler, job queue/worker (typed payloads, coalescing, cancellation)
 - [ ] P5 — playback: streaming service (range, transcode w/ concurrency cap), scrobble, bookmarks
 - [ ] P6 — playlists (static + smart compiler) + sharing policy
+- [ ] P6.5 — OpenSubsonic adapter skeleton + **quirks checklist** (`docs/v2-opensubsonic-quirks.md`) started from day one: every v1 endpoint behavior, quirks included (envelope-on-error, search3 empty-query pagination, getAlbumInfo→albumInfo element, getIndexes lastModified, toStarredDate epoch dates, submission=false no-op, etc.). Quirk preservation is where rewrites lose users — the checklist makes the parity tail (P9) a lookup exercise instead of an archaeology project
 - [ ] P7 — ingestion: uploads (streaming reassembly), ingest pipeline, duplicates, organize
 - [ ] P8 — search (FTS5 — verified on modernc.org/sqlite 2026-09-24) + statistics + home/auto-dj
-- [ ] P9 — OpenSubsonic adapter (full parity with v1's 43 endpoints)
+- [ ] P9 — OpenSubsonic adapter full parity (43 endpoints) against the quirks checklist — budgeted as the largest phase, not an afterthought
 - [ ] **S3 — contract spike (gates Track 3)**: OpenAPI from Go routes + client codegen (DR-2 risk 2)
 - [ ] P10 — parity test suite + cutover evaluation
+- [ ] **P10b — v1→v2 data migration + dual-run**: import a production v1 DB snapshot into v2, diff library state end-to-end (songs/albums/artists/playlists/history/ratings), run v2 alongside v1 against the real library, write the rollback story. Cutover is not discussed without this phase passing
 
 ### Track 2 — v1 TypeScript hardening (branch `main`)
 
-Continues regardless of v2 outcome. Done 2026-09-24: CI workflow (`61ac4a6`), transactional playlist writes (`afdf545`), `average_rating` preservation (`48123b2`), conflicts file deletion (`1554b0d`), resync coalescing (`a5c19eb`) — 515/515 tests green. Remaining: Phase 0 leftovers (SIGTERM, `/health`) and Phase 2 security (audit §20).
+Continues regardless of v2 outcome. Done 2026-09-24: CI workflow (`61ac4a6`), transactional playlist writes (`afdf545`), `average_rating` preservation (`48123b2`), conflicts file deletion (`1554b0d`), resync coalescing (`a5c19eb`) — 515/515 tests green.
 
-### Track 3 — Frontend audit (TRIGGER: v2 backend done)
+**F1 DECISION (2026-09-24, product owner): per-user library assignment IS a security boundary.** `user_libraries` must be enforced in every content query and stream/download path on v1 (admins bypass; share-token grants stay scoped to playlist content). v2 builds with the same enforcement from the start. Remaining Phase 2 security items: audit §20 (B8–B14).
 
-Full professional-style audit of `packages/web` using the prompt in the appendix below. Prerequisite: v2 exposes a stable audited API contract.
+### Track 3 — Frontend audit (TRIGGER: S3 contract spike lands — runs IN PARALLEL with v2 P4–P8, not after "backend done")
+
+A stable contract is the prerequisite, not a finished backend. Once S3 (OpenAPI codegen) lands, the frontend audit proceeds against the frozen contract while backend phases continue — auditing against a stable contract is better than against a moving one, and this avoids serializing months of work. Prompt: Appendix A below. Prerequisite: v2 exposes the contracted API surface.
 
 ---
 
