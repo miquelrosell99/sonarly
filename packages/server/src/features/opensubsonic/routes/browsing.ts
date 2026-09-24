@@ -876,7 +876,11 @@ export function toOpenSubsonicSong(
   }
   if (song.isrcs) {
     const isrcs = parseStringArray(song.isrcs);
-    if (isrcs.length) result.isrcs = isrcs;
+    if (isrcs.length) {
+      result.isrcs = isrcs;
+      // Legacy alias: py-opensonic (Music Assistant) reads `isrc`, not `isrcs`.
+      result.isrc = isrcs;
+    }
   }
   if (song.original_year !== null && song.original_year !== undefined) {
     result.originalYear = song.original_year;

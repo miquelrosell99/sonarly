@@ -391,6 +391,25 @@ describe('OpenSubsonic browsing endpoints', () => {
     expect(body['subsonic-response'].song.replayGain).toEqual({ trackGain: -4.7 });
   });
 
+  it('aliases isrcs as the legacy isrc field', async () => {
+    upsertSong(db, {
+      id: 'song-isrc',
+      filePath: '/data/library/song-isrc.flac',
+      title: 'ISRC Track',
+      duration: 240,
+      artistId: 'artist-1',
+      albumId: 'album-1',
+      mtime: Date.now(),
+      checksum: 'checksum-isrc',
+      isrcs: ['USUM72110129'],
+    });
+    const res = await app.inject({ method: 'GET', url: query('/rest/getSong.view?id=song-isrc', 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].song.isrcs).toEqual(['USUM72110129']);
+    expect(body['subsonic-response'].song.isrc).toEqual(['USUM72110129']);
+  });
+
   it('returns a controlled error for a missing song', async () => {
     const res = await app.inject({ method: 'GET', url: query('/rest/getSong.view?id=missing', 'json') });
     expect(res.statusCode).toBe(200);
