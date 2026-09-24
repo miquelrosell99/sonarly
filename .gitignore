@@ -10,3 +10,4 @@ config/
 docs/plans/
 docs/specs/
 docs/superpowers/
+compose.yaml
