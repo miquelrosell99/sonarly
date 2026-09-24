@@ -212,7 +212,7 @@ export function upsertSong(db: Database.Database, song: Song): void {
       musicbrainz_work_id = excluded.musicbrainz_work_id,
       musicbrainz_disc_id = excluded.musicbrainz_disc_id,
       replay_gain = excluded.replay_gain,
-      average_rating = excluded.average_rating,
+      average_rating = COALESCE(excluded.average_rating, songs.average_rating),
       comment = excluded.comment,
       sort_name = excluded.sort_name,
       mood = excluded.mood,

@@ -6,6 +6,8 @@ import { join } from 'node:path';
 import NodeID3 from 'node-id3';
 import { migrate } from '../../../src/db/migrate.js';
 import { scanLibrary } from '../../../src/features/library/scanner.js';
+import { setRating } from '../../../src/features/favorites/repository.js';
+import { createUser } from '../../../src/features/users/repository.js';
 import type { Config } from '../../../src/config.js';
 
 const fixture = new URL('../../fixtures/sample.mp3', import.meta.url).pathname;
@@ -130,6 +132,32 @@ describe('scanLibrary', () => {
     expect(stats.updated).toBe(1);
     const after = db.prepare('SELECT mtime FROM songs WHERE file_path = ?').pluck().get(target) as number;
     expect(after).toBeGreaterThan(before);
+  });
+
+  it('preserves average_rating when a rescan re-persists the song', async () => {
+    const target = join(libraryPath, 'Song.mp3');
+    copyFileSync(fixture, target);
+    await scanLibrary(config, db);
+    const songId = db.prepare('SELECT id FROM songs WHERE file_path = ?').pluck().get(target) as string;
+
+    createUser(db, {
+      id: 'user-1',
+      username: 'listener',
+      isAdmin: false,
+      createdAt: new Date().toISOString(),
+      passwordHash: 'hash',
+      subsonicPasswordEncrypted: 'encrypted',
+    });
+    setRating(db, 'user-1', 'song', songId, 5);
+    expect(db.prepare('SELECT average_rating FROM songs WHERE id = ?').pluck().get(songId)).toBe(5);
+
+    // Force a re-persist: scanner-built song objects carry no averageRating.
+    const future = Date.now() + 60_000;
+    utimesSync(target, future / 1000, future / 1000);
+    const stats = await scanLibrary(config, db);
+
+    expect(stats.updated).toBe(1);
+    expect(db.prepare('SELECT average_rating FROM songs WHERE id = ?').pluck().get(songId)).toBe(5);
   });
 
   it('detects moved files by checksum and preserves the song id', async () => {
