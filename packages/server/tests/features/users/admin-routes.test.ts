@@ -274,6 +274,39 @@ describe('management admin endpoints', () => {
     expect(loginRes.statusCode).toBe(200);
   });
 
+  it('invalidates existing sessions when the password changes', async () => {
+    const bobId = 'user-bob';
+
+    const meBefore = await app.inject({
+      method: 'GET',
+      url: '/api/me',
+      cookies: { sessionId: userCookie },
+    });
+    expect(meBefore.statusCode).toBe(200);
+
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/admin/users/${bobId}`,
+      cookies: { sessionId: adminCookie },
+      payload: { password: 'newbobpass' },
+    });
+    expect(res.statusCode).toBe(200);
+
+    const meAfter = await app.inject({
+      method: 'GET',
+      url: '/api/me',
+      cookies: { sessionId: userCookie },
+    });
+    expect(meAfter.statusCode).toBe(401);
+
+    const loginRes = await app.inject({
+      method: 'POST',
+      url: '/api/login',
+      payload: { username: 'bob', password: 'newbobpass' },
+    });
+    expect(loginRes.statusCode).toBe(200);
+  });
+
   it('creates users with profile fields', async () => {
     const res = await app.inject({
       method: 'POST',
