@@ -830,7 +830,9 @@ export function toOpenSubsonicSong(
     result.musicBrainzId = song.music_brainz_id;
   }
   if (song.replay_gain !== null && song.replay_gain !== undefined) {
-    result.replayGain = song.replay_gain;
+    // OpenSubsonic defines replayGain as an object; a bare number breaks strict
+    // clients such as Music Assistant (py-opensonic).
+    result.replayGain = { trackGain: song.replay_gain };
   }
   if (song.average_rating !== null && song.average_rating !== undefined) {
     result.averageRating = song.average_rating;
