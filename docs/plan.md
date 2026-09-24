@@ -16,15 +16,18 @@ Target architecture: audit §16–§19 (modular monolith, `internal/modules/<dom
 Phases:
 
 - [x] P0 — scaffold: config, db+migrate, httpserver, `/health`+`/ready`, smoke-tested
-- [ ] P1 — baseline schema distilled from v1 migrations (+ audit schema fixes)
+- [x] P1 — baseline schema distilled from v1 migrations (+ audit schema fixes)
+- [ ] **S1 — metadata spike (gates P4)**: `dhowden/tag` against real library corpus; gap catalog vs v1 reader (DR-2 risk 1)
 - [ ] P2 — auth + users (sessions, API keys, admin) with enforced library isolation
 - [ ] P3 — catalog (artists/albums/songs/genres) + repositories + native API
+- [ ] **S2 — streaming spike (gates P5)**: range, ffmpeg pipe, disconnect-kill, concurrency cap
 - [ ] P4 — library runtime: scanner, watcher, scheduler, job queue/worker (typed payloads, coalescing, cancellation)
 - [ ] P5 — playback: streaming service (range, transcode w/ concurrency cap), scrobble, bookmarks
 - [ ] P6 — playlists (static + smart compiler) + sharing policy
 - [ ] P7 — ingestion: uploads (streaming reassembly), ingest pipeline, duplicates, organize
-- [ ] P8 — search (FTS5) + statistics + home/auto-dj
+- [ ] P8 — search (FTS5 — verified on modernc.org/sqlite 2026-09-24) + statistics + home/auto-dj
 - [ ] P9 — OpenSubsonic adapter (full parity with v1's 43 endpoints)
+- [ ] **S3 — contract spike (gates Track 3)**: OpenAPI from Go routes + client codegen (DR-2 risk 2)
 - [ ] P10 — parity test suite + cutover evaluation
 
 ### Track 2 — v1 TypeScript hardening (branch `main`)
