@@ -42,7 +42,12 @@ function sourceBitrateKbps(song: Song): number | undefined {
 }
 
 export function decideTranscode(song: Song, user: { maxBitrateKbps?: number; transcodeFormat?: TranscodeFormat } | undefined, requestedMaxBitRate?: number): TranscodeDecision {
-  const effectiveMaxBitrate = requestedMaxBitRate ?? user?.maxBitrateKbps;
+  // The requested bitrate is a preference, the user cap a hard ceiling.
+  const userCap = user?.maxBitrateKbps;
+  const effectiveMaxBitrate =
+    requestedMaxBitRate !== undefined && userCap !== undefined
+      ? Math.min(requestedMaxBitRate, userCap)
+      : (requestedMaxBitRate ?? userCap);
   const targetFormat = user?.transcodeFormat;
 
   if (!effectiveMaxBitrate && !targetFormat) {
@@ -111,4 +116,14 @@ function containerFormat(format: TranscodeFormat): string {
 
 export function transcodeContentType(format: TranscodeFormat): string {
   return FORMAT_TO_MIME[format];
+}
+
+// Parses the OpenSubsonic `maxBitRate` query parameter. Only sane integers
+// are honored; anything else (garbage, absurd values) is ignored so the user
+// cap — or no transcoding at all — applies instead.
+export function parseMaxBitRate(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 64 || parsed > 10000) return undefined;
+  return parsed;
 }
