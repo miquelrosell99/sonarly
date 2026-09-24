@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdirSync, rmSync, copyFileSync } from 'node:fs';
+import { mkdirSync, rmSync, copyFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import Database from 'better-sqlite3';
@@ -132,6 +132,36 @@ describe('management conflict endpoints', () => {
     expect(body.conflicts[0].id).toBe('song-2');
     expect(body.conflicts[0].artistName).toBe('Artist');
     expect(body.conflicts[0].albumName).toBe('Album');
+  });
+
+  it('deletes collision files from disk along with their rows', async () => {
+    const collisionPath = join(config.LIBRARY_PATH, 'track (1).mp3');
+    expect(existsSync(collisionPath)).toBe(true);
+
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/conflicts',
+      cookies: { sessionId: adminCookie },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual({ ok: true, deleted: 1 });
+    expect(existsSync(collisionPath)).toBe(false);
+    expect(db.prepare('SELECT * FROM songs WHERE id = ?').get('song-2')).toBeUndefined();
+  });
+
+  it('still removes the row when the collision file is already gone', async () => {
+    rmSync(join(config.LIBRARY_PATH, 'track (1).mp3'));
+
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/conflicts',
+      cookies: { sessionId: adminCookie },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body)).toEqual({ ok: true, deleted: 1 });
+    expect(db.prepare('SELECT * FROM songs WHERE id = ?').get('song-2')).toBeUndefined();
   });
 
   it('forbids non-admins', async () => {

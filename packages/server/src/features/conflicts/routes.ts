@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
+import { unlink } from 'node:fs/promises';
 import { listCollisionSongs, deleteSongById } from '../songs/index.js';
 
 interface ConflictRow {
@@ -60,6 +61,15 @@ export function registerConflictManagementRoutes(app: FastifyInstance, db: Datab
 
     const songs = listCollisionSongs(db);
     for (const song of songs) {
+      try {
+        await unlink(song.filePath);
+      } catch (err) {
+        // A file that is already gone still needs its row removed.
+        if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+          request.log.error({ err }, `Failed to delete file ${song.filePath}`);
+          return reply.status(500).send({ error: 'Failed to delete file' });
+        }
+      }
       deleteSongById(db, song.id);
     }
     reply.send({ ok: true, deleted: songs.length });
