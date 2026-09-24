@@ -5,6 +5,7 @@ import { stat } from 'node:fs/promises';
 import mime from 'mime-types';
 import { getUserById } from '../users/index.js';
 import { listSongsByArtist } from '../songs/index.js';
+import { getLibraryScope, libraryScopeCondition } from '../libraries/policy.js';
 import { deleteArtistById } from './repository.js';
 import { deleteAlbumById } from '../albums/repository.js';
 
@@ -40,19 +41,29 @@ function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | unde
 
 export function registerArtistManagementRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get('/api/artists', (request: FastifyRequest, reply: FastifyReply) => {
-    const userId = (request as any).session?.userId as string | undefined;
+    const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
+    const userId = session?.userId;
+    const scope = getLibraryScope(db, session);
+    const scopeCondition = libraryScopeCondition(scope, 's.library_id');
     const { libraryId } = request.query as { libraryId?: string };
     const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
+    const songJoin = (libraryFilter || !scope.all)
+      ? `JOIN songs s ON s.artist_id = ar.id AND s.active = 1 ${libraryFilter ? 'AND s.library_id = ?' : ''} ${scopeCondition.sql}`
+      : '';
+
+    const params: (string | null)[] = [userId ?? null];
+    if (libraryFilter) params.push(libraryId);
+    params.push(...scopeCondition.params);
 
     const rows = db.prepare(`
       SELECT ar.*, ua.starred, ua.rating
       FROM artists ar
       LEFT JOIN user_artists ua ON ua.user_id = ? AND ua.artist_id = ar.id
-      ${libraryFilter ? 'JOIN songs s ON s.artist_id = ar.id AND s.active = 1 AND s.library_id = ?' : ''}
+      ${songJoin}
       WHERE ar.active = 1
-      ${libraryFilter ? 'GROUP BY ar.id' : ''}
+      ${songJoin ? 'GROUP BY ar.id' : ''}
       ORDER BY ar.name
-    `).all(...(libraryFilter ? [userId ?? null, libraryId] : [userId ?? null])) as ArtistRow[];
+    `).all(...params) as ArtistRow[];
     reply.send({
       artists: rows.map((r) => ({
         id: r.id,
@@ -69,10 +80,17 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
 
   app.get('/api/artists/:id', (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const userId = (request as any).session?.userId as string | undefined;
+    const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
+    const userId = session?.userId;
     const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
+    const scope = getLibraryScope(db, session);
+    const scopeCondition = libraryScopeCondition(scope, 's.library_id');
     const { libraryId } = request.query as { libraryId?: string };
     const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
+
+    const artistParams: (string | null)[] = [userId ?? null, id];
+    if (libraryFilter) artistParams.push(libraryId);
+    artistParams.push(...scopeCondition.params);
 
     const artist = db.prepare(`
       SELECT ar.*, ua.starred, ua.rating
@@ -80,20 +98,29 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
       LEFT JOIN user_artists ua ON ua.user_id = ? AND ua.artist_id = ar.id
       WHERE ar.id = ? AND ar.active = 1
       ${libraryFilter ? 'AND EXISTS (SELECT 1 FROM songs s WHERE s.artist_id = ar.id AND s.active = 1 AND s.library_id = ?)' : ''}
-    `).get(...(libraryFilter ? [userId ?? null, id, libraryId] : [userId ?? null, id])) as ArtistRow | undefined;
+      ${scope.all ? '' : `AND EXISTS (SELECT 1 FROM songs s WHERE s.artist_id = ar.id AND s.active = 1 ${scopeCondition.sql})`}
+    `).get(...artistParams) as ArtistRow | undefined;
     if (!artist) return reply.status(404).send({ error: 'Artist not found' });
+
+    const albumSongJoin = (libraryFilter || !scope.all)
+      ? `JOIN songs s ON s.album_id = a.id AND s.active = 1 ${libraryFilter ? 'AND s.library_id = ?' : ''} ${scopeCondition.sql}`
+      : 'LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1';
+    const albumParams: (string | number | null)[] = [hideExplicit ? 1 : 0];
+    if (libraryFilter) albumParams.push(libraryId);
+    albumParams.push(...scopeCondition.params);
+    albumParams.push(userId ?? null, id);
 
     const albums = db.prepare(`
       SELECT a.id, a.name, a.year, a.genre, a.cover_art_id, ua.starred, ua.rating,
         COUNT(s.id) AS total_song_count,
         SUM(CASE WHEN ? = 1 AND s.explicit = 1 THEN 0 ELSE 1 END) AS shown_song_count
       FROM albums a
-      LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1 ${libraryFilter ? 'AND s.library_id = ?' : ''}
+      ${albumSongJoin}
       LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
       WHERE a.artist_id = ? AND a.active = 1
       ${hideExplicit ? 'GROUP BY a.id HAVING shown_song_count > 0' : 'GROUP BY a.id'}
       ORDER BY a.year, a.name
-    `).all(...(libraryFilter ? [hideExplicit ? 1 : 0, libraryId, userId ?? null, id] : [hideExplicit ? 1 : 0, userId ?? null, id])) as (AlbumRow & { total_song_count: number; shown_song_count: number })[];
+    `).all(...albumParams) as (AlbumRow & { total_song_count: number; shown_song_count: number })[];
 
     reply.send({
       artist: {
@@ -123,19 +150,27 @@ export function registerArtistManagementRoutes(app: FastifyInstance, db: Databas
 
   app.get('/api/artists/:id/songs', (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const userId = (request as any).session?.userId as string | undefined;
+    const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
+    const userId = session?.userId;
     const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
+    const scope = getLibraryScope(db, session);
+    const scopeCondition = libraryScopeCondition(scope, 's.library_id');
     const { libraryId } = request.query as { libraryId?: string };
     const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
+
+    const artistParams: (string | null)[] = [id];
+    if (libraryFilter) artistParams.push(libraryId);
+    artistParams.push(...scopeCondition.params);
 
     const artist = db.prepare(`
       SELECT id FROM artists ar
       WHERE ar.id = ? AND ar.active = 1
       ${libraryFilter ? 'AND EXISTS (SELECT 1 FROM songs s WHERE s.artist_id = ar.id AND s.active = 1 AND s.library_id = ?)' : ''}
-    `).get(...(libraryFilter ? [id, libraryId] : [id])) as { id: string } | undefined;
+      ${scope.all ? '' : `AND EXISTS (SELECT 1 FROM songs s WHERE s.artist_id = ar.id AND s.active = 1 ${scopeCondition.sql})`}
+    `).get(...artistParams) as { id: string } | undefined;
     if (!artist) return reply.status(404).send({ error: 'Artist not found' });
 
-    const songs = listSongsByArtist(db, id, userId, libraryFilter ? libraryId : undefined);
+    const songs = listSongsByArtist(db, id, userId, libraryFilter ? libraryId : undefined, scope);
     const visibleSongs = hideExplicit ? songs.filter((s) => !s.explicit) : songs;
     reply.send({ songs: visibleSongs });
   });

@@ -76,7 +76,7 @@ describe('players endpoint', () => {
       username: 'tester',
       passwordHash: await hashPassword('pass'),
       subsonicPasswordEncrypted: encryptSubsonicPassword('pass', baseConfig.SESSION_SECRET),
-      isAdmin: false,
+      isAdmin: true,
       createdAt: new Date().toISOString(),
     });
     copyFileSync(fixturePath, join(config.LIBRARY_PATH, 'song1.mp3'));
@@ -159,7 +159,7 @@ describe('players endpoint', () => {
       username: 'other',
       passwordHash: await hashPassword('pass'),
       subsonicPasswordEncrypted: encryptSubsonicPassword('pass', baseConfig.SESSION_SECRET),
-      isAdmin: false,
+      isAdmin: true,
       createdAt: new Date().toISOString(),
     });
     const otherLogin = await app.inject({

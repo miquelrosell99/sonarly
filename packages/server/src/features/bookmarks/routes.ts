@@ -3,6 +3,7 @@ import type Database from 'better-sqlite3';
 import { sendSubsonicReply } from '../opensubsonic/responses.js';
 import { fetchOpenSubsonicSongsByIds } from '../opensubsonic/routes/browsing.js';
 import { getUserById } from '../users/index.js';
+import { getLibraryScope } from '../libraries/policy.js';
 import { getBookmarks, createBookmark, deleteBookmark } from './repository.js';
 
 export function registerBookmarkRoutes(app: FastifyInstance, db: Database.Database): void {
@@ -17,10 +18,12 @@ export function registerBookmarkRoutes(app: FastifyInstance, db: Database.Databa
 
     const user = getUserById(db, userId);
     const bookmarks = getBookmarks(db, userId);
+    const scope = getLibraryScope(db, { userId, isAdmin: (request as any).subsonicUserIsAdmin === true });
     const songs = fetchOpenSubsonicSongsByIds(
       db,
       userId,
       bookmarks.map((b) => b.songId),
+      scope,
     );
     const songMap = new Map(songs.map((s) => [s.id as string, s]));
 

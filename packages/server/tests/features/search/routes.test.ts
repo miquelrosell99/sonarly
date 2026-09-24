@@ -54,7 +54,7 @@ async function seedDb(db: Database.Database) {
     username: 'tester',
     passwordHash: await hashPassword('pass'),
     subsonicPasswordEncrypted: encryptSubsonicPassword('pass', baseConfig.SESSION_SECRET),
-    isAdmin: false,
+    isAdmin: true,
     createdAt: new Date().toISOString(),
   });
   createUser(db, {
@@ -62,7 +62,7 @@ async function seedDb(db: Database.Database) {
     username: 'owner',
     passwordHash: await hashPassword('pass'),
     subsonicPasswordEncrypted: encryptSubsonicPassword('pass', baseConfig.SESSION_SECRET),
-    isAdmin: false,
+    isAdmin: true,
     createdAt: new Date().toISOString(),
   });
   upsertArtist(db, { id: 'artist-1', name: 'Alpha Artist' });

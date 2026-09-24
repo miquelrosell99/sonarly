@@ -13,9 +13,23 @@ import { getSongCoverArtId, getAlbumCoverArtId } from '../../cover-art/index.js'
 import { recordStream } from '../../players/tracker.js';
 import { sendSubsonicReply } from '../responses.js';
 import { decideTranscode, spawnFfmpegTranscode, transcodeContentType } from '../../transcode/service.js';
+import { getLibraryScope, isAlbumInScope, isCoverArtInScope, isSongInScope, libraryScopeCondition } from '../../libraries/policy.js';
+import type { LibraryScope } from '../../libraries/policy.js';
 
 // Cover art is immutable by id; safe to cache privately for a day.
 const COVER_ART_CACHE_CONTROL = 'private, max-age=86400';
+
+function requestStreamScope(db: Database.Database, request: FastifyRequest): LibraryScope {
+  const subsonicUserId = (request as any).subsonicUser as string | undefined;
+  if (subsonicUserId) {
+    return getLibraryScope(db, {
+      userId: subsonicUserId,
+      isAdmin: (request as any).subsonicUserIsAdmin === true,
+    });
+  }
+  const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
+  return getLibraryScope(db, session);
+}
 
 export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get('/rest/stream.view', async (request: FastifyRequest, reply: FastifyReply) => {
@@ -24,6 +38,7 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
     const { id } = query;
     const song = getSongById(db, id);
     if (!song) return reply.status(404).send('Not found');
+    if (!isSongInScope(db, requestStreamScope(db, request), id)) return reply.status(404).send('Not found');
 
     const userId = ((request as any).subsonicUser as string | undefined) ?? ((request as any).session?.userId as string | undefined);
     const user = userId ? getUserById(db, userId) : undefined;
@@ -108,6 +123,7 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
     const { id } = request.query as { id: string };
     const song = getSongById(db, id);
     if (!song) return reply.status(404).send('Not found');
+    if (!isSongInScope(db, requestStreamScope(db, request), id)) return reply.status(404).send('Not found');
 
     const mime = lookup(song.filePath) || 'application/octet-stream';
     let size: number;
@@ -130,13 +146,25 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
   app.get('/rest/getCoverArt.view', async (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat as 'json' | 'xml';
     const { id } = request.query as { id: string };
+    const scope = requestStreamScope(db, request);
 
     const cached = getCoverArtById(db, id);
     if (cached) {
+      if (!isCoverArtInScope(db, scope, id)) {
+        return sendSubsonicReply(reply, format, {
+          error: { code: 70, message: 'Cover art not found' },
+        }, 'failed');
+      }
       return reply.header('Cache-Control', COVER_ART_CACHE_CONTROL).type(cached.format).send(cached.data);
     }
 
     // Try song cover art first
+    const song = getSongById(db, id);
+    if (song && !isSongInScope(db, scope, id)) {
+      return sendSubsonicReply(reply, format, {
+        error: { code: 70, message: 'Cover art not found' },
+      }, 'failed');
+    }
     const songCoverArtId = getSongCoverArtId(db, id);
     if (songCoverArtId) {
       const songCached = getCoverArtById(db, songCoverArtId);
@@ -145,7 +173,6 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
       }
     }
 
-    const song = getSongById(db, id);
     if (song) {
       try {
         const metadata = await parseFile(song.filePath, { duration: false });
@@ -159,6 +186,12 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
     }
 
     // Try album cover art
+    const album = getAlbumById(db, id);
+    if (album?.id && !isAlbumInScope(db, scope, album.id)) {
+      return sendSubsonicReply(reply, format, {
+        error: { code: 70, message: 'Cover art not found' },
+      }, 'failed');
+    }
     const albumCoverArtId = getAlbumCoverArtId(db, id);
     if (albumCoverArtId) {
       const albumCached = getCoverArtById(db, albumCoverArtId);
@@ -167,7 +200,6 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
       }
     }
 
-    const album = getAlbumById(db, id);
     if (album?.id) {
       const albumSong = db.prepare('SELECT id FROM songs WHERE album_id = ? AND active = 1 ORDER BY disc_number, track_number LIMIT 1').get(album.id) as { id: string } | undefined;
       if (albumSong) {
@@ -213,18 +245,21 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
   app.get('/rest/getLyrics.view', async (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat as 'json' | 'xml';
     const { id, artist, title } = request.query as { id?: string; artist?: string; title?: string };
+    const scope = requestStreamScope(db, request);
     let lyrics = '';
 
     if (id) {
       const song = getSongById(db, id);
-      lyrics = song?.lyrics ?? '';
+      lyrics = song && isSongInScope(db, scope, id) ? (song.lyrics ?? '') : '';
     } else if (artist && title) {
+      const scopeCondition = libraryScopeCondition(scope, 's.library_id');
       const row = db.prepare(`
         SELECT s.lyrics FROM songs s
         JOIN artists a ON a.id = s.artist_id
         WHERE a.name = ? COLLATE NOCASE AND s.title = ? COLLATE NOCASE AND s.active = 1
+        ${scopeCondition.sql}
         LIMIT 1
-      `).get(artist, title) as { lyrics: string | null } | undefined;
+      `).get(artist, title, ...scopeCondition.params) as { lyrics: string | null } | undefined;
       lyrics = row?.lyrics ?? '';
     }
 

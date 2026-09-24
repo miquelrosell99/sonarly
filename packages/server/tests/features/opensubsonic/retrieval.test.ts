@@ -37,7 +37,7 @@ function seedUser(db: Database.Database) {
   const subsonicPasswordEncrypted = encryptSubsonicPassword(password, config.SESSION_SECRET);
   const salt = 'salty';
   const token = buildSubsonicToken(password, salt);
-  createUser(db, { id: 'user-1', username, passwordHash: 'ignored', subsonicPasswordEncrypted, isAdmin: false, createdAt: new Date().toISOString() });
+  createUser(db, { id: 'user-1', username, passwordHash: 'ignored', subsonicPasswordEncrypted, isAdmin: true, createdAt: new Date().toISOString() });
   return { username, token, salt };
 }
 
@@ -65,7 +65,7 @@ describe('OpenSubsonic retrieval endpoints', () => {
     seedSong(db);
     app = Fastify();
     app.addHook('preHandler', async (request) => {
-      (request as any).session = { userId: 'user-1' };
+      (request as any).session = { userId: 'user-1', isAdmin: true };
     });
     await registerOpenSubsonicRoutes(app, config, db);
   });

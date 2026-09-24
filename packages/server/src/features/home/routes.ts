@@ -4,6 +4,7 @@ import type { Album } from '@sonarly/shared';
 import { getUserById } from '../users/index.js';
 import { getCoverArtById } from '../cover-art/index.js';
 import { shareTokenGrantsCoverArt } from '../playlists/index.js';
+import { getLibraryScope, isCoverArtInScope, libraryScopeCondition } from '../libraries/policy.js';
 
 interface AlbumRow {
   id: string;
@@ -41,18 +42,25 @@ const ALBUM_COLUMNS = `
 
 export function registerHomeRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get('/api/home', (request: FastifyRequest, reply: FastifyReply) => {
-    const userId = (request as any).session?.userId as string | undefined;
+    const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
+    const userId = session?.userId;
     const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
+    const scope = getLibraryScope(db, session);
+    const scopeCondition = libraryScopeCondition(scope, 's.library_id');
     const { libraryId } = request.query as { libraryId?: string };
     const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
 
     const genreParams: string[] = [];
-    if (libraryFilter) genreParams.push(libraryId, libraryId);
+    if (libraryFilter) genreParams.push(libraryId);
+    genreParams.push(...scopeCondition.params);
+    if (libraryFilter) genreParams.push(libraryId);
+    genreParams.push(...scopeCondition.params);
+    const genreSongScope = libraryScopeCondition(scope, 'library_id');
     const genres = db.prepare(`
       SELECT name FROM (
-        SELECT DISTINCT genre AS name FROM songs WHERE active = 1 AND genre IS NOT NULL AND genre != '' ${libraryFilter ? 'AND library_id = ?' : ''}
+        SELECT DISTINCT genre AS name FROM songs WHERE active = 1 AND genre IS NOT NULL AND genre != '' ${libraryFilter ? 'AND library_id = ?' : ''} ${genreSongScope.sql}
         UNION
-        SELECT DISTINCT genre AS name FROM albums WHERE active = 1 AND genre IS NOT NULL AND genre != '' ${libraryFilter ? 'AND EXISTS (SELECT 1 FROM songs s WHERE s.album_id = albums.id AND s.active = 1 AND s.library_id = ?)' : ''}
+        SELECT DISTINCT genre AS name FROM albums WHERE active = 1 AND genre IS NOT NULL AND genre != '' ${libraryFilter ? 'AND EXISTS (SELECT 1 FROM songs s WHERE s.album_id = albums.id AND s.active = 1 AND s.library_id = ?)' : ''} ${scope.all ? '' : `AND EXISTS (SELECT 1 FROM songs s WHERE s.album_id = albums.id AND s.active = 1 ${scopeCondition.sql})`}
       )
       ORDER BY name
     `).pluck().all(...genreParams) as string[];
@@ -64,13 +72,19 @@ export function registerHomeRoutes(app: FastifyInstance, db: Database.Database):
       ? ' AND SUM(CASE WHEN s.explicit = 0 THEN 1 ELSE 0 END) > 0'
       : '';
     const libraryJoin = libraryFilter ? 'AND s.library_id = ?' : '';
+    const innerSongJoin = `JOIN songs s ON s.album_id = a.id AND s.active = 1 ${libraryJoin} ${scopeCondition.sql}`;
+    // Restricted scopes need an inner join so albums without in-scope songs
+    // drop out; admins keep the original LEFT JOIN behavior.
+    const randomSongJoin = (libraryFilter || !scope.all)
+      ? innerSongJoin
+      : 'LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1';
     const libraryWhere = libraryFilter ? 'AND EXISTS (SELECT 1 FROM songs s2 WHERE s2.album_id = a.id AND s2.active = 1 AND s2.library_id = ?)' : '';
     const libraryParams = libraryFilter ? [libraryId] : [];
 
     const mostPlayedRows = db.prepare(`
       SELECT ${ALBUM_COLUMNS}, ua.starred, ua.rating, COALESCE(SUM(us.play_count), 0) AS total_plays
       FROM albums a
-      JOIN songs s ON s.album_id = a.id AND s.active = 1 ${libraryJoin}
+      ${innerSongJoin}
       LEFT JOIN user_songs us ON us.song_id = s.id AND us.user_id = ?
       LEFT JOIN user_albums ua ON ua.album_id = a.id AND ua.user_id = ?
       WHERE a.active = 1 ${libraryWhere}
@@ -78,36 +92,36 @@ export function registerHomeRoutes(app: FastifyInstance, db: Database.Database):
       ${explicitHaving}
       ORDER BY total_plays DESC, a.name
       LIMIT ?
-    `).all(...libraryParams, userId ?? null, userId ?? null, ...libraryParams, HOME_LIMIT) as (AlbumRow & { total_plays: number })[];
+    `).all(...libraryParams, ...scopeCondition.params, userId ?? null, userId ?? null, ...libraryParams, HOME_LIMIT) as (AlbumRow & { total_plays: number })[];
 
     const randomRows = db.prepare(`
       SELECT ${ALBUM_COLUMNS}, ua.starred, ua.rating
       FROM albums a
-      LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1 ${libraryJoin}
+      ${randomSongJoin}
       LEFT JOIN user_albums ua ON ua.album_id = a.id AND ua.user_id = ?
       WHERE a.active = 1 ${libraryWhere}
       GROUP BY a.id
       ${explicitHaving}
       ORDER BY RANDOM()
       LIMIT ?
-    `).all(...libraryParams, userId ?? null, ...libraryParams, HOME_LIMIT) as AlbumRow[];
+    `).all(...libraryParams, ...scopeCondition.params, userId ?? null, ...libraryParams, HOME_LIMIT) as AlbumRow[];
 
     const recentlyAddedRows = db.prepare(`
       SELECT ${ALBUM_COLUMNS}, ua.starred, ua.rating, MAX(s.mtime) AS last_mtime
       FROM albums a
-      JOIN songs s ON s.album_id = a.id AND s.active = 1 ${libraryJoin}
+      ${innerSongJoin}
       LEFT JOIN user_albums ua ON ua.album_id = a.id AND ua.user_id = ?
       WHERE a.active = 1 ${libraryWhere}
       GROUP BY a.id
       ${explicitHaving}
       ORDER BY last_mtime DESC, a.name
       LIMIT ?
-    `).all(...libraryParams, userId ?? null, ...libraryParams, HOME_LIMIT) as (AlbumRow & { last_mtime: number })[];
+    `).all(...libraryParams, ...scopeCondition.params, userId ?? null, ...libraryParams, HOME_LIMIT) as (AlbumRow & { last_mtime: number })[];
 
     const recentlyPlayedRows = db.prepare(`
       SELECT ${ALBUM_COLUMNS}, ua.starred, ua.rating, MAX(us.last_played) AS last_played
       FROM albums a
-      JOIN songs s ON s.album_id = a.id AND s.active = 1 ${libraryJoin}
+      ${innerSongJoin}
       LEFT JOIN user_songs us ON us.song_id = s.id AND us.user_id = ?
       LEFT JOIN user_albums ua ON ua.album_id = a.id AND ua.user_id = ?
       WHERE a.active = 1 ${libraryWhere}
@@ -115,7 +129,7 @@ export function registerHomeRoutes(app: FastifyInstance, db: Database.Database):
       HAVING last_played IS NOT NULL${explicitCondition}
       ORDER BY last_played DESC, a.name
       LIMIT ?
-    `).all(...libraryParams, userId ?? null, userId ?? null, ...libraryParams, HOME_LIMIT) as (AlbumRow & { last_played: string })[];
+    `).all(...libraryParams, ...scopeCondition.params, userId ?? null, userId ?? null, ...libraryParams, HOME_LIMIT) as (AlbumRow & { last_played: string })[];
 
     reply.send({
       genres,
@@ -128,12 +142,14 @@ export function registerHomeRoutes(app: FastifyInstance, db: Database.Database):
 
   app.get('/api/cover-art/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const userId = (request as any).session?.userId as string | undefined;
-    if (!userId) {
+    const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
+    if (!session?.userId) {
       const { shareToken } = request.query as { shareToken?: string };
       if (!shareToken || !shareTokenGrantsCoverArt(db, shareToken, id)) {
         return reply.status(403).send({ error: 'Forbidden' });
       }
+    } else if (!isCoverArtInScope(db, getLibraryScope(db, session), id)) {
+      return reply.status(404).send('Not found');
     }
     const coverArt = getCoverArtById(db, id);
     if (!coverArt) {

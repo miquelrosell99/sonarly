@@ -9,6 +9,7 @@ import {
   getUserAveragePlayCount,
 } from './repository.js';
 import type { SongContext, SmartCandidate } from './repository.js';
+import type { LibraryScope } from '../libraries/policy.js';
 
 export type AutoDjMode = 'similar' | 'random' | 'smart';
 
@@ -27,16 +28,17 @@ export function getCandidates(
   count: number,
   excludeIds: string[],
   options: AutoDjOptions = {},
+  scope?: LibraryScope,
 ): Song[] {
   const context = currentSongId ? getSongContext(db, currentSongId, userId) : undefined;
 
   switch (mode) {
     case 'similar':
-      return getSimilarCandidates(db, userId, context, count, excludeIds, options);
+      return getSimilarCandidates(db, userId, context, count, excludeIds, options, scope);
     case 'random':
-      return getRandomCandidates(db, userId, count, excludeIds, options);
+      return getRandomCandidates(db, userId, count, excludeIds, options, scope);
     case 'smart':
-      return getSmartCandidates(db, userId, context, count, excludeIds, options);
+      return getSmartCandidates(db, userId, context, count, excludeIds, options, scope);
     default:
       return [];
   }
@@ -49,8 +51,9 @@ function getSmartCandidates(
   count: number,
   excludeIds: string[],
   options: AutoDjOptions,
+  scope?: LibraryScope,
 ): Song[] {
-  const candidates = getSmartCandidateRows(db, userId, context, excludeIds, options);
+  const candidates = getSmartCandidateRows(db, userId, context, excludeIds, options, scope);
   const avgPlayCount = getUserAveragePlayCount(db, userId);
 
   const discovery = Math.min(100, Math.max(0, options.discovery ?? 50));
@@ -107,7 +110,7 @@ function getSmartCandidates(
       ...excludeIds,
       ...picked.map((s) => s.id),
       ...(context ? [context.id] : []),
-    ], options);
+    ], options, scope);
     picked.push(...more);
   }
 
