@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-24
+
 ### Added
 
 - Smart playlist resolution mode (playlist-level): "Shared track list" resolves user-scoped rules (rating, loved, play count, last played) against the owner's data so every viewer receives the same curated track list (default), while "Live query" re-resolves against each viewer's own data; selectable in the playlist modal and via `resolveMode` on the playlist API.
@@ -105,6 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v0.6.0
 [0.5.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v0.5.0
 [0.1.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v0.1.0
