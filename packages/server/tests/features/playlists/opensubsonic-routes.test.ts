@@ -412,20 +412,29 @@ describe('OpenSubsonic playlist endpoints', () => {
   });
 
   it('includes duration in getPlaylists and getPlaylist', async () => {
+    upsertSong(db, {
+      id: 'song-frac',
+      filePath: '/data/library/songfrac.mp3',
+      title: 'Track Frac',
+      duration: 100.6,
+      mtime: Date.now(),
+      checksum: 'checksum-frac',
+    });
     const createRes = await app.inject({
       method: 'GET',
-      url: query('/rest/createPlaylist.view?name=Timed&songId=song-1&songId=song-2', 'json'),
+      url: query('/rest/createPlaylist.view?name=Timed&songId=song-1&songId=song-frac', 'json'),
     });
     const id = JSON.parse(createRes.body)['subsonic-response'].playlist?.id;
 
     const listRes = await app.inject({ method: 'GET', url: query('/rest/getPlaylists.view?', 'json') });
     const listed = JSON.parse(listRes.body)['subsonic-response'].playlists.playlist
       .find((p: { id: string }) => p.id === id);
-    expect(listed.duration).toBe(380);
+    expect(listed.duration).toBe(281);
 
     const getRes = await app.inject({ method: 'GET', url: query(`/rest/getPlaylist.view?id=${id}`, 'json') });
     const playlist = JSON.parse(getRes.body)['subsonic-response'].playlist;
-    expect(playlist.duration).toBe(380);
+    expect(playlist.duration).toBe(281);
+    expect(playlist.entry[1].duration).toBe(101);
   });
 
   it('includes the resolved duration for a smart playlist in getPlaylists', async () => {

@@ -248,9 +248,9 @@ function toOpenSubsonicPlaylist(
   const entries = includeEntries ? fetchPlaylistSongs(db, songIds) : [];
   const visibleEntries = hideExplicit ? entries.filter((s) => s.explicit !== true) : entries;
   const songCount = includeEntries ? visibleEntries.length : rawCount;
-  const duration = includeEntries
+  const duration = Math.round(includeEntries
     ? visibleEntries.reduce((sum, s) => sum + (typeof s.duration === 'number' ? s.duration : 0), 0)
-    : resolvePlaylistSongDuration(db, p, userId);
+    : resolvePlaylistSongDuration(db, p, userId));
   const base: Record<string, unknown> = {
     id: p.id,
     name: p.name,
@@ -300,7 +300,7 @@ function fetchPlaylistSongs(db: Database.Database, songIds: string[]): Record<st
       genre: song.genre,
       year: song.year,
       explicit: song.explicit === 1,
-      duration: song.duration,
+      duration: song.duration === null ? null : Math.round(song.duration),
       type: 'music',
       isDir: false,
       created: new Date(song.mtime).toISOString(),
