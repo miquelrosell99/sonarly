@@ -100,14 +100,85 @@ describe('library admin endpoints', () => {
     expect(body.libraries[0].isDefault).toBe(true);
   });
 
-  it('lists libraries publicly without admin', async () => {
+  it('requires authentication for the library list', async () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/libraries',
     });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns all libraries for admins without exposing host paths or patterns', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/libraries',
+      cookies: { sessionId: adminCookie },
+    });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body.libraries).toHaveLength(1);
+    expect(body.libraries[0]).toEqual({
+      id: expect.any(String),
+      name: expect.any(String),
+      isDefault: true,
+    });
+  });
+
+  it('lists only assigned libraries for non-admins', async () => {
+    const path = join(root, 'media', 'restricted');
+    mkdirSync(path, { recursive: true });
+    await app.inject({
+      method: 'POST',
+      url: '/api/admin/libraries',
+      cookies: { sessionId: adminCookie },
+      payload: { name: 'Restricted', path },
+    });
+
+    createUser(db, {
+      id: 'user-1',
+      username: 'user',
+      passwordHash: await hashPassword('userpass'),
+      subsonicPasswordEncrypted: encryptSubsonicPassword('userpass', config.SESSION_SECRET),
+      isAdmin: false,
+      createdAt: new Date().toISOString(),
+    });
+
+    const adminList = await app.inject({
+      method: 'GET',
+      url: '/api/admin/libraries',
+      cookies: { sessionId: adminCookie },
+    });
+    const libraries = JSON.parse(adminList.body).libraries;
+    expect(libraries).toHaveLength(2);
+    const defaultLibrary = libraries.find((l: { isDefault: boolean }) => l.isDefault);
+    const restricted = libraries.find((l: { name: string }) => l.name === 'Restricted');
+    expect(defaultLibrary).toBeDefined();
+    expect(restricted).toBeDefined();
+
+    await app.inject({
+      method: 'POST',
+      url: `/api/admin/libraries/${defaultLibrary.id}/users`,
+      cookies: { sessionId: adminCookie },
+      payload: { userIds: ['user-1'] },
+    });
+
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/login',
+      payload: { username: 'user', password: 'userpass' },
+    });
+    const userCookie = login.cookies.find((c) => c.name === 'sessionId')!.value;
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/libraries',
+      cookies: { sessionId: userCookie },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.libraries).toHaveLength(1);
+    expect(body.libraries[0].id).toBe(defaultLibrary.id);
+    expect(body.libraries.map((l: { name: string }) => l.name)).not.toContain('Restricted');
   });
 
   it('creates a library', async () => {

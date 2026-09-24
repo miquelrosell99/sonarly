@@ -13,6 +13,7 @@ import {
   assignUsersToLibrary,
   removeUserFromLibrary,
 } from './repository.js';
+import { getLibraryScope } from './policy.js';
 import type { CreateLibraryInput, UpdateLibraryInput } from '@sonarly/shared';
 
 function requireAdmin(session: { userId: string; isAdmin: boolean } | undefined, reply: FastifyReply): boolean {
@@ -46,8 +47,23 @@ export function registerLibraryAdminRoutes(
   db: Database.Database,
   restartWatcher?: () => void,
 ): void {
-  app.get('/api/libraries', async (_request: FastifyRequest, reply: FastifyReply) => {
-    reply.send({ libraries: listLibraries(db) });
+  app.get('/api/libraries', async (request: FastifyRequest, reply: FastifyReply) => {
+    const session = (request as any).session as { userId: string; isAdmin: boolean } | undefined;
+    const scope = getLibraryScope(db, session);
+    const visible = scope.all
+      ? listLibraries(db)
+      : scope.ids
+          .map((id) => getLibraryById(db, id))
+          .filter((library): library is NonNullable<typeof library> => library !== undefined);
+    // Trimmed to what library pickers need — never expose host paths or
+    // organize patterns here.
+    reply.send({
+      libraries: visible.map((library) => ({
+        id: library.id,
+        name: library.name,
+        isDefault: library.isDefault,
+      })),
+    });
   });
 
   app.get('/api/admin/libraries', async (request: FastifyRequest, reply: FastifyReply) => {
