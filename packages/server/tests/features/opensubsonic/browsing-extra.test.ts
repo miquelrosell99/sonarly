@@ -35,7 +35,7 @@ async function seedUser(db: Database.Database) {
   const passwordHash = await hashPassword(password);
   const salt = 'salty';
   const token = buildSubsonicToken(password, salt);
-  createUser(db, { id: 'user-1', username, passwordHash, subsonicPasswordEncrypted, isAdmin: false, createdAt: new Date().toISOString() });
+  createUser(db, { id: 'user-1', username, passwordHash, subsonicPasswordEncrypted, isAdmin: true, createdAt: new Date().toISOString() });
   return { username, token, salt, password };
 }
 

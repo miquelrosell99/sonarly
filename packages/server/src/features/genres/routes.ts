@@ -10,8 +10,10 @@ import {
   updateGenreNameCache,
   getRandomAlbumsByGenre,
   getGenreIdsForLibrary,
+  getGenreIdsForLibraries,
 } from './repository.js';
 import { getUserById } from '../users/index.js';
+import { getLibraryScope } from '../libraries/policy.js';
 
 function requireAdmin(reply: FastifyReply, session: { isAdmin?: boolean } | undefined): boolean {
   if (!session?.isAdmin) {
@@ -76,6 +78,26 @@ function buildTree(genres: ReturnType<typeof listGenres>, allowedIds?: Set<strin
   return roots;
 }
 
+function resolveAllowedGenreIds(
+  db: Database.Database,
+  session: { userId?: string; isAdmin?: boolean } | undefined,
+  libraryId: string | undefined,
+  libraryFilter: boolean,
+): Set<string> | undefined {
+  const scope = getLibraryScope(db, session);
+  let allowedIds: Set<string> | undefined;
+  if (!scope.all) {
+    allowedIds = getGenreIdsForLibraries(db, scope.ids);
+  }
+  if (libraryFilter && libraryId !== undefined) {
+    const forLibrary = getGenreIdsForLibrary(db, libraryId);
+    allowedIds = allowedIds
+      ? new Set([...allowedIds].filter((id) => forLibrary.has(id)))
+      : forLibrary;
+  }
+  return allowedIds;
+}
+
 export function registerGenreManagementRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get('/api/genres', (request: FastifyRequest, reply: FastifyReply) => {
     const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
@@ -83,7 +105,7 @@ export function registerGenreManagementRoutes(app: FastifyInstance, db: Database
 
     const { libraryId } = request.query as { libraryId?: string };
     const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
-    const allowedIds = libraryFilter ? getGenreIdsForLibrary(db, libraryId) : undefined;
+    const allowedIds = resolveAllowedGenreIds(db, session, libraryId, libraryFilter);
 
     const genres = listGenres(db);
     const paths = buildGenrePaths(db);
@@ -105,7 +127,7 @@ export function registerGenreManagementRoutes(app: FastifyInstance, db: Database
 
     const { libraryId } = request.query as { libraryId?: string };
     const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
-    const allowedIds = libraryFilter ? getGenreIdsForLibrary(db, libraryId) : undefined;
+    const allowedIds = resolveAllowedGenreIds(db, session, libraryId, libraryFilter);
 
     const genres = listGenres(db);
     reply.send({ tree: buildTree(genres, allowedIds) });
@@ -189,8 +211,9 @@ export function registerGenreManagementRoutes(app: FastifyInstance, db: Database
     const limit = Math.min(Math.max(parseInt(query.limit ?? '4', 10) || 4, 1), 20);
     const hideExplicit = getUserById(db, session.userId)?.hideExplicit === true;
     const libraryId = typeof query.libraryId === 'string' && query.libraryId.length > 0 ? query.libraryId : undefined;
+    const scope = getLibraryScope(db, session);
 
-    const albums = getRandomAlbumsByGenre(db, id, limit, hideExplicit, libraryId);
+    const albums = getRandomAlbumsByGenre(db, id, limit, hideExplicit, libraryId, scope);
     reply.send({ albums });
   });
 }

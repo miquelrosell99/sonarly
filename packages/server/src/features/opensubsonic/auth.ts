@@ -34,6 +34,7 @@ export function registerOpenSubsonicAuth(app: FastifyInstance, db: Database.Data
         }, 'failed');
       }
       (request as any).subsonicUser = user.id;
+      (request as any).subsonicUserIsAdmin = user.isAdmin;
       return;
     }
 
@@ -41,13 +42,15 @@ export function registerOpenSubsonicAuth(app: FastifyInstance, db: Database.Data
       const userId = verifySubsonicToken(db, u, t, s, sessionSecret);
       if (userId) {
         (request as any).subsonicUser = userId;
+        (request as any).subsonicUserIsAdmin = getUserById(db, userId)?.isAdmin === true;
         return;
       }
     }
 
-    const session = (request as any).session as { userId?: string } | undefined;
+    const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
     if (session?.userId) {
       (request as any).subsonicUser = session.userId;
+      (request as any).subsonicUserIsAdmin = session.isAdmin === true;
       return;
     }
 

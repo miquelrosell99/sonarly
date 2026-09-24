@@ -6,6 +6,7 @@ import type { AutoDjExcludeWindow } from '@sonarly/shared';
 import { getCandidates } from './service.js';
 import type { AutoDjMode, AutoDjOptions } from './service.js';
 import { getUserPreferences } from '../user-preferences/repository.js';
+import { getLibraryScope } from '../libraries/policy.js';
 
 const modeSchema = z.enum(['similar', 'random', 'smart']);
 
@@ -58,12 +59,13 @@ export function registerAutoDjRoutes(app: FastifyInstance, db: Database.Database
     reply: FastifyReply,
     parsed: AutoDjRequest,
   ) => {
-    const session = (request as any).session as { userId: string } | undefined;
+    const session = (request as any).session as { userId: string; isAdmin?: boolean } | undefined;
     if (!session?.userId) {
       return reply.status(401).send({ error: 'Unauthorized' });
     }
 
     const options = resolveAutoDjOptions(db, session.userId);
+    const scope = getLibraryScope(db, session);
 
     try {
       const songs = getCandidates(
@@ -74,6 +76,7 @@ export function registerAutoDjRoutes(app: FastifyInstance, db: Database.Database
         parsed.count,
         parsed.excludeIds,
         options,
+        scope,
       );
       reply.send({ songs });
     } catch (err) {
