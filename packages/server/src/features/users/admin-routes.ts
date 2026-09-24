@@ -393,8 +393,8 @@ export function registerAdminRoutes(app: FastifyInstance, db: Database.Database,
     });
     applyUpdates();
 
-    // A role change must invalidate existing sessions immediately.
-    if (body.isAdmin !== undefined) {
+    // A role or password change must invalidate existing sessions immediately.
+    if (body.isAdmin !== undefined || (body.password !== undefined && body.password !== null)) {
       deleteSessionsForUser(db, id);
     }
 
