@@ -656,6 +656,47 @@ describe('management playlist endpoints', () => {
     expect(JSON.parse(withToken.body).playlist.shares).toBeUndefined();
   });
 
+  it('returns the share token on the detail endpoint to the owner only', async () => {
+    const create = await app.inject({
+      method: 'POST',
+      url: '/api/playlists',
+      cookies: { sessionId: ownerCookie },
+      payload: { name: 'Link', visibility: 'link', songIds: ['song-1'] },
+    });
+    const { id, shareToken } = JSON.parse(create.body).playlist;
+    expect(shareToken).toBeDefined();
+
+    await app.inject({
+      method: 'POST',
+      url: `/api/playlists/${id}/share`,
+      cookies: { sessionId: ownerCookie },
+      payload: { userId: 'friend-1', canEdit: false },
+    });
+
+    const ownerGet = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}`,
+      cookies: { sessionId: ownerCookie },
+    });
+    expect(ownerGet.statusCode).toBe(200);
+    expect(JSON.parse(ownerGet.body).playlist.shareToken).toBe(shareToken);
+
+    const friendGet = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}`,
+      cookies: { sessionId: friendCookie },
+    });
+    expect(friendGet.statusCode).toBe(200);
+    expect(JSON.parse(friendGet.body).playlist.shareToken).toBeUndefined();
+
+    const anonGet = await app.inject({
+      method: 'GET',
+      url: `/api/playlists/${id}?shareToken=${shareToken}`,
+    });
+    expect(anonGet.statusCode).toBe(200);
+    expect(JSON.parse(anonGet.body).playlist.shareToken).toBeUndefined();
+  });
+
   it('converts a smart playlist to a normal playlist', async () => {
     const createRes = await app.inject({
       method: 'POST',
