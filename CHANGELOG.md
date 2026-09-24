@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-24
+
 ### Added
 
+- Smart playlist rule fields: album type (`albumType`) and bit depth (`bitDepth`), with album-type autocomplete in the rule editor.
 - Multi-value artist and genre support with pill-list editing.
 - MusicBrainz metadata lookup in the edit and fetch-metadata modals.
 - LRC library integration for fetching synced lyrics.
@@ -64,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Search error state never displayed (infinite loading), Auto DJ stale-add race, empty-queue "Play next" stranding tracks.
 - Listening time always showed 0m: web scrobbles never sent `durationListened`, so every `listening_history` row had NULL duration. The player now reports seconds listened + completion, and migration 047 backfills existing plays from song durations.
 - Synced lyrics editor opened trapped inside the Now Playing panel (no portal), collapsing the waveform area so neither waveform nor existing pills rendered; it now portals to the body and opens scrolled to the first lyric line.
+- Scanner album type now prefers the `soundtrack` marker in multi-value `RELEASETYPE` tags (e.g. Picard's `album; soundtrack`) instead of always taking the primary type, so soundtrack releases are classifiable.
 
 ### Removed
 
@@ -89,5 +93,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v0.5.0
 [0.1.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v0.1.0
