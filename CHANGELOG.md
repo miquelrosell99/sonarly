@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Smart playlist resolution mode (playlist-level): "Shared track list" resolves user-scoped rules (rating, loved, play count, last played) against the owner's data so every viewer receives the same curated track list (default), while "Live query" re-resolves against each viewer's own data; selectable in the playlist modal and via `resolveMode` on the playlist API.
+
+### Fixed
+
+- Shared and public viewers of rating-based smart playlists (e.g. the Curated Hits series) now receive the owner's curated track list instead of an empty list resolved against their own unrated library.
+
 ## [0.5.0] - 2026-09-24
 
 ### Added
