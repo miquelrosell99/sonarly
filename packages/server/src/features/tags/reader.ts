@@ -78,7 +78,7 @@ export interface AudioMetadata {
   gapless?: boolean;
   totalTracks?: string;
   totalDiscs?: string;
-  albumType?: string;
+  releaseType?: string;
 }
 
 /**
@@ -152,7 +152,7 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
     gapless: common.gapless ?? undefined,
     totalTracks: common.track.of?.toString() ?? common.totaltracks ?? undefined,
     totalDiscs: common.disk.of?.toString() ?? common.totaldiscs ?? undefined,
-    albumType: primaryReleaseType(common.releasetype),
+    releaseType: primaryReleaseType(common.releasetype),
   };
 }
 

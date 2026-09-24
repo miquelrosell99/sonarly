@@ -29,7 +29,7 @@ interface Album {
   name: string;
   artistId?: string;
   artistName?: string;
-  albumType?: string;
+  releaseType?: string;
   year?: number;
   genre?: string;
   coverArt?: string;
@@ -60,7 +60,7 @@ function SongContextMenu({
   return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
 
-function formatAlbumType(value: string): string {
+function formatReleaseType(value: string): string {
   return value.length <= 3 ? value.toUpperCase() : value.charAt(0).toUpperCase() + value.slice(1);
 }
 
@@ -287,7 +287,7 @@ export function Album({ user }: { user: User }) {
   const metadata = detail
     ? [
         { label: detail.album.artistName ?? 'Unknown artist', href: detail.album.artistId ? `/artists/${detail.album.artistId}` : undefined },
-        { label: detail.album.albumType ? formatAlbumType(detail.album.albumType) : '' },
+        { label: detail.album.releaseType ? formatReleaseType(detail.album.releaseType) : '' },
         { label: detail.album.year !== undefined && detail.album.year !== null ? String(detail.album.year) : '', href: detail.album.year !== undefined ? `/years/${detail.album.year}` : undefined },
         { label: detail.album.genre ?? '', href: detail.album.genre ? `/genres/${encodeURIComponent(detail.album.genre)}` : undefined },
       ]

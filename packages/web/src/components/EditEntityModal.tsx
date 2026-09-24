@@ -61,7 +61,7 @@ const ALBUM_FIELDS: TagField[] = [
   { key: 'title', label: 'Title', primary: true },
   { key: 'albumArtist', label: 'Album artist', autocomplete: 'albumArtist', primary: true, multi: true },
   { key: 'year', label: 'Year', type: 'number', primary: true },
-  { key: 'albumType', label: 'Album type', autocomplete: 'albumType' },
+  { key: 'releaseType', label: 'Release type', autocomplete: 'releaseType' },
 ];
 
 function parseNumber(value: string): number | undefined {
@@ -292,7 +292,7 @@ export function EditEntityModal({
         } else if (multi) {
           const arr = Array.isArray(raw) ? raw : [];
           patched[key] = arr.length > 0 ? arr : undefined;
-        } else if (key === 'albumType') {
+        } else if (key === 'releaseType') {
           // Send null (not undefined) so clearing the field persists as NULL.
           patched[key] = raw === '' ? null : raw;
         } else {

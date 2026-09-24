@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Smart playlist resolution mode (playlist-level): "Shared track list" resolves user-scoped rules (rating, loved, play count, last played) against the owner's data so every viewer receives the same curated track list (default), while "Live query" re-resolves against each viewer's own data; selectable in the playlist modal and via `resolveMode` on the playlist API.
 
+### Changed
+
+- Renamed album type to release type everywhere: `Album.albumType` → `releaseType`, `albums.album_type` → `release_type` (migration 049), smart-playlist rule field `albumType` → `releaseType`, UI labels "Album type" → "Release type", and `/api/suggestions?field=releaseType`. Stored smart-playlist rules referencing the old field are rewritten automatically by the migration; API clients sending `albumType` must update.
+
 ### Fixed
 
 - Shared and public viewers of rating-based smart playlists (e.g. the Curated Hits series) now receive the owner's curated track list instead of an empty list resolved against their own unrated library.

@@ -95,7 +95,7 @@ Music albums.
 | `year` | `INTEGER` | Release year |
 | `genre` | `TEXT` | Legacy text genre (kept for compatibility) |
 | `genre_id` | `TEXT` | FK → `genres(id)` `ON DELETE SET NULL` |
-| `album_type` | `TEXT` | Release type (album, ep, single, compilation, …); from the `RELEASETYPE` tag or the metadata editor |
+| `release_type` | `TEXT` | Release type (album, ep, single, compilation, …); from the `RELEASETYPE` tag or the metadata editor |
 | `cover_art_id` | `TEXT` | FK → `cover_arts(id)` |
 | `active` | `INTEGER` | Default `1`; set to `0` when all songs become inactive |
 

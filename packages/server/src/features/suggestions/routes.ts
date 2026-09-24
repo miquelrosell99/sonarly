@@ -2,10 +2,10 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import { buildGenrePaths } from '../genres/repository.js';
 
-const ALLOWED_FIELDS = new Set(['artist', 'album', 'genre', 'albumArtist', 'albumType']);
+const ALLOWED_FIELDS = new Set(['artist', 'album', 'genre', 'albumArtist', 'releaseType']);
 const MAX_LIMIT = 50;
 
-const ALBUM_TYPE_SEEDS = ['Album', 'EP', 'Single', 'Compilation', 'Live', 'Soundtrack', 'Remix'];
+const RELEASE_TYPE_SEEDS = ['Album', 'EP', 'Single', 'Compilation', 'Live', 'Soundtrack', 'Remix'];
 
 interface SuggestionParams {
   field: string;
@@ -31,11 +31,11 @@ function getSuggestions(db: Database.Database, field: string, query: string, lim
       .all(like, limit) as { name: string }[];
     return rows.map((r) => r.name);
   }
-  if (field === 'albumType') {
-    const rows = db.prepare("SELECT DISTINCT album_type AS name FROM albums WHERE album_type IS NOT NULL AND album_type <> '' AND album_type LIKE ? COLLATE NOCASE ESCAPE '\\' ORDER BY album_type LIMIT ?")
+  if (field === 'releaseType') {
+    const rows = db.prepare("SELECT DISTINCT release_type AS name FROM albums WHERE release_type IS NOT NULL AND release_type <> '' AND release_type LIKE ? COLLATE NOCASE ESCAPE '\\' ORDER BY release_type LIMIT ?")
       .all(like, limit) as { name: string }[];
     // Seeds give canonical casing; stored values fill in anything else.
-    const merged = ALBUM_TYPE_SEEDS.filter((seed) => seed.toLowerCase().includes(lowerQuery));
+    const merged = RELEASE_TYPE_SEEDS.filter((seed) => seed.toLowerCase().includes(lowerQuery));
     for (const { name } of rows) {
       if (!merged.some((existing) => existing.toLowerCase() === name.toLowerCase())) {
         merged.push(name);
