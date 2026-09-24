@@ -13,6 +13,15 @@ function commentText(value: CommentLike): string | undefined {
   return text && text.trim() ? text.trim() : undefined;
 }
 
+// Multi-value RELEASETYPE tags (e.g. Picard's "album; soundtrack") list the
+// broad primary type first; prefer the more specific "soundtrack" marker so
+// soundtrack releases are classifiable as such.
+function primaryReleaseType(releaseTypes: string[] | undefined): string | undefined {
+  if (!releaseTypes?.length) return undefined;
+  const types = releaseTypes.flatMap((t) => t.split(';'));
+  return types.find((t) => t.trim().toLowerCase() === 'soundtrack') ?? types[0];
+}
+
 export interface CoverArtPicture {
   data: Buffer;
   format: string;
@@ -143,7 +152,7 @@ export async function readMetadata(filePath: string): Promise<AudioMetadata> {
     gapless: common.gapless ?? undefined,
     totalTracks: common.track.of?.toString() ?? common.totaltracks ?? undefined,
     totalDiscs: common.disk.of?.toString() ?? common.totaldiscs ?? undefined,
-    albumType: common.releasetype?.[0] ?? undefined,
+    albumType: primaryReleaseType(common.releasetype),
   };
 }
 
