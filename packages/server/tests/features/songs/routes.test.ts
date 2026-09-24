@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdirSync, rmSync, copyFileSync, mkdtempSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import NodeID3 from 'node-id3';
 import Database from 'better-sqlite3';
 import { buildApp } from '../../../src/app.js';
 import { migrate } from '../../../src/db/migrate.js';
@@ -138,6 +139,33 @@ describe('management song endpoints', () => {
     const job = db.prepare("SELECT * FROM scan_jobs WHERE type = 'resync'").get() as any;
     expect(job).toBeDefined();
     expect(JSON.parse(job.stats).path).toBe(join(config.LIBRARY_PATH, 'New Artist', '(2024) Sample Album', '02 - New Title.mp3'));
+  });
+
+  it('coalesces resync jobs queued by a batch tag edit', async () => {
+    const src = new URL('../../fixtures/sample.mp3', import.meta.url).pathname;
+    const secondPath = join(config.LIBRARY_PATH, 'song2.mp3');
+    copyFileSync(src, secondPath);
+    NodeID3.write({ title: 'Second Song', artist: 'Second Artist', album: 'Second Album' }, secondPath);
+    upsertSong(db, {
+      id: 'song-2',
+      filePath: secondPath,
+      title: 'Second Song',
+      artistId: 'artist-1',
+      albumId: 'album-1',
+      mtime: Date.now(),
+      checksum: 'checksum-2',
+    });
+
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/songs/tags',
+      cookies: { sessionId: cookieValue },
+      payload: { ids: ['song-1', 'song-2'], tags: { genre: 'Rock' } },
+    });
+    expect(res.statusCode).toBe(200);
+
+    const jobs = db.prepare("SELECT * FROM scan_jobs WHERE type = 'resync' AND status = 'pending'").all();
+    expect(jobs).toHaveLength(1);
   });
 
   it('returns 500 when resync queue fails after tag write', async () => {
