@@ -410,4 +410,55 @@ describe('OpenSubsonic playlist endpoints', () => {
     expect(found.name).toBe('Smart All');
     expect(found.songCount).toBe(3);
   });
+
+  it('includes duration in getPlaylists and getPlaylist', async () => {
+    const createRes = await app.inject({
+      method: 'GET',
+      url: query('/rest/createPlaylist.view?name=Timed&songId=song-1&songId=song-2', 'json'),
+    });
+    const id = JSON.parse(createRes.body)['subsonic-response'].playlist?.id;
+
+    const listRes = await app.inject({ method: 'GET', url: query('/rest/getPlaylists.view?', 'json') });
+    const listed = JSON.parse(listRes.body)['subsonic-response'].playlists.playlist
+      .find((p: { id: string }) => p.id === id);
+    expect(listed.duration).toBe(380);
+
+    const getRes = await app.inject({ method: 'GET', url: query(`/rest/getPlaylist.view?id=${id}`, 'json') });
+    const playlist = JSON.parse(getRes.body)['subsonic-response'].playlist;
+    expect(playlist.duration).toBe(380);
+  });
+
+  it('includes the resolved duration for a smart playlist in getPlaylists', async () => {
+    const smart: Parameters<typeof createPlaylist>[1] = {
+      id: 'smart-3',
+      name: 'Smart Timed',
+      ownerId: auth.id,
+      visibility: 'private',
+      songIds: [],
+      isSmart: true,
+      rules: {
+        rules: {
+          all: [{ field: 'duration', operator: 'gt', value: 190 }],
+        },
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    createPlaylist(db, smart);
+
+    const res = await app.inject({ method: 'GET', url: query('/rest/getPlaylists.view?', 'json') });
+    const found = JSON.parse(res.body)['subsonic-response'].playlists.playlist
+      .find((p: { id: string }) => p.id === smart.id);
+    expect(found.songCount).toBe(2);
+    expect(found.duration).toBe(420);
+  });
+
+  it('returns a data-not-found error for an unknown playlist id', async () => {
+    const res = await app.inject({ method: 'GET', url: query('/rest/getPlaylist.view?id=nope', 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].status).toBe('failed');
+    expect(body['subsonic-response'].error.code).toBe(70);
+    expect(body['subsonic-response'].playlist).toBeUndefined();
+  });
 });

@@ -10,6 +10,7 @@ import {
   generateShareToken,
   resolvePlaylistSongIds,
   resolvePlaylistSongCount,
+  resolvePlaylistSongDuration,
 } from './repository.js';
 import { getUserById } from '../users/index.js';
 
@@ -49,7 +50,9 @@ export function registerPlaylistRoutes(app: FastifyInstance, db: Database.Databa
     const { id, shareToken } = request.query as { id: string; shareToken?: string };
     const playlist = getPlaylistById(db, id);
     if (!playlist) {
-      return sendSubsonicReply(reply, format, {});
+      return sendSubsonicReply(reply, format, {
+        error: { code: 70, message: 'Data not found' },
+      }, 'failed');
     }
     if (!canViewPlaylist(db, playlist, userId, shareToken)) {
       return sendUnauthorized(reply, format);
@@ -245,12 +248,16 @@ function toOpenSubsonicPlaylist(
   const entries = includeEntries ? fetchPlaylistSongs(db, songIds) : [];
   const visibleEntries = hideExplicit ? entries.filter((s) => s.explicit !== true) : entries;
   const songCount = includeEntries ? visibleEntries.length : rawCount;
+  const duration = includeEntries
+    ? visibleEntries.reduce((sum, s) => sum + (typeof s.duration === 'number' ? s.duration : 0), 0)
+    : resolvePlaylistSongDuration(db, p, userId);
   const base: Record<string, unknown> = {
     id: p.id,
     name: p.name,
     owner: owner?.username ?? '',
     public: p.visibility === 'public' || p.visibility === 'link',
     songCount,
+    duration,
     created: p.createdAt,
     changed: p.updatedAt,
   };

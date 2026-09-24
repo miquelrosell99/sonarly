@@ -70,6 +70,30 @@ export function resolvePlaylistSongCount(db: Database.Database, playlist: Playli
   return playlist.songIds.length;
 }
 
+// Mirrors resolvePlaylistSongCount's sources so the list view's duration and
+// songCount always describe the same membership.
+export function resolvePlaylistSongDuration(db: Database.Database, playlist: Playlist, userId: string): number {
+  if (playlist.isSmart && playlist.rules) {
+    const compiled = compileSmartPlaylist(db, playlist.rules, userId);
+    const ids = db.prepare(compiled.sql).pluck().all(...compiled.params) as string[];
+    return sumSongDurations(db, ids);
+  }
+  return sumSongDurations(db, playlist.songIds);
+}
+
+function sumSongDurations(db: Database.Database, songIds: string[]): number {
+  if (songIds.length === 0) return 0;
+  let total = 0;
+  for (let i = 0; i < songIds.length; i += 500) {
+    const chunk = songIds.slice(i, i + 500);
+    const row = db.prepare(`
+      SELECT COALESCE(SUM(duration), 0) AS total FROM songs WHERE id IN (${chunk.map(() => '?').join(',')})
+    `).get(...chunk) as { total: number } | undefined;
+    total += row?.total ?? 0;
+  }
+  return total;
+}
+
 export function createPlaylist(db: Database.Database, playlist: Playlist): void {
   const isSmart = playlist.isSmart === true;
   db.prepare(`
