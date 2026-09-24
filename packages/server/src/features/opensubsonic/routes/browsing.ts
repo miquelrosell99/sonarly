@@ -7,6 +7,8 @@ import type { Config } from '../../../config.js';
 import { sendSubsonicReply } from '../responses.js';
 import { getSongArtistEntriesForMany, getSongComposerEntriesForMany, getAlbumSongStatsForMany } from '../../songs/repository.js';
 import { getAlbumArtistEntriesForMany, getAlbumLabelEntriesForMany } from '../../albums/repository.js';
+import { getLibraryScope, libraryScopeCondition } from '../../libraries/policy.js';
+import type { LibraryScope } from '../../libraries/policy.js';
 import {
   getSongGenreNamesForMany,
   getAlbumGenreNamesForMany,
@@ -19,6 +21,31 @@ interface ArtistRow {
   name: string;
   artist_image_url: string | null;
   musicbrainz_artist_ids: string | null;
+}
+
+function requestScope(db: Database.Database, request: FastifyRequest): LibraryScope {
+  return getLibraryScope(db, {
+    userId: (request as any).subsonicUser as string | undefined,
+    isAdmin: (request as any).subsonicUserIsAdmin === true,
+  });
+}
+
+function albumScopeFilter(scope: LibraryScope, alias = 'a'): { sql: string; params: string[] } {
+  if (scope.all) return { sql: '', params: [] };
+  const condition = libraryScopeCondition(scope, 's.library_id');
+  return {
+    sql: `AND EXISTS (SELECT 1 FROM songs s WHERE s.album_id = ${alias}.id AND s.active = 1 ${condition.sql})`,
+    params: condition.params,
+  };
+}
+
+function artistScopeFilter(scope: LibraryScope, alias = 'ar'): { sql: string; params: string[] } {
+  if (scope.all) return { sql: '', params: [] };
+  const condition = libraryScopeCondition(scope, 's.library_id');
+  return {
+    sql: `AND EXISTS (SELECT 1 FROM songs s WHERE s.artist_id = ${alias}.id AND s.active = 1 ${condition.sql})`,
+    params: condition.params,
+  };
 }
 
 interface AlbumRow {
@@ -89,10 +116,22 @@ interface SongRow {
 export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db: Database.Database): void {
   app.get('/rest/getMusicFolders.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
-    const rows = db.prepare('SELECT id, name FROM libraries ORDER BY name').all() as { id: string; name: string }[];
+    const scope = requestScope(db, request);
+    let rows: { id: string; name: string }[];
+    if (scope.all) {
+      rows = db.prepare('SELECT id, name FROM libraries ORDER BY name').all() as { id: string; name: string }[];
+    } else if (scope.ids.length > 0) {
+      const placeholders = scope.ids.map(() => '?').join(', ');
+      rows = db.prepare(`SELECT id, name FROM libraries WHERE id IN (${placeholders}) ORDER BY name`)
+        .all(...scope.ids) as { id: string; name: string }[];
+    } else {
+      rows = [];
+    }
     const folders = rows.length > 0
       ? rows.map((r, index) => ({ id: index, name: r.name }))
-      : [{ id: 0, name: path.basename(config.LIBRARY_PATH) || 'library' }];
+      : scope.all
+        ? [{ id: 0, name: path.basename(config.LIBRARY_PATH) || 'library' }]
+        : [];
     sendSubsonicReply(reply, format, {
       musicFolders: { musicFolder: folders },
     });
@@ -100,6 +139,8 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
 
   app.get('/rest/getIndexes.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
+    const scope = requestScope(db, request);
+    const scopeFilter = artistScopeFilter(scope);
     const artists = db.prepare(`
       SELECT ar.id, ar.name, ar.artist_image_url, ar.musicbrainz_artist_ids,
         (SELECT COUNT(*)
@@ -110,8 +151,9 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
         ) AS album_count
       FROM artists ar
       WHERE ar.active = 1
+      ${scopeFilter.sql}
       ORDER BY ar.name
-    `).all() as (ArtistRow & { album_count: number })[];
+    `).all(...scopeFilter.params) as (ArtistRow & { album_count: number })[];
     sendSubsonicReply(reply, format, {
       indexes: {
         lastModified: Date.now(),
@@ -125,6 +167,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
   app.get('/rest/getArtists.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
     const userId = (request as any).subsonicUser as string | undefined;
+    const scopeFilter = artistScopeFilter(requestScope(db, request));
     const artists = db.prepare(`
       SELECT ar.id, ar.name, ar.artist_image_url, ar.musicbrainz_artist_ids,
         uar.starred, uar.rating,
@@ -137,8 +180,9 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       FROM artists ar
       LEFT JOIN user_artists uar ON uar.user_id = ? AND uar.artist_id = ar.id
       WHERE ar.active = 1
+      ${scopeFilter.sql}
       ORDER BY ar.name
-    `).all(userId ?? null) as (ArtistRow & ArtistInteractions & { album_count: number })[];
+    `).all(userId ?? null, ...scopeFilter.params) as (ArtistRow & ArtistInteractions & { album_count: number })[];
     sendSubsonicReply(reply, format, {
       artists: {
         ignoredArticles: '',
@@ -151,6 +195,8 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const format = (request as any).subsonicFormat;
     const userId = (request as any).subsonicUser as string | undefined;
     const { id } = request.query as { id: string };
+    const scope = requestScope(db, request);
+    const scopeFilter = albumScopeFilter(scope);
     const album = db.prepare(`
       SELECT a.*,
         ua.starred, ua.rating,
@@ -158,12 +204,14 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       FROM albums a
       LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
       WHERE a.id = ? AND a.active = 1
-    `).get(userId ?? null, id) as (AlbumRow & AlbumInteractions) | undefined;
+      ${scopeFilter.sql}
+    `).get(userId ?? null, id, ...scopeFilter.params) as (AlbumRow & AlbumInteractions) | undefined;
     if (!album) {
       return sendSubsonicReply(reply, format, {
         error: { code: 70, message: 'Data not found' },
       }, 'failed');
     }
+    const songScope = libraryScopeCondition(scope, 's.library_id');
     const songs = db.prepare(`
       SELECT s.*, a.name AS album_name, ar.name AS artist_name, l.path AS library_path,
         us.starred, us.rating, us.play_count
@@ -173,8 +221,9 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       LEFT JOIN libraries l ON l.id = s.library_id
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
       WHERE s.album_id = ? AND s.active = 1
+      ${songScope.sql}
       ORDER BY s.disc_number, s.track_number
-    `).all(userId ?? null, id) as (SongRow & { starred: number | null; rating: number | null; play_count: number | null })[];
+    `).all(userId ?? null, id, ...songScope.params) as (SongRow & { starred: number | null; rating: number | null; play_count: number | null })[];
     const duration = songs.reduce((sum, s) => sum + (s.duration ?? 0), 0);
     const maxMtime = songs.reduce((max, s) => Math.max(max, s.mtime ?? 0), 0);
     const songArtistMap = getSongArtistEntriesForMany(db, songs.map((s) => s.id));
@@ -192,6 +241,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const format = (request as any).subsonicFormat;
     const userId = (request as any).subsonicUser as string | undefined;
     const { id } = request.query as { id: string };
+    const songScope = libraryScopeCondition(requestScope(db, request), 's.library_id');
     const song = db.prepare(`
       SELECT s.*, a.name AS album_name, ar.name AS artist_name, l.path AS library_path,
         us.starred, us.rating, us.play_count
@@ -201,7 +251,8 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       LEFT JOIN libraries l ON l.id = s.library_id
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
       WHERE s.id = ? AND s.active = 1
-    `).get(userId ?? null, id) as (SongRow & { starred: number | null; rating: number | null; play_count: number | null }) | undefined;
+      ${songScope.sql}
+    `).get(userId ?? null, id, ...songScope.params) as (SongRow & { starred: number | null; rating: number | null; play_count: number | null }) | undefined;
     if (!song) {
       return sendSubsonicReply(reply, format, {
         error: { code: 70, message: 'Data not found' },
@@ -217,18 +268,22 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const format = (request as any).subsonicFormat;
     const userId = (request as any).subsonicUser as string | undefined;
     const { id } = request.query as { id: string };
+    const scope = requestScope(db, request);
+    const artistScope = artistScopeFilter(scope);
     const artist = db.prepare(`
       SELECT ar.*, uar.starred, uar.rating
       FROM artists ar
       LEFT JOIN user_artists uar ON uar.user_id = ? AND uar.artist_id = ar.id
       WHERE ar.id = ? AND ar.active = 1
-    `).get(userId ?? null, id) as (ArtistRow & ArtistInteractions) | undefined;
+      ${artistScope.sql}
+    `).get(userId ?? null, id, ...artistScope.params) as (ArtistRow & ArtistInteractions) | undefined;
     if (!artist) {
       return sendSubsonicReply(reply, format, {
         error: { code: 70, message: 'Data not found' },
       }, 'failed');
     }
 
+    const albumScope = albumScopeFilter(scope);
     const albums = db.prepare(`
       SELECT a.*,
         ua.starred, ua.rating,
@@ -236,8 +291,9 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       FROM albums a
       LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
       WHERE a.artist_id = ? AND a.active = 1
+      ${albumScope.sql}
       ORDER BY a.year, a.name
-    `).all(userId ?? null, id) as (AlbumRow & AlbumInteractions)[];
+    `).all(userId ?? null, id, ...albumScope.params) as (AlbumRow & AlbumInteractions)[];
 
     const albumIds = albums.map((a) => a.id);
     const albumArtistMap = getAlbumArtistEntriesForMany(db, albumIds);
@@ -273,7 +329,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const fromYear = query.fromYear ? Number.parseInt(query.fromYear, 10) : undefined;
     const toYear = query.toYear ? Number.parseInt(query.toYear, 10) : undefined;
 
-    const albums = fetchAlbumList(db, userId, type, size, offset, genre, fromYear, toYear);
+    const albums = fetchAlbumList(db, userId, type, size, offset, genre, fromYear, toYear, requestScope(db, request));
     sendSubsonicReply(reply, format, { albumList2: { album: albums } });
   });
 
@@ -317,11 +373,16 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const songCount = Number.parseInt(query.songCount || '20', 10);
     const songOffset = Number.parseInt(query.songOffset || '0', 10);
 
+    const scope = requestScope(db, request);
+    const artistScope = artistScopeFilter(scope);
+    const albumScope = albumScopeFilter(scope);
+    const songScope = libraryScopeCondition(scope, 's.library_id');
+
     const result: Record<string, unknown> = {};
     const like = term ? `%${term.replace(/%/g, '\\%').replace(/_/g, '\\_')}%` : '';
 
     const artistWhere = term ? "AND ar.name LIKE ? ESCAPE '\\'" : '';
-    const artistParams = term ? [userId ?? null, like, artistCount, artistOffset] : [userId ?? null, artistCount, artistOffset];
+    const artistParams = term ? [userId ?? null, like, ...artistScope.params, artistCount, artistOffset] : [userId ?? null, ...artistScope.params, artistCount, artistOffset];
     const artists = db.prepare(`
       SELECT ar.*, uar.starred, uar.rating,
         (SELECT COUNT(*)
@@ -333,6 +394,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       FROM artists ar
       LEFT JOIN user_artists uar ON uar.user_id = ? AND uar.artist_id = ar.id
       WHERE ar.active = 1 ${artistWhere}
+      ${artistScope.sql}
       ORDER BY ar.name
       LIMIT ? OFFSET ?
     `).all(...artistParams) as (ArtistRow & ArtistInteractions & { album_count: number })[];
@@ -348,13 +410,14 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     }
 
     const albumWhere = term ? "AND (a.name LIKE ? ESCAPE '\\' OR a.artist_name LIKE ? ESCAPE '\\')" : '';
-    const albumParams = term ? [userId ?? null, like, like, albumCount, albumOffset] : [userId ?? null, albumCount, albumOffset];
+    const albumParams = term ? [userId ?? null, like, like, ...albumScope.params, albumCount, albumOffset] : [userId ?? null, ...albumScope.params, albumCount, albumOffset];
     const albums = db.prepare(`
       SELECT a.*, ua.starred, ua.rating,
         (SELECT AVG(rating) FROM user_albums WHERE album_id = a.id) AS average_rating
       FROM albums a
       LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
       WHERE a.active = 1 ${albumWhere}
+      ${albumScope.sql}
       ORDER BY a.name
       LIMIT ? OFFSET ?
     `).all(...albumParams) as (AlbumRow & AlbumInteractions)[];
@@ -372,7 +435,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     }
 
     const songWhere = term ? "AND (s.title LIKE ? ESCAPE '\\' OR ar.name LIKE ? ESCAPE '\\' OR a.name LIKE ? ESCAPE '\\')" : '';
-    const songParams = term ? [userId ?? null, like, like, like, songCount, songOffset] : [userId ?? null, songCount, songOffset];
+    const songParams = term ? [userId ?? null, like, like, like, ...songScope.params, songCount, songOffset] : [userId ?? null, ...songScope.params, songCount, songOffset];
     const songs = db.prepare(`
       SELECT s.*, a.name AS album_name, ar.name AS artist_name, l.path AS library_path,
         us.starred, us.rating, us.play_count
@@ -382,6 +445,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       LEFT JOIN libraries l ON l.id = s.library_id
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
       WHERE s.active = 1 ${songWhere}
+      ${songScope.sql}
       ORDER BY s.title
       LIMIT ? OFFSET ?
     `).all(...songParams) as (SongRow & { starred: number | null; rating: number | null; play_count: number | null })[];
@@ -405,7 +469,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const genre = query.genre;
     const fromYear = query.fromYear ? Number.parseInt(query.fromYear, 10) : undefined;
     const toYear = query.toYear ? Number.parseInt(query.toYear, 10) : undefined;
-    const albums = fetchAlbumList(db, userId, type, size, offset, genre, fromYear, toYear);
+    const albums = fetchAlbumList(db, userId, type, size, offset, genre, fromYear, toYear, requestScope(db, request));
     sendSubsonicReply(reply, format, { albumList: { album: albums } });
   });
 
@@ -423,7 +487,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       }, 'failed');
     }
 
-    const songs = fetchSongsByGenre(db, userId, genre, size, offset);
+    const songs = fetchSongsByGenre(db, userId, genre, size, offset, requestScope(db, request));
     sendSubsonicReply(reply, format, { songsByGenre: { song: songs } });
   });
 
@@ -436,7 +500,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     const fromYear = query.fromYear ? Number.parseInt(query.fromYear, 10) : undefined;
     const toYear = query.toYear ? Number.parseInt(query.toYear, 10) : undefined;
 
-    const songs = fetchRandomSongs(db, userId, size, genre, fromYear, toYear);
+    const songs = fetchRandomSongs(db, userId, size, genre, fromYear, toYear, requestScope(db, request));
     sendSubsonicReply(reply, format, { randomSongs: { song: songs } });
   });
 
@@ -528,7 +592,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       }, 'failed');
     }
 
-    const songs = fetchSimilarSongs(db, userId, id, song.artist_id, song.album_id, count);
+    const songs = fetchSimilarSongs(db, userId, id, song.artist_id, song.album_id, count, requestScope(db, request));
     sendSubsonicReply(reply, format, { similarSongs2: { song: songs } });
   });
 
@@ -545,7 +609,7 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
       }, 'failed');
     }
 
-    const songs = fetchTopSongs(db, userId, artist, count);
+    const songs = fetchTopSongs(db, userId, artist, count, requestScope(db, request));
     sendSubsonicReply(reply, format, { topSongs: { song: songs } });
   });
 }
@@ -969,9 +1033,11 @@ export function fetchOpenSubsonicSongsByIds(
   db: Database.Database,
   userId: string | undefined,
   ids: string[],
+  scope?: LibraryScope,
 ): Record<string, unknown>[] {
   if (ids.length === 0) return [];
   const placeholders = ids.map(() => '?').join(',');
+  const scopeCondition = scope ? libraryScopeCondition(scope, 's.library_id') : { sql: '', params: [] };
   const rows = db.prepare(`
     SELECT s.*, a.name AS album_name, ar.name AS artist_name, l.path AS library_path,
       us.starred, us.rating, us.play_count
@@ -980,8 +1046,8 @@ export function fetchOpenSubsonicSongsByIds(
     LEFT JOIN artists ar ON ar.id = s.artist_id
     LEFT JOIN libraries l ON l.id = s.library_id
     LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
-    WHERE s.active = 1 AND s.id IN (${placeholders})
-  `).all(userId ?? null, ...ids) as (SongRow & Partial<SongInteractions>)[];
+    WHERE s.active = 1 AND s.id IN (${placeholders}) ${scopeCondition.sql}
+  `).all(userId ?? null, ...ids, ...scopeCondition.params) as (SongRow & Partial<SongInteractions>)[];
   return mapSongRowsToOpenSubsonic(db, rows, userId);
 }
 
@@ -994,15 +1060,18 @@ function fetchAlbumList(
   genre?: string,
   fromYear?: number,
   toYear?: number,
+  scope?: LibraryScope,
 ): Record<string, unknown>[] {
+  const scopeFilter = scope ? albumScopeFilter(scope) : { sql: '', params: [] };
   let sql = `
     SELECT a.*, ua.starred, ua.rating,
       (SELECT AVG(rating) FROM user_albums WHERE album_id = a.id) AS average_rating
     FROM albums a
     LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
     WHERE a.active = 1
+    ${scopeFilter.sql}
   `;
-  const params: (string | number | null)[] = [userId ?? null];
+  const params: (string | number | null)[] = [userId ?? null, ...scopeFilter.params];
   const orderParams: (string | number | null)[] = [];
 
   if (genre) {
@@ -1093,15 +1162,18 @@ function fetchSongsByGenre(
   genre: string,
   size: number,
   offset: number,
+  scope?: LibraryScope,
 ): Record<string, unknown>[] {
+  const scopeCondition = scope ? libraryScopeCondition(scope, 's.library_id') : { sql: '', params: [] };
   const rows = db.prepare(`
     ${songSelectSql('?')}
     JOIN song_genres sg ON sg.song_id = s.id
     JOIN genres g ON g.id = sg.genre_id
     WHERE s.active = 1 AND g.name = ?
+    ${scopeCondition.sql}
     ORDER BY s.title
     LIMIT ? OFFSET ?
-  `).all(userId ?? null, genre, size, offset) as (SongRow & Partial<SongInteractions>)[];
+  `).all(userId ?? null, genre, ...scopeCondition.params, size, offset) as (SongRow & Partial<SongInteractions>)[];
   return mapSongRowsToOpenSubsonic(db, rows, userId);
 }
 
@@ -1112,9 +1184,12 @@ function fetchRandomSongs(
   genre?: string,
   fromYear?: number,
   toYear?: number,
+  scope?: LibraryScope,
 ): Record<string, unknown>[] {
   const params: (string | number | null)[] = [userId ?? null];
-  let sql = `${songSelectSql('?')} WHERE s.active = 1`;
+  const scopeCondition = scope ? libraryScopeCondition(scope, 's.library_id') : { sql: '', params: [] };
+  params.push(...scopeCondition.params);
+  let sql = `${songSelectSql('?')} WHERE s.active = 1 ${scopeCondition.sql}`;
 
   if (genre) {
     sql += ` AND EXISTS (
@@ -1144,10 +1219,14 @@ function fetchSimilarSongs(
   artistId: string | null,
   albumId: string | null,
   count: number,
+  scope?: LibraryScope,
 ): Record<string, unknown>[] {
   const params: (string | number | null)[] = [userId ?? null];
+  const scopeCondition = scope ? libraryScopeCondition(scope, 's.library_id') : { sql: '', params: [] };
   let where = 'WHERE s.active = 1 AND s.id != ?';
   params.push(excludeId);
+  where += ` ${scopeCondition.sql}`;
+  params.push(...scopeCondition.params);
 
   if (artistId) {
     where += ` AND (s.artist_id = ? OR EXISTS (
@@ -1175,10 +1254,14 @@ function fetchTopSongs(
   userId: string | undefined,
   artistName: string,
   count: number,
+  scope?: LibraryScope,
 ): Record<string, unknown>[] {
+  const scopeCondition = scope ? libraryScopeCondition(scope, 's.library_id') : { sql: '', params: [] };
   const rows = db.prepare(`
     ${songSelectSql('?')}
-    WHERE s.active = 1 AND (
+    WHERE s.active = 1
+    ${scopeCondition.sql}
+    AND (
       ar.name = ? COLLATE NOCASE
       OR EXISTS (
         SELECT 1 FROM song_artists sa
@@ -1194,6 +1277,6 @@ function fetchTopSongs(
     GROUP BY s.id
     ORDER BY COALESCE(SUM(us.play_count), 0) DESC, s.title
     LIMIT ?
-  `).all(userId ?? null, artistName, artistName, artistName, count) as (SongRow & Partial<SongInteractions>)[];
+  `).all(userId ?? null, ...scopeCondition.params, artistName, artistName, artistName, count) as (SongRow & Partial<SongInteractions>)[];
   return mapSongRowsToOpenSubsonic(db, rows, userId);
 }

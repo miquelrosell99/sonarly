@@ -76,7 +76,7 @@ describe('management year endpoints', () => {
       username: 'tester',
       passwordHash: await hashPassword('pass'),
       subsonicPasswordEncrypted: encryptSubsonicPassword('pass', baseConfig.SESSION_SECRET),
-      isAdmin: false,
+      isAdmin: true,
       createdAt: new Date().toISOString(),
     });
     upsertArtist(db, { id: 'artist-1', name: 'Test Artist' });

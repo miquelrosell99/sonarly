@@ -36,7 +36,7 @@ async function seedUser(db: Database.Database) {
   const passwordHash = await hashPassword(password);
   const salt = 'salty';
   const token = buildSubsonicToken(password, salt);
-  createUser(db, { id: 'user-1', username, passwordHash, subsonicPasswordEncrypted, isAdmin: false, createdAt: new Date().toISOString() });
+  createUser(db, { id: 'user-1', username, passwordHash, subsonicPasswordEncrypted, isAdmin: true, createdAt: new Date().toISOString() });
   return { username, token, salt, password };
 }
 
@@ -215,7 +215,7 @@ describe('OpenSubsonic system endpoints', () => {
     const body = JSON.parse(res.body);
     expect(body['subsonic-response'].status).toBe('ok');
     expect(body['subsonic-response'].user.username).toBe(auth.username);
-    expect(body['subsonic-response'].user.adminRole).toBe(false);
+    expect(body['subsonic-response'].user.adminRole).toBe(true);
     expect(body['subsonic-response'].user.streamRole).toBe(true);
     expect(body['subsonic-response'].user.folder).toEqual(['0']);
   });

@@ -2,6 +2,8 @@ import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import type { Album } from '@sonarly/shared';
 import { DbAlbum, toAlbum } from '../albums/repository.js';
+import { libraryScopeCondition } from '../libraries/policy.js';
+import type { LibraryScope } from '../libraries/policy.js';
 
 export interface Genre {
   id: string;
@@ -294,23 +296,30 @@ export function getRandomAlbumsByGenre(
   limit: number,
   hideExplicit: boolean,
   libraryId?: string,
+  scope?: LibraryScope,
 ): Album[] {
   const explicitHaving = hideExplicit
     ? 'HAVING SUM(CASE WHEN s.explicit = 0 THEN 1 ELSE 0 END) > 0'
     : '';
   const libraryFilter = libraryId ? 'AND s.library_id = ?' : '';
   const libraryParams = libraryId ? [libraryId] : [];
+  const scopeCondition = scope ? libraryScopeCondition(scope, 's.library_id') : { sql: '', params: [] };
+  // An inner join when the scope is restricted drops albums with no
+  // in-scope songs; the LEFT JOIN keeps admin behavior unchanged.
+  const songJoin = (libraryId || (scope && !scope.all))
+    ? `JOIN songs s ON s.album_id = a.id AND s.active = 1 ${libraryFilter} ${scopeCondition.sql}`
+    : 'LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1';
   const rows = db.prepare(`
     SELECT a.*
     FROM albums a
     JOIN album_genres ag ON ag.album_id = a.id
-    LEFT JOIN songs s ON s.album_id = a.id AND s.active = 1 ${libraryFilter}
+    ${songJoin}
     WHERE a.active = 1 AND ag.genre_id = ?
     GROUP BY a.id
     ${explicitHaving}
     ORDER BY RANDOM()
     LIMIT ?
-  `).all(...libraryParams, genreId, limit) as DbAlbum[];
+  `).all(...libraryParams, ...scopeCondition.params, genreId, limit) as DbAlbum[];
   return rows.map(toAlbum);
 }
 
@@ -326,5 +335,22 @@ export function getGenreIdsForLibrary(db: Database.Database, libraryId: string):
     JOIN songs s ON s.album_id = ag.album_id
     WHERE s.active = 1 AND s.library_id = ?
   `).all(libraryId, libraryId) as { id: string }[];
+  return new Set(rows.map((r) => r.id));
+}
+
+export function getGenreIdsForLibraries(db: Database.Database, libraryIds: string[]): Set<string> {
+  if (libraryIds.length === 0) return new Set();
+  const placeholders = libraryIds.map(() => '?').join(', ');
+  const rows = db.prepare(`
+    SELECT DISTINCT sg.genre_id AS id
+    FROM song_genres sg
+    JOIN songs s ON s.id = sg.song_id
+    WHERE s.active = 1 AND s.library_id IN (${placeholders})
+    UNION
+    SELECT DISTINCT ag.genre_id AS id
+    FROM album_genres ag
+    JOIN songs s ON s.album_id = ag.album_id
+    WHERE s.active = 1 AND s.library_id IN (${placeholders})
+  `).all(...libraryIds, ...libraryIds) as { id: string }[];
   return new Set(rows.map((r) => r.id));
 }

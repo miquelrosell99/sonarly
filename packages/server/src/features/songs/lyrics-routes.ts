@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import Database from 'better-sqlite3';
 import type { SyncedLyricLine } from '@sonarly/shared';
 import { getSongById } from './repository.js';
+import { getLibraryScope, isSongInScope } from '../libraries/policy.js';
 import { writeTags } from '../tags/index.js';
 import { organizeSongFile } from '../ingest/index.js';
 import { queueResync } from './routes.js';
@@ -44,6 +45,10 @@ export function registerLyricsRoutes(app: FastifyInstance, config: Config, db: D
     const { id } = request.params as { id: string };
     const song = getSongById(db, id);
     if (!song) return reply.status(404).send({ error: 'Song not found' });
+    const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
+    if (!isSongInScope(db, getLibraryScope(db, session), id)) {
+      return reply.status(404).send({ error: 'Song not found' });
+    }
     reply.send({ lyrics: song.lyrics, syncedLyrics: song.syncedLyrics });
   });
 

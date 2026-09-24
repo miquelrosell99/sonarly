@@ -75,7 +75,7 @@ describe('home endpoints', () => {
       username: 'tester',
       passwordHash: await hashPassword('pass'),
       subsonicPasswordEncrypted: encryptSubsonicPassword('pass', baseConfig.SESSION_SECRET),
-      isAdmin: false,
+      isAdmin: true,
       createdAt: new Date().toISOString(),
     });
 

@@ -12,6 +12,7 @@ import {
 import { getAlbumSongStatsForMany } from '../../songs/repository.js';
 import { getAlbumArtistEntriesForMany, getAlbumLabelEntriesForMany } from '../../albums/repository.js';
 import { getAlbumGenreNamesForMany } from '../../genres/repository.js';
+import { getLibraryScope, libraryScopeCondition } from '../../libraries/policy.js';
 
 type StarredEntityTable = 'songs' | 'albums' | 'artists';
 
@@ -66,17 +67,26 @@ function handleGetStarred(
 ): void {
   const format = (request as any).subsonicFormat;
   const userId = (request as any).subsonicUser as string;
+  const scope = getLibraryScope(db, {
+    userId,
+    isAdmin: (request as any).subsonicUserIsAdmin === true,
+  });
 
   const songIds = db.prepare('SELECT song_id FROM user_songs WHERE user_id = ? AND starred = 1').pluck().all(userId) as string[];
-  const songs = fetchOpenSubsonicSongsByIds(db, userId, songIds);
+  const songs = fetchOpenSubsonicSongsByIds(db, userId, songIds, scope);
 
+  const albumScope = libraryScopeCondition(scope, 's.library_id');
+  const albumScopeSql = scope.all
+    ? ''
+    : `AND EXISTS (SELECT 1 FROM songs s WHERE s.album_id = a.id AND s.active = 1 ${albumScope.sql})`;
   const albumRows = db.prepare(`
     SELECT a.*, ua.starred, ua.rating,
       (SELECT AVG(rating) FROM user_albums WHERE album_id = a.id) AS average_rating
     FROM albums a
     JOIN user_albums ua ON ua.album_id = a.id AND ua.user_id = ? AND ua.starred = 1
     WHERE a.active = 1
-  `).all(userId) as AlbumRow[];
+    ${albumScopeSql}
+  `).all(userId, ...albumScope.params) as AlbumRow[];
   const albumIds = albumRows.map((a) => a.id);
   const albumArtistMap = getAlbumArtistEntriesForMany(db, albumIds);
   const albumLabelMap = getAlbumLabelEntriesForMany(db, albumIds);
@@ -99,6 +109,10 @@ function handleGetStarred(
     );
   });
 
+  const artistScope = libraryScopeCondition(scope, 's.library_id');
+  const artistScopeSql = scope.all
+    ? ''
+    : `AND EXISTS (SELECT 1 FROM songs s WHERE s.artist_id = ar.id AND s.active = 1 ${artistScope.sql})`;
   const artistRows = db.prepare(`
     SELECT ar.*, uar.starred, uar.rating,
       (SELECT COUNT(*)
@@ -110,7 +124,8 @@ function handleGetStarred(
     FROM artists ar
     JOIN user_artists uar ON uar.artist_id = ar.id AND uar.user_id = ? AND uar.starred = 1
     WHERE ar.active = 1
-  `).all(userId) as StarredArtistRow[];
+    ${artistScopeSql}
+  `).all(userId, ...artistScope.params) as StarredArtistRow[];
   const artists = artistRows.map((artist) => toOpenSubsonicArtist(artist, userId));
 
   sendSubsonicReply(reply, format, { [responseKey]: { song: songs, album: albums, artist: artists } });

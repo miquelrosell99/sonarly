@@ -15,6 +15,7 @@ import { resolveGenreForTagWrite, resolveGenreForFilter } from '../genres/index.
 import { ensureArtist } from '../artists/repository.js';
 import { ensureAlbum } from '../albums/repository.js';
 import { pushJob } from '../library/queue.js';
+import { getLibraryScope, isSongInScope, libraryScopeCondition } from '../libraries/policy.js';
 import type { Config } from '../../config.js';
 
 const ALLOWED_TAG_KEYS = new Set<keyof SongTags>([
@@ -409,8 +410,11 @@ function rowToSong(row: SongDetailRow | SongListRow): Song & { artistName?: stri
 
 export function registerSongManagementRoutes(app: FastifyInstance, config: Config, db: Database.Database): void {
   app.get('/api/songs', (request: FastifyRequest, reply: FastifyReply) => {
-    const userId = (request as any).session?.userId as string | undefined;
+    const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
+    const userId = session?.userId;
     const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
+    const scope = getLibraryScope(db, session);
+    const scopeCondition = libraryScopeCondition(scope, 's.library_id');
 
     const { genre, libraryId, composer, label } = request.query as { genre?: string; libraryId?: string; composer?: string; label?: string };
     const resolvedGenre = typeof genre === 'string' && genre.length > 0 ? resolveGenreForFilter(db, genre) : undefined;
@@ -424,6 +428,7 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
     }
 
     const params: (string | null)[] = [userId ?? null];
+    params.push(...scopeCondition.params);
     if (libraryFilter) params.push(libraryId);
     if (genreFilter) params.push(resolvedGenre.id);
     if (composerFilter) params.push(composerFilter);
@@ -436,6 +441,7 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
       LEFT JOIN albums al ON al.id = s.album_id
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
       WHERE s.active = 1
+      ${scopeCondition.sql}
       ${libraryFilter ? 'AND s.library_id = ?' : ''}
       ${hideExplicit ? 'AND s.explicit = 0' : ''}
       ${genreFilter ? 'AND EXISTS (SELECT 1 FROM song_genres sg WHERE sg.song_id = s.id AND sg.genre_id = ?)' : ''}
@@ -508,12 +514,15 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
 
   app.get('/api/songs/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const userId = (request as any).session?.userId as string | undefined;
+    const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
+    const userId = session?.userId;
     const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
+    const scopeCondition = libraryScopeCondition(getLibraryScope(db, session), 's.library_id');
     const { libraryId } = request.query as { libraryId?: string };
     const libraryFilter = typeof libraryId === 'string' && libraryId.length > 0;
 
     const params: (string | null)[] = [userId ?? null];
+    params.push(...scopeCondition.params);
     if (libraryFilter) params.push(libraryId);
     params.push(id);
 
@@ -524,6 +533,7 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
       LEFT JOIN albums al ON al.id = s.album_id
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
       WHERE s.active = 1
+      ${scopeCondition.sql}
       ${libraryFilter ? 'AND s.library_id = ?' : ''}
       AND s.id = ?
     `).get(...params) as SongDetailRow | undefined;
@@ -542,12 +552,16 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
   });
 
   app.post('/api/songs/:id/scrobble', async (request: FastifyRequest, reply: FastifyReply) => {
-    const userId = (request as any).session?.userId as string | undefined;
+    const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
+    const userId = session?.userId;
     if (!userId) return reply.status(401).send({ error: 'Unauthorized' });
 
     const { id } = request.params as { id: string };
     const song = getSongById(db, id);
     if (!song) return reply.status(404).send({ error: 'Song not found' });
+    if (!isSongInScope(db, getLibraryScope(db, session), id)) {
+      return reply.status(404).send({ error: 'Song not found' });
+    }
 
     const details = parseScrobbleBody(request.body);
     scrobbleSong(db, userId, id, details);
@@ -627,8 +641,8 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
   // linked playlist's songs with a shareToken instead of a session.
   app.get('/api/stream/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
-    const userId = (request as any).session?.userId as string | undefined;
-    if (!userId) {
+    const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
+    if (!session?.userId) {
       const { shareToken } = request.query as { shareToken?: string };
       if (!shareToken || !shareTokenGrantsSong(db, shareToken, id)) {
         return reply.status(403).send({ error: 'Forbidden' });
@@ -637,6 +651,11 @@ export function registerSongManagementRoutes(app: FastifyInstance, config: Confi
 
     const song = getSongById(db, id);
     if (!song) return reply.status(404).send({ error: 'Song not found' });
+    // Anonymous share-token viewers were authorized above against the linked
+    // playlist's own content; the library scope only applies to signed-in users.
+    if (session?.userId && !isSongInScope(db, getLibraryScope(db, session), id)) {
+      return reply.status(404).send({ error: 'Song not found' });
+    }
 
     const mime = lookup(song.filePath) || 'application/octet-stream';
     let size: number;

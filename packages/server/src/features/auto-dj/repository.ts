@@ -4,6 +4,8 @@ import { MAX_EXCLUDE_IDS } from '@sonarly/shared';
 import type { AutoDjExcludeWindow } from '@sonarly/shared';
 import type { DbSong } from '../songs/repository.js';
 import { attachSongComposerEntries } from '../songs/repository.js';
+import { libraryScopeCondition } from '../libraries/policy.js';
+import type { LibraryScope } from '../libraries/policy.js';
 
 export interface AutoDjCandidateOptions {
   excludeWindow?: AutoDjExcludeWindow;
@@ -174,9 +176,11 @@ export function getSimilarCandidates(
   count: number,
   excludeIds: string[],
   options: AutoDjCandidateOptions = {},
+  scope?: LibraryScope,
 ): Song[] {
   const exclude = buildExcludeClause(excludeIds);
   const recent = buildRecentHistoryClause(userId, options.excludeWindow);
+  const scopeCondition = scope ? libraryScopeCondition(scope, 's.library_id') : { sql: '', params: [] };
   let rows: CandidateRow[] = [];
 
   if (context && (context.artistId || context.albumId || context.genreIds.length > 0)) {
@@ -191,6 +195,7 @@ export function getSimilarCandidates(
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
       WHERE s.active = 1
         AND s.id != ?
+        ${scopeCondition.sql}
         ${exclude.sql}
         ${recent.sql}
         AND (
@@ -204,6 +209,7 @@ export function getSimilarCandidates(
     const params: (string | number | null)[] = [
       userId,
       context.id,
+      ...scopeCondition.params,
       ...exclude.params,
       ...recent.params,
       context.artistId ?? null,
@@ -222,7 +228,7 @@ export function getSimilarCandidates(
       ...excludeIds,
       ...songs.map((s) => s.id),
       ...(context ? [context.id] : []),
-    ], options);
+    ], options, scope);
     songs.push(...more);
   }
 
@@ -235,9 +241,11 @@ export function getRandomCandidates(
   count: number,
   excludeIds: string[],
   options: AutoDjCandidateOptions = {},
+  scope?: LibraryScope,
 ): Song[] {
   const exclude = buildExcludeClause(excludeIds);
   const order = favoritesFirst(options.preferFavorites);
+  const scopeCondition = scope ? libraryScopeCondition(scope, 's.library_id') : { sql: '', params: [] };
   let rows = db.prepare(`
     SELECT s.*, ar.name AS artist_name, al.name AS album_name, us.starred, us.rating, us.play_count, us.last_played
     FROM songs s
@@ -245,11 +253,12 @@ export function getRandomCandidates(
     LEFT JOIN albums al ON al.id = s.album_id
     LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
     WHERE s.active = 1
+      ${scopeCondition.sql}
       ${exclude.sql}
       AND (us.last_played IS NULL OR us.last_played < datetime('now', ?))
     ${order}
     LIMIT ?
-  `).all(userId, ...exclude.params, windowModifier(options.excludeWindow), count) as CandidateRow[];
+  `).all(userId, ...scopeCondition.params, ...exclude.params, windowModifier(options.excludeWindow), count) as CandidateRow[];
 
   if (rows.length < count) {
     const fallbackExclude = buildExcludeClause([...excludeIds, ...rows.map((r) => r.id)]);
@@ -260,10 +269,11 @@ export function getRandomCandidates(
       LEFT JOIN albums al ON al.id = s.album_id
       LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
       WHERE s.active = 1
+        ${scopeCondition.sql}
         ${fallbackExclude.sql}
       ${order}
       LIMIT ?
-    `).all(userId, ...fallbackExclude.params, count - rows.length) as CandidateRow[];
+    `).all(userId, ...scopeCondition.params, ...fallbackExclude.params, count - rows.length) as CandidateRow[];
     rows = [...rows, ...more];
   }
 
@@ -286,9 +296,11 @@ export function getSmartCandidateRows(
   context: SongContext | undefined,
   excludeIds: string[],
   options: AutoDjCandidateOptions = {},
+  scope?: LibraryScope,
 ): SmartCandidate[] {
   const exclude = buildExcludeClause(excludeIds);
   const recent = buildRecentHistoryClause(userId, options.excludeWindow);
+  const scopeCondition = scope ? libraryScopeCondition(scope, 's.library_id') : { sql: '', params: [] };
   const genreOverlapSql = context && context.genreIds.length > 0
     ? `(
         SELECT COUNT(*)
@@ -306,6 +318,7 @@ export function getSmartCandidateRows(
     LEFT JOIN albums al ON al.id = s.album_id
     LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
     WHERE s.active = 1
+      ${scopeCondition.sql}
       ${exclude.sql}
       ${recent.sql}
     ORDER BY RANDOM()
@@ -313,11 +326,12 @@ export function getSmartCandidateRows(
   `;
 
   // Placeholders appear textually in SELECT (genre ids), then the
-  // user_songs join (userId), then WHERE (excluded ids, recent-history
-  // userId + window) — bind in that order.
+  // user_songs join (userId), then WHERE (scope ids, excluded ids,
+  // recent-history userId + window) — bind in that order.
   const params: (string | number | null)[] = [
     ...(context && context.genreIds.length > 0 ? context.genreIds : []),
     userId,
+    ...scopeCondition.params,
     ...exclude.params,
     ...recent.params,
   ];

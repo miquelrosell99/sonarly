@@ -1,6 +1,8 @@
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import type { Song, ScrobbleDetails } from '@sonarly/shared';
+import { libraryScopeCondition } from '../libraries/policy.js';
+import type { LibraryScope } from '../libraries/policy.js';
 
 export interface DbSong {
   id: string;
@@ -351,16 +353,18 @@ export function listSongsByArtist(
   artistId: string,
   userId?: string,
   libraryId?: string,
+  scope?: LibraryScope,
 ): Song[] {
   const libraryFilter = libraryId ? 'AND s.library_id = ?' : '';
   const libraryParams = libraryId ? [libraryId] : [];
+  const scopeCondition = scope ? libraryScopeCondition(scope, 's.library_id') : { sql: '', params: [] };
   if (!userId) {
     const rows = db.prepare(`
       SELECT s.*, al.cover_art_id AS album_cover_art_id FROM songs s
       LEFT JOIN albums al ON al.id = s.album_id
-      WHERE s.artist_id = ? AND s.active = 1 ${libraryFilter}
+      WHERE s.artist_id = ? AND s.active = 1 ${libraryFilter} ${scopeCondition.sql}
       ORDER BY s.year, s.album_id, s.disc_number, s.track_number, s.title
-    `).all(artistId, ...libraryParams) as DbSong[];
+    `).all(artistId, ...libraryParams, ...scopeCondition.params) as DbSong[];
     const songs = rows.map(toSong);
     attachSongArtistEntries(db, songs);
     attachSongComposerEntries(db, songs);
@@ -371,9 +375,9 @@ export function listSongsByArtist(
     FROM songs s
     LEFT JOIN albums al ON al.id = s.album_id
     LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
-    WHERE s.artist_id = ? AND s.active = 1 ${libraryFilter}
+    WHERE s.artist_id = ? AND s.active = 1 ${libraryFilter} ${scopeCondition.sql}
     ORDER BY s.year, s.album_id, s.disc_number, s.track_number, s.title
-  `).all(userId, artistId, ...libraryParams) as DbSongWithInteractions[];
+  `).all(userId, artistId, ...libraryParams, ...scopeCondition.params) as DbSongWithInteractions[];
   const songs = rows.map(toSongWithInteractions);
   attachSongArtistEntries(db, songs);
   attachSongComposerEntries(db, songs);
@@ -385,9 +389,11 @@ export function listSongsByAlbum(
   albumId: string,
   userId?: string,
   libraryId?: string,
+  scope?: LibraryScope,
 ): Song[] {
   const libraryFilter = libraryId ? 'AND s.library_id = ?' : '';
   const libraryParams = libraryId ? [libraryId] : [];
+  const scopeCondition = scope ? libraryScopeCondition(scope, 's.library_id') : { sql: '', params: [] };
   const baseSelect = `
     SELECT s.*, ar.name AS artist_name, al.name AS album_name, al.artist_name AS album_artist_name, al.cover_art_id AS album_cover_art_id
   `;
@@ -395,7 +401,7 @@ export function listSongsByAlbum(
     FROM songs s
     LEFT JOIN artists ar ON ar.id = s.artist_id
     LEFT JOIN albums al ON al.id = s.album_id
-    WHERE s.album_id = ? AND s.active = 1 ${libraryFilter}
+    WHERE s.album_id = ? AND s.active = 1 ${libraryFilter} ${scopeCondition.sql}
     ORDER BY s.disc_number, s.track_number, s.title
   `;
   interface NamesRow {
@@ -410,14 +416,14 @@ export function listSongsByAlbum(
     albumArtistName: row.album_artist_name ?? undefined,
   });
   if (!userId) {
-    const rows = db.prepare(`${baseSelect} ${baseFrom}`).all(albumId, ...libraryParams) as (DbSong & NamesRow)[];
+    const rows = db.prepare(`${baseSelect} ${baseFrom}`).all(albumId, ...libraryParams, ...scopeCondition.params) as (DbSong & NamesRow)[];
     const songs = rows.map(mapRow);
     attachSongArtistEntries(db, songs);
     attachSongComposerEntries(db, songs);
     return songs;
   }
   const rows = db.prepare(`${baseSelect}, us.starred, us.rating ${baseFrom.replace('WHERE', 'LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id WHERE')}`)
-    .all(userId, albumId, ...libraryParams) as (DbSongWithInteractions & NamesRow)[];
+    .all(userId, albumId, ...libraryParams, ...scopeCondition.params) as (DbSongWithInteractions & NamesRow)[];
   const songs = rows.map((row) => ({
     ...toSongWithInteractions(row),
     artistName: row.artist_name ?? undefined,

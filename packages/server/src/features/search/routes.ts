@@ -4,6 +4,8 @@ import { z } from 'zod';
 import type { Song, Album, Artist, Playlist } from '@sonarly/shared';
 import { getUserById } from '../users/index.js';
 import { attachSongArtistEntries } from '../songs/index.js';
+import { getLibraryScope, libraryScopeCondition } from '../libraries/policy.js';
+import type { LibraryScope } from '../libraries/policy.js';
 
 const searchQuerySchema = z.object({
   q: z.string().default(''),
@@ -156,10 +158,12 @@ function fetchSongs(
   hideExplicit: boolean,
   limit?: number,
   libraryId?: string,
+  scope?: LibraryScope,
 ): Song[] {
   const limitClause = limit !== undefined ? `LIMIT ${limit}` : '';
   const libraryFilter = libraryId ? 'AND s.library_id = ?' : '';
   const libraryParams = libraryId ? [libraryId] : [];
+  const scopeCondition = scope ? libraryScopeCondition(scope, 's.library_id') : { sql: '', params: [] };
   const rows = db.prepare(`
     SELECT
       s.*,
@@ -177,10 +181,11 @@ function fetchSongs(
       OR LOWER(al.name) LIKE LOWER(?) ESCAPE '\\'
     )
     ${libraryFilter}
+    ${scopeCondition.sql}
     ${hideExplicit ? 'AND s.explicit = 0' : ''}
     ORDER BY s.title
     ${limitClause}
-  `).all(userId ?? null, pattern, pattern, pattern, ...libraryParams) as SongSearchRow[];
+  `).all(userId ?? null, pattern, pattern, pattern, ...libraryParams, ...scopeCondition.params) as SongSearchRow[];
   return rows.map(rowToSong);
 }
 
@@ -190,10 +195,15 @@ function fetchAlbums(
   pattern: string,
   limit?: number,
   libraryId?: string,
+  scope?: LibraryScope,
 ): Album[] {
   const limitClause = limit !== undefined ? `LIMIT ${limit}` : '';
   const libraryFilter = libraryId ? 'AND EXISTS (SELECT 1 FROM songs s WHERE s.album_id = a.id AND s.active = 1 AND s.library_id = ?)' : '';
   const libraryParams = libraryId ? [libraryId] : [];
+  const scopeCondition = scope ? libraryScopeCondition(scope, 's.library_id') : { sql: '', params: [] };
+  const scopeFilter = scope && !scope.all
+    ? `AND EXISTS (SELECT 1 FROM songs s WHERE s.album_id = a.id AND s.active = 1 ${scopeCondition.sql})`
+    : '';
   const rows = db.prepare(`
     SELECT
       a.*,
@@ -204,9 +214,10 @@ function fetchAlbums(
     LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
     WHERE a.active = 1 AND LOWER(a.name) LIKE LOWER(?) ESCAPE '\\'
     ${libraryFilter}
+    ${scopeFilter}
     ORDER BY a.name
     ${limitClause}
-  `).all(userId ?? null, pattern, ...libraryParams) as AlbumSearchRow[];
+  `).all(userId ?? null, pattern, ...libraryParams, ...scopeCondition.params) as AlbumSearchRow[];
   return rows.map(rowToAlbum);
 }
 
@@ -216,10 +227,15 @@ function fetchArtists(
   pattern: string,
   limit?: number,
   libraryId?: string,
+  scope?: LibraryScope,
 ): Artist[] {
   const limitClause = limit !== undefined ? `LIMIT ${limit}` : '';
   const libraryFilter = libraryId ? 'AND EXISTS (SELECT 1 FROM songs s WHERE s.artist_id = ar.id AND s.active = 1 AND s.library_id = ?)' : '';
   const libraryParams = libraryId ? [libraryId] : [];
+  const scopeCondition = scope ? libraryScopeCondition(scope, 's.library_id') : { sql: '', params: [] };
+  const scopeFilter = scope && !scope.all
+    ? `AND EXISTS (SELECT 1 FROM songs s WHERE s.artist_id = ar.id AND s.active = 1 ${scopeCondition.sql})`
+    : '';
   const rows = db.prepare(`
     SELECT
       ar.*,
@@ -229,9 +245,10 @@ function fetchArtists(
     LEFT JOIN user_artists ua ON ua.user_id = ? AND ua.artist_id = ar.id
     WHERE ar.active = 1 AND LOWER(ar.name) LIKE LOWER(?) ESCAPE '\\'
     ${libraryFilter}
+    ${scopeFilter}
     ORDER BY ar.name
     ${limitClause}
-  `).all(userId ?? null, pattern, ...libraryParams) as ArtistSearchRow[];
+  `).all(userId ?? null, pattern, ...libraryParams, ...scopeCondition.params) as ArtistSearchRow[];
   return rows.map(rowToArtist);
 }
 
@@ -273,7 +290,8 @@ function fetchPlaylists(
 
 export function registerSearchRoutes(app: FastifyInstance, db: Database.Database): void {
   app.get('/api/search', (request: FastifyRequest, reply: FastifyReply) => {
-    const userId = (request as any).session?.userId as string | undefined;
+    const session = (request as any).session as { userId?: string; isAdmin?: boolean } | undefined;
+    const userId = session?.userId;
     const parseResult = searchQuerySchema.safeParse(request.query);
     if (!parseResult.success) {
       return reply.status(400).send({ error: 'Invalid query parameters' });
@@ -286,6 +304,7 @@ export function registerSearchRoutes(app: FastifyInstance, db: Database.Database
     }
 
     const hideExplicit = userId ? getUserById(db, userId)?.hideExplicit === true : false;
+    const scope = getLibraryScope(db, session);
     const pattern = likePattern(query);
     const categoryLimit = type
       ? Math.min(limit ?? MAX_CATEGORY_RESULTS, MAX_CATEGORY_RESULTS)
@@ -295,14 +314,14 @@ export function registerSearchRoutes(app: FastifyInstance, db: Database.Database
       : undefined;
 
     const songs = !type || type === 'songs'
-      ? fetchSongs(db, userId, pattern, hideExplicit, categoryLimit, libraryId)
+      ? fetchSongs(db, userId, pattern, hideExplicit, categoryLimit, libraryId, scope)
       : [];
     attachSongArtistEntries(db, songs);
     const albums = !type || type === 'albums'
-      ? fetchAlbums(db, userId, pattern, categoryLimit, libraryId)
+      ? fetchAlbums(db, userId, pattern, categoryLimit, libraryId, scope)
       : [];
     const artists = !type || type === 'artists'
-      ? fetchArtists(db, userId, pattern, categoryLimit, libraryId)
+      ? fetchArtists(db, userId, pattern, categoryLimit, libraryId, scope)
       : [];
     const playlists = !type || type === 'playlists'
       ? fetchPlaylists(db, userId, pattern, categoryLimit)
