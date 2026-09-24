@@ -93,9 +93,36 @@ describe('readMetadata', () => {
       'TITLE=Collab',
       'ARTIST=Akon; Stat Quo; Bobby Creekwater',
     ]));
-
     const meta = await readMetadata(path);
     expect(meta.artists).toEqual(['Akon', 'Stat Quo', 'Bobby Creekwater']);
+  });
+
+  it('prefers the soundtrack release type from multi-value RELEASETYPE tags', async () => {
+    const path = join(tmpdir(), `reader-release-type-${Date.now()}.flac`);
+    writeFileSync(path, createMinimalFlacWithComments([
+      'TITLE=Movie Theme',
+      'RELEASETYPE=album',
+      'RELEASETYPE=soundtrack',
+    ]));
+    const meta = await readMetadata(path);
+    expect(meta.albumType).toBe('soundtrack');
+  });
+
+  it('falls back to the first release type when soundtrack is not tagged', async () => {
+    const path = join(tmpdir(), `reader-release-type-ep-${Date.now()}.flac`);
+    writeFileSync(path, createMinimalFlacWithComments([
+      'TITLE=Short Player',
+      'RELEASETYPE=EP',
+    ]));
+    const meta = await readMetadata(path);
+    expect(meta.albumType).toBe('EP');
+  });
+
+  it('leaves album type undefined when no RELEASETYPE tag exists', async () => {
+    const path = join(tmpdir(), `reader-release-type-none-${Date.now()}.flac`);
+    writeFileSync(path, createMinimalFlacWithComments(['TITLE=Plain']));
+    const meta = await readMetadata(path);
+    expect(meta.albumType).toBeUndefined();
   });
 });
 
