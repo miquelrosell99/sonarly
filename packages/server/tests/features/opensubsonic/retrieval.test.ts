@@ -214,4 +214,31 @@ describe('OpenSubsonic retrieval endpoints', () => {
     expect(body['subsonic-response'].status).toBe('failed');
     expect(body['subsonic-response'].error.code).toBe(70);
   });
+
+  it('returns lyrics wrapped in a value object', async () => {
+    db.prepare("UPDATE songs SET lyrics = 'la la la' WHERE id = 'song-1'").run();
+
+    const byId = await app.inject({ method: 'GET', url: query('/rest/getLyrics.view?id=song-1', 'json') });
+    expect(byId.statusCode).toBe(200);
+    expect(JSON.parse(byId.body)['subsonic-response'].lyrics.value).toBe('la la la');
+
+    const byName = await app.inject({
+      method: 'GET',
+      url: query(`/rest/getLyrics.view?artist=${encodeURIComponent('Nobody')}&title=${encodeURIComponent('Nothing')}`, 'json'),
+    });
+    expect(byName.statusCode).toBe(200);
+    const lyrics = JSON.parse(byName.body)['subsonic-response'].lyrics;
+    expect(lyrics).toEqual({ value: '', artist: 'Nobody', title: 'Nothing' });
+  });
+
+  it('returns empty podcast and radio collections', async () => {
+    const radio = await app.inject({ method: 'GET', url: query('/rest/getInternetRadioStations.view?', 'json') });
+    expect(JSON.parse(radio.body)['subsonic-response'].internetRadioStations.internetRadioStation).toEqual([]);
+
+    const podcasts = await app.inject({ method: 'GET', url: query('/rest/getPodcasts.view?', 'json') });
+    expect(JSON.parse(podcasts.body)['subsonic-response'].podcasts.channel).toEqual([]);
+
+    const newest = await app.inject({ method: 'GET', url: query('/rest/getNewestPodcasts.view?', 'json') });
+    expect(JSON.parse(newest.body)['subsonic-response'].newestPodcasts.episode).toEqual([]);
+  });
 });
