@@ -182,8 +182,8 @@ opensubsonic routes ──▶ repositories (shared with native routes) ✔
 
 Ordered by impact. Facts verified in code; severity reflects a self-hosted, multi-user server deployment.
 
-### F1 — HIGH: Library-level tenant isolation is unenforced
-`db/migrations/036_user_libraries.sql` creates the membership table; `features/libraries/repository.ts:99-129` writes it via admin CRUD. **Zero read, search, stream, or download queries consult it** (grep-verified across all features). `songs.library_id` is only an opt-in filter the caller supplies. Consequences: any authenticated user can `GET /api/songs`, search, and stream every song in every library; `/rest/getMusicFolders.view` returns all libraries. If the intended model is "all users see everything," the table and admin UI are misleading dead weight; if per-user libraries are a feature, this is a High-severity authorization gap. **Decision required — this gates the fix design.** Locations: `app.ts:195-216` (hook), `songs/routes.ts`, `search/routes.ts`, `opensubsonic/routes/retrieval.ts:21,106`, `opensubsonic/routes/browsing.ts:90-99`.
+### F1 — HIGH: Library-level tenant isolation is unenforced — **DECIDED 2026-09-24: ENFORCE**
+`db/migrations/036_user_libraries.sql` creates the membership table; `features/libraries/repository.ts:99-129` writes it via admin CRUD. **Zero read, search, stream, or download queries consult it** (grep-verified across all features). `songs.library_id` is only an opt-in filter the caller supplies. Consequences: any authenticated user can `GET /api/songs`, search, and stream every song in every library; `/rest/getMusicFolders.view` returns all libraries. **Product decision (2026-09-24): per-user library assignment IS a security boundary — `user_libraries` must be enforced in every content query and stream/download path (admins bypass; share-token grants remain scoped to playlist content).** Implementation tracked as backlog B7 / plan Track 2. Locations: `app.ts:195-216` (hook), `songs/routes.ts`, `search/routes.ts`, `opensubsonic/routes/retrieval.ts:21,106`, `opensubsonic/routes/browsing.ts:90-99`.
 
 ### F2 — MEDIUM: Unauthenticated `GET /api/libraries` discloses filesystem paths
 `app.ts:198` exempts `/api/libraries` from auth; `libraries/admin-routes.ts:49-51` returns library names + absolute `path` + organize patterns to anonymous callers. Also undocumented in `docs/api.md`'s public-endpoint list. Fix: require session (or admin) and correct the docs.
@@ -703,7 +703,7 @@ Ordered by Impact × Risk × Effort. Each phase ships independently; no phase re
 
 ## 24. Questions / Unknowns
 
-1. **Is per-user library assignment an intended security boundary, or is "all users see all libraries" the product model?** (F1's severity hinges on this; admin UI for assignment exists.) Resolve with the product owner.
+1. ~~**Is per-user library assignment an intended security boundary, or is "all users see all libraries" the product model?**~~ **RESOLVED 2026-09-24: ENFORCE `user_libraries` as an authorization boundary** (see F1, backlog B7, plan Track 2).
 2. **Production scale**: actual library sizes, user counts, concurrent stream counts, and transcode usage. Needed to trigger (or retire) the Postgres question and prioritize the transcode manager. Server telemetry or user report.
 3. **Was the observed dirty working tree (getAlbumInfo2 spec regression, browsing/retrieval edits) intentional?** The audit ran against the working tree; HEAD greenness was unverifiable. Needs `git status`/CI on a clean tree.
 4. **Why does the web player not call `recordStream`?** Deliberate (Subsonic-only now-playing) or oversight? Code comment/history silent.
@@ -718,7 +718,7 @@ Ordered by Impact × Risk × Effort. Each phase ships independently; no phase re
 
 1. **v2 Go rewrite track** (branch `feat/go-rewrite`, worktree `.worktrees/go-rewrite`, code under `v2/`): greenfield implementation targeting the architecture in §16–§19. **Quality bar (explicit directive from the owner):** best possible implementation — no hacky solutions, no shortcuts in stack choice, coding, schema design, or testing. Where v1 compromised for historical reasons, v2 does the thing properly (e.g. real FKs, typed job payloads, transactional writes, enforced library isolation, FTS5, graceful shutdown from day one).
 2. **v1 hardening continues in parallel** on `main`: Phase 0 (CI, SIGTERM, `/health`) and Phase 1 correctness fixes (B3–B6, B10–B13), then Phase 2 security items — regardless of v2's outcome.
-3. **Frontend audit — triggered when the v2 backend is done.** The web client (`packages/web`) will receive a full professional-style audit equivalent in rigor to this one, using the prompt recorded in `docs/plan.md` ("Frontend Audit Prompt"). The v2 backend must expose a stable, audited API contract before that audit runs, so the frontend audit can also assess API-contract alignment.
+3. **Frontend audit — triggered when the S3 contract spike lands, running in parallel with v2 P4–P8** (not gated on "v2 backend done": a stable contract is the prerequisite, not a finished backend, and auditing against a frozen contract beats auditing against a moving one). The web client (`packages/web`) receives a full professional-style audit equivalent in rigor to this one, using the prompt recorded in `docs/plan.md` ("Frontend Audit Prompt").
 4. **Plan file:** `docs/plan.md` is the living reference for the parallel tracks (v2 phases, v1 fixes, frontend audit trigger).
 
 ---
