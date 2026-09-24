@@ -582,4 +582,85 @@ describe('management song endpoints', () => {
       });
     });
   });
+
+  describe('scrobble', () => {
+    function latestHistoryRow() {
+      return db.prepare('SELECT completion, duration_listened, played_at FROM listening_history ORDER BY played_at DESC LIMIT 1').get() as {
+        completion: number | null;
+        duration_listened: number | null;
+        played_at: string;
+      };
+    }
+
+    it('records a scrobble with details', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/songs/song-1/scrobble',
+        cookies: { sessionId: cookieValue },
+        payload: { completion: 95, durationListened: 170, playedAt: '2026-09-24T10:00:00.000Z', client: 'web', source: 'playlist' },
+      });
+      expect(res.statusCode).toBe(200);
+
+      const row = latestHistoryRow();
+      expect(row.completion).toBe(95);
+      expect(row.duration_listened).toBe(170);
+      expect(row.played_at).toBe('2026-09-24T10:00:00.000Z');
+    });
+
+    it('returns 400 for a non-object body', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/songs/song-1/scrobble',
+        cookies: { sessionId: cookieValue },
+        payload: ['not', 'an', 'object'],
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('returns 400 for fields of the wrong type', async () => {
+      const cases = [
+        { completion: 'high' },
+        { completion: Number.POSITIVE_INFINITY },
+        { durationListened: 'long' },
+        { durationListened: Number.NaN },
+        { client: 42 },
+        { source: {} },
+        { playedAt: 12345 },
+      ];
+      for (const payload of cases) {
+        const res = await app.inject({
+          method: 'POST',
+          url: '/api/songs/song-1/scrobble',
+          cookies: { sessionId: cookieValue },
+          payload,
+        });
+        expect(res.statusCode).toBe(400);
+      }
+      expect(db.prepare('SELECT COUNT(*) AS count FROM listening_history').get()).toEqual({ count: 0 });
+    });
+
+    it('returns 400 for an unparseable playedAt', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/songs/song-1/scrobble',
+        cookies: { sessionId: cookieValue },
+        payload: { playedAt: 'not-a-date' },
+      });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('clamps completion to [0, 100] and durationListened to >= 0', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/songs/song-1/scrobble',
+        cookies: { sessionId: cookieValue },
+        payload: { completion: 250, durationListened: -5 },
+      });
+      expect(res.statusCode).toBe(200);
+
+      const row = latestHistoryRow();
+      expect(row.completion).toBe(100);
+      expect(row.duration_listened).toBe(0);
+    });
+  });
 });
