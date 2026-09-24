@@ -1075,7 +1075,7 @@ The pattern must be relative and must not contain `..` or null bytes.
 
 **Admin only.** Autocomplete suggestions for metadata editing.
 
-Supported `field` values: `artist`, `album`, `albumArtist`, `genre`, `albumType`.
+Supported `field` values: `artist`, `album`, `albumArtist`, `genre`, `releaseType`.
 
 **Response:** `200 OK` `{ "suggestions": ["string"] }`
 

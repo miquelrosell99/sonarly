@@ -3,7 +3,7 @@ import { api } from '../../lib/api.js';
 import { cn } from '../../lib/cn.js';
 import { Icon } from './Icon.js';
 
-export type AutocompleteField = 'artist' | 'album' | 'albumArtist' | 'genre' | 'albumType';
+export type AutocompleteField = 'artist' | 'album' | 'albumArtist' | 'genre' | 'releaseType';
 
 interface AutocompleteInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   field: AutocompleteField;
