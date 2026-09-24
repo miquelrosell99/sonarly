@@ -12,7 +12,7 @@ import { getCoverArtById } from '../../cover-art/index.js';
 import { getSongCoverArtId, getAlbumCoverArtId } from '../../cover-art/index.js';
 import { recordStream } from '../../players/tracker.js';
 import { sendSubsonicReply } from '../responses.js';
-import { decideTranscode, spawnFfmpegTranscode, transcodeContentType } from '../../transcode/service.js';
+import { decideTranscode, parseMaxBitRate, spawnFfmpegTranscode, transcodeContentType } from '../../transcode/service.js';
 import { getLibraryScope, isAlbumInScope, isCoverArtInScope, isSongInScope, libraryScopeCondition } from '../../libraries/policy.js';
 import type { LibraryScope } from '../../libraries/policy.js';
 
@@ -42,7 +42,7 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
 
     const userId = ((request as any).subsonicUser as string | undefined) ?? ((request as any).session?.userId as string | undefined);
     const user = userId ? getUserById(db, userId) : undefined;
-    const requestedMaxBitRate = query.maxBitRate ? Number.parseInt(query.maxBitRate, 10) : undefined;
+    const requestedMaxBitRate = parseMaxBitRate(query.maxBitRate);
     const decision = decideTranscode(song, user, requestedMaxBitRate);
 
     if (decision.shouldTranscode && decision.format) {
@@ -52,18 +52,31 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
 
       recordStream(db, request, song);
 
+      // spawn() reports a missing ffmpeg binary asynchronously ('error'
+      // event), so wait until the process is up before replying; on spawn
+      // failure degrade to direct file serving — no response bytes have been
+      // sent at this point.
+      let spawned: ReturnType<typeof spawnFfmpegTranscode> | undefined;
       try {
         const proc = spawnFfmpegTranscode({
           filePath: song.filePath,
           format: decision.format,
           maxBitrateKbps: decision.maxBitrateKbps,
         });
+        spawned = proc;
+        await new Promise<void>((resolve, reject) => {
+          proc.once('spawn', resolve);
+          proc.once('error', reject);
+        });
+      } catch (err) {
+        console.error('Failed to spawn ffmpeg, falling back to direct streaming:', err);
+        spawned = undefined;
+      }
 
+      if (spawned) {
+        const proc = spawned;
         proc.on('error', (err) => {
           console.error('ffmpeg transcode error:', err);
-          if (!reply.sent) {
-            reply.status(500).send('Transcode failed');
-          }
         });
 
         proc.stderr?.on('data', (data) => {
@@ -75,9 +88,6 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
         });
 
         return reply.header('Accept-Ranges', 'none').type(transcodeContentType(decision.format)).send(proc.stdout);
-      } catch (err) {
-        console.error('Failed to spawn ffmpeg:', err);
-        // Fall through to direct file serving if ffmpeg is unavailable.
       }
     }
 

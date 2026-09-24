@@ -1,6 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Fastify from 'fastify';
 import Database from 'better-sqlite3';
+import { spawn } from 'node:child_process';
+import { EventEmitter } from 'node:events';
+import { PassThrough } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { registerOpenSubsonicRoutes } from '../../../src/features/opensubsonic/routes/system.js';
@@ -11,6 +14,27 @@ import { buildSubsonicToken } from '../../../src/features/auth/token.js';
 import { encryptSubsonicPassword } from '../../../src/features/auth/password.js';
 import { clearActivePlayers, getActivePlayers } from '../../../src/features/players/tracker.js';
 import type { Config } from '../../../src/config.js';
+
+// Fake ffmpeg: spawn "succeeds" but the process emits ENOENT asynchronously,
+// like a host without ffmpeg installed.
+vi.mock('node:child_process', async (importOriginal) => {
+  const original = await importOriginal<typeof import('node:child_process')>();
+  return {
+    ...original,
+    spawn: vi.fn((_command: string, _args: string[]) => {
+      const proc = new EventEmitter() as EventEmitter & {
+        stdout: PassThrough;
+        stderr: PassThrough;
+        kill: () => boolean;
+      };
+      proc.stdout = new PassThrough();
+      proc.stderr = new PassThrough();
+      proc.kill = () => true;
+      queueMicrotask(() => proc.emit('error', Object.assign(new Error('spawn ffmpeg ENOENT'), { code: 'ENOENT' })));
+      return proc;
+    }),
+  };
+});
 
 const config: Config = {
   PORT: 3000,
@@ -157,6 +181,36 @@ describe('OpenSubsonic retrieval endpoints', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(getActivePlayers()).toHaveLength(0);
+  });
+
+  it('falls back to direct streaming when ffmpeg is unavailable', async () => {
+    // song-1 has no bit_rate, so a maxBitRate request always decides to transcode.
+    const res = await app.inject({
+      method: 'GET',
+      url: query('/rest/stream.view?id=song-1&maxBitRate=128', 'json'),
+    });
+    expect(spawn).toHaveBeenCalled();
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toContain('audio/mpeg');
+    expect(res.rawPayload.length).toBe(fixtureBytes.length);
+  });
+
+  it('ignores an out-of-range maxBitRate and applies the user cap instead', async () => {
+    db.prepare('UPDATE users SET max_bitrate_kbps = 320 WHERE id = ?').run('user-1');
+
+    const spawnMock = spawn as unknown as ReturnType<typeof vi.fn>;
+    const callsBefore = spawnMock.mock.calls.length;
+
+    const res = await app.inject({
+      method: 'GET',
+      url: query('/rest/stream.view?id=song-1&maxBitRate=999999', 'json'),
+    });
+    expect(spawnMock.mock.calls.length).toBe(callsBefore + 1);
+    const args = spawnMock.mock.calls[spawnMock.mock.calls.length - 1][1] as string[];
+    expect(args[args.indexOf('-b:a') + 1]).toBe('320k');
+    // ffmpeg is missing in this test, so the request degrades to direct streaming.
+    expect(res.statusCode).toBe(200);
+    expect(res.rawPayload.length).toBe(fixtureBytes.length);
   });
 
   it('returns 404 when streaming a missing song', async () => {
