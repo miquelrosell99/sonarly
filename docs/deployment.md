@@ -193,14 +193,27 @@ WATCHER_USE_POLLING=true docker compose -f compose.yaml up -d
 
 ## Updating Sonarly
 
-To update to a new version:
+The database is preserved in the bind-mounted `./config/sonarly/data` directory. Back up that directory before major updates.
+
+### Pre-built image (default)
+
+The repo's `compose.yaml` runs `ghcr.io/miquelrosell99/sonarly:latest`, published by CI on every version tag. To update to the latest release:
 
 ```bash
-docker compose -f compose.yaml down
-docker compose -f compose.yaml up -d --build
+docker compose -f compose.yaml pull
+docker compose -f compose.yaml up -d
 ```
 
-The database is preserved in the bind-mounted `./config/sonarly/data` directory. Back up that directory before major updates.
+### Building from source
+
+The repo `compose.yaml` has no `build:` section (the `docker/compose.yaml.example` template does), so `docker compose ... --build` is a no-op — build the image explicitly:
+
+```bash
+docker build -f docker/Dockerfile.server -t ghcr.io/miquelrosell99/sonarly:latest .
+docker compose -f compose.yaml up -d
+```
+
+Note: this tags your local build as `:latest`, shadowing the registry image until the next `docker compose pull`.
 
 ---
 
