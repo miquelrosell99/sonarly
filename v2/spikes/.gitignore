@@ -1,0 +1,8 @@
+# Generated spike artifacts — do not commit
+corpus/
+manifest.json
+gold_v1.json
+go_dhowden_dump.json
+taglib_dump.json
+spike
+err.log
