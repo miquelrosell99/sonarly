@@ -373,6 +373,24 @@ describe('OpenSubsonic browsing endpoints', () => {
     expect(song.path).toBe('song1.mp3');
   });
 
+  it('emits replayGain as a ReplayGain object', async () => {
+    upsertSong(db, {
+      id: 'song-rg',
+      filePath: '/data/library/song-rg.flac',
+      title: 'Gain Track',
+      duration: 240,
+      artistId: 'artist-1',
+      albumId: 'album-1',
+      mtime: Date.now(),
+      checksum: 'checksum-rg',
+      replayGain: -4.7,
+    });
+    const res = await app.inject({ method: 'GET', url: query('/rest/getSong.view?id=song-rg', 'json') });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body['subsonic-response'].song.replayGain).toEqual({ trackGain: -4.7 });
+  });
+
   it('returns a controlled error for a missing song', async () => {
     const res = await app.inject({ method: 'GET', url: query('/rest/getSong.view?id=missing', 'json') });
     expect(res.statusCode).toBe(200);
