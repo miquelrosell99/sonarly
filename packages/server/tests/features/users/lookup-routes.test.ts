@@ -146,6 +146,7 @@ describe('user lookup endpoint', () => {
     expect(JSON.parse(underscore.body).users).toEqual([]);
   });
 
+  // 12 bcrypt hashes are slow under full-suite CPU load; the default 5s limit is flaky.
   it('returns at most 10 matches', async () => {
     const db = new Database(join(root, 'sonarly.db'));
     for (let i = 0; i < 12; i++) {
@@ -162,5 +163,5 @@ describe('user lookup endpoint', () => {
     const { users } = JSON.parse(res.body);
     expect(users).toHaveLength(10);
     expect(users.every((u: { username: string }) => u.username.startsWith('fan'))).toBe(true);
-  });
+  }, 20000);
 });
