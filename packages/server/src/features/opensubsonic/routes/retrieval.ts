@@ -228,7 +228,32 @@ export function registerRetrievalRoutes(app: FastifyInstance, db: Database.Datab
       lyrics = row?.lyrics ?? '';
     }
 
-    sendSubsonicReply(reply, format, { lyrics });
+    // The Subsonic schema wraps lyrics in an object with a `value` field; a
+    // bare string breaks clients like py-opensonic (Music Assistant).
+    sendSubsonicReply(reply, format, {
+      lyrics: {
+        value: lyrics,
+        artist: artist ?? undefined,
+        title: title ?? undefined,
+      },
+    });
+  });
+
+  // Sonarly has no podcast or radio sources; return valid empty collections so
+  // clients that sync these libraries (e.g. Music Assistant) succeed with zero items.
+  app.get('/rest/getInternetRadioStations.view', (request: FastifyRequest, reply: FastifyReply) => {
+    const format = (request as any).subsonicFormat as 'json' | 'xml';
+    sendSubsonicReply(reply, format, { internetRadioStations: { internetRadioStation: [] } });
+  });
+
+  app.get('/rest/getPodcasts.view', (request: FastifyRequest, reply: FastifyReply) => {
+    const format = (request as any).subsonicFormat as 'json' | 'xml';
+    sendSubsonicReply(reply, format, { podcasts: { channel: [] } });
+  });
+
+  app.get('/rest/getNewestPodcasts.view', (request: FastifyRequest, reply: FastifyReply) => {
+    const format = (request as any).subsonicFormat as 'json' | 'xml';
+    sendSubsonicReply(reply, format, { newestPodcasts: { episode: [] } });
   });
 }
 
