@@ -159,6 +159,17 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   fastifyApp = app;
   (app as any).worker = worker;
 
+  // Liveness/readiness probe for Docker and reverse proxies. Deliberately
+  // registered outside /api so the session preHandler below never blocks it.
+  app.get('/healthz', async (_request, reply) => {
+    try {
+      db.prepare('SELECT 1').get();
+    } catch {
+      return reply.status(503).send({ status: 'unavailable' });
+    }
+    return reply.send({ status: 'ok' });
+  });
+
   // Never leak internal error details to API clients.
   app.setErrorHandler((error: FastifyError, request, reply) => {
     request.log.error(error);
@@ -195,7 +206,7 @@ export async function buildApp(config: Config, providedDb?: Database.Database) {
   app.addHook('preHandler', async (request, reply) => {
     const url = request.raw.url ?? '';
     if (!url.startsWith('/api/')) return;
-    const exempt = ['/api/login', '/api/logout', '/api/setup', '/api/me', '/api/avatars', '/api/libraries'];
+    const exempt = ['/api/login', '/api/logout', '/api/setup', '/api/me', '/api/avatars'];
     if (exempt.some((p) => url === p || url.startsWith(`${p}/`) || url.startsWith(`${p}?`))) return;
 
     if (request.method === 'GET'
