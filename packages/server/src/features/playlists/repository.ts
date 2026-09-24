@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
-import type { Playlist, PlaylistVisibility, SmartPlaylistRules } from '@sonarly/shared';
+import type { Playlist, PlaylistResolveMode, PlaylistVisibility, SmartPlaylistRules } from '@sonarly/shared';
 import { compileSmartPlaylist } from '../smart-playlists/compiler.js';
 
 export function generateShareToken(): string {
@@ -16,8 +16,13 @@ interface DbPlaylist {
   share_token: string | null;
   is_smart: number;
   rules_json: string | null;
+  resolve_mode: string | null;
   created_at: string;
   updated_at: string;
+}
+
+function normalizeResolveMode(value: string | null | undefined): PlaylistResolveMode {
+  return value === 'query' ? 'query' : 'tracks';
 }
 
 function parseRules(json: string | null): SmartPlaylistRules | undefined {
@@ -43,6 +48,7 @@ export function getPlaylistById(db: Database.Database, id: string): Playlist | u
     songIds: isSmart ? [] : fetchStaticSongIds(db, id),
     isSmart,
     rules: isSmart ? parseRules(row.rules_json) : undefined,
+    resolveMode: normalizeResolveMode(row.resolve_mode),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -53,9 +59,17 @@ function fetchStaticSongIds(db: Database.Database, playlistId: string): string[]
     .pluck().all(playlistId) as string[];
 }
 
+// Smart playlists resolve user-scoped rule fields (rating, loved, playcount,
+// lastplayed) against the owner's data by default, so shared and public
+// viewers all receive the same curated track list. 'query' mode re-resolves
+// live against each viewer's own data instead.
+function rulesUserId(playlist: Playlist, viewerUserId: string): string {
+  return playlist.resolveMode === 'query' ? viewerUserId : playlist.ownerId;
+}
+
 export function resolvePlaylistSongIds(db: Database.Database, playlist: Playlist, userId: string): string[] {
   if (playlist.isSmart && playlist.rules) {
-    const compiled = compileSmartPlaylist(db, playlist.rules, userId);
+    const compiled = compileSmartPlaylist(db, playlist.rules, rulesUserId(playlist, userId));
     return db.prepare(compiled.sql).pluck().all(...compiled.params) as string[];
   }
   return playlist.songIds;
@@ -63,7 +77,7 @@ export function resolvePlaylistSongIds(db: Database.Database, playlist: Playlist
 
 export function resolvePlaylistSongCount(db: Database.Database, playlist: Playlist, userId: string): number {
   if (playlist.isSmart && playlist.rules) {
-    const compiled = compileSmartPlaylist(db, playlist.rules, userId);
+    const compiled = compileSmartPlaylist(db, playlist.rules, rulesUserId(playlist, userId));
     const row = db.prepare(compiled.songCountSql).get(...compiled.songCountParams) as { count: number } | undefined;
     return row?.count ?? 0;
   }
@@ -74,7 +88,7 @@ export function resolvePlaylistSongCount(db: Database.Database, playlist: Playli
 // songCount always describe the same membership.
 export function resolvePlaylistSongDuration(db: Database.Database, playlist: Playlist, userId: string): number {
   if (playlist.isSmart && playlist.rules) {
-    const compiled = compileSmartPlaylist(db, playlist.rules, userId);
+    const compiled = compileSmartPlaylist(db, playlist.rules, rulesUserId(playlist, userId));
     const ids = db.prepare(compiled.sql).pluck().all(...compiled.params) as string[];
     return sumSongDurations(db, ids);
   }
@@ -97,8 +111,8 @@ function sumSongDurations(db: Database.Database, songIds: string[]): number {
 export function createPlaylist(db: Database.Database, playlist: Playlist): void {
   const isSmart = playlist.isSmart === true;
   db.prepare(`
-    INSERT INTO playlists (id, name, description, owner_id, visibility, share_token, is_smart, rules_json)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO playlists (id, name, description, owner_id, visibility, share_token, is_smart, rules_json, resolve_mode)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     playlist.id,
     playlist.name,
@@ -108,6 +122,7 @@ export function createPlaylist(db: Database.Database, playlist: Playlist): void 
     playlist.shareToken ?? null,
     isSmart ? 1 : 0,
     isSmart && playlist.rules ? JSON.stringify(playlist.rules) : null,
+    normalizeResolveMode(playlist.resolveMode),
   );
   if (!isSmart) {
     insertPlaylistSongs(db, playlist.id, playlist.songIds);
@@ -118,7 +133,7 @@ export function updatePlaylist(db: Database.Database, playlist: Playlist): void 
   const isSmart = playlist.isSmart === true;
   db.prepare(`
     UPDATE playlists
-    SET name = ?, description = ?, visibility = ?, share_token = ?, is_smart = ?, rules_json = ?, updated_at = datetime('now')
+    SET name = ?, description = ?, visibility = ?, share_token = ?, is_smart = ?, rules_json = ?, resolve_mode = ?, updated_at = datetime('now')
     WHERE id = ?
   `).run(
     playlist.name,
@@ -127,6 +142,7 @@ export function updatePlaylist(db: Database.Database, playlist: Playlist): void 
     playlist.shareToken ?? null,
     isSmart ? 1 : 0,
     isSmart && playlist.rules ? JSON.stringify(playlist.rules) : null,
+    normalizeResolveMode(playlist.resolveMode),
     playlist.id,
   );
   // Members only exist for standard playlists; clear stale rows when smart.

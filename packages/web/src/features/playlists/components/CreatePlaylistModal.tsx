@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { SmartPlaylistRules } from '@sonarly/shared';
+import type { PlaylistResolveMode, SmartPlaylistRules } from '@sonarly/shared';
 import { api } from '../../../lib/api.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
@@ -30,6 +30,7 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isSmart, setIsSmart] = useState(false);
+  const [resolveMode, setResolveMode] = useState<PlaylistResolveMode>('tracks');
   const [rules, setRules] = useState<SmartPlaylistRules>(DEFAULT_RULES);
   const [pendingMode, setPendingMode] = useState<'standard' | 'smart' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,11 +43,13 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
         setName(playlist.name);
         setDescription(playlist.description ?? '');
         setIsSmart(playlist.isSmart ?? false);
+        setResolveMode(playlist.resolveMode ?? 'tracks');
         setRules(playlist.rules ?? DEFAULT_RULES);
       } else if (!isEditing) {
         setName('');
         setDescription('');
         setIsSmart(false);
+        setResolveMode('tracks');
         setRules(DEFAULT_RULES);
       }
       setError(null);
@@ -80,6 +83,7 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
       };
       if (isSmart) {
         body.rules = rules;
+        body.resolveMode = resolveMode;
       }
 
       if (isEditing) {
@@ -102,6 +106,7 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
       setName('');
       setDescription('');
       setIsSmart(false);
+      setResolveMode('tracks');
       setRules(DEFAULT_RULES);
       setPendingMode(null);
       setError(null);
@@ -204,6 +209,35 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
                 : 'You choose which tracks belong to this playlist.'}
             </p>
           </div>
+          {isSmart && (
+            <div>
+              <span className="mb-1.5 block text-sm font-medium text-fg-secondary">Smart resolution</span>
+              <div role="group" aria-label="Smart resolution" className="inline-flex rounded-full border border-rule bg-surface p-1">
+                {(['tracks', 'query'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={resolveMode === mode}
+                    onClick={() => setResolveMode(mode)}
+                    disabled={save.isPending || loadingPlaylist}
+                    className={cn(
+                      'rounded-full px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                      resolveMode === mode
+                        ? 'bg-accent text-bg-primary'
+                        : 'text-fg-secondary hover:text-fg-primary',
+                    )}
+                  >
+                    {mode === 'tracks' ? 'Shared track list' : 'Live query'}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-xs text-fg-secondary">
+                {resolveMode === 'tracks'
+                  ? 'Everyone sees the same tracks, selected from the owner\'s ratings and listening history.'
+                  : 'Each user sees the tracks selected by their own ratings and listening history.'}
+              </p>
+            </div>
+          )}
           {isSmart && <SmartPlaylistBlockEditor initialRules={rules} onChange={setRules} />}
         </form>
       )}

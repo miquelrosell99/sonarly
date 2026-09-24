@@ -2,6 +2,15 @@ import type { SmartPlaylistRules } from './smart-playlist.js';
 
 export type PlaylistVisibility = 'private' | 'shared' | 'public' | 'link';
 
+/**
+ * How a smart playlist's user-scoped rule fields (rating, loved, playcount,
+ * lastplayed) are resolved for a viewer:
+ * - 'tracks': resolve against the owner's data, so every viewer receives the
+ *   same curated track list (default).
+ * - 'query': resolve live against each viewer's own data.
+ */
+export type PlaylistResolveMode = 'tracks' | 'query';
+
 export interface Playlist {
   id: string;
   name: string;
@@ -13,6 +22,7 @@ export interface Playlist {
   songIds: string[];
   isSmart?: boolean;
   rules?: SmartPlaylistRules;
+  resolveMode?: PlaylistResolveMode;
   createdAt: string;
   updatedAt: string;
   songCount?: number;
