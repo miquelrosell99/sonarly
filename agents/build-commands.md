@@ -16,7 +16,11 @@ pnpm test
 # Production Docker deployment
 cp .env.example .env
 # edit .env, then:
-docker compose -f compose.yaml up -d --build
+docker compose -f compose.yaml up -d
+
+# Production image build (deploy current checkout without a release tag)
+docker build -f docker/Dockerfile.server -t ghcr.io/miquelrosell99/sonarly:latest .
+docker compose -f compose.yaml up -d
 
 # Dev Docker deployment with hot reload
 cp docker/compose.dev.yaml.example compose.dev.yaml
@@ -42,7 +46,7 @@ Use the result to pick the right action:
 
 | Running container(s) | Deployment type | Code change action |
 |---|---|---|
-| `compose.yaml` service(s) up | Production Docker | `docker compose -f compose.yaml up -d --build` |
+| `compose.yaml` service(s) up | Production Docker | Rebuild the image locally, then `docker compose -f compose.yaml up -d` (see "Production redeploys and releases" below) |
 | `compose.dev.yaml` service(s) up (copied from `docker/compose.dev.yaml.example`) | Dev Docker | Usually nothing (hot reload); use `--build` only for dependency/config/Docker changes |
 | Neither | Local dev | `pnpm dev` (or ask the user how they run it) |
 
@@ -78,4 +82,23 @@ Use the dev compose (`compose.dev.yaml`, copied from `docker/compose.dev.yaml.ex
 
 > **Tip:** after adding a dependency with `pnpm add` (or editing `pnpm-lock.yaml`), rebuild with `--build`. Running `pnpm install` manually inside a running container installs packages into the bind-mounted volume for that session, but the change is lost on the next container recreate unless the image itself contains it.
 
-Production (`compose.yaml`) always requires `--build` when code changes because it serves the built web UI from the image.
+## Production redeploys and releases
+
+The live `compose.yaml` runs the pre-built image `ghcr.io/miquelrosell99/sonarly:latest` and has **no `build:` section**, so `docker compose ... --build` is a no-op there. Two supported ways to deploy new code:
+
+**Deploy the current checkout (no release):** build the image locally (the local tag shadows the registry one) and recreate the container:
+
+```bash
+docker build -f docker/Dockerfile.server -t ghcr.io/miquelrosell99/sonarly:latest .
+docker compose -f compose.yaml up -d
+```
+
+**Cut a release (preferred for the fleet):** releases are published by the `Release Docker image` workflow (`.github/workflows/release-docker.yml`), which triggers on `v*` tags:
+
+1. Update `CHANGELOG.md`: rename `## [Unreleased]` to `## [X.Y.Z] - <date>`, point the `[Unreleased]` compare link at the new tag, and add the release link.
+2. Commit (`chore(release): vX.Y.Z`) and push `main`.
+3. `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`.
+4. Watch the workflow (`gh run list --workflow=release-docker.yml`); it publishes `:latest` plus semver tags to GHCR.
+5. On the server: `docker compose -f compose.yaml pull && docker compose -f compose.yaml up -d`.
+
+Because local and registry images share the `:latest` tag, run `docker compose pull` after each release so the server tracks the published image.
