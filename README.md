@@ -44,10 +44,11 @@ docker compose -f compose.yaml up -d
 
 ### Building locally
 
-If you prefer to build the image yourself, pass `--build`:
+If you prefer to build the image yourself (the repo `compose.yaml` has no `build:` section):
 
 ```bash
-docker compose -f compose.yaml up -d --build
+docker build -f docker/Dockerfile.server -t ghcr.io/miquelrosell99/sonarly:latest .
+docker compose -f compose.yaml up -d
 ```
 
 The web UI is available at `http://localhost:4533` (change with `SONARLY_PORT`). On first visit you will be redirected to `/setup` to create the admin account.
