@@ -32,7 +32,7 @@ Phases:
 
 ### Track 2 — v1 TypeScript hardening (branch `main`)
 
-Continues regardless of v2 outcome. Phase 0/1 in progress: CI workflow, transactional playlists, `average_rating` preservation, conflicts file deletion, resync coalescing. Then Phase 2 security (audit §20).
+Continues regardless of v2 outcome. Done 2026-09-24: CI workflow (`61ac4a6`), transactional playlist writes (`afdf545`), `average_rating` preservation (`48123b2`), conflicts file deletion (`1554b0d`), resync coalescing (`a5c19eb`) — 515/515 tests green. Remaining: Phase 0 leftovers (SIGTERM, `/health`) and Phase 2 security (audit §20).
 
 ### Track 3 — Frontend audit (TRIGGER: v2 backend done)
 
