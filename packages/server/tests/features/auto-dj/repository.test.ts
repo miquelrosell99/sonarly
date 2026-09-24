@@ -69,7 +69,7 @@ describe('auto-dj candidates', () => {
       insertSong('s3');
       upsertUserSong('s1');
       upsertUserSong('s2');
-      db.prepare(`UPDATE user_songs SET last_played = datetime('now', '-2 days') WHERE song_id = 's1'`).run();
+      db.prepare(`UPDATE user_songs SET last_played = datetime('now', '-2 hours') WHERE song_id = 's1'`).run();
       db.prepare(`UPDATE user_songs SET last_played = datetime('now', '-5 days') WHERE song_id = 's2'`).run();
 
       // Request exactly the windowed pool size so the relax-everything
