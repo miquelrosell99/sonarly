@@ -698,4 +698,13 @@ Ordered by Impact × Risk × Effort. Each phase ships independently; no phase re
 
 ---
 
+## 25. Next Steps (recorded 2026-09-24)
+
+1. **v2 Go rewrite track** (branch `feat/go-rewrite`, worktree `.worktrees/go-rewrite`, code under `v2/`): greenfield implementation targeting the architecture in §16–§19. **Quality bar (explicit directive from the owner):** best possible implementation — no hacky solutions, no shortcuts in stack choice, coding, schema design, or testing. Where v1 compromised for historical reasons, v2 does the thing properly (e.g. real FKs, typed job payloads, transactional writes, enforced library isolation, FTS5, graceful shutdown from day one).
+2. **v1 hardening continues in parallel** on `main`: Phase 0 (CI, SIGTERM, `/health`) and Phase 1 correctness fixes (B3–B6, B10–B13), then Phase 2 security items — regardless of v2's outcome.
+3. **Frontend audit — triggered when the v2 backend is done.** The web client (`packages/web`) will receive a full professional-style audit equivalent in rigor to this one, using the prompt recorded in `docs/plan.md` ("Frontend Audit Prompt"). The v2 backend must expose a stable, audited API contract before that audit runs, so the frontend audit can also assess API-contract alignment.
+4. **Plan file:** `docs/plan.md` is the living reference for the parallel tracks (v2 phases, v1 fixes, frontend audit trigger).
+
+---
+
 *End of audit. No production code was modified during this assessment.*
