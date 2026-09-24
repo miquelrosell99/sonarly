@@ -490,7 +490,8 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     });
   });
 
-  app.get('/rest/getAlbumInfo2.view', (request: FastifyRequest, reply: FastifyReply) => {
+  // Both getAlbumInfo and getAlbumInfo2 respond with an `albumInfo` element.
+  const albumInfoHandler = (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
     const { id } = request.query as { id: string };
     const album = db.prepare('SELECT id, name, cover_art_id, musicbrainz_album_id FROM albums WHERE id = ? AND active = 1').get(id) as
@@ -503,14 +504,14 @@ export function registerBrowsingRoutes(app: FastifyInstance, config: Config, db:
     }
 
     sendSubsonicReply(reply, format, {
-      albumInfo2: {
+      albumInfo: {
         notes: '',
         musicBrainzId: album.musicbrainz_album_id ?? undefined,
-        smallImageUrl: album.cover_art_id ?? undefined,
-        largeImageUrl: album.cover_art_id ?? undefined,
       },
     });
-  });
+  };
+  app.get('/rest/getAlbumInfo.view', albumInfoHandler);
+  app.get('/rest/getAlbumInfo2.view', albumInfoHandler);
 
   app.get('/rest/getSimilarSongs2.view', (request: FastifyRequest, reply: FastifyReply) => {
     const format = (request as any).subsonicFormat;
