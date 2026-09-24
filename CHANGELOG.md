@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-24
+
+### Fixed
+
+- OpenSubsonic API: `replayGain` in song responses is now emitted as the spec-shaped ReplayGain object (`{ "trackGain": … }`) instead of a bare number, which caused Music Assistant library syncs to fail with a `SearchResult3` validation error.
+- OpenSubsonic API: song responses now also include the legacy `isrc` alias alongside `isrcs` so clients that only read the older field (e.g. Music Assistant via py-opensonic) receive ISRCs.
+
 ## [0.6.0] - 2026-09-24
 
 ### Added
@@ -107,7 +114,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v0.7.0
 [0.6.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v0.6.0
 [0.5.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v0.5.0
 [0.1.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v0.1.0
