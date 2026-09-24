@@ -23,6 +23,7 @@ This folder contains the project documentation. Start here.
 | [api.md](api.md) | Management REST API (`/api/`) and OpenSubsonic API (`/rest/`) reference |
 | [db-schema.md](db-schema.md) | SQLite database schema, tables, and conventions |
 | [design-language.md](design-language.md) | UI design tokens, typography, and visual principles |
+| [audits/2026-09-24-backend-architecture-audit.md](audits/2026-09-24-backend-architecture-audit.md) | Full backend architecture audit: findings, target architecture, migration roadmap, implementation backlog |
 
 Related files in the repository root: [README.md](../README.md) (overview and quick start), [CHANGELOG.md](../CHANGELOG.md) (release notes), [CONTRIBUTING.md](../CONTRIBUTING.md) (contribution process), [SECURITY.md](../SECURITY.md) (vulnerability reporting).
 

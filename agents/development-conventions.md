@@ -12,4 +12,4 @@
 - Cross-feature imports go through a feature's `index.ts` barrel, never its internal files.
 - Configuration is validated with Zod in `src/config.ts`.
 - Migrations are plain SQL files executed in order from `src/db/migrations/`.
-- Tests live next to source in `tests/` (mirrors `src/` structure).
+- Server tests are centralized in `packages/server/tests/` (mirrors `src/` structure); web tests live next to source in `packages/web/src`.
