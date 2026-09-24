@@ -107,7 +107,11 @@ docker exec sonarly-dev sh -c "cd /app/packages/server && pnpm trigger-scan"
 
 | Document | What it covers |
 |---|---|
+| [docs/README.md](docs/README.md) | Documentation index |
 | [docs/deployment.md](docs/deployment.md) | Docker production/development deployment, environment variables, volumes, troubleshooting |
+| [docs/development.md](docs/development.md) | Development setup, scripts, testing, database migrations |
+| [docs/architecture.md](docs/architecture.md) | Application structure, request pipeline, data flow |
+| [docs/smart-playlists.md](docs/smart-playlists.md) | Smart playlists: rule model, fields, operators, resolve modes |
 | [docs/api.md](docs/api.md) | Management REST API and OpenSubsonic API reference |
 | [docs/db-schema.md](docs/db-schema.md) | SQLite database schema and conventions |
 | [docs/design-language.md](docs/design-language.md) | UI design tokens, typography, and visual principles |
