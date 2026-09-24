@@ -235,6 +235,43 @@ describe('smart playlist compiler', () => {
     expect(ids).toEqual(['song-1']);
   });
 
+  it('filters by album type', () => {
+    db.prepare("UPDATE albums SET album_type = 'soundtrack' WHERE id = 'album-1'").run();
+    const rules: SmartPlaylistRules = {
+      rules: {
+        all: [{ field: 'albumType', operator: 'is', value: 'soundtrack' }],
+      },
+    };
+    const compiled = compileSmartPlaylist(db, rules, 'user-1');
+    const ids = db.prepare(compiled.sql).pluck().all(...compiled.params) as string[];
+    expect(ids).toHaveLength(3);
+  });
+
+  it('filters by album type case-insensitively', () => {
+    db.prepare("UPDATE albums SET album_type = 'Soundtrack' WHERE id = 'album-1'").run();
+    const rules: SmartPlaylistRules = {
+      rules: {
+        all: [{ field: 'albumType', operator: 'is', value: 'soundtrack' }],
+      },
+    };
+    const compiled = compileSmartPlaylist(db, rules, 'user-1');
+    const ids = db.prepare(compiled.sql).pluck().all(...compiled.params) as string[];
+    expect(ids).toHaveLength(3);
+  });
+
+  it('filters by bit depth', () => {
+    db.prepare("UPDATE songs SET bits_per_sample = 24 WHERE id IN ('song-1', 'song-2')").run();
+    db.prepare("UPDATE songs SET bits_per_sample = 16 WHERE id = 'song-3'").run();
+    const rules: SmartPlaylistRules = {
+      rules: {
+        all: [{ field: 'bitDepth', operator: 'gte', value: 24 }],
+      },
+    };
+    const compiled = compileSmartPlaylist(db, rules, 'user-1');
+    const ids = db.prepare(compiled.sql).pluck().all(...compiled.params) as string[];
+    expect(ids).toEqual(['song-1', 'song-2']);
+  });
+
   it('supports any rule group', () => {
     const rules: SmartPlaylistRules = {
       rules: {

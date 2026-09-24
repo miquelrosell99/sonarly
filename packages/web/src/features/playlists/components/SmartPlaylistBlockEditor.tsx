@@ -95,8 +95,8 @@ function getFieldType(field: string): SmartPlaylistFieldType {
   return SMART_PLAYLIST_FIELDS.find((f) => f.field === field)?.type ?? 'string';
 }
 
-function isAutocompleteField(field: string): field is 'artist' | 'album' | 'albumArtist' | 'genre' {
-  return field === 'artist' || field === 'album' || field === 'albumArtist' || field === 'genre';
+function isAutocompleteField(field: string): field is 'artist' | 'album' | 'albumArtist' | 'genre' | 'albumType' {
+  return field === 'artist' || field === 'album' || field === 'albumArtist' || field === 'genre' || field === 'albumType';
 }
 
 function defaultRule(): SmartPlaylistRule {
