@@ -32,21 +32,42 @@ type Event struct {
 // Worker polls the queue and executes jobs. Exactly one Worker runs per
 // process; the single-connection DB pool serializes its writes.
 type Worker struct {
-	queue   *Queue
-	scanner *Scanner
-	log     *slog.Logger
-	poll    time.Duration
-	events  chan Event
+	queue    *Queue
+	scanner  *Scanner
+	log      *slog.Logger
+	poll     time.Duration
+	events   chan Event
+	handlers map[JobType]JobHandler
 }
+
+// JobHandler executes one claimed job. It returns the stats document the
+// queue stores on completion (nil is valid) and the execution error, if
+// any. Modules with job types the worker must not know about (ingest,
+// organize, review cleanup) register a handler instead of importing the
+// worker — the dependency points inward.
+type JobHandler func(ctx context.Context, job *Job) (any, error)
 
 func NewWorker(queue *Queue, scanner *Scanner, log *slog.Logger) *Worker {
 	return &Worker{
-		queue:   queue,
-		scanner: scanner,
-		log:     log,
-		poll:    defaultPollInterval,
-		events:  make(chan Event, 16),
+		queue:    queue,
+		scanner:  scanner,
+		log:      log,
+		poll:     defaultPollInterval,
+		events:   make(chan Event, 16),
+		handlers: map[JobType]JobHandler{},
 	}
+}
+
+// Register installs the handler for a job type. It must be called before
+// Start; registration afterwards races the polling loop. Job types with a
+// registered handler never surface ErrNotImplemented. Passing a nil handler
+// unregisters the type (back to the placeholder behavior).
+func (w *Worker) Register(jobType JobType, fn JobHandler) {
+	if fn == nil {
+		delete(w.handlers, jobType)
+		return
+	}
+	w.handlers[jobType] = fn
 }
 
 // Events returns the job-completion stream. Sends never block the worker: a
@@ -153,6 +174,9 @@ func (w *Worker) runJob(ctx context.Context, job *Job) {
 // execute decodes the typed payload and dispatches. Stats are returned even
 // on error so failed jobs keep their partial progress.
 func (w *Worker) execute(ctx context.Context, job *Job) (any, error) {
+	if fn, ok := w.handlers[job.Type]; ok {
+		return fn(ctx, job)
+	}
 	switch job.Type {
 	case JobTypeScan, JobTypeResync:
 		var payload ScanPayload

@@ -19,11 +19,11 @@ import (
 	"github.com/google/uuid"
 )
 
-// JobType enumerates the scan_jobs types v1 defined. Only JobTypeScan and
-// JobTypeResync have real handlers in this phase; the rest are enqueue-able
-// so producers (routes, scheduler, watcher) can be wired now, and the worker
-// fails them gracefully with a "not implemented" error until their phases
-// land (ingest/organize/cleanup_review: P7/P6; artist_images: P6).
+// JobType enumerates the scan_jobs types v1 defined. Scan and resync are
+// handled by the worker itself; ingest, organize and cleanup_review have
+// their handlers in the ingest module, which registers them on the worker
+// (Worker.Register) so this package does not import downstream modules.
+// artist_images remains an enqueue-able placeholder until its phase lands.
 type JobType string
 
 const (
@@ -52,20 +52,22 @@ type ScanPayload struct {
 	LibraryID string `json:"libraryId,omitempty"`
 }
 
-// IngestPayload is the payload for ingest jobs (handler lands in P7).
+// IngestPayload is the payload for ingest jobs (handler: ingest module).
 type IngestPayload struct {
 	SourcePath        string `json:"sourcePath,omitempty"`
 	LibraryID         string `json:"libraryId,omitempty"`
 	DuplicateStrategy string `json:"duplicateStrategy,omitempty"`
 }
 
-// OrganizePayload is the payload for organize jobs (handler lands in P6).
+// OrganizePayload is the payload for organize jobs (handler: ingest module).
+// An empty LibraryID organizes every configured library root.
 type OrganizePayload struct {
 	LibraryID string `json:"libraryId,omitempty"`
 }
 
-// ArtistImagesPayload is the payload for artist_images jobs (handler lands
-// in P6).
+// ArtistImagesPayload is the payload for artist_images jobs. The handler is
+// still a placeholder (the worker fails the job gracefully with
+// ErrNotImplemented) until the artist-images phase lands.
 type ArtistImagesPayload struct {
 	RefetchExisting bool `json:"refetchExisting,omitempty"`
 }
