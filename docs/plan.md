@@ -39,7 +39,7 @@ Phases:
 - [ ] P7 — ingestion
   - [x] P7a — uploads ✅ (`afe8c19`): streaming reassembly (memory-bounded), typed 400s, idempotent complete, stale-session + orphan-dir GC. 20 tests.
   - [x] P7b — ingest pipeline + duplicates + organize ✅ (`d42dad4`): shared `library.PersistSong` (one data path with the scanner, P4b green), five duplicate strategies ported faithfully, organize job with prefix-trap handling, review quarantine + daily cleanup, conflicts B5 fix, end-to-end trigger→worker test. Fixed a single-connection pool deadlock found under test. 28 new test functions.
-- [ ] P8 — search (FTS5 — verified on modernc.org/sqlite 2026-09-24) + statistics + home/auto-dj
+- [x] P8 — search (FTS5) + statistics + home/auto-dj ✅ (`4ed00e3`): FTS5 synced inside PersistSong transactions (modernc external-content footguns documented); statistics consolidated to 6 statements vs v1's ~20 with query budgets pinned by tests; auto-dj errors 502 not silent-200; SSE + all-client players via injected Recorder. 57 new tests.
 - [ ] P9 — OpenSubsonic adapter full parity (43 endpoints) against the quirks checklist — budgeted as the largest phase, not an afterthought
 - [ ] **S3 — contract spike (gates Track 3)**: OpenAPI from Go routes + client codegen (DR-2 risk 2)
 - [ ] P10 — parity test suite + cutover evaluation
