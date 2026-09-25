@@ -45,6 +45,7 @@ Phases:
 - [x] **P9c — native API parity gaps** ✅ (`9894367`): admin libraries + assignment, tag editing (TagWriter over mutagen, atomic), cover-art upload with magic-byte sniff, suggestions, MB/lrclib proxies, artist-images worker, avatars (file-based per v1 evidence), admin system-tasks/missing/ingest-runs, settings, organize routes. Spec at 113 operations (159 routes coverage-tested). 549 tests.
 - [x] P10 — parity test suite + cutover evaluation ✅ (`c652f03`): dual-boot harness (seed via v1 → snapshot DB → v2 on the copy → 94-case diff script) — **94/94 green, no blockers**, report says READY FOR CUTOVER. Found+fixed 8 v2 bugs incl. the v1-DB fractional-REAL import hazard. Perf smoke ~0.7× v1 wall time.
 - [x] **P10b — v1→v2 data migration + dual-run** ✅ (`ddba131`): production snapshot dual-run PASS — real DB copy + real library, 0 stream hash mismatches, playlists/history/interactions byte-identical, rollback runbook + additive-schema analysis in `docs/v2-p10b-dualrun-report.md`. Findings: stale production catalog (v1 reconciles identically), library-scoped deactivation delta (deliberate; product-noted), FLAC bitrate estimation gap.
+- [x] **P11 — deployment-ready closeout** ✅ (`0ac375e`): static SPA serving, `docker/Dockerfile.v2` + entrypoint + compose example, `/healthz` alias, `docs/v2-cutover-readiness.md` with go/no-go checklist. **v2 track: PARITY-COMPLETE — 33 test packages, 94/94 response parity, production dual-run PASS. Cutover is an owner decision.**
 
 ### Track 2 — v1 TypeScript hardening (branch `main`)
 
