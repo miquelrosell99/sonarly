@@ -7,30 +7,37 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/playback"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/players"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/playlists"
 )
 
 // Handler wires the OpenSubsonic adapter to HTTP: the /rest group carries
 // the session middleware (cookie + header-apiKey identity) first, then the
 // Subsonic auth hook, then the endpoint groups (P6.5 system, P9a
-// browsing/retrieval; P9b adds starring/now-playing/playlists).
+// browsing/retrieval, P9b starring/now-playing/playlists/bookmarks).
 type Handler struct {
 	db          *sql.DB
 	mw          *auth.Middleware
 	auth        *Auth
 	playback    *playback.Service
+	tracker     *players.Tracker // P8 now-playing registry (N1)
+	playlists   *playlists.Service
 	libraryPath string // config library root: getMusicFolders basename fallback (B1)
 }
 
 // NewHandler builds the adapter. playback is the P5 StreamingService
-// stream/download delegate against; libraryPath feeds the getMusicFolders
-// admin-empty fallback (quirks doc B1). playback may be nil in tests that
-// never hit stream/download.
-func NewHandler(db *sql.DB, mw *auth.Middleware, sessionSecret, libraryPath string, playback *playback.Service) *Handler {
+// stream/download/scrobble/bookmark delegate; tracker is the P8 players
+// registry feeding getNowPlaying; playlists is the P6 module service the
+// playlist endpoints delegate to (ONE policy). playback/tracker/playlists
+// may be nil in tests that never hit those endpoints.
+func NewHandler(db *sql.DB, mw *auth.Middleware, sessionSecret, libraryPath string, playback *playback.Service, tracker *players.Tracker, playlistsSvc *playlists.Service) *Handler {
 	return &Handler{
 		db:          db,
 		mw:          mw,
 		auth:        NewAuth(db, sessionSecret),
 		playback:    playback,
+		tracker:     tracker,
+		playlists:   playlistsSvc,
 		libraryPath: libraryPath,
 	}
 }
@@ -66,7 +73,7 @@ type endpointRoute struct {
 }
 
 // endpointRoutes is the full adapter endpoint table (P6.5 system + P9a
-// browsing/retrieval). P9b appends starring/now-playing/playlist rows.
+// browsing/retrieval + P9b starring/now-playing/playlists/bookmarks).
 var endpointRoutes = []endpointRoute{
 	// System group (P6.5).
 	{"ping", http.MethodGet, "/ping.view", (*Handler).ping},
@@ -105,4 +112,27 @@ var endpointRoutes = []endpointRoute{
 	{"getInternetRadioStations", http.MethodGet, "/getInternetRadioStations.view", (*Handler).getInternetRadioStations},
 	{"getPodcasts", http.MethodGet, "/getPodcasts.view", (*Handler).getPodcasts},
 	{"getNewestPodcasts", http.MethodGet, "/getNewestPodcasts.view", (*Handler).getNewestPodcasts},
+
+	// Starring group (P9b, v1 starring.ts; scrobble rides along, T1-T4).
+	{"star", http.MethodGet, "/star.view", (*Handler).star},
+	{"unstar", http.MethodGet, "/unstar.view", (*Handler).unstar},
+	{"setRating", http.MethodGet, "/setRating.view", (*Handler).setRating},
+	{"scrobble", http.MethodGet, "/scrobble.view", (*Handler).scrobble},
+	{"getStarred", http.MethodGet, "/getStarred.view", (*Handler).getStarred},
+	{"getStarred2", http.MethodGet, "/getStarred2.view", (*Handler).getStarred2},
+
+	// Activity group (P9b, v1 now-playing.ts; N1 — the P8 players tracker).
+	{"getNowPlaying", http.MethodGet, "/getNowPlaying.view", (*Handler).getNowPlaying},
+
+	// Playlist group (P9b, v1 playlists/opensubsonic-routes.ts; P1 — ONE policy).
+	{"getPlaylists", http.MethodGet, "/getPlaylists.view", (*Handler).getPlaylists},
+	{"getPlaylist", http.MethodGet, "/getPlaylist.view", (*Handler).getPlaylist},
+	{"createPlaylist", http.MethodGet, "/createPlaylist.view", (*Handler).createPlaylist},
+	{"updatePlaylist", http.MethodGet, "/updatePlaylist.view", (*Handler).updatePlaylist},
+	{"deletePlaylist", http.MethodGet, "/deletePlaylist.view", (*Handler).deletePlaylist},
+
+	// Bookmark group (P9b, v1 bookmarks/routes.ts).
+	{"getBookmarks", http.MethodGet, "/getBookmarks.view", (*Handler).getBookmarks},
+	{"createBookmark", http.MethodGet, "/createBookmark.view", (*Handler).createBookmark},
+	{"deleteBookmark", http.MethodGet, "/deleteBookmark.view", (*Handler).deleteBookmark},
 }

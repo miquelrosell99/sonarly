@@ -59,6 +59,8 @@ tags:
     description: Landing-page aggregation.
   - name: auto-dj
     description: Automatic DJ candidate generation.
+  - name: interactions
+    description: Per-user favorites (stars) and ratings on catalog entities — the same user_* junction rows the OpenSubsonic adapter writes.
   - name: players
     description: Live now-playing dashboard.
   - name: events
@@ -246,6 +248,146 @@ paths:
                   user: { $ref: '#/components/schemas/PublicUser' }
         '401':
           description: No (or dead) session.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/me/preferences:
+    get:
+      operationId: getMyPreferences
+      tags: [auth]
+      summary: Current user's preferences document
+      description: >
+        The stored preferences merged over the shared defaults (an absent row
+        or a corrupt blob yields the defaults). Persisted verbatim keys
+        (theme, sidebar layout, view options) ride along with the validated
+        auto-dj and appearance keys.
+      responses:
+        '200':
+          description: The merged preferences document.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [preferences]
+                properties:
+                  preferences: { $ref: '#/components/schemas/Preferences' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    patch:
+      operationId: patchMyPreferences
+      tags: [auth]
+      summary: Update current user's preferences (allowlisted keys)
+      description: >
+        Partial update: every key in the body must be in the explicit
+        allowlist (auto-dj knobs, appearance, hideSponsorButton, and the
+        structural sidebar/theme documents) or the whole patch is rejected
+        with 400 — unknown keys are never silently dropped or stored
+        (mass-assignment fix). Values are validated per key; out-of-range
+        auto-dj numbers clamp like v1 instead of failing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PreferencesPatch' }
+      responses:
+        '200':
+          description: The merged document after the patch.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [preferences]
+                properties:
+                  preferences: { $ref: '#/components/schemas/Preferences' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/favorites:
+    post:
+      operationId: setFavorite
+      tags: [interactions]
+      summary: Star or unstar a song, album, or artist
+      description: >
+        Upserts the caller's starred flag in the user_songs / user_albums /
+        user_artists junction row — the same tables the OpenSubsonic
+        star.view/unstar.view endpoints write.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Exactly one of the three id keys is required.
+              properties:
+                songId: { type: string }
+                albumId: { type: string }
+                artistId: { type: string }
+                starred:
+                  type: boolean
+                  default: true
+                  description: Absent means favorite (true).
+              anyOf:
+                - required: [songId]
+                - required: [albumId]
+                - required: [artistId]
+      responses:
+        '200':
+          description: Favorite stored.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/ratings:
+    post:
+      operationId: setRating
+      tags: [interactions]
+      summary: Rate a song, album, or artist (0..5 in 0.5 steps)
+      description: >
+        Upserts the caller's rating in the user_* junction row; song ratings
+        recompute songs.average_rating. Passing null (or omitting the key)
+        clears the rating, exactly like v1.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                songId: { type: string }
+                albumId: { type: string }
+                artistId: { type: string }
+                rating:
+                  type: [number, 'null']
+                  minimum: 0
+                  maximum: 5
+                  multipleOf: 0.5
+                  description: 0..5 in 0.5 increments; null clears.
+              anyOf:
+                - required: [songId]
+                - required: [albumId]
+                - required: [artistId]
+      responses:
+        '200':
+          description: Rating stored.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/avatars/{id}:
+    get:
+      operationId: getAvatar
+      tags: [auth]
+      summary: User avatar (stub — always 404)
+      description: >
+        Avatars are not implemented yet; the route exists so the
+        PublicUser.avatarUrl the clients already render resolves to a stable
+        URL instead of falling through to the SPA. Every id answers 404
+        until avatar storage lands.
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '404':
+          description: Avatars are not implemented yet.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -1684,6 +1826,9 @@ components:
     AutoDjMode:
       type: string
       enum: [similar, random, smart]
+    AutoDjExcludeWindow:
+      type: string
+      enum: ['24h', '7d', '30d']
     JobType:
       type: string
       enum: [scan, resync, ingest, organize, cleanup_review, artist_images]
@@ -1708,6 +1853,57 @@ components:
         hideExplicit: { type: boolean }
         blurExplicitTitles: { type: boolean }
         blurExplicitCovers: { type: boolean }
+    Preferences:
+      type: object
+      description: >
+        The user preferences document: shared defaults under stored
+        overrides. Keys outside this list can exist in the stored blob
+        (legacy clients) and are returned as-is, but PATCH only accepts the
+        allowlisted set.
+      properties:
+        autoDjEnabled: { type: boolean }
+        autoDjMode: { $ref: '#/components/schemas/AutoDjMode' }
+        autoDjTopUpThreshold: { type: number, minimum: 1, maximum: 20 }
+        autoDjBatchSize: { type: number, minimum: 1, maximum: 50 }
+        autoDjExcludeWindow: { $ref: '#/components/schemas/AutoDjExcludeWindow' }
+        autoDjPreferFavorites: { type: boolean }
+        autoDjDiscovery: { type: number, minimum: 0, maximum: 100 }
+        hideSponsorButton: { type: boolean }
+        themeMode: { type: string, enum: [light, dark, oled, auto] }
+        accentColor:
+          type: string
+          enum: [auto, monochrome, brown, green, orange, teal, purple, yellow, cyan, blue]
+        playlistsCollapsed: { type: boolean }
+        sidebar: { type: object }
+        theme: { type: object }
+        sidebarConfig: { type: object }
+        viewOptions: { type: object }
+      additionalProperties: true
+    PreferencesPatch:
+      type: object
+      description: >
+        PATCH body for /api/me/preferences: every present key must be in the
+        allowlist (the Preferences properties above); unknown keys are
+        rejected with 400. Out-of-range numbers clamp into range.
+      properties:
+        autoDjEnabled: { type: boolean }
+        autoDjMode: { $ref: '#/components/schemas/AutoDjMode' }
+        autoDjTopUpThreshold: { type: number, minimum: 1, maximum: 20 }
+        autoDjBatchSize: { type: number, minimum: 1, maximum: 50 }
+        autoDjExcludeWindow: { $ref: '#/components/schemas/AutoDjExcludeWindow' }
+        autoDjPreferFavorites: { type: boolean }
+        autoDjDiscovery: { type: number, minimum: 0, maximum: 100 }
+        hideSponsorButton: { type: boolean }
+        themeMode: { type: string, enum: [light, dark, oled, auto] }
+        accentColor:
+          type: string
+          enum: [auto, monochrome, brown, green, orange, teal, purple, yellow, cyan, blue]
+        playlistsCollapsed: { type: boolean }
+        sidebar: { type: object }
+        theme: { type: object }
+        sidebarConfig: { type: object }
+        viewOptions: { type: object }
+      additionalProperties: false
     AdminUpdateInput:
       type: object
       description: >
