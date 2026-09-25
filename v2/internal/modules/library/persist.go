@@ -328,6 +328,25 @@ func persistSongTx(ctx context.Context, ex execer, in PersistInput) (string, err
 		}
 	}
 
+	// Search index sync, still inside the song tx: the song's entry follows
+	// the final title (rescans converge on the same INSERT OR REPLACE), and
+	// the album/primary-artist entries are refreshed with the names this
+	// persist resolved, so a rename-by-rescan reaches the index too. The
+	// rowid lookups key the FTS tables (migration 0003).
+	if err := syncSongFTS(ctx, ex, songID, song.title); err != nil {
+		return "", err
+	}
+	if albumID != nil {
+		if err := syncAlbumFTS(ctx, ex, *albumID, strings.TrimSpace(meta.Album), strings.Join(albumArtistNames, " / ")); err != nil {
+			return "", err
+		}
+	}
+	if len(artistIDs) > 0 {
+		if err := syncArtistFTS(ctx, ex, artistIDs[0], artistNames[0]); err != nil {
+			return "", err
+		}
+	}
+
 	return songID, nil
 }
 
