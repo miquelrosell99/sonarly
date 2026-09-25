@@ -27,7 +27,7 @@ Phases:
 
 - [x] P0 — scaffold: config, db+migrate, httpserver, `/health`+`/ready`, smoke-tested
 - [x] P1 — baseline schema distilled from v1 migrations (+ audit schema fixes)
-- [x] **S1 — metadata spike (gates P4)** ✅ DONE (`7f5b5aa`, verdict **GO**, pending product sign-off): `dhowden/tag` + own fork (multi-value W1, m4a `rtng`/`tmpo` W2) + ~300-line pure-Go properties reader (W5) reaches full v1 parity without CGO. Deliverable: `docs/v2-s1-metadata-findings.md` §6 sign-off list (m4a explicit flag, multi-value tags, ID3v1 mojibake, properties-reader quirks, dead-SYLT confirmation). Surprise finding: v1's native SYLT branch is dead code — synced-lyrics parity is the LRC-in-tag path.
+- [x] **S1 — metadata spike (gates P4)** ✅ DONE (`7f5b5aa`, verdict **GO**, **sign-off APPROVED 2026-09-25**): `dhowden/tag` + own fork (multi-value W1, m4a `rtng`/`tmpo` W2) + ~300-line pure-Go properties reader (W5) reaches full v1 parity without CGO. Deliverable: `docs/v2-s1-metadata-findings.md` §6 sign-off list. Surprise finding: v1's native SYLT branch is dead code — synced-lyrics parity is the LRC-in-tag path.
 - [ ] P2 — auth + users (sessions, API keys, admin) with enforced library isolation (see F1 decision below)
 - [ ] P3 — catalog (artists/albums/songs/genres) + repositories + native API
 - [ ] **S2 — streaming spike (gates P5)**: range, ffmpeg pipe, disconnect-kill, concurrency cap
