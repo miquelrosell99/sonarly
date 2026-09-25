@@ -40,8 +40,9 @@ Phases:
   - [x] P7a — uploads ✅ (`afe8c19`): streaming reassembly (memory-bounded), typed 400s, idempotent complete, stale-session + orphan-dir GC. 20 tests.
   - [x] P7b — ingest pipeline + duplicates + organize ✅ (`d42dad4`): shared `library.PersistSong` (one data path with the scanner, P4b green), five duplicate strategies ported faithfully, organize job with prefix-trap handling, review quarantine + daily cleanup, conflicts B5 fix, end-to-end trigger→worker test. Fixed a single-connection pool deadlock found under test. 28 new test functions.
 - [x] P8 — search (FTS5) + statistics + home/auto-dj ✅ (`4ed00e3`): FTS5 synced inside PersistSong transactions (modernc external-content footguns documented); statistics consolidated to 6 statements vs v1's ~20 with query budgets pinned by tests; auto-dj errors 502 not silent-200; SSE + all-client players via injected Recorder. 57 new tests.
-- [ ] P9 — OpenSubsonic adapter full parity (43 endpoints) against the quirks checklist — budgeted as the largest phase, not an afterthought
+- [ ] P9 — OpenSubsonic adapter full parity (43 endpoints) against the quirks checklist — budgeted as the largest phase, not an afterthought (P9a browsing+retrieval running; P9b starring/now-playing/playlists/bookmarks next)
 - [x] **S3 — contract spike (gates Track 3)** ✅ DONE (`57b355d`): OpenAPI 3.1 spec for the entire native API (50 paths/63 ops, lint-clean) with a chi.Walk coverage test in both directions (drift fails the build); TS codegen proof typechecks. **Track 3 (frontend audit) is now UNBLOCKED** — runs in parallel with P9. Noted gap: `/api/avatars/{id}` (v1 parity) has no v2 route yet.
+- [ ] **P9c — native API parity gaps (from frontend audit FF3/FF4, 2026-09-25)**: favorites + ratings, `/me/preferences`, `/libraries` list endpoint, lyrics/tag editing + cover-art upload (admin), suggestions, lrclib/musicbrainz proxies (admin), admin libraries CRUD + user library assignment, avatars + artist-images, organize HTTP routes, admin system-tasks/missing extras — each endpoint updates `v2/api/openapi.yaml` (coverage test enforces)
 - [ ] P10 — parity test suite + cutover evaluation
 - [ ] **P10b — v1→v2 data migration + dual-run**: import a production v1 DB snapshot into v2, diff library state end-to-end (songs/albums/artists/playlists/history/ratings), run v2 alongside v1 against the real library, write the rollback story. Cutover is not discussed without this phase passing
 
@@ -55,9 +56,11 @@ Phase 2 security batch done 2026-09-24: SIGTERM graceful shutdown (`b3469ce`), a
 
 Remaining Phase 2 (lower priority): ffmpeg concurrency cap + rate limiting, login hardening (timing equalization, throttle eviction, trustProxy), default-secret warning, upload reassembly streaming.
 
-### Track 3 — Frontend audit (TRIGGER: S3 contract spike lands — runs IN PARALLEL with v2 P4–P8, not after "backend done")
+### Track 3 — Frontend audit ✅ DONE 2026-09-25
 
-A stable contract is the prerequisite, not a finished backend. Once S3 (OpenAPI codegen) lands, the frontend audit proceeds against the frozen contract while backend phases continue — auditing against a stable contract is better than against a moving one, and this avoids serializing months of work. Prompt: Appendix A below. Prerequisite: v2 exposes the contracted API surface.
+Report: `docs/audits/2026-09-25-frontend-architecture-audit.md` (24 sections, FF1–FF12). Verdict: fundamentally healthy client (excellent player subsystem, zero object-URL leaks, XSS unreachable, a11y practiced); headline problems are the split data layer (react-query vs hand-rolled → SSE invalidation misses most pages), zero code splitting (646 KB single chunk), and v2 contract gaps. Recommendation: Option B — unify on react-query, `contract/` module from the generated types, route-splitting, phased against v2.
+
+**Cross-track action from FF3/FF4**: the frozen v2 contract omits v1 parity endpoints that the client needs — favorites/ratings, `/me/preferences`, `/libraries` list, lyrics/tag editing, cover-art upload, suggestions, lrclib/musicbrainz proxies, admin libraries/missing/users extras, avatars/artist-images, organize routes. Added to v2 track as P9c (below). Also queued (from Appendix B): agents-docs sync pass (`ui-components.md` ~half inventory, `technology-stack.md` omissions).
 
 ---
 

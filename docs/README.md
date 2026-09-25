@@ -25,6 +25,7 @@ This folder contains the project documentation. Start here.
 | [db-schema.md](db-schema.md) | SQLite database schema, tables, and conventions |
 | [design-language.md](design-language.md) | UI design tokens, typography, and visual principles |
 | [audits/2026-09-24-backend-architecture-audit.md](audits/2026-09-24-backend-architecture-audit.md) | Full backend architecture audit: findings, target architecture, migration roadmap, implementation backlog |
+| [audits/2026-09-25-frontend-architecture-audit.md](audits/2026-09-25-frontend-architecture-audit.md) | Full frontend architecture audit (Track 3): state model, player deep-dive, v2 contract alignment, FF1–FF12 |
 
 Related files in the repository root: [README.md](../README.md) (overview and quick start), [CHANGELOG.md](../CHANGELOG.md) (release notes), [CONTRIBUTING.md](../CONTRIBUTING.md) (contribution process), [SECURITY.md](../SECURITY.md) (vulnerability reporting).
 
