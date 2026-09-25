@@ -25,5 +25,24 @@ func Open(ctx context.Context, path string) (*sql.DB, error) {
 	// SQLite allows one writer; a single connection avoids SQLITE_BUSY
 	// surprises between statements of one logical operation.
 	database.SetMaxOpenConns(1)
+	// Keep the one connection pooled forever: with MaxOpenConns(1) there is
+	// never a second connection to reclaim, and for the in-memory test
+	// database a fresh connection would be an empty database.
+	database.SetMaxIdleConns(1)
+	return database, nil
+}
+
+// OpenInMemory opens a private, migrated, in-memory database. It exists for
+// tests, which get a throwaway schema in microseconds without touching disk.
+// Callers own closing the handle.
+func OpenInMemory(ctx context.Context) (*sql.DB, error) {
+	database, err := Open(ctx, ":memory:")
+	if err != nil {
+		return nil, err
+	}
+	if err := Migrate(ctx, database); err != nil {
+		database.Close()
+		return nil, err
+	}
 	return database, nil
 }

@@ -4,7 +4,7 @@
 node_modules/
 dist/
 .env
-config/
+/config/
 
 # Internal planning documents (not for public release)
 docs/plans/
