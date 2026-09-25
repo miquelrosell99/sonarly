@@ -28,7 +28,7 @@ Phases:
 - [x] P0 — scaffold: config, db+migrate, httpserver, `/health`+`/ready`, smoke-tested
 - [x] P1 — baseline schema distilled from v1 migrations (+ audit schema fixes)
 - [x] **S1 — metadata spike (gates P4)** ✅ DONE (`7f5b5aa`, verdict **GO**, **sign-off APPROVED 2026-09-25**): `dhowden/tag` + own fork (multi-value W1, m4a `rtng`/`tmpo` W2) + ~300-line pure-Go properties reader (W5) reaches full v1 parity without CGO. Deliverable: `docs/v2-s1-metadata-findings.md` §6 sign-off list. Surprise finding: v1's native SYLT branch is dead code — synced-lyrics parity is the LRC-in-tag path.
-- [ ] P2 — auth + users (sessions, API keys, admin) with enforced library isolation (see F1 decision below)
+- [x] P2 — auth + users (sessions, API keys, admin) with enforced library isolation ✅ (`e38c230`): SQLite session store, v1-wire-compatible signed cookie + AES-GCM secret box (interop-tested), fixation-safe login, TOCTOU-fixed setup, last-admin protections, session invalidation on role/password change, login throttle, Go port of the isolation policy. 49 test functions green. (Also fixed `.gitignore` blanket `config/` rule that had excluded `v2/internal/config/` since the scaffold commit.)
 - [ ] P3 — catalog (artists/albums/songs/genres) + repositories + native API
 - [ ] **S2 — streaming spike (gates P5)**: range, ffmpeg pipe, disconnect-kill, concurrency cap
 - [ ] P4 — library runtime: scanner, watcher, scheduler, job queue/worker (typed payloads, coalescing, cancellation)
