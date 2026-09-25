@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -40,28 +41,22 @@ func main() {
 	}
 }
 
-func run() error {
-	cfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("config: %w", err)
-	}
+// app bundles the background-runtime handles run() needs after route
+// mounting. mountRoutes registers every route and returns these handles
+// without starting any goroutine, so tests can walk the production router
+// (the OpenAPI coverage test does).
+type app struct {
+	sessionStore  *auth.Store
+	libraryQueue  *library.Queue
+	libraryWorker *library.Worker
+	eventsBroker  *events.Broker
+	uploadRepo    *uploads.Repository
+}
 
-	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	database, err := db.Open(ctx, cfg.DBPath)
-	if err != nil {
-		return fmt.Errorf("db: %w", err)
-	}
-	defer database.Close()
-
-	if err := db.Migrate(ctx, database); err != nil {
-		return fmt.Errorf("migrate: %w", err)
-	}
-
-	srv := httpserver.New(cfg, log)
+// mountRoutes registers every module's routes on srv. It is the route
+// registry run() serves and the contract test walks — extracting it keeps
+// the two from drifting apart.
+func mountRoutes(ctx context.Context, srv *httpserver.Server, database *sql.DB, cfg config.Config, log *slog.Logger) (*app, error) {
 	system.Register(srv.Router(), system.NewService(database))
 
 	sessionStore := auth.NewStore(database)
@@ -111,7 +106,7 @@ func run() error {
 	// Library runtime (P4b): job queue, worker, filesystem watcher and
 	// scheduler, all context-driven so shutdown stops a scan between songs.
 	if err := library.EnsureDefaultLibrary(ctx, database, cfg.LibraryPath); err != nil {
-		return fmt.Errorf("default library: %w", err)
+		return nil, fmt.Errorf("default library: %w", err)
 	}
 	libraryQueue := library.NewQueue(database)
 	libraryWorker := library.NewWorker(libraryQueue, library.NewScanner(database, log, cfg.LibraryPath), log)
@@ -126,39 +121,77 @@ func run() error {
 	libraryWorker.Register(library.JobTypeIngest, ingestService.RunIngestJob)
 	libraryWorker.Register(library.JobTypeOrganize, ingestService.RunOrganizeJob)
 	libraryWorker.Register(library.JobTypeCleanupReview, ingestService.RunReviewCleanupJob)
-	go libraryWorker.Start(ctx)
-	go library.NewWatcher(database, libraryQueue, log, cfg.WatchPollInterval, cfg.LibraryPath).Run(ctx)
-	go library.NewScheduler(database, libraryQueue, log, library.SchedulerOptions{
-		ScanInterval:          cfg.ScanInterval,
-		ArtistImageInterval:   cfg.ArtistImageInterval,
-		IngestInterval:        cfg.IngestInterval,
-		ReviewCleanupInterval: cfg.ReviewCleanupInterval,
-		IngestPath:            cfg.IngestPath,
-	}).Run(ctx)
 	library.NewHandler(libraryQueue, authMW).Routes(srv.Router())
 	ingest.NewHandler(ingestService, authMW, cfg.IngestPath).Routes(srv.Router())
-	// Boot push of the initial scan (v1 parity); coalesces with a scan left
-	// pending by a previous run instead of queueing a duplicate.
-	if _, err := libraryQueue.Push(ctx, library.JobTypeScan, library.ScanPayload{}); err != nil {
-		log.WarnContext(ctx, "initial scan enqueue failed", "err", err)
-	}
 
 	// Server-sent events (P8): the broker fans the worker's job-completion
 	// channel out to /api/events clients (session auth only; 30s heartbeat;
 	// library:changed on content-changing jobs). The SSE route is exempt
 	// from the global API timeout in httpserver, like /api/stream/.
 	eventsBroker := events.NewBroker(libraryWorker.Events(), log)
-	go eventsBroker.Run(ctx)
 	events.NewHandler(eventsBroker, authMW).Routes(srv.Router())
 
 	// Uploads (P7a): chunked upload sessions with streaming reassembly (the
 	// audit's F10/B11 fixes) and a stale-session sweeper v1 never had.
 	uploadRepo := uploads.NewRepository(database)
 	uploads.NewHandler(uploadRepo, libraryQueue, authMW, cfg.DataDir, cfg.IngestPath).Routes(srv.Router())
-	go uploads.RunSweeper(ctx, uploadRepo, cfg.DataDir, log)
 
-	// Purge expired sessions hourly, stopping with the process context.
-	go auth.RunSweeper(ctx, sessionStore, log, time.Hour)
+	return &app{
+		sessionStore:  sessionStore,
+		libraryQueue:  libraryQueue,
+		libraryWorker: libraryWorker,
+		eventsBroker:  eventsBroker,
+		uploadRepo:    uploadRepo,
+	}, nil
+}
+
+func run() error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("config: %w", err)
+	}
+
+	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	database, err := db.Open(ctx, cfg.DBPath)
+	if err != nil {
+		return fmt.Errorf("db: %w", err)
+	}
+	defer database.Close()
+
+	if err := db.Migrate(ctx, database); err != nil {
+		return fmt.Errorf("migrate: %w", err)
+	}
+
+	srv := httpserver.New(cfg, log)
+	app, err := mountRoutes(ctx, srv, database, cfg, log)
+	if err != nil {
+		return err
+	}
+
+	// Background runtime: the worker, watcher, scheduler, SSE broker, upload
+	// sweeper and session sweeper all run context-driven so shutdown stops
+	// them between ticks.
+	go app.libraryWorker.Start(ctx)
+	go library.NewWatcher(database, app.libraryQueue, log, cfg.WatchPollInterval, cfg.LibraryPath).Run(ctx)
+	go library.NewScheduler(database, app.libraryQueue, log, library.SchedulerOptions{
+		ScanInterval:          cfg.ScanInterval,
+		ArtistImageInterval:   cfg.ArtistImageInterval,
+		IngestInterval:        cfg.IngestInterval,
+		ReviewCleanupInterval: cfg.ReviewCleanupInterval,
+		IngestPath:            cfg.IngestPath,
+	}).Run(ctx)
+	// Boot push of the initial scan (v1 parity); coalesces with a scan left
+	// pending by a previous run instead of queueing a duplicate.
+	if _, err := app.libraryQueue.Push(ctx, library.JobTypeScan, library.ScanPayload{}); err != nil {
+		log.WarnContext(ctx, "initial scan enqueue failed", "err", err)
+	}
+	go app.eventsBroker.Run(ctx)
+	go uploads.RunSweeper(ctx, app.uploadRepo, cfg.DataDir, log)
+	go auth.RunSweeper(ctx, app.sessionStore, log, time.Hour)
 
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,
