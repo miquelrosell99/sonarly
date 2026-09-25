@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/miquelrosell99/sonarly/v2/internal/db"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/libraries"
 )
@@ -52,14 +53,20 @@ func scanSong(s interface{ Scan(...any) error }) (*Song, error) {
 	var song Song
 	var syncedLyrics, producers, isrcs sql.NullString
 	var explicit, coverArtMissing, gapless sql.NullInt64
+	var mtime db.Millis
+	// Numeric columns v1 may have written as fractional REALs (mtimeMs,
+	// duration seconds, and any music-metadata format number) scan through
+	// the tolerant db.NullInt64 — see internal/db.
+	var trackNo, discNo, duration, year db.NullInt64
+	var bitRate, bitsPerSample, sampleRate, channels, bpm db.NullInt64
 	var active int
 	var starred sql.NullInt64
 	var rating sql.NullFloat64
 	err := s.Scan(
-		&song.ID, &song.Title, &song.TrackNumber, &song.DiscNumber, &song.Duration,
-		&song.ArtistID, &song.AlbumID, &song.Genre, &song.GenreID, &song.LibraryID, &song.Year,
-		&explicit, &song.CoverArt, &coverArtMissing, &song.Mtime, &active,
-		&song.BitRate, &song.BitsPerSample, &song.SampleRate, &song.Channels, &song.BPM,
+		&song.ID, &song.Title, &trackNo, &discNo, &duration,
+		&song.ArtistID, &song.AlbumID, &song.Genre, &song.GenreID, &song.LibraryID, &year,
+		&explicit, &song.CoverArt, &coverArtMissing, &mtime, &active,
+		&bitRate, &bitsPerSample, &sampleRate, &channels, &bpm,
 		&song.MusicBrainzID, &song.ReplayGain, &song.AverageRating, &song.Comment,
 		&song.SortName, &song.Mood, &song.MediaType, &song.OriginalReleaseDate, &song.ReleaseDate,
 		&song.RemixOf, &song.DisplayArtist, &song.DisplayAlbumArtist, &song.Lyrics,
@@ -72,10 +79,27 @@ func scanSong(s interface{ Scan(...any) error }) (*Song, error) {
 	if err != nil {
 		return nil, err
 	}
+	intPtr := func(n db.NullInt64) *int {
+		if v, ok := n.Value(); ok {
+			i := int(v)
+			return &i
+		}
+		return nil
+	}
+	song.TrackNumber = intPtr(trackNo)
+	song.DiscNumber = intPtr(discNo)
+	song.Duration = intPtr(duration)
+	song.Year = intPtr(year)
+	song.BitRate = intPtr(bitRate)
+	song.BitsPerSample = intPtr(bitsPerSample)
+	song.SampleRate = intPtr(sampleRate)
+	song.Channels = intPtr(channels)
+	song.BPM = intPtr(bpm)
 	song.Explicit = explicit.Valid && explicit.Int64 == 1
 	song.CoverArtMissing = coverArtMissing.Valid && coverArtMissing.Int64 == 1
 	song.Active = active == 1
 	song.Gapless = gapless.Valid && gapless.Int64 == 1
+	song.Mtime = int64(mtime)
 	song.Starred = starred.Valid && starred.Int64 == 1
 	if rating.Valid {
 		song.Rating = &rating.Float64

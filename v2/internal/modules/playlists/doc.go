@@ -3,11 +3,29 @@
 // policy every surface (native routes now, the OpenSubsonic adapter in P9)
 // must consult.
 //
+// Share-token/visibility contract (P10 decision, strict v1 parity):
+// the token lifecycle is INDEPENDENT of visibility. POST share-link
+// mints/rotates the token without touching visibility; DELETE share-link
+// clears the token only; a native visibility change never clears the token
+// and auto-mints one when visibility becomes 'link' with none set (v1
+// management-routes.ts). The Subsonic adapter's updatePlaylist instead
+// re-derives the token from the resolved visibility on every update (link
+// keeps/mints, anything else clears — v1 opensubsonic-routes.ts).
+// Deliberately preserved v1 divergence (the old F7 finding): the NATIVE
+// anonymous metadata view (GET /api/playlists/{id}?shareToken=) grants VIEW
+// on a matching token regardless of visibility (v1 management
+// canViewPlaylist), while Resolve's token branch — the Subsonic getPlaylist
+// bypass and every data-mutating path — requires visibility='link' AND a
+// matching token, and the streaming/cover-art grants couple link+token in
+// SQL (TokenGrantsSong/TokenGrantsCoverArt). Unifying the native view with
+// the stricter Resolve rule is a post-cutover cleanup candidate.
+//
 // Deliberate fixes over the v1 implementation this ports:
 //
 //   - ONE access policy (policy.go). v1 kept two divergent canViewPlaylist
-//     copies (native routes vs OpenSubsonic routes) that disagreed on whether
-//     a share token required visibility=link. v2 has exactly one Resolve.
+//     copies (native routes vs OpenSubsonic routes); v2 keeps one Resolve
+//     for the adapter/data paths and applies v1's looser token rule only
+//     to the native metadata view (see the contract note above).
 //   - The share token is the owner's secret: DTOs include it for the owner
 //     only (v1 B10 leaked it to any detail-viewer).
 //   - Playlist create/update rewrites members transactionally, in one tx

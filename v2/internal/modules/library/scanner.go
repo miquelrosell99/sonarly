@@ -31,6 +31,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	dbpkg "github.com/miquelrosell99/sonarly/v2/internal/db"
 	"io"
 	"log/slog"
 	"os"
@@ -645,12 +646,14 @@ func songByPath(ctx context.Context, db *sql.DB, path string) (*songRow, error) 
 		 FROM songs WHERE file_path = ?`, path)
 	var r songRow
 	var active, missing int
-	if err := row.Scan(&r.id, &r.filePath, &r.mtime, &active, &r.albumID, &r.coverArtID, &missing, &r.libraryID); err != nil {
+	var mtime dbpkg.Millis
+	if err := row.Scan(&r.id, &r.filePath, &mtime, &active, &r.albumID, &r.coverArtID, &missing, &r.libraryID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("load song by path: %w", err)
 	}
+	r.mtime = int64(mtime)
 	r.active = active == 1
 	r.coverArtMissing = missing == 1
 	return &r, nil

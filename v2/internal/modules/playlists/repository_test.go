@@ -114,8 +114,8 @@ func TestShareLifecycle(t *testing.T) {
 	}
 }
 
-// TestShareLinkLifecycle: enable pins visibility=link with the token;
-// disable returns to private and clears it (token exists iff link).
+// TestShareLinkLifecycle: v1 semantics (P10 decision) — enabling stores
+// the token WITHOUT touching visibility; disabling clears the token only.
 func TestShareLinkLifecycle(t *testing.T) {
 	env := newEnv(t)
 	ctx := context.Background()
@@ -124,8 +124,8 @@ func TestShareLinkLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := mustLoad(t, env, "pl-private")
-	if p.Visibility != "link" || p.ShareToken != "tok-1" {
-		t.Errorf("after enable: %s %q", p.Visibility, p.ShareToken)
+	if p.Visibility != "private" || p.ShareToken != "tok-1" {
+		t.Errorf("after enable: %s %q, want unchanged private with the token", p.Visibility, p.ShareToken)
 	}
 	if err := DisableShareLink(ctx, env.db, "pl-private"); err != nil {
 		t.Fatal(err)
@@ -133,6 +133,19 @@ func TestShareLinkLifecycle(t *testing.T) {
 	p = mustLoad(t, env, "pl-private")
 	if p.Visibility != "private" || p.ShareToken != "" {
 		t.Errorf("after disable: %s %q, want private with no token", p.Visibility, p.ShareToken)
+	}
+
+	// A token survives on a link playlist and is cleared there too —
+	// visibility stays whatever it was.
+	if err := EnableShareLink(ctx, env.db, "pl-link", "tok-2"); err != nil {
+		t.Fatal(err)
+	}
+	if err := DisableShareLink(ctx, env.db, "pl-link"); err != nil {
+		t.Fatal(err)
+	}
+	p = mustLoad(t, env, "pl-link")
+	if p.Visibility != "link" || p.ShareToken != "" {
+		t.Errorf("link playlist after disable: %s %q, want link kept with no token", p.Visibility, p.ShareToken)
 	}
 }
 

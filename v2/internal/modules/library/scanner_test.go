@@ -115,7 +115,7 @@ func TestScanImportsLibrary(t *testing.T) {
 	if sampleRate != 44100 || channels != 2 || duration != 3 {
 		t.Fatalf("properties: sr=%d ch=%d dur=%v", sampleRate, channels, duration)
 	}
-	if mediaType != "audio/flac" {
+	if mediaType != "audio/x-flac" {
 		t.Fatalf("media_type: %q", mediaType)
 	}
 

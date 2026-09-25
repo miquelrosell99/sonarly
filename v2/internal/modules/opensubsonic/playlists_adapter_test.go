@@ -419,8 +419,9 @@ func TestUpdatePlaylistVisibilityTokenLifecycle(t *testing.T) {
 	_, ids := setupPlaylistWorld(t, app)
 	id := ids["alice-private"]
 
-	// private → link mints a token; link → private clears it (the ONE
-	// lifecycle rule, enforced by the module the adapter delegates to).
+	// v1 opensubsonic-routes.ts updatePlaylist: the token is re-derived
+	// from the RESOLVED visibility on every adapter update — link keeps or
+	// mints a token, any other visibility clears it.
 	rec := app.get(t, authedURL("/rest/updatePlaylist.view",
 		"&playlistId="+id+"&visibility=link"), nil)
 	assertOK(t, rec)
@@ -430,6 +431,18 @@ func TestUpdatePlaylistVisibilityTokenLifecycle(t *testing.T) {
 	}
 	if token == "" {
 		t.Fatal("visibility=link must mint a token")
+	}
+
+	// link → link keeps the same token (no rotation).
+	rec = app.get(t, authedURL("/rest/updatePlaylist.view",
+		"&playlistId="+id+"&visibility=link&name=StillLinked"), nil)
+	assertOK(t, rec)
+	var kept string
+	if err := app.db.QueryRow(`SELECT share_token FROM playlists WHERE id = ?`, id).Scan(&kept); err != nil {
+		t.Fatal(err)
+	}
+	if kept != token {
+		t.Fatalf("link→link rotated the token: %q → %q", token, kept)
 	}
 
 	rec = app.get(t, authedURL("/rest/updatePlaylist.view",
@@ -442,6 +455,23 @@ func TestUpdatePlaylistVisibilityTokenLifecycle(t *testing.T) {
 	}
 	if cleared.Valid {
 		t.Fatalf("leaving link must clear the token, got %q", cleared.String)
+	}
+
+	// A name-only update on a non-link playlist also clears any token
+	// (the resolved visibility — existing — is not link). Seed a token
+	// the way the native share-link endpoint does.
+	if _, err := app.db.Exec(`UPDATE playlists SET share_token = 'native-token' WHERE id = ?`, id); err != nil {
+		t.Fatal(err)
+	}
+	rec = app.get(t, authedURL("/rest/updatePlaylist.view",
+		"&playlistId="+id+"&name=RenamedAgain"), nil)
+	assertOK(t, rec)
+	var after sql.NullString
+	if err := app.db.QueryRow(`SELECT share_token FROM playlists WHERE id = ?`, id).Scan(&after); err != nil {
+		t.Fatal(err)
+	}
+	if after.Valid {
+		t.Fatalf("adapter update re-derives the token from resolved visibility: want cleared, got %q", after.String)
 	}
 }
 

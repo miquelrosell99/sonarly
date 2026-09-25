@@ -1040,9 +1040,9 @@ func TestGetArtistInfo2(t *testing.T) {
 		t.Fatalf("artistInfo2 = %v", info)
 	}
 	// Similar artists share an album genre with bowie (Rock): beatles.
-	similar, ok := info["similarArtist"].([]any)
+	similar, ok := info["similarArtists"].([]any)
 	if !ok || len(similar) == 0 {
-		t.Fatalf("similarArtist = %v", info)
+		t.Fatalf("similarArtists = %v", info)
 	}
 	found := false
 	for _, s := range similar {
@@ -1055,6 +1055,20 @@ func TestGetArtistInfo2(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("beatles must be similar: %v", similar)
+	}
+}
+
+// v1 always emits similarArtists — [] when no similar artists exist.
+func TestGetArtistInfo2EmitsEmptySimilarArtists(t *testing.T) {
+	app := newTestApp(t)
+	app.seedUser(t, testUserID, testUser, testPass, true)
+	app.seedCatalog(t, "")
+
+	env := getOK(t, app, "/rest/getArtistInfo2.view", "&id=ar-10cc")
+	info := env["artistInfo2"].(map[string]any)
+	similar, ok := info["similarArtists"].([]any)
+	if !ok || len(similar) != 0 {
+		t.Fatalf("empty similarArtists must render as [] (v1 parity): %v", info)
 	}
 }
 

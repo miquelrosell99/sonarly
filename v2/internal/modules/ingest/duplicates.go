@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/miquelrosell99/sonarly/v2/internal/audio"
+	dbpkg "github.com/miquelrosell99/sonarly/v2/internal/db"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/library"
 )
 
@@ -223,8 +224,19 @@ func findExistingSongByIdentity(ctx context.Context, db *sql.DB, ident *identity
 	var candidates []existingSong
 	for rows.Next() {
 		var row existingSong
-		if err := rows.Scan(&row.id, &row.filePath, &row.mtime, &row.checksum, &row.trackNo, &row.discNo); err != nil {
+		var mtime dbpkg.Millis
+		var trackNo, discNo dbpkg.NullInt64 // v1 may have stored fractional REALs
+		if err := rows.Scan(&row.id, &row.filePath, &mtime, &row.checksum, &trackNo, &discNo); err != nil {
 			return nil, fmt.Errorf("find duplicate candidates: %w", err)
+		}
+		row.mtime = int64(mtime)
+		if v, ok := trackNo.Value(); ok {
+			t := int(v)
+			row.trackNo = &t
+		}
+		if v, ok := discNo.Value(); ok {
+			d := int(v)
+			row.discNo = &d
 		}
 		candidates = append(candidates, row)
 	}
