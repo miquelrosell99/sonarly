@@ -104,11 +104,12 @@ type Service struct {
 	db       *sql.DB
 	sessions *auth.Store
 	secret   string
+	dataDir  string
 	throttle *auth.LoginThrottle
 }
 
-func NewService(db *sql.DB, sessions *auth.Store, sessionSecret string) *Service {
-	return &Service{db: db, sessions: sessions, secret: sessionSecret, throttle: auth.NewLoginThrottle()}
+func NewService(db *sql.DB, sessions *auth.Store, sessionSecret, dataDir string) *Service {
+	return &Service{db: db, sessions: sessions, secret: sessionSecret, dataDir: dataDir, throttle: auth.NewLoginThrottle()}
 }
 
 // LoginLocked reports whether the ip:username pair is login-throttled.

@@ -495,7 +495,8 @@ func TestGetLyricsAbsentEmptyStructure(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// getAvatar + radio/podcast stubs (R9 + the v2 avatar decision)
+// getAvatar + radio/podcast stubs (R9 + the v2 avatar decision: /rest
+// getAvatar stays 404 even though native avatars exist — see retrieval.go)
 // ---------------------------------------------------------------------------
 
 func TestGetAvatarNotImplemented(t *testing.T) {
