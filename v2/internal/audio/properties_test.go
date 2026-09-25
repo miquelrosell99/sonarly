@@ -1,0 +1,89 @@
+// W5 properties-reader accuracy test: cross-checks ReadMetadata's Properties
+// against the format block of testdata/gold_v1.json (music-metadata@11.14.0,
+// v1's exact version) with the S1-documented tolerances:
+//
+//   - duration: within ±50 ms or 1%, whichever is larger
+//   - bitrate:  within 10%
+//
+// Documented deviations (S1 §5 W5):
+//   - m4a bitrate: gold reports 800 (a music-metadata quirk S1 calls out:
+//     "v1's mp4 bitrate math is itself quirky; parity here means close
+//     enough for display, not bit-exact"). Our reader reports the esds
+//     avgBitrate (128000), matching TagLib. We assert against the manifest
+//     ground truth (128000) instead of gold for this one field.
+//   - flac bitrate: gold is 0 (mm reports 0 for lossless); we mirror that.
+
+package audio
+
+import (
+	"encoding/json"
+	"math"
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+type goldDump struct {
+	Format struct {
+		Duration      float64 `json:"duration"`
+		Bitrate       int     `json:"bitrate"`
+		SampleRate    int     `json:"sampleRate"`
+		NumberOfChans int     `json:"numberOfChannels"`
+		BitsPerSample int     `json:"bitsPerSample"`
+	} `json:"format"`
+}
+
+func TestPropertiesParity(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("testdata", "gold_v1.json"))
+	if err != nil {
+		t.Fatalf("read gold_v1.json: %v", err)
+	}
+	var gold map[string]goldDump
+	if err := json.Unmarshal(raw, &gold); err != nil {
+		t.Fatalf("parse gold_v1.json: %v", err)
+	}
+
+	// m4a bitrate is asserted against the generator's ground truth (esds
+	// avgBitrate = 128000), not gold's quirky 800.
+	const m4aEsdsBitrate = 128000
+
+	for name, g := range gold {
+		t.Run(name, func(t *testing.T) {
+			md, err := ReadMetadata(filepath.Join("testdata", "corpus", name))
+			if err != nil {
+				t.Fatalf("ReadMetadata: %v", err)
+			}
+			p := md.Properties
+
+			// duration: ±50 ms or 1%, whichever is larger
+			tol := math.Max(0.05, g.Format.Duration*0.01)
+			if math.Abs(p.Duration-g.Format.Duration) > tol {
+				t.Errorf("Duration = %v, gold %v (tolerance %v)", p.Duration, g.Format.Duration, tol)
+			}
+
+			// bitrate: within 10% (m4a: esds ground truth — see header note)
+			wantBitrate := g.Format.Bitrate
+			if name == "spike.m4a" {
+				wantBitrate = m4aEsdsBitrate
+			}
+			if wantBitrate > 0 {
+				if p.Bitrate == 0 || math.Abs(float64(p.Bitrate-wantBitrate)) > 0.10*float64(wantBitrate) {
+					t.Errorf("Bitrate = %d, want %d ±10%%", p.Bitrate, wantBitrate)
+				}
+			} else if p.Bitrate != 0 {
+				// flac: gold is 0 and we mirror it exactly
+				t.Errorf("Bitrate = %d, want %d (lossless parity)", p.Bitrate, wantBitrate)
+			}
+
+			if p.SampleRate != g.Format.SampleRate {
+				t.Errorf("SampleRate = %d, gold %d", p.SampleRate, g.Format.SampleRate)
+			}
+			if p.Channels != g.Format.NumberOfChans {
+				t.Errorf("Channels = %d, gold %d", p.Channels, g.Format.NumberOfChans)
+			}
+			if g.Format.BitsPerSample != 0 && p.BitsPerSample != g.Format.BitsPerSample {
+				t.Errorf("BitsPerSample = %d, gold %d", p.BitsPerSample, g.Format.BitsPerSample)
+			}
+		})
+	}
+}
