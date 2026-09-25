@@ -38,7 +38,7 @@ Phases:
 - [x] P6.5 — OpenSubsonic adapter skeleton + quirks checklist ✅ (`ff2692b`): 61-quirk checklist with v1 file:line evidence and preserve/fix/defer decisions; envelope + auth hook + system endpoints working; DTO shape layer for P9; v1 won two brief conflicts (anonymous → code 10; `p=` → 10). 237 tests green.
 - [ ] P7 — ingestion
   - [x] P7a — uploads ✅ (`afe8c19`): streaming reassembly (memory-bounded), typed 400s, idempotent complete, stale-session + orphan-dir GC. 20 tests.
-  - [ ] P7b — ingest pipeline + duplicates + organize
+  - [x] P7b — ingest pipeline + duplicates + organize ✅ (`d42dad4`): shared `library.PersistSong` (one data path with the scanner, P4b green), five duplicate strategies ported faithfully, organize job with prefix-trap handling, review quarantine + daily cleanup, conflicts B5 fix, end-to-end trigger→worker test. Fixed a single-connection pool deadlock found under test. 28 new test functions.
 - [ ] P8 — search (FTS5 — verified on modernc.org/sqlite 2026-09-24) + statistics + home/auto-dj
 - [ ] P9 — OpenSubsonic adapter full parity (43 endpoints) against the quirks checklist — budgeted as the largest phase, not an afterthought
 - [ ] **S3 — contract spike (gates Track 3)**: OpenAPI from Go routes + client codegen (DR-2 risk 2)
