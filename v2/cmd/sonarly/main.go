@@ -22,6 +22,7 @@ import (
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/playback"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/playlists"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/system"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/uploads"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/users"
 )
 
@@ -104,6 +105,12 @@ func run() error {
 	if _, err := libraryQueue.Push(ctx, library.JobTypeScan, library.ScanPayload{}); err != nil {
 		log.WarnContext(ctx, "initial scan enqueue failed", "err", err)
 	}
+
+	// Uploads (P7a): chunked upload sessions with streaming reassembly (the
+	// audit's F10/B11 fixes) and a stale-session sweeper v1 never had.
+	uploadRepo := uploads.NewRepository(database)
+	uploads.NewHandler(uploadRepo, libraryQueue, authMW, cfg.DataDir, cfg.IngestPath).Routes(srv.Router())
+	go uploads.RunSweeper(ctx, uploadRepo, cfg.DataDir, log)
 
 	// Purge expired sessions hourly, stopping with the process context.
 	go auth.RunSweeper(ctx, sessionStore, log, time.Hour)

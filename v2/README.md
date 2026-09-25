@@ -28,6 +28,10 @@ before any cutover discussion.
   SQL compiler (fully parameterized; inPlaylist ownership checks; genre via
   the song_genres junction), and the streaming endpoint's anonymous
   share-token hook — see `internal/modules/playlists/`
+- Uploads (P7a): chunked upload sessions (raw-body chunks, streaming
+  reassembly with an incremental 1 GiB cap, typed missing-chunk 4xx) plus a
+  stale-session sweeper v1 lacked — see `internal/modules/uploads/`. Ingest
+  job execution itself is P7b; the queue accepts the typed payload now.
 - Planned: per-module layout under `internal/modules/` mirroring the audit's
   module boundaries (auth, users, library, catalog, playlists, playback,
   search, ingestion, jobs); OpenSubsonic as an adapter over the same services;
