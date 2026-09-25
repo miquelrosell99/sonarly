@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -21,8 +23,28 @@ func New(cfg config.Config, log *slog.Logger) *Server {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(60_000_000_000)) // 60s; streaming routes override below
+	r.Use(apiTimeout(60 * time.Second))
 	return &Server{router: r, log: log}
+}
+
+// apiTimeout bounds ordinary API routes with chi's Timeout middleware but
+// leaves streaming routes alone: the middleware derives a
+// context.WithTimeout, whose deadline auto-cancels the request context and
+// would SIGKILL a transcode (ffmpeg is bound to the request context) and cut
+// off direct streams well before a long track finishes. Streaming routes
+// carry their own bounds instead — the transcode semaphore plus
+// disconnect-driven process kill — so they need no wall-clock timeout.
+func apiTimeout(timeout time.Duration) func(http.Handler) http.Handler {
+	bounded := middleware.Timeout(timeout)
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasPrefix(r.URL.Path, "/api/stream/") {
+				next.ServeHTTP(w, r)
+				return
+			}
+			bounded(next).ServeHTTP(w, r)
+		})
+	}
 }
 
 func (s *Server) Router() chi.Router { return s.router }
