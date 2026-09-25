@@ -1,10 +1,12 @@
 // Package opensubsonic is the Subsonic/OpenSubsonic compatibility adapter
-// served under /rest/*. P6.5 builds the foundation: the response envelope
+// served under /rest/*. P6.5 built the foundation: the response envelope
 // (JSON + XML), the authentication hook (API key, u/t/s token, session
 // cookie), the system endpoint group, and the Song/Album/Artist DTO +
-// serializer layer. Browsing/retrieval endpoints land in P9 against
-// docs/v2-opensubsonic-quirks.md — the archaeology of every v1 behavior
-// this adapter must reproduce (or deliberately fix).
+// serializer layer. P9a added the browsing group (17 endpoints) and the
+// retrieval group (7 endpoints, stream/download delegating to the playback
+// StreamingService), all against docs/v2-opensubsonic-quirks.md — the
+// archaeology of every v1 behavior this adapter must reproduce (or
+// deliberately fix). P9b adds starring/now-playing/playlist endpoints.
 //
 // Wire contract, per the quirks doc:
 //   - Every response is enveloped in "subsonic-response" with HTTP 200,
@@ -14,4 +16,8 @@
 //     implemented (v1 parity; documented but absent there too).
 //   - Format: f=xml → XML, anything else → JSON; with no f param an
 //     XML-typed Accept header selects XML (the one negotiated delta).
+//   - Binary endpoints (stream/download/getCoverArt/getAvatar) answer
+//     plain-text statuses, not envelopes (R1/R2); every content endpoint
+//     enforces the caller's library scope (libraries/policy), and out-of-
+//     scope entity lookups answer enveloped 70 like v1.
 package opensubsonic
