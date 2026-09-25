@@ -23,7 +23,7 @@ import (
 // handled by the worker itself; ingest, organize and cleanup_review have
 // their handlers in the ingest module, which registers them on the worker
 // (Worker.Register) so this package does not import downstream modules.
-// artist_images remains an enqueue-able placeholder until its phase lands.
+// artist_images is handled by the artistimages module (P9c).
 type JobType string
 
 const (
@@ -65,9 +65,10 @@ type OrganizePayload struct {
 	LibraryID string `json:"libraryId,omitempty"`
 }
 
-// ArtistImagesPayload is the payload for artist_images jobs. The handler is
-// still a placeholder (the worker fails the job gracefully with
-// ErrNotImplemented) until the artist-images phase lands.
+// ArtistImagesPayload is the payload for artist_images jobs (handler: the
+// artistimages module). The periodic scheduler enqueues it with
+// RefetchExisting set; a plain enqueue syncs only artists missing a local
+// image (v1 syncMissingArtistImages' default).
 type ArtistImagesPayload struct {
 	RefetchExisting bool `json:"refetchExisting,omitempty"`
 }

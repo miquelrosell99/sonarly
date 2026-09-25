@@ -416,10 +416,12 @@ func (h *Handler) getLyrics(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// getAvatar is a v2 stub: avatars are not implemented yet (v1 had no
-// getAvatar endpoint at all — clients received its default 404). The
-// binary-endpoint convention answers a plain 404 until avatar support
-// lands; recorded in the quirks doc R group.
+// getAvatar stays a v2 stub even though native avatars exist (P9c): v1 had
+// no getAvatar endpoint at all — Subsonic clients received its default 404
+// — and serving avatar bytes through /rest would leak them outside the
+// session policy the native /api/avatars/{id} route deliberately keeps
+// public. The binary-endpoint convention answers a plain 404; recorded in
+// the quirks doc R group.
 func (h *Handler) getAvatar(w http.ResponseWriter, r *http.Request) {
 	notFoundPlain(w)
 }

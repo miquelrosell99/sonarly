@@ -38,7 +38,7 @@ func newTestServer(t *testing.T) *testServer {
 
 	store := auth.NewStore(database)
 	mw := auth.NewMiddleware(store, database, secret, false)
-	svc := users.NewService(database, store, secret)
+	svc := users.NewService(database, store, secret, t.TempDir())
 	handler := users.NewHandler(svc, store, mw, secret, false)
 
 	r := chi.NewRouter()
@@ -626,7 +626,7 @@ func TestAdminDeleteLastAdminForbidden(t *testing.T) {
 	// Service-level: actor != target is possible internally (routes always
 	// have an admin actor, so via HTTP this state is only reachable when two
 	// admins exist and one is deleted — covered below).
-	svc := users.NewService(s.db, s.store, secret)
+	svc := users.NewService(s.db, s.store, secret, t.TempDir())
 	if err := svc.DeleteUser(context.Background(), "other-actor", adminID); err != users.ErrLastAdminDelete {
 		t.Fatalf("want ErrLastAdminDelete, got %v", err)
 	}

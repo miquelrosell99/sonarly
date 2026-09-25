@@ -186,8 +186,8 @@ func TestAvatarStubIs404(t *testing.T) {
 	s := newTestServer(t)
 	s.setup(t, "admin", adminPass)
 
-	// The route exists (PublicUser.avatarUrl points at it) but avatars are
-	// a later phase: every id answers 404, anonymously too.
+	// The route exists (PublicUser.avatarUrl points at it); a user without
+	// an avatar answers 404, anonymously too (v1 parity).
 	if rec := s.do(t, http.MethodGet, "/api/avatars/any-id", nil); rec.Code != http.StatusNotFound {
 		t.Fatalf("anonymous avatar: want 404, got %d", rec.Code)
 	}

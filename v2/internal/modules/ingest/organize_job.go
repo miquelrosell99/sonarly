@@ -281,3 +281,11 @@ func walkLibraryFiles(dir string) []string {
 	}
 	return files
 }
+
+// OrganizeSongFile is the exported entry point for modules that mutate a
+// file's tags and then re-apply the library's organize pattern (the tag-edit
+// flow): resolve the target from the file's fresh tags, move, and reconcile
+// the song row. It delegates to organizeSongFile.
+func (s *Service) OrganizeSongFile(ctx context.Context, filePath string) (string, error) {
+	return s.organizeSongFile(ctx, filePath)
+}

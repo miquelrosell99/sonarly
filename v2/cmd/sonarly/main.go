@@ -13,9 +13,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/miquelrosell99/sonarly/v2/internal/audio"
 	"github.com/miquelrosell99/sonarly/v2/internal/config"
 	"github.com/miquelrosell99/sonarly/v2/internal/db"
 	"github.com/miquelrosell99/sonarly/v2/internal/httpserver"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/admin"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/artistimages"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/autodj"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/catalog"
@@ -23,14 +26,18 @@ import (
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/home"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/ingest"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/interactions"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/libraries"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/library"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/opensubsonic"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/playback"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/players"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/playlists"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/providers"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/search"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/statistics"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/suggestions"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/system"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/tags"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/uploads"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/users"
 )
@@ -62,7 +69,7 @@ func mountRoutes(ctx context.Context, srv *httpserver.Server, database *sql.DB, 
 
 	sessionStore := auth.NewStore(database)
 	authMW := auth.NewMiddleware(sessionStore, database, cfg.SessionSecret, cfg.SessionCookieSecure)
-	users.NewHandler(users.NewService(database, sessionStore, cfg.SessionSecret), sessionStore, authMW, cfg.SessionSecret, cfg.SessionCookieSecure).
+	users.NewHandler(users.NewService(database, sessionStore, cfg.SessionSecret, cfg.DataDir), sessionStore, authMW, cfg.SessionSecret, cfg.SessionCookieSecure).
 		Routes(srv.Router())
 	catalog.NewHandler(catalog.NewService(database), authMW).Routes(srv.Router())
 
@@ -134,6 +141,37 @@ func mountRoutes(ctx context.Context, srv *httpserver.Server, database *sql.DB, 
 	libraryWorker.Register(library.JobTypeCleanupReview, ingestService.RunReviewCleanupJob)
 	library.NewHandler(libraryQueue, authMW).Routes(srv.Router())
 	ingest.NewHandler(ingestService, authMW, cfg.IngestPath).Routes(srv.Router())
+
+	// P9c native parity: the libraries admin surface (library CRUD with the
+	// is_default transaction invariant, both directions of the
+	// user_libraries assignment endpoints, and the scoped picker list),
+	// tag editing through the mutagen-backed audio.TagWriter (write →
+	// organize → PersistSong → coalesced resync), magic-byte-sniffed
+	// cover-art uploads, the admin suggestion whitelist, the MusicBrainz /
+	// LRCLIB proxies (rate-limited, timeout-bounded, generically bounded
+	// 502s), and the artist image sync as a real P4b job handler.
+	libraries.NewHandler(database, authMW).Routes(srv.Router())
+	tags.NewHandler(tags.NewService(database, audio.NewMutagenWriter(), ingestService, libraryQueue), authMW).Routes(srv.Router())
+	suggestions.NewHandler(suggestions.NewService(database), authMW).Routes(srv.Router())
+	providers.NewHandler(providers.NewMusicBrainzClient(), providers.NewLrcLibClient(), authMW).Routes(srv.Router())
+	// Artist images (P9c): the images.ts port runs as the real artist_images
+	// handler — the P4b scheduler's interval trigger fires it, the admin
+	// refetch endpoint enqueues the same payload, and the job no longer
+	// lands on the ErrNotImplemented placeholder.
+	artistImageSyncer := artistimages.NewSyncer(database, cfg.DataDir, log)
+	libraryWorker.Register(library.JobTypeArtistImages, artistImageSyncer.RunJob)
+	artistimages.NewHandler(artistImageSyncer, libraryQueue).Routes(srv.Router(), authMW)
+
+	// Admin dashboard (P9c): system-tasks (definitions, manual run, the
+	// paginated history), the status counters, missing-file management, and
+	// the ingest-runs views — all v1 admin-routes.ts ports.
+	admin.NewHandler(admin.NewService(database, libraryQueue, admin.TaskIntervals{
+		ScanInterval:          cfg.ScanInterval,
+		ArtistImageInterval:   cfg.ArtistImageInterval,
+		IngestInterval:        cfg.IngestInterval,
+		ReviewCleanupInterval: cfg.ReviewCleanupInterval,
+		IngestPath:            cfg.IngestPath,
+	}), authMW).Routes(srv.Router())
 
 	// Server-sent events (P8): the broker fans the worker's job-completion
 	// channel out to /api/events clients (session auth only; 30s heartbeat;

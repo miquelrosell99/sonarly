@@ -45,8 +45,11 @@ func NewHandler(svc *Service, mw *auth.Middleware, ingestPath string) *Handler {
 	return &Handler{svc: svc, mw: mw, ingestPath: ingestPath}
 }
 
-// Routes registers the endpoints behind session auth.
+// Routes registers the endpoints behind session auth. The organize preview
+// is the deliberate exception: v1 left it unauthenticated, and v2 matches
+// (it only answers the configured pattern).
 func (h *Handler) Routes(r chi.Router) {
+	h.previewRoute(r)
 	r.Group(func(r chi.Router) {
 		r.Use(h.mw.AuthMiddleware, auth.RequireAuth)
 		r.Route("/api/ingest", func(r chi.Router) {
@@ -59,6 +62,17 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Route("/api/conflicts", func(r chi.Router) {
 			r.With(h.mw.RequireAdmin).Get("/", h.listConflicts)
 			r.With(h.mw.RequireAdmin).Delete("/", h.deleteConflicts)
+		})
+		r.Route("/api/settings/media", func(r chi.Router) {
+			r.Use(h.mw.RequireAdmin)
+			r.Get("/", h.getMediaSettings)
+			r.Patch("/", h.patchMediaSettings)
+		})
+		r.Route("/api/organize", func(r chi.Router) {
+			r.Use(h.mw.RequireAdmin)
+			r.Post("/", h.organize)
+			r.Post("/job", h.organizeJob)
+			r.Get("/status/{jobId}", h.organizeStatus)
 		})
 	})
 }

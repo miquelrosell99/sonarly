@@ -110,6 +110,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Current user's preferences document
+         * @description The stored preferences merged over the shared defaults (an absent row or a corrupt blob yields the defaults). Persisted verbatim keys (theme, sidebar layout, view options) ride along with the validated auto-dj and appearance keys.
+         */
+        get: operations["getMyPreferences"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update current user's preferences (allowlisted keys)
+         * @description Partial update: every key in the body must be in the explicit allowlist (auto-dj knobs, appearance, hideSponsorButton, and the structural sidebar/theme documents) or the whole patch is rejected with 400 — unknown keys are never silently dropped or stored (mass-assignment fix). Values are validated per key; out-of-range auto-dj numbers clamp like v1 instead of failing.
+         */
+        patch: operations["patchMyPreferences"];
+        trace?: never;
+    };
+    "/api/favorites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Star or unstar a song, album, or artist
+         * @description Upserts the caller's starred flag in the user_songs / user_albums / user_artists junction row — the same tables the OpenSubsonic star.view/unstar.view endpoints write.
+         */
+        post: operations["setFavorite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ratings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rate a song, album, or artist (0..5 in 0.5 steps)
+         * @description Upserts the caller's rating in the user_* junction row; song ratings recompute songs.average_rating. Passing null (or omitting the key) clears the rating, exactly like v1.
+         */
+        post: operations["setRating"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/avatars/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * User avatar image
+         * @description Serves the user's avatar file when one has been uploaded; 404 otherwise. Public like v1 — avatars render in <img> tags, which carry no API key.
+         */
+        get: operations["getAvatar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/users": {
         parameters: {
             query?: never;
@@ -918,6 +1002,690 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/libraries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Libraries visible to the caller (picker DTO)
+         * @description The scope-trimmed list every library picker renders: only `id`/`name`/`isDefault`, in the caller's assignment order — never host paths or organize patterns. Admins see everything.
+         */
+        get: operations["listLibrariesForPicker"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/libraries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all libraries (admin) */
+        get: operations["listLibrariesAdmin"];
+        put?: never;
+        /**
+         * Create a library (admin)
+         * @description The first library ever created becomes the default; `isDefault: true` clears the flag on every other library in the same transaction. An omitted pattern falls back to the global `organize_pattern` setting.
+         */
+        post: operations["createLibrary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/libraries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update a library (admin)
+         * @description Partial update; absent fields keep their values. A resulting `isDefault: true` clears the flag on every other library in the same transaction.
+         */
+        put: operations["updateLibrary"];
+        post?: never;
+        /**
+         * Delete a library (admin)
+         * @description When the deleted library was the default, the first remaining library (by name) is promoted — in the same transaction, so the one-default invariant cannot be observed half-applied.
+         */
+        delete: operations["deleteLibrary"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/libraries/{id}/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Users assigned to a library (admin) */
+        get: operations["listLibraryUsers"];
+        put?: never;
+        /**
+         * Assign users to a library (admin)
+         * @description Additive — duplicates are ignored (INSERT OR IGNORE).
+         */
+        post: operations["assignUsersToLibrary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/libraries/{id}/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove one user assignment (admin) */
+        delete: operations["removeUserFromLibrary"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{id}/libraries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Libraries assigned to a user (admin) */
+        get: operations["listUserLibraries"];
+        put?: never;
+        /**
+         * Assign libraries to a user (admin)
+         * @description Additive — duplicates are ignored (INSERT OR IGNORE).
+         */
+        post: operations["assignLibrariesToUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{id}/libraries/{libraryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove one library assignment (admin) */
+        delete: operations["removeLibraryFromUser"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/songs/{id}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Edit a song's tags (admin)
+         * @description Writes the tags into the file through the mutagen-backed tag writer (atomic temp-sibling rewrite), re-organizes the file when the new tags change the pattern target, refreshes the database through the one persist path, and queues a coalesced resync. Reports entities (artist/album) orphaned by the rename.
+         */
+        put: operations["updateSongTags"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/songs/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Apply one tag edit to many songs (admin)
+         * @description The same edit applied sequentially; the first failing song stops the run and its id comes back in `failedId`.
+         */
+        put: operations["updateSongsTags"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/albums/{id}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Edit an album's tags across its songs (admin)
+         * @description `releaseType` is album-level metadata (not a file tag) and is pulled out before validation. The per-song file writes exclude `genre` (album-level genres live on the album junctions). Album-wide edits queue ONE coalesced resync for the whole run.
+         */
+        put: operations["updateAlbumTags"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/songs/{id}/cover-art": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload a song's cover art (admin)
+         * @description Raw body, at most 2 MiB, magic-byte sniffed (jpeg/png/webp — a declared mimetype is NOT trusted). The blob is stored hash-dedup and linked on the song row; the previously linked blob is removed when nothing references it. Unlike v1 the art is NOT embedded into the audio file (read-only doctrine — all readers consult the link).
+         */
+        post: operations["uploadSongCoverArt"];
+        /** Unlink a song's cover art (admin) */
+        delete: operations["deleteSongCoverArt"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/albums/{id}/cover-art": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload an album's cover art (admin)
+         * @description Same sniffed, hash-dedup blob storage as the song variant, linked on the album row. Unlike v1 the art is NOT embedded into every song file (read-only doctrine).
+         */
+        post: operations["uploadAlbumCoverArt"];
+        /** Unlink an album's cover art (admin) */
+        delete: operations["deleteAlbumCoverArt"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Field-whitelist autocomplete (admin)
+         * @description Case-insensitive contains-match over the whitelisted fields (`artist`, `album`, `albumArtist`, `releaseType`, `genre` full paths). `limit` clamps to 1–50 and defaults to 20. `releaseType` merges the canonical seeds with stored values.
+         */
+        get: operations["getSuggestions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/musicbrainz/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Proxy a MusicBrainz search (admin)
+         * @description `mbid` performs an exact entity lookup (a miss falls through to the query search). Requests are spaced process-wide by at least 1.2s (MusicBrainz etiquette), bounded by a 10s timeout, and never cached. Failures answer a generic 502 — upstream details stay server-side.
+         */
+        get: operations["searchMusicBrainz"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lrclib/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Proxy a LRCLIB lyrics search (admin)
+         * @description 10s timeout, one retry with backoff on 429/503, never cached. Failures answer a generic 502 — upstream details stay server-side.
+         */
+        get: operations["searchLrcLib"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/artist-images/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Artist image file
+         * @description Serves the artist's locally synced image (the recorded path, or a DATA_DIR/artist-images/<id>.* leftover) when one exists; 404 otherwise. Public like v1 — the file renders in <img> tags.
+         */
+        get: operations["getArtistImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/artists/refetch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enqueue an artist image re-sync (admin)
+         * @description Enqueues an artist_images job with `refetchExisting` set, so every active artist is re-fetched (the periodic sync only covers artists missing a local image).
+         */
+        post: operations["refetchArtistImages"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload the caller's avatar
+         * @description Raw body, at most 2 MiB, magic-byte sniffed (jpeg/png/webp/gif). Stored under the server data dir and recorded on the user row; the previous file with a different extension is removed. Answers the refreshed public user.
+         */
+        post: operations["uploadAvatar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/system-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Periodic system tasks and their state (admin) */
+        get: operations["listSystemTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/system-tasks/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * System task run history, paginated (admin)
+         * @description v1's only paginated endpoint; the page/limit/total/totalPages shape is preserved. `page` defaults to 1, `limit` to 10 (max 100).
+         */
+        get: operations["systemTaskHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/system-tasks/{taskId}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enqueue a system task run (admin) */
+        post: operations["runSystemTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin dashboard counters (admin) */
+        get: operations["adminStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/missing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inactive (file-missing) songs, albums, and artists (admin) */
+        get: operations["listMissing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/missing/songs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one missing song row (admin) */
+        delete: operations["deleteMissingSong"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/missing/albums/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one missing album row (admin) */
+        delete: operations["deleteMissingAlbum"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/missing/artists/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one missing artist row (admin) */
+        delete: operations["deleteMissingArtist"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/missing/songs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete every missing song row (admin) */
+        delete: operations["deleteAllMissingSongs"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/missing/albums": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete every missing album row (admin) */
+        delete: operations["deleteAllMissingAlbums"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/missing/artists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete every missing artist row (admin) */
+        delete: operations["deleteAllMissingArtists"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ingest-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Last 100 ingest runs (admin) */
+        get: operations["listIngestRuns"];
+        put?: never;
+        post?: never;
+        /** Delete all ingest runs and their per-file rows (admin) */
+        delete: operations["deleteAllIngestRuns"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/ingest-runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One ingest run with its per-file jobs (admin) */
+        get: operations["getIngestRun"];
+        put?: never;
+        post?: never;
+        /** Delete one ingest run and its per-file rows (admin) */
+        delete: operations["deleteIngestRun"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Media settings with pattern templates (admin) */
+        get: operations["getMediaSettings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update media settings (admin)
+         * @description Every field is optional; the pattern must be relative with no `..` segments, the strategy must be a known DuplicateStrategy, and the retention clamps to 1–365. Answers the effective settings.
+         */
+        patch: operations["patchMediaSettings"];
+        trace?: never;
+    };
+    "/api/organize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enqueue an organize job (admin, 202)
+         * @description Re-applies every library's organize pattern to the files already in the library. The job runs on the worker — never inline on the request goroutine.
+         */
+        post: operations["organize"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/organize/job": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enqueue an organize job (admin, 200 — v1 shape) */
+        post: operations["organizeJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/organize/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The effective organize pattern
+         * @description Unauthenticated exactly like v1 — the route only answers the configured pattern.
+         */
+        get: operations["organizePreview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/organize/status/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One organize job's status (admin) */
+        get: operations["organizeStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -949,9 +1717,172 @@ export interface components {
         /** @enum {string} */
         AutoDjMode: "similar" | "random" | "smart";
         /** @enum {string} */
+        AutoDjExcludeWindow: "24h" | "7d" | "30d";
+        /** @enum {string} */
         JobType: "scan" | "resync" | "ingest" | "organize" | "cleanup_review" | "artist_images";
         /** @enum {string} */
         JobStatusName: "pending" | "running" | "completed" | "failed";
+        Library: {
+            id: string;
+            name: string;
+            /** @description Host filesystem path — admin surface only, never in the picker DTO. */
+            path: string;
+            organizePattern: string;
+            isDefault: boolean;
+            createdAt: string;
+            updatedAt: string;
+        };
+        LibraryPicker: {
+            id: string;
+            name: string;
+            isDefault: boolean;
+        };
+        /** @description The v1 tag-edit allowlist — any other key is rejected with 400. Absent fields leave the file and database untouched. String fields `artist`/`albumArtist`/`genre` also accept an array of strings. */
+        SongTags: {
+            title?: string;
+            artist?: string | string[];
+            album?: string;
+            albumArtist?: string | string[];
+            trackNumber?: number;
+            discNumber?: number;
+            genre?: string | string[];
+            year?: number;
+            explicit?: boolean;
+            lyrics?: string;
+        };
+        OrphanedEntity: {
+            /** @enum {string} */
+            type: "artist" | "album";
+            id: string;
+            name: string;
+        };
+        MusicBrainzMatch: {
+            id: string;
+            title: string;
+            artist?: string;
+            artists?: string[];
+            album?: string;
+            albumArtist?: string;
+            albumArtists?: string[];
+            genres?: string[];
+            year?: number;
+            /** @description Cover Art Archive front URL. */
+            coverArt?: string;
+            disambiguation?: string;
+        };
+        LrcLibMatch: {
+            id: number;
+            title: string;
+            artistName?: string;
+            albumName?: string;
+            duration?: number;
+            instrumental?: boolean;
+            lyrics?: string;
+            syncedLyrics?: components["schemas"]["SyncedLyricLine"][];
+        };
+        SystemTask: {
+            /** @enum {string} */
+            id: "periodic_scan" | "review_cleanup" | "artist_images" | "ingest";
+            name: string;
+            description: string;
+            /** @description null when the trigger is disabled. */
+            intervalMinutes?: number | null;
+            lastRunAt?: string | null;
+            status?: components["schemas"]["JobStatusName"];
+        };
+        SystemTaskHistoryEntry: {
+            id: string;
+            /** @description Display name (v1 taskNameByType). */
+            task: string;
+            type: components["schemas"]["JobType"];
+            status: components["schemas"]["JobStatusName"];
+            startedAt?: string | null;
+            finishedAt?: string | null;
+            stats?: {
+                [key: string]: unknown;
+            };
+        };
+        SystemTaskHistoryPage: {
+            history: components["schemas"]["SystemTaskHistoryEntry"][];
+            page: number;
+            limit: number;
+            total: number;
+            totalPages: number;
+        };
+        AdminStatus: {
+            counts: {
+                users: number;
+                songs: number;
+                albums: number;
+                artists: number;
+            };
+            conflictsCount: number;
+            missingCounts: {
+                songs: number;
+                albums: number;
+                artists: number;
+            };
+            ingestJobsCount: number;
+            latestIngest: components["schemas"]["IngestRun"];
+        };
+        MissingSong: {
+            id: string;
+            filePath: string;
+            title: string;
+            artistName?: string;
+            albumName?: string;
+            year?: number;
+            genre?: string;
+        };
+        MissingAlbum: {
+            id: string;
+            name: string;
+            artistName?: string;
+            year?: number;
+            genre?: string;
+        };
+        MissingArtist: {
+            id: string;
+            name: string;
+        };
+        IngestRun: {
+            id: string;
+            status: components["schemas"]["JobStatusName"];
+            startedAt?: string | null;
+            finishedAt?: string | null;
+            stats?: {
+                [key: string]: unknown;
+            };
+            error?: string;
+        };
+        IngestRunDetail: components["schemas"]["IngestRun"] & {
+            jobs: components["schemas"]["IngestJob"][];
+        };
+        MediaSettings: {
+            organizePattern: string;
+            duplicateStrategy: components["schemas"]["DuplicateStrategy"];
+            reviewRetentionDays: number;
+            templates: {
+                label: string;
+                value: string;
+            }[];
+        };
+        MediaSettingsWithoutTemplates: {
+            organizePattern: string;
+            duplicateStrategy: components["schemas"]["DuplicateStrategy"];
+            reviewRetentionDays: number;
+        };
+        OrganizeJobStatus: {
+            id: string;
+            /** @enum {string} */
+            type: "organize";
+            status: components["schemas"]["JobStatusName"];
+            startedAt?: string;
+            finishedAt?: string;
+            stats?: {
+                [key: string]: unknown;
+            };
+        };
         PublicUser: {
             id: string;
             username: string;
@@ -962,13 +1893,55 @@ export interface components {
             surname?: string;
             /** Format: email */
             email?: string;
-            /** @description `/api/avatars/{id}` when the user has an avatar (the route itself lands in a later phase). */
+            /** @description `/api/avatars/{id}` when the user has an avatar. */
             avatarUrl?: string;
             maxBitrateKbps?: number;
             transcodeFormat?: components["schemas"]["TranscodeFormat"];
             hideExplicit: boolean;
             blurExplicitTitles: boolean;
             blurExplicitCovers: boolean;
+        };
+        /** @description The user preferences document: shared defaults under stored overrides. Keys outside this list can exist in the stored blob (legacy clients) and are returned as-is, but PATCH only accepts the allowlisted set. */
+        Preferences: {
+            autoDjEnabled?: boolean;
+            autoDjMode?: components["schemas"]["AutoDjMode"];
+            autoDjTopUpThreshold?: number;
+            autoDjBatchSize?: number;
+            autoDjExcludeWindow?: components["schemas"]["AutoDjExcludeWindow"];
+            autoDjPreferFavorites?: boolean;
+            autoDjDiscovery?: number;
+            hideSponsorButton?: boolean;
+            /** @enum {string} */
+            themeMode?: "light" | "dark" | "oled" | "auto";
+            /** @enum {string} */
+            accentColor?: "auto" | "monochrome" | "brown" | "green" | "orange" | "teal" | "purple" | "yellow" | "cyan" | "blue";
+            playlistsCollapsed?: boolean;
+            sidebar?: Record<string, never>;
+            theme?: Record<string, never>;
+            sidebarConfig?: Record<string, never>;
+            viewOptions?: Record<string, never>;
+        } & {
+            [key: string]: unknown;
+        };
+        /** @description PATCH body for /api/me/preferences: every present key must be in the allowlist (the Preferences properties above); unknown keys are rejected with 400. Out-of-range numbers clamp into range. */
+        PreferencesPatch: {
+            autoDjEnabled?: boolean;
+            autoDjMode?: components["schemas"]["AutoDjMode"];
+            autoDjTopUpThreshold?: number;
+            autoDjBatchSize?: number;
+            autoDjExcludeWindow?: components["schemas"]["AutoDjExcludeWindow"];
+            autoDjPreferFavorites?: boolean;
+            autoDjDiscovery?: number;
+            hideSponsorButton?: boolean;
+            /** @enum {string} */
+            themeMode?: "light" | "dark" | "oled" | "auto";
+            /** @enum {string} */
+            accentColor?: "auto" | "monochrome" | "brown" | "green" | "orange" | "teal" | "purple" | "yellow" | "cyan" | "blue";
+            playlistsCollapsed?: boolean;
+            sidebar?: Record<string, never>;
+            theme?: Record<string, never>;
+            sidebarConfig?: Record<string, never>;
+            viewOptions?: Record<string, never>;
         };
         /** @description All properties optional. `name`, `surname`, `email`, `maxBitrateKbps`, `transcodeFormat`, `hideExplicit`, `blurExplicitTitles` and `blurExplicitCovers` accept explicit `null` to clear the stored value; `isAdmin` and `password` treat null like absent (untouched). */
         AdminUpdateInput: {
@@ -1646,6 +2619,18 @@ export interface components {
         /** @description Statistics window; an unrecognized value falls back to `all` rather than failing. */
         TimeRange: components["schemas"]["TimeRange"];
         GroupBy: components["schemas"]["GroupBy"];
+        /** @description Library id (UUID). */
+        LibraryId: string;
+        /** @description Library id (UUID). */
+        LibraryIdPath: string;
+        /** @description User id (UUID). */
+        UserIdPath: string;
+        /** @description System task id. */
+        TaskId: "periodic_scan" | "review_cleanup" | "artist_images" | "ingest";
+        /** @description Ingest run id (the scan_jobs row id). */
+        RunId: string;
+        /** @description Scan job id (UUID). */
+        JobId: string;
     };
     requestBodies: never;
     headers: never;
@@ -1900,6 +2885,151 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+        };
+    };
+    getMyPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The merged preferences document. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        preferences: components["schemas"]["Preferences"];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    patchMyPreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreferencesPatch"];
+            };
+        };
+        responses: {
+            /** @description The merged document after the patch. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        preferences: components["schemas"]["Preferences"];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    setFavorite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    songId?: string;
+                    albumId?: string;
+                    artistId?: string;
+                    /**
+                     * @description Absent means favorite (true).
+                     * @default true
+                     */
+                    starred?: boolean;
+                } | unknown | unknown | unknown;
+            };
+        };
+        responses: {
+            /** @description Favorite stored. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    setRating: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    songId?: string;
+                    albumId?: string;
+                    artistId?: string;
+                    /** @description 0..5 in 0.5 increments; null clears. */
+                    rating?: number | null;
+                } | unknown | unknown | unknown;
+            };
+        };
+        responses: {
+            /** @description Rating stored. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id (UUID). */
+                id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The avatar bytes (Content-Type by stored extension). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": unknown;
+                    "image/png": unknown;
+                    "image/webp": unknown;
+                    "image/gif": unknown;
+                };
+            };
+            404: components["responses"]["NotFound"];
         };
     };
     listUsers: {
@@ -3576,6 +4706,1283 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    listLibrariesForPicker: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Visible libraries. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        libraries: components["schemas"]["LibraryPicker"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    listLibrariesAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every library, full DTO. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        libraries: components["schemas"]["Library"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    createLibrary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    path: string;
+                    organizePattern?: string;
+                    isDefault?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Library created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description Library path already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateLibrary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Library id (UUID). */
+                id: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    path?: string;
+                    organizePattern?: string;
+                    isDefault?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Library updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            /** @description Library path already exists. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteLibrary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Library id (UUID). */
+                id: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Library deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listLibraryUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Library id (UUID). */
+                id: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Assigned user ids. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        users: string[];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    assignUsersToLibrary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Library id (UUID). */
+                id: components["parameters"]["LibraryId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    userIds: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Assignments added. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    removeUserFromLibrary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Library id (UUID). */
+                id: components["parameters"]["LibraryId"];
+                /** @description User id (UUID). */
+                userId: components["parameters"]["UserIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Assignment removed (or never existed). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listUserLibraries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id (UUID). */
+                id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Assigned library ids. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        libraries: string[];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    assignLibrariesToUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id (UUID). */
+                id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    libraryIds: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Assignments added. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    removeLibraryFromUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User id (UUID). */
+                id: components["parameters"]["UserId"];
+                /** @description Library id (UUID). */
+                libraryId: components["parameters"]["LibraryIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Assignment removed (or never existed). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateSongTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Song id (UUID). */
+                id: components["parameters"]["SongId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SongTags"];
+            };
+        };
+        responses: {
+            /** @description Tags applied. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                        orphanedEntities?: components["schemas"]["OrphanedEntity"][];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateSongsTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    ids: string[];
+                    tags: components["schemas"]["SongTags"];
+                };
+            };
+        };
+        responses: {
+            /** @description Tags applied to every id. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                        orphanedEntities?: components["schemas"]["OrphanedEntity"][];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description A song id did not resolve. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        failedId: string;
+                    };
+                };
+            };
+        };
+    };
+    updateAlbumTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Album id (UUID). */
+                id: components["parameters"]["AlbumId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SongTags"] & {
+                    releaseType?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Number of songs updated. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        updated: number;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    uploadSongCoverArt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Song id (UUID). */
+                id: components["parameters"]["SongId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "image/jpeg": unknown;
+                "image/png": unknown;
+                "image/webp": unknown;
+            };
+        };
+        responses: {
+            /** @description The stored cover art id. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        coverArt: string;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteSongCoverArt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Song id (UUID). */
+                id: components["parameters"]["SongId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cover unlinked. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    uploadAlbumCoverArt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Album id (UUID). */
+                id: components["parameters"]["AlbumId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "image/jpeg": unknown;
+                "image/png": unknown;
+                "image/webp": unknown;
+            };
+        };
+        responses: {
+            /** @description The stored cover art id. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        coverArt: string;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteAlbumCoverArt: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Album id (UUID). */
+                id: components["parameters"]["AlbumId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cover unlinked. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getSuggestions: {
+        parameters: {
+            query: {
+                field: "artist" | "album" | "genre" | "albumArtist" | "releaseType";
+                q?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Suggestion strings. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        suggestions: string[];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    searchMusicBrainz: {
+        parameters: {
+            query: {
+                entityType: "song" | "album" | "artist";
+                title?: string;
+                artist?: string;
+                album?: string;
+                mbid?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Search matches. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        matches: components["schemas"]["MusicBrainzMatch"][];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description MusicBrainz unreachable or erroring. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    searchLrcLib: {
+        parameters: {
+            query: {
+                title: string;
+                artist?: string;
+                album?: string;
+                duration?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lyric matches. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        matches: components["schemas"]["LrcLibMatch"][];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description LRCLIB unreachable or erroring. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getArtistImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Artist id (UUID). */
+                id: components["parameters"]["ArtistId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The image bytes (Content-Type by extension). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": unknown;
+                    "image/png": unknown;
+                    "image/gif": unknown;
+                    "image/webp": unknown;
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    refetchArtistImages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Job enqueued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                        jobId: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    uploadAvatar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Avatar stored. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        user: components["schemas"]["PublicUser"];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    listSystemTasks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Task definitions with the latest job status. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        tasks: components["schemas"]["SystemTask"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    systemTaskHistory: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One history page. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemTaskHistoryPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    runSystemTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description System task id. */
+                taskId: components["parameters"]["TaskId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Job enqueued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    adminStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Counts dashboard. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminStatus"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listMissing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The missing entities. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        songs: components["schemas"]["MissingSong"][];
+                        albums: components["schemas"]["MissingAlbum"][];
+                        artists: components["schemas"]["MissingArtist"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    deleteMissingSong: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Song id (UUID). */
+                id: components["parameters"]["SongId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Row deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteMissingAlbum: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Album id (UUID). */
+                id: components["parameters"]["AlbumId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Row deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteMissingArtist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Artist id (UUID). */
+                id: components["parameters"]["ArtistId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Row deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteAllMissingSongs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rows deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    deleteAllMissingAlbums: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rows deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    deleteAllMissingArtists: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rows deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listIngestRuns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Runs, newest first. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        runs: components["schemas"]["IngestRun"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    deleteAllIngestRuns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Everything deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getIngestRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ingest run id (the scan_jobs row id). */
+                id: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The run detail. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngestRunDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteIngestRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Ingest run id (the scan_jobs row id). */
+                id: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Run deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getMediaSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The effective settings plus the template presets. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    patchMediaSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    organizePattern?: string;
+                    duplicateStrategy?: components["schemas"]["DuplicateStrategy"];
+                    reviewRetentionDays?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description The effective settings after the patch. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaSettingsWithoutTemplates"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    organize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Job enqueued. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        jobId: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    organizeJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Job enqueued. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        jobId: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    organizePreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The effective pattern. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        pattern: string;
+                    };
+                };
+            };
+        };
+    };
+    organizeStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Scan job id (UUID). */
+                jobId: components["parameters"]["JobId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The job status document. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        job: components["schemas"]["OrganizeJobStatus"];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
 }

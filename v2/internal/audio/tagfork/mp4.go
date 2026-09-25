@@ -140,40 +140,61 @@ func (m metadataMP4) readAtoms(r io.ReadSeeker) error {
 
 func (m metadataMP4) readAtomData(r io.ReadSeeker, name string, size uint32, processedData []string) error {
 	var b []byte
-	var err error
 	var contentType string
 	if len(processedData) > 0 {
 		b = []byte(strings.Join(processedData, ";")) // add delimiter if multiple data fields
 		contentType = "text"
 	} else {
 		// read the data
-		b, err = readBytes(r, uint(size))
+		raw, err := readBytes(r, uint(size))
 		if err != nil {
 			return err
 		}
-		if len(b) < 8 {
-			return fmt.Errorf("invalid encoding: expected at least %d bytes, got %d", 8, len(b))
+
+		// SONARLY(W3): an atom may carry SEVERAL data children — mutagen
+		// (the tag writer) stores multi-value text atoms (©ART, ©gen, …) as
+		// one atom with repeated `data` children instead of repeated sibling
+		// atoms (the corpus layout). Upstream stripped only the first child's
+		// header and folded the remaining children's headers and payloads
+		// into the value as garbage bytes.
+		type dataChild struct {
+			contentType string
+			payload     []byte
+		}
+		var children []dataChild
+		rest := raw
+		for len(rest) >= 16 && string(rest[4:8]) == "data" {
+			childSize := getInt(rest[:4])
+			if childSize < 16 || childSize > len(rest) {
+				break
+			}
+			class := getInt(rest[9:12])
+			ct, ok := atomTypes[class]
+			if !ok {
+				return fmt.Errorf("invalid content type: %v (%x) (%x)", class, rest[9:12], rest)
+			}
+			children = append(children, dataChild{ct, rest[16:childSize]})
+			rest = rest[childSize:]
+		}
+		if len(children) == 0 {
+			return fmt.Errorf("invalid encoding: expected at least %d bytes, got %d", 16, len(raw))
 		}
 
-		// "data" + size (4 bytes each)
-		b = b[8:]
-
-		if len(b) < 4 {
-			return fmt.Errorf("invalid encoding: expected at least %d bytes, for class, got %d", 4, len(b))
+		b = children[0].payload
+		contentType = children[0].contentType
+		if len(children) > 1 && contentType == "text" {
+			// Multi-value text atom: keep every child, W1-style.
+			values := make([]string, 0, len(children))
+			for _, child := range children {
+				if child.contentType == "text" {
+					values = append(values, string(child.payload))
+				}
+			}
+			if len(values) > 1 {
+				m.data[name] = values
+				return nil
+			}
 		}
-		class := getInt(b[1:4])
-		var ok bool
-		contentType, ok = atomTypes[class]
-		if !ok {
-			return fmt.Errorf("invalid content type: %v (%x) (%x)", class, b[1:4], b)
-		}
-
-		// 4: atom version (1 byte) + atom flags (3 bytes)
-		// 4: NULL (usually locale indicator)
-		if len(b) < 8 {
-			return fmt.Errorf("invalid encoding: expected at least %d bytes, for atom version and flags, got %d", 8, len(b))
-		}
-		b = b[8:]
 	}
 
 	if name == "trkn" || name == "disk" {

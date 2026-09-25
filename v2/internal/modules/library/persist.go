@@ -868,6 +868,13 @@ func ensureCoverArt(ctx context.Context, ex execer, pic *audio.Picture) (string,
 	return id, nil
 }
 
+// EnsureCoverArt stores a cover art blob with sha256 hash-dedup (v1
+// createCoverArt) and returns its id. It is the exported surface for
+// modules outside the scan/ingest data path (cover-art uploads).
+func EnsureCoverArt(ctx context.Context, db *sql.DB, format string, data []byte) (string, error) {
+	return ensureCoverArt(ctx, db, &audio.Picture{MIMEType: format, Data: data})
+}
+
 func albumCoverArtID(ctx context.Context, ex execer, albumID string) (*string, error) {
 	var id *string
 	if err := ex.QueryRowContext(ctx,

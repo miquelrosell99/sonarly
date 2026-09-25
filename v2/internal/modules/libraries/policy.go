@@ -1,10 +1,11 @@
-// Package libraries hosts the libraries domain. For now it provides the
-// per-user library isolation policy — the security boundary ported from
-// v1's features/libraries/policy.ts: non-admin users only reach content in
+// Package libraries hosts the libraries domain: the per-user library
+// isolation policy — the security boundary ported from v1's
+// features/libraries/policy.ts: non-admin users only reach content in
 // libraries assigned via user_libraries, admins see everything, and songs
-// with a NULL library_id are hidden from non-admins. Content endpoints gain
-// their scope checks in the catalog phases (P3/P4); call sites translate a
-// false Is*InScope into 404, not 403, so out-of-scope ids cannot be probed.
+// with a NULL library_id are hidden from non-admins — plus the admin CRUD
+// and the user_libraries assignment endpoints (P9c, v1
+// features/libraries/admin-routes.ts). Content endpoints translate a false
+// Is*InScope into 404, not 403, so out-of-scope ids cannot be probed.
 package libraries
 
 import (

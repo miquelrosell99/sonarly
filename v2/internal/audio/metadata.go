@@ -3,7 +3,10 @@
 //
 //   - tagfork: owned fork of github.com/dhowden/tag with the S1-approved
 //     patches W1 (multi-value tags) and W2 (m4a rtng/tmpo), vendored at
-//     v2/internal/audio/tagfork/.
+//     v2/internal/audio/tagfork/. P9c added W3: atoms carrying several
+//     `data` children (mutagen's multi-value layout) read every child
+//     instead of folding the trailing children into the value as garbage
+//     bytes — the tag-edit round trip depends on it.
 //   - id3v1.go: W4 Latin-1 → UTF-8 shim for ID3v1-sourced strings.
 //   - properties.go: W5 hand-rolled duration/bitrate/sampleRate/channels
 //     reader (dhowden/tag provides tags only).

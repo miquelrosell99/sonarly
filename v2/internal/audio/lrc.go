@@ -54,3 +54,9 @@ func parseLrc(text string) []SyncedLyricLine {
 	}
 	return lines
 }
+
+// ParseLRC is the exported LRC parser for non-audio consumers (the LRCLIB
+// lyrics proxy parses provider responses with the same v1 semantics).
+func ParseLRC(text string) []SyncedLyricLine {
+	return parseLrc(text)
+}
