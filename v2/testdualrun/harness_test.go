@@ -65,15 +65,15 @@ type environment struct {
 	scan      *scanOutcome
 	v2proc    *serverProc
 	startedAt time.Time
-	snapDB  int64
-	snapWAL int64
+	snapDB    int64
+	snapWAL   int64
 }
 
 type diskFile struct {
-	Path     string
-	Size     int64
-	ModTime  time.Time
-	Abs      string
+	Path    string
+	Size    int64
+	ModTime time.Time
+	Abs     string
 }
 
 type catalogState struct {
@@ -132,13 +132,13 @@ func runMain(m *testing.M) int {
 	}
 
 	env = &environment{
-		tmp:     tmp,
-		v2DB:    filepath.Join(tmp, "v2db", "sonarly.db"),
+		tmp:      tmp,
+		v2DB:     filepath.Join(tmp, "v2db", "sonarly.db"),
 		pristine: filepath.Join(tmp, "pristinedb", "sonarly.db"),
-		v2Data:  filepath.Join(tmp, "v2data"),
-		ingest:  filepath.Join(tmp, "ingest"),
-		libDir:  liveLibraryPath,
-		secret:  testSecret(),
+		v2Data:   filepath.Join(tmp, "v2data"),
+		ingest:   filepath.Join(tmp, "ingest"),
+		libDir:   liveLibraryPath,
+		secret:   testSecret(),
 	}
 	for _, d := range []string{filepath.Dir(env.v2DB), filepath.Dir(env.pristine), env.v2Data, env.ingest,
 		filepath.Join(env.v2Data, "artist-images"), filepath.Join(env.v2Data, "avatars")} {

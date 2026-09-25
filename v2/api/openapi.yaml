@@ -22,7 +22,8 @@ info:
     url: https://www.gnu.org/licenses/agpl-3.0.html
   description: >
     Native REST API of the Sonarly v2 server (Go rewrite). Documented routes
-    are the native /api surface plus the /health and /ready liveness probes;
+    are the native /api surface plus the /health, /healthz and /ready
+    liveness probes;
     the OpenSubsonic adapter under /rest is a separate (Subsonic-compatible)
     contract and is intentionally not part of this spec.
 
@@ -83,6 +84,22 @@ paths:
       operationId: healthCheck
       tags: [system]
       summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: Server is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: [ok] }
+  /healthz:
+    get:
+      operationId: healthCheckContainer
+      tags: [system]
+      summary: Liveness probe alias (container HEALTHCHECK; same handler as /health)
       security: []
       responses:
         '200':

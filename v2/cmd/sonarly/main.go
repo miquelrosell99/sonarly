@@ -40,6 +40,7 @@ import (
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/tags"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/uploads"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/users"
+	"github.com/miquelrosell99/sonarly/v2/internal/staticfs"
 )
 
 func main() {
@@ -219,6 +220,15 @@ func run() error {
 	app, err := mountRoutes(ctx, srv, database, cfg, log)
 	if err != nil {
 		return err
+	}
+
+	// Static SPA serving (P11): the built web client is served at the root
+	// with index.html fallback for extensionless deep links, installed on
+	// the router's NotFound hook AFTER every API mount so /api/* and /rest/*
+	// are never intercepted. A missing web-dist directory leaves the router
+	// untouched — API-only mode, the behavior since the first scaffold.
+	if err := staticfs.Mount(srv.Router(), cfg.WebDist); err != nil {
+		return fmt.Errorf("web dist: %w", err)
 	}
 
 	// Background runtime: the worker, watcher, scheduler, SSE broker, upload

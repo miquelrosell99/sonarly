@@ -151,8 +151,8 @@ var diffResults []*tableDiff
 type diffKind int
 
 const (
-	kindSongs diffKind = iota
-	kindActivity // albums/artists/genres/labels: activity-flag flips only, inserts reported
+	kindSongs    diffKind = iota
+	kindActivity          // albums/artists/genres/labels: activity-flag flips only, inserts reported
 	kindSongJunction
 	kindAlbumJunction
 	kindFrozen // user state / playlists / history: must be byte-identical
@@ -711,28 +711,28 @@ func fileExists(p string) bool {
 // ---------------------------------------------------------------------------
 
 type songPick struct {
-	ID        string
-	Title     string
-	Path      string
-	Ext       string
-	Size      int64
-	Explicit  bool
-	CoverID   string
-	AlbumID   string
-	Duration  int
-	FileSHA   string
+	ID       string
+	Title    string
+	Path     string
+	Ext      string
+	Size     int64
+	Explicit bool
+	CoverID  string
+	AlbumID  string
+	Duration int
+	FileSHA  string
 }
 
 type songResult struct {
-	Pick         songPick
-	APIDetail    string
-	CoverBytes   int
-	CoverSHA     string
-	StreamSHA    string
-	RangeStatus  int
-	RangeOK      bool
-	RestStream   string
-	RestCoverOK  bool
+	Pick           songPick
+	APIDetail      string
+	CoverBytes     int
+	CoverSHA       string
+	StreamSHA      string
+	RangeStatus    int
+	RangeOK        bool
+	RestStream     string
+	RestCoverOK    bool
 	StreamMismatch bool
 }
 

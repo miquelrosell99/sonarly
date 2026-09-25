@@ -15,6 +15,7 @@ type Config struct {
 	DataDir             string // server-owned state (artist images, uploads)
 	LibraryPath         string // root of the music library
 	IngestPath          string // drop folder for ingest
+	WebDist             string // built web client (SPA); missing dir = API-only mode
 	SessionSecret       string // >= 32 chars; never logged
 	SessionCookieSecure bool   // mark the session cookie Secure (set behind HTTPS)
 
@@ -41,6 +42,7 @@ func Load() (Config, error) {
 		DataDir:               getEnv("SONARLY_DATA_DIR", "./data"),
 		LibraryPath:           os.Getenv("SONARLY_LIBRARY_PATH"),
 		IngestPath:            os.Getenv("SONARLY_INGEST_PATH"),
+		WebDist:               getEnv("SONARLY_WEB_DIST", "./web-dist"),
 		SessionSecret:         os.Getenv("SESSION_SECRET"),
 		SessionCookieSecure:   getBoolEnv("SESSION_COOKIE_SECURE", false),
 		WatchPollInterval:     time.Duration(getIntEnv("SONARLY_WATCH_POLL_INTERVAL", 5)) * time.Second,
