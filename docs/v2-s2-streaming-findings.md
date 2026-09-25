@@ -6,6 +6,9 @@
 > Status: **spike complete — GO.** All numbers below are from `go test ./... -v`
 > in `v2/spikes/streaming` (Go 1.23.4, ffmpeg 5.1.9, linux/amd64, this host).
 > Production tree untouched; `cd v2 && go build ./... && go vet ./...` green.
+> **Sign-off (§10) APPROVED 2026-09-25:** 503+Retry-After with cap default 2;
+> 500 on pre-TTFB transcode failure; Last-Modified/304 accepted; parity
+> guards (multi-range→416, `bytes=-0`→416, HEAD+Range); inactive songs→404.
 
 ---
 
