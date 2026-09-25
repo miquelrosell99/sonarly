@@ -4,7 +4,9 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -15,6 +17,12 @@ type Config struct {
 	IngestPath          string // drop folder for ingest
 	SessionSecret       string // >= 32 chars; never logged
 	SessionCookieSecure bool   // mark the session cookie Secure (set behind HTTPS)
+
+	// Library runtime (P4b). Zero disables the trigger.
+	WatchPollInterval   time.Duration // fs poll cadence for library changes (default 5s)
+	ScanInterval        time.Duration // periodic full-library scan (default 60m)
+	ArtistImageInterval time.Duration // periodic artist image/metadata sync (default 24h)
+	IngestInterval      time.Duration // periodic ingest folder sweep (default 60m)
 }
 
 func Load() (Config, error) {
@@ -26,6 +34,10 @@ func Load() (Config, error) {
 		IngestPath:          os.Getenv("SONARLY_INGEST_PATH"),
 		SessionSecret:       os.Getenv("SESSION_SECRET"),
 		SessionCookieSecure: getBoolEnv("SESSION_COOKIE_SECURE", false),
+		WatchPollInterval:   time.Duration(getIntEnv("SONARLY_WATCH_POLL_INTERVAL", 5)) * time.Second,
+		ScanInterval:        time.Duration(getIntEnv("SONARLY_SCAN_INTERVAL_MINUTES", 60)) * time.Minute,
+		ArtistImageInterval: time.Duration(getIntEnv("SONARLY_ARTIST_IMAGE_INTERVAL_MINUTES", 1440)) * time.Minute,
+		IngestInterval:      time.Duration(getIntEnv("SONARLY_INGEST_INTERVAL_MINUTES", 60)) * time.Minute,
 	}
 
 	var problems []string
@@ -61,4 +73,16 @@ func getBoolEnv(key string, fallback bool) bool {
 	default:
 		return fallback
 	}
+}
+
+func getIntEnv(key string, fallback int) int {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(v))
+	if err != nil {
+		return fallback
+	}
+	return n
 }
