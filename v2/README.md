@@ -22,6 +22,12 @@ before any cutover discussion.
   coalescing, a single-goroutine worker executing scans with transactional
   per-song persistence, a pure-Go polling library watcher, and interval
   schedulers — all context-driven (see `internal/modules/library/`)
+- Playlists (P6): static + smart playlists with a single access policy
+  (owner/edit/view/none), per-user shares, link sharing with share tokens
+  (crypto/rand, minted iff visibility=link), a whitelisting smart-playlist
+  SQL compiler (fully parameterized; inPlaylist ownership checks; genre via
+  the song_genres junction), and the streaming endpoint's anonymous
+  share-token hook — see `internal/modules/playlists/`
 - Planned: per-module layout under `internal/modules/` mirroring the audit's
   module boundaries (auth, users, library, catalog, playlists, playback,
   search, ingestion, jobs); OpenSubsonic as an adapter over the same services;

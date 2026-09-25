@@ -24,15 +24,20 @@ func NewHandler(svc *Service, mw *auth.Middleware) *Handler {
 	return &Handler{svc: svc, mw: mw}
 }
 
-// Routes registers the playback endpoints behind session auth, the same
-// composition the catalog module uses. These routes must stay exempt from
-// the global API timeout — see httpserver.apiTimeout: streaming routes carry
-// the /api/stream/ prefix on purpose.
+// Routes registers the playback endpoints. The stream routes carry
+// /api/stream/ (exempt from the global API timeout — see
+// httpserver.apiTimeout) and sit behind AuthMiddleware WITHOUT RequireAuth:
+// anonymous share-token viewers stream the linked playlist's songs, and the
+// service consults the playlist policy only when the request is anonymous.
+// Everything else requires a session.
 func (h *Handler) Routes(r chi.Router) {
 	r.Group(func(r chi.Router) {
-		r.Use(h.mw.AuthMiddleware, auth.RequireAuth)
+		r.Use(h.mw.AuthMiddleware)
 		r.Get("/api/stream/{id}", h.stream)
 		r.Head("/api/stream/{id}", h.stream) // v1 parity: HEAD is answered explicitly
+	})
+	r.Group(func(r chi.Router) {
+		r.Use(h.mw.AuthMiddleware, auth.RequireAuth)
 		r.Post("/api/songs/{id}/scrobble", h.scrobble)
 		r.Get("/api/bookmarks", h.listBookmarks)
 		r.Put("/api/songs/{id}/bookmark", h.putBookmark)
@@ -50,6 +55,8 @@ func writeServiceError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, ErrNotFound):
 		httpserver.Error(w, http.StatusNotFound, "Not found")
+	case errors.Is(err, ErrUnauthorized):
+		httpserver.Error(w, http.StatusUnauthorized, "Unauthorized")
 	case errors.As(err, &be):
 		httpserver.Error(w, http.StatusBadRequest, be.msg)
 	default:
@@ -67,20 +74,17 @@ func (e *bodyError) Error() string { return e.msg }
 func invalidBody(msg string) error { return &bodyError{msg: msg} }
 
 // stream is GET /api/stream/{id}: the native playback endpoint behind the
-// same StreamingService the OpenSubsonic adapter (P6/P9) will reuse.
+// same StreamingService the OpenSubsonic adapter (P9) will reuse.
 //
 // Query surface: maxBitRate (v1 parse semantics, clamped against the user's
-// cap), download (direct + Content-Disposition, never transcodes), and a
-// reserved share-token parameter — accepted now, answered 404 until P6
-// implements share tokens.
+// cap), download (direct + Content-Disposition, never transcodes), and the
+// P6 share token (`?share=`): consulted only when the request is anonymous;
+// a session identity wins. Anonymous with a valid token streams the linked
+// playlist's songs without the library-scope check (v1 share semantics);
+// anonymous with a missing/unknown token gets 401; a known token whose
+// playlist does not contain the song gets 404.
 func (h *Handler) stream(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	if q.Get("share") != "" {
-		// Share tokens land with P6; the parameter is reserved so clients
-		// can be built against the final shape already.
-		httpserver.Error(w, http.StatusNotFound, "Not found")
-		return
-	}
 	var requested int
 	var hasRequested bool
 	if raw := q.Get("maxBitRate"); raw != "" {
@@ -88,7 +92,7 @@ func (h *Handler) stream(w http.ResponseWriter, r *http.Request) {
 	}
 	download, _ := strconv.ParseBool(q.Get("download"))
 
-	if err := h.svc.Stream(w, r, identity(r), chi.URLParam(r, "id"), requested, hasRequested, download); err != nil {
+	if err := h.svc.Stream(w, r, identity(r), chi.URLParam(r, "id"), requested, hasRequested, download, q.Get("share")); err != nil {
 		writeServiceError(w, r, err)
 	}
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/miquelrosell99/sonarly/v2/internal/db"
 	"github.com/miquelrosell99/sonarly/v2/internal/httpserver"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/playlists"
 )
 
 const testSecret = "0123456789abcdef0123456789abcdef"
@@ -57,7 +58,7 @@ func newEnv(t *testing.T, opts Options) *testEnv {
 	logBuf := &bytes.Buffer{}
 	log := slog.New(slog.NewTextHandler(logBuf, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
-	svc := NewService(database, opts, log)
+	svc := NewService(database, opts, log, playlists.NewPolicy())
 	mw := auth.NewMiddleware(auth.NewStore(database), database, testSecret, false)
 	handler := httpserver.New(config.Config{}, log)
 	NewHandler(svc, mw).Routes(handler.Router())

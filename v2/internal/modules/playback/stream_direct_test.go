@@ -272,13 +272,22 @@ func TestStreamDownloadDisposition(t *testing.T) {
 	}
 }
 
-// TestStreamShareTokenReserved: the share-token parameter is accepted by the
-// route shape but answered 404 until P6 implements share tokens.
-func TestStreamShareTokenReserved(t *testing.T) {
+// TestStreamShareTokenIgnoredForSignedInUser: the share-token parameter is
+// consulted ONLY for anonymous requests; a signed-in caller keeps the
+// session path (scope check included) no matter what the parameter says.
+func TestStreamShareTokenIgnoredForSignedInUser(t *testing.T) {
 	env := newEnv(t, Options{})
 	alice := env.cookie(t, "user-alice", "alice", false)
-	res, _ := env.do(t, "GET", "/api/stream/s-a1?share=tok-123", alice, nil)
+	res, body := env.do(t, "GET", "/api/stream/s-a1?share=tok-123", alice, nil)
+	if res.StatusCode != 200 {
+		t.Fatalf("share token param must not affect signed-in streamers: got %d", res.StatusCode)
+	}
+	if string(body) != string(fileBytes(t, env.files["s-a1"])) {
+		t.Errorf("stream body != original file bytes")
+	}
+	// And an out-of-scope song stays unreachable even with a token present.
+	res, _ = env.do(t, "GET", "/api/stream/s-b1?share=tok-123", alice, nil)
 	if res.StatusCode != 404 {
-		t.Errorf("share token param: want 404 until P6, got %d", res.StatusCode)
+		t.Errorf("out-of-scope song with token param: want 404, got %d", res.StatusCode)
 	}
 }
