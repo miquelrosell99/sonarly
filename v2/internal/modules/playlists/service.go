@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/miquelrosell99/sonarly/v2/internal/db"
 	"strings"
 	"time"
 
@@ -47,6 +48,13 @@ type UpdateInput struct {
 	IsSmart     *bool
 	Rules       *Rules
 	ResolveMode *string
+	// ReconcileShareToken selects the Subsonic adapter's token semantics
+	// (v1 opensubsonic-routes.ts updatePlaylist): on every adapter update
+	// the token is re-derived from the RESOLVED visibility — link keeps or
+	// mints a token, any other visibility clears it. The native route
+	// leaves this false: v1's management PUT never clears the token and
+	// only auto-mints when visibility becomes 'link' with none set.
+	ReconcileShareToken bool
 }
 
 // rulesUserID picks the user the user-scoped rule fields resolve against
@@ -118,6 +126,15 @@ func (s *Service) Get(ctx context.Context, id auth.Identity, playlistID, shareTo
 	if err != nil {
 		return nil, err
 	}
+	if access == AccessNone && shareToken != "" && p.ShareToken != "" && shareToken == p.ShareToken {
+		// v1 management canViewPlaylist (P10 decision): a matching share
+		// token grants VIEW regardless of the playlist's visibility — the
+		// native metadata view intentionally preserves this v1 divergence;
+		// the streaming/content grants and the Subsonic adapter's
+		// getPlaylist keep the stricter visibility='link' + token check
+		// (see doc.go). Unified cleanup is a post-cutover candidate.
+		access = AccessView
+	}
 	if access == AccessNone {
 		return nil, ErrNotFound
 	}
@@ -172,7 +189,12 @@ func (s *Service) Get(ctx context.Context, id auth.Identity, playlistID, shareTo
 		if err != nil {
 			return nil, err
 		}
-		detail.Shares = shares
+		// v1 emits the shares key for the owner even when empty ([]) —
+		// never omit it (P10 parity finding).
+		if shares == nil {
+			shares = []ShareEntry{}
+		}
+		detail.Shares = &shares
 	}
 	if id.UserID != "" {
 		starred, rating, err := s.interaction(ctx, id.UserID, p.ID)
@@ -324,16 +346,19 @@ func (s *Service) Update(ctx context.Context, id auth.Identity, playlistID strin
 		}
 		updated.Visibility = *in.Visibility
 	}
-	// The ONE token lifecycle: a token exists iff visibility == 'link'.
-	if updated.Visibility == "link" {
-		if updated.ShareToken == "" {
-			token, err := MintShareToken()
-			if err != nil {
-				return nil, err
-			}
-			updated.ShareToken = token
+	// v1 parity (P10 decision): the token lifecycle is independent of
+	// visibility. Native PUT (v1 management-routes.ts) never clears the
+	// token and only auto-mints when visibility becomes 'link' with none
+	// set. The Subsonic adapter instead re-derives the token from the
+	// resolved visibility on every update (link keeps/mints, anything
+	// else clears) — v1 opensubsonic-routes.ts updatePlaylist.
+	if updated.Visibility == "link" && updated.ShareToken == "" {
+		token, err := MintShareToken()
+		if err != nil {
+			return nil, err
 		}
-	} else {
+		updated.ShareToken = token
+	} else if in.ReconcileShareToken && updated.Visibility != "link" {
 		updated.ShareToken = ""
 	}
 
@@ -407,7 +432,8 @@ func (s *Service) Unshare(ctx context.Context, id auth.Identity, playlistID, tar
 
 // CreateShareLink answers POST /api/playlists/{id}/share-link: owner only.
 // Always mints a FRESH token — this doubles as "regenerate", killing any
-// previously shared link — and pins visibility to 'link'.
+// previously shared link. v1 parity: the playlist's visibility is NOT
+// changed here; the token works independently of visibility.
 func (s *Service) CreateShareLink(ctx context.Context, id auth.Identity, playlistID string) (string, error) {
 	existing, err := GetByID(ctx, s.db, playlistID)
 	if err != nil {
@@ -434,8 +460,8 @@ func (s *Service) CreateShareLink(ctx context.Context, id auth.Identity, playlis
 }
 
 // DeleteShareLink answers DELETE /api/playlists/{id}/share-link: owner
-// only; visibility returns to private and the token is cleared (the ONE
-// lifecycle rule).
+// only. Clears the token ONLY — visibility is left exactly as it was (v1
+// management-routes.ts: share_token = NULL, no visibility write).
 func (s *Service) DeleteShareLink(ctx context.Context, id auth.Identity, playlistID string) error {
 	existing, err := GetByID(ctx, s.db, playlistID)
 	if err != nil {
@@ -635,7 +661,9 @@ func (s *Service) fetchEntries(ctx context.Context, ids []string, hideExplicit b
 		}
 		for rows.Next() {
 			var e Entry
-			var track, disc, duration, year, explicit, mtime sql.NullInt64
+			var track, disc, year, explicit sql.NullInt64
+			var duration db.NullInt64 // v1 may have stored fractional REAL seconds
+			var mtime db.NullInt64
 			var genre, coverArt, albumID, albumName, albumCoverArt, artistID, artistName sql.NullString
 			if err := rows.Scan(&e.ID, &e.Title, &track, &disc, &duration, &genre, &year,
 				&explicit, &mtime, &coverArt, &albumID, &albumName, &albumCoverArt,
@@ -649,8 +677,8 @@ func (s *Service) fetchEntries(ctx context.Context, ids []string, hideExplicit b
 			if disc.Valid {
 				e.DiscNumber = intPtr(int(disc.Int64))
 			}
-			if duration.Valid {
-				e.Duration = intPtr(int(duration.Int64))
+			if v, ok := duration.Value(); ok {
+				e.Duration = intPtr(int(v))
 			}
 			if year.Valid {
 				e.Year = intPtr(int(year.Int64))
@@ -678,8 +706,8 @@ func (s *Service) fetchEntries(ctx context.Context, ids []string, hideExplicit b
 				e.Artist = artistName.String
 			}
 			e.Type = "music"
-			if mtime.Valid {
-				e.Created = time.UnixMilli(mtime.Int64).UTC().Format(time.RFC3339)
+			if v, ok := mtime.Value(); ok {
+				e.Created = time.UnixMilli(v).UTC().Format(time.RFC3339)
 			}
 			byID[e.ID] = &e
 		}

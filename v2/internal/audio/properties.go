@@ -233,7 +233,7 @@ func oggLastGranule(f *os.File, serial uint32) (granule uint64, ok bool, err err
 // stsd → audio sample entry → esds) of a QuickTime/MP4 file.
 func mp4Properties(f *os.File) (Properties, error) {
 	var p Properties
-	var timescale, duration uint64
+	var timescale, duration, sampleBytes uint64
 	var avgBitrate int
 
 	found, err := mp4Walk(f, "", 0, -1, func(path string, data []byte) error {
@@ -276,6 +276,28 @@ func mp4Properties(f *os.File) (Properties, error) {
 			if avg > 0 {
 				avgBitrate = avg
 			}
+		case path == "moov/trak/mdia/minf/stbl/stsz":
+			// music-metadata's MP4 bitrate is audio-sample-bytes*8/duration
+			// (from stsz), NOT the esds avgBitrate field — for the synthetic
+			// corpus m4a they disagree wildly (esds lies). Sum the sample
+			// sizes so the stored bit_rate matches v1 (P10 parity finding).
+			// Best-effort: a handcrafted file may carry an inconsistent
+			// table; fall back to the esds bitrate instead of failing.
+			if len(data) < 16 {
+				return nil
+			}
+			sampleSize := binary.BigEndian.Uint32(data[8:12])
+			count := int(binary.BigEndian.Uint32(data[12:16]))
+			if sampleSize == 0 {
+				if len(data) < 16+count*4 {
+					return nil
+				}
+				for i := 0; i < count; i++ {
+					sampleBytes += uint64(binary.BigEndian.Uint32(data[16+i*4:]))
+				}
+			} else {
+				sampleBytes += uint64(sampleSize) * uint64(count)
+			}
 		}
 		return nil
 	})
@@ -288,7 +310,11 @@ func mp4Properties(f *os.File) (Properties, error) {
 	if timescale > 0 {
 		p.Duration = float64(duration) / float64(timescale)
 	}
-	p.Bitrate = avgBitrate
+	if sampleBytes > 0 && p.Duration > 0 {
+		p.Bitrate = int(float64(sampleBytes*8) / p.Duration)
+	} else {
+		p.Bitrate = avgBitrate
+	}
 	return p, nil
 }
 
@@ -366,7 +392,7 @@ func mp4Walk(f *os.File, prefix string, depth int, limit int64, fn func(path str
 			if err != nil {
 				return found, err
 			}
-		case name == "mdhd" || name == "stsd":
+		case name == "mdhd" || name == "stsd" || name == "stsz":
 			b := make([]byte, payload)
 			if _, err := io.ReadFull(f, b); err != nil {
 				return found, err

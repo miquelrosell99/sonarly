@@ -6,11 +6,11 @@
 //   - bitrate:  within 10%
 //
 // Documented deviations (S1 §5 W5):
-//   - m4a bitrate: gold reports 800 (a music-metadata quirk S1 calls out:
-//     "v1's mp4 bitrate math is itself quirky; parity here means close
-//     enough for display, not bit-exact"). Our reader reports the esds
-//     avgBitrate (128000), matching TagLib. We assert against the manifest
-//     ground truth (128000) instead of gold for this one field.
+//   - m4a bitrate: gold reports 800 — music-metadata derives mp4 bitrate
+//     from the stsz sample table (audio bytes x 8 / duration), NOT the
+//     esds avgBitrate (128000). P10 parity found the mm-derived value is
+//     what v1 stores, so the reader sums stsz exactly like mm.
+//     Gold's 800 is therefore the asserted value.
 //   - flac bitrate: gold is 0 (mm reports 0 for lossless); we mirror that.
 
 package audio
@@ -43,10 +43,10 @@ func TestPropertiesParity(t *testing.T) {
 		t.Fatalf("parse gold_v1.json: %v", err)
 	}
 
-	// m4a bitrate is asserted against the generator's ground truth (esds
-	// avgBitrate = 128000), not gold's quirky 800.
-	const m4aEsdsBitrate = 128000
-
+	// m4a bitrate: music-metadata derives it from the stsz sample table
+	// (audio bytes × 8 / duration — 800 for the synthetic corpus file), not
+	// the esds avgBitrate (128000). P10 parity requires the mm value, so the
+	// stsz sum is asserted against gold like every other field.
 	for name, g := range gold {
 		t.Run(name, func(t *testing.T) {
 			md, err := ReadMetadata(filepath.Join("testdata", "corpus", name))
@@ -61,11 +61,8 @@ func TestPropertiesParity(t *testing.T) {
 				t.Errorf("Duration = %v, gold %v (tolerance %v)", p.Duration, g.Format.Duration, tol)
 			}
 
-			// bitrate: within 10% (m4a: esds ground truth — see header note)
+			// bitrate: within 10% (m4a: gold's stsz-derived value — see header note)
 			wantBitrate := g.Format.Bitrate
-			if name == "spike.m4a" {
-				wantBitrate = m4aEsdsBitrate
-			}
 			if wantBitrate > 0 {
 				if p.Bitrate == 0 || math.Abs(float64(p.Bitrate-wantBitrate)) > 0.10*float64(wantBitrate) {
 					t.Errorf("Bitrate = %d, want %d ±10%%", p.Bitrate, wantBitrate)

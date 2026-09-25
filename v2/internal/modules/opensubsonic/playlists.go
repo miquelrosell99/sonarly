@@ -353,6 +353,11 @@ func (h *Handler) updatePlaylist(w http.ResponseWriter, r *http.Request) {
 	if visibility := firstParam(q, "visibility"); visibility != "" && playlists.IsVisibility(visibility) {
 		in.Visibility = &visibility
 	}
+	// v1 opensubsonic-routes.ts updatePlaylist re-derives the share token
+	// from the RESOLVED visibility (param when valid, else existing) on
+	// every adapter update: link keeps or mints a token, any other
+	// visibility clears it — even when no visibility param was passed.
+	in.ReconcileShareToken = true
 
 	if _, err := h.playlists.Update(ctx, id, playlistID, in); writePlaylistServiceError(w, r, err) {
 		return

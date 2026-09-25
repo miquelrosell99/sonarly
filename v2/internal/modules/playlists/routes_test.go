@@ -105,8 +105,25 @@ func TestGetDetailAccess(t *testing.T) {
 	if d.ShareToken != "" {
 		t.Errorf("private playlist has no token, got %q", d.ShareToken)
 	}
-	if len(d.Shares) != 1 || d.Shares[0].UserID != "u-viewer" || d.Shares[0].CanEdit {
+	if d.Shares == nil || len(*d.Shares) != 1 || (*d.Shares)[0].UserID != "u-viewer" || (*d.Shares)[0].CanEdit {
 		t.Errorf("owner shares = %+v", d.Shares)
+	}
+
+	// v1 parity (P10): the owner's detail emits shares even when empty.
+	res, body = env.do(t, "GET", "/api/playlists/pl-private", owner, nil)
+	if res.StatusCode != 200 {
+		t.Fatalf("owner detail of private playlist: %d", res.StatusCode)
+	}
+	var raw struct {
+		Playlist struct {
+			Shares *[]ShareEntry `json:"shares"`
+		} `json:"playlist"`
+	}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if raw.Playlist.Shares == nil || len(*raw.Playlist.Shares) != 0 {
+		t.Errorf("owner with no shares must see shares: [], got %+v", raw.Playlist.Shares)
 	}
 
 	// Owner of the link playlist sees the token.
@@ -153,10 +170,16 @@ func TestGetDetailAccess(t *testing.T) {
 	if res.StatusCode != 404 {
 		t.Errorf("private detail by outsider: want 404, got %d", res.StatusCode)
 	}
-	// Anonymous → 401 (route is behind RequireAuth).
+	// Anonymous without a token → 401 (mirrors v1's session gate; only
+	// shareToken requests are exempt).
 	res, _ = env.do(t, "GET", "/api/playlists/pl-public", nil, nil)
 	if res.StatusCode != 401 {
 		t.Errorf("anonymous detail: want 401, got %d", res.StatusCode)
+	}
+	// Anonymous WITH the playlist's token → 200 (v1's public exemption).
+	res, _ = env.do(t, "GET", "/api/playlists/pl-link?shareToken=tok-link", nil, nil)
+	if res.StatusCode != 200 {
+		t.Errorf("anonymous detail with share token: want 200, got %d", res.StatusCode)
 	}
 }
 
@@ -331,8 +354,9 @@ func TestUpdateRewrite(t *testing.T) {
 	}
 }
 
-// TestUpdateVisibilityTokenLifecycle: PUT to link keeps/mints a token; PUT
-// away from link clears it.
+// TestUpdateVisibilityTokenLifecycle: v1 native PUT semantics (P10
+// decision) — visibility changes NEVER clear the token; visibility='link'
+// auto-mints a token only when none is set.
 func TestUpdateVisibilityTokenLifecycle(t *testing.T) {
 	env := newEnv(t)
 	owner := env.cookie(t, "u-owner", "owner", false)
@@ -357,13 +381,32 @@ func TestUpdateVisibilityTokenLifecycle(t *testing.T) {
 		t.Errorf("token rotated on no-op visibility PUT: %q → %q", token, d.ShareToken)
 	}
 
-	// link → public clears the token.
+	// link → public KEEPS the token (v1 management-routes: visibility
+	// changes never touch the share token).
 	res, body = env.do(t, "PUT", "/api/playlists/pl-private", owner, `{"visibility": "public"}`)
 	if res.StatusCode != 200 {
 		t.Fatal(res.StatusCode)
 	}
-	if d := decodeDetail(t, body); d.ShareToken != "" {
-		t.Errorf("token must be revoked when leaving link visibility, got %q", d.ShareToken)
+	if d := decodeDetail(t, body); d.ShareToken != token {
+		t.Errorf("native PUT revoked the token, want it kept: %q", d.ShareToken)
+	}
+
+	// public → private also keeps the token.
+	res, body = env.do(t, "PUT", "/api/playlists/pl-private", owner, `{"visibility": "private"}`)
+	if res.StatusCode != 200 {
+		t.Fatal(res.StatusCode)
+	}
+	if d := decodeDetail(t, body); d.ShareToken != token {
+		t.Errorf("native visibility PUT cleared the token, want %q kept", token)
+	}
+
+	// private → link with an existing token does NOT rotate it.
+	res, body = env.do(t, "PUT", "/api/playlists/pl-private", owner, `{"visibility": "link"}`)
+	if res.StatusCode != 200 {
+		t.Fatal(res.StatusCode)
+	}
+	if d := decodeDetail(t, body); d.ShareToken != token {
+		t.Errorf("re-entering link rotated the token: %q → %q", token, d.ShareToken)
 	}
 }
 
@@ -462,8 +505,10 @@ func TestShareGrantRevoke(t *testing.T) {
 	}
 }
 
-// TestShareLinkEndpoints: create mints + pins link; regenerate kills the
-// old token; delete revokes.
+// TestShareLinkEndpoints: v1 semantics (P10 decision) — create mints a
+// token WITHOUT touching visibility; regenerate kills the old token;
+// delete clears the token only. The native anonymous metadata view grants
+// access on a matching token regardless of visibility (v1 canViewPlaylist).
 func TestShareLinkEndpoints(t *testing.T) {
 	env := newEnv(t)
 	owner := env.cookie(t, "u-owner", "owner", false)
@@ -481,19 +526,29 @@ func TestShareLinkEndpoints(t *testing.T) {
 	if len(tok.ShareToken) != 64 {
 		t.Fatalf("token = %q", tok.ShareToken)
 	}
-	// Visibility pinned to link; detail shows it.
+	// Visibility is NOT pinned to link; the detail shows the token to the owner.
 	res, body = env.do(t, "GET", "/api/playlists/pl-private", owner, nil)
 	if res.StatusCode != 200 {
 		t.Fatal(res.StatusCode)
 	}
 	detail := decodeDetail(t, body)
-	if detail.Visibility != "link" || detail.ShareToken != tok.ShareToken {
-		t.Errorf("after share-link: %s %q", detail.Visibility, detail.ShareToken)
+	if detail.Visibility != "private" || detail.ShareToken != tok.ShareToken {
+		t.Errorf("after share-link: %s %q, want private with the token", detail.Visibility, detail.ShareToken)
 	}
-	// The token authorizes a no-library user.
+	// The token authorizes a no-library user even though visibility stayed
+	// private (v1 canViewPlaylist — the documented native divergence).
 	res, _ = env.do(t, "GET", fmt.Sprintf("/api/playlists/pl-private?shareToken=%s", tok.ShareToken), nolib, nil)
 	if res.StatusCode != 200 {
 		t.Errorf("token detail: want 200, got %d", res.StatusCode)
+	}
+	// No token → 404; wrong token → 404.
+	res, _ = env.do(t, "GET", "/api/playlists/pl-private", nil, nil)
+	if res.StatusCode != 401 {
+		t.Errorf("anonymous without token: want 401, got %d", res.StatusCode)
+	}
+	res, _ = env.do(t, "GET", fmt.Sprintf("/api/playlists/pl-private?shareToken=%s", tok.ShareToken)+"x", nil, nil)
+	if res.StatusCode != 404 {
+		t.Errorf("wrong token: want 404, got %d", res.StatusCode)
 	}
 
 	// Regenerate: old token dies, new token works.
@@ -523,7 +578,7 @@ func TestShareLinkEndpoints(t *testing.T) {
 		t.Errorf("non-owner share-link: want 403, got %d", res.StatusCode)
 	}
 
-	// Delete: back to private, token cleared.
+	// Delete: token cleared, visibility left exactly as it was (private).
 	res, _ = env.do(t, "DELETE", "/api/playlists/pl-private/share-link", owner, nil)
 	if res.StatusCode != 200 {
 		t.Fatal(res.StatusCode)
@@ -534,7 +589,7 @@ func TestShareLinkEndpoints(t *testing.T) {
 	}
 	detail = decodeDetail(t, body)
 	if detail.Visibility != "private" || detail.ShareToken != "" {
-		t.Errorf("after delete share-link: %s %q", detail.Visibility, detail.ShareToken)
+		t.Errorf("after delete share-link: %s %q, want private with no token", detail.Visibility, detail.ShareToken)
 	}
 	res, _ = env.do(t, "GET", fmt.Sprintf("/api/playlists/pl-private?shareToken=%s", tok2.ShareToken), nolib, nil)
 	if res.StatusCode != 404 {

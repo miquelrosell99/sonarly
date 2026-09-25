@@ -56,18 +56,28 @@ func atoiDefault(s string, def int) int {
 	return def
 }
 
-// txxxValues collects the (NUL-split) values of every TXXX frame with the
-// given description, in file order. This is where multi-value MBIDs live
-// (row 8 of the S1 table).
+// txxxValues collects the values of every TXXX frame with the given
+// description, in file order. Multi-value frames are NUL-separated, and
+// music-metadata additionally splits a single value on ';' — both splits
+// are applied so MBID lists match v1's reader (P10: v1 stored ["id1,id2"]
+// from one "id1;id2" TXXX while v2 kept the joined string).
 func txxxValues(raw map[string]interface{}, desc string) []string {
 	var out []string
+	seen := map[string]bool{}
+	add := func(v string) {
+		v = strings.TrimSpace(v)
+		if v != "" && !seen[v] {
+			seen[v] = true
+			out = append(out, v)
+		}
+	}
 	for _, c := range txxxFrames(raw) {
 		if !strings.EqualFold(c.Description, desc) {
 			continue
 		}
 		for _, p := range strings.Split(c.Text, "\x00") {
-			if p = strings.TrimSpace(p); p != "" {
-				out = append(out, p)
+			for _, q := range strings.Split(p, ";") {
+				add(q)
 			}
 		}
 	}

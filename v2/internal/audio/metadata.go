@@ -276,6 +276,27 @@ func flattenStrings(values []string) []string {
 	return out
 }
 
+// splitValues splits ';'-joined multi values (tagfork joins multi-value
+// MP4 freeform atoms into one string) and dedupes, preserving order —
+// music-metadata's shape for the multi-value id lists.
+func splitValues(values []string) []string {
+	var out []string
+	seen := map[string]bool{}
+	add := func(v string) {
+		v = strings.TrimSpace(v)
+		if v != "" && !seen[v] {
+			seen[v] = true
+			out = append(out, v)
+		}
+	}
+	for _, v := range values {
+		for _, p := range strings.Split(v, ";") {
+			add(p)
+		}
+	}
+	return out
+}
+
 func firstString(values []string) string {
 	if len(values) > 0 {
 		return values[0]
