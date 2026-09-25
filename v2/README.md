@@ -18,10 +18,14 @@ before any cutover discussion.
 - Migrations: embedded SQL files, ledger table, per-file transactions
   (same semantics as v1's `db/migrate.ts`)
 - Graceful shutdown via `signal.NotifyContext`
+- Library runtime (P4b): DB-backed job queue with typed payloads and
+  coalescing, a single-goroutine worker executing scans with transactional
+  per-song persistence, a pure-Go polling library watcher, and interval
+  schedulers — all context-driven (see `internal/modules/library/`)
 - Planned: per-module layout under `internal/modules/` mirroring the audit's
   module boundaries (auth, users, library, catalog, playlists, playback,
   search, ingestion, jobs); OpenSubsonic as an adapter over the same services;
-  FTS5 search; DB-backed job queue with a worker
+  FTS5 search
 
 ## Layout
 

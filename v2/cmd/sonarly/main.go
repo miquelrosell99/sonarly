@@ -17,6 +17,7 @@ import (
 	"github.com/miquelrosell99/sonarly/v2/internal/httpserver"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/catalog"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/library"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/system"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/users"
 )
@@ -57,6 +58,28 @@ func run() error {
 	users.NewHandler(users.NewService(database, sessionStore, cfg.SessionSecret), sessionStore, authMW, cfg.SessionSecret, cfg.SessionCookieSecure).
 		Routes(srv.Router())
 	catalog.NewHandler(catalog.NewService(database), authMW).Routes(srv.Router())
+
+	// Library runtime (P4b): job queue, worker, filesystem watcher and
+	// scheduler, all context-driven so shutdown stops a scan between songs.
+	if err := library.EnsureDefaultLibrary(ctx, database, cfg.LibraryPath); err != nil {
+		return fmt.Errorf("default library: %w", err)
+	}
+	libraryQueue := library.NewQueue(database)
+	libraryWorker := library.NewWorker(libraryQueue, library.NewScanner(database, log, cfg.LibraryPath), log)
+	go libraryWorker.Start(ctx)
+	go library.NewWatcher(database, libraryQueue, log, cfg.WatchPollInterval, cfg.LibraryPath).Run(ctx)
+	go library.NewScheduler(database, libraryQueue, log, library.SchedulerOptions{
+		ScanInterval:        cfg.ScanInterval,
+		ArtistImageInterval: cfg.ArtistImageInterval,
+		IngestInterval:      cfg.IngestInterval,
+		IngestPath:          cfg.IngestPath,
+	}).Run(ctx)
+	library.NewHandler(libraryQueue, authMW).Routes(srv.Router())
+	// Boot push of the initial scan (v1 parity); coalesces with a scan left
+	// pending by a previous run instead of queueing a duplicate.
+	if _, err := libraryQueue.Push(ctx, library.JobTypeScan, library.ScanPayload{}); err != nil {
+		log.WarnContext(ctx, "initial scan enqueue failed", "err", err)
+	}
 
 	// Purge expired sessions hourly, stopping with the process context.
 	go auth.RunSweeper(ctx, sessionStore, log, time.Hour)
