@@ -1,14 +1,19 @@
-# Sonarly v2 — Go rewrite (exploration branch)
+# Sonarly v2 — Go rewrite
 
 Greenfield Go implementation of the Sonarly server, started on `feat/go-rewrite`
 per Decision Record DR-1 in `docs/audits/2026-09-24-backend-architecture-audit.md`.
 
 ## Status
 
-Early scaffold. The v1 TypeScript server (`packages/server`) remains the
-production codebase and continues to receive fixes; v2 proceeds until it
-reaches functional parity with the audit's target architecture (audit §16–§19)
-before any cutover discussion.
+**Parity-complete (P10/P10b, 2026-09-25).** Request-level parity with v1 is
+proven — 94/94 testparity cases, 0 blockers (`docs/v2-p10-parity-report.md`)
+— and a production dual-run against the live DB snapshot passed with 0 stream
+mismatches and byte-identical user state (`docs/v2-p10b-dualrun-report.md`).
+The last functional gap, static SPA serving, closed in P11. Deployment
+artifacts live in `docker/` (Dockerfile.v2, entrypoint.v2.sh,
+compose.v2.yaml.example). Cutover is **READY — owner decision required**;
+the evidence, go/no-go checklist, runbook and rollback are in
+`docs/v2-cutover-readiness.md`.
 
 ## Stack
 
@@ -75,9 +80,29 @@ before any cutover discussion.
 - **python3 + mutagen** — tag editing shells out to `python3` with
   `mutagen` (the v1 approach, behind the `audio.TagWriter` interface).
   Without them, tag-edit endpoints answer 500 "Failed to write tags";
-  everything else is unaffected.
+  everything else is unaffected (metadata reads are pure Go).
 
-The runtime image must install both — same requirement as the v1 image.
+The runtime image (`docker/Dockerfile.v2`) installs both — same requirement
+as the v1 image.
+
+## Web client serving
+
+v2 serves the built web client (Vite output) from the directory named by
+`SONARLY_WEB_DIST` (default `./web-dist`), closing the gap to v1's
+fastify-static setup:
+
+- Existing files are served with an embedded extension→mime map and cache
+  headers (`no-cache` for `.html`, `max-age=3600` for everything else).
+- Extensionless GET routes (SPA deep links like `/library/artist/<id>`)
+  fall back to `index.html` with status 200.
+- `/api/*` and `/rest/*` are never intercepted — the fallback is installed
+  on chi's NotFound hook *after* every API mount, so only requests no route
+  claimed reach it; unmatched API paths keep the JSON 404 shape.
+- Path traversal is contained (`path.Clean` + prefix check under the root).
+- If the directory does not exist the server runs **API-only**, exactly as
+  before P11 (unmatched paths get chi's default 404).
+
+See `internal/staticfs/`.
 
 ## Layout
 
@@ -86,6 +111,7 @@ cmd/sonarly/        entrypoint
 internal/config/    env config (SESSION_SECRET >= 32 chars required)
 internal/db/        connection pragmas + embedded migration runner
 internal/httpserver/ chi router, middleware, error contract {"error": "..."}
+internal/staticfs/  SPA static-file serving with index.html fallback (P11)
 internal/modules/   one package per domain module
 ```
 
@@ -96,4 +122,35 @@ cd v2
 SESSION_SECRET=<32+ chars> SONARLY_LIBRARY_PATH=/path/to/music go run ./cmd/sonarly
 ```
 
-Endpoints: `GET /health`, `GET /ready`.
+Optional: point `SONARLY_WEB_DIST` at a web build
+(`pnpm --filter @sonarly/web... build` at the repo root produces
+`packages/web/dist`) to serve the UI.
+
+Endpoints: `GET /health`, `GET /healthz` (container-probe alias), `GET /ready`.
+
+## Build
+
+```
+cd v2
+go build -ldflags "-X github.com/miquelrosell99/sonarly/v2/internal/buildinfo.Version=$(git -C .. describe --tags --always)" -o sonarly ./cmd/sonarly
+```
+
+A dev build without `-ldflags` reports version `0.0.0-dev` (surfaced as the
+OpenSubsonic `serverVersion`).
+
+## Docker
+
+Multi-stage all-in-one image (web build → Go build → alpine runtime with
+ffmpeg, python3+mutagen, su-exec, wget; non-root via PUID/PGID; HEALTHCHECK
+on `/healthz`; EXPOSE 3000). Build context is the **repo root**:
+
+```
+# from the repo root (the directory containing packages/ and v2/)
+docker build -f docker/Dockerfile.v2 \
+  --build-arg SONARLY_VERSION=$(git describe --tags --always) \
+  -t sonarly:v2 .
+```
+
+Compose shape: `docker/compose.v2.yaml.example` (same host paths and port
+mapping as v1, v2 env names). The cutover runbook, go/no-go checklist and
+rollback are in `docs/v2-cutover-readiness.md`.

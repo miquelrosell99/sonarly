@@ -18,6 +18,9 @@ func NewService(db *sql.DB) *Service { return &Service{db: db} }
 
 func Register(r chi.Router, svc *Service) {
 	r.Get("/health", svc.health)
+	// Alias kept for the container HEALTHCHECK and v1 parity: the v1 image
+	// (and its compose healthcheck) probes /healthz.
+	r.Get("/healthz", svc.health)
 	r.Get("/ready", svc.ready)
 }
 
