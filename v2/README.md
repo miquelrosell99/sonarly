@@ -68,10 +68,16 @@ before any cutover discussion.
 
 ## Runtime dependencies
 
-Tag editing shells out to `python3` with `mutagen` (the v1 approach, behind
-the `audio.TagWriter` interface). The runtime image must install both —
-same requirement as the v1 image. Without them, tag-edit endpoints answer
-500 "Failed to write tags"; everything else is unaffected.
+- **ffmpeg** — transcoding (`GET /api/stream/{id}?maxBitRate=`, Subsonic
+  transcode requests) shells out to it via `playback.TranscodingStreamer`
+  (path overridable with `SONARLY_FFMPEG_PATH`). Without it, transcode
+  requests fail; direct streams, catalog, and search are unaffected.
+- **python3 + mutagen** — tag editing shells out to `python3` with
+  `mutagen` (the v1 approach, behind the `audio.TagWriter` interface).
+  Without them, tag-edit endpoints answer 500 "Failed to write tags";
+  everything else is unaffected.
+
+The runtime image must install both — same requirement as the v1 image.
 
 ## Layout
 
