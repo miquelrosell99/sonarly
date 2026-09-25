@@ -37,6 +37,7 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Get("/api/me", h.me)
 		r.Get("/api/me/preferences", h.getPreferences)
 		r.Patch("/api/me/preferences", h.patchPreferences)
+		r.Post("/api/me/avatar", h.uploadAvatar)
 
 		r.Route("/api/admin/users", func(r chi.Router) {
 			r.Use(h.mw.RequireAdmin)
@@ -47,10 +48,9 @@ func (h *Handler) Routes(r chi.Router) {
 		})
 	})
 
-	// Avatar stub (P9c): the route exists because PublicUser.avatarUrl
-	// points at it, but avatar storage is a later phase — every id answers
-	// 404 for now. Publicly reachable (an avatar is rendered by <img> tags,
-	// which carry no API-key header and may lack the session cookie).
+	// Avatars are publicly reachable: an avatar is rendered by <img> tags,
+	// which carry no API-key header and may lack the session cookie (v1
+	// parity — GET serves the file when one exists, 404 otherwise).
 	r.Get("/api/avatars/{id}", h.avatar)
 }
 
@@ -210,11 +210,43 @@ func (h *Handler) patchPreferences(w http.ResponseWriter, r *http.Request) {
 	httpserver.JSON(w, http.StatusOK, map[string]any{"preferences": preferences})
 }
 
-// avatar is the GET /api/avatars/{id} stub: avatars are not implemented
-// yet, every id answers 404 (the spec route exists so PublicUser.avatarUrl
-// is a real, stable URL).
+// avatar is GET /api/avatars/{id}: serves the user's avatar file when one
+// exists, else 404. Publicly reachable like v1 (avatars render in <img>
+// tags); a day of public caching matches v1.
 func (h *Handler) avatar(w http.ResponseWriter, r *http.Request) {
-	httpserver.Error(w, http.StatusNotFound, "Not found")
+	data, contentType, err := h.svc.LoadAvatar(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		if avatarErrorStatus(err) == http.StatusNotFound {
+			httpserver.Error(w, http.StatusNotFound, "Not found")
+			return
+		}
+		slog.ErrorContext(r.Context(), "load avatar", "err", err)
+		httpserver.Error(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
+// uploadAvatar is POST /api/me/avatar: magic-byte-validated, size-capped,
+// stored under DATA_DIR/avatars and recorded on the user row (v1
+// profile-routes.ts). Answers the refreshed public user, like v1.
+func (h *Handler) uploadAvatar(w http.ResponseWriter, r *http.Request) {
+	id, _ := auth.IdentityFrom(r.Context())
+	user, err := h.svc.SaveAvatar(r.Context(), id.UserID, r)
+	if err != nil {
+		status := avatarErrorStatus(err)
+		if status >= http.StatusInternalServerError {
+			slog.ErrorContext(r.Context(), "save avatar", "err", err)
+			httpserver.Error(w, status, "Internal Server Error")
+			return
+		}
+		httpserver.Error(w, status, err.Error())
+		return
+	}
+	httpserver.JSON(w, http.StatusOK, map[string]any{"user": user})
 }
 
 func (h *Handler) setupStatus(w http.ResponseWriter, r *http.Request) {

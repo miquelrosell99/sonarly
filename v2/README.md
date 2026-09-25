@@ -54,6 +54,24 @@ before any cutover discussion.
   /api/me/preferences read/patch surface behind an explicit key allowlist,
   and the /api/avatars/{id} 404 stub — see `internal/modules/interactions/`
   and `internal/modules/users/preferences.go`
+- Native parity completion (P9c): the libraries admin surface (CRUD with the
+  is_default transaction invariant, user↔library assignment both directions,
+  scoped picker list), song/album tag editing through the python3+mutagen
+  `audio.TagWriter` (write → organize → PersistSong → coalesced resync),
+  magic-byte-sniffed cover-art uploads, the admin suggestion whitelist, the
+  MusicBrainz/LRCLIB proxies (process-global rate limit, 10s timeouts,
+  generic 502s, no caching), the artist image sync as a real P4b job
+  handler, avatars (POST /api/me/avatar + file-backed GET), the admin
+  dashboard (system-tasks + paginated history, status, missing management,
+  ingest runs), media settings, and the organize HTTP routes — see
+  `internal/modules/{libraries,tags,suggestions,providers,artistimages,admin}/`
+
+## Runtime dependencies
+
+Tag editing shells out to `python3` with `mutagen` (the v1 approach, behind
+the `audio.TagWriter` interface). The runtime image must install both —
+same requirement as the v1 image. Without them, tag-edit endpoints answer
+500 "Failed to write tags"; everything else is unaffected.
 
 ## Layout
 

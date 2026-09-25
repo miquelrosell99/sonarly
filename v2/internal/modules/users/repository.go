@@ -291,6 +291,17 @@ func Delete(ctx context.Context, q auth.Queries, id string) error {
 	return err
 }
 
+// SetAvatarPath records the avatar filename (relative to the avatars dir);
+// nil clears it (v1 updateAvatar).
+func SetAvatarPath(ctx context.Context, q auth.Queries, id string, filename *string) error {
+	var value any
+	if filename != nil {
+		value = *filename
+	}
+	_, err := q.ExecContext(ctx, `UPDATE users SET avatar_path = ? WHERE id = ?`, value, id)
+	return err
+}
+
 // IsUniqueViolation reports whether err is a SQLite UNIQUE-constraint failure,
 // i.e. the username collision on INSERT.
 func IsUniqueViolation(err error) bool {
