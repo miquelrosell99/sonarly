@@ -16,6 +16,7 @@ import (
 	"github.com/miquelrosell99/sonarly/v2/internal/db"
 	"github.com/miquelrosell99/sonarly/v2/internal/httpserver"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/catalog"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/system"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/users"
 )
@@ -55,6 +56,7 @@ func run() error {
 	authMW := auth.NewMiddleware(sessionStore, database, cfg.SessionSecret, cfg.SessionCookieSecure)
 	users.NewHandler(users.NewService(database, sessionStore, cfg.SessionSecret), sessionStore, authMW, cfg.SessionSecret, cfg.SessionCookieSecure).
 		Routes(srv.Router())
+	catalog.NewHandler(catalog.NewService(database), authMW).Routes(srv.Router())
 
 	// Purge expired sessions hourly, stopping with the process context.
 	go auth.RunSweeper(ctx, sessionStore, log, time.Hour)
