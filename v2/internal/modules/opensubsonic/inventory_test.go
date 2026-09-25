@@ -9,8 +9,9 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// p9aRoutes is the phase inventory: v1's 17 browsing + 7 retrieval
-// endpoints. P9b extends this table with starring/now-playing/playlist rows.
+// p9Routes is the phase inventory: v1's 17 browsing + 7 retrieval
+// endpoints (P9a) plus the 15 starring/activity/playlist/bookmark
+// endpoints of P9b.
 var p9aRoutes = []struct {
 	name   string
 	method string
@@ -42,6 +43,25 @@ var p9aRoutes = []struct {
 	{"getInternetRadioStations", http.MethodGet, "/rest/getInternetRadioStations.view"},
 	{"getPodcasts", http.MethodGet, "/rest/getPodcasts.view"},
 	{"getNewestPodcasts", http.MethodGet, "/rest/getNewestPodcasts.view"},
+	// Starring + scrobble (v1 starring.ts, P9b).
+	{"star", http.MethodGet, "/rest/star.view"},
+	{"unstar", http.MethodGet, "/rest/unstar.view"},
+	{"setRating", http.MethodGet, "/rest/setRating.view"},
+	{"scrobble", http.MethodGet, "/rest/scrobble.view"},
+	{"getStarred", http.MethodGet, "/rest/getStarred.view"},
+	{"getStarred2", http.MethodGet, "/rest/getStarred2.view"},
+	// Activity (v1 now-playing.ts, P9b).
+	{"getNowPlaying", http.MethodGet, "/rest/getNowPlaying.view"},
+	// Playlists (v1 playlists/opensubsonic-routes.ts, P9b).
+	{"getPlaylists", http.MethodGet, "/rest/getPlaylists.view"},
+	{"getPlaylist", http.MethodGet, "/rest/getPlaylist.view"},
+	{"createPlaylist", http.MethodGet, "/rest/createPlaylist.view"},
+	{"updatePlaylist", http.MethodGet, "/rest/updatePlaylist.view"},
+	{"deletePlaylist", http.MethodGet, "/rest/deletePlaylist.view"},
+	// Bookmarks (v1 bookmarks/routes.ts, P9b).
+	{"getBookmarks", http.MethodGet, "/rest/getBookmarks.view"},
+	{"createBookmark", http.MethodGet, "/rest/createBookmark.view"},
+	{"deleteBookmark", http.MethodGet, "/rest/deleteBookmark.view"},
 }
 
 // TestEndpointInventory asserts every P9a route is registered on the chi
@@ -122,9 +142,9 @@ func TestRouteTableMatchesInventory(t *testing.T) {
 		}
 	}
 	// The only multi-row paths are the HEAD companions of the two binary
-	// endpoints (stream/download); getAvatar is a v2 stub beyond v1's 24.
+	// endpoints (stream/download); getAvatar is a v2 stub beyond v1's set.
 	if len(endpointRoutes) != len(p9aRoutes)+4+2+1 {
-		t.Fatalf("endpointRoutes drifted: %d rows (want %d P9a + 4 system + 2 HEAD + 1 getAvatar)",
+		t.Fatalf("endpointRoutes drifted: %d rows (want %d adapter endpoints + 4 system + 2 HEAD + 1 getAvatar)",
 			len(endpointRoutes), len(p9aRoutes))
 	}
 	fmt.Printf("adapter route table: %d endpoints registered\n", len(endpointRoutes))

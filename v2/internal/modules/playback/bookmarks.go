@@ -85,6 +85,49 @@ func (s *Service) ListBookmarks(ctx context.Context, id auth.Identity) ([]Bookma
 	return bookmarks, nil
 }
 
+// SubsonicBookmark is one raw bookmark row for the OpenSubsonic adapter
+// (P9b): no song join, no scope filter. The adapter renders the full
+// Subsonic song child itself and keeps bookmarks whose song dropped out of
+// the catalog in the list with the entry omitted — v1's getBookmarks.view
+// behavior, which differs from the native list view above.
+type SubsonicBookmark struct {
+	SongID    string
+	Position  int
+	Comment   *string
+	CreatedAt string
+	UpdatedAt string
+}
+
+// SubsonicBookmarks returns the caller's bookmark rows newest-change-first,
+// exactly as stored (v1's bookmarks getBookmarks repository function).
+func (s *Service) SubsonicBookmarks(ctx context.Context, id auth.Identity) ([]SubsonicBookmark, error) {
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT song_id, position, comment, created_at, updated_at
+		FROM bookmarks
+		WHERE user_id = ?
+		ORDER BY updated_at DESC`, id.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("subsonic list bookmarks: %w", err)
+	}
+	defer rows.Close()
+	out := []SubsonicBookmark{}
+	for rows.Next() {
+		var b SubsonicBookmark
+		var comment sql.NullString
+		if err := rows.Scan(&b.SongID, &b.Position, &comment, &b.CreatedAt, &b.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("subsonic list bookmarks: %w", err)
+		}
+		if comment.Valid {
+			b.Comment = &comment.String
+		}
+		out = append(out, b)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("subsonic list bookmarks: %w", err)
+	}
+	return out, nil
+}
+
 // PutBookmark upserts the caller's bookmark for the song (v1 createBookmark:
 // PK (user_id, song_id), position and comment replaced, updated_at bumped).
 // The song must be active and in scope, else ErrNotFound.

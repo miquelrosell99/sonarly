@@ -43,9 +43,17 @@ before any cutover discussion.
   worker's job events out with a 30s heartbeat, and a now-playing tracker
   hooked into the playback service so EVERY stream is counted (v1 only saw
   Subsonic clients) — see `internal/modules/{search,statistics,home,autodj,events,players}/`
-- Planned: per-module layout under `internal/modules/` mirroring the audit's
-  module boundaries (auth, users, library, catalog, playlists, playback,
-  search, ingestion, jobs); OpenSubsonic as an adapter over the same services
+- OpenSubsonic adapter (P6.5/P9a/P9b): the full `/rest` surface over the
+  same services — envelope + auth hook (P6.5), 24 browsing/retrieval
+  endpoints (P9a), and the starring/now-playing/playlist/bookmark endpoints
+  (P9b) against `docs/v2-opensubsonic-quirks.md`; playlist and bookmark
+  endpoints delegate to the playlists/playback modules so there is ONE
+  policy and ONE data path — see `internal/modules/opensubsonic/`
+- Interactions (P9c start): native favorites/ratings (POST /api/favorites,
+  /api/ratings) writing the same user_* junction rows as the adapter, the
+  /api/me/preferences read/patch surface behind an explicit key allowlist,
+  and the /api/avatars/{id} 404 stub — see `internal/modules/interactions/`
+  and `internal/modules/users/preferences.go`
 
 ## Layout
 

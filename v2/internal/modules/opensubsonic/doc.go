@@ -6,7 +6,11 @@
 // retrieval group (7 endpoints, stream/download delegating to the playback
 // StreamingService), all against docs/v2-opensubsonic-quirks.md — the
 // archaeology of every v1 behavior this adapter must reproduce (or
-// deliberately fix). P9b adds starring/now-playing/playlist endpoints.
+// deliberately fix). P9b completed the adapter: the starring group
+// (star/unstar/setRating/scrobble/getStarred(2)), getNowPlaying from the P8
+// players tracker, the playlist group (delegating to the playlists module's
+// ONE policy), and the bookmark group (delegating to the playback service)
+// — 46 registered routes, all 61 quirks done.
 //
 // Wire contract, per the quirks doc:
 //   - Every response is enveloped in "subsonic-response" with HTTP 200,

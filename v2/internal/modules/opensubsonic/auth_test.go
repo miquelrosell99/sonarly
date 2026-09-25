@@ -16,6 +16,8 @@ import (
 	"github.com/miquelrosell99/sonarly/v2/internal/db"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/playback"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/players"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/playlists"
 )
 
 const (
@@ -29,10 +31,12 @@ const (
 )
 
 type testApp struct {
-	db       *sql.DB
-	store    *auth.Store
-	router   http.Handler
-	playback *playback.Service
+	db        *sql.DB
+	store     *auth.Store
+	router    http.Handler
+	playback  *playback.Service
+	tracker   *players.Tracker
+	playlists *playlists.Service
 }
 
 func newTestApp(t *testing.T) *testApp {
@@ -45,10 +49,12 @@ func newTestApp(t *testing.T) *testApp {
 	store := auth.NewStore(database)
 	mw := auth.NewMiddleware(store, database, testSecret, false)
 	svc := playback.NewService(database, playback.Options{FFmpegPath: "ffmpeg"}, nil, nil)
-	h := NewHandler(database, mw, testSecret, "/music", svc)
+	tracker := players.NewTracker()
+	playlistSvc := playlists.NewService(database, playlists.NewPolicy())
+	h := NewHandler(database, mw, testSecret, "/music", svc, tracker, playlistSvc)
 	r := chi.NewRouter()
 	h.Routes(r)
-	return &testApp{db: database, store: store, router: r, playback: svc}
+	return &testApp{db: database, store: store, router: r, playback: svc, tracker: tracker, playlists: playlistSvc}
 }
 
 func (a *testApp) seedUser(t *testing.T, id, username, password string, isAdmin bool) {
@@ -326,12 +332,12 @@ func TestAnonymousRejected(t *testing.T) {
 func TestShareTokenBypassesAuthHook(t *testing.T) {
 	app := newTestApp(t)
 
-	// A8: getPlaylist.view with a shareToken passes the hook anonymously.
-	// The endpoint itself is P9, so the request lands on the unknown-route
-	// envelope — code 0 proves the hook let it through (a blocked request
-	// would be code 10).
+	// A8: getPlaylist.view with a shareToken passes the hook anonymously —
+	// the endpoint (P9b) answers 70 "Data not found" for the nonexistent
+	// playlist, which still proves the hook let it through: a blocked
+	// request would be code 10 before any handler ran.
 	rec := app.get(t, "/rest/getPlaylist.view?shareToken=tok123", nil)
-	assertFailed(t, rec, CodeNotImplemented)
+	assertFailed(t, rec, CodeForbidden)
 }
 
 func TestAuthHookAppliesToWholeRestGroup(t *testing.T) {

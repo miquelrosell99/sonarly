@@ -35,6 +35,8 @@ func (h *Handler) Routes(r chi.Router) {
 	r.Group(func(r chi.Router) {
 		r.Use(h.mw.AuthMiddleware, auth.RequireAuth)
 		r.Get("/api/me", h.me)
+		r.Get("/api/me/preferences", h.getPreferences)
+		r.Patch("/api/me/preferences", h.patchPreferences)
 
 		r.Route("/api/admin/users", func(r chi.Router) {
 			r.Use(h.mw.RequireAdmin)
@@ -44,6 +46,12 @@ func (h *Handler) Routes(r chi.Router) {
 			r.Delete("/{id}", h.adminDelete)
 		})
 	})
+
+	// Avatar stub (P9c): the route exists because PublicUser.avatarUrl
+	// points at it, but avatar storage is a later phase — every id answers
+	// 404 for now. Publicly reachable (an avatar is rendered by <img> tags,
+	// which carry no API-key header and may lack the session cookie).
+	r.Get("/api/avatars/{id}", h.avatar)
 }
 
 // errStatus maps service sentinel errors to the v1 HTTP contract.
@@ -170,6 +178,43 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpserver.JSON(w, http.StatusOK, map[string]any{"user": user})
+}
+
+// getPreferences is GET /api/me/preferences: the merged defaults+stored
+// document (v1 parity — absent row and corrupt blobs both yield defaults).
+func (h *Handler) getPreferences(w http.ResponseWriter, r *http.Request) {
+	id, _ := auth.IdentityFrom(r.Context())
+	preferences, err := h.svc.GetPreferences(r.Context(), id.UserID)
+	if err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	httpserver.JSON(w, http.StatusOK, map[string]any{"preferences": preferences})
+}
+
+// patchPreferences is PATCH /api/me/preferences. The body must be a JSON
+// object whose keys are all in the explicit allowlist (Q8 mass-assignment
+// fix — unknown keys are rejected, not silently dropped or stored).
+func (h *Handler) patchPreferences(w http.ResponseWriter, r *http.Request) {
+	var body map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		httpserver.Error(w, http.StatusBadRequest, "Invalid JSON body")
+		return
+	}
+	id, _ := auth.IdentityFrom(r.Context())
+	preferences, err := h.svc.UpdatePreferences(r.Context(), id.UserID, body)
+	if err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	httpserver.JSON(w, http.StatusOK, map[string]any{"preferences": preferences})
+}
+
+// avatar is the GET /api/avatars/{id} stub: avatars are not implemented
+// yet, every id answers 404 (the spec route exists so PublicUser.avatarUrl
+// is a real, stable URL).
+func (h *Handler) avatar(w http.ResponseWriter, r *http.Request) {
+	httpserver.Error(w, http.StatusNotFound, "Not found")
 }
 
 func (h *Handler) setupStatus(w http.ResponseWriter, r *http.Request) {

@@ -535,3 +535,49 @@ func albumCreatedAt(mtime int64, ok bool) *string {
 	s := millisToISO(mtime)
 	return &s
 }
+
+// ---------------------------------------------------------------------------
+// Songs by id list (v1 fetchOpenSubsonicSongsByIds)
+// ---------------------------------------------------------------------------
+
+// songsByIDs is v1's fetchOpenSubsonicSongsByIds: the full Subsonic Child
+// rows for an id list, active only, in the caller's interaction context.
+// A nil scope means NO library filter (v1's getNowPlaying call passed none);
+// getStarred/getBookmarks pass the caller's scope. Ids that are missing,
+// inactive, or out of scope simply drop out of the result (v1 parity).
+func (h *Handler) songsByIDs(ctx context.Context, userID string, ids []string, scope *libraries.Scope) ([]Song, error) {
+	if len(ids) == 0 {
+		return []Song{}, nil
+	}
+	scopeCond := libraries.Condition{}
+	if scope != nil {
+		scopeCond = libraries.ScopeCondition(*scope, "s.library_id")
+	}
+	rows := []SongSource{}
+	for _, chunk := range chunkIDs(ids) {
+		result, err := h.db.QueryContext(ctx,
+			`SELECT `+songColumns+`,
+				a.name AS album_name, ar.name AS artist_name, l.path AS library_path,
+				us.starred, us.rating, us.play_count
+			`+songJoins+`
+			WHERE s.active = 1 AND s.id IN (`+placeholders(len(chunk))+`) `+scopeCond.SQL,
+			append(append([]any{userID}, stringArgs(chunk)...), scopeCond.Params...)...)
+		if err != nil {
+			return nil, fmt.Errorf("fetch songs by ids: %w", err)
+		}
+		for result.Next() {
+			s, err := scanSongRow(result)
+			if err != nil {
+				result.Close()
+				return nil, fmt.Errorf("fetch songs by ids: %w", err)
+			}
+			rows = append(rows, s)
+		}
+		if err := result.Err(); err != nil {
+			result.Close()
+			return nil, fmt.Errorf("fetch songs by ids: %w", err)
+		}
+		result.Close()
+	}
+	return h.mapSongs(ctx, rows, userID != "")
+}
