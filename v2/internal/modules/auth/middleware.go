@@ -66,14 +66,8 @@ func (m *Middleware) AuthMiddleware(next http.Handler) http.Handler {
 
 func (m *Middleware) authenticate(r *http.Request) (Identity, bool) {
 	ctx := r.Context()
-	if cookie, err := r.Cookie(CookieName); err == nil {
-		if sid, ok := VerifySignedValue(m.secret, cookie.Value); ok {
-			if sess, err := m.store.Get(ctx, sid); err == nil {
-				return Identity{UserID: sess.UserID, Username: sess.Username, IsAdmin: sess.IsAdmin}, true
-			} else if !errors.Is(err, ErrNotFound) {
-				slog.Default().ErrorContext(ctx, "session load failed", "err", err)
-			}
-		}
+	if id, ok := m.SessionIdentity(r); ok {
+		return id, true
 	}
 	if key := r.Header.Get(APIKeyHeader); key != "" {
 		userID, err := VerifyAPIKey(ctx, m.db, key)
@@ -88,6 +82,29 @@ func (m *Middleware) authenticate(r *http.Request) (Identity, bool) {
 		} else if !errors.Is(err, ErrNotFound) {
 			slog.Default().ErrorContext(ctx, "api key lookup failed", "err", err)
 		}
+	}
+	return Identity{}, false
+}
+
+// SessionIdentity authenticates the signed session cookie ONLY — no API key
+// fallback. Long-lived surfaces that must stay session-bound (the SSE feed)
+// use it; ordinary routes keep accepting API keys through authenticate.
+func (m *Middleware) SessionIdentity(r *http.Request) (Identity, bool) {
+	ctx := r.Context()
+	cookie, err := r.Cookie(CookieName)
+	if err != nil {
+		return Identity{}, false
+	}
+	sid, ok := VerifySignedValue(m.secret, cookie.Value)
+	if !ok {
+		return Identity{}, false
+	}
+	sess, err := m.store.Get(ctx, sid)
+	if err == nil {
+		return Identity{UserID: sess.UserID, Username: sess.Username, IsAdmin: sess.IsAdmin}, true
+	}
+	if !errors.Is(err, ErrNotFound) {
+		slog.Default().ErrorContext(ctx, "session load failed", "err", err)
 	}
 	return Identity{}, false
 }

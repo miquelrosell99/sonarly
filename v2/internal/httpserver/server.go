@@ -28,17 +28,19 @@ func New(cfg config.Config, log *slog.Logger) *Server {
 }
 
 // apiTimeout bounds ordinary API routes with chi's Timeout middleware but
-// leaves streaming routes alone: the middleware derives a
+// leaves long-lived routes alone: the middleware derives a
 // context.WithTimeout, whose deadline auto-cancels the request context and
-// would SIGKILL a transcode (ffmpeg is bound to the request context) and cut
-// off direct streams well before a long track finishes. Streaming routes
-// carry their own bounds instead — the transcode semaphore plus
-// disconnect-driven process kill — so they need no wall-clock timeout.
+// would SIGKILL a transcode (ffmpeg is bound to the request context), cut
+// off a direct stream well before a long track finishes, or kill the SSE
+// feed between heartbeats. Streaming routes carry their own bounds instead
+// — the transcode semaphore plus disconnect-driven process kill, and the
+// SSE loop's client-disconnect handling — so they need no wall-clock
+// timeout.
 func apiTimeout(timeout time.Duration) func(http.Handler) http.Handler {
 	bounded := middleware.Timeout(timeout)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.HasPrefix(r.URL.Path, "/api/stream/") {
+			if strings.HasPrefix(r.URL.Path, "/api/stream/") || strings.HasPrefix(r.URL.Path, "/api/events") {
 				next.ServeHTTP(w, r)
 				return
 			}

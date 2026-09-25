@@ -431,16 +431,21 @@ func (s *Scanner) findMoveTarget(ctx context.Context, checksum string, foundPath
 // lesson), and paths under no walked root are left alone — a library-scoped
 // scan must not touch other libraries' rows.
 func (s *Scanner) deactivateMissing(ctx context.Context, foundPaths, movedFromPaths map[string]struct{}, failedRoots []string, walkedRoots []scanRoot, stats *ScanStats) error {
-	rows, err := s.db.QueryContext(ctx, `SELECT id, file_path FROM songs WHERE active = 1`)
+	rows, err := s.db.QueryContext(ctx, `SELECT rowid, id, file_path FROM songs WHERE active = 1`)
 	if err != nil {
 		return fmt.Errorf("list active songs: %w", err)
 	}
 	defer rows.Close()
 
-	var toDeactivate []string
+	type activeSong struct {
+		rowid int64
+		id    string
+	}
+	var toDeactivate []activeSong
 	for rows.Next() {
-		var id, path string
-		if err := rows.Scan(&id, &path); err != nil {
+		var row activeSong
+		var path string
+		if err := rows.Scan(&row.rowid, &row.id, &path); err != nil {
 			return fmt.Errorf("list active songs: %w", err)
 		}
 		if _, ok := foundPaths[path]; ok {
@@ -455,7 +460,7 @@ func (s *Scanner) deactivateMissing(ctx context.Context, foundPaths, movedFromPa
 		if !anyRootContains(rootPaths(walkedRoots), path) {
 			continue
 		}
-		toDeactivate = append(toDeactivate, id)
+		toDeactivate = append(toDeactivate, row)
 	}
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("list active songs: %w", err)
@@ -474,10 +479,23 @@ func (s *Scanner) deactivateMissing(ctx context.Context, foundPaths, movedFromPa
 		return fmt.Errorf("prepare deactivation: %w", err)
 	}
 	defer stmt.Close()
-	for _, id := range toDeactivate {
-		if _, err := stmt.ExecContext(ctx, id); err != nil {
+	ftsStmt, err := tx.PrepareContext(ctx, `DELETE FROM songs_fts WHERE rowid = ?`)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("prepare fts deactivation: %w", err)
+	}
+	defer ftsStmt.Close()
+	for _, song := range toDeactivate {
+		if _, err := stmt.ExecContext(ctx, song.id); err != nil {
 			tx.Rollback()
-			return fmt.Errorf("deactivate song %s: %w", id, err)
+			return fmt.Errorf("deactivate song %s: %w", song.id, err)
+		}
+		// The search index tracks the live catalog: a deactivated song's
+		// tokens leave it in the same tx (reactivation re-inserts via
+		// PersistSong's sync).
+		if _, err := ftsStmt.ExecContext(ctx, song.rowid); err != nil {
+			tx.Rollback()
+			return fmt.Errorf("deactivate song %s (fts): %w", song.id, err)
 		}
 	}
 	if err := tx.Commit(); err != nil {

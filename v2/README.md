@@ -32,10 +32,20 @@ before any cutover discussion.
   reassembly with an incremental 1 GiB cap, typed missing-chunk 4xx) plus a
   stale-session sweeper v1 lacked — see `internal/modules/uploads/`. Ingest
   job execution itself is P7b; the queue accepts the typed payload now.
+- Search + statistics + home + auto-dj + events + players (P8): FTS5
+  prefix search maintained inside PersistSong's transaction (regular, not
+  external-content FTS5 tables — the build's xUpdate lacks REPLACE
+  semantics and reports SQLITE_CORRUPT for deletes of absent rowids),
+  consolidated statistics (six statements per request; the global rating
+  average is computed once per request in a MATERIALIZED CTE), the home
+  aggregator, the auto-dj scoring port (generation failures answer 502,
+  never v1's silent empty 200), a session-only SSE feed fanning the
+  worker's job events out with a 30s heartbeat, and a now-playing tracker
+  hooked into the playback service so EVERY stream is counted (v1 only saw
+  Subsonic clients) — see `internal/modules/{search,statistics,home,autodj,events,players}/`
 - Planned: per-module layout under `internal/modules/` mirroring the audit's
   module boundaries (auth, users, library, catalog, playlists, playback,
-  search, ingestion, jobs); OpenSubsonic as an adapter over the same services;
-  FTS5 search
+  search, ingestion, jobs); OpenSubsonic as an adapter over the same services
 
 ## Layout
 
