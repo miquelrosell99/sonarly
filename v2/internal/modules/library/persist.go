@@ -28,6 +28,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/miquelrosell99/sonarly/v2/internal/audio"
+	"github.com/miquelrosell99/sonarly/v2/internal/db"
 )
 
 // execer abstracts *sql.DB and *sql.Tx so the ensure-* helpers run inside
@@ -558,14 +559,36 @@ const songDataColumns = `id, file_path, title, track_number, disc_number, durati
 func scanSongData(row interface{ Scan(...any) error }) (*songData, error) {
 	var s songData
 	var explicit, coverMissing int
+	var mtime db.Millis
+	// Numeric columns v1 may have written as fractional REALs scan through
+	// the tolerant db.NullInt64 (see internal/db).
+	var trackNo, discNo, duration, year db.NullInt64
+	var bitRate, bitsPerSample, sampleRate, channels, bpm db.NullInt64
 	var syncedLyrics, producers, isrcs *string
-	if err := row.Scan(&s.id, &s.filePath, &s.title, &s.trackNo, &s.discNo, &s.duration, &s.artistID, &s.albumID,
-		&s.genre, &s.genreID, &s.libraryID, &s.year, &explicit, &s.coverArtID, &coverMissing, &s.mtime, &s.checksum,
-		&s.bitRate, &s.bitsPerSample, &s.sampleRate, &s.channels, &s.bpm, &s.mbid, &s.replayGain,
+	if err := row.Scan(&s.id, &s.filePath, &s.title, &trackNo, &discNo, &duration, &s.artistID, &s.albumID,
+		&s.genre, &s.genreID, &s.libraryID, &year, &explicit, &s.coverArtID, &coverMissing, &mtime, &s.checksum,
+		&bitRate, &bitsPerSample, &sampleRate, &channels, &bpm, &s.mbid, &s.replayGain,
 		&s.comment, &s.mediaType, &s.lyrics, &syncedLyrics, &producers, &isrcs,
 		&s.displayArtist, &s.displayAlbumArtist, &s.totalTracks, &s.totalDiscs); err != nil {
 		return nil, err
 	}
+	s.mtime = int64(mtime)
+	intPtr := func(n db.NullInt64) *int {
+		if v, ok := n.Value(); ok {
+			i := int(v)
+			return &i
+		}
+		return nil
+	}
+	s.trackNo = intPtr(trackNo)
+	s.discNo = intPtr(discNo)
+	s.duration = intPtr(duration)
+	s.year = intPtr(year)
+	s.bitRate = intPtr(bitRate)
+	s.bitsPerSample = intPtr(bitsPerSample)
+	s.sampleRate = intPtr(sampleRate)
+	s.channels = intPtr(channels)
+	s.bpm = intPtr(bpm)
 	s.explicit = explicit == 1
 	s.coverArtMissing = coverMissing == 1
 	if syncedLyrics != nil {
@@ -927,10 +950,11 @@ func normalizeReleaseType(value string) string {
 
 // mediaTypes mirrors v1's mime-types lookup for the four audio extensions;
 // a static map keeps the mapping deterministic regardless of the host's
-// /etc/mime.types.
+// /etc/mime.types. flac is audio/x-flac like v1's mime-types package (NOT
+// Go's builtin audio/flac) — the OpenSubsonic contentType must match v1.
 var mediaTypes = map[string]string{
 	".mp3":  "audio/mpeg",
-	".flac": "audio/flac",
+	".flac": "audio/x-flac",
 	".ogg":  "audio/ogg",
 	".m4a":  "audio/mp4",
 }

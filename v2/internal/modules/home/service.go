@@ -23,6 +23,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/miquelrosell99/sonarly/v2/internal/db"
 	"math/rand/v2"
 
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
@@ -415,16 +416,23 @@ func (s *Service) recentAdditions(ctx context.Context, userID string, scope libr
 	for rows.Next() {
 		var card SongCard
 		var artistID, artistName, albumID, albumName, genre, coverArt sql.NullString
-		var duration, year, starred sql.NullInt64
+		var year, starred sql.NullInt64
 		var explicit sql.NullInt64
 		var rating sql.NullFloat64
+		var mtime db.Millis
+		var duration db.NullInt64 // v1 may have stored fractional REAL seconds
 		if err := rows.Scan(&card.ID, &card.Title, &artistID, &artistName, &albumID, &albumName,
-			&duration, &year, &genre, &explicit, &coverArt, &card.Mtime, &starred, &rating); err != nil {
+			&duration, &year, &genre, &explicit, &coverArt, &mtime, &starred, &rating); err != nil {
 			return nil, fmt.Errorf("load recent additions: %w", err)
+		}
+		card.Mtime = int64(mtime)
+		if v, ok := duration.Value(); ok {
+			d := int(v)
+			card.Duration = &d
 		}
 		card.ArtistID, card.ArtistName = strPtr(artistID), strPtr(artistName)
 		card.AlbumID, card.AlbumName = strPtr(albumID), strPtr(albumName)
-		card.Duration, card.Year = intPtr(duration), intPtr(year)
+		card.Year = intPtr(year)
 		card.Genre, card.CoverArt = strPtr(genre), strPtr(coverArt)
 		card.Explicit = explicit.Valid && explicit.Int64 == 1
 		card.Starred = starred.Valid && starred.Int64 == 1

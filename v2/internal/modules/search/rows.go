@@ -153,24 +153,26 @@ func attachSongRelations(ctx context.Context, q auth.Queries, songs []Song) erro
 	}
 	ids := songIDs(songs)
 	artists := map[string][]string{}
+	entries := map[string][]Entry{}
 	genres := map[string][]string{}
 	for _, chunk := range chunkIDs(ids) {
 		rows, err := q.QueryContext(ctx,
-			`SELECT j.song_id, e.name FROM song_artists j JOIN artists e ON e.id = j.artist_id
+			`SELECT j.song_id, e.id, e.name FROM song_artists j JOIN artists e ON e.id = j.artist_id
 			WHERE j.song_id IN (`+placeholders(len(chunk))+`) ORDER BY j.position`, stringArgs(chunk)...)
 		if err != nil {
 			return fmt.Errorf("attach song artists: %w", err)
 		}
 		for rows.Next() {
-			var songID, name string
-			if err := rows.Scan(&songID, &name); err != nil {
+			var songID, id, name string
+			if err := rows.Scan(&songID, &id, &name); err != nil {
 				rows.Close()
 				return fmt.Errorf("attach song artists: %w", err)
 			}
 			artists[songID] = append(artists[songID], name)
+			entries[songID] = append(entries[songID], Entry{ID: id, Name: name})
 		}
 		rows.Close()
-		if err := rows.Err(); err != nil {
+		if err := rows.Err(); nil != err {
 			return fmt.Errorf("attach song artists: %w", err)
 		}
 		rows, err = q.QueryContext(ctx,
@@ -195,6 +197,9 @@ func attachSongRelations(ctx context.Context, q auth.Queries, songs []Song) erro
 	for i := range songs {
 		if names, ok := artists[songs[i].ID]; ok {
 			songs[i].Artists = names
+		}
+		if es, ok := entries[songs[i].ID]; ok {
+			songs[i].ArtistEntries = es
 		}
 		if names, ok := genres[songs[i].ID]; ok {
 			songs[i].Genres = names

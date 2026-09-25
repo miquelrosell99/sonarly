@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/xml"
 	"errors"
+	"github.com/miquelrosell99/sonarly/v2/internal/db"
 	"net/http"
 	"path/filepath"
 	"sort"
@@ -170,11 +171,12 @@ type SimilarArtist struct {
 }
 
 type artistInfo2Body struct {
-	Biography      string          `xml:"biography,attr" json:"biography"`
-	SmallImageURL  string          `xml:"smallImageUrl,attr,omitempty" json:"smallImageUrl,omitempty"`
-	LargeImageURL  string          `xml:"largeImageUrl,attr,omitempty" json:"largeImageUrl,omitempty"`
-	MusicBrainzID  string          `xml:"musicBrainzId,attr,omitempty" json:"musicBrainzId,omitempty"`
-	SimilarArtists []SimilarArtist `xml:"similarArtist" json:"similarArtist"`
+	Biography     string `xml:"biography,attr" json:"biography"`
+	SmallImageURL string `xml:"smallImageUrl,attr,omitempty" json:"smallImageUrl,omitempty"`
+	LargeImageURL string `xml:"largeImageUrl,attr,omitempty" json:"largeImageUrl,omitempty"`
+	MusicBrainzID string `xml:"musicBrainzId,attr,omitempty" json:"musicBrainzId,omitempty"`
+	// v1 always emits similarArtists — [] when no similar artists exist.
+	SimilarArtists []SimilarArtist `xml:"similarArtist" json:"similarArtists"`
 }
 
 type artistInfo2Payload struct {
@@ -323,13 +325,14 @@ func (h *Handler) getIndexes(w http.ResponseWriter, r *http.Request) {
 // empty — stable until the library actually changes.
 func (h *Handler) lastModified(ctx context.Context, scope libraries.Scope) int64 {
 	c := libraries.ScopeCondition(scope, "s.library_id")
-	var mtime sql.NullInt64
+	var mtime db.NullMillis
 	err := h.db.QueryRowContext(ctx,
 		`SELECT MAX(s.mtime) FROM songs s WHERE s.active = 1 `+c.SQL, c.Params...).Scan(&mtime)
-	if err != nil || !mtime.Valid {
+	if err != nil {
 		return 0
 	}
-	return mtime.Int64
+	v, _ := mtime.Value()
+	return v
 }
 
 // groupArtistsByInitial buckets artists by uppercased first character with

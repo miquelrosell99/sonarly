@@ -21,6 +21,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/miquelrosell99/sonarly/v2/internal/db"
 
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/libraries"
 )
@@ -141,7 +142,9 @@ func scanCandidate(rows *sql.Rows, withOverlap bool) ([]candidateRow, error) {
 	out := []candidateRow{}
 	for rows.Next() {
 		var r candidateRow
-		var track, disc, duration, year, mtime sql.NullInt64
+		var track, disc, year sql.NullInt64
+		var duration db.NullInt64 // v1 may have stored fractional REAL seconds
+		var mtime db.NullMillis
 		var artistID, albumID, artistName, albumName, genre, genreID, coverArt sql.NullString
 		var bpm sql.NullInt64
 		var mood sql.NullString
@@ -164,13 +167,16 @@ func scanCandidate(rows *sql.Rows, withOverlap bool) ([]candidateRow, error) {
 			return nil, fmt.Errorf("scan auto-dj candidate: %w", err)
 		}
 		r.song.TrackNumber, r.song.DiscNumber = intPtr(track), intPtr(disc)
-		r.song.Duration = intPtr(duration)
+		if v, ok := duration.Value(); ok {
+			d := int(v)
+			r.song.Duration = &d
+		}
 		r.artistID, r.song.ArtistName = strPtr(artistID), strPtr(artistName)
 		r.albumID, r.song.AlbumName = strPtr(albumID), strPtr(albumName)
 		r.song.ArtistID, r.song.AlbumID = r.artistID, r.albumID
 		r.song.Genre, r.song.GenreID, r.song.Year = strPtr(genre), strPtr(genreID), intPtr(year)
 		r.song.CoverArt = strPtr(coverArt)
-		r.song.Mtime = mtime.Int64
+		r.song.Mtime, _ = mtime.Value()
 		r.song.Explicit = explicit.Valid && explicit.Int64 == 1
 		r.bpm = intPtr(bpm)
 		r.mood = strPtr(mood)

@@ -114,20 +114,22 @@ type ShareEntry struct {
 // Detail is the GET /api/playlists/{id} response body. Shares and
 // ShareToken are owner-only.
 type Detail struct {
-	ID            string       `json:"id"`
-	Name          string       `json:"name"`
-	Description   string       `json:"description,omitempty"`
-	OwnerID       string       `json:"ownerId"`
-	OwnerUsername string       `json:"ownerUsername"`
-	Visibility    string       `json:"visibility"`
-	ShareToken    string       `json:"shareToken,omitempty"`
-	IsSmart       bool         `json:"isSmart"`
-	ResolveMode   string       `json:"resolveMode"`
-	SongCount     int          `json:"songCount"`
-	Entries       []Entry      `json:"entries"`
-	Shares        []ShareEntry `json:"shares,omitempty"`
-	Starred       bool         `json:"starred"`
-	Rating        *float64     `json:"rating,omitempty"`
-	CreatedAt     string       `json:"createdAt"`
-	UpdatedAt     string       `json:"updatedAt"`
+	ID            string  `json:"id"`
+	Name          string  `json:"name"`
+	Description   string  `json:"description,omitempty"`
+	OwnerID       string  `json:"ownerId"`
+	OwnerUsername string  `json:"ownerUsername"`
+	Visibility    string  `json:"visibility"`
+	ShareToken    string  `json:"shareToken,omitempty"`
+	IsSmart       bool    `json:"isSmart"`
+	ResolveMode   string  `json:"resolveMode"`
+	SongCount     int     `json:"songCount"`
+	Entries       []Entry `json:"entries"`
+	// Shares renders for the owner even when empty (v1 parity) — a pointer
+	// so nil (non-owner) omits entirely while &[] renders as [].
+	Shares    *[]ShareEntry `json:"shares,omitempty"`
+	Starred   bool          `json:"starred"`
+	Rating    *float64      `json:"rating,omitempty"`
+	CreatedAt string        `json:"createdAt"`
+	UpdatedAt string        `json:"updatedAt"`
 }

@@ -1,29 +1,37 @@
 package search
 
+// Entry is an id+name pair, the artistEntries shape v1's search attaches to
+// song hits (songs/routes attachSongArtistEntries).
+type Entry struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 // Song is one hit of the songs category: the display subset of the catalog
 // song DTO (v2 omits filePath/checksum everywhere; search adds the joined
 // artist/album display names and the caller's interaction state).
 type Song struct {
-	ID          string   `json:"id"`
-	Title       string   `json:"title"`
-	TrackNumber *int     `json:"trackNumber,omitempty"`
-	DiscNumber  *int     `json:"discNumber,omitempty"`
-	Duration    *int     `json:"duration,omitempty"`
-	ArtistID    *string  `json:"artistId,omitempty"`
-	AlbumID     *string  `json:"albumId,omitempty"`
-	ArtistName  *string  `json:"artistName,omitempty"`
-	AlbumName   *string  `json:"albumName,omitempty"`
-	Genre       *string  `json:"genre,omitempty"`
-	GenreID     *string  `json:"genreId,omitempty"`
-	Year        *int     `json:"year,omitempty"`
-	Explicit    bool     `json:"explicit"`
-	CoverArt    *string  `json:"coverArt,omitempty"`
-	Mtime       int64    `json:"mtime"`
-	Active      bool     `json:"active"`
-	Artists     []string `json:"artists,omitempty"`
-	Genres      []string `json:"genres,omitempty"`
-	Starred     bool     `json:"starred"`
-	Rating      *float64 `json:"rating,omitempty"`
+	ID            string   `json:"id"`
+	Title         string   `json:"title"`
+	TrackNumber   *int     `json:"trackNumber,omitempty"`
+	DiscNumber    *int     `json:"discNumber,omitempty"`
+	Duration      *int     `json:"duration,omitempty"`
+	ArtistID      *string  `json:"artistId,omitempty"`
+	AlbumID       *string  `json:"albumId,omitempty"`
+	ArtistName    *string  `json:"artistName,omitempty"`
+	AlbumName     *string  `json:"albumName,omitempty"`
+	Genre         *string  `json:"genre,omitempty"`
+	GenreID       *string  `json:"genreId,omitempty"`
+	Year          *int     `json:"year,omitempty"`
+	Explicit      bool     `json:"explicit"`
+	CoverArt      *string  `json:"coverArt,omitempty"`
+	Mtime         int64    `json:"mtime"`
+	Active        bool     `json:"active"`
+	Artists       []string `json:"artists,omitempty"`
+	ArtistEntries []Entry  `json:"artistEntries,omitempty"`
+	Genres        []string `json:"genres,omitempty"`
+	Starred       bool     `json:"starred"`
+	Rating        *float64 `json:"rating,omitempty"`
 }
 
 // Album is one hit of the albums category (v1's search album shape).

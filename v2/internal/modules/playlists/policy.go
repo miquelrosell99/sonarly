@@ -43,16 +43,20 @@ func (a Access) String() string {
 // v1 kept two divergent copies that disagreed on whether a share token
 // required visibility=link; v2 has exactly this one, and the rule is:
 //
-//	owner                                   → AccessOwner
-//	playlist_shares row with can_edit       → AccessEdit
-//	playlist_shares row                   → AccessView
-//	visibility == public                  → AccessView
-//	visibility == link && shareToken matches → AccessView
-//	otherwise                             → AccessNone
+//	owner                                    → AccessOwner
+//	playlist_shares row with can_edit        → AccessEdit
+//	playlist_shares row                    → AccessView
+//	visibility == public                   → AccessView
+//	visibility == link && shareToken match → AccessView
+//	otherwise                              → AccessNone
 //
-// The token is honored only for visibility=link, and a playlist carries a
-// token only while visibility==link (the repository enforces the lifecycle),
-// so a token check is effectively "is this the playlist's current link".
+// The token branch intentionally requires visibility='link': Resolve gates
+// data-mutating and Subsonic-adapter paths (including getPlaylist's
+// anonymous shareToken bypass). The NATIVE metadata view adds v1's looser
+// canViewPlaylist rule on top — a matching token grants view regardless of
+// visibility (service.Get; the P10 decision records this as an intentional
+// v1 divergence). Streaming/cover-art grants couple link+token in SQL
+// (TokenGrantsSong/TokenGrantsCoverArt).
 // identity is the zero value for anonymous callers; shareToken is the token
 // presented by the caller (query param or stream parameter), "" when none.
 func Resolve(ctx context.Context, q auth.Queries, p *Playlist, identity auth.Identity, shareToken string) (Access, error) {

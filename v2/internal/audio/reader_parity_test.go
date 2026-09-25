@@ -254,13 +254,12 @@ var spikeFiles = []corpusFile{
 		hasCoverArt:     true,
 		pictureMime:     "image/png",
 		pictureSize:     70,
-		// S1 §5 W5: gold format.bitrate is 800 here — a music-metadata quirk
-		// (S1: "v1's mp4 bitrate math is itself quirky; parity means close
-		// enough for display"). Our reader reports the esds avgBitrate
-		// (128000, matching TagLib); see TestPropertiesParity for the
-		// documented deviation.
+		// S1 §5 W5: gold format.bitrate is 800 — music-metadata derives mp4
+		// bitrate from the stsz sample table, not the esds avgBitrate.
+		// P10 parity: the reader sums stsz exactly like mm (see
+		// TestPropertiesParity), so gold's 800 is asserted here too.
 		duration:      3,
-		bitrate:       128000,
+		bitrate:       800,
 		sampleRate:    44100,
 		channels:      2,
 		bitsPerSample: 16,

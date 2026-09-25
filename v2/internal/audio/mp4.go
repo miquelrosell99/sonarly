@@ -24,7 +24,10 @@ func fillMP4(md *Metadata, tm tagfork.Metadata, raw map[string]interface{}) {
 	md.MBIDRelease = firstForKeys(raw, "MusicBrainz Album Id")
 	md.MBIDReleaseGroup = firstForKeys(raw, "MusicBrainz Release Group Id")
 	md.MBIDAlbumArtist = firstForKeys(raw, "MusicBrainz Album Artist Id")
-	md.MBIDArtistIDs = flattenForKeys(raw, "MusicBrainz Artist Id")
+	// tagfork joins a multi-value freeform atom into one ';'-joined string;
+	// music-metadata (v1's reader) splits it into separate ids — split and
+	// dedupe so per-artist positional assignment matches v1 (P10 finding).
+	md.MBIDArtistIDs = splitValues(flattenForKeys(raw, "MusicBrainz Artist Id"))
 
 	md.Barcode = firstForKeys(raw, "BARCODE")
 	md.ASIN = firstForKeys(raw, "ASIN")

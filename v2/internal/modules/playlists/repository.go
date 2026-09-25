@@ -342,11 +342,14 @@ func ShareEntries(ctx context.Context, q auth.Queries, playlistID string) ([]Sha
 	return out, nil
 }
 
-// EnableShareLink moves a playlist to visibility=link with exactly token.
-// Called with a freshly minted token (create + regenerate share-link).
+// SetShareLink stores exactly token as the playlist's share token. Called
+// with a freshly minted token (create + regenerate share-link). v1 parity
+// (P10 decision): the token lifecycle is INDEPENDENT of visibility — this
+// never touches the visibility column (v1 management-routes.ts POST
+// /api/playlists/:id/share-link only updates share_token).
 func EnableShareLink(ctx context.Context, q auth.Queries, playlistID, token string) error {
 	_, err := q.ExecContext(ctx, `
-		UPDATE playlists SET visibility = 'link', share_token = ?, updated_at = datetime('now')
+		UPDATE playlists SET share_token = ?, updated_at = datetime('now')
 		WHERE id = ?`, token, playlistID)
 	if err != nil {
 		return fmt.Errorf("enable share link: %w", err)
@@ -354,11 +357,14 @@ func EnableShareLink(ctx context.Context, q auth.Queries, playlistID, token stri
 	return nil
 }
 
-// DisableShareLink moves a playlist back to private and clears its token:
-// the ONE lifecycle rule — a token exists iff visibility == 'link'.
+// ClearShareLink drops the share token and leaves visibility untouched
+// (v1 management-routes.ts DELETE /api/playlists/:id/share-link: token = NULL
+// only). A playlist can therefore carry a token at any visibility; only the
+// streaming/content grant SQL and the Subsonic adapter's updatePlaylist
+// re-derivation couple them (see Policy.TokenGrantsSong and the adapter).
 func DisableShareLink(ctx context.Context, q auth.Queries, playlistID string) error {
 	_, err := q.ExecContext(ctx, `
-		UPDATE playlists SET visibility = 'private', share_token = NULL, updated_at = datetime('now')
+		UPDATE playlists SET share_token = NULL, updated_at = datetime('now')
 		WHERE id = ?`, playlistID)
 	if err != nil {
 		return fmt.Errorf("disable share link: %w", err)

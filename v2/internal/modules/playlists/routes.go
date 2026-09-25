@@ -26,13 +26,17 @@ func NewHandler(svc *Service, mw *auth.Middleware) *Handler {
 	return &Handler{svc: svc, mw: mw}
 }
 
-// Routes registers the playlist endpoints behind session auth.
+// Routes registers the playlist endpoints behind session auth. The detail
+// GET exempts requests carrying a shareToken from the session requirement
+// (v1's public-route list, docs/api.md): the service's policy is the one
+// access gate — a wrong token still answers the service's 404, and
+// anonymous callers without any token are rejected here exactly like v1's
+// session preHandler rejected them.
 func (h *Handler) Routes(r chi.Router) {
 	r.Group(func(r chi.Router) {
 		r.Use(h.mw.AuthMiddleware, auth.RequireAuth)
 		r.Get("/api/playlists", h.list)
 		r.Post("/api/playlists", h.create)
-		r.Get("/api/playlists/{id}", h.get)
 		r.Put("/api/playlists/{id}", h.update)
 		r.Delete("/api/playlists/{id}", h.delete)
 		r.Post("/api/playlists/{id}/share", h.share)
@@ -40,6 +44,20 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Post("/api/playlists/{id}/share-link", h.createShareLink)
 		r.Delete("/api/playlists/{id}/share-link", h.deleteShareLink)
 	})
+	r.With(h.shareTokenOrAuth).Get("/api/playlists/{id}", h.get)
+}
+
+// shareTokenOrAuth runs the session parser always, but enforces a logged-in
+// caller only when no shareToken is present (mirrors v1's exemption of
+// GET /api/playlists/:id?shareToken=... from the session gate).
+func (h *Handler) shareTokenOrAuth(next http.Handler) http.Handler {
+	return h.mw.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("shareToken") != "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		auth.RequireAuth(next).ServeHTTP(w, r)
+	}))
 }
 
 func writeServiceError(w http.ResponseWriter, r *http.Request, err error) {

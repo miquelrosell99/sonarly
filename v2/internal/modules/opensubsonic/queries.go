@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/miquelrosell99/sonarly/v2/internal/db"
 	"strings"
 	"time"
 
@@ -204,13 +205,13 @@ func albumMaxMtimeForMany(ctx context.Context, q *sql.DB, albumIDs []string) (ma
 		}
 		for rows.Next() {
 			var id string
-			var mtime sql.NullInt64
+			var mtime db.NullMillis
 			if err := rows.Scan(&id, &mtime); err != nil {
 				rows.Close()
 				return nil, fmt.Errorf("batch-load album mtimes: %w", err)
 			}
-			if mtime.Valid {
-				out[id] = mtime.Int64
+			if v, ok := mtime.Value(); ok {
+				out[id] = v
 			}
 		}
 		if err := rows.Err(); err != nil {
@@ -247,8 +248,10 @@ const songJoins = `FROM songs s
 func scanSongRow(s interface{ Scan(...any) error }) (SongSource, error) {
 	var src SongSource
 	var albumID, artistID, genre, coverArtID sql.NullString
-	var trackNumber, discNumber, year, duration sql.NullInt64
-	var bitRate, bitsPerSample, sampleRate, channels, bpm sql.NullInt64
+	// v1 may have written any of these as fractional REALs (music-metadata
+	// floats) — scan through the tolerant db.NullInt64 (see internal/db).
+	var trackNumber, discNumber, year, duration db.NullInt64
+	var bitRate, bitsPerSample, sampleRate, channels, bpm db.NullInt64
 	var mbID, mbTrackID, mbWorkID, mbDiscID sql.NullString
 	var replayGain, averageRating sql.NullFloat64
 	var comment, sortName, mood, mediaType sql.NullString
@@ -264,9 +267,10 @@ func scanSongRow(s interface{ Scan(...any) error }) (SongSource, error) {
 	var starred sql.NullInt64
 	var rating sql.NullFloat64
 	var playCount sql.NullInt64
+	var mtime db.Millis
 	err := s.Scan(
 		&src.ID, &albumID, &artistID, &src.Title, &trackNumber, &discNumber,
-		&genre, &year, &duration, &coverArtID, &src.MtimeMillis, &src.FilePath,
+		&genre, &year, &duration, &coverArtID, &mtime, &src.FilePath,
 		&bitRate, &bitsPerSample, &sampleRate, &channels, &bpm,
 		&mbID, &mbTrackID, &mbWorkID, &mbDiscID,
 		&replayGain, &averageRating, &comment, &sortName, &mood, &mediaType,
@@ -279,19 +283,20 @@ func scanSongRow(s interface{ Scan(...any) error }) (SongSource, error) {
 	if err != nil {
 		return SongSource{}, err
 	}
+	src.MtimeMillis = int64(mtime)
 	src.AlbumID = nullString(albumID)
 	src.ArtistID = nullString(artistID)
-	src.TrackNumber = nullInt(trackNumber)
-	src.DiscNumber = nullInt(discNumber)
+	src.TrackNumber = nullIntTolerant(trackNumber)
+	src.DiscNumber = nullIntTolerant(discNumber)
 	src.Genre = nullString(genre)
-	src.Year = nullInt(year)
-	src.Duration = nullInt(duration)
+	src.Year = nullIntTolerant(year)
+	src.Duration = nullIntTolerant(duration)
 	src.CoverArtID = nullString(coverArtID)
-	src.BitRate = nullInt(bitRate)
-	src.BitsPerSample = nullInt(bitsPerSample)
-	src.SampleRate = nullInt(sampleRate)
-	src.Channels = nullInt(channels)
-	src.BPM = nullInt(bpm)
+	src.BitRate = nullIntTolerant(bitRate)
+	src.BitsPerSample = nullIntTolerant(bitsPerSample)
+	src.SampleRate = nullIntTolerant(sampleRate)
+	src.Channels = nullIntTolerant(channels)
+	src.BPM = nullIntTolerant(bpm)
 	src.MusicBrainzID = nullString(mbID)
 	src.MusicBrainzTrackID = nullString(mbTrackID)
 	src.MusicBrainzWorkID = nullString(mbWorkID)
@@ -340,6 +345,16 @@ func nullInt(v sql.NullInt64) *int {
 	}
 	n := int(v.Int64)
 	return &n
+}
+
+// nullIntTolerant is nullInt for the db.NullInt64 columns that may hold
+// v1-written fractional REALs (duration, format numbers).
+func nullIntTolerant(v db.NullInt64) *int {
+	if n, ok := v.Value(); ok {
+		i := int(n)
+		return &i
+	}
+	return nil
 }
 
 func nullFloat(v sql.NullFloat64) *float64 {
