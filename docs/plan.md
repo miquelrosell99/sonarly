@@ -36,7 +36,9 @@ Phases:
 - [x] P5 — playback ✅ (`1f7c6ae`): StreamingService (direct + transcode per approved S2 design, semaphore 503+Retry-After, scope+active→404), transactional scrobble with B13 validation, scoped bookmarks. Caught a scaffold bug: global chi Timeout(60s) would have killed ffmpeg mid-song. 89 passing tests.
 - [x] P6 — playlists (static + smart compiler) + sharing policy ✅ (`c700899`): ONE `policy.Resolve` for every surface (replaces v1's divergent copies), transactional rewrites, owner-only share tokens, bounded grant cache, compiler fully parameterized with 400s on bogus fields + secondary-genre matching + `inPlaylist` ownership checks, anonymous token streaming wired through the same policy. 77 new tests.
 - [x] P6.5 — OpenSubsonic adapter skeleton + quirks checklist ✅ (`ff2692b`): 61-quirk checklist with v1 file:line evidence and preserve/fix/defer decisions; envelope + auth hook + system endpoints working; DTO shape layer for P9; v1 won two brief conflicts (anonymous → code 10; `p=` → 10). 237 tests green.
-- [ ] P7 — ingestion: uploads (streaming reassembly), ingest pipeline, duplicates, organize
+- [ ] P7 — ingestion
+  - [x] P7a — uploads ✅ (`afe8c19`): streaming reassembly (memory-bounded), typed 400s, idempotent complete, stale-session + orphan-dir GC. 20 tests.
+  - [ ] P7b — ingest pipeline + duplicates + organize
 - [ ] P8 — search (FTS5 — verified on modernc.org/sqlite 2026-09-24) + statistics + home/auto-dj
 - [ ] P9 — OpenSubsonic adapter full parity (43 endpoints) against the quirks checklist — budgeted as the largest phase, not an afterthought
 - [ ] **S3 — contract spike (gates Track 3)**: OpenAPI from Go routes + client codegen (DR-2 risk 2)
