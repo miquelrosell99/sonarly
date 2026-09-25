@@ -89,7 +89,7 @@ func (s *Service) ListBookmarks(ctx context.Context, id auth.Identity) ([]Bookma
 // PK (user_id, song_id), position and comment replaced, updated_at bumped).
 // The song must be active and in scope, else ErrNotFound.
 func (s *Service) PutBookmark(ctx context.Context, id auth.Identity, songID string, position int, comment *string) error {
-	if _, err := s.loadPlayableSong(ctx, id, songID); err != nil {
+	if _, err := s.loadPlayableSong(ctx, id, songID, ""); err != nil {
 		return err
 	}
 	var commentValue any
@@ -112,7 +112,7 @@ func (s *Service) PutBookmark(ctx context.Context, id auth.Identity, songID stri
 // not an error; only an unplayable (missing/inactive/out-of-scope) song id
 // answers ErrNotFound.
 func (s *Service) DeleteBookmark(ctx context.Context, id auth.Identity, songID string) error {
-	if _, err := s.loadPlayableSong(ctx, id, songID); err != nil {
+	if _, err := s.loadPlayableSong(ctx, id, songID, ""); err != nil {
 		return err
 	}
 	_, err := s.db.ExecContext(ctx,
