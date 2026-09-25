@@ -18,6 +18,7 @@ import (
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/catalog"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/library"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/playback"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/system"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/users"
 )
@@ -58,6 +59,16 @@ func run() error {
 	users.NewHandler(users.NewService(database, sessionStore, cfg.SessionSecret), sessionStore, authMW, cfg.SessionSecret, cfg.SessionCookieSecure).
 		Routes(srv.Router())
 	catalog.NewHandler(catalog.NewService(database), authMW).Routes(srv.Router())
+
+	// Playback (P5): streaming (direct + capped transcode), scrobble, and
+	// bookmarks. The transcode semaphore and ffmpeg path are configurable;
+	// the stream routes carry the /api/stream/ prefix, which httpserver
+	// exempts from the global API timeout (a wall-clock deadline would kill
+	// ffmpeg mid-song — disconnect handling and the semaphore bound streams).
+	playback.NewHandler(playback.NewService(database, playback.Options{
+		MaxConcurrentTranscodes: cfg.TranscodeConcurrency,
+		FFmpegPath:              cfg.FFmpegPath,
+	}, log), authMW).Routes(srv.Router())
 
 	// Library runtime (P4b): job queue, worker, filesystem watcher and
 	// scheduler, all context-driven so shutdown stops a scan between songs.
