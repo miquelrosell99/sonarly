@@ -136,6 +136,22 @@ func (f *fixture) cookie(t *testing.T, userID string) *http.Cookie {
 	return rec.Result().Cookies()[0]
 }
 
+// waitForClientCount polls the broker's subscriber count until it reaches
+// want. The SSE subscribe/unsubscribe path runs on server goroutines that
+// share the CPU with every other package's test binary under `go test
+// ./...`; a fixed no-wait assertion races under that load.
+func waitForClientCount(t *testing.T, b *Broker, want int) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if b.ClientCount() == want {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("subscriber count never reached %d (now %d)", want, b.ClientCount())
+}
+
 // readEvent parses one SSE event (event: + data: lines) from the stream.
 func readEvent(t *testing.T, scanner *bufio.Scanner) Event {
 	t.Helper()
@@ -167,11 +183,12 @@ func readEvent(t *testing.T, scanner *bufio.Scanner) Event {
 func TestStreamSendsConnectedJobEventAndHeartbeat(t *testing.T) {
 	f := newFixture(t)
 	ctx, cancel := context.WithCancel(context.Background())
+	srv := httptest.NewServer(f.router)
+	// LIFO: cancel the broker before closing the server, so a failed
+	// assertion can never leave Close waiting on a live SSE connection.
+	defer srv.Close()
 	defer cancel()
 	go f.broker.Run(ctx)
-
-	srv := httptest.NewServer(f.router)
-	defer srv.Close()
 
 	req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/events", nil)
 	if err != nil {
@@ -186,9 +203,7 @@ func TestStreamSendsConnectedJobEventAndHeartbeat(t *testing.T) {
 	if ct := resp.Header.Get("Content-Type"); ct != "text/event-stream" {
 		t.Fatalf("content type: %q", ct)
 	}
-	if f.broker.ClientCount() != 1 {
-		t.Fatalf("subscriber registered: %d", f.broker.ClientCount())
-	}
+	waitForClientCount(t, f.broker, 1)
 
 	scanner := bufio.NewScanner(resp.Body)
 	connected := readEvent(t, scanner)
@@ -219,11 +234,10 @@ func TestStreamSendsConnectedJobEventAndHeartbeat(t *testing.T) {
 func TestStreamDisconnectCleansUp(t *testing.T) {
 	f := newFixture(t)
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go f.broker.Run(ctx)
-
 	srv := httptest.NewServer(f.router)
 	defer srv.Close()
+	defer cancel() // runs before Close: never let Close wait on the SSE conn
+	go f.broker.Run(ctx)
 
 	req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/events", nil)
 	if err != nil {
@@ -234,20 +248,12 @@ func TestStreamDisconnectCleansUp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open stream: %v", err)
 	}
-	if f.broker.ClientCount() != 1 {
-		t.Fatalf("subscriber registered: %d", f.broker.ClientCount())
-	}
+	waitForClientCount(t, f.broker, 1)
 
 	// Client disconnect: the handler's context ends and the deferred
 	// unsubscribe runs.
 	resp.Body.Close()
-	deadline := time.Now().Add(2 * time.Second)
-	for f.broker.ClientCount() != 0 && time.Now().Before(deadline) {
-		time.Sleep(10 * time.Millisecond)
-	}
-	if f.broker.ClientCount() != 0 {
-		t.Fatalf("disconnect must unsubscribe, %d remain", f.broker.ClientCount())
-	}
+	waitForClientCount(t, f.broker, 0)
 }
 
 func TestStreamSessionOnlyAuth(t *testing.T) {
@@ -293,10 +299,10 @@ func TestStreamSessionOnlyAuth(t *testing.T) {
 func TestStreamFanoutToMultipleClients(t *testing.T) {
 	f := newFixture(t)
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go f.broker.Run(ctx)
 	srv := httptest.NewServer(f.router)
 	defer srv.Close()
+	defer cancel()
+	go f.broker.Run(ctx)
 
 	open := func() (*http.Response, *bufio.Scanner) {
 		t.Helper()
@@ -316,9 +322,7 @@ func TestStreamFanoutToMultipleClients(t *testing.T) {
 	defer respA.Body.Close()
 	respB, scannerB := open()
 	defer respB.Body.Close()
-	if f.broker.ClientCount() != 2 {
-		t.Fatalf("two subscribers: %d", f.broker.ClientCount())
-	}
+	waitForClientCount(t, f.broker, 2)
 
 	readEvent(t, scannerA)
 	readEvent(t, scannerB)

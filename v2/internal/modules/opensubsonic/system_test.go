@@ -215,8 +215,9 @@ func TestUnknownRouteEnvelopedError(t *testing.T) {
 	app.seedUser(t, testUserID, testUser, testPass, false)
 
 	// E5: unknown /rest/* answers an enveloped error 0 instead of v1's bare
-	// Fastify 404 — Subsonic clients get a parseable envelope.
-	rec := app.get(t, authedURL("/rest/getAlbum.view", ""), nil)
+	// Fastify 404 — Subsonic clients get a parseable envelope. getStarred
+	// lands in P9b, so it is still unknown here.
+	rec := app.get(t, authedURL("/rest/getStarred.view", ""), nil)
 	env := assertFailed(t, rec, CodeNotImplemented)
 	errObj := env["error"].(map[string]any)
 	if errObj["message"] != "Not implemented" {
@@ -231,7 +232,7 @@ func TestUnknownRouteXML(t *testing.T) {
 	app := newTestApp(t)
 	app.seedUser(t, testUserID, testUser, testPass, false)
 
-	rec := app.get(t, authedURL("/rest/getAlbum.view", "&f=xml"), nil)
+	rec := app.get(t, authedURL("/rest/getStarred.view", "&f=xml"), nil)
 	body := rec.Body.String()
 	if !strings.Contains(body, `status="failed"`) || !strings.Contains(body, `code="0"`) {
 		t.Fatalf("unknown-route XML envelope: %s", body)

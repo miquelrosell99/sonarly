@@ -98,10 +98,13 @@ func mountRoutes(ctx context.Context, srv *httpserver.Server, database *sql.DB, 
 	home.NewHandler(home.NewService(database), authMW).Routes(srv.Router())
 	autodj.NewHandler(autodj.NewService(database), authMW).Routes(srv.Router())
 
-	// OpenSubsonic adapter (P6.5): /rest foundation — envelope, auth hook,
-	// system endpoints, serializer DTOs. The hook runs inside the group,
-	// after the shared session middleware it leans on for cookie identity.
-	opensubsonic.NewHandler(database, authMW, cfg.SessionSecret).Routes(srv.Router())
+	// OpenSubsonic adapter (P6.5 foundation, P9a browsing/retrieval): /rest
+	// envelope, auth hook, system endpoints, then the 24 browsing/retrieval
+	// endpoints against the quirks doc. stream/download delegate to the P5
+	// playback service; the library path feeds getMusicFolders' basename
+	// fallback. The hook runs inside the group, after the shared session
+	// middleware it leans on for cookie identity.
+	opensubsonic.NewHandler(database, authMW, cfg.SessionSecret, cfg.LibraryPath, playbackService).Routes(srv.Router())
 
 	// Library runtime (P4b): job queue, worker, filesystem watcher and
 	// scheduler, all context-driven so shutdown stops a scan between songs.
