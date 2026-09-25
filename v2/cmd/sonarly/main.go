@@ -18,6 +18,7 @@ import (
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/catalog"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/library"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/opensubsonic"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/playback"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/playlists"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/system"
@@ -76,6 +77,11 @@ func run() error {
 		MaxConcurrentTranscodes: cfg.TranscodeConcurrency,
 		FFmpegPath:              cfg.FFmpegPath,
 	}, log, playlistPolicy), authMW).Routes(srv.Router())
+
+	// OpenSubsonic adapter (P6.5): /rest foundation — envelope, auth hook,
+	// system endpoints, serializer DTOs. The hook runs inside the group,
+	// after the shared session middleware it leans on for cookie identity.
+	opensubsonic.NewHandler(database, authMW, cfg.SessionSecret).Routes(srv.Router())
 
 	// Library runtime (P4b): job queue, worker, filesystem watcher and
 	// scheduler, all context-driven so shutdown stops a scan between songs.
