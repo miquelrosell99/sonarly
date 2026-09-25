@@ -19,6 +19,7 @@ import (
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/catalog"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/library"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/playback"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/playlists"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/system"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/users"
 )
@@ -60,6 +61,12 @@ func run() error {
 		Routes(srv.Router())
 	catalog.NewHandler(catalog.NewService(database), authMW).Routes(srv.Router())
 
+	// Playlists (P6): static + smart playlists, per-user shares, link
+	// sharing, and THE single access policy — the streaming endpoint's
+	// share-token hook and (in P9) the OpenSubsonic adapter consult it.
+	playlistPolicy := playlists.NewPolicy()
+	playlists.NewHandler(playlists.NewService(database, playlistPolicy), authMW).Routes(srv.Router())
+
 	// Playback (P5): streaming (direct + capped transcode), scrobble, and
 	// bookmarks. The transcode semaphore and ffmpeg path are configurable;
 	// the stream routes carry the /api/stream/ prefix, which httpserver
@@ -68,7 +75,7 @@ func run() error {
 	playback.NewHandler(playback.NewService(database, playback.Options{
 		MaxConcurrentTranscodes: cfg.TranscodeConcurrency,
 		FFmpegPath:              cfg.FFmpegPath,
-	}, log), authMW).Routes(srv.Router())
+	}, log, playlistPolicy), authMW).Routes(srv.Router())
 
 	// Library runtime (P4b): job queue, worker, filesystem watcher and
 	// scheduler, all context-driven so shutdown stops a scan between songs.
