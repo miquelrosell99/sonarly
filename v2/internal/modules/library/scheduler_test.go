@@ -174,3 +174,60 @@ func TestSchedulerPlaceholderTriggersCarryPayloads(t *testing.T) {
 		t.Fatalf("ingest payload must carry the configured path: %+v", ingest)
 	}
 }
+
+// Review cleanup ports v1's worker.scheduleReviewCleanupIfNeeded, whose
+// due-semantics DIFFER from the priming schedulers: a missing last-run
+// pushes immediately (v1 treats it as 0), and the success mark is written
+// by the cleanup handler, not the scheduler — so a pushed job must not be
+// re-pushed while pending, and the setting stays untouched here.
+func TestReviewCleanupSchedulerDueSemantics(t *testing.T) {
+	database := openDB(t)
+	scheduler := newScheduler(t, database, library.SchedulerOptions{ReviewCleanupInterval: 24 * time.Hour})
+	ctx := context.Background()
+
+	// No last_review_cleanup: v1 fires immediately rather than priming.
+	if err := scheduler.Tick(ctx, schedulerStart); err != nil {
+		t.Fatalf("tick: %v", err)
+	}
+	if got := countRows(t, database, `SELECT COUNT(1) FROM scan_jobs WHERE type = 'cleanup_review'`); got != 1 {
+		t.Fatalf("first review-cleanup tick must enqueue: %d jobs", got)
+	}
+
+	// Pending job: no stacking. The scheduler does not mark the last run
+	// (the handler does on success), so the pending guard is what prevents
+	// duplicates — exactly v1's hasPendingOrRunningReviewCleanup.
+	if err := scheduler.Tick(ctx, schedulerStart.Add(time.Hour)); err != nil {
+		t.Fatalf("tick: %v", err)
+	}
+	if got := countRows(t, database, `SELECT COUNT(1) FROM scan_jobs WHERE type = 'cleanup_review'`); got != 1 {
+		t.Fatalf("pending cleanup_review job must not stack: %d", got)
+	}
+
+	// Recent last run (as the handler would write): no new job.
+	if _, err := database.Exec(
+		`INSERT INTO settings (key, value) VALUES ('last_review_cleanup', ?)
+		 ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+		schedulerStart.Add(2*time.Hour).Format(time.RFC3339)); err != nil {
+		t.Fatalf("write last run: %v", err)
+	}
+	if err := scheduler.Tick(ctx, schedulerStart.Add(3*time.Hour)); err != nil {
+		t.Fatalf("tick: %v", err)
+	}
+	if got := countRows(t, database, `SELECT COUNT(1) FROM scan_jobs WHERE type = 'cleanup_review'`); got != 1 {
+		t.Fatalf("recent last run must suppress the trigger: %d", got)
+	}
+
+	// Interval elapsed, the earlier job already executed (the handler wrote
+	// last_review_cleanup and the worker completed the row): exactly one
+	// more job.
+	if _, err := database.Exec(
+		`UPDATE scan_jobs SET status = 'completed' WHERE type = 'cleanup_review'`); err != nil {
+		t.Fatalf("complete job: %v", err)
+	}
+	if err := scheduler.Tick(ctx, schedulerStart.Add(30*time.Hour)); err != nil {
+		t.Fatalf("tick: %v", err)
+	}
+	if got := countRows(t, database, `SELECT COUNT(1) FROM scan_jobs WHERE type = 'cleanup_review'`); got != 2 {
+		t.Fatalf("elapsed interval must enqueue again: %d", got)
+	}
+}

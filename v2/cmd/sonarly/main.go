@@ -17,6 +17,7 @@ import (
 	"github.com/miquelrosell99/sonarly/v2/internal/httpserver"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/catalog"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/ingest"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/library"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/opensubsonic"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/playback"
@@ -91,15 +92,28 @@ func run() error {
 	}
 	libraryQueue := library.NewQueue(database)
 	libraryWorker := library.NewWorker(libraryQueue, library.NewScanner(database, log, cfg.LibraryPath), log)
+	// Ingest pipeline (P7b): the typed ingest/organize/cleanup_review job
+	// handlers live in the ingest module and register here, so the worker
+	// dispatches without the library package importing downstream modules.
+	ingestService := ingest.NewService(database, log, libraryQueue, ingest.Options{
+		IngestPath:          cfg.IngestPath,
+		LibraryPath:         cfg.LibraryPath,
+		ReviewRetentionDays: cfg.ReviewRetentionDays,
+	})
+	libraryWorker.Register(library.JobTypeIngest, ingestService.RunIngestJob)
+	libraryWorker.Register(library.JobTypeOrganize, ingestService.RunOrganizeJob)
+	libraryWorker.Register(library.JobTypeCleanupReview, ingestService.RunReviewCleanupJob)
 	go libraryWorker.Start(ctx)
 	go library.NewWatcher(database, libraryQueue, log, cfg.WatchPollInterval, cfg.LibraryPath).Run(ctx)
 	go library.NewScheduler(database, libraryQueue, log, library.SchedulerOptions{
-		ScanInterval:        cfg.ScanInterval,
-		ArtistImageInterval: cfg.ArtistImageInterval,
-		IngestInterval:      cfg.IngestInterval,
-		IngestPath:          cfg.IngestPath,
+		ScanInterval:          cfg.ScanInterval,
+		ArtistImageInterval:   cfg.ArtistImageInterval,
+		IngestInterval:        cfg.IngestInterval,
+		ReviewCleanupInterval: cfg.ReviewCleanupInterval,
+		IngestPath:            cfg.IngestPath,
 	}).Run(ctx)
 	library.NewHandler(libraryQueue, authMW).Routes(srv.Router())
+	ingest.NewHandler(ingestService, authMW, cfg.IngestPath).Routes(srv.Router())
 	// Boot push of the initial scan (v1 parity); coalesces with a scan left
 	// pending by a previous run instead of queueing a duplicate.
 	if _, err := libraryQueue.Push(ctx, library.JobTypeScan, library.ScanPayload{}); err != nil {
