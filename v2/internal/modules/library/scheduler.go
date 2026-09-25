@@ -23,14 +23,16 @@ const (
 	settingLastPeriodicScan    = "last_periodic_scan"
 	settingLastArtistImageSync = "last_artist_image_sync"
 	settingLastPeriodicIngest  = "last_periodic_ingest"
+	settingLastReviewCleanup   = "last_review_cleanup"
 )
 
 // SchedulerOptions carries the per-trigger intervals; zero disables.
 type SchedulerOptions struct {
-	ScanInterval        time.Duration
-	ArtistImageInterval time.Duration
-	IngestInterval      time.Duration
-	IngestPath          string
+	ScanInterval          time.Duration
+	ArtistImageInterval   time.Duration
+	IngestInterval        time.Duration
+	ReviewCleanupInterval time.Duration
+	IngestPath            string
 }
 
 // Scheduler fires periodic jobs.
@@ -50,7 +52,8 @@ func (s *Scheduler) Run(ctx context.Context) {
 	s.log.InfoContext(ctx, "scheduler started",
 		"scan_interval", s.options.ScanInterval.String(),
 		"artist_image_interval", s.options.ArtistImageInterval.String(),
-		"ingest_interval", s.options.IngestInterval.String())
+		"ingest_interval", s.options.IngestInterval.String(),
+		"review_cleanup_interval", s.options.ReviewCleanupInterval.String())
 	ticker := time.NewTicker(schedulerTick)
 	defer ticker.Stop()
 	for {
@@ -75,7 +78,10 @@ func (s *Scheduler) Tick(ctx context.Context, now time.Time) error {
 	if err := s.tickArtistImages(ctx, now); err != nil {
 		return err
 	}
-	return s.tickIngest(ctx, now)
+	if err := s.tickIngest(ctx, now); err != nil {
+		return err
+	}
+	return s.tickReviewCleanup(ctx, now)
 }
 
 func (s *Scheduler) tickScan(ctx context.Context, now time.Time) error {
@@ -132,6 +138,35 @@ func (s *Scheduler) tickIngest(ctx context.Context, now time.Time) error {
 		return err
 	}
 	return s.markRan(ctx, settingLastPeriodicIngest, now)
+}
+
+// tickReviewCleanup ports v1's worker.scheduleReviewCleanupIfNeeded. Unlike
+// the priming schedulers above, a missing or unparseable last-run timestamp
+// means DUE (v1 treats it as 0 and pushes immediately); the success mark is
+// written by the cleanup handler when the job finishes, not here.
+func (s *Scheduler) tickReviewCleanup(ctx context.Context, now time.Time) error {
+	if s.options.ReviewCleanupInterval <= 0 {
+		return nil
+	}
+	raw, err := getSetting(ctx, s.db, settingLastReviewCleanup)
+	if err != nil {
+		return err
+	}
+	var last time.Time
+	if raw != "" {
+		if parsed, err := time.Parse(time.RFC3339, raw); err == nil {
+			last = parsed
+		}
+	}
+	if now.Sub(last) < s.options.ReviewCleanupInterval {
+		return nil
+	}
+	pending, err := s.hasPendingOrRunning(ctx, JobTypeCleanupReview)
+	if err != nil || pending {
+		return err
+	}
+	_, err = s.queue.Push(ctx, JobTypeCleanupReview, struct{}{})
+	return err
 }
 
 // due reports whether the trigger's interval has elapsed since its persisted
