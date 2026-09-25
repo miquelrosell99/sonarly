@@ -4,8 +4,9 @@
 > Gate: plan.md S1 — gates P4 (library runtime). Deliverable per plan: *"an
 > explicit accept/reject list of every tag semantic v1 supports, with product
 > sign-off"* — not "it works".
-> Status: **spike complete — awaiting product sign-off on the sign-off list in
-> §6.**
+> Status: **spike complete — sign-off list APPROVED by product owner 2026-09-25
+> (W1/W2/W4 patches land in the owned fork before P4 ships; W5 built as
+> part of the scanner; dead-SYLT / LRC-parity model accepted).**
 
 ---
 
