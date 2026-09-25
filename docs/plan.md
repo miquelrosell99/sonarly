@@ -41,7 +41,7 @@ Phases:
   - [x] P7b — ingest pipeline + duplicates + organize ✅ (`d42dad4`): shared `library.PersistSong` (one data path with the scanner, P4b green), five duplicate strategies ported faithfully, organize job with prefix-trap handling, review quarantine + daily cleanup, conflicts B5 fix, end-to-end trigger→worker test. Fixed a single-connection pool deadlock found under test. 28 new test functions.
 - [x] P8 — search (FTS5) + statistics + home/auto-dj ✅ (`4ed00e3`): FTS5 synced inside PersistSong transactions (modernc external-content footguns documented); statistics consolidated to 6 statements vs v1's ~20 with query budgets pinned by tests; auto-dj errors 502 not silent-200; SSE + all-client players via injected Recorder. 57 new tests.
 - [ ] P9 — OpenSubsonic adapter full parity (43 endpoints) against the quirks checklist — budgeted as the largest phase, not an afterthought
-- [ ] **S3 — contract spike (gates Track 3)**: OpenAPI from Go routes + client codegen (DR-2 risk 2)
+- [x] **S3 — contract spike (gates Track 3)** ✅ DONE (`57b355d`): OpenAPI 3.1 spec for the entire native API (50 paths/63 ops, lint-clean) with a chi.Walk coverage test in both directions (drift fails the build); TS codegen proof typechecks. **Track 3 (frontend audit) is now UNBLOCKED** — runs in parallel with P9. Noted gap: `/api/avatars/{id}` (v1 parity) has no v2 route yet.
 - [ ] P10 — parity test suite + cutover evaluation
 - [ ] **P10b — v1→v2 data migration + dual-run**: import a production v1 DB snapshot into v2, diff library state end-to-end (songs/albums/artists/playlists/history/ratings), run v2 alongside v1 against the real library, write the rollback story. Cutover is not discussed without this phase passing
 
