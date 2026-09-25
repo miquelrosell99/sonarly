@@ -34,6 +34,26 @@ type Options struct {
 	FFmpegPath string
 }
 
+// StreamEvent describes one authorized stream for the recorder hook: the
+// playback module defines the type and the Recorder interface, downstream
+// modules (players) implement it, and main.go registers the implementation
+// — no import cycle.
+type StreamEvent struct {
+	SongID   string
+	Title    string
+	ArtistID *string
+	AlbumID  *string
+	Duration *int
+}
+
+// Recorder observes every stream the service serves (v2's deviation from
+// v1, whose tracker only saw OpenSubsonic clients — v2 records ALL
+// streams). Implementations must be cheap and non-blocking: the hook runs
+// on the streaming path.
+type Recorder interface {
+	RecordStream(r *http.Request, userID string, ev StreamEvent)
+}
+
 // Service is the playback domain API: streaming (direct + transcode),
 // scrobbling, and bookmarks. Layering follows the v2 convention
 // (routes → service → repository): routes parse and validate HTTP, the
@@ -45,6 +65,7 @@ type Service struct {
 	transcode *TranscodingStreamer
 	policy    *playlists.Policy
 	log       *slog.Logger
+	recorder  Recorder
 }
 
 func NewService(db *sql.DB, opts Options, log *slog.Logger, policy *playlists.Policy) *Service {
@@ -67,11 +88,20 @@ func NewService(db *sql.DB, opts Options, log *slog.Logger, policy *playlists.Po
 // code must not call Stream directly — go through Service.Stream.
 func (s *Service) TranscodingStreamer() *TranscodingStreamer { return s.transcode }
 
+// SetRecorder registers the stream observer (the players tracker in
+// main.go). Called at wiring time, before the server starts; a nil
+// recorder means "observe nothing".
+func (s *Service) SetRecorder(rec Recorder) { s.recorder = rec }
+
 // playSong is the slice of the songs row playback needs.
 type playSong struct {
 	id       string
 	filePath string
 	bitRate  int // bits per second as stored; 0 = NULL (unknown)
+	title    string
+	artistID *string
+	albumID  *string
+	duration *int
 }
 
 // loadPlayableSong resolves a song for playback: the row must exist with
@@ -125,10 +155,11 @@ func (s *Service) loadPlayableSong(ctx context.Context, id auth.Identity, songID
 // have already authorized the id.
 func (s *Service) loadActiveSong(ctx context.Context, songID string) (*playSong, error) {
 	var song playSong
-	var bitRate sql.NullInt64
+	var bitRate, duration sql.NullInt64
 	err := s.db.QueryRowContext(ctx,
-		`SELECT id, file_path, bit_rate FROM songs WHERE id = ? AND active = 1`, songID).
-		Scan(&song.id, &song.filePath, &bitRate)
+		`SELECT id, file_path, bit_rate, title, artist_id, album_id, duration
+		FROM songs WHERE id = ? AND active = 1`, songID).
+		Scan(&song.id, &song.filePath, &bitRate, &song.title, &song.artistID, &song.albumID, &duration)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -137,6 +168,10 @@ func (s *Service) loadActiveSong(ctx context.Context, songID string) (*playSong,
 	}
 	if bitRate.Valid {
 		song.bitRate = int(bitRate.Int64)
+	}
+	if duration.Valid {
+		d := int(duration.Int64)
+		song.duration = &d
 	}
 	return &song, nil
 }
@@ -184,6 +219,19 @@ func (s *Service) Stream(w http.ResponseWriter, r *http.Request, id auth.Identit
 	song, err := s.loadPlayableSong(r.Context(), id, songID, shareToken)
 	if err != nil {
 		return err
+	}
+
+	// The recorder hook sees every authorized GET stream (v2 counts ALL
+	// clients, not just Subsonic ones — the players module documents the
+	// deviation). HEAD probes never reach here.
+	if s.recorder != nil && r.Method != http.MethodHead {
+		s.recorder.RecordStream(r, id.UserID, StreamEvent{
+			SongID:   song.id,
+			Title:    song.title,
+			ArtistID: song.artistID,
+			AlbumID:  song.albumID,
+			Duration: song.duration,
+		})
 	}
 
 	decision := TranscodeDecision{}

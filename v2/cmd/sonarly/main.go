@@ -16,12 +16,18 @@ import (
 	"github.com/miquelrosell99/sonarly/v2/internal/db"
 	"github.com/miquelrosell99/sonarly/v2/internal/httpserver"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/autodj"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/catalog"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/events"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/home"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/ingest"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/library"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/opensubsonic"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/playback"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/players"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/playlists"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/search"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/statistics"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/system"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/uploads"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/users"
@@ -75,10 +81,27 @@ func run() error {
 	// the stream routes carry the /api/stream/ prefix, which httpserver
 	// exempts from the global API timeout (a wall-clock deadline would kill
 	// ffmpeg mid-song — disconnect handling and the semaphore bound streams).
-	playback.NewHandler(playback.NewService(database, playback.Options{
+	playbackService := playback.NewService(database, playback.Options{
 		MaxConcurrentTranscodes: cfg.TranscodeConcurrency,
 		FFmpegPath:              cfg.FFmpegPath,
-	}, log, playlistPolicy), authMW).Routes(srv.Router())
+	}, log, playlistPolicy)
+	// Players (P8): the tracker records EVERY stream through the playback
+	// service's recorder hook (v1 only saw Subsonic clients — the players
+	// module documents the deviation).
+	playersTracker := players.NewTracker()
+	playbackService.SetRecorder(playersTracker)
+	playback.NewHandler(playbackService, authMW).Routes(srv.Router())
+	players.NewHandler(playersTracker, database, authMW).Routes(srv.Router())
+
+	// Search, statistics, home, auto-dj (P8). Search runs on the FTS5
+	// indexes PersistSong maintains; statistics consolidates v1's ~20
+	// queries per request into six; home aggregates the five landing
+	// sections; auto-dj surfaces failures as 502 instead of v1's silent
+	// empty 200.
+	search.NewHandler(search.NewService(database), authMW).Routes(srv.Router())
+	statistics.NewHandler(statistics.NewService(database), authMW).Routes(srv.Router())
+	home.NewHandler(home.NewService(database), authMW).Routes(srv.Router())
+	autodj.NewHandler(autodj.NewService(database), authMW).Routes(srv.Router())
 
 	// OpenSubsonic adapter (P6.5): /rest foundation — envelope, auth hook,
 	// system endpoints, serializer DTOs. The hook runs inside the group,
@@ -119,6 +142,14 @@ func run() error {
 	if _, err := libraryQueue.Push(ctx, library.JobTypeScan, library.ScanPayload{}); err != nil {
 		log.WarnContext(ctx, "initial scan enqueue failed", "err", err)
 	}
+
+	// Server-sent events (P8): the broker fans the worker's job-completion
+	// channel out to /api/events clients (session auth only; 30s heartbeat;
+	// library:changed on content-changing jobs). The SSE route is exempt
+	// from the global API timeout in httpserver, like /api/stream/.
+	eventsBroker := events.NewBroker(libraryWorker.Events(), log)
+	go eventsBroker.Run(ctx)
+	events.NewHandler(eventsBroker, authMW).Routes(srv.Router())
 
 	// Uploads (P7a): chunked upload sessions with streaming reassembly (the
 	// audit's F10/B11 fixes) and a stale-session sweeper v1 never had.
