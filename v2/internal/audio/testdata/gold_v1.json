@@ -1,0 +1,1827 @@
+{
+  "pathological-id3v1.mp3": {
+    "format": {
+      "tagTypes": [
+        "ID3v1"
+      ],
+      "trackInfo": [],
+      "lossless": false,
+      "hasAudio": true,
+      "hasVideo": false,
+      "container": "MPEG",
+      "codec": "MPEG 1 Layer 3",
+      "sampleRate": 44100,
+      "numberOfChannels": 2,
+      "bitrate": 128000,
+      "codecProfile": "CBR",
+      "numberOfSamples": 138240,
+      "duration": 3.1346938775510202
+    },
+    "native": {
+      "ID3v1": [
+        {
+          "id": "title",
+          "value": "Café naïve"
+        },
+        {
+          "id": "artist",
+          "value": "Björk  stray ÿ"
+        },
+        {
+          "id": "album",
+          "value": "Séance"
+        },
+        {
+          "id": "comment",
+          "value": "Comment with é accent"
+        },
+        {
+          "id": "year",
+          "value": "1999"
+        },
+        {
+          "id": "genre",
+          "value": "Pop"
+        }
+      ]
+    },
+    "quality": {
+      "warnings": []
+    },
+    "common": {
+      "track": {
+        "no": null,
+        "of": null
+      },
+      "disk": {
+        "no": null,
+        "of": null
+      },
+      "movementIndex": {
+        "no": null,
+        "of": null
+      },
+      "title": "Café naïve",
+      "artists": [
+        "Björk  stray ÿ"
+      ],
+      "artist": "Björk  stray ÿ",
+      "album": "Séance",
+      "comment": [
+        {
+          "text": "Comment with é accent"
+        }
+      ],
+      "year": 1999,
+      "genre": [
+        "Pop"
+      ]
+    }
+  },
+  "spike.flac": {
+    "format": {
+      "tagTypes": [
+        "vorbis"
+      ],
+      "trackInfo": [],
+      "container": "FLAC",
+      "codec": "FLAC",
+      "hasAudio": true,
+      "lossless": true,
+      "numberOfChannels": 2,
+      "bitsPerSample": 16,
+      "sampleRate": 44100,
+      "duration": 3,
+      "tool": "Mutagen 1.48.1",
+      "bitrate": 0,
+      "hasVideo": false
+    },
+    "native": {
+      "vorbis": [
+        {
+          "id": "TITLE",
+          "value": "Spike Song (feat. Test)"
+        },
+        {
+          "id": "ARTIST",
+          "value": "Spike Artist One"
+        },
+        {
+          "id": "ARTIST",
+          "value": "Spike Artist Two"
+        },
+        {
+          "id": "ALBUM",
+          "value": "Spike Album"
+        },
+        {
+          "id": "ALBUMARTIST",
+          "value": "Spike Album Artist"
+        },
+        {
+          "id": "TRACKNUMBER",
+          "value": "3"
+        },
+        {
+          "id": "TRACKTOTAL",
+          "value": "12"
+        },
+        {
+          "id": "DISCNUMBER",
+          "value": "1"
+        },
+        {
+          "id": "DISCTOTAL",
+          "value": "2"
+        },
+        {
+          "id": "GENRE",
+          "value": "Jazz"
+        },
+        {
+          "id": "GENRE",
+          "value": "Fusion"
+        },
+        {
+          "id": "DATE",
+          "value": "2021-05-04"
+        },
+        {
+          "id": "COMPOSER",
+          "value": "Spike Composer One"
+        },
+        {
+          "id": "COMPOSER",
+          "value": "Spike Composer Two"
+        },
+        {
+          "id": "PRODUCER",
+          "value": "Spike Producer"
+        },
+        {
+          "id": "LABEL",
+          "value": "Spike Label"
+        },
+        {
+          "id": "RELEASETYPE",
+          "value": "album; soundtrack"
+        },
+        {
+          "id": "COMMENT",
+          "value": "Spike comment text"
+        },
+        {
+          "id": "BPM",
+          "value": "128"
+        },
+        {
+          "id": "LYRICS",
+          "value": "Plain lyrics line one\nPlain lyrics line two"
+        },
+        {
+          "id": "SYNCEDLYRICS",
+          "value": "[00:00.00]Synced line one\n[00:01.50]Synced line two\n"
+        },
+        {
+          "id": "MUSICBRAINZ_TRACKID",
+          "value": "11111111-2222-3333-4444-555555555555"
+        },
+        {
+          "id": "MUSICBRAINZ_ALBUMID",
+          "value": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        },
+        {
+          "id": "MUSICBRAINZ_ARTISTID",
+          "value": "aaaaaaaa-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "MUSICBRAINZ_ARTISTID",
+          "value": "bbbbbbbb-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "MUSICBRAINZ_ALBUMARTISTID",
+          "value": "cccccccc-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "MUSICBRAINZ_RELEASEGROUPID",
+          "value": "dddddddd-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "BARCODE",
+          "value": "1234567890123"
+        },
+        {
+          "id": "ASIN",
+          "value": "B0C0SPIKE0"
+        },
+        {
+          "id": "ISRC",
+          "value": "USS1O210001"
+        },
+        {
+          "id": "REPLAYGAIN_TRACK_GAIN",
+          "value": "-7.03 dB"
+        },
+        {
+          "id": "REPLAYGAIN_ALBUM_GAIN",
+          "value": "-6.51 dB"
+        },
+        {
+          "id": "ITUNESADVISORY",
+          "value": "1"
+        },
+        {
+          "id": "METADATA_BLOCK_PICTURE",
+          "value": {
+            "format": "image/png",
+            "dataBytes": 70
+          }
+        }
+      ]
+    },
+    "quality": {
+      "warnings": []
+    },
+    "common": {
+      "track": {
+        "no": 3,
+        "of": 12
+      },
+      "disk": {
+        "no": 1,
+        "of": 2
+      },
+      "movementIndex": {
+        "no": null,
+        "of": null
+      },
+      "title": "Spike Song (feat. Test)",
+      "artists": [
+        "Spike Artist One",
+        "Spike Artist Two"
+      ],
+      "artist": "Spike Artist One",
+      "album": "Spike Album",
+      "albumartists": [
+        "Spike Album Artist"
+      ],
+      "albumartist": "Spike Album Artist",
+      "genre": [
+        "Jazz",
+        "Fusion"
+      ],
+      "year": 2021,
+      "date": "2021-05-04",
+      "composer": [
+        "Spike Composer One",
+        "Spike Composer Two"
+      ],
+      "producer": [
+        "Spike Producer"
+      ],
+      "label": [
+        "Spike Label"
+      ],
+      "releasetype": [
+        "album; soundtrack"
+      ],
+      "comment": [
+        {
+          "text": "Spike comment text"
+        }
+      ],
+      "bpm": 128,
+      "lyrics": [
+        {
+          "contentType": 1,
+          "timeStampFormat": 0,
+          "text": "Plain lyrics line one\nPlain lyrics line two",
+          "syncText": []
+        }
+      ],
+      "musicbrainz_recordingid": "11111111-2222-3333-4444-555555555555",
+      "musicbrainz_albumid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      "musicbrainz_artistid": [
+        "aaaaaaaa-1111-2222-3333-444444444444",
+        "bbbbbbbb-1111-2222-3333-444444444444"
+      ],
+      "musicbrainz_albumartistid": [
+        "cccccccc-1111-2222-3333-444444444444"
+      ],
+      "musicbrainz_releasegroupid": "dddddddd-1111-2222-3333-444444444444",
+      "barcode": "1234567890123",
+      "asin": "B0C0SPIKE0",
+      "isrc": [
+        "USS1O210001"
+      ],
+      "replaygain_track_gain": {
+        "dB": -7.03,
+        "ratio": 0.1981527025805098
+      },
+      "replaygain_album_gain": {
+        "dB": -6.51,
+        "ratio": 0.22335722228305316
+      },
+      "picture": [
+        {
+          "format": "image/png",
+          "dataBytes": 70
+        }
+      ]
+    }
+  },
+  "spike.m4a": {
+    "format": {
+      "tagTypes": [
+        "iTunes"
+      ],
+      "trackInfo": [
+        {
+          "codecName": "MPEG-4/AAC",
+          "type": 2,
+          "audio": {
+            "samplingFrequency": 44100,
+            "bitDepth": 16,
+            "channels": 2
+          }
+        }
+      ],
+      "container": "M4A/mp42/isom",
+      "creationTime": "1904-01-01T00:00:00.000Z",
+      "modificationTime": "1904-01-01T00:00:00.000Z",
+      "codec": "MPEG-4/AAC",
+      "sampleRate": 44100,
+      "bitsPerSample": 16,
+      "numberOfChannels": 2,
+      "lossless": false,
+      "duration": 3,
+      "bitrate": 800,
+      "hasAudio": true,
+      "hasVideo": false
+    },
+    "native": {
+      "iTunes": [
+        {
+          "id": "©nam",
+          "value": "Spike Song (feat. Test)"
+        },
+        {
+          "id": "©ART",
+          "value": "Spike Artist One"
+        },
+        {
+          "id": "©ART",
+          "value": "Spike Artist Two"
+        },
+        {
+          "id": "aART",
+          "value": "Spike Album Artist"
+        },
+        {
+          "id": "©alb",
+          "value": "Spike Album"
+        },
+        {
+          "id": "trkn",
+          "value": "3/12"
+        },
+        {
+          "id": "disk",
+          "value": "1/2"
+        },
+        {
+          "id": "©gen",
+          "value": "Jazz"
+        },
+        {
+          "id": "©gen",
+          "value": "Fusion"
+        },
+        {
+          "id": "©day",
+          "value": "2021-05-04"
+        },
+        {
+          "id": "©wrt",
+          "value": "Spike Composer One"
+        },
+        {
+          "id": "©wrt",
+          "value": "Spike Composer Two"
+        },
+        {
+          "id": "©lyr",
+          "value": "Plain lyrics line one\nPlain lyrics line two"
+        },
+        {
+          "id": "©cmt",
+          "value": "Spike comment text"
+        },
+        {
+          "id": "©too",
+          "value": "sonarly-s1-spike"
+        },
+        {
+          "id": "covr",
+          "value": {
+            "format": "image/png",
+            "dataBytes": 70
+          }
+        },
+        {
+          "id": "cpil",
+          "value": 1
+        },
+        {
+          "id": "rtng",
+          "value": 1
+        },
+        {
+          "id": "tmpo",
+          "value": 128
+        },
+        {
+          "id": "----:com.apple.iTunes:MusicBrainz Track Id",
+          "value": "11111111-2222-3333-4444-555555555555"
+        },
+        {
+          "id": "----:com.apple.iTunes:MusicBrainz Album Id",
+          "value": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        },
+        {
+          "id": "----:com.apple.iTunes:MusicBrainz Release Group Id",
+          "value": "dddddddd-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "----:com.apple.iTunes:MusicBrainz Artist Id",
+          "value": "aaaaaaaa-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "----:com.apple.iTunes:MusicBrainz Artist Id",
+          "value": "bbbbbbbb-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "----:com.apple.iTunes:MusicBrainz Album Artist Id",
+          "value": "cccccccc-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "----:com.apple.iTunes:BARCODE",
+          "value": "1234567890123"
+        },
+        {
+          "id": "----:com.apple.iTunes:ASIN",
+          "value": "B0C0SPIKE0"
+        },
+        {
+          "id": "----:com.apple.iTunes:ISRC",
+          "value": "USS1O210001"
+        },
+        {
+          "id": "----:com.apple.iTunes:PRODUCER",
+          "value": "Spike Producer"
+        },
+        {
+          "id": "----:com.apple.iTunes:LABEL",
+          "value": "Spike Label"
+        },
+        {
+          "id": "----:com.apple.iTunes:MusicBrainz Album Type",
+          "value": "album; soundtrack"
+        },
+        {
+          "id": "----:com.apple.iTunes:replaygain_track_gain",
+          "value": "-7.03 dB"
+        },
+        {
+          "id": "----:com.apple.iTunes:replaygain_album_gain",
+          "value": "-6.51 dB"
+        },
+        {
+          "id": "----:com.apple.iTunes:SYNCEDLYRICS",
+          "value": "[00:00.00]Synced line one\n[00:01.50]Synced line two\n"
+        }
+      ]
+    },
+    "quality": {
+      "warnings": []
+    },
+    "common": {
+      "track": {
+        "no": 3,
+        "of": 12
+      },
+      "disk": {
+        "no": 1,
+        "of": 2
+      },
+      "movementIndex": {
+        "no": null,
+        "of": null
+      },
+      "title": "Spike Song (feat. Test)",
+      "artists": [
+        "Spike Artist One",
+        "Spike Artist Two"
+      ],
+      "artist": "Spike Artist One",
+      "albumartists": [
+        "Spike Album Artist"
+      ],
+      "albumartist": "Spike Album Artist",
+      "album": "Spike Album",
+      "genre": [
+        "Jazz",
+        "Fusion"
+      ],
+      "year": 2021,
+      "date": "2021-05-04",
+      "composer": [
+        "Spike Composer One",
+        "Spike Composer Two"
+      ],
+      "lyrics": [
+        {
+          "contentType": 1,
+          "timeStampFormat": 0,
+          "text": "Plain lyrics line one\nPlain lyrics line two",
+          "syncText": []
+        }
+      ],
+      "comment": [
+        {
+          "text": "Spike comment text"
+        }
+      ],
+      "encodedby": "sonarly-s1-spike",
+      "picture": [
+        {
+          "format": "image/png",
+          "dataBytes": 70
+        }
+      ],
+      "compilation": true,
+      "bpm": 128,
+      "musicbrainz_recordingid": "11111111-2222-3333-4444-555555555555",
+      "musicbrainz_albumid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      "musicbrainz_releasegroupid": "dddddddd-1111-2222-3333-444444444444",
+      "musicbrainz_artistid": [
+        "aaaaaaaa-1111-2222-3333-444444444444",
+        "bbbbbbbb-1111-2222-3333-444444444444"
+      ],
+      "musicbrainz_albumartistid": [
+        "cccccccc-1111-2222-3333-444444444444"
+      ],
+      "barcode": "1234567890123",
+      "asin": "B0C0SPIKE0",
+      "isrc": [
+        "USS1O210001"
+      ],
+      "producer": [
+        "Spike Producer"
+      ],
+      "label": [
+        "Spike Label"
+      ],
+      "releasetype": [
+        "album; soundtrack"
+      ],
+      "replaygain_track_gain": {
+        "dB": -7.03,
+        "ratio": 0.1981527025805098
+      },
+      "replaygain_album_gain": {
+        "dB": -6.51,
+        "ratio": 0.22335722228305316
+      }
+    }
+  },
+  "spike.mp3": {
+    "format": {
+      "tagTypes": [
+        "ID3v2.4"
+      ],
+      "trackInfo": [],
+      "lossless": false,
+      "hasAudio": true,
+      "hasVideo": false,
+      "container": "MPEG",
+      "codec": "MPEG 1 Layer 3",
+      "sampleRate": 44100,
+      "numberOfChannels": 2,
+      "bitrate": 128000,
+      "codecProfile": "CBR",
+      "numberOfSamples": 138240,
+      "duration": 3.1346938775510202
+    },
+    "native": {
+      "ID3v2.4": [
+        {
+          "id": "TIT2",
+          "value": "Spike Song (feat. Test)"
+        },
+        {
+          "id": "TPE1",
+          "value": "Spike Artist One"
+        },
+        {
+          "id": "TPE1",
+          "value": "Spike Artist Two"
+        },
+        {
+          "id": "TRCK",
+          "value": "3/12"
+        },
+        {
+          "id": "TALB",
+          "value": "Spike Album"
+        },
+        {
+          "id": "TPOS",
+          "value": "1/2"
+        },
+        {
+          "id": "TDRC",
+          "value": "2021-05-04"
+        },
+        {
+          "id": "TCON",
+          "value": "Jazz"
+        },
+        {
+          "id": "TCON",
+          "value": "Fusion"
+        },
+        {
+          "id": "TBPM",
+          "value": "128"
+        },
+        {
+          "id": "TPUB",
+          "value": "Spike Label"
+        },
+        {
+          "id": "TSRC",
+          "value": "USS1O210001"
+        },
+        {
+          "id": "TXXX:ASIN",
+          "value": "B0C0SPIKE0"
+        },
+        {
+          "id": "TXXX:ITUNESADVISORY",
+          "value": "1"
+        },
+        {
+          "id": "TPE2",
+          "value": "Spike Album Artist"
+        },
+        {
+          "id": "TXXX:BARCODE",
+          "value": "1234567890123"
+        },
+        {
+          "id": "COMM",
+          "value": {
+            "language": "eng",
+            "descriptor": "",
+            "text": "Spike comment text"
+          }
+        },
+        {
+          "id": "TIPL",
+          "value": {
+            "producer": [
+              "Spike Producer"
+            ]
+          }
+        },
+        {
+          "id": "TXXX:replaygain_album_gain",
+          "value": "-6.51 dB"
+        },
+        {
+          "id": "TXXX:replaygain_track_gain",
+          "value": "-7.03 dB"
+        },
+        {
+          "id": "TCOM",
+          "value": "Spike Composer One"
+        },
+        {
+          "id": "TCOM",
+          "value": "Spike Composer Two"
+        },
+        {
+          "id": "TXXX:MusicBrainz Album Type",
+          "value": "album; soundtrack"
+        },
+        {
+          "id": "SYLT",
+          "value": {
+            "descriptor": "",
+            "language": "eng",
+            "contentType": 1,
+            "timeStampFormat": 2,
+            "syncText": [
+              {
+                "text": "Synced line one",
+                "timestamp": 0
+              },
+              {
+                "text": "Synced line two",
+                "timestamp": 1500
+              }
+            ]
+          }
+        },
+        {
+          "id": "USLT",
+          "value": {
+            "language": "eng",
+            "descriptor": "",
+            "text": "Plain lyrics line one\nPlain lyrics line two"
+          }
+        },
+        {
+          "id": "TXXX:MusicBrainz Album Id",
+          "value": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        },
+        {
+          "id": "UFID",
+          "value": {
+            "owner_identifier": "http://musicbrainz.org",
+            "identifier": {
+              "0": 49,
+              "1": 49,
+              "2": 49,
+              "3": 49,
+              "4": 49,
+              "5": 49,
+              "6": 49,
+              "7": 49,
+              "8": 45,
+              "9": 50,
+              "10": 50,
+              "11": 50,
+              "12": 50,
+              "13": 45,
+              "14": 51,
+              "15": 51,
+              "16": 51,
+              "17": 51,
+              "18": 45,
+              "19": 52,
+              "20": 52,
+              "21": 52,
+              "22": 52,
+              "23": 45,
+              "24": 53,
+              "25": 53,
+              "26": 53,
+              "27": 53,
+              "28": 53,
+              "29": 53,
+              "30": 53,
+              "31": 53,
+              "32": 53,
+              "33": 53,
+              "34": 53,
+              "35": 53
+            }
+          }
+        },
+        {
+          "id": "TXXX:MusicBrainz Album Artist Id",
+          "value": "cccccccc-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "TXXX:MusicBrainz Release Group Id",
+          "value": "dddddddd-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "TXXX:SYNCED_LYRICS",
+          "value": "[00:00.00]Synced line one\n[00:01.50]Synced line two"
+        },
+        {
+          "id": "TXXX:MusicBrainz Artist Id",
+          "value": "aaaaaaaa-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "TXXX:MusicBrainz Artist Id",
+          "value": "bbbbbbbb-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "APIC",
+          "value": {
+            "format": "image/png",
+            "dataBytes": 70
+          }
+        }
+      ]
+    },
+    "quality": {
+      "warnings": [
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Invalid ID3v2.4 frame-header-ID: \u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "id3v2.4 header has empty tag type=\u0000\u0000\u0000\u0000"
+        },
+        {
+          "message": "Illegal ID3v2 tag length"
+        }
+      ]
+    },
+    "common": {
+      "track": {
+        "no": 3,
+        "of": 12
+      },
+      "disk": {
+        "no": 1,
+        "of": 2
+      },
+      "movementIndex": {
+        "no": null,
+        "of": null
+      },
+      "title": "Spike Song (feat. Test)",
+      "artists": [
+        "Spike Artist One",
+        "Spike Artist Two"
+      ],
+      "artist": "Spike Artist One",
+      "album": "Spike Album",
+      "year": 2021,
+      "date": "2021-05-04",
+      "genre": [
+        "Jazz",
+        "Fusion"
+      ],
+      "bpm": 128,
+      "label": [
+        "Spike Label"
+      ],
+      "isrc": [
+        "USS1O210001"
+      ],
+      "asin": "B0C0SPIKE0",
+      "albumartists": [
+        "Spike Album Artist"
+      ],
+      "albumartist": "Spike Album Artist",
+      "barcode": "1234567890123",
+      "comment": [
+        {
+          "language": "eng",
+          "descriptor": "",
+          "text": "Spike comment text"
+        }
+      ],
+      "replaygain_album_gain": {
+        "dB": -6.51,
+        "ratio": 0.22335722228305316
+      },
+      "replaygain_track_gain": {
+        "dB": -7.03,
+        "ratio": 0.1981527025805098
+      },
+      "composer": [
+        "Spike Composer One",
+        "Spike Composer Two"
+      ],
+      "releasetype": [
+        "album; soundtrack"
+      ],
+      "lyrics": [
+        {
+          "descriptor": "",
+          "language": "eng",
+          "contentType": 1,
+          "timeStampFormat": 2,
+          "syncText": [
+            {
+              "text": "Synced line one",
+              "timestamp": 0
+            },
+            {
+              "text": "Synced line two",
+              "timestamp": 1500
+            }
+          ]
+        },
+        {
+          "language": "eng",
+          "descriptor": "",
+          "text": "Plain lyrics line one\nPlain lyrics line two"
+        }
+      ],
+      "musicbrainz_albumid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      "musicbrainz_recordingid": "11111111-2222-3333-4444-555555555555",
+      "musicbrainz_albumartistid": [
+        "cccccccc-1111-2222-3333-444444444444"
+      ],
+      "musicbrainz_releasegroupid": "dddddddd-1111-2222-3333-444444444444",
+      "musicbrainz_artistid": [
+        "aaaaaaaa-1111-2222-3333-444444444444",
+        "bbbbbbbb-1111-2222-3333-444444444444"
+      ],
+      "picture": [
+        {
+          "format": "image/png",
+          "dataBytes": 70
+        }
+      ]
+    }
+  },
+  "spike.ogg": {
+    "format": {
+      "tagTypes": [
+        "vorbis"
+      ],
+      "trackInfo": [],
+      "container": "Ogg",
+      "codec": "Vorbis I",
+      "hasAudio": true,
+      "sampleRate": 44100,
+      "bitrate": 128000,
+      "numberOfChannels": 2,
+      "numberOfSamples": 132300,
+      "duration": 3,
+      "hasVideo": false
+    },
+    "native": {
+      "vorbis": [
+        {
+          "id": "TITLE",
+          "value": "Spike Song (feat. Test)"
+        },
+        {
+          "id": "ARTIST",
+          "value": "Spike Artist One"
+        },
+        {
+          "id": "ARTIST",
+          "value": "Spike Artist Two"
+        },
+        {
+          "id": "ALBUM",
+          "value": "Spike Album"
+        },
+        {
+          "id": "ALBUMARTIST",
+          "value": "Spike Album Artist"
+        },
+        {
+          "id": "TRACKNUMBER",
+          "value": "3"
+        },
+        {
+          "id": "TRACKTOTAL",
+          "value": "12"
+        },
+        {
+          "id": "DISCNUMBER",
+          "value": "1"
+        },
+        {
+          "id": "DISCTOTAL",
+          "value": "2"
+        },
+        {
+          "id": "GENRE",
+          "value": "Jazz"
+        },
+        {
+          "id": "GENRE",
+          "value": "Fusion"
+        },
+        {
+          "id": "DATE",
+          "value": "2021-05-04"
+        },
+        {
+          "id": "COMPOSER",
+          "value": "Spike Composer One"
+        },
+        {
+          "id": "COMPOSER",
+          "value": "Spike Composer Two"
+        },
+        {
+          "id": "PRODUCER",
+          "value": "Spike Producer"
+        },
+        {
+          "id": "LABEL",
+          "value": "Spike Label"
+        },
+        {
+          "id": "RELEASETYPE",
+          "value": "album; soundtrack"
+        },
+        {
+          "id": "COMMENT",
+          "value": "Spike comment text"
+        },
+        {
+          "id": "BPM",
+          "value": "128"
+        },
+        {
+          "id": "LYRICS",
+          "value": "Plain lyrics line one\nPlain lyrics line two"
+        },
+        {
+          "id": "SYNCEDLYRICS",
+          "value": "[00:00.00]Synced line one\n[00:01.50]Synced line two\n"
+        },
+        {
+          "id": "MUSICBRAINZ_TRACKID",
+          "value": "11111111-2222-3333-4444-555555555555"
+        },
+        {
+          "id": "MUSICBRAINZ_ALBUMID",
+          "value": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        },
+        {
+          "id": "MUSICBRAINZ_ARTISTID",
+          "value": "aaaaaaaa-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "MUSICBRAINZ_ARTISTID",
+          "value": "bbbbbbbb-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "MUSICBRAINZ_ALBUMARTISTID",
+          "value": "cccccccc-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "MUSICBRAINZ_RELEASEGROUPID",
+          "value": "dddddddd-1111-2222-3333-444444444444"
+        },
+        {
+          "id": "BARCODE",
+          "value": "1234567890123"
+        },
+        {
+          "id": "ASIN",
+          "value": "B0C0SPIKE0"
+        },
+        {
+          "id": "ISRC",
+          "value": "USS1O210001"
+        },
+        {
+          "id": "REPLAYGAIN_TRACK_GAIN",
+          "value": "-7.03 dB"
+        },
+        {
+          "id": "REPLAYGAIN_ALBUM_GAIN",
+          "value": "-6.51 dB"
+        },
+        {
+          "id": "ITUNESADVISORY",
+          "value": "1"
+        },
+        {
+          "id": "METADATA_BLOCK_PICTURE",
+          "value": {
+            "format": "image/png",
+            "dataBytes": 70
+          }
+        }
+      ]
+    },
+    "quality": {
+      "warnings": [
+        {
+          "message": "End-of-stream reached before reaching last page in Ogg stream serial=24301"
+        }
+      ]
+    },
+    "common": {
+      "track": {
+        "no": 3,
+        "of": 12
+      },
+      "disk": {
+        "no": 1,
+        "of": 2
+      },
+      "movementIndex": {
+        "no": null,
+        "of": null
+      },
+      "title": "Spike Song (feat. Test)",
+      "artists": [
+        "Spike Artist One",
+        "Spike Artist Two"
+      ],
+      "artist": "Spike Artist One",
+      "album": "Spike Album",
+      "albumartists": [
+        "Spike Album Artist"
+      ],
+      "albumartist": "Spike Album Artist",
+      "genre": [
+        "Jazz",
+        "Fusion"
+      ],
+      "year": 2021,
+      "date": "2021-05-04",
+      "composer": [
+        "Spike Composer One",
+        "Spike Composer Two"
+      ],
+      "producer": [
+        "Spike Producer"
+      ],
+      "label": [
+        "Spike Label"
+      ],
+      "releasetype": [
+        "album; soundtrack"
+      ],
+      "comment": [
+        {
+          "text": "Spike comment text"
+        }
+      ],
+      "bpm": 128,
+      "lyrics": [
+        {
+          "contentType": 1,
+          "timeStampFormat": 0,
+          "text": "Plain lyrics line one\nPlain lyrics line two",
+          "syncText": []
+        }
+      ],
+      "musicbrainz_recordingid": "11111111-2222-3333-4444-555555555555",
+      "musicbrainz_albumid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      "musicbrainz_artistid": [
+        "aaaaaaaa-1111-2222-3333-444444444444",
+        "bbbbbbbb-1111-2222-3333-444444444444"
+      ],
+      "musicbrainz_albumartistid": [
+        "cccccccc-1111-2222-3333-444444444444"
+      ],
+      "musicbrainz_releasegroupid": "dddddddd-1111-2222-3333-444444444444",
+      "barcode": "1234567890123",
+      "asin": "B0C0SPIKE0",
+      "isrc": [
+        "USS1O210001"
+      ],
+      "replaygain_track_gain": {
+        "dB": -7.03,
+        "ratio": 0.1981527025805098
+      },
+      "replaygain_album_gain": {
+        "dB": -6.51,
+        "ratio": 0.22335722228305316
+      },
+      "picture": [
+        {
+          "format": "image/png",
+          "dataBytes": 70
+        }
+      ]
+    }
+  }
+}

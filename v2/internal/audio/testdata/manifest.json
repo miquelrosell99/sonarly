@@ -1,0 +1,84 @@
+{
+  "values": {
+    "title": "Spike Song (feat. Test)",
+    "artists": [
+      "Spike Artist One",
+      "Spike Artist Two"
+    ],
+    "album": "Spike Album",
+    "albumArtist": "Spike Album Artist",
+    "track": 3,
+    "totalTracks": 12,
+    "disc": 1,
+    "totalDiscs": 2,
+    "genres": [
+      "Jazz",
+      "Fusion"
+    ],
+    "year": 2021,
+    "date": "2021-05-04",
+    "mbidRecording": "11111111-2222-3333-4444-555555555555",
+    "mbidRelease": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    "mbidArtistIds": [
+      "aaaaaaaa-1111-2222-3333-444444444444",
+      "bbbbbbbb-1111-2222-3333-444444444444"
+    ],
+    "mbidAlbumArtistId": "cccccccc-1111-2222-3333-444444444444",
+    "mbidReleaseGroup": "dddddddd-1111-2222-3333-444444444444",
+    "barcode": "1234567890123",
+    "asin": "B0C0SPIKE0",
+    "isrc": "USS1O210001",
+    "rgTrack": "-7.03 dB",
+    "rgAlbum": "-6.51 dB",
+    "explicit": true,
+    "composers": [
+      "Spike Composer One",
+      "Spike Composer Two"
+    ],
+    "producers": [
+      "Spike Producer"
+    ],
+    "label": "Spike Label",
+    "releaseType": "album; soundtrack",
+    "comment": "Spike comment text",
+    "bpm": 128,
+    "lyrics": "Plain lyrics line one\nPlain lyrics line two",
+    "syncedLyrics": [
+      [
+        0,
+        "Synced line one"
+      ],
+      [
+        1500,
+        "Synced line two"
+      ]
+    ],
+    "lrcPayload": "[00:00.00]Synced line one\n[00:01.50]Synced line two\n"
+  },
+  "formatExpectations": {
+    "spike.mp3": {
+      "sampleRate": 44100,
+      "channels": 2,
+      "bitRate": 128000,
+      "durationApprox": 3
+    },
+    "spike.flac": {
+      "sampleRate": 44100,
+      "channels": 2,
+      "bitsPerSample": 16,
+      "durationApprox": 3
+    },
+    "spike.ogg": {
+      "sampleRate": 44100,
+      "channels": 2,
+      "bitRate": 128000,
+      "durationApprox": 3
+    },
+    "spike.m4a": {
+      "sampleRate": 44100,
+      "channels": 2,
+      "bitRate": 128000,
+      "durationApprox": 3
+    }
+  }
+}
