@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/miquelrosell99/sonarly/v2/internal/db"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/playback"
 )
 
 const (
@@ -28,9 +29,10 @@ const (
 )
 
 type testApp struct {
-	db     *sql.DB
-	store  *auth.Store
-	router http.Handler
+	db       *sql.DB
+	store    *auth.Store
+	router   http.Handler
+	playback *playback.Service
 }
 
 func newTestApp(t *testing.T) *testApp {
@@ -42,10 +44,11 @@ func newTestApp(t *testing.T) *testApp {
 	t.Cleanup(func() { database.Close() })
 	store := auth.NewStore(database)
 	mw := auth.NewMiddleware(store, database, testSecret, false)
-	h := NewHandler(database, mw, testSecret)
+	svc := playback.NewService(database, playback.Options{FFmpegPath: "ffmpeg"}, nil, nil)
+	h := NewHandler(database, mw, testSecret, "/music", svc)
 	r := chi.NewRouter()
 	h.Routes(r)
-	return &testApp{db: database, store: store, router: r}
+	return &testApp{db: database, store: store, router: r, playback: svc}
 }
 
 func (a *testApp) seedUser(t *testing.T, id, username, password string, isAdmin bool) {
@@ -90,6 +93,20 @@ func (a *testApp) sessionCookie(t *testing.T, sid, userID, username string, isAd
 		t.Fatal("no cookie written")
 	}
 	return cookies[0]
+}
+
+func (a *testApp) head(t *testing.T, target string, headers map[string]string, cookies ...*http.Cookie) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodHead, target, nil)
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
+	rec := httptest.NewRecorder()
+	a.router.ServeHTTP(rec, req)
+	return rec
 }
 
 func (a *testApp) get(t *testing.T, target string, headers map[string]string, cookies ...*http.Cookie) *httptest.ResponseRecorder {
