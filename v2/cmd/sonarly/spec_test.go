@@ -2,7 +2,7 @@
 // registers) and asserts v2/api/openapi.yaml documents exactly the native
 // routes — the spec cannot drift from the code silently.
 //
-// Scope: every /api route plus /health and /ready. The OpenSubsonic adapter
+// Scope: every /api route plus /health, /healthz and /ready. The OpenSubsonic adapter
 // under /rest is a separate (Subsonic-compatible) contract and is
 // deliberately excluded: the test fails if /rest routes ever leak into the
 // spec, and fails if a registered native route is missing from it.
@@ -132,8 +132,11 @@ func specRoutes(spec *openAPISpec) map[string]bool {
 	return routes
 }
 
+// inSpecScope limits the spec contract to the native surface: the /api
+// tree plus the liveness/readiness probes. The /rest adapter is a separate
+// (Subsonic-compatible) contract and must never drift into this spec.
 func inSpecScope(route string) bool {
-	return route == "/health" || route == "/ready" || strings.HasPrefix(route, "/api/")
+	return route == "/health" || route == "/healthz" || route == "/ready" || strings.HasPrefix(route, "/api/")
 }
 
 func TestSpecCoversRouter(t *testing.T) {
