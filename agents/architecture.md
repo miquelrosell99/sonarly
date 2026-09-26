@@ -55,7 +55,7 @@ Error codes (Subsonic wire semantics):
 
 For example, `/rest/getCoverArt.view` returns a Subsonic `status: failed` response with `error.code: 70` when the requested cover art ID does not exist, rather than a plain HTTP 404.
 
-The full behavioral contract is `.audits/opensubsonic-quirks.md` (62 production-observed quirks; internal engineering record) — implement against its decisions, not the spec text alone.
+The full behavioral contract is `server/internal/modules/opensubsonic/QUIRKS.md` (62 production-observed quirks; internal engineering record) — implement against its decisions, not the spec text alone.
 
 ### Data flow
 

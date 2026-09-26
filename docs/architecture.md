@@ -103,4 +103,4 @@ Libraries are admin-managed folders in the `libraries` table; the first is seede
 
 ## OpenSubsonic compatibility
 
-`/rest/` endpoints always return a `subsonic-response` envelope, even on errors (HTTP 200 with `status:"failed"` + `error{code,message}`) — many clients abort sync on HTTP 4xx/5xx bodies. Standard codes: 10 missing auth/param, 40 bad credentials, 70 data not found / out of scope. The full behavioral contract — auth precedence, format negotiation, XML mapping, 62 per-endpoint quirks — is recorded in [`.audits/opensubsonic-quirks.md`](../.audits/opensubsonic-quirks.md) (internal engineering record).
+`/rest/` endpoints always return a `subsonic-response` envelope, even on errors (HTTP 200 with `status:"failed"` + `error{code,message}`) — many clients abort sync on HTTP 4xx/5xx bodies. Standard codes: 10 missing auth/param, 40 bad credentials, 70 data not found / out of scope. The full behavioral contract — auth precedence, format negotiation, XML mapping, 62 per-endpoint quirks — is recorded in [`server/internal/modules/opensubsonic/QUIRKS.md`](../server/internal/modules/opensubsonic/QUIRKS.md) (living engineering contract).
