@@ -3,4 +3,4 @@
 # docker/compose.yaml.example.
 # Local development: see docs/development.md — run the Go server with
 # `go run ./cmd/sonarly` from server/ and the web client with `pnpm dev` from
-# packages/web/ (vite proxies /api and /rest to localhost:3000).
+# web/ (vite proxies /api and /rest to localhost:3000).

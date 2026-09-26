@@ -347,7 +347,7 @@ sign-off):
    (audit gap: v1 native stream records nothing); vanished-file → Subsonic
    code-70 envelope (keep v1's stat-first order so ffmpeg never sees a missing
    file).
-7. Quirks-checklist entries in `docs/opensubsonic-quirks.md` (P6.5):
+7. Quirks-checklist entries in `opensubsonic-quirks.md` (P6.5):
    multi-range 416, HEAD+Range 200-full, `Accept-Ranges: none` on transcode,
    ID3v2-headed transcode bodies, 500-on-early-transcode-failure, 503 cap
    behavior, code-70 envelope.

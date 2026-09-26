@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Sonarly — all-in-one image (web build → Go build → runtime).
 #
-# Build context must be the REPO ROOT (the directory containing packages/
+# Build context must be the REPO ROOT (the directory containing web/
 # and server/), not docker/:
 #
 #   docker build -f docker/Dockerfile \

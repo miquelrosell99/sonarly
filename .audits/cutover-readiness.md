@@ -19,7 +19,7 @@ test harness on the owner's behalf.
 
 ## 1. Evidence summary
 
-### P10 — request-level parity (`docs/p10-parity-report.md`)
+### P10 — request-level parity (`p10-parity-report.md`)
 
 - **94/94 cases PASS, 0 failed, 0 blockers.** Native API + OpenSubsonic
   adapter, read and write round-trips (favorites, ratings, scrobbles,
@@ -35,7 +35,7 @@ test harness on the owner's behalf.
   index covers titles; the songs category floors at a 0.3 intersection
   ratio. Everything else compares exactly.
 
-### P10b — production dual-run on the live DB snapshot (`docs/p10b-dualrun-report.md`)
+### P10b — production dual-run on the live DB snapshot (`p10b-dualrun-report.md`)
 
 - **PASS (corrected run 2026-09-26, real library path). Stream hash
   mismatches: 0** across 6 real songs (5 flac + 1 m4a — the library
@@ -105,7 +105,7 @@ allocation/CPU concerns observed during the dual-run.
 | 7 | Performance not a regression | P10 smoke: 0.68× v1 wall time; P10b boot scan ~2 s stat-only over 7,421 files / 237.7 GiB |
 | 8 | Web client serving parity (SPA fallback, content types, cache headers, traversal containment, API-only mode) | P11 staticfs unit tests |
 | 9 | Rollback anchor exists | v1 image `ghcr.io/miquelrosell99/sonarly:latest` unchanged; rollback restores DB backup and swaps image back |
-| 10 | ~~A: stale-catalog reconciliation~~ **RESOLVED 2026-09-26** — the original dual-run pointed at the compose *fallback* directory (`config/sonarly/library`, 20 files); the real library is `LIBRARY_MUSIC=/srv/dev-disk-by-uuid-.../resources/Música` (238 GB, 7,421 files). The corrected run boot-scanned the real path: **no mass-deactivation occurs** — added=0 removed=0 failed=0, ~2 s, and the catalog diff vs. a pristine copy shows zero unexpected deltas | Corrected P10b dual-run 2026-09-26 (`docs/p10b-dualrun-report.md`) |
+| 10 | ~~A: stale-catalog reconciliation~~ **RESOLVED 2026-09-26** — the original dual-run pointed at the compose *fallback* directory (`config/sonarly/library`, 20 files); the real library is `LIBRARY_MUSIC=/srv/dev-disk-by-uuid-.../resources/Música` (238 GB, 7,421 files). The corrected run boot-scanned the real path: **no mass-deactivation occurs** — added=0 removed=0 failed=0, ~2 s, and the catalog diff vs. a pristine copy shows zero unexpected deltas | Corrected P10b dual-run 2026-09-26 (`p10b-dualrun-report.md`) |
 | 11 | Legacy fractional-numeric rows (v1-written REAL durations/bit_rates) do not 500 read paths | Found + fixed during the corrected run (playback stream loader, album-stats scan behind `search3`/`getAlbumList`); regression tests `TestLoadActiveSongToleratesLegacyFractionalNumerics`, `TestSearch3ToleratesLegacyFractionalSongNumerics` |
 
 ### Owner sign-off required — decide before cutover

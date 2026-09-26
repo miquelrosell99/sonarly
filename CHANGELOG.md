@@ -18,7 +18,7 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - **The Go binary serves everything**: web client (SPA with index.html fallback), native management REST API at `/api`, OpenSubsonic API at `/rest`, SQLite database, background jobs, SSE events.
 - Web client: domain types migrated from the retired `@sonarly/shared` package into `web/src/types/`; OpenAPI-generated contract client (`src/contract/`) consumed via react-query.
 - **Deployment**: single all-in-one image from `docker/Dockerfile` (web build → Go build → alpine runtime with ffmpeg, python3+mutagen, su-exec). Environment variables renamed to the `SONARLY_*` family (see docs/deployment.md); `docker/entrypoint.sh` handles the PUID/PGID privilege drop.
-- OpenSubsonic compatibility preserved per `docs/opensubsonic-quirks.md` (62 observed production quirks, all implemented).
+- OpenSubsonic compatibility preserved per `.audits/opensubsonic-quirks.md` (62 observed production quirks, all implemented).
 
 ### Removed
 

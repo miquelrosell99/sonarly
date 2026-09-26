@@ -2,13 +2,13 @@
 
 > **COMPLETE 2026-09-26**: this plan ran to completion — v2 (Go) is in production and the v1 TypeScript server has been removed from the codebase (kept in git history only). The document below is preserved as project history; version names in it refer to the pre- and post-rewrite codebases.
 > Last updated: 2026-09-24. Keep this file updated as tracks progress.
-> Backend audit: `docs/audits/2026-09-24-backend-architecture-audit.md` (findings F1–F16, decision record DR-1).
+> Backend audit: `2026-09-24-backend-architecture-audit.md` (findings F1–F16, decision record DR-1).
 
 ## Tracks
 
 ### Track 1 — v2 Go rewrite ✅ **MIGRATED TO PRODUCTION 2026-09-26**
 
-All phases P0–P11 complete; branch merged to main; tagged v2.0.0-rc1. Cutover executed: container healthy on :4534, first scan 7,421 files / 1.8 s / 0 removals, DB migrated in place (0001–0004), backup + rollback runbook in `docs/cutover-readiness.md`. v1 remains available via rollback only.
+All phases P0–P11 complete; branch merged to main; tagged v2.0.0-rc1. Cutover executed: container healthy on :4534, first scan 7,421 files / 1.8 s / 0 removals, DB migrated in place (0001–0004), backup + rollback runbook in `cutover-readiness.md`. v1 remains available via rollback only.
 
 Greenfield backend per DR-1 status change. **Quality bar: no hacky solutions or shortcuts in stack choice, coding, schema, or testing — with explicitly accepted trade-offs (see below), so ambition can't silently inflate later phases.**
 
@@ -30,10 +30,10 @@ Phases:
 
 - [x] P0 — scaffold: config, db+migrate, httpserver, `/health`+`/ready`, smoke-tested
 - [x] P1 — baseline schema distilled from v1 migrations (+ audit schema fixes)
-- [x] **S1 — metadata spike (gates P4)** ✅ DONE (`7f5b5aa`, verdict **GO**, **sign-off APPROVED 2026-09-25**): `dhowden/tag` + own fork (multi-value W1, m4a `rtng`/`tmpo` W2) + ~300-line pure-Go properties reader (W5) reaches full v1 parity without CGO. Deliverable: `docs/s1-metadata-findings.md` §6 sign-off list. Surprise finding: v1's native SYLT branch is dead code — synced-lyrics parity is the LRC-in-tag path.
+- [x] **S1 — metadata spike (gates P4)** ✅ DONE (`7f5b5aa`, verdict **GO**, **sign-off APPROVED 2026-09-25**): `dhowden/tag` + own fork (multi-value W1, m4a `rtng`/`tmpo` W2) + ~300-line pure-Go properties reader (W5) reaches full v1 parity without CGO. Deliverable: `s1-metadata-findings.md` §6 sign-off list. Surprise finding: v1's native SYLT branch is dead code — synced-lyrics parity is the LRC-in-tag path.
 - [x] P2 — auth + users (sessions, API keys, admin) with enforced library isolation ✅ (`e38c230`): SQLite session store, v1-wire-compatible signed cookie + AES-GCM secret box (interop-tested), fixation-safe login, TOCTOU-fixed setup, last-admin protections, session invalidation on role/password change, login throttle, Go port of the isolation policy. 49 test functions green. (Also fixed `.gitignore` blanket `config/` rule that had excluded `v2/internal/config/` since the scaffold commit.)
 - [x] P3 — catalog (artists/albums/songs/genres) + repositories + native API ✅ (`036c9f0`): read APIs fully isolation-scoped (404 details), N+1 guarded by counting-driver tests (5 queries for album+25 songs), song DTOs drop filePath/checksum (contract-tested), genre-tree pruning ported, deliberate v1 deviations documented. 25 test functions.
-- [x] **S2 — streaming spike (gates P5)** ✅ DONE (`bcc8356`, verdict **GO**, **sign-off APPROVED 2026-09-25**): stdlib-only `StreamingService → DirectStreamer/TranscodingStreamer`. Measured: direct TTFB 95 µs vs transcode 42.3 ms; disconnect→SIGKILL 3.4 ms median; semaphore cap 2 → 503+Retry-After at 2× overload, direct unaffected; RSS 9.3→13.8 MB under 20 streams + 2 transcodes. Parity guards found: Go 1.21+ `ServeContent` does multipart/byteranges (v1→416) and `bytes=-0` yields invalid Content-Range (v1→416). No v1-B12 trap in Go (spawn errors synchronous). Deliverable: `docs/s2-streaming-findings.md` §10.
+- [x] **S2 — streaming spike (gates P5)** ✅ DONE (`bcc8356`, verdict **GO**, **sign-off APPROVED 2026-09-25**): stdlib-only `StreamingService → DirectStreamer/TranscodingStreamer`. Measured: direct TTFB 95 µs vs transcode 42.3 ms; disconnect→SIGKILL 3.4 ms median; semaphore cap 2 → 503+Retry-After at 2× overload, direct unaffected; RSS 9.3→13.8 MB under 20 streams + 2 transcodes. Parity guards found: Go 1.21+ `ServeContent` does multipart/byteranges (v1→416) and `bytes=-0` yields invalid Content-Range (v1→416). No v1-B12 trap in Go (spawn errors synchronous). Deliverable: `s2-streaming-findings.md` §10.
 - [x] P4 — library runtime ✅ (`035f25a`): typed job payloads (`scan_jobs.payload`, 0002 migration), type+target coalescing, per-song transactions with unconditional junction rewrites, context-cancelled worker with `WithoutCancel` bookkeeping, pure-Go polling watcher, library-scoped deactivation, read-only scans (no user-file mutation — deliberate deviation). 30 tests incl. mid-scan cancellation over 300 files. Ingest/organize/artist_images handlers are typed placeholders landing in P6/P7.
   - [x] P4a — audio reader ✅ (`29e42c3`): vendored dhowden/tag fork with W1/W2 + an extra upstream mp4 freeform bug fix; W4 ID3v1 shim; W5 properties reader (exact parity vs gold on 4/5 corpus files); `ReadMetadata` facade with full v1 schema; S1 corpus promoted to testdata with parity tests
 - [x] P5 — playback ✅ (`1f7c6ae`): StreamingService (direct + transcode per approved S2 design, semaphore 503+Retry-After, scope+active→404), transactional scrobble with B13 validation, scoped bookmarks. Caught a scaffold bug: global chi Timeout(60s) would have killed ffmpeg mid-song. 89 passing tests.
@@ -48,7 +48,7 @@ Phases:
 - [x] **P9c — native API parity gaps** ✅ (`9894367`): admin libraries + assignment, tag editing (TagWriter over mutagen, atomic), cover-art upload with magic-byte sniff, suggestions, MB/lrclib proxies, artist-images worker, avatars (file-based per v1 evidence), admin system-tasks/missing/ingest-runs, settings, organize routes. Spec at 113 operations (159 routes coverage-tested). 549 tests.
 - [x] P10 — parity test suite + cutover evaluation ✅ (`c652f03`): dual-boot harness (seed via v1 → snapshot DB → v2 on the copy → 94-case diff script) — **94/94 green, no blockers**, report says READY FOR CUTOVER. Found+fixed 8 v2 bugs incl. the v1-DB fractional-REAL import hazard. Perf smoke ~0.7× v1 wall time.
 - [x] **P10b — v1→v2 data migration + dual-run** ✅ (`ddba131`, **corrected `bd47395` 2026-09-26**): first run used the compose *fallback* dir (20 files) — "stale catalog" was a path artifact, **no mass-deactivation awaits at cutover**. **Corrected run against the real 238 GB / 7,421-file library: PASS** — scan 2.4 s (mtime fast path), catalog delta = 1 genuinely-changed file, **0 stream hash mismatches**, read-only proof 7,421/0 files touched. Two real defects found+fixed (legacy fractional-REAL numerics 500'd `/api/stream` + `/rest/search3`). Known gap: native FTS backfill on migrated DBs — fix queued. Owner items remaining: B–E.
-- [x] **P11 — deployment-ready closeout** ✅ (`0ac375e`): static SPA serving, `docker/Dockerfile.v2` + entrypoint + compose example, `/healthz` alias, `docs/cutover-readiness.md` with go/no-go checklist. **v2 track: PARITY-COMPLETE — 33 test packages, 94/94 response parity, production dual-run PASS. Cutover is an owner decision.**
+- [x] **P11 — deployment-ready closeout** ✅ (`0ac375e`): static SPA serving, `docker/Dockerfile.v2` + entrypoint + compose example, `/healthz` alias, `cutover-readiness.md` with go/no-go checklist. **v2 track: PARITY-COMPLETE — 33 test packages, 94/94 response parity, production dual-run PASS. Cutover is an owner decision.**
 
 ### Track 2 — v1 TypeScript hardening (branch `main`)
 
@@ -62,7 +62,7 @@ Remaining Phase 2 (lower priority): ffmpeg concurrency cap + rate limiting, logi
 
 ### Track 3 — Frontend audit ✅ DONE 2026-09-25
 
-Report: `docs/audits/2026-09-25-frontend-architecture-audit.md` (24 sections, FF1–FF12). Verdict: fundamentally healthy client (excellent player subsystem, zero object-URL leaks, XSS unreachable, a11y practiced); headline problems are the split data layer (react-query vs hand-rolled → SSE invalidation misses most pages), zero code splitting (646 KB single chunk), and v2 contract gaps. Recommendation: Option B — unify on react-query, `contract/` module from the generated types, route-splitting, phased against v2.
+Report: `2026-09-25-frontend-architecture-audit.md` (24 sections, FF1–FF12). Verdict: fundamentally healthy client (excellent player subsystem, zero object-URL leaks, XSS unreachable, a11y practiced); headline problems are the split data layer (react-query vs hand-rolled → SSE invalidation misses most pages), zero code splitting (646 KB single chunk), and v2 contract gaps. Recommendation: Option B — unify on react-query, `contract/` module from the generated types, route-splitting, phased against v2.
 
 **Cross-track action from FF3/FF4**: the frozen v2 contract omits v1 parity endpoints that the client needs — favorites/ratings, `/me/preferences`, `/libraries` list, lyrics/tag editing, cover-art upload, suggestions, lrclib/musicbrainz proxies, admin libraries/missing/users extras, avatars/artist-images, organize routes. Added to v2 track as P9c (below). Also queued (from Appendix B): agents-docs sync pass (`ui-components.md` ~half inventory, `technology-stack.md` omissions).
 
@@ -690,6 +690,6 @@ Start by inspecting the repository and producing the architectural audit. Do not
 ## Appendix B — Execution notes for the frontend audit
 
 - Run the prompt against `packages/web` in the main checkout (and the v2-aware contract layer once it exists).
-- Produce the report as `docs/audits/<date>-frontend-architecture-audit.md`, linked from `docs/README.md`.
+- Produce the report as `.audits/<date>-frontend-architecture-audit.md` (internal records live in `.audits/`; user docs in `docs/`).
 - Dispatch parallel read-only exploration agents per subsystem (routing/pages, state/stores, player, styling/ui primitives, tests/tooling) before synthesizing — the same method as the backend audit.
 - The frontend audit updates `AGENTS.md` / `agents/ui-components.md` / `agents/design-language.md` where they drift from reality.
