@@ -6,10 +6,10 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const spec = resolve(here, '../../../v2/api/openapi.yaml');
+const spec = resolve(here, '../../../server/api/openapi.yaml');
 const out = resolve(here, '../src/contract/schema.ts');
 const header =
-  '// GENERATED from v2/api/openapi.yaml — do not edit; regenerate with pnpm contract:gen\n';
+  '// GENERATED from server/api/openapi.yaml — do not edit; regenerate with pnpm contract:gen\n';
 
 execFileSync('npx', ['openapi-typescript', spec, '-o', out], { stdio: 'inherit' });
 

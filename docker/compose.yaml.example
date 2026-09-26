@@ -1,5 +1,52 @@
-# The v1 (TypeScript server) compose example was removed with the v1 codebase.
-# Sonarly v2 (Go) is the only server. Use docker/compose.v2.yaml.example —
-# copy it to compose.yaml (gitignored) and adjust.
+# Sonarly (Go rewrite) — compose example.
 #
-# For local development, see docs/development.md (go run + pnpm dev).
+# Copy to compose.yaml (gitignored at the repo root) and adjust. This is the
+# Sonarly service compose example. Copy to compose.yaml (gitignored at the
+# repo root) and adjust. The image builds from the repo root context
+# (docker/Dockerfile). The server migrates the database in place on first
+# boot — no export/import step.
+
+services:
+  sonarly:
+    image: ghcr.io/miquelrosell99/sonarly:latest
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        # Injected into the binary via -ldflags -X buildinfo.Version
+        # (reported by the OpenSubsonic serverVersion field).
+        SONARLY_VERSION: ${SONARLY_VERSION:-0.0.0-dev}
+    container_name: sonarly
+    ports:
+      - "${SONARLY_PORT:-4533}:3000"
+    volumes:
+      # SQLite DB + server state (artist images, uploads). Same host path as
+      # the database file lives directly inside and is opened in place
+      - ./config/sonarly/data:/data/db
+      # Drop folder for ingest.
+      - ${SONARLY_INGEST_PATH:-./config/sonarly/ingest}:/data/ingest
+      # The music library. Read-only is sufficient for scanning/streaming;
+      # tag editing and organize need write access.
+      - ${LIBRARY_MUSIC:-./config/sonarly/library}:/media/music
+    environment:
+      - SONARLY_ADDR=:3000
+      # Keep this value: it seals users.subsonic_password_encrypted and
+      # signs sessions — changing it logs everyone out and breaks Subsonic
+      # client passwords.
+      - SESSION_SECRET=${SESSION_SECRET}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-false}
+      - SONARLY_DB_PATH=/data/db/sonarly.db
+      - SONARLY_DATA_DIR=/data/db
+      - SONARLY_LIBRARY_PATH=/media/music
+      - SONARLY_INGEST_PATH=/data/ingest
+      # Built web client baked into the image; only override to serve a
+      # custom build. A missing directory puts the server in API-only mode.
+      - SONARLY_WEB_DIST=/app/web-dist
+      # cadence (the image defaults already match these).
+      - SONARLY_SCAN_INTERVAL_MINUTES=60
+      - SONARLY_WATCH_POLL_INTERVAL=5
+      - SONARLY_ARTIST_IMAGE_INTERVAL_MINUTES=1440
+      - SONARLY_INGEST_INTERVAL_MINUTES=60
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+    restart: unless-stopped
