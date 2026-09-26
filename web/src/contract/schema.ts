@@ -2159,6 +2159,7 @@ export interface components {
             shareToken?: string;
             isSmart: boolean;
             resolveMode: components["schemas"]["ResolveMode"];
+            rules?: components["schemas"]["SmartPlaylistRules"] | null;
             songCount: number;
             starred: boolean;
             rating?: number;

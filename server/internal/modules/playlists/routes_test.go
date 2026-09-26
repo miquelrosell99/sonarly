@@ -637,3 +637,34 @@ func decodeBody(t *testing.T, body []byte, v any) {
 		t.Fatalf("decode: %v\n%s", err, body)
 	}
 }
+
+// The smart-playlist editor populates from detail.rules — the wire Detail
+// must carry the rules envelope (incident: rules missing → editor fell back
+// to a default "title contains" empty rule).
+func TestGetDetailIncludesRules(t *testing.T) {
+	env := newEnv(t)
+	owner := env.cookie(t, "u-owner", "owner", false)
+	res, body := env.do(t, "GET", "/api/playlists/pl-smart", owner, nil)
+	if res.StatusCode != 200 {
+		t.Fatalf("owner detail: %d", res.StatusCode)
+	}
+	var raw struct {
+		Playlist struct {
+			IsSmart bool            `json:"isSmart"`
+			Rules   *Rules          `json:"rules"`
+		} `json:"playlist"`
+	}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if !raw.Playlist.IsSmart {
+		t.Fatal("pl-smart must be smart")
+	}
+	if raw.Playlist.Rules == nil || raw.Playlist.Rules.Group == nil ||
+		len(raw.Playlist.Rules.Group.All) == 0 {
+		t.Fatalf("detail must include the rules envelope, got %+v", raw.Playlist.Rules)
+	}
+	if raw.Playlist.Rules.Group.All[0].Field == "" {
+		t.Fatalf("rule field round-trip: %+v", raw.Playlist.Rules.Group.All[0])
+	}
+}
