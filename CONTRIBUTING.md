@@ -30,17 +30,19 @@ cd server
 SESSION_SECRET=$(openssl rand -hex 32) SONARLY_LIBRARY_PATH=/path/to/music go run ./cmd/sonarly
 
 # Terminal 2 — web client
+cd web
 pnpm dev
 ```
 
-The web UI is at http://localhost:5173 (the Vite dev server proxies `/api` and `/rest` to the Go server on port 3000). See [docs/development.md](docs/development.md) for the full workflow, including Docker builds.
+The web UI is at http://localhost:5173 (the Vite dev server proxies `/api` and `/rest` to the Go server on port 3000). See [docs/development.md](docs/development.md) for the full workflow, including migrations, the API contract regeneration step, and Docker builds.
 
 ## Project structure
 
 - `server/` — Go server (the only server): modules, SQLite migrations, OpenSubsonic adapter, native REST API.
 - `web/` — React + Vite management UI.
 - `docker/` — all-in-one image (Dockerfile), entrypoint, compose example.
-- `docs/` — Public documentation.
+- `docs/` — User-facing documentation (index: [docs/README.md](docs/README.md)).
+- `.audits/` — Internal engineering records (audits, transition reports); not user documentation and not a dependency of the docs.
 
 ## Testing
 
@@ -74,7 +76,7 @@ Examples:
 1. Fork the repository and create a feature branch.
 2. Make focused changes with clear commit messages.
 3. Add or update tests for behavioral changes.
-4. Update relevant documentation (`README.md`, `docs/`, etc.).
+4. Update relevant documentation (`README.md`, `docs/`, etc.). `docs/` holds user-facing documentation only; internal engineering records go in `.audits/`.
 5. Ensure `pnpm test` and `go test ./...` pass.
 6. Open a pull request with a concise description and the motivation for the change.
 

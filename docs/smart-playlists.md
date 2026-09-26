@@ -4,7 +4,7 @@ Smart playlists are playlists defined by a set of rules instead of a manual trac
 
 ## Data model
 
-A smart playlist is a row in `playlists` with `is_smart = 1`. The rules are stored as JSON in `rules_json` (schema distilled into the `0001_baseline.sql` migration) and typed in the web client as `SmartPlaylistRules` (`packages/web/src/types/smart-playlist.ts`):
+A smart playlist is a row in `playlists` with `is_smart = 1`. The rules are stored as JSON in `rules_json` (schema distilled into the `0001_baseline.sql` migration) and typed in the web client as `SmartPlaylistRules` (`web/src/types/smart-playlist.ts`):
 
 ```ts
 interface SmartPlaylistRules {
@@ -28,7 +28,7 @@ interface SmartPlaylistRule {
 
 ## Fields
 
-The canonical field list is `SMART_PLAYLIST_FIELDS` in `packages/web/src/types/smart-playlist.ts` — the UI rule editor and the API both derive from it, so adding a field there is enough to surface it in the editor.
+The canonical field list is `SMART_PLAYLIST_FIELDS` in `web/src/types/smart-playlist.ts` — the UI rule editor and the API both derive from it, so adding a field there is enough to surface it in the editor.
 
 | Field | Type | SQL source | User-scoped | Notes |
 |---|---|---|---|---|
@@ -77,7 +77,7 @@ Semantics worth knowing:
 
 ## Resolve modes
 
-User-scoped rule fields need a "whose data?" answer when someone else views the playlist. `resolve_mode` on the playlist (`PlaylistResolveMode` in `packages/web/src/types/playlist.ts`) controls this:
+User-scoped rule fields need a "whose data?" answer when someone else views the playlist. `resolve_mode` on the playlist (`PlaylistResolveMode` in `web/src/types/playlist.ts`) controls this:
 
 | Mode | UI label | Behavior |
 |---|---|---|
@@ -100,7 +100,7 @@ Resolution results are cached briefly in `server/internal/modules/playlists/cach
 
 ## API surface
 
-Smart playlists use the normal playlist endpoints with `isSmart: true` and a `rules` payload (see [api.md](api.md#playlists)):
+Smart playlists use the normal playlist endpoints with `isSmart: true` and a `rules` payload (see [api.md](api.md)):
 
 - `POST /api/playlists` / `PUT /api/playlists/:id` — accept `rules: SmartPlaylistRules` and `resolveMode`.
 - `GET /api/playlists/:id` — resolves and returns the current entries; converting to manual (`isSmart: false`) freezes the resolved list.
@@ -108,7 +108,7 @@ Smart playlists use the normal playlist endpoints with `isSmart: true` and a `ru
 
 ## Web editor
 
-`packages/web/src/features/playlists/components/SmartPlaylistBlockEditor.tsx` edits rules inline in the playlist modal:
+`web/src/features/playlists/components/SmartPlaylistBlockEditor.tsx` edits rules inline in the playlist modal:
 
 - Field dropdown from `SMART_PLAYLIST_FIELDS`; operator dropdown filtered by field type.
 - Rules with `artist`, `album`, `albumArtist`, `genre`, or `releaseType` get an autocomplete input backed by `GET /api/suggestions?field=…` (admin-only endpoint; release type merges a canonical seed list — Album, EP, Single, Compilation, Live, Soundtrack, Remix — with values already in the library).
@@ -118,12 +118,12 @@ Smart playlists use the normal playlist endpoints with `isSmart: true` and a `ru
 
 | Piece | Location |
 |---|---|
-| Rule types + field list | `packages/web/src/types/smart-playlist.ts` |
+| Rule types + field list | `web/src/types/smart-playlist.ts` |
 | SQL compiler | `server/internal/modules/playlists/compiler.go` |
 | Resolution + caching | `server/internal/modules/playlists/repository.go`, `cache.go` |
 | API validation/routes | `server/internal/modules/playlists/routes.go`, `rules.go` |
-| Rule editor UI | `packages/web/src/features/playlists/components/SmartPlaylistBlockEditor.tsx` |
-| Autocomplete | `packages/web/src/components/ui/AutocompleteInput.tsx`, `server/internal/modules/suggestions/` |
+| Rule editor UI | `web/src/features/playlists/components/SmartPlaylistBlockEditor.tsx` |
+| Autocomplete | `web/src/components/ui/AutocompleteInput.tsx`, `server/internal/modules/suggestions/` |
 | Compiler tests | `server/internal/modules/playlists/compiler_test.go` |
 
 ## Renaming note: `albumType` → `releaseType`
