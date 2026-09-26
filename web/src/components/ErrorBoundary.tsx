@@ -9,14 +9,15 @@ interface ErrorBoundaryState {
 }
 
 // Report a client crash to the server so production render errors are
-// diagnosable from logs. Fire-and-forget; never throws.
+// diagnosable from logs. Fire-and-forget; never throws — including the
+// rejection path (fetch failures must not surface as unhandled rejections).
 export function reportClientError(message: string, stack?: string): void {
   try {
     void fetch('/api/client-errors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: message.slice(0, 2000), stack: (stack ?? '').slice(0, 6000), route: window.location.pathname }),
-    });
+    }).catch(() => {});
   } catch {
     /* never throw from error reporting */
   }

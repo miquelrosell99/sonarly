@@ -16,6 +16,7 @@ import type { PlaylistDetail } from '../../../hooks/usePlaylist.js';
 interface LookupUser {
   id: string;
   username: string;
+  name: string | null;
 }
 
 type ShareTab = 'members' | 'links';

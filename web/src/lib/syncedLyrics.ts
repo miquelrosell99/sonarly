@@ -62,3 +62,20 @@ export function normalizeSyncedLyrics(value: unknown): SyncedLyricLine[] {
   }
   return [];
 }
+
+/**
+ * Render lines as LRC text — the wire shape of the /songs/{id}/lyrics PUT
+ * (and of a syncedLyrics column holding LRC). Inverse of parseLrcString.
+ */
+export function serializeLrcLines(lines: SyncedLyricLine[]): string {
+  const fmt = (time: number): string => {
+    const totalCentis = Math.round(time * 100);
+    const minutes = Math.floor(totalCentis / 6000);
+    const rem = totalCentis % 6000;
+    const seconds = Math.floor(rem / 100);
+    const centis = rem % 100;
+    const pad = (n: number): string => String(n).padStart(2, '0');
+    return `${pad(minutes)}:${pad(seconds)}.${pad(centis)}`;
+  };
+  return lines.map((line) => `[${fmt(line.time)}] ${line.text}`).join('\n');
+}

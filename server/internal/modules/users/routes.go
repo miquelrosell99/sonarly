@@ -38,6 +38,7 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Get("/api/me/preferences", h.getPreferences)
 		r.Patch("/api/me/preferences", h.patchPreferences)
 		r.Post("/api/me/avatar", h.uploadAvatar)
+		r.Get("/api/users/lookup", h.lookup)
 
 		r.Route("/api/admin/users", func(r chi.Router) {
 			r.Use(h.mw.RequireAdmin)
@@ -247,6 +248,19 @@ func (h *Handler) uploadAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpserver.JSON(w, http.StatusOK, map[string]any{"user": user})
+}
+
+// lookup is GET /api/users/lookup: any signed-in user searches for share
+// recipients by username substring (the playlist-share picker); it is
+// deliberately NOT admin-gated.
+func (h *Handler) lookup(w http.ResponseWriter, r *http.Request) {
+	id, _ := auth.IdentityFrom(r.Context())
+	users, err := h.svc.Lookup(r.Context(), id.UserID, r.URL.Query().Get("q"))
+	if err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	httpserver.JSON(w, http.StatusOK, map[string]any{"users": users})
 }
 
 func (h *Handler) setupStatus(w http.ResponseWriter, r *http.Request) {

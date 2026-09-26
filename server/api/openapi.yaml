@@ -613,6 +613,76 @@ paths:
                   song: { $ref: '#/components/schemas/Song' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteSong
+      tags: [catalog]
+      summary: Delete one song (admin)
+      description: >
+        Unlinks the physical file first (an already-missing file is
+        tolerated), then deletes the row — junction and per-user rows
+        cascade through the schema's FKs.
+      parameters:
+        - $ref: '#/components/parameters/SongId'
+      responses:
+        '200':
+          description: Song deleted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/songs/{id}/lyrics:
+    get:
+      operationId: getSongLyrics
+      tags: [catalog]
+      summary: Plain and synced lyrics of one song
+      description: >
+        Library-scoped like every other song read (out-of-scope ids answer
+        404). Both fields are nullable strings; syncedLyrics is LRC text.
+      parameters:
+        - $ref: '#/components/parameters/SongId'
+      responses:
+        '200':
+          description: The lyrics (null fields when unset).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [lyrics]
+                properties:
+                  lyrics: { $ref: '#/components/schemas/Lyrics' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: updateSongLyrics
+      tags: [tags]
+      summary: Write a song's lyrics (admin)
+      description: >
+        Writes plain and synced lyrics into the audio file through the
+        mutagen-backed tag writer (synced lyrics as SYLT/SYNCEDLYRICS from
+        the LRC text) and updates the songs row in place — the row is the
+        read source of truth, so no resync round trip is queued. Absent
+        keys leave file and row untouched; an explicit null clears the
+        stored value (the writer cannot erase a tag, so clears are
+        row-only).
+      parameters:
+        - $ref: '#/components/parameters/SongId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LyricsInput' }
+      responses:
+        '200':
+          description: Lyrics applied.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /api/albums:
     get:
       operationId: listAlbums
@@ -661,6 +731,25 @@ paths:
                     items: { $ref: '#/components/schemas/Song' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteAlbum
+      tags: [catalog]
+      summary: Delete one album with all its songs (admin)
+      description: >
+        Unlinks every song file of the album (an already-missing file is
+        tolerated), deletes the song rows, then the album row — the
+        database side is one transaction.
+      parameters:
+        - $ref: '#/components/parameters/AlbumId'
+      responses:
+        '200':
+          description: Album and its songs deleted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /api/artists:
     get:
       operationId: listArtists
@@ -705,6 +794,27 @@ paths:
                     items: { $ref: '#/components/schemas/Song' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteArtist
+      tags: [catalog]
+      summary: Delete one artist (admin)
+      description: >
+        Only artists with no active songs (directly or through the
+        artist/composer junctions) can be deleted — the request answers 409
+        otherwise. The artist's empty albums and the leftover junction rows
+        go with the artist; the database side is one transaction.
+      parameters:
+        - $ref: '#/components/parameters/ArtistId'
+      responses:
+        '200':
+          description: Artist deleted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
   /api/artists/{id}/songs:
     get:
       operationId: listArtistSongs
@@ -747,6 +857,65 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/Genre' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      operationId: createGenre
+      tags: [catalog]
+      summary: Create a genre (admin)
+      description: >
+        Optionally under an existing parent (the child lands in the genre
+        tree under it). The name is unique case-insensitively; a collision
+        answers 409.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GenreCreateInput' }
+      responses:
+        '201':
+          description: The created genre (mirrors the list DTO).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [genre]
+                properties:
+                  genre: { $ref: '#/components/schemas/Genre' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/genres/{id}:
+    put:
+      operationId: renameGenre
+      tags: [catalog]
+      summary: Rename a genre (admin)
+      description: >
+        The rename cascades into the denormalized `genre` name cache of the
+        active songs and albums carrying the genre. Moving genres is not
+        part of this contract (the tree is scanner-maintained).
+      parameters:
+        - $ref: '#/components/parameters/GenreId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GenreRenameInput' }
+      responses:
+        '200':
+          description: The renamed genre (mirrors the list DTO).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [genre]
+                properties:
+                  genre: { $ref: '#/components/schemas/Genre' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
   /api/genres/tree:
     get:
       operationId: getGenreTree
@@ -2435,6 +2604,30 @@ paths:
                   user: { $ref: '#/components/schemas/PublicUser' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/users/lookup:
+    get:
+      operationId: lookupUsers
+      tags: [auth]
+      summary: Search users by username substring (any signed-in user)
+      description: >
+        Powers the playlist-share user picker — deliberately NOT
+        admin-gated. The caller is excluded; the pattern is LIKE-escaped;
+        at most 10 results, username-ordered.
+      parameters:
+        - { name: q, in: query, schema: { type: string }, description: 'Substring to match (trimmed, capped at 100 chars); empty matches everyone else.' }
+      responses:
+        '200':
+          description: Matching users (empty array when none).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [users]
+                properties:
+                  users:
+                    type: array
+                    items: { $ref: '#/components/schemas/UserLookup' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
   /api/admin/system-tasks:
     get:
       operationId: listSystemTasks
@@ -2950,6 +3143,11 @@ components:
           schema: { $ref: '#/components/schemas/Error' }
     NotFound:
       description: Resource not found (or out of the caller's scope).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: The request conflicts with the current state (duplicate name, entity still in use).
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Error' }
@@ -3499,6 +3697,39 @@ components:
         parentId: { type: string }
         path: { type: string }
         active: { type: boolean }
+    GenreCreateInput:
+      type: object
+      required: [name]
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1 }
+        parentId: { type: string, description: 'Existing genre id under which the new genre is created.' }
+    GenreRenameInput:
+      type: object
+      required: [name]
+      additionalProperties: false
+      properties:
+        name: { type: string, minLength: 1 }
+    Lyrics:
+      type: object
+      description: 'Plain and synced lyrics; `syncedLyrics` is LRC text.'
+      required: [lyrics, syncedLyrics]
+      properties:
+        lyrics: { type: [string, 'null'] }
+        syncedLyrics: { type: [string, 'null'] }
+    LyricsInput:
+      type: object
+      additionalProperties: false
+      properties:
+        lyrics: { type: [string, 'null'], description: 'Absent leaves untouched; null clears.' }
+        syncedLyrics: { type: [string, 'null'], description: 'LRC text; absent leaves untouched; null clears.' }
+    UserLookup:
+      type: object
+      required: [id, username, name]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        name: { type: [string, 'null'], description: 'Display name when the user has one.' }
     GenreNode:
       type: object
       description: 'Genre tree node; `children` is always present (possibly empty).'

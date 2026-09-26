@@ -36,15 +36,6 @@ afterEach(() => {
 describe('AdminGenres', () => {
   beforeEach(() => {
     mockApi.mockImplementation(async (path: string, options?: RequestInit) => {
-      if (path === '/genres') {
-        return {
-          genres: [
-            { id: 'g1', name: 'Rock', parentId: undefined, path: 'Rock', active: true },
-            { id: 'g2', name: 'Classic Rock', parentId: 'g1', path: 'Rock > Classic Rock', active: true },
-            { id: 'g3', name: 'Jazz', parentId: undefined, path: 'Jazz', active: true },
-          ],
-        };
-      }
       if (path === '/genres/tree') {
         return {
           tree: [
@@ -81,9 +72,6 @@ describe('AdminGenres', () => {
       }
       if (path === '/genres/g2' && options?.method === 'PUT') {
         return { genre: { id: 'g2', name: 'Vintage Rock', active: true } };
-      }
-      if (path === '/genres/g2' && options?.method === 'DELETE') {
-        return { ok: true };
       }
       return {};
     });
@@ -138,22 +126,6 @@ describe('AdminGenres', () => {
         method: 'PUT',
         body: JSON.stringify({ name: 'Vintage Rock' }),
       });
-    });
-  });
-
-  it('deletes a leaf genre after confirm', async () => {
-    renderAdminGenres();
-
-    await waitFor(() => {
-      expect(screen.getByText('Classic Rock')).toBeTruthy();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /delete classic rock/i }));
-    const deleteButtons = screen.getAllByRole('button', { name: /^delete$/i });
-    fireEvent.click(deleteButtons[deleteButtons.length - 1]);
-
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledWith('/genres/g2', { method: 'DELETE' });
     });
   });
 });

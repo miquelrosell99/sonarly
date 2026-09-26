@@ -244,6 +244,7 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Put("/api/songs/{id}/tags", h.putSongTags)
 		r.Put("/api/songs/tags", h.putSongsTags)
 		r.Put("/api/albums/{id}/tags", h.putAlbumTags)
+		r.Put("/api/songs/{id}/lyrics", h.putSongLyrics)
 		r.Post("/api/songs/{id}/cover-art", h.postSongCoverArt)
 		r.Delete("/api/songs/{id}/cover-art", h.deleteSongCoverArt)
 		r.Post("/api/albums/{id}/cover-art", h.postAlbumCoverArt)
