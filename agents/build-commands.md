@@ -31,7 +31,7 @@ docker build -f docker/Dockerfile \
 docker compose -f compose.yaml up -d
 ```
 
-Local full-stack dev: run the Go server from `server/` (`go run ./cmd/sonarly` with `SESSION_SECRET`, `SONARLY_LIBRARY_PATH`, …) and `pnpm dev` from `packages/web/` — the Vite dev server proxies `/api` and `/rest` to `localhost:3000`. See docs/development.md.
+Local full-stack dev: run the Go server from `server/` (`go run ./cmd/sonarly` with `SESSION_SECRET`, `SONARLY_LIBRARY_PATH`, …) and `pnpm dev` from `web/` — the Vite dev server proxies `/api` and `/rest` to `localhost:3000`. See docs/development.md.
 
 ## Determining the current deployment type
 

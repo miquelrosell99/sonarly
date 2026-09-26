@@ -1,6 +1,6 @@
 ## Reusable UI Components
 
-Shared components live in `packages/web/src/components/`. Use them for consistent layout, interactions, and styling across features. Grid views of library content should use the `Card` component so hover actions (favorite, rating, play) and link behavior are uniform.
+Shared components live in `web/src/components/`. Use them for consistent layout, interactions, and styling across features. Grid views of library content should use the `Card` component so hover actions (favorite, rating, play) and link behavior are uniform.
 
 | Component | Path | Purpose |
 |-----------|------|---------|

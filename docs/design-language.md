@@ -38,7 +38,7 @@ The default accent is mode-aware: blue in light mode, cyan in dark/OLED mode. Us
 
 ## Typography
 
-Loaded from Google Fonts (`packages/web/index.html`):
+Loaded from Google Fonts (`web/index.html`):
 
 | Role | Typeface | Weights | Usage |
 |---|---|---|---|
@@ -57,7 +57,7 @@ Why:
 - Makes the interface feel alive and personal.
 - Differentiates Sonarly from a plain Tidal clone while staying in the same premium family.
 
-Implementation: `packages/web/src/hooks/useDominantColor.ts` samples cover art via an offscreen canvas, mutes saturation, and returns an `hsl()` color that is applied through CSS custom properties (`--now-playing-color`).
+Implementation: `web/src/hooks/useDominantColor.ts` samples cover art via an offscreen canvas, mutes saturation, and returns an `hsl()` color that is applied through CSS custom properties (`--now-playing-color`).
 
 ## Layout principles
 

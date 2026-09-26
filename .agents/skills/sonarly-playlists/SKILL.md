@@ -11,7 +11,7 @@ whenToUse: When working on playlist CRUD, smart playlist rules or compilation, p
 
 - `server/internal/modules/playlists/` — `repository.go` (CRUD + `playlist_songs` with `position`), `policy.go` (**ONE** `Resolve` for every surface), `service.go` (orchestration), `routes.go` (native `/api/playlists`), `subsonic.go` (`/rest` playlist endpoints delegating to the same service), `rules.go` (rule validation).
 - `server/internal/modules/playlists/compiler.go` — compiles the rule AST to parameterized SQL. Whitelisting: unknown fields are a **400** (the old silent `s.title` fallback was fixed); LIKE-escaping (`ESCAPE '\'`) and the join/WHERE bind-order handling are load-bearing.
-- Rule model: types in `packages/web/src/types/smart-playlist.ts` (`SMART_PLAYLIST_FIELDS`, `isSmartPlaylistRuleGroup`). Single-level groups: `all` AND'd with `any`; no nesting by design.
+- Rule model: types in `web/src/types/smart-playlist.ts` (`SMART_PLAYLIST_FIELDS`, `isSmartPlaylistRuleGroup`). Single-level groups: `all` AND'd with `any`; no nesting by design.
 - Deep dive doc: `docs/smart-playlists.md`.
 
 ## Sharing model (read before changing)

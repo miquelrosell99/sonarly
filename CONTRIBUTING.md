@@ -38,7 +38,7 @@ The web UI is at http://localhost:5173 (the Vite dev server proxies `/api` and `
 ## Project structure
 
 - `server/` — Go server (the only server): modules, SQLite migrations, OpenSubsonic adapter, native REST API.
-- `packages/web/` — React + Vite management UI.
+- `web/` — React + Vite management UI.
 - `docker/` — all-in-one image (Dockerfile), entrypoint, compose example.
 - `docs/` — Public documentation.
 
