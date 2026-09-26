@@ -1,6 +1,7 @@
 package statistics_test
 
 import (
+	"strings"
 	"context"
 	"database/sql"
 	"database/sql/driver"
@@ -556,5 +557,33 @@ func TestQueryCountBudget(t *testing.T) {
 	t.Logf("/api/statistics/overall ran %d statements (old: ~20)", queries)
 	if queries > 7 {
 		t.Fatalf("statistics/overall must run at most 7 statements, ran %d", queries)
+	}
+}
+
+// Legacy databases store duration_listened as fractional REAL (the retired
+// server wrote raw JS floats), so SUM aggregates arrive as float64 - the
+// statistics scans must tolerate them (incident: /statistics/overall 500'd
+// on the production database with "converting driver.Value type float64").
+func TestStatisticsToleratesLegacyFractionalDurations(t *testing.T) {
+	s := newSeededServer(t)
+	admin := s.session(t, "user-admin", "root", true)
+	alice := s.session(t, "user-alice", "alice", false)
+
+	s.db.Exec(`INSERT INTO listening_history (id, user_id, song_id, played_at, duration_listened, completion)
+		VALUES
+		('lh-f1', 'user-alice', 's1', '2026-09-20T10:00:00.000Z', 193.481212345, 0.95),
+		('lh-f2', 'user-alice', 's2', '2026-09-21T10:00:00.000Z', 61.5, 0.5),
+		('lh-f3', 'user-bob', 's1', '2026-09-20T11:00:00.000Z', 44.25, 1.0)`)
+
+	rec := s.do(t, http.MethodGet, "/api/statistics/me", alice)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("me with fractional durations: %d %s", rec.Code, rec.Body.String())
+	}
+	rec = s.do(t, http.MethodGet, "/api/statistics/overall", admin)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("overall with fractional durations: %d %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "totalDurationListened") {
+		t.Fatalf("overall summaries missing durations: %.200s", rec.Body.String())
 	}
 }
