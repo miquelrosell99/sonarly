@@ -8,7 +8,7 @@
 #     --build-arg SONARLY_VERSION=$(git describe --tags --always) -t sonarly:local .
 #
 # Stages:
-#   web-builder    node:22-alpine  — builds packages/web into packages/web/dist
+#   web-builder    node:22-alpine  — builds web into web/dist
 #   server-builder golang:1.23-alpine — builds the Go binary (pure Go, CGO off)
 #   runtime        alpine          — ffmpeg + python3/mutagen + su-exec, non-root
 
@@ -21,11 +21,11 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY packages/web/package.json packages/web/
+COPY web/package.json web/
 
 RUN pnpm install --frozen-lockfile
 
-COPY packages/web packages/web
+COPY web web
 
 # --filter <pkg>... (trailing dots) builds the package and its workspace deps.
 RUN pnpm --filter @sonarly/web... build
@@ -60,7 +60,7 @@ RUN apk add --no-cache ffmpeg python3 py3-pip su-exec wget \
 WORKDIR /app
 
 COPY --from=server-builder /out/sonarly ./sonarly
-COPY --from=web-builder /app/packages/web/dist ./web-dist
+COPY --from=web-builder /app/web/dist ./web-dist
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
