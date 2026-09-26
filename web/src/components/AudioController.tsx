@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { api } from '../lib/api.js';
-import { getShareToken, withShareToken } from '../lib/shareToken.js';
+import { withShareToken } from '../lib/shareToken.js';
+import { streamUrl } from '../lib/streamUrl.js';
 import { useNotification } from '../contexts/NotificationContext.js';
 import { usePlayer, getNextSong } from '../stores/playerStore.js';
 import { useAutoDj } from '../hooks/useAutoDj.js';
@@ -14,16 +15,6 @@ const SCROBBLE_MAX_SECONDS = 240;
 const STALLED_ERROR_DELAY_MS = 15000;
 // Start buffering the next track when this much of the current one remains.
 const PRELOAD_REMAINING_SECONDS = 30;
-
-// /rest/stream.view needs a session; anonymous share-link viewers use
-// the token-scoped /api/stream endpoint instead. The gapless preloader
-// uses this too so both audio elements always request identical URLs.
-function streamUrl(songId: string): string {
-  const shareToken = getShareToken();
-  return shareToken
-    ? `/api/stream/${songId}?shareToken=${encodeURIComponent(shareToken)}`
-    : `/rest/stream.view?id=${songId}`;
-}
 
 export function AudioController() {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -195,11 +186,13 @@ export function AudioController() {
       return;
     }
     const coverId = currentSong.albumCoverArt ?? currentSong.coverArt;
+    // The cover-art route reads the share token under `share` (the playback
+    // media convention), unlike the playlist endpoints' `shareToken`.
     navigator.mediaSession.metadata = new MediaMetadata({
       title: currentSong.title,
       artist: currentSong.artistName || 'Unknown artist',
       album: currentSong.albumName || '',
-      artwork: coverId ? [{ src: withShareToken(`/api/cover-art/${coverId}`), sizes: '512x512' }] : [],
+      artwork: coverId ? [{ src: withShareToken(`/api/cover-art/${coverId}`, 'share'), sizes: '512x512' }] : [],
     });
   }, [currentSong?.id]);
 

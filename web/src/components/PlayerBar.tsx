@@ -12,6 +12,7 @@ import { usePlayer } from '../stores/playerStore.js';
 import { useSongInteraction } from '../hooks/useSongInteraction.js';
 import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
 import { useNowPlaying, QueueModal } from '../features/now-playing/index.js';
+import { getShareToken } from '../lib/shareToken.js';
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
@@ -55,6 +56,13 @@ export function PlayerBar({ user }: PlayerBarProps) {
   const queueContext = usePlayer((state) => state.queueContext);
   const [location, setLocation] = useLocation();
 
+  // Share-link guests carry ?shareToken= in the URL; every in-app navigation
+  // must preserve it or the guest route gate bounces to /login.
+  const shareSuffix = (() => {
+    const token = getShareToken();
+    return token ? `?shareToken=${encodeURIComponent(token)}` : '';
+  })();
+
   // When the queue has a known origin, opening Now Playing goes through the
   // /now-playing/<context>/<id>/<song> route so the URL carries the context
   // (and the overlay becomes back-button/refresh/share friendly).
@@ -62,11 +70,11 @@ export function PlayerBar({ user }: PlayerBarProps) {
     // Remember where the user is so closing the overlay can return there.
     useNowPlaying.getState().setReturnPath(location);
     if (queueContext && currentSong) {
-      setLocation(`/now-playing/${queueContext.type}/${encodeURIComponent(queueContext.id)}/${currentSong.id}`);
+      setLocation(`/now-playing/${queueContext.type}/${encodeURIComponent(queueContext.id)}/${currentSong.id}${shareSuffix}`);
     } else if (currentSong) {
-      setLocation(`/now-playing/${currentSong.id}`);
+      setLocation(`/now-playing/${currentSong.id}${shareSuffix}`);
     } else {
-      setLocation('/now-playing');
+      setLocation(`/now-playing${shareSuffix}`);
     }
   };
 

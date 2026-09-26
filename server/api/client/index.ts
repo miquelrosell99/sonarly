@@ -298,6 +298,34 @@ export interface paths {
         get: operations["getSong"];
         put?: never;
         post?: never;
+        /**
+         * Delete one song (admin)
+         * @description Unlinks the physical file first (an already-missing file is tolerated), then deletes the row — junction and per-user rows cascade through the schema's FKs.
+         */
+        delete: operations["deleteSong"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/songs/{id}/lyrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Plain and synced lyrics of one song
+         * @description Library-scoped like every other song read (out-of-scope ids answer 404). Both fields are nullable strings; syncedLyrics is LRC text.
+         */
+        get: operations["getSongLyrics"];
+        /**
+         * Write a song's lyrics (admin)
+         * @description Writes plain and synced lyrics into the audio file through the mutagen-backed tag writer (synced lyrics as SYLT/SYNCEDLYRICS from the LRC text) and updates the songs row in place — the row is the read source of truth, so no resync round trip is queued. Absent keys leave file and row untouched; an explicit null clears the stored value (the writer cannot erase a tag, so clears are row-only).
+         */
+        put: operations["updateSongLyrics"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -332,7 +360,11 @@ export interface paths {
         get: operations["getAlbum"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete one album with all its songs (admin)
+         * @description Unlinks every song file of the album (an already-missing file is tolerated), deletes the song rows, then the album row — the database side is one transaction.
+         */
+        delete: operations["deleteAlbum"];
         options?: never;
         head?: never;
         patch?: never;
@@ -366,7 +398,11 @@ export interface paths {
         get: operations["getArtist"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete one artist (admin)
+         * @description Only artists with no active songs (directly or through the artist/composer junctions) can be deleted — the request answers 409 otherwise. The artist's empty albums and the leftover junction rows go with the artist; the database side is one transaction.
+         */
+        delete: operations["deleteArtist"];
         options?: never;
         head?: never;
         patch?: never;
@@ -399,8 +435,36 @@ export interface paths {
         /** Flat genre list with resolved paths */
         get: operations["listGenres"];
         put?: never;
-        post?: never;
+        /**
+         * Create a genre (admin)
+         * @description Optionally under an existing parent (the child lands in the genre tree under it). The name is unique case-insensitively; a collision answers 409.
+         */
+        post: operations["createGenre"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/genres/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Rename and/or move a genre (admin)
+         * @description Either field may ride the request (at least one is required). A name renames — cascading into the denormalized `genre` name cache of the active songs and albums carrying the genre. A parentId moves: `null` (or an empty string) makes the genre a root, and the parent must exist. Moving under the genre itself is a no-op.
+         */
+        put: operations["updateGenre"];
+        post?: never;
+        /**
+         * Delete a genre (admin)
+         * @description Only childless genres can go: active children answer 409. Songs and albums carrying the genre survive with their `genreId` nulled (the denormalized `genre` name cache is left as-is), and the junction rows cascade.
+         */
+        delete: operations["deleteGenre"];
         options?: never;
         head?: never;
         patch?: never;
@@ -447,7 +511,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Distinct years (songs and albums union), newest first */
+        /** Distinct song years with counts, newest first */
         get: operations["listYears"];
         put?: never;
         post?: never;
@@ -464,7 +528,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Cover art blob */
+        /**
+         * Cover art blob
+         * @description Anonymous callers may fetch art with a valid `share` token (art of the linked playlist's songs or their albums', the same `share` convention as /api/stream); anonymous without a token gets 401; a token that grants nothing gets 404. A session identity wins; the token is ignored for signed-in callers.
+         */
         get: operations["getCoverArt"];
         put?: never;
         post?: never;
@@ -518,6 +585,26 @@ export interface paths {
         post?: never;
         /** Delete a playlist */
         delete: operations["deletePlaylist"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/playlists/{id}/albums": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Distinct albums behind the playlist cover mosaic
+         * @description Up to `limit` distinct albums from the playlist's songs, in playlist order — the 2x2 cover grid the playlist cards and detail header render. Access matches the playlist detail (a shareToken admits anonymous viewers).
+         */
+        get: operations["listPlaylistCoverAlbums"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1402,6 +1489,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/users/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search users by username substring (any signed-in user)
+         * @description Powers the playlist-share user picker — deliberately NOT admin-gated. The caller is excluded; the pattern is LIKE-escaped; at most 10 results, username-ordered.
+         */
+        get: operations["lookupUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/system-tasks": {
         parameters: {
             query?: never;
@@ -2130,6 +2237,34 @@ export interface components {
             path: string;
             active: boolean;
         };
+        GenreCreateInput: {
+            name: string;
+            /** @description Existing genre id under which the new genre is created. */
+            parentId?: string;
+        };
+        /** @description At least one of `name`, `parentId` must be present. */
+        GenreUpdateInput: {
+            name?: string;
+            /** @description Existing genre id to reparent the genre under; `null` makes it a root. Absent leaves the parent untouched. */
+            parentId?: string | null;
+        };
+        /** @description Plain and synced lyrics; `syncedLyrics` is LRC text. */
+        Lyrics: {
+            lyrics: string | null;
+            syncedLyrics: string | null;
+        };
+        LyricsInput: {
+            /** @description Absent leaves untouched; null clears. */
+            lyrics?: string | null;
+            /** @description LRC text; absent leaves untouched; null clears. */
+            syncedLyrics?: string | null;
+        };
+        UserLookup: {
+            id: string;
+            username: string;
+            /** @description Display name when the user has one. */
+            name: string | null;
+        };
         /** @description Genre tree node; `children` is always present (possibly empty). */
         GenreNode: {
             id: string;
@@ -2138,6 +2273,15 @@ export interface components {
             path: string;
             active: boolean;
             children: components["schemas"]["GenreNode"][];
+        };
+        YearCount: {
+            year: number;
+            songCount: number;
+        };
+        CoverAlbum: {
+            id: string;
+            name: string;
+            coverArt?: string;
         };
         NameEntry: {
             id: string;
@@ -2154,6 +2298,7 @@ export interface components {
             shareToken?: string;
             isSmart: boolean;
             resolveMode: components["schemas"]["ResolveMode"];
+            rules?: components["schemas"]["SmartPlaylistRules"] | null;
             songCount: number;
             starred: boolean;
             rating?: number;
@@ -2199,6 +2344,7 @@ export interface components {
             shareToken?: string;
             isSmart: boolean;
             resolveMode: components["schemas"]["ResolveMode"];
+            rules?: components["schemas"]["SmartPlaylistRules"] | null;
             songCount: number;
             entries: components["schemas"]["PlaylistEntry"][];
             shares?: components["schemas"]["ShareEntry"][];
@@ -2470,6 +2616,25 @@ export interface components {
             starred: boolean;
             rating?: number;
         };
+        HomeSongCard: {
+            id: string;
+            title: string;
+            artistId?: string;
+            artistName?: string;
+            albumId?: string;
+            albumName?: string;
+            duration?: number;
+            year?: number;
+            genre?: string;
+            explicit: boolean;
+            coverArt?: string;
+            /** Format: int64 */
+            mtime: number;
+            artists?: string[];
+            genres?: string[];
+            starred: boolean;
+            rating?: number;
+        };
         /** @description One ranked genre — the name and its in-scope active song count. */
         HomeGenreCard: {
             name: string;
@@ -2480,8 +2645,8 @@ export interface components {
             genres: components["schemas"]["HomeGenreCard"][];
             mostPlayed: components["schemas"]["HomeAlbumCard"][];
             random: components["schemas"]["HomeAlbumCard"][];
-            /** @description Albums whose newest song file is most recently touched, first. */
-            recentlyAdded: components["schemas"]["HomeAlbumCard"][];
+            /** @description Songs in import order (the songs rowid is the import order). */
+            recentAdditions: components["schemas"]["HomeSongCard"][];
             recentlyPlayed: components["schemas"]["HomeAlbumCard"][];
         };
         /** @description Display subset of the catalog song DTO plus the caller's interaction state. */
@@ -2598,6 +2763,15 @@ export interface components {
         };
         /** @description Resource not found (or out of the caller's scope). */
         NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description The request conflicts with the current state (duplicate name, entity still in use). */
+        Conflict: {
             headers: {
                 [name: string]: unknown;
             };
@@ -3317,6 +3491,90 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    deleteSong: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Song id (UUID). */
+                id: components["parameters"]["SongId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Song deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getSongLyrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Song id (UUID). */
+                id: components["parameters"]["SongId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The lyrics (null fields when unset). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        lyrics: components["schemas"]["Lyrics"];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateSongLyrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Song id (UUID). */
+                id: components["parameters"]["SongId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LyricsInput"];
+            };
+        };
+        responses: {
+            /** @description Lyrics applied. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     listAlbums: {
         parameters: {
             query?: {
@@ -3378,6 +3636,32 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    deleteAlbum: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Album id (UUID). */
+                id: components["parameters"]["AlbumId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Album and its songs deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     listArtists: {
         parameters: {
             query?: {
@@ -3434,6 +3718,33 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    deleteArtist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Artist id (UUID). */
+                id: components["parameters"]["ArtistId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Artist deleted. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     listArtistSongs: {
         parameters: {
             query?: {
@@ -3486,6 +3797,101 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    createGenre: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenreCreateInput"];
+            };
+        };
+        responses: {
+            /** @description The created genre (mirrors the list DTO). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        genre: components["schemas"]["Genre"];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    updateGenre: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Genre id (UUID). */
+                id: components["parameters"]["GenreId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenreUpdateInput"];
+            };
+        };
+        responses: {
+            /** @description The updated genre, with its re-resolved path (mirrors the list DTO). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        genre: components["schemas"]["Genre"];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    deleteGenre: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Genre id (UUID). */
+                id: components["parameters"]["GenreId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deletion acknowledged. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     getGenreTree: {
@@ -3553,14 +3959,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Bare year values, newest first — the union of in-scope active song and album years. */
+            /** @description Distinct years of in-scope active songs and how many songs carry each. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        years: number[];
+                        years: components["schemas"]["YearCount"][];
                     };
                 };
             };
@@ -3569,7 +3975,10 @@ export interface operations {
     };
     getCoverArt: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Playlist share token (anonymous access). */
+                share?: string;
+            };
             header?: never;
             path: {
                 /** @description Cover art id. */
@@ -3748,6 +4157,35 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listPlaylistCoverAlbums: {
+        parameters: {
+            query?: {
+                limit?: number;
+                shareToken?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Albums for the cover grid (possibly empty). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        albums: components["schemas"]["CoverAlbum"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
         };
     };
@@ -5542,6 +5980,32 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    lookupUsers: {
+        parameters: {
+            query?: {
+                /** @description Substring to match (trimmed, capped at 100 chars); empty matches everyone else. */
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matching users (empty array when none). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        users: components["schemas"]["UserLookup"][];
+                    };
+                };
+            };
             401: components["responses"]["Unauthorized"];
         };
     };

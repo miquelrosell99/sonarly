@@ -529,7 +529,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Cover art blob */
+        /**
+         * Cover art blob
+         * @description Anonymous callers may fetch art with a valid `share` token (art of the linked playlist's songs or their albums', the same `share` convention as /api/stream); anonymous without a token gets 401; a token that grants nothing gets 404. A session identity wins; the token is ignored for signed-in callers.
+         */
         get: operations["getCoverArt"];
         put?: never;
         post?: never;
@@ -3973,7 +3976,10 @@ export interface operations {
     };
     getCoverArt: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Playlist share token (anonymous access). */
+                share?: string;
+            };
             header?: never;
             path: {
                 /** @description Cover art id. */
