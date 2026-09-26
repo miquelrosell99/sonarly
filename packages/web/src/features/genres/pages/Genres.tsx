@@ -1,14 +1,13 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Link } from 'wouter';
 import type { Song } from '@sonarly/shared';
-import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useGenreContextMenu } from '../../../hooks/useGenreContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { GenreCoverGrid } from '../components/GenreCoverGrid.js';
-import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
-import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
+import { useLibraryStore } from '../../../stores/libraryStore.js';
+import { useGenresList, useSongsList } from '../../../hooks/useLibraryLists.js';
 
 interface GenreItem {
   id: string;
@@ -36,31 +35,14 @@ function GenreContextMenu({
 }
 
 export function Genres() {
-  const [genres, setGenres] = useState<GenreItem[]>([]);
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-  const epoch = useCacheEpoch();
-
-  const load = () => {
-    setLoading(true);
-    Promise.all([
-      api<{ genres: GenreItem[] }>(`/genres${buildLibraryQuery(selectedLibraryId)}`),
-      api<{ songs: Track[] }>(`/songs${buildLibraryQuery(selectedLibraryId)}`),
-    ])
-      .then(([genresRes, songsRes]) => {
-        setTracks(songsRes.songs);
-        setGenres(genresRes.genres.sort((a, b) => a.name.localeCompare(b.name)));
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load genres'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-  }, [selectedLibraryId, epoch]);
+  const { data: genresData, isLoading, error, refetch } = useGenresList({ libraryId: selectedLibraryId });
+  const { data: songsData } = useSongsList({ libraryId: selectedLibraryId });
+  // The API returns genres unordered; keep the alphabetical sort the page
+  // always applied.
+  const genres = sortGenres(genresData?.genres);
+  const tracks: Track[] = songsData?.songs ?? [];
 
   const matchingTracks = (genreName: string) => tracks.filter((t) => t.genres?.includes(genreName));
 
@@ -99,8 +81,8 @@ export function Genres() {
     <LibraryView
       title="Genres"
       data={genres}
-      isLoading={loading}
-      error={error}
+      isLoading={isLoading}
+      error={error?.message ?? null}
       columns={columns}
       cardFields={cardFields}
       getId={(genre) => genre.id}
@@ -114,6 +96,11 @@ export function Genres() {
         </GenreContextMenu>
       )}
       emptyMessage="No genres found."
+      onRetry={() => void refetch()}
     />
   );
+}
+
+function sortGenres(genres: GenreItem[] | undefined): GenreItem[] {
+  return genres ? [...genres].sort((a, b) => a.name.localeCompare(b.name)) : [];
 }

@@ -7,6 +7,7 @@ import { api } from '../../../lib/api.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 import { FetchLyricsModal } from '../../../components/FetchLyricsModal.js';
+import { normalizeSyncedLyrics } from '../../../lib/syncedLyrics.js';
 import type { NowPlayingTab } from '../stores/nowPlayingStore.js';
 
 interface LyricsPanelProps {
@@ -50,7 +51,8 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
     staleTime: 60_000,
   });
 
-  const syncedLyrics = data?.syncedLyrics;
+  // v2 can deliver syncedLyrics as a raw string; normalize before rendering.
+  const syncedLyrics = normalizeSyncedLyrics(data?.syncedLyrics);
   const plainLyrics = data?.lyrics;
 
   const editorModal = editorOpen && currentSong ? (

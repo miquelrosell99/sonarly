@@ -1,5 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useSearch, Link, useLocation } from 'wouter';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Song, Album, Artist, Playlist, FavoriteEntityType, User } from '@sonarly/shared';
 import { api } from '../../../lib/api.js';
 import { PageState } from '../../../components/PageState.js';
@@ -13,7 +14,7 @@ import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
-import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
+import { useSearchResults, type SearchResultsResponse, type SearchType } from '../../../hooks/useLibraryLists.js';
 import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
 import { patchToPlayerSong } from '../../../lib/songPatch.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
@@ -24,16 +25,7 @@ interface SearchResultsProps {
   user: User;
 }
 
-type SearchType = 'songs' | 'albums' | 'artists' | 'playlists';
-
 const validTypes: SearchType[] = ['songs', 'albums', 'artists', 'playlists'];
-
-interface SearchResponse {
-  songs: Song[];
-  albums: Album[];
-  artists: Artist[];
-  playlists: Playlist[];
-}
 
 interface AlbumDetail {
   album: Album;
@@ -92,9 +84,6 @@ export function SearchResults({ user }: SearchResultsProps) {
   const query = params.get('q') ?? '';
   const rawType = params.get('type');
   const type: SearchType = isValidType(rawType) ? rawType : 'songs';
-  const [data, setData] = useState<SearchResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [songEditing, setSongEditing] = useState<Song[] | null>(null);
   const [syncEditing, setSyncEditing] = useState<Song | null>(null);
   const [saving, setSaving] = useState(false);
@@ -108,61 +97,45 @@ export function SearchResults({ user }: SearchResultsProps) {
   const currentAlbumId = currentSong?.albumId;
   const currentArtistId = currentSong?.artistId;
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-  const epoch = useCacheEpoch();
-  const libraryQuery = buildLibraryQuery(selectedLibraryId);
-  const libraryParam = libraryQuery ? `&${libraryQuery.slice(1)}` : '';
+  const queryClient = useQueryClient();
+  // The debounce lives in SearchBox (200ms before the ?q= param changes);
+  // once the param lands here the fetch is immediate, as before.
+  const { data, isLoading, error, refetch } = useSearchResults(query, type, selectedLibraryId);
+  const searchKey = ['search', 'results', { q: query, type, libraryId: selectedLibraryId }] as const;
 
-  const load = () => {
-    if (!query.trim()) {
-      setData({ songs: [], albums: [], artists: [], playlists: [] });
-      setLoading(false);
-      setError(null);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    api<SearchResponse>(`/search?q=${encodeURIComponent(query)}&type=${type}${libraryParam}`)
-      .then(setData)
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load search results'))
-      .finally(() => setLoading(false));
+  const patchResult = (key: SearchType, id: string, patch: Record<string, unknown>) => {
+    queryClient.setQueryData<SearchResultsResponse>([...searchKey], (prev) => {
+      if (!prev) return prev;
+      const list = prev[key] as { id: string }[];
+      return { ...prev, [key]: list.map((item) => (item.id === id ? { ...item, ...patch } : item)) };
+    });
   };
 
-  useEffect(() => {
-    load();
-  }, [query, type, selectedLibraryId, epoch]);
-
-  function updateItem<T extends { id: string }>(
-    prev: SearchResponse | null,
-    key: SearchType,
-    id: string,
-    patch: Partial<T>,
-  ): SearchResponse | null {
-    if (!prev) return prev;
-    const list = prev[key] as unknown as T[];
-    return {
-      ...prev,
-      [key]: list.map((item) => (item.id === id ? { ...item, ...patch } : item)),
-    } as SearchResponse;
-  }
+  // Song edits (tags, delete, synced lyrics) also affect the cached library
+  // lists; drop both domains like a library:changed would.
+  const invalidateSearch = () => {
+    void queryClient.invalidateQueries({ queryKey: ['search'] });
+    void queryClient.invalidateQueries({ queryKey: ['songs'] });
+  };
 
   const handleFavorite = async <T extends { id: string; starred?: boolean }>(
     entityType: FavoriteEntityType,
+    key: SearchType,
     id: string,
     starred: boolean,
-    update: (patch: Partial<T>) => void,
   ) => {
     await setFavorite(entityType, id, starred);
-    update({ starred } as Partial<T>);
+    patchResult(key, id, { starred } as Partial<T>);
   };
 
   const handleRate = async <T extends { id: string; rating?: number }>(
     entityType: FavoriteEntityType,
+    key: SearchType,
     id: string,
     rating: number | undefined,
-    update: (patch: Partial<T>) => void,
   ) => {
     await setRating(entityType, id, rating);
-    update({ rating } as Partial<T>);
+    patchResult(key, id, { rating } as Partial<T>);
   };
 
   const playAlbum = async (album: Album) => {
@@ -202,7 +175,7 @@ export function SearchResults({ user }: SearchResultsProps) {
         updateCurrentSong(patchToPlayerSong(patched));
       }
       setSongEditing(null);
-      load();
+      invalidateSearch();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to save song', 'error');
     } finally {
@@ -226,7 +199,7 @@ export function SearchResults({ user }: SearchResultsProps) {
         updateCurrentSong(patchToPlayerSong(patched));
       }
       setSongEditing(null);
-      load();
+      invalidateSearch();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to save songs', 'error');
     } finally {
@@ -240,7 +213,7 @@ export function SearchResults({ user }: SearchResultsProps) {
     try {
       await api(`/songs/${songEditing[0].id}`, { method: 'DELETE' });
       setSongEditing(null);
-      load();
+      invalidateSearch();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to delete song', 'error');
     } finally {
@@ -290,8 +263,8 @@ export function SearchResults({ user }: SearchResultsProps) {
       <LibraryView
         title={`Songs matching "${query}"`}
         data={songs}
-        isLoading={loading}
-        error={error}
+        isLoading={isLoading}
+        error={error?.message ?? null}
         columns={columns}
         cardFields={cardFields}
         getId={(song) => song.id}
@@ -299,16 +272,8 @@ export function SearchResults({ user }: SearchResultsProps) {
         onPlay={playSong}
         onPlaySelection={playSongs}
         onShufflePlay={shufflePlay}
-        onFavorite={(song, starred) =>
-          handleFavorite<Song>('song', song.id, starred, (patch) =>
-            setData((prev) => updateItem(prev, 'songs', song.id, patch)),
-          )
-        }
-        onRate={(song, rating) =>
-          handleRate<Song>('song', song.id, rating, (patch) =>
-            setData((prev) => updateItem(prev, 'songs', song.id, patch)),
-          )
-        }
+        onFavorite={(song, starred) => void handleFavorite<Song>('song', 'songs', song.id, starred)}
+        onRate={(song, rating) => void handleRate<Song>('song', 'songs', song.id, rating)}
         getFavorite={(song) => song.starred}
         getRating={(song) => song.rating}
         playingId={playingId}
@@ -352,24 +317,16 @@ export function SearchResults({ user }: SearchResultsProps) {
       <LibraryView
         title={`Albums matching "${query}"`}
         data={albums}
-        isLoading={loading}
-        error={error}
+        isLoading={isLoading}
+        error={error?.message ?? null}
         columns={columns}
         cardFields={cardFields}
         getId={(album) => album.id}
         getHref={(album) => `/albums/${album.id}`}
         onPlay={playAlbum}
         onShufflePlay={shuffleAlbums}
-        onFavorite={(album, starred) =>
-          handleFavorite<Album>('album', album.id, starred, (patch) =>
-            setData((prev) => updateItem(prev, 'albums', album.id, patch)),
-          )
-        }
-        onRate={(album, rating) =>
-          handleRate<Album>('album', album.id, rating, (patch) =>
-            setData((prev) => updateItem(prev, 'albums', album.id, patch)),
-          )
-        }
+        onFavorite={(album, starred) => void handleFavorite<Album>('album', 'albums', album.id, starred)}
+        onRate={(album, rating) => void handleRate<Album>('album', 'albums', album.id, rating)}
         getFavorite={(album) => album.starred}
         getRating={(album) => album.rating}
         getCover={(album) => album.coverArt}
@@ -400,23 +357,15 @@ export function SearchResults({ user }: SearchResultsProps) {
       <LibraryView
         title={`Artists matching "${query}"`}
         data={artists}
-        isLoading={loading}
-        error={error}
+        isLoading={isLoading}
+        error={error?.message ?? null}
         columns={columns}
         cardFields={cardFields}
         getId={(artist) => artist.id}
         getHref={(artist) => `/artists/${artist.id}`}
         onPlay={playArtist}
-        onFavorite={(artist, starred) =>
-          handleFavorite<Artist>('artist', artist.id, starred, (patch) =>
-            setData((prev) => updateItem(prev, 'artists', artist.id, patch)),
-          )
-        }
-        onRate={(artist, rating) =>
-          handleRate<Artist>('artist', artist.id, rating, (patch) =>
-            setData((prev) => updateItem(prev, 'artists', artist.id, patch)),
-          )
-        }
+        onFavorite={(artist, starred) => void handleFavorite<Artist>('artist', 'artists', artist.id, starred)}
+        onRate={(artist, rating) => void handleRate<Artist>('artist', 'artists', artist.id, rating)}
         getFavorite={(artist) => artist.starred}
         getRating={(artist) => artist.rating}
         playingId={currentArtistId}
@@ -452,24 +401,16 @@ export function SearchResults({ user }: SearchResultsProps) {
       <LibraryView
         title={`Playlists matching "${query}"`}
         data={playlists}
-        isLoading={loading}
-        error={error}
+        isLoading={isLoading}
+        error={error?.message ?? null}
         columns={columns}
         cardFields={cardFields}
         getId={(playlist) => playlist.id}
         getHref={(playlist) => `/playlists/${playlist.id}`}
         onPlay={playPlaylist}
         onShufflePlay={shufflePlaylists}
-        onFavorite={(playlist, starred) =>
-          handleFavorite<Playlist>('playlist', playlist.id, starred, (patch) =>
-            setData((prev) => updateItem(prev, 'playlists', playlist.id, patch)),
-          )
-        }
-        onRate={(playlist, rating) =>
-          handleRate<Playlist>('playlist', playlist.id, rating, (patch) =>
-            setData((prev) => updateItem(prev, 'playlists', playlist.id, patch)),
-          )
-        }
+        onFavorite={(playlist, starred) => void handleFavorite<Playlist>('playlist', 'playlists', playlist.id, starred)}
+        onRate={(playlist, rating) => void handleRate<Playlist>('playlist', 'playlists', playlist.id, rating)}
         getFavorite={(playlist) => playlist.starred}
         getRating={(playlist) => playlist.rating}
         renderContextMenu={(playlist, children) => (
@@ -498,13 +439,13 @@ export function SearchResults({ user }: SearchResultsProps) {
 
   if (error) {
     return (
-      <PageState error={error} onRetry={load}>
+      <PageState error={error.message} onRetry={() => void refetch()}>
         {null}
       </PageState>
     );
   }
 
-  if (!data || loading) {
+  if (!data || isLoading) {
     return <PageState loading>{null}</PageState>;
   }
 
@@ -554,7 +495,7 @@ export function SearchResults({ user }: SearchResultsProps) {
           onClose={() => setSyncEditing(null)}
           onSaved={() => {
             setSyncEditing(null);
-            load();
+            invalidateSearch();
           }}
         />
       )}

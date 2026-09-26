@@ -1,11 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'wouter';
-import type { Album } from '@sonarly/shared';
-import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
-import { ArtistImage } from '../../../components/ArtistImage.js';
-import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
-import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
+import { useLibraryStore } from '../../../stores/libraryStore.js';
+import { useAlbumsList } from '../../../hooks/useLibraryLists.js';
 
 interface AlbumArtist {
   id: string;
@@ -13,33 +10,19 @@ interface AlbumArtist {
 }
 
 export function AlbumArtists() {
-  const [artists, setArtists] = useState<AlbumArtist[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-  const epoch = useCacheEpoch();
+  const { data, isLoading, error, refetch } = useAlbumsList({ libraryId: selectedLibraryId });
 
-  const load = () => {
-    setLoading(true);
-    api<{ albums: Album[] }>(`/albums${buildLibraryQuery(selectedLibraryId)}`)
-      .then((res) => {
-        const map = new Map<string, AlbumArtist>();
-        for (const album of res.albums) {
-          if (!album.artistId) continue;
-          if (!map.has(album.artistId)) {
-            map.set(album.artistId, { id: album.artistId, name: album.artistName ?? 'Unknown' });
-          }
-        }
-        const derived = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-        setArtists(derived);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load album artists'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-  }, [selectedLibraryId, epoch]);
+  const artists = useMemo<AlbumArtist[]>(() => {
+    const map = new Map<string, AlbumArtist>();
+    for (const album of data?.albums ?? []) {
+      if (!album.artistId) continue;
+      if (!map.has(album.artistId)) {
+        map.set(album.artistId, { id: album.artistId, name: album.artistName ?? 'Unknown' });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [data]);
 
   const columns: LibraryViewColumn<AlbumArtist>[] = [
     {
@@ -61,13 +44,14 @@ export function AlbumArtists() {
     <LibraryView
       title="Album Artists"
       data={artists}
-      isLoading={loading}
-      error={error}
+      isLoading={isLoading}
+      error={error?.message ?? null}
       columns={columns}
       cardFields={cardFields}
       getId={(artist) => artist.id}
       getHref={(artist) => `/album-artists/${artist.id}`}
       emptyMessage="No album artists found."
+      onRetry={() => void refetch()}
     />
   );
 }
