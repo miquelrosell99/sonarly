@@ -7,9 +7,11 @@ interface LibrarySelectorProps {
   libraries: Library[];
   selectedLibraryId: string | null;
   onSelect: (id: string | null) => void;
+  /** Set when the libraries load failed; rendered as a disabled option. */
+  error?: string | null;
 }
 
-export function LibrarySelector({ libraries, selectedLibraryId, onSelect }: LibrarySelectorProps) {
+export function LibrarySelector({ libraries, selectedLibraryId, onSelect, error }: LibrarySelectorProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -91,8 +93,14 @@ export function LibrarySelector({ libraries, selectedLibraryId, onSelect }: Libr
               <span className="truncate">{library.name}</span>
             </button>
           ))}
-          {libraries.length === 0 && (
-            <p className="px-3 py-2 text-xs text-fg-secondary">No libraries configured.</p>
+          {error ? (
+            <p className="px-3 py-2 text-xs text-danger" role="option" aria-disabled="true">
+              Libraries unavailable
+            </p>
+          ) : (
+            libraries.length === 0 && (
+              <p className="px-3 py-2 text-xs text-fg-secondary">No libraries configured.</p>
+            )
           )}
         </div>
       )}

@@ -1,5 +1,6 @@
 import { Router, Route, Switch, useLocation } from 'wouter';
 import { Suspense, lazy, useEffect, useState, type ComponentType, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { User } from './types';
 import type { StatisticsMode } from './features/statistics/index.js';
 import { Layout } from './components/Layout.js';
@@ -182,6 +183,7 @@ export default function App() {
   const [needsSetup, setNeedsSetup] = useState<boolean | undefined>(undefined);
   const [bootError, setBootError] = useState(false);
   const [bootAttempt, setBootAttempt] = useState(0);
+  const queryClient = useQueryClient();
 
   useServerEvents({ enabled: Boolean(user) });
 
@@ -219,10 +221,16 @@ export default function App() {
   }, [bootAttempt]);
 
   useEffect(() => {
-    const handler = () => setUser(null);
+    // A 401 means the session is gone (expiry, logout elsewhere): drop the
+    // whole query cache so the next account on this browser profile never
+    // sees the previous account's starred flags, ratings, or preferences.
+    const handler = () => {
+      queryClient.clear();
+      setUser(null);
+    };
     window.addEventListener('sonarly:unauthorized', handler);
     return () => window.removeEventListener('sonarly:unauthorized', handler);
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     // Log unhandled promise rejections (e.g. fire-and-forget fetches) without
@@ -337,7 +345,7 @@ export default function App() {
       <Router>
         <ErrorBoundary>
           <Switch>
-            <Route path="/login" component={() => <Login onLogin={(u) => setUser(u)} />} />
+            <Route path="/login" component={() => <Login onLogin={(u) => { queryClient.clear(); setUser(u); }} />} />
             {/* Anonymous share-link visitors get a guest view of the linked
                 playlist; every other route still requires an account. */}
             <Route

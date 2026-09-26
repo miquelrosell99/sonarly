@@ -1,4 +1,5 @@
 import { Link } from 'wouter';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Playlist } from '../../../types';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
@@ -6,6 +7,7 @@ import { useFilterParams } from '../../../hooks/useFilterParams.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlaylists } from '../../../hooks/usePlaylists.js';
 import { useCreatePlaylistModal } from '../../../hooks/useCreatePlaylistModal.js';
+import { useNotification } from '../../../contexts/NotificationContext.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
@@ -30,6 +32,8 @@ export function Playlists() {
   const { data: playlists, isLoading, error } = usePlaylists();
   const { open: openCreateModal, openForEdit } = useCreatePlaylistModal();
   const { setFavorite, setRating } = useFavoriteActions();
+  const { notify } = useNotification();
+  const queryClient = useQueryClient();
   const { get } = useFilterParams();
 
   const owner = get('owner');
@@ -41,19 +45,25 @@ export function Playlists() {
     return true;
   });
 
+  // Favorites/ratings are per-user junction rows (any signed-in user may
+  // favorite any visible playlist — the server imposes no owner rule), so on
+  // success we invalidate the playlist caches and let react-query refetch the
+  // new starred/rating state; failures surface through notifications.
   const handleFavorite = async (playlist: Playlist, starred: boolean) => {
     try {
       await setFavorite('playlist', playlist.id, starred);
-    } catch {
-      // Error is already surfaced by the action hook via notifications.
+      await queryClient.invalidateQueries({ queryKey: ['playlists'] });
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to update favorite', 'error');
     }
   };
 
   const handleRate = async (playlist: Playlist, rating?: number) => {
     try {
       await setRating('playlist', playlist.id, rating);
-    } catch {
-      // Error is already surfaced by the action hook via notifications.
+      await queryClient.invalidateQueries({ queryKey: ['playlists'] });
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to update rating', 'error');
     }
   };
 

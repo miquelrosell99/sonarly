@@ -31,6 +31,14 @@ class MockEventSource {
     this.closed = true;
   }
 
+  simulateOpen() {
+    this.onopen?.();
+  }
+
+  simulateError() {
+    this.onerror?.(new Event('error'));
+  }
+
   simulateMessage(data: string) {
     if (this.onmessage) {
       this.onmessage(new MessageEvent('message', { data }));
@@ -46,6 +54,8 @@ function createHarness(enabled: boolean) {
     return React.createElement('div', { 'data-testid': 'harness' }, 'connected');
   };
 }
+
+const LIBRARY_PREFIXES = ['songs', 'albums', 'artists', 'genres', 'years', 'playlists', 'playlist', 'search', 'lyrics'];
 
 describe('useServerEvents', () => {
   let eventSourceInstances: MockEventSource[] = [];
@@ -117,10 +127,55 @@ describe('useServerEvents', () => {
     expect(listener).toHaveBeenCalledTimes(1);
     const event = listener.mock.calls[0][0] as CustomEvent;
     expect(event.detail).toEqual({ type: 'library:changed', source: 'ingest' });
-    for (const prefix of ['songs', 'albums', 'artists', 'genres', 'years', 'playlists', 'playlist', 'search']) {
+    for (const prefix of LIBRARY_PREFIXES) {
       expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: [prefix] });
     }
     expect(mockInvalidateQueries).not.toHaveBeenCalledWith({ queryKey: [] });
+
+    window.removeEventListener('sonarly:library-changed', listener);
+  });
+
+  it('does not invalidate on the initial open', () => {
+    const Harness = createHarness(true);
+    render(
+      React.createElement(
+        QueryClientProvider,
+        { client: realQueryClient },
+        React.createElement(Harness),
+      ),
+    );
+
+    eventSourceInstances[0].simulateOpen();
+
+    expect(mockInvalidateQueries).not.toHaveBeenCalled();
+  });
+
+  it('refetches every shared prefix when the connection reopens after an error', () => {
+    const Harness = createHarness(true);
+    render(
+      React.createElement(
+        QueryClientProvider,
+        { client: realQueryClient },
+        React.createElement(Harness),
+      ),
+    );
+
+    const listener = vi.fn();
+    window.addEventListener('sonarly:library-changed', listener);
+
+    const instance = eventSourceInstances[0];
+    instance.simulateOpen();
+    expect(mockInvalidateQueries).not.toHaveBeenCalled();
+
+    // Browser reconnect path: error, then the EventSource reopens on its own.
+    instance.simulateError();
+    instance.simulateOpen();
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    for (const prefix of LIBRARY_PREFIXES) {
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: [prefix] });
+    }
+    expect(mockInvalidateQueries).toHaveBeenCalledTimes(LIBRARY_PREFIXES.length);
 
     window.removeEventListener('sonarly:library-changed', listener);
   });
