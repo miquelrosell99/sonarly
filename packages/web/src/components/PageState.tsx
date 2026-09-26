@@ -7,6 +7,10 @@ interface PageStateProps {
   error?: string | Error | null;
   isEmpty?: boolean;
   emptyMessage?: string;
+  /** Extra explanation line under the empty message (e.g. an upload pointer). */
+  emptyDescription?: string;
+  /** Primary action for the empty state, when one exists (e.g. "Clear filters"). */
+  emptyAction?: { label: string; onClick: () => void };
   loadingMessage?: string;
   emptyIcon?: string;
   onRetry?: () => void;
@@ -19,6 +23,8 @@ export function PageState({
   error,
   isEmpty,
   emptyMessage = 'No items found.',
+  emptyDescription,
+  emptyAction,
   loadingMessage = 'Loading...',
   emptyIcon = 'mdi-information-outline',
   onRetry,
@@ -62,6 +68,12 @@ export function PageState({
       >
         <Icon name={emptyIcon} size={24} className="text-fg-secondary" />
         <p>{emptyMessage}</p>
+        {emptyDescription && <p className="max-w-sm text-center">{emptyDescription}</p>}
+        {emptyAction && (
+          <Button variant="ghost" className="mt-2" onClick={emptyAction.onClick}>
+            {emptyAction.label}
+          </Button>
+        )}
       </div>
     );
   }

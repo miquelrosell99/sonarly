@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import type { Song, User } from '@sonarly/shared';
 import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
@@ -26,6 +26,7 @@ export function Tracks({ user }: TracksProps) {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [, setLocation] = useLocation();
   const { playSong, playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
@@ -51,6 +52,9 @@ export function Tracks({ user }: TracksProps) {
   const favorites = get('favorites');
   const rating = get('rating');
   const unrated = get('unrated') === 'true';
+  const hasActiveFilters = Boolean(
+    artist || album || genre || favorites || unrated || (rating !== null && rating !== ''),
+  );
 
   const filteredTracks = tracks.filter((track) => {
     if (artist && track.artistName !== artist) return false;
@@ -165,7 +169,14 @@ export function Tracks({ user }: TracksProps) {
       onRate={handleRate}
       getFavorite={(track) => track.starred}
       getRating={(track) => track.rating}
-      emptyMessage="No tracks match the current filters."
+      emptyMessage={
+        hasActiveFilters
+          ? 'No tracks match the current filters.'
+          : 'Your library has no tracks yet.'
+      }
+      emptyDescription={!hasActiveFilters && tracks.length === 0 && user.isAdmin ? 'Upload music from the top bar to get started.' : undefined}
+      emptyAction={hasActiveFilters ? { label: 'Clear filters', onClick: () => setLocation('/tracks') } : undefined}
+      onRetry={load}
     />
   );
 }

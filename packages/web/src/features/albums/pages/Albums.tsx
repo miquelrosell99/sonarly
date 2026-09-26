@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import type { Album, Song, User } from '@sonarly/shared';
 import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
@@ -51,6 +51,7 @@ export function Albums({ user }: { user: User }) {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const { playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
+  const [, setLocation] = useLocation();
   const currentAlbumId = usePlayer((state) => state.currentSong?.albumId);
   const { get } = useFilterParams();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
@@ -72,6 +73,7 @@ export function Albums({ user }: { user: User }) {
   const yearTo = get('yearTo');
   const genre = get('genre');
   const favorites = get('favorites');
+  const hasActiveFilters = Boolean(yearFrom || yearTo || genre || favorites);
 
   const filteredAlbums = albums.filter((album) => {
     if (yearFrom !== null && yearFrom !== '') {
@@ -285,7 +287,10 @@ export function Albums({ user }: { user: User }) {
             {children}
           </AlbumContextMenu>
         )}
-        emptyMessage="No albums match the current filters."
+        emptyMessage={hasActiveFilters ? 'No albums match the current filters.' : 'Your library has no albums yet.'}
+        emptyDescription={!hasActiveFilters && albums.length === 0 && user.isAdmin ? 'Upload music from the top bar to get started.' : undefined}
+        emptyAction={hasActiveFilters ? { label: 'Clear filters', onClick: () => setLocation('/albums') } : undefined}
+        onRetry={load}
         defaultView="grid"
       />
       {editEntity && (

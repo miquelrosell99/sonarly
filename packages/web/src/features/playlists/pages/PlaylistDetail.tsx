@@ -5,6 +5,7 @@ import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
+import { EmptyState } from '../../../components/ui/EmptyState.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { PlaylistCoverGrid } from '../components/PlaylistCoverGrid.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
@@ -293,7 +294,14 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
             )
             : undefined
         }
-        empty="No songs in this playlist."
+        empty={
+          <EmptyState
+            className="py-2"
+            icon="mdi-playlist-music"
+            title="This playlist is empty"
+            description="Add songs from any track, album, artist, or search page using the context menu."
+          />
+        }
       />
 
       {songEditEntities && songEditEntities.length > 0 && (
