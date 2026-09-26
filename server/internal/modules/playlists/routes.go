@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/miquelrosell99/sonarly/server/internal/httpserver"
@@ -30,7 +31,7 @@ func NewHandler(svc *Service, mw *auth.Middleware) *Handler {
 // GET exempts requests carrying a shareToken from the session requirement
 // (the old public-route list, docs/api.md): the service's policy is the one
 // access gate — a wrong token still answers the service's 404, and
-// anonymous callers without any token are rejected here exactly like the old 
+// anonymous callers without any token are rejected here exactly like the old
 // session preHandler rejected them.
 func (h *Handler) Routes(r chi.Router) {
 	r.Group(func(r chi.Router) {
@@ -45,6 +46,7 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Delete("/api/playlists/{id}/share-link", h.deleteShareLink)
 	})
 	r.With(h.shareTokenOrAuth).Get("/api/playlists/{id}", h.get)
+	r.With(h.shareTokenOrAuth).Get("/api/playlists/{id}/albums", h.coverAlbums)
 }
 
 // shareTokenOrAuth runs the session parser always, but enforces a logged-in
@@ -136,6 +138,31 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpserver.JSON(w, http.StatusOK, map[string]any{"playlist": detail})
+}
+
+// coverAlbums is GET /api/playlists/{id}/albums?limit=4 — the distinct
+// albums behind the playlist's 2x2 cover mosaic. Anonymous callers may
+// present a shareToken (the playlist cards render for token viewers too).
+func (h *Handler) coverAlbums(w http.ResponseWriter, r *http.Request) {
+	limit := 4
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		if n, err := strconv.Atoi(raw); err == nil && n > 0 {
+			limit = n
+		}
+	}
+	if limit > 20 {
+		limit = 20
+	}
+	albums, err := h.svc.CoverAlbums(r.Context(), identity(r), chi.URLParam(r, "id"),
+		r.URL.Query().Get("shareToken"), limit)
+	if err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	if albums == nil {
+		albums = []CoverAlbum{}
+	}
+	httpserver.JSON(w, http.StatusOK, map[string]any{"albums": albums})
 }
 
 // updateBody mirrors the PUT body; every field is optional.

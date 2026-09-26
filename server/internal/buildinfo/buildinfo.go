@@ -2,7 +2,7 @@
 //
 // The retired TypeScript server hardcoded serverVersion "0.1.0" in its
 // Subsonic envelope while the released server was already at 0.7.x
-// (docs/opensubsonic-quirks.md E2). The Go server injects the real version
+// (../../.audits/opensubsonic-quirks.md E2). The Go server injects the real version
 // at build time:
 //
 //	go build -ldflags "-X github.com/miquelrosell99/sonarly/server/internal/buildinfo.Version=0.8.0"

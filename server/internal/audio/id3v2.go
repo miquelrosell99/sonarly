@@ -2,7 +2,7 @@
 // onto the native schema, plus the detectExplicit port (reader.ts). mp3
 // producers are intentionally NOT extracted: the retired reader dropped v2.4
 // TIPL producers too (music-metadata maps only v2.3 IPLS), so doing nothing
-// is parity (docs/s1-metadata-findings.md §5 W3).
+// is parity (../../../.audits/s1-metadata-findings.md §5 W3).
 
 package audio
 

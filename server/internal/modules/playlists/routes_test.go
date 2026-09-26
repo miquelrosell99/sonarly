@@ -668,3 +668,46 @@ func TestGetDetailIncludesRules(t *testing.T) {
 		t.Fatalf("rule field round-trip: %+v", raw.Playlist.Rules.Group.All[0])
 	}
 }
+
+// Cover mosaic: distinct albums in playlist order, capped by limit; access
+// mirrors the detail (owner fine, anonymous needs a valid share token,
+// no access is 404).
+func TestCoverAlbums(t *testing.T) {
+	env := newEnv(t)
+	owner := env.cookie(t, "u-owner", "owner", false)
+	outsider := env.cookie(t, "u-outsider", "outsider", false)
+
+	res, body := env.do(t, "GET", "/api/playlists/pl-private/albums", owner, nil)
+	if res.StatusCode != 200 {
+		t.Fatalf("owner cover albums: %d", res.StatusCode)
+	}
+	var raw struct {
+		Albums []CoverAlbum `json:"albums"`
+	}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(raw.Albums) == 0 {
+		t.Fatal("pl-private has songs; cover albums must not be empty")
+	}
+	seen := map[string]bool{}
+	for _, a := range raw.Albums {
+		if seen[a.ID] {
+			t.Fatalf("duplicate album %s", a.ID)
+		}
+		seen[a.ID] = true
+	}
+
+	// limit clamps.
+	res, _ = env.do(t, "GET", "/api/playlists/pl-private/albums?limit=1", owner, nil)
+	if res.StatusCode != 200 {
+		t.Fatalf("limit=1: %d", res.StatusCode)
+	}
+
+	// Anonymous without token: 401 (shareTokenOrAuth); with a valid token:
+	// 200. No-access signed-in viewer: 404.
+	res, _ = env.do(t, "GET", "/api/playlists/pl-smart/albums", outsider, nil)
+	if res.StatusCode != 404 {
+		t.Fatalf("outsider: want 404, got %d", res.StatusCode)
+	}
+}

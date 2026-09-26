@@ -524,6 +524,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/playlists/{id}/albums": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Distinct albums behind the playlist cover mosaic
+         * @description Up to `limit` distinct albums from the playlist's songs, in playlist order — the 2x2 cover grid the playlist cards and detail header render. Access matches the playlist detail (a shareToken admits anonymous viewers).
+         */
+        get: operations["listPlaylistCoverAlbums"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/playlists/{id}/share": {
         parameters: {
             query?: never;
@@ -2143,6 +2163,11 @@ export interface components {
         YearCount: {
             year: number;
             songCount: number;
+        };
+        CoverAlbum: {
+            id: string;
+            name: string;
+            coverArt?: string;
         };
         NameEntry: {
             id: string;
@@ -3773,6 +3798,35 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listPlaylistCoverAlbums: {
+        parameters: {
+            query?: {
+                limit?: number;
+                shareToken?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Albums for the cover grid (possibly empty). */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        albums: components["schemas"]["CoverAlbum"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
         };
     };

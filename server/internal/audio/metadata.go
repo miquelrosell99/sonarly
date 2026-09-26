@@ -1,5 +1,5 @@
 // Package audio is Sonarly's production audio metadata reader (P4a),
-// fulfilling the S1 sign-off list in docs/s1-metadata-findings.md:
+// fulfilling the S1 sign-off list in ../../../.audits/s1-metadata-findings.md:
 //
 //   - tagfork: owned fork of github.com/dhowden/tag with the S1-approved
 //     patches W1 (multi-value tags) and W2 (m4a rtng/tmpo), vendored at

@@ -9,7 +9,7 @@ import (
 )
 
 // contentTypeByExt is the pinned the retired server mime-types table, measured in the S2
-// spike against the old server's node_modules (docs/s2-streaming-findings.md §3.2):
+// spike against the old server's node_modules (../../../.audits/s2-streaming-findings.md §3.2):
 // flac → audio/x-flac (NOT audio/flac), wav → audio/wav (NOT audio/x-wav),
 // opus → audio/ogg. Host mime databases differ and container images may lack
 // /etc/mime.types entirely — Content-Type must never depend on the host.

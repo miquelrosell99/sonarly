@@ -113,6 +113,14 @@ type ShareEntry struct {
 
 // Detail is the GET /api/playlists/{id} response body. Shares and
 // ShareToken are owner-only.
+// CoverAlbum is one entry of the playlist cover mosaic: the display
+// fields the 2x2 grid needs.
+type CoverAlbum struct {
+	ID       string  `json:"id"`
+	Name     string  `json:"name"`
+	CoverArt *string `json:"coverArt,omitempty"`
+}
+
 type Detail struct {
 	ID            string  `json:"id"`
 	Name          string  `json:"name"`

@@ -1,19 +1,19 @@
 # Sonarly — Go server
 
 Go implementation of the Sonarly server, started
-per Decision Record DR-1 in `docs/audits/2026-09-24-backend-architecture-audit.md`.
+per Decision Record DR-1 in `../.audits/2026-09-24-backend-architecture-audit.md`.
 
 ## Status
 
 **Parity-complete (P10/P10b, 2026-09-25).** Request-level parity with the
 retired TypeScript server is proven — 94/94 parity cases, 0 blockers
-(`docs/p10-parity-report.md`) — and a production dual-run against the live
+(`../.audits/p10-parity-report.md`) — and a production dual-run against the live
 DB snapshot passed with 0 stream mismatches and byte-identical user state
-(`docs/p10b-dualrun-report.md`). The last functional gap, static SPA
+(`../.audits/p10b-dualrun-report.md`). The last functional gap, static SPA
 serving, closed in P11. Deployment artifacts live in `docker/`
 (Dockerfile, entrypoint.sh, compose.yaml.example). Cutover executed
 2026-09-26; the evidence, go/no-go checklist, runbook and rollback are in
-`docs/cutover-readiness.md`.
+`../.audits/cutover-readiness.md`.
 
 ## Stack
 
@@ -51,7 +51,7 @@ serving, closed in P11. Deployment artifacts live in `docker/`
 - OpenSubsonic adapter (P6.5/P9a/P9b): the full `/rest` surface over the
   same services — envelope + auth hook (P6.5), 24 browsing/retrieval
   endpoints (P9a), and the starring/now-playing/playlist/bookmark endpoints
-  (P9b) against `docs/opensubsonic-quirks.md`; playlist and bookmark
+  (P9b) against `../.audits/opensubsonic-quirks.md`; playlist and bookmark
   endpoints delegate to the playlists/playback modules so there is ONE
   policy and ONE data path — see `internal/modules/opensubsonic/`
 - Interactions (P9c start): native favorites/ratings (POST /api/favorites,
@@ -150,4 +150,4 @@ docker build -f docker/Dockerfile \
 ```
 
 Compose shape: `docker/compose.yaml.example`. The cutover runbook,
-go/no-go checklist and rollback are in `docs/cutover-readiness.md`.
+go/no-go checklist and rollback are in `../.audits/cutover-readiness.md`.

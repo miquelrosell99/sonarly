@@ -6,7 +6,7 @@ Validates the Go streaming architecture before P5 (playback). Own Go module
 (`sonarly-spike-streaming`) — **not** imported by `cmd/sonarly`; the production
 tree under `server/internal/` is untouched.
 
-Findings: `docs/s2-streaming-findings.md`.
+Findings: `../../../.audits/s2-streaming-findings.md`.
 
 ## Layout
 

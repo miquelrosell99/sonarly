@@ -10,7 +10,7 @@ import (
 // ---------------------------------------------------------------------------
 // Transcode decision (port of the retired server features/transcode/service.ts, post-ff4a1ec
 // min(requested, userCap) clamp; semantics frozen by the S2 spike, see
-// docs/s2-streaming-findings.md §2/§8)
+// ../../../.audits/s2-streaming-findings.md §2/§8)
 // ---------------------------------------------------------------------------
 
 // TranscodeDecision is the outcome of DecideTranscode: either direct serving

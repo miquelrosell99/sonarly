@@ -7,7 +7,7 @@ Self-contained spike for plan.md S1. Two independent Go modules (this dir and
 production module `github.com/miquelrosell99/sonarly/server`, so `go build ./...`
 from `server/` never touches them.
 
-See `../../../docs/s1-metadata-findings.md` for the report.
+See `../../../.audits/s1-metadata-findings.md` for the report.
 
 ## Layout
 
