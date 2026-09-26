@@ -101,7 +101,6 @@ export function Slider({
 }) {
   const range = max - min;
   const percentage = range === 0 ? 0 : ((value - min) / range) * 100;
-  const isProgress = variant === 'progress';
 
   return (
     <input
@@ -115,16 +114,11 @@ export function Slider({
       aria-valuetext={ariaValueText}
       onChange={(e) => onChange(parseFloat(e.target.value))}
       className={cn(
-        'slider h-1 w-full cursor-pointer rounded-full text-fg-primary transition',
+        'slider w-full cursor-pointer transition',
         'disabled:cursor-not-allowed disabled:opacity-50',
-        isProgress && 'slider-progress',
         className,
       )}
-      style={
-        {
-          background: `linear-gradient(to right, hsl(var(--accent)) 0%, hsl(var(--accent)) ${percentage}%, hsl(var(--fg-primary) / 0.1) ${percentage}%, hsl(var(--fg-primary) / 0.1) 100%)`,
-        } as React.CSSProperties
-      }
+      style={{ '--slider-fill': `${percentage}%` } as React.CSSProperties}
     />
   );
 }
