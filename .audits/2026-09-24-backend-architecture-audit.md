@@ -469,7 +469,7 @@ The external proposal: Go (or TS) + PostgreSQL + FTS/trigram + DB-backed jobs + 
   1. **Go's audio-metadata reading is the ecosystem's weak spot.** `dhowden/tag` (last commit 2024-04) covers ID3v1/v2, MP4, FLAC, OGG + artwork but not v1's depth (ReplayGain, ISRC, SYLT, explicit-flag variants). Mitigations: extend the library, CGO TagLib (breaks pure-Go), or reduced initial richness.
   2. **`@sonarly/shared` type sharing is lost.** Mitigation: OpenAPI spec as the contract source, codegen both sides (oapi-codegen + orval). New discipline required.
   3. Development velocity if Go proficiency is still growing — accepted because v1 remains the production server; the branch isolates the cost.
-- **De-risking spikes (gate the phases noted in `docs/plan.md`):**
+- **De-risking spikes (gate the phases noted in `plan.md`):**
   - **S1 Metadata** (gates scanner): `dhowden/tag` against the real library corpus; gap catalog vs v1's `music-metadata` reader.
   - **S2 Streaming** (gates playback): range requests, ffmpeg pipe, disconnect-kill, concurrency cap.
   - **S3 Contract** (gates frontend work): OpenAPI generation from Go routes + client codegen proof.
@@ -720,8 +720,8 @@ Ordered by Impact × Risk × Effort. Each phase ships independently; no phase re
 
 1. **v2 Go rewrite track** (branch `feat/go-rewrite`, worktree `.worktrees/go-rewrite`, code under `v2/`): greenfield implementation targeting the architecture in §16–§19. **Quality bar (explicit directive from the owner):** best possible implementation — no hacky solutions, no shortcuts in stack choice, coding, schema design, or testing. Where v1 compromised for historical reasons, v2 does the thing properly (e.g. real FKs, typed job payloads, transactional writes, enforced library isolation, FTS5, graceful shutdown from day one).
 2. **v1 hardening continues in parallel** on `main`: Phase 0 (CI, SIGTERM, `/health`) and Phase 1 correctness fixes (B3–B6, B10–B13), then Phase 2 security items — regardless of v2's outcome.
-3. **Frontend audit — triggered when the S3 contract spike lands, running in parallel with v2 P4–P8** (not gated on "v2 backend done": a stable contract is the prerequisite, not a finished backend, and auditing against a frozen contract beats auditing against a moving one). The web client (`packages/web`) receives a full professional-style audit equivalent in rigor to this one, using the prompt recorded in `docs/plan.md` ("Frontend Audit Prompt").
-4. **Plan file:** `docs/plan.md` is the living reference for the parallel tracks (v2 phases, v1 fixes, frontend audit trigger).
+3. **Frontend audit — triggered when the S3 contract spike lands, running in parallel with v2 P4–P8** (not gated on "v2 backend done": a stable contract is the prerequisite, not a finished backend, and auditing against a frozen contract beats auditing against a moving one). The web client (`packages/web`) receives a full professional-style audit equivalent in rigor to this one, using the prompt recorded in `plan.md` ("Frontend Audit Prompt").
+4. **Plan file:** `plan.md` is the living reference for the parallel tracks (v2 phases, v1 fixes, frontend audit trigger).
 
 ---
 

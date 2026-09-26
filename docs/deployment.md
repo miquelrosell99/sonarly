@@ -1,187 +1,111 @@
 # Deploying Sonarly
 
-Sonarly is distributed and run as a single Docker image. The image contains the Go server and the built React web UI. This document covers Docker deployment for production.
+Sonarly runs as a single Docker container: the Go server, the built web UI, SQLite, ffmpeg, and the tag writer all ship in one image. This document covers production operation — installing, updating, backing up, rolling back, permissions, and health checks. For the first-install walkthrough see [installation.md](installation.md); for the full variable reference see [configuration.md](configuration.md).
 
 ## Requirements
 
-- Docker Engine 20.10+
-- Docker Compose (plugin)
-- A Linux/macOS/Windows host with a filesystem that can bind-mount directories
+- Docker Engine 20.10+ with the Compose plugin
+- A host folder for the music library and one for server data
+- Host port `4533` free (or set `SONARLY_PORT`)
 
-## Production deployment
-
-The production image is built from `docker/Dockerfile` and orchestrated with `compose.yaml` (copied from `docker/compose.yaml.example`).
-
-### 1. Configure environment variables
-
-Copy the example environment file and set a strong `SESSION_SECRET`:
+## Install
 
 ```bash
-cp .env.example .env
+git clone https://github.com/miquelrosell99/sonarly.git   # or copy the two files below
+cd sonarly
+cp .env.example .env          # set SESSION_SECRET and LIBRARY_MUSIC
+cp docker/compose.yaml.example compose.yaml
+docker compose up -d
 ```
 
-Edit `.env` and set `SESSION_SECRET` to a random string of at least 32 characters:
+The compose file runs the published image `ghcr.io/miquelrosell99/sonarly:latest` and applies database migrations automatically on boot — upgrades need no export/import step. First visit to `http://localhost:4533` runs the setup wizard.
 
-```bash
-SESSION_SECRET=$(openssl rand -hex 32)
-```
-
-### 2. Start the container
-
-```bash
-docker compose -f compose.yaml up -d
-```
-
-The web interface is available at `http://localhost:4533` (or the host port you configured with `SONARLY_PORT`).
-
-On first visit the server will redirect to `/setup` to create the admin account.
-
----
-
-## Environment variables
-
-Create a `.env` file next to the compose file.
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SESSION_SECRET` | *(required)* | Secret used to seal the Subsonic password column and sign session cookies. Must be at least 32 characters. The server refuses to start without it. Changing it logs everyone out and breaks existing Subsonic client passwords. |
-| `SESSION_COOKIE_SECURE` | `false` | Set to `true` only when serving Sonarly behind HTTPS. Defaults to `false` so cookies work over plain HTTP in self-hosted setups. |
-| `PUID` | `1000` | User ID the container process runs as. Match this to the owner of your bind mounts. |
-| `PGID` | `1000` | Group ID the container process runs as. Match this to the group of your bind mounts. |
-| `SONARLY_PORT` | `4533` | Host port mapped to the container's internal port `3000`. |
-| `LIBRARY_MUSIC` | *(see `.env.example`)* | Host path to the main music library, bind-mounted to `/media/music` in the container. |
-| `SONARLY_INGEST_PATH` | `./config/sonarly/ingest` | Host path for the ingest/review folder, bind-mounted to `/data/ingest`. |
-
-Internal variables set by the compose file (usually not changed):
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SONARLY_ADDR` | `:3000` | Listen address. |
-| `SONARLY_DB_PATH` | `/data/db/sonarly.db` | SQLite database file. |
-| `SONARLY_DATA_DIR` | `/data/db` | Server-owned state (SQLite DB, avatars, artist images, upload staging). |
-| `SONARLY_LIBRARY_PATH` | `/media/music` | Root of the music library (required; the server refuses to start without it). |
-| `SONARLY_INGEST_PATH` | `/data/ingest` | Drop folder for ingest. |
-| `SONARLY_WEB_DIST` | `/app/web-dist` | Built web client served by the binary; a missing directory puts the server in API-only mode. |
-| `SONARLY_SCAN_INTERVAL_MINUTES` | `60` | Interval between automatic library rescans (`0` disables). |
-| `SONARLY_WATCH_POLL_INTERVAL` | `5` | Filesystem poll cadence in seconds for library change detection. |
-| `SONARLY_ARTIST_IMAGE_INTERVAL_MINUTES` | `1440` | Interval for artist image/metadata sync (`0` disables). |
-| `SONARLY_INGEST_INTERVAL_MINUTES` | `60` | Interval between ingest folder sweeps (`0` disables). |
-| `SONARLY_REVIEW_CLEANUP_INTERVAL_MINUTES` | `1440` | Interval for review-folder retention sweeps. |
-| `SONARLY_REVIEW_RETENTION_DAYS` | `30` | Default retention for files in the ingest review folder (overridable per-deployment from the settings UI). |
-| `SONARLY_TRANSCODE_CONCURRENCY` | `2` | Max concurrent ffmpeg transcodes. |
-| `SONARLY_FFMPEG_PATH` | `ffmpeg` | ffmpeg binary; resolved via PATH unless overridden. |
-
----
-
-## Volumes
-
-The compose file mounts three bind volumes:
+### Volumes
 
 | Host path | Container path | Purpose |
 |-----------|----------------|---------|
 | `./config/sonarly/data` | `/data/db` | SQLite database and server-owned state (avatars, artist images, upload staging) |
-| `${SONARLY_INGEST_PATH:-./config/sonarly/ingest}` | `/data/ingest` | Drop folder for ingest |
+| `${SONARLY_INGEST_PATH:-./config/sonarly/ingest}` | `/data/ingest` | Drop folder for ingest (per-library subfolders inside) |
 | `${LIBRARY_MUSIC:-./config/sonarly/library}` | `/media/music` | The music library. Read-only is sufficient for scanning/streaming; tag editing and organize need write access. |
 
-Make sure the host data directories exist and are writable by the container user:
+Create the data directories first and make sure they are writable by the container user (see Permissions):
 
 ```bash
 mkdir -p ./config/sonarly/data ./config/sonarly/ingest
 ```
 
-Each library gets its own ingest subfolder inside the ingest path, named by the library ID (for example, `/data/ingest/<library-id>/`). Files dropped into a library's subfolder are imported into that library.
+### Building from source
 
----
-
-## Permissions
-
-The container runs as a non-root user. The entrypoint creates a `sonarly` user at runtime and adjusts its UID/GID to match `PUID`/`PGID`, then drops privileges with `su-exec`.
-
-Set ownership on the bind mounts to match:
+The image is a multi-stage build (web client → Go binary → alpine runtime). The build context must be the repo root:
 
 ```bash
-chown -R 1000:1000 ./config/sonarly
+docker build -f docker/Dockerfile \
+  --build-arg SONARLY_VERSION=$(git describe --tags --always) \
+  -t sonarly:local .
 ```
 
-If you use a different `PUID`/`PGID`, match those values instead:
+then point `compose.yaml` at `sonarly:local`.
+
+## Permissions (PUID/PGID)
+
+The container never runs as root: the entrypoint creates a `sonarly` user adjusted to the `PUID`/`PGID` environment variables (default `1000:1000`) and drops privileges with `su-exec`. The data directories are created and chowned on every start; the library mount keeps its existing ownership, so it only needs to be readable by that UID (and writable if you use tag editing or organize).
+
+Match the variables to the owner of your bind mounts:
 
 ```bash
-PUID=1001 PGID=1001 docker compose up -d
-chown -R 1001:1001 ./config/sonarly
+# host folders owned by uid/gid 1002
+PUID=1002 PGID=1002 docker compose up -d
 ```
 
----
+Symptoms of a mismatch: "permission denied" writing the database or uploading files. Fix by aligning `PUID`/`PGID` with `chown -R <uid>:<gid> ./config/sonarly` on the host.
 
 ## Health check
 
-The image declares a container `HEALTHCHECK` against `GET /healthz` (also available: `/health`, `/ready`). Orchestrators and monitoring can use the same endpoints:
+The image declares a container `HEALTHCHECK` against `GET /healthz`; liveness probes are also available at `/health` and `/ready`. From the host:
 
 ```bash
 curl -f http://localhost:4533/healthz
 ```
 
----
+Compose/orchestrator status (`docker ps` showing `healthy`) follows the same check. If the check fails on first boot, give migrations a minute before investigating — the check has a 15 s start period and retries.
 
-## Updating Sonarly
+## Upgrade
 
-The database lives in the bind-mounted `./config/sonarly/data` directory. Back up that directory before updating.
-
-### Pre-built image (default)
-
-The compose file runs the `ghcr.io/miquelrosell99/sonarly` image, published by CI on every version tag. To update to the latest release:
+Migrations are forward-only, embedded in the binary, and idempotent — pulling a newer image and recreating the container is the whole procedure. **Back up first** (next section), then:
 
 ```bash
-docker compose -f compose.yaml pull
-docker compose -f compose.yaml up -d
+docker compose pull          # pre-built image
+docker compose up -d         # recreates with the new image, migrates in place
 ```
 
-Database migrations run automatically on startup from the embedded SQL files (ledger-tracked, idempotent) — no manual migration step.
+If you build from source, rebuild the image and `up -d` (note: tagging your local build with an existing registry tag shadows the registry image until the next `pull`).
 
-### Building from source
+## Backup and rollback
+
+**Backup** — copy the data folder while the database is consistent:
 
 ```bash
-docker build -f docker/Dockerfile \
-  --build-arg SONARLY_VERSION=$(git describe --tags --always) \
-  -t ghcr.io/miquelrosell99/sonarly:v2.0.0-rc1 .
-docker compose -f compose.yaml up -d
+docker compose stop
+cp -a ./config/sonarly/data ./backups/data-$(date +%F)
+docker compose start
 ```
 
-Note: tagging your local build as an existing registry tag shadows the registry image until the next `docker compose pull`.
+or take a live consistent snapshot with the SQLite online backup (checkpoints the WAL): `sqlite3 ./config/sonarly/data/sonarly.db ".backup './backups/sonarly-$(date +%F).db'"`. Your music folder is mounted as-is — back it up with your normal file backup. The catalog itself is rebuildable from the files by a scan.
 
-### Rollback
+**Rollback** — migrations are forward-only, so rolling back means restoring the pre-upgrade backup:
 
-Migrations are forward-only. To roll back to a previous release:
+1. `docker compose down`.
+2. Restore the database backup into `./config/sonarly/data` (the SQLite file must match the older binary's schema).
+3. Pull or build the previous image tag and `docker compose up -d`.
 
-1. Stop the container: `docker compose -f compose.yaml down`.
-2. Restore the database backup taken before the update into `./config/sonarly/data` (the SQLite file must match the older binary's schema).
-3. Pull or build the previous image tag and `docker compose -f compose.yaml up -d`.
+## Operational notes
 
-The production cutover runbook (including the pre-cutover backup) is preserved in [cutover-readiness.md](cutover-readiness.md).
-
----
+- **One instance per database file.** SQLite with a single writer; run exactly one container against a given `sonarly.db`.
+- **Local disk for the database.** Put `/data/db` on local storage; SQLite on network shares is the most common performance and locking problem.
+- **Library on network shares is fine.** The watcher uses filesystem polling (`SONARLY_WATCH_POLL_INTERVAL`, default every 5 s), which works on NFS/SMB where inotify does not; raise the interval on slow shares.
+- **Do not rotate `SESSION_SECRET` casually.** It seals stored Subsonic passwords and signs sessions; changing it logs everyone out and breaks Subsonic client passwords until they re-authenticate.
+- The production cutover runbook (2026-09-26, including the pre-cutover backup) is preserved as an internal record in [`.audits/cutover-readiness.md`](../.audits/cutover-readiness.md).
 
 ## Troubleshooting
 
-### Container exits with "SESSION_SECRET must be set and at least 32 characters"
-
-`SESSION_SECRET` is missing or shorter than 32 characters. Generate one with:
-
-```bash
-openssl rand -hex 32
-```
-
-### Container exits with "SONARLY_LIBRARY_PATH must be set"
-
-The library path is not configured. Set `LIBRARY_MUSIC` in `.env` (mounted at `/media/music`).
-
-### Permission denied on bind mounts
-
-Ensure the host directories are owned by the UID/GID configured via `PUID`/`PGID` (default `1000:1000`).
-
-### Transcoding fails
-
-The runtime image installs `ffmpeg`; if you override the runtime image or run the binary directly, install ffmpeg and ensure it is on `PATH` (or set `SONARLY_FFMPEG_PATH`).
-
-### Tag editing fails
-
-Tag writing shells out to `python3` with `mutagen` installed (both are in the runtime image). Missing tooling answers 500 "Failed to write tags"; scanning and streaming are unaffected.
+See [troubleshooting.md](troubleshooting.md) for the problem → cause → fix catalog (container won't start, empty library, Subsonic clients, SQLite locks, artwork, review folder, duplicates, performance).

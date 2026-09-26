@@ -1,6 +1,8 @@
 # Sonarly
 
-A self-hosted music server that speaks the OpenSubsonic API and provides a premium, dark-themed web player for your personal music library.
+A self-hosted music server for your own collection: it indexes the music folder you already have, serves it through the OpenSubsonic API so any Subsonic client works, and ships a dark, art-first web player for browsing and playback.
+
+Your files stay on your disk in your folder structure — Sonarly indexes, never appropriates, and scans are read-only toward your files.
 
 [![Go](https://img.shields.io/badge/Go-1.23-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
@@ -8,157 +10,69 @@ A self-hosted music server that speaks the OpenSubsonic API and provides a premi
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 [![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)](https://sqlite.org/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![pnpm](https://img.shields.io/badge/pnpm-9-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
-[![OpenSubsonic](https://img.shields.io/badge/OpenSubsonic-1.16.1-FF6B6B?logo=audioboom&logoColor=white)]()
-[![Self-hosted](https://img.shields.io/badge/Self--hosted-✓-2EA043?logo=linux&logoColor=white)]()
-
-> **Alpha software.** Sonarly is in early development and is not stable. Do not use it for music libraries you cannot afford to lose or re-import. Data loss, database resets, or incorrect file organization can happen due to bugs or incomplete features. Always keep separate backups of your audio files and database before importing, organizing, or updating.
+[![OpenSubsonic](https://img.shields.io/badge/OpenSubsonic-1.16.1-FF6B6B)]()
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 
 <!-- Screenshot placeholder: add a representative UI screenshot here when available. -->
 
-## What is Sonarly?
+## Features
 
-Sonarly organizes your music library, serves it through the **OpenSubsonic API** (so your favorite Subsonic clients just work), and provides a web management UI inspired by TIDAL's dark, art-first aesthetic.
-
-The server is a single Go binary — it serves the web client, the SQLite database, the native management API at `/api`, and the OpenSubsonic-compatible API at `/rest`.
+- **Filesystem-authoritative library** — point it at your existing music folder; there is no import step and no proprietary store. Scans are read-only; tag writes are explicit actions only.
+- **OpenSubsonic-compatible API** at `/rest` — Feishin, Symphonium, Ultrasonic, DSub, and other Subsonic clients work out of the box.
+- **Web player** — gapless playback, queue with Auto DJ, sleep timer, synced lyrics, Media Session/OS media keys, and a player chrome tinted from the current album art.
+- **Library management** — automatic scanning (watcher + periodic), ingest drop folder with a review quarantine for unparseable files, chunked uploads, auto-organization into a configurable path pattern, duplicate strategies, and tag editing (Mutagen-backed).
+- **Smart playlists** — rule-based playlists that re-resolve as the library changes, with per-user sharing, public sharing, and tokenized share links that open a guest player.
+- **Multi-user with real boundaries** — per-user library assignment enforced on every browse, search, and stream; per-user favorites, ratings, history, and statistics.
+- **Boring tech, one container** — a single Go binary with embedded SQLite, served as one Docker image with the web client baked in.
 
 ## Quick start
 
-The fastest way to run Sonarly is with Docker Compose.
-
-### Using the pre-built image
-
 ```bash
-# 1. Clone the repository
 git clone https://github.com/miquelrosell99/sonarly.git
 cd sonarly
 
-# 2. Configure the environment
 cp .env.example .env
-# Edit .env and set SESSION_SECRET to a random string of at least 32 chars.
+# Edit .env: SESSION_SECRET=$(openssl rand -hex 32) and LIBRARY_MUSIC=/path/to/music
+cp docker/compose.yaml.example compose.yaml
 
-# 3. Start Sonarly
-docker compose -f compose.yaml up -d
+docker compose up -d
 ```
 
-### Building from source
+Open `http://localhost:4533` — the first visit runs the setup wizard to create the admin account, and the first scan starts automatically. See [docs/installation.md](docs/installation.md) for the `docker run` variant and where data lives.
 
-The all-in-one image builds the web client and the Go server in one multi-stage build (build context is the repo root):
+## Status
 
-```bash
-docker build -f docker/Dockerfile \
-  --build-arg SONARLY_VERSION=$(git describe --tags --always) \
-  -t ghcr.io/miquelrosell99/sonarly:v2.0.0-rc1 .
-docker compose -f compose.yaml up -d
-```
-
-To run the pieces directly without Docker, see [docs/development.md](docs/development.md).
-
-The web UI is available at `http://localhost:4533` (change with `SONARLY_PORT`). On first visit you will be redirected to `/setup` to create the admin account.
-
-## Features
-
-- **OpenSubsonic compatible** — works with Feishin, Symphonium, DSub, Ultrasonic, and any other Subsonic/OpenSubsonic client.
-- **Modern web UI** — React + Vite + Tailwind CSS, with adaptive player chrome tinted from the current album art.
-- **Auto-organization** — drop files into the ingest folder and let Sonarly rename them into a clean library pattern.
-- **Cover and artist art** — reads embedded artwork, caches album covers, and fetches artist images.
-- **Smart playlists** — create dynamic playlists from rules that update automatically.
-- **Auto DJ** — let Sonarly keep the music going based on your library.
-- **Self-hosted and containerized** — single Docker image with everything included.
-- **Well tested** — the Go server and the React client each have extensive test suites that run on every change.
-- **Tag editing** — write metadata back to files with Python Mutagen.
-- **Users and permissions** — admin and regular user roles, with per-user library assignment enforced on every content path.
-- **Multi-library support** — manage several media folders from the admin panel.
+**2.0.0** — the server is a Go rewrite (cut over from the original TypeScript server on 2026-09-26) and is the production server. Always back up the database and your music before updates ([docs/deployment.md](docs/deployment.md#backup-and-rollback)).
 
 ## Documentation
 
 | Document | What it covers |
 |---|---|
 | [docs/README.md](docs/README.md) | Documentation index |
-| [docs/deployment.md](docs/deployment.md) | Docker deployment, environment variables, volumes, upgrades, rollback, troubleshooting |
-| [docs/development.md](docs/development.md) | Development setup, scripts, testing, database migrations |
-| [docs/architecture.md](docs/architecture.md) | Server modules, request pipeline, data flow, web app structure |
-| [docs/smart-playlists.md](docs/smart-playlists.md) | Smart playlists: rule model, fields, operators, resolve modes |
-| [docs/api.md](docs/api.md) | Management REST API (`/api`) and OpenSubsonic API (`/rest`) reference |
-| [docs/db-schema.md](docs/db-schema.md) | SQLite database schema and conventions |
-| [docs/design-language.md](docs/design-language.md) | UI design tokens, typography, and visual principles |
-| [CHANGELOG.md](CHANGELOG.md) | Release notes and notable changes |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Development setup, testing, commit conventions, pull request process |
-| [SECURITY.md](SECURITY.md) | Supported versions, vulnerability reporting, security practices |
+| [docs/philosophy.md](docs/philosophy.md) | What Sonarly is for and the principles behind it |
+| [docs/installation.md](docs/installation.md) | Quick start, first-boot setup, where data lives |
+| [docs/usage.md](docs/usage.md) | User guide: adding music, scanning, browsing, player, playlists, admin, clients |
+| [docs/ux.md](docs/ux.md) | Interface guide: layout, design language, keyboard access, states |
+| [docs/configuration.md](docs/configuration.md) | Every environment variable |
+| [docs/deployment.md](docs/deployment.md) | Docker deployment: install, upgrade, backup, rollback, permissions |
+| [docs/troubleshooting.md](docs/troubleshooting.md) | Problem → cause → fix |
+| [docs/faq.md](docs/faq.md) | Frequently asked questions |
+| [docs/smart-playlists.md](docs/smart-playlists.md) | Smart playlist rules and resolve modes |
+| [docs/api.md](docs/api.md) | Native REST API and OpenSubsonic API reference |
+| [docs/development.md](docs/development.md) | Development setup, scripts, tests |
+| [docs/architecture.md](docs/architecture.md) | Module map, request pipeline, job queue |
+| [CHANGELOG.md](CHANGELOG.md) | Release notes |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution process |
+| [SECURITY.md](SECURITY.md) | Vulnerability reporting |
 
-## Project structure
+## Tech stack
 
-```
-.
-├── server/                 # Go server (the only server)
-│   ├── cmd/sonarly/        # entrypoint
-│   ├── internal/           # config, db, httpserver, modules/*, staticfs
-│   ├── api/openapi.yaml    # native REST contract (OpenAPI 3.1)
-│   └── spikes/             # archived investigation artifacts
-├── packages/
-│   └── web/                # React web client (Vite, Tailwind, react-query)
-├── docker/
-│   ├── Dockerfile          # all-in-one image (web build → Go build → runtime)
-│   ├── entrypoint.sh       # PUID/PGID privilege drop
-│   └── compose.yaml.example
-├── compose.yaml            # Production deployment (gitignored, copy from example)
-└── .env.example            # Required environment variables
-```
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────┐
-│                Sonarly container                │
-│                                                 │
-│  ┌───────────────────────────────────────────┐  │
-│  │          Go server (port 3000)            │  │
-│  │                                           │  │
-│  │   /rest/*  OpenSubsonic adapter           │  │
-│  │   /api/*   native management REST API     │  │
-│  │   /*       built React web client (SPA)   │  │
-│  │                                           │  │
-│  │   worker/queue: scans, ingest, organize   │  │
-│  │   SQLite (WAL) ──┐                        │  │
-│  └──────────────────┼────────────────────────┘  │
-│                     │                           │
-└─────────────────────┼───────────────────────────┘
-                      │
-        ┌─────────────┴──────────────┐
-        │ bind mounts: /data/db      │  SQLite DB + server state
-        │              /data/ingest  │  drop folder
-        │              /media/music  │  the music library
-        └────────────────────────────┘
-```
-
-- **Server**: Go 1.23, `net/http` + chi v5, SQLite via `modernc.org/sqlite` (pure Go, WAL). Modular monolith under `server/internal/modules/<domain>`.
-- **Web client**: React 18 + Vite 6 + Tailwind CSS, react-query for server state, wouter router, Zustand for client state, code-split by route.
-- **Storage**: SQLite for metadata and user data; filesystem for audio, cover art, and avatars.
-
-## Compatible clients
-
-Sonarly implements the OpenSubsonic REST API at `/rest/` and has been tested with:
-
-| Client | Status | Notes |
-|---|---|---|
-| Feishin | Working | Desktop/web player. |
-| Symphonium | Working | Android player; full library sync and playback confirmed. |
-| Music Assistant | Working | Library sync verified during the production parity run. |
-| DSub | Not tested yet | Should work; feedback welcome. |
-| Ultrasonic | Not tested yet | Should work; feedback welcome. |
-
-Open an issue if your client does not work.
-
-## Known limitations
-
-- **OpenSubsonic bookmarks**: `getBookmarks.view` currently returns an empty list. Full bookmark support is not implemented yet.
-
-## Contributing
-
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, commit conventions, and pull request process.
-
-Sonarly has been developed with assistance from AI coding agents. Human review, testing, and contributions are essential.
+- **Server**: Go 1.23, `net/http` + chi v5, SQLite via `modernc.org/sqlite` (pure Go, WAL), ffmpeg for transcoding, python3 + Mutagen for tag writes.
+- **Web client**: React 18 + Vite 6 + Tailwind CSS 3, wouter, TanStack Query, Zustand, route-level code splitting.
+- **Deployment**: single all-in-one image ([docker/Dockerfile](docker/Dockerfile)) built from the repo root.
 
 ## License
 
-Sonarly is released under the [GNU Affero General Public License v3.0](LICENSE).
+[GNU Affero General Public License v3.0](LICENSE).
+
+Developed with assistance from AI coding agents; human review and validation are required before merging changes.

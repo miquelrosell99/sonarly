@@ -159,7 +159,7 @@ Diff wall time: 4.19s.
 
 - live v1 probe: GET http://127.0.0.1:4534/healthz -> 200 (no login attempted; parity evidence stands on the testparity suite)
 
-Response-level parity evidence is the P10 testparity suite (94/94, see `docs/p10-parity-report.md`). No login or state-changing call was attempted against v1.
+Response-level parity evidence is the P10 testparity suite (94/94, see `p10-parity-report.md`). No login or state-changing call was attempted against v1.
 
 ## Cutover runbook
 
