@@ -178,6 +178,7 @@ func (s *Service) Get(ctx context.Context, id auth.Identity, playlistID, shareTo
 		Visibility:    p.Visibility,
 		IsSmart:       p.IsSmart,
 		ResolveMode:   p.ResolveMode,
+		Rules:         p.Rules,
 		SongCount:     len(entries),
 		Entries:       entries,
 		CreatedAt:     p.CreatedAt,

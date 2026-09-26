@@ -3509,6 +3509,10 @@ components:
         shareToken: { type: string }
         isSmart: { type: boolean }
         resolveMode: { $ref: '#/components/schemas/ResolveMode' }
+        rules:
+          anyOf:
+            - { $ref: '#/components/schemas/SmartPlaylistRules' }
+            - { type: 'null' }
         songCount: { type: integer }
         starred: { type: boolean }
         rating: { type: number }
