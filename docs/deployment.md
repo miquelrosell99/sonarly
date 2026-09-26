@@ -104,7 +104,7 @@ or take a live consistent snapshot with the SQLite online backup (checkpoints th
 - **Local disk for the database.** Put `/data/db` on local storage; SQLite on network shares is the most common performance and locking problem.
 - **Library on network shares is fine.** The watcher uses filesystem polling (`SONARLY_WATCH_POLL_INTERVAL`, default every 5 s), which works on NFS/SMB where inotify does not; raise the interval on slow shares.
 - **Do not rotate `SESSION_SECRET` casually.** It seals stored Subsonic passwords and signs sessions; changing it logs everyone out and breaks Subsonic client passwords until they re-authenticate.
-- The production cutover runbook (2026-09-26, including the pre-cutover backup) is preserved as an internal record in [`.audits/cutover-readiness.md`](../.audits/cutover-readiness.md).
+- The 2026-09-26 production cutover runbook (including the pre-cutover backup location) is preserved in git history under `.audits/` at the 2.0.0 tag.
 
 ## Troubleshooting
 

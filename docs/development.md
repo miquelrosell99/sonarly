@@ -66,7 +66,7 @@ Repo-wide: `pnpm -r --parallel dev` runs server-adjacent tooling and web togethe
 
 **Web** — Vitest, colocated (`*.test.ts(x)`); page tests render through `lib/testing.tsx`. `pnpm test` runs everything.
 
-The request-parity and dual-run harnesses existed only during the 2026-09 server cutover and were removed with the retired TypeScript server; their final reports are preserved as internal records under [`.audits/`](../.audits/README.md).
+The request-parity and dual-run harnesses existed only during the 2026-09 server cutover and were removed with the retired TypeScript server; their final reports are preserved in git history under `.audits/` at the 2.0.0 tag.
 
 ## Conventions
 
