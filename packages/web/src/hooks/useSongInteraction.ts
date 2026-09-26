@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Song } from '@sonarly/shared';
+import type { Song } from '../types';
 import { api } from '../lib/api.js';
 import { useFavoriteActions } from './useFavoriteActions.js';
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { UserPreferences } from '@sonarly/shared';
+import type { UserPreferences } from '../../../types';
 import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferences.js';
 import { Settings } from '../components/Settings.js';
 import { Icon } from '../../../components/ui/Icon.js';

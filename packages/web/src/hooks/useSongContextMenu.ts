@@ -1,4 +1,4 @@
-import type { Song } from '@sonarly/shared';
+import type { Song } from '../types';
 import { useLocation } from 'wouter';
 import type { ContextMenuSection } from '../components/ItemContextMenu.js';
 import { usePlayActions } from './usePlayActions.js';

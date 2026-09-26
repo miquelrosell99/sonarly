@@ -1,5 +1,6 @@
 # Sonarly — Engineering Plan (living document)
 
+> **COMPLETE 2026-09-26**: this plan ran to completion — v2 (Go) is in production and the v1 TypeScript server has been removed from the codebase (kept in git history only). The document below is preserved as project history.
 > Last updated: 2026-09-24. Keep this file updated as tracks progress.
 > Backend audit: `docs/audits/2026-09-24-backend-architecture-audit.md` (findings F1–F16, decision record DR-1).
 

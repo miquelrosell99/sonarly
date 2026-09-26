@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import type { User, Song as BaseSong, Album } from '@sonarly/shared';
+import type { User, Song as BaseSong, Album } from '../types';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { api } from '../lib/api.js';
@@ -11,7 +11,7 @@ import { SponsorButton } from './SponsorButton.js';
 import { UploadModal, UploadResultsModal, type UploadSummary } from './UploadModal.js';
 import { useLibraryStore, buildLibraryQuery } from '../stores/libraryStore.js';
 import type { FilterDefinition } from './FilterPanel.js';
-import type { PlayerInfo } from '@sonarly/shared';
+import type { PlayerInfo } from '../types';
 
 interface TopBarProps {
   user: User;

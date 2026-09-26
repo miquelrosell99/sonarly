@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { PlaylistResolveMode, SmartPlaylistRules } from '@sonarly/shared';
+import type { PlaylistResolveMode, SmartPlaylistRules } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';

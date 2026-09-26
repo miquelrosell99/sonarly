@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/react';
 import { LyricsPanel } from './LyricsPanel.js';
 import { usePlayer, resetPlayer } from '../../../stores/playerStore.js';
-import type { User } from '@sonarly/shared';
+import type { User } from '../../../types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockApi = vi.fn();

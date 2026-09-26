@@ -1,4 +1,4 @@
-import type { FavoriteEntityType } from '@sonarly/shared';
+import type { FavoriteEntityType } from '../types';
 import { api } from '../lib/api.js';
 
 export interface FavoriteActions {

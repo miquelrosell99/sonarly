@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { DuplicateStrategy, Library } from '@sonarly/shared';
-import { DUPLICATE_STRATEGY_LABELS } from '@sonarly/shared';
+import type { DuplicateStrategy, Library } from '../types';
+import { DUPLICATE_STRATEGY_LABELS } from '../types';
 import { cn } from '../lib/cn.js';
 import { api } from '../lib/api.js';
 import { Button } from './ui/Button.js';

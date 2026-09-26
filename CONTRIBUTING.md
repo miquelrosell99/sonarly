@@ -8,57 +8,50 @@ Sonarly has been developed with assistance from AI coding agents. Human review, 
 
 ### Requirements
 
-- Node.js 20
-- pnpm 9
-- Python 3 + Mutagen (`pip3 install mutagen`)
-- Docker and Docker Compose v2 (optional but recommended)
+- Go 1.23
+- Node.js 22 + pnpm 9
+- Python 3 + Mutagen (`pip3 install mutagen`) — used by the tag writer
+- `ffmpeg` — used by transcoding
+- Docker and Docker Compose v2 (optional, for image work)
 
 ### Local install
 
 ```bash
-pnpm install
+pnpm install   # web client dependencies
 ```
+
+The Go server has no install step beyond the toolchain (`go build ./...` in `v2/` downloads modules).
 
 ### Run in development mode
 
-Using Docker (recommended):
-
 ```bash
-cp .env.example .env
-cp docker/compose.dev.yaml.example compose.dev.yaml
-# edit .env and set SESSION_SECRET
-docker compose -f compose.dev.yaml up -d --build
-```
+# Terminal 1 — Go server (from the repo root)
+cd v2
+SESSION_SECRET=$(openssl rand -hex 32) SONARLY_LIBRARY_PATH=/path/to/music go run ./cmd/sonarly
 
-The web UI is at http://localhost:4534 and the backend directly at http://localhost:3001.
-
-Without Docker:
-
-```bash
+# Terminal 2 — web client
 pnpm dev
 ```
 
+The web UI is at http://localhost:5173 (the Vite dev server proxies `/api` and `/rest` to the Go server on port 3000). See [docs/development.md](docs/development.md) for the full workflow, including Docker builds.
+
 ## Project structure
 
-- `packages/server/` — Fastify backend, SQLite database, OpenSubsonic API, background workers.
+- `v2/` — Go server (the only server): modules, SQLite migrations, OpenSubsonic adapter, native REST API.
 - `packages/web/` — React + Vite management UI.
-- `packages/shared/` — Shared TypeScript types and utilities.
-- `docker/` — Dockerfiles and entrypoint.
+- `docker/` — all-in-one image (Dockerfile.v2), entrypoint, compose example.
 - `docs/` — Public documentation.
 
 ## Testing
 
-Run the full test suite:
+Run the full test suite (web client + Go server):
 
 ```bash
-pnpm test
+pnpm test            # web client (Vitest)
+cd v2 && go test ./... -count=1   # Go server
 ```
 
-Run backend tests only:
-
-```bash
-cd packages/server && pnpm test
-```
+The `v2/testparity` suite (v1↔v2 request parity) requires a pre-removal v1 checkout via `P10_V1_CHECKOUT` and skips cleanly otherwise.
 
 ## Commit conventions
 
@@ -82,13 +75,13 @@ Examples:
 2. Make focused changes with clear commit messages.
 3. Add or update tests for behavioral changes.
 4. Update relevant documentation (`README.md`, `docs/`, etc.).
-5. Ensure `pnpm test` passes.
+5. Ensure `pnpm test` and `go test ./...` pass.
 6. Open a pull request with a concise description and the motivation for the change.
 
 ## Code style
 
-- Use TypeScript strict mode.
-- Prefer explicit types over `any`.
+- Go: standard `gofmt`/`go vet`; follow the module layout in `v2/internal/modules/`.
+- TypeScript strict mode; prefer explicit types over `any`.
 - Keep components small and focused; co-locate related hooks and helpers.
 - Use the project's CSS design tokens and Tailwind utilities rather than ad-hoc values.
 

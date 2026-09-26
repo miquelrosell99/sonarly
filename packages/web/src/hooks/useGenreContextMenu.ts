@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import type { Song } from '@sonarly/shared';
+import type { Song } from '../types';
 import type { ContextMenuSection } from '../components/ItemContextMenu.js';
 import { api } from '../lib/api.js';
 import { useNotification } from '../contexts/NotificationContext.js';

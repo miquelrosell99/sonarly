@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { User, DuplicateStrategy } from '@sonarly/shared';
-import { DUPLICATE_STRATEGY_LABELS } from '@sonarly/shared';
+import type { User, DuplicateStrategy } from '../../../types';
+import { DUPLICATE_STRATEGY_LABELS } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { PageState } from '../../../components/PageState.js';

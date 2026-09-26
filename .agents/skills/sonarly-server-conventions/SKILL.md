@@ -1,41 +1,45 @@
 ---
 name: sonarly-server-conventions
-description: Conventions for adding or changing Sonarly server code — endpoints, repositories, migrations, validation, errors, and tests
+description: Conventions for adding or changing Sonarly server code — Go module layout, endpoints, OpenAPI contract, migrations, job queue, validation, errors, and tests
 type: prompt
-whenToUse: When adding or modifying API endpoints, repositories, database migrations, or tests in packages/server
+whenToUse: When adding or modifying API endpoints, repositories, database migrations, job types, or tests in v2/
 ---
 
-# Sonarly Server Conventions
+# Sonarly Server Conventions (v2 Go)
 
 ## Layout
 
-- Feature-first: `packages/server/src/features/<name>/{routes,repository,index}.ts`. Cross-feature imports go through the feature's `index.ts` barrel, never internal files.
-- Routes talk to repositories directly today; when logic must be shared across the native `/api/*` and OpenSubsonic `/rest/*` surfaces, extract it rather than duplicating (known duplications to avoid growing: `canViewPlaylist`, `parseByteRange`, `fetchPlaylistSongs`, `SongRow`/`AlbumRow` interfaces).
-- Entity types live in `packages/shared/src/` — never redeclare `Song`/`Album`/`Artist` interfaces in the server; per-route SQL row types are the accepted exception.
+- Modular monolith: one package per domain under `v2/internal/modules/<name>/` (catalog, library, ingest, playlists, opensubsonic, …). Cross-module imports go through the owning module, never its internal files.
+- Wiring: `v2/cmd/sonarly/main.go` builds config → db → modules → chi router (`internal/httpserver`). Env config lives in `internal/config`, loaded and validated at boot (fail fast on invalid config).
+- DTO types are defined per-module (`dto.go`); there is no shared types package. The web client types are generated from the OpenAPI spec.
 
 ## Endpoints
 
-- `/api/*` is guarded by the global preHandler in `app.ts:195-216`; adding to the exempt list is a security decision, not a convenience.
-- Validate bodies/queries with zod (see `search/routes.ts`, `uploads/routes.ts`); manual allowlist validation is acceptable for tag/lyrics payloads. Bad client input must produce **400**, not 500 — thrown validation errors currently leak to the global handler in a few places (scrobble body, lyrics write); don't copy that pattern.
-- Error shape is `{error: string}`; the global handler passes 4xx messages and sanitizes 5xx — never return raw `err.message` on 500 (statistics routes violate this; don't copy).
-- SQL is parameterized everywhere; dynamic fragments may only interpolate fixed whitelists. Escape LIKE metachars with `ESCAPE '\'` when building patterns.
-- Pagination: only `GET /api/admin/system-tasks/history` does it properly (page/limit/total/totalPages) — follow that shape for new list endpoints, and clamp all client-supplied limits (unclamped: `/rest/search3` counts).
+- Native routes are mounted in `internal/httpserver` and implemented in the owning module. The contract is `v2/api/openapi.yaml`; `v2/cmd/sonarly/spec_test.go` fails the build if the router and spec drift in either direction. Change both together, then regenerate the web types (`pnpm --filter @sonarly/web contract:gen`).
+- `/rest` (OpenSubsonic) changes: implement against the decisions in `docs/v2-opensubsonic-quirks.md`, not the spec text. Errors are enveloped with HTTP 200; code 70 = data not found / out of scope.
+- Native API error shape is JSON `{"error": "..."}` with a proper status code. Bad client input is a 4xx, never a leaked 500.
+- SQL is parameterized everywhere; dynamic fragments may only interpolate fixed whitelists; LIKE patterns are escaped (`ESCAPE '\'`).
 
 ## Database
 
-- Migrations: numbered files in `src/db/migrations/` (NNN_name.sql), run in lexicographic order from `migrate.ts` with a ledger table; each file is its own transaction. Use `IF NOT EXISTS`. Data migrations can be `.cjs` exporting `up`.
+- Migrations: numbered SQL files in `v2/internal/db/migrations/` (`NNNN_name.sql`), embedded into the binary, one transaction per file, recorded in the `schema_migrations` ledger. Use `IF NOT EXISTS`. **Never edit a shipped migration** — fix forward.
 - New tables: explicit FKs with actions, indexes for every observed query pattern (including FK cascade child columns), UNIQUE constraints instead of check-then-insert where possible.
-- Both DB connections set WAL + `foreign_keys` + `busy_timeout=5000`; multi-write operations go in `db.transaction` (see `scrobbleSong` for the pattern).
-- Timestamps: ISO 8601 strings from `toISOString()`; don't mix with `datetime('now')` format.
+- Pragmas are set once in `internal/db` (WAL, foreign_keys, busy_timeout, synchronous=NORMAL, single writer connection). Multi-write operations go in a transaction — follow `library.PersistSong` for the pattern (unconditional junction rewrites inside the same tx).
 
 ## Background jobs
 
-- New job type = new row in the `scan_jobs` queue, handled in `library/worker.ts`; payload must be JSON (`{...}`), never a bare string — the string-payload fallback path is a known bug source.
-- Coalesce where repeats are expected (`pushJob` in `library/queue.ts`); don't INSERT into `scan_jobs` directly.
+- New job type = a `JobType` constant + typed payload struct in `library/queue.go` (real JSON in `scan_jobs.payload` — never smuggle data through `stats`) + a handler case in `library/worker.go` + (if periodic) a scheduler entry.
+- Enqueue only through `Queue.Push` — it coalesces pending jobs of the same type and target. Never INSERT into `scan_jobs` directly.
 
 ## Tests
 
-- Vitest; server tests in `packages/server/tests/` mirroring `src/features/` (web tests live next to source — the two packages differ).
-- Integration pattern: `tests/integration/helpers.ts` — temp dirs, real file-backed SQLite + WAL, `buildApp(config, db)` with a **real worker thread**, `waitForJob()` polling. Reuse it for any scan/ingest/streaming test.
-- Fixture MP3s are generated by `tests/fixtures/generate-sample.js` (uses `node-id3`, a devDependency); mutagen tests require Python `mutagen==1.48.1`.
-- There's no CI yet — run `pnpm test` and `pnpm build` (typechecks `src/` only) before committing.
+- Go tests live next to source (`*_test.go`) in the owning package. `go test ./... -count=1` and `go vet ./...` (from `v2/`) are the pre-merge bar.
+- Integration patterns already established: httptest servers against the chi router; file-backed SQLite via the db package helpers; temp dirs for library fixtures. Reuse each module's `helpers_test.go` / `TestMain` scaffolding.
+- `v2/testparity` (v1↔v2 request parity) skips cleanly unless `P10_V1_CHECKOUT` points at a pre-removal v1 checkout — don't "fix" the skip. `v2/testdualrun` boots the built binary against a data snapshot; keep both green where runnable.
+
+## Web contract conventions
+
+- `packages/web/src/contract/schema.ts` is generated by openapi-typescript — never hand-edit; regenerate with `pnpm --filter @sonarly/web contract:gen`.
+- Domain entity types live in `packages/web/src/types/` (migrated from the retired `@sonarly/shared` package).
+- New server-state hooks go through react-query using the key families in `agents/development-conventions.md`; list hooks belong in `hooks/useLibraryLists.ts`.
+- Web tests live next to source (`*.test.ts(x)`); page tests render through `lib/testing.tsx`.

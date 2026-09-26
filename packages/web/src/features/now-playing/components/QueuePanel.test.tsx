@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { QueuePanel } from './QueuePanel.js';
 import { usePlayer, resetPlayer } from '../../../stores/playerStore.js';
 import { NotificationProvider } from '../../../contexts/NotificationContext.js';
-import type { User } from '@sonarly/shared';
+import type { User } from '../../../types';
 
 const mockSetLocation = vi.fn();
 vi.mock('wouter', () => ({

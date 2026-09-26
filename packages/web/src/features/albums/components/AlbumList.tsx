@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import type { Album } from '@sonarly/shared';
+import type { Album } from '../../../types';
 
 interface AlbumWithArtist extends Album {
   artistName?: string;

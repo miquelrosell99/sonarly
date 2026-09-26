@@ -1,0 +1,31 @@
+export interface Album {
+  id: string;
+  name: string;
+  artistId?: string;
+  artistName?: string;
+  artists?: string[];
+  releaseType?: string;
+  year?: number;
+  genre?: string;
+  genreId?: string;
+  genres?: string[];
+  genreIds?: string[];
+  coverArt?: string;
+  totalSongCount?: number;
+  shownSongCount?: number;
+  explicit?: boolean;
+  active?: boolean;
+  starred?: boolean;
+  rating?: number;
+  labelEntries?: { id: string; name: string }[];
+  catalogNumbers?: string[];
+  barcode?: string;
+  asin?: string;
+  musicBrainzAlbumId?: string;
+  musicBrainzReleaseGroupId?: string;
+  musicBrainzAlbumArtistIds?: string[];
+  originalYear?: number;
+  compilation?: boolean;
+  totalTracks?: string;
+  totalDiscs?: string;
+}

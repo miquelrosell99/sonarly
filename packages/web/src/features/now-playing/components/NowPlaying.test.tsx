@@ -6,7 +6,7 @@ import { usePlayer, resetPlayer } from '../../../stores/playerStore.js';
 import { NotificationProvider } from '../../../contexts/NotificationContext.js';
 import { useSongInteraction } from '../../../hooks/useSongInteraction.js';
 import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferences.js';
-import type { User } from '@sonarly/shared';
+import type { User } from '../../../types';
 
 const mockUser = { id: 'u1', username: 'test', isAdmin: false } as User;
 

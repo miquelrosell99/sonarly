@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, cleanup, act } from '@testing-library/react';
 import { Router, Route } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
-import type { User } from '@sonarly/shared';
+import type { User } from '../../../types';
 import { NowPlayingRoute } from './NowPlayingRoute.js';
 import { usePlayer, resetPlayer, type PlayerSong } from '../../../stores/playerStore.js';
 import { useNowPlaying, resetNowPlaying } from '../stores/nowPlayingStore.js';

@@ -29,6 +29,10 @@ import (
 )
 
 const (
+	// v1Checkout locates the removed TypeScript server. The v1 removal made
+	// the suite unable to boot its baseline; P10_V1_CHECKOUT can point at a
+	// pre-removal checkout (e.g. a git worktree of the last v1 commit) and
+	// runMain skips cleanly when no checkout is available.
 	v1Checkout = "/etc/periphery/stacks/sonarly"
 	v1Server   = v1Checkout + "/packages/server"
 
@@ -37,6 +41,13 @@ const (
 
 	corpusDir = "internal/audio/testdata/corpus"
 )
+
+func resolveV1Server() string {
+	if c := os.Getenv("P10_V1_CHECKOUT"); c != "" {
+		return filepath.Join(c, "packages/server")
+	}
+	return v1Server
+}
 
 // world carries per-run facts published by steps (created entity ids,
 // tokens, resolved catalog ids). Each server run gets its own world; the
@@ -90,6 +101,11 @@ func TestMain(m *testing.M) {
 }
 
 func runMain(m *testing.M) int {
+	if info, err := os.Stat(resolveV1Server()); err != nil || !info.IsDir() {
+		fmt.Println("testparity: SKIP — v1 checkout not found at", resolveV1Server(),
+			"(set P10_V1_CHECKOUT to a pre-removal checkout to run the parity suite)")
+		return 0
+	}
 	t0 := time.Now()
 	tmp, err := os.MkdirTemp("", "sonarly-p10-*")
 	if err != nil {
@@ -320,6 +336,7 @@ func lastLines(s string, n int) string {
 }
 
 func bootV1(e *environment) *serverProc {
+	v1Server := resolveV1Server()
 	cmd := exec.Command("pnpm", "--dir", v1Server, "exec", "tsx", "src/index.ts")
 	cmd.Env = append(os.Environ(),
 		"PORT="+fmt.Sprint(e.v1Port),

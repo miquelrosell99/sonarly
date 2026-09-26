@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Library } from '@sonarly/shared';
+import type { Library } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';

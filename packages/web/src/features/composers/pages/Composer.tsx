@@ -1,5 +1,5 @@
 import { useParams } from 'wouter';
-import type { Song } from '@sonarly/shared';
+import type { Song } from '../../../types';
 import { Button } from '../../../components/ui/Button.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { PlayButton } from '../../../components/PlayButton.js';

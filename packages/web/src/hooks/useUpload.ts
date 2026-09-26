@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import type { DuplicateStrategy } from '@sonarly/shared';
+import type { DuplicateStrategy } from '../types';
 import { api } from '../lib/api.js';
 import { useCapabilities } from '../contract/capabilities.js';
 

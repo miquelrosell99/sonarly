@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useLocation } from 'wouter';
-import type { Album, Song } from '@sonarly/shared';
+import type { Album, Song } from '../types';
 import type { ContextMenuSection } from '../components/ItemContextMenu.js';
 import { api } from '../lib/api.js';
 import { useNotification } from '../contexts/NotificationContext.js';

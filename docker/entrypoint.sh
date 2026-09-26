@@ -1,8 +1,7 @@
 #!/bin/sh
-# Sonarly v2 entrypoint — PUID/PGID privilege-drop pattern ported from the v1
-# entrypoint.sh (docker/entrypoint.sh), adjusted for the Go runtime image:
-# the alpine base has no pre-created application user, so one is created
-# (or re-created at the requested ids) on every start.
+# Sonarly entrypoint — PUID/PGID privilege-drop pattern: the alpine base has
+# no pre-created application user, so one is created (or re-created at the
+# requested ids) on every start.
 set -e
 
 PUID=${PUID:-1000}
@@ -31,7 +30,7 @@ else
 fi
 
 # Ensure data directories exist and are writable by the runtime user.
-mkdir -p /data/db /data/ingest /data/library
+mkdir -p /data/db /data/ingest
 chown -R "$PUID:$PGID" /data
 
 echo "Starting Sonarly v2 as $APP_USER (UID=$(id -u "$APP_USER"), GID=$(id -g "$APP_USER"))"

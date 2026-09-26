@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { StatisticsTimeRange } from '@sonarly/shared';
+import type { StatisticsTimeRange } from '../../../types';
 import { useStatistics, type StatisticsMode } from '../hooks/useStatistics.js';
 import { StatisticsView } from '../components/StatisticsView.js';
 

@@ -1,6 +1,6 @@
 import { useLocation, useSearch } from 'wouter';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { User } from '@sonarly/shared';
+import type { User } from '../types';
 import { api } from '../lib/api.js';
 import { ProfileModal } from '../features/profile/index.js';
 import { CreatePlaylistModal } from '../features/playlists/index.js';
