@@ -32,17 +32,29 @@ interface SongListItem extends BaseSong {
   albumName?: string;
 }
 
-function usePlayers() {
+// FF6: poll only when there is something to show. The dropdown indicator is
+// only rendered while OTHER players exist, so the 5 s interval applies solely
+// to that window; refetchIntervalInBackground additionally pauses the poll
+// while the tab is hidden.
+export function playersPollInterval(
+  data: { players: PlayerInfo[] } | undefined,
+  userId: string,
+): number | false {
+  return data?.players.some((player) => player.userId !== userId) ? 5000 : false;
+}
+
+export function usePlayers(userId: string) {
   return useQuery<{ players: PlayerInfo[] }, Error, PlayerInfo[]>({
     queryKey: ['players'],
     queryFn: () => api('/players'),
     select: (data) => data.players,
-    refetchInterval: 5000,
+    refetchInterval: (query) => playersPollInterval(query.state.data, userId),
+    refetchIntervalInBackground: false,
   });
 }
 
 function PlayersDropdown({ user }: { user: User }) {
-  const { data: players = [] } = usePlayers();
+  const { data: players = [] } = usePlayers(user.id);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 

@@ -8,6 +8,7 @@ import { useGenreContextMenu } from '../../../hooks/useGenreContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { GenreCoverGrid } from '../components/GenreCoverGrid.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
+import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
 
 interface GenreItem {
   id: string;
@@ -41,6 +42,7 @@ export function Genres() {
   const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const epoch = useCacheEpoch();
 
   const load = () => {
     setLoading(true);
@@ -58,7 +60,7 @@ export function Genres() {
 
   useEffect(() => {
     load();
-  }, [selectedLibraryId]);
+  }, [selectedLibraryId, epoch]);
 
   const matchingTracks = (genreName: string) => tracks.filter((t) => t.genres?.includes(genreName));
 

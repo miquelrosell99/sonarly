@@ -14,6 +14,7 @@ import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
+import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
 
 interface AlbumDetail {
   album: Album;
@@ -53,6 +54,7 @@ export function Albums({ user }: { user: User }) {
   const currentAlbumId = usePlayer((state) => state.currentSong?.albumId);
   const { get } = useFilterParams();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const epoch = useCacheEpoch();
 
   const load = () => {
     setLoading(true);
@@ -64,7 +66,7 @@ export function Albums({ user }: { user: User }) {
 
   useEffect(() => {
     load();
-  }, [selectedLibraryId]);
+  }, [selectedLibraryId, epoch]);
 
   const yearFrom = get('yearFrom');
   const yearTo = get('yearTo');

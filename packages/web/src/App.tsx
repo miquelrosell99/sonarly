@@ -36,6 +36,7 @@ import { Label } from './features/labels/pages/Label.js';
 import { StatisticsPage } from './features/statistics/index.js';
 import { AdminRefreshProvider } from './features/admin/contexts/AdminRefreshContext.js';
 import { useServerEvents } from './hooks/useServerEvents.js';
+import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { api } from './lib/api.js';
 import { getShareToken } from './lib/shareToken.js';
 
@@ -92,6 +93,16 @@ export default function App() {
     const handler = () => setUser(null);
     window.addEventListener('sonarly:unauthorized', handler);
     return () => window.removeEventListener('sonarly:unauthorized', handler);
+  }, []);
+
+  useEffect(() => {
+    // Log unhandled promise rejections (e.g. fire-and-forget fetches) without
+    // surfacing noisy UI for them; render crashes are handled by ErrorBoundary.
+    const handler = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled promise rejection', event.reason);
+    };
+    window.addEventListener('unhandledrejection', handler);
+    return () => window.removeEventListener('unhandledrejection', handler);
   }, []);
 
   useEffect(() => {
@@ -171,10 +182,12 @@ export default function App() {
   if (needsSetup) {
     return (
       <Router>
-        <Switch>
-          <Route path="/setup" component={() => <Setup onSetup={(u) => { setUser(u); setNeedsSetup(false); }} />} />
-          <Route path="*" component={() => <Redirect to="/setup" />} />
-        </Switch>
+        <ErrorBoundary>
+          <Switch>
+            <Route path="/setup" component={() => <Setup onSetup={(u) => { setUser(u); setNeedsSetup(false); }} />} />
+            <Route path="*" component={() => <Redirect to="/setup" />} />
+          </Switch>
+        </ErrorBoundary>
       </Router>
     );
   }
@@ -182,20 +195,22 @@ export default function App() {
   if (!user) {
     return (
       <Router>
-        <Switch>
-          <Route path="/login" component={() => <Login onLogin={(u) => setUser(u)} />} />
-          {/* Anonymous share-link visitors get a guest view of the linked
-              playlist; every other route still requires an account. */}
-          <Route
-            path="/playlists/:id"
-            component={() => (getShareToken() ? <GuestPlaylist /> : <Redirect to="/login" />)}
-          />
-          <Route
-            path="/now-playing/playlist/:contextId/:songId"
-            component={() => (getShareToken() ? <NowPlayingRoute user={null} /> : <Redirect to="/login" />)}
-          />
-          <Route path="*" component={() => <Redirect to="/login" />} />
-        </Switch>
+        <ErrorBoundary>
+          <Switch>
+            <Route path="/login" component={() => <Login onLogin={(u) => setUser(u)} />} />
+            {/* Anonymous share-link visitors get a guest view of the linked
+                playlist; every other route still requires an account. */}
+            <Route
+              path="/playlists/:id"
+              component={() => (getShareToken() ? <GuestPlaylist /> : <Redirect to="/login" />)}
+            />
+            <Route
+              path="/now-playing/playlist/:contextId/:songId"
+              component={() => (getShareToken() ? <NowPlayingRoute user={null} /> : <Redirect to="/login" />)}
+            />
+            <Route path="*" component={() => <Redirect to="/login" />} />
+          </Switch>
+        </ErrorBoundary>
       </Router>
     );
   }
@@ -203,48 +218,50 @@ export default function App() {
   return (
     <Router>
       <Layout user={user} onUserChange={setUser}>
-        <Switch>
-          <Route path="/" component={() => <Redirect to="/home" />} />
-          <Route path="/home" component={() => <HomePage user={user} />} />
-          <Route path="/tracks" component={() => <Tracks user={user} />} />
-          <Route path="/tracks/:id" component={Track} />
-          <Route path="/search" component={() => <SearchResults user={user} />} />
-          <Route path="/playlists" component={Playlists} />
-          <Route path="/playlists/:id" component={() => <PlaylistDetail user={user} />} />
-          <Route path="/now-playing/:context/:contextId/:songId" component={() => <NowPlayingRoute user={user} />} />
-          <Route path="/now-playing/:songId" component={() => <NowPlayingRoute user={user} />} />
-          <Route path="/now-playing" component={() => <NowPlayingRoute user={user} />} />
-          <Route path="/albums" component={() => <Albums user={user} />} />
-          <Route path="/albums/:id" component={() => <Album user={user} />} />
-          <Route path="/artists" component={Artists} />
-          <Route path="/artists/:id" component={() => <Artist user={user} />} />
-          <Route path="/album-artists" component={AlbumArtists} />
-          <Route path="/album-artists/:id" component={() => <Artist user={user} />} />
-          <Route path="/genres" component={Genres} />
-          <Route path="/genres/:genre" component={Genre} />
-          <Route path="/years" component={Years} />
-          <Route path="/years/:year" component={Year} />
-          <Route path="/composers" component={Composers} />
-          <Route path="/composers/:name" component={Composer} />
-          <Route path="/labels" component={Labels} />
-          <Route path="/labels/:name" component={Label} />
-          <Route path="/organize" component={Organize} />
-          <Route path="/admin" component={() => <Redirect to="/admin/status" />} />
-          <Route path="/admin/status" component={AdminRoute(AdminStatus)} />
-          <Route path="/admin/libraries" component={AdminRoute(AdminLibraries)} />
-          <Route path="/admin/media" component={AdminRoute(AdminMedia)} />
-          <Route path="/admin/users" component={AdminRoute(AdminUsers)} />
-          <Route path="/admin/system-tasks" component={AdminRoute(AdminSystemTasks)} />
-          <Route path="/admin/genres" component={AdminRoute(AdminGenres)} />
-          <Route path="/statistics" component={() => <StatisticsPage mode="me" />} />
-          <Route path="/settings" component={() => <Redirect to="/settings/profile" />} />
-          <Route path="/settings/profile" component={() => <SettingsProfile user={user} onUserChange={setUser} />} />
-          <Route path="/settings/appearance" component={SettingsAppearance} />
-          <Route path="/settings/playback" component={SettingsPlayback} />
-          <Route path="/settings/sidebar" component={SettingsSidebar} />
-          <Route path="/users" component={() => <Redirect to="/admin/users" />} />
-          <Route path="*" component={() => <Redirect to="/" />} />
-        </Switch>
+        <ErrorBoundary>
+          <Switch>
+            <Route path="/" component={() => <Redirect to="/home" />} />
+            <Route path="/home" component={() => <HomePage user={user} />} />
+            <Route path="/tracks" component={() => <Tracks user={user} />} />
+            <Route path="/tracks/:id" component={Track} />
+            <Route path="/search" component={() => <SearchResults user={user} />} />
+            <Route path="/playlists" component={Playlists} />
+            <Route path="/playlists/:id" component={() => <PlaylistDetail user={user} />} />
+            <Route path="/now-playing/:context/:contextId/:songId" component={() => <NowPlayingRoute user={user} />} />
+            <Route path="/now-playing/:songId" component={() => <NowPlayingRoute user={user} />} />
+            <Route path="/now-playing" component={() => <NowPlayingRoute user={user} />} />
+            <Route path="/albums" component={() => <Albums user={user} />} />
+            <Route path="/albums/:id" component={() => <Album user={user} />} />
+            <Route path="/artists" component={Artists} />
+            <Route path="/artists/:id" component={() => <Artist user={user} />} />
+            <Route path="/album-artists" component={AlbumArtists} />
+            <Route path="/album-artists/:id" component={() => <Artist user={user} />} />
+            <Route path="/genres" component={Genres} />
+            <Route path="/genres/:genre" component={Genre} />
+            <Route path="/years" component={Years} />
+            <Route path="/years/:year" component={Year} />
+            <Route path="/composers" component={Composers} />
+            <Route path="/composers/:name" component={Composer} />
+            <Route path="/labels" component={Labels} />
+            <Route path="/labels/:name" component={Label} />
+            <Route path="/organize" component={Organize} />
+            <Route path="/admin" component={() => <Redirect to="/admin/status" />} />
+            <Route path="/admin/status" component={AdminRoute(AdminStatus)} />
+            <Route path="/admin/libraries" component={AdminRoute(AdminLibraries)} />
+            <Route path="/admin/media" component={AdminRoute(AdminMedia)} />
+            <Route path="/admin/users" component={AdminRoute(AdminUsers)} />
+            <Route path="/admin/system-tasks" component={AdminRoute(AdminSystemTasks)} />
+            <Route path="/admin/genres" component={AdminRoute(AdminGenres)} />
+            <Route path="/statistics" component={() => <StatisticsPage mode="me" />} />
+            <Route path="/settings" component={() => <Redirect to="/settings/profile" />} />
+            <Route path="/settings/profile" component={() => <SettingsProfile user={user} onUserChange={setUser} />} />
+            <Route path="/settings/appearance" component={SettingsAppearance} />
+            <Route path="/settings/playback" component={SettingsPlayback} />
+            <Route path="/settings/sidebar" component={SettingsSidebar} />
+            <Route path="/users" component={() => <Redirect to="/admin/users" />} />
+            <Route path="*" component={() => <Redirect to="/" />} />
+          </Switch>
+        </ErrorBoundary>
       </Layout>
     </Router>
   );

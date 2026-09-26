@@ -1,8 +1,7 @@
-import { useEffect, useRef } from 'react';
 import { Link } from 'wouter';
 import { Settings } from '../components/Settings.js';
 import { useTheme } from '../../../stores/themeStore.js';
-import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferences.js';
+import { useUpdatePreferences } from '../../../hooks/usePreferences.js';
 import { cn } from '../../../lib/cn.js';
 import type { ThemeMode, AccentColor } from '@sonarly/shared';
 
@@ -27,35 +26,17 @@ const accentColors: { value: AccentColor; label: string; className: string }[] =
 ];
 
 export function SettingsAppearance() {
-  const { themeMode, accentColor, setThemeMode, setAccentColor } = useTheme();
-  const { data: preferences } = usePreferences();
+  const { themeMode, accentColor } = useTheme();
   const updatePreferences = useUpdatePreferences();
 
-  const themeModeRef = useRef(themeMode);
-  const accentColorRef = useRef(accentColor);
-
-  useEffect(() => {
-    themeModeRef.current = themeMode;
-    accentColorRef.current = accentColor;
-  });
-
-  useEffect(() => {
-    if (!preferences) return;
-    if (preferences.themeMode && preferences.themeMode !== themeModeRef.current) {
-      setThemeMode(preferences.themeMode);
-    }
-    if (preferences.accentColor && preferences.accentColor !== accentColorRef.current) {
-      setAccentColor(preferences.accentColor);
-    }
-  }, [preferences, setThemeMode, setAccentColor]);
-
+  // FF8: the PATCH mutation is the ONLY writer. The local theme store is
+  // updated from the server response in useUpdatePreferences' onSuccess, so
+  // a stale preferences refetch can never overwrite a local change.
   const handleThemeMode = (mode: ThemeMode) => {
-    setThemeMode(mode);
     updatePreferences.mutate({ themeMode: mode });
   };
 
   const handleAccentColor = (color: AccentColor) => {
-    setAccentColor(color);
     updatePreferences.mutate({ accentColor: color });
   };
 

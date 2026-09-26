@@ -5,6 +5,7 @@ import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { ArtistImage } from '../../../components/ArtistImage.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
+import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
 
 interface AlbumArtist {
   id: string;
@@ -16,6 +17,7 @@ export function AlbumArtists() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const epoch = useCacheEpoch();
 
   const load = () => {
     setLoading(true);
@@ -37,7 +39,7 @@ export function AlbumArtists() {
 
   useEffect(() => {
     load();
-  }, [selectedLibraryId]);
+  }, [selectedLibraryId, epoch]);
 
   const columns: LibraryViewColumn<AlbumArtist>[] = [
     {

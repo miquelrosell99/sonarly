@@ -5,6 +5,7 @@ import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
+import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
 
 export function Composers() {
   const [songs, setSongs] = useState<Song[]>([]);
@@ -12,6 +13,7 @@ export function Composers() {
   const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const epoch = useCacheEpoch();
 
   useEffect(() => {
     setLoading(true);
@@ -19,7 +21,7 @@ export function Composers() {
       .then((res) => setSongs(res.songs))
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load composers'))
       .finally(() => setLoading(false));
-  }, [selectedLibraryId]);
+  }, [selectedLibraryId, epoch]);
 
   const composerNames = (song: Song) => song.composerEntries?.map((entry) => entry.name) ?? [];
 

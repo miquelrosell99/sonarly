@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/cn.js';
 import { Icon } from './Icon.js';
@@ -16,6 +16,10 @@ const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function Modal({ open, onClose, title, children, footer, className }: ModalProps) {
+  // FF11: scope the title id per modal instance so simultaneously open
+  // modals (QueueModal over NowPlaying over lyrics editors) never produce
+  // duplicate aria-labelledby targets.
+  const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
 
@@ -74,7 +78,7 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
       className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="modal-title"
+      aria-labelledby={titleId}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -88,7 +92,7 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
         )}
       >
         <div className="flex items-center justify-between border-b border-rule/60 px-6 py-4">
-          <h3 id="modal-title" className="text-lg font-semibold">{title}</h3>
+          <h3 id={titleId} className="text-lg font-semibold">{title}</h3>
           <button
             type="button"
             onClick={onClose}
