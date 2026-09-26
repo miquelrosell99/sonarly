@@ -92,7 +92,7 @@ The request-parity and dual-run harnesses existed only during the 2026-09 server
 
 ### OpenSubsonic adapter changes
 
-The adapter preserves observed client behavior from the production system by design. Read [`.audits/opensubsonic-quirks.md`](../.audits/opensubsonic-quirks.md) (internal engineering record) before changing anything under `server/internal/modules/opensubsonic/` — many seemingly-buggy behaviors are load-bearing for real clients. Errors are enveloped with HTTP 200; code 70 = data not found / out of scope.
+The adapter preserves observed client behavior from the production system by design. Read [`server/internal/modules/opensubsonic/QUIRKS.md`](../server/internal/modules/opensubsonic/QUIRKS.md) (living engineering contract) before changing anything under `server/internal/modules/opensubsonic/` — many seemingly-buggy behaviors are load-bearing for real clients. Errors are enveloped with HTTP 200; code 70 = data not found / out of scope.
 
 ## Where things are documented
 

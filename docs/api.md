@@ -54,7 +54,7 @@ Subsonic clients talk to `/rest/*`. Key properties:
 - **Format negotiation** via the `f` parameter (`json` default, `xml` supported).
 - **Coverage**: browsing/retrieval (`ping`, `getMusicFolders`, `getIndexes`, `getMusicDirectory`, `getAlbumList`/`2`, `getAlbum`, `getArtist`, `getSong`, `search2`/`search3`, `getGenres`, `getCoverArt`, `stream`, `download`, `getLyrics`, `getAlbumInfo`/`2`, …), starring/rating (`star`, `unstar`, `setRating`, `scrobble`), activity (`getNowPlaying`), and playlists (`getPlaylists`, `getPlaylist`, `createPlaylist`, `updatePlaylist`, `deletePlaylist`). Podcast/internet-radio endpoints return valid empty collections; `getBookmarks` returns an empty list.
 
-The full behavioral contract — auth edge cases, format negotiation, XML mapping, and 62 per-endpoint quirks pinned from production observation — is recorded in [`.audits/opensubsonic-quirks.md`](../.audits/opensubsonic-quirks.md) (an internal engineering record, kept for the curious and for future implementers; user docs never depend on it).
+The full behavioral contract — auth edge cases, format negotiation, XML mapping, and 62 per-endpoint quirks pinned from production observation — is recorded in [`server/internal/modules/opensubsonic/QUIRKS.md`](../server/internal/modules/opensubsonic/QUIRKS.md) (an internal engineering record, kept for the curious and for future implementers; user docs never depend on it).
 
 ## Contract code generation (web client)
 

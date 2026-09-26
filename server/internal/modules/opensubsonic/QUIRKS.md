@@ -1,14 +1,11 @@
-# Sonarly v2 — OpenSubsonic adapter quirks checklist (P6.5–P9b)
+# OpenSubsonic adapter — behavioral quirks contract
 
-> Historical transition-era artifact (2026-09): documents the TypeScript→Go rewrite and cutover. Version names inside refer to the pre- and post-rewrite codebases; preserved as project history.
-
-Archaeology of every behavioral quirk in v1's OpenSubsonic adapter
-(`packages/server/src/features/opensubsonic/` + its dependencies), each with
-evidence and the v2 decision. This document is the lookup table the P9
-phases implemented against; **every quirk row is now done — 62/62** (P9b
-completed the set — see the deviation logs at the end; the phase briefs'
-"61" was an off-by-one against this 62-row table). Implement against the
-decisions here, not by re-reading v1.
+> Living contract for this adapter: 62 production-observed quirks (auth
+> precedence, format negotiation, XML mapping, per-endpoint behaviors),
+> each with the decision this codebase implements. **Implement against the
+> decisions here, not the OpenSubsonic spec text alone** — many seemingly
+> wrong behaviors are load-bearing for real clients. Maintained alongside
+> the code it governs.
 
 Evidence paths are relative to `packages/server/src/` in the v1 checkout.
 Decisions are one of **preserve** (wire-compatible copy), **fix** (deliberate
