@@ -1,0 +1,126 @@
+// Package interactions is the native favorites/ratings surface (P9c
+// native-parity gap from the frontend audit). The OpenSubsonic adapter's
+// star/unstar/setRating and these endpoints write the SAME user_songs /
+// user_albums / user_artists junction rows — one data path — and the song
+// average_rating recompute is shared semantics with v1's setRating.
+package interactions
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"math"
+
+	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
+)
+
+// ErrInvalidInput marks a request-body validation failure (400); the route
+// layer surfaces the message.
+var ErrInvalidInput = errors.New("interactions: invalid input")
+
+func invalidf(format string, args ...any) error {
+	return fmt.Errorf("%w: %s", ErrInvalidInput, fmt.Sprintf(format, args...))
+}
+
+// entityJunction maps the body key to the junction table v1's favorites
+// repository used. Playlists are deliberately absent: the web client stars
+// playlists through the playlist endpoints.
+type entityJunction struct {
+	table    string
+	idColumn string
+}
+
+var (
+	songJunction   = entityJunction{"user_songs", "song_id"}
+	albumJunction  = entityJunction{"user_albums", "album_id"}
+	artistJunction = entityJunction{"user_artists", "artist_id"}
+)
+
+// entityFor validates the discriminated id body ({songId|albumId|artistId},
+// exactly one) and returns its junction target. v1's native endpoints took
+// {entityType, entityId}; the v2 native body uses the id key as the
+// discriminator, matching the audit's request.
+func entityFor(songID, albumID, artistID string) (entityJunction, string, error) {
+	switch {
+	case songID != "" && albumID == "" && artistID == "":
+		return songJunction, songID, nil
+	case albumID != "" && songID == "" && artistID == "":
+		return albumJunction, albumID, nil
+	case artistID != "" && songID == "" && albumID == "":
+		return artistJunction, artistID, nil
+	case songID == "" && albumID == "" && artistID == "":
+		return entityJunction{}, "", invalidf("one of songId, albumId, artistId is required")
+	default:
+		return entityJunction{}, "", invalidf("exactly one of songId, albumId, artistId is allowed")
+	}
+}
+
+// Service owns the junction writes.
+type Service struct {
+	db *sql.DB
+}
+
+func NewService(db *sql.DB) *Service { return &Service{db: db} }
+
+// SetFavorite stars or unstars the entity for the caller (v1 setFavorite:
+// upsert of the starred flag; absent entities are not probed — the junction
+// row is harmless and v1 did the same).
+func (s *Service) SetFavorite(ctx context.Context, id auth.Identity, songID, albumID, artistID string, starred bool) error {
+	junction, entityID, err := entityFor(songID, albumID, artistID)
+	if err != nil {
+		return err
+	}
+	star := 0
+	if starred {
+		star = 1
+	}
+	_, err = s.db.ExecContext(ctx, `
+		INSERT INTO `+junction.table+` (user_id, `+junction.idColumn+`, starred) VALUES (?, ?, ?)
+		ON CONFLICT(user_id, `+junction.idColumn+`) DO UPDATE SET starred = excluded.starred`,
+		id.UserID, entityID, star)
+	if err != nil {
+		return fmt.Errorf("set favorite: %w", err)
+	}
+	return nil
+}
+
+// SetRating stores the caller's rating (0..5 in 0.5 steps, v1 half-ratings)
+// or clears it with nil. Song ratings recompute songs.average_rating exactly
+// like v1's setRating (albums/artists compute the average at read time).
+func (s *Service) SetRating(ctx context.Context, id auth.Identity, songID, albumID, artistID string, rating *float64) error {
+	junction, entityID, err := entityFor(songID, albumID, artistID)
+	if err != nil {
+		return err
+	}
+	if rating != nil {
+		r := *rating
+		if math.IsNaN(r) || math.IsInf(r, 0) || r < 0 || r > 5 || r*2 != math.Round(r*2) {
+			return invalidf("rating must be between 0 and 5 in 0.5 increments")
+		}
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin set rating: %w", err)
+	}
+	defer tx.Rollback()
+	var value any
+	if rating != nil {
+		value = *rating
+	}
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO `+junction.table+` (user_id, `+junction.idColumn+`, rating) VALUES (?, ?, ?)
+		ON CONFLICT(user_id, `+junction.idColumn+`) DO UPDATE SET rating = excluded.rating`,
+		id.UserID, entityID, value); err != nil {
+		return fmt.Errorf("set rating: %w", err)
+	}
+	if junction.table == "user_songs" {
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE songs
+			SET average_rating = (SELECT AVG(rating) FROM user_songs WHERE song_id = ?)
+			WHERE id = ?`, entityID, entityID); err != nil {
+			return fmt.Errorf("recompute average rating: %w", err)
+		}
+	}
+	return tx.Commit()
+}
