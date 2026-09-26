@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { Link } from 'wouter';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Album, Song, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Icon } from '../../../components/ui/Icon.js';
@@ -13,14 +14,30 @@ import { useNotification } from '../../../contexts/NotificationContext.js';
 import { ScrollRow } from '../../../components/ScrollRow.js';
 import { Card } from '../../../components/Card.js';
 import { CoverArt } from '../../../components/CoverArt.js';
+import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { useAlbumContextMenu } from '../../../hooks/useAlbumContextMenu.js';
+import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
+import { SyncedLyricsEditor } from '../../songs/index.js';
+import { patchToPlayerSong } from '../../../lib/songPatch.js';
 
+/** One ranked genre: the name and its in-scope active song count. */
+interface HomeGenre {
+  name: string;
+  songCount: number;
+}
+
+/**
+ * /api/home payload. `recentAdditions` is a SONG list in import order —
+ * the display subset of the catalog song DTO plus the caller's interaction
+ * state — while mostPlayed/random/recentlyPlayed stay album lists.
+ */
 interface HomeData {
+  genres: HomeGenre[];
   mostPlayed: Album[];
   random: Album[];
-  recentlyAdded: Album[];
+  recentAdditions: Song[];
   recentlyPlayed: Album[];
 }
 
@@ -240,6 +257,190 @@ function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) 
         className="hidden"
         onChange={handleCoverArtFileChange}
       />
+    </div>
+  );
+}
+
+/**
+ * One recent-addition song card: the same Card/primitives the Tracks grid
+ * uses (ExplicitTitle, CoverArt, favorite/rate actions) wrapped in the
+ * standard ItemContextMenu, with play starting the whole recent-additions
+ * list in order at this song.
+ */
+function RecentSongCard({
+  song: initialSong,
+  songs,
+  index,
+  user,
+}: {
+  song: Song;
+  songs: Song[];
+  index: number;
+  user: User;
+}) {
+  const { playSongs, shufflePlay } = usePlayActions();
+  const { setFavorite, setRating } = useFavoriteActions();
+  const { notify } = useNotification();
+  const queryClient = useQueryClient();
+  const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
+  const currentSongId = usePlayer((state) => state.currentSong?.id);
+  const [song, setSong] = useState(initialSong);
+  const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [syncEditing, setSyncEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const sections = useSongContextMenu(song, () => setEditing(true), user.isAdmin);
+
+  const invalidateLibrary = () => {
+    void queryClient.invalidateQueries({ queryKey: ['songs'] });
+    void queryClient.invalidateQueries({ queryKey: ['albums'] });
+  };
+
+  const handleFavorite = async (starred: boolean) => {
+    setError(null);
+    try {
+      await setFavorite('song', song.id, starred);
+      setSong((prev) => ({ ...prev, starred }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+    }
+  };
+
+  const handleRate = async (rating: number) => {
+    setError(null);
+    try {
+      await setRating('song', song.id, rating || undefined);
+      setSong((prev) => ({ ...prev, rating: rating || undefined }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update rating');
+    }
+  };
+
+  const handleSave = async (patched: Record<string, unknown>) => {
+    setSaving(true);
+    try {
+      await api(`/songs/${song.id}/tags`, {
+        method: 'PUT',
+        body: JSON.stringify(patched),
+      });
+      if (song.id === usePlayer.getState().currentSong?.id) {
+        updateCurrentSong(patchToPlayerSong(patched));
+      }
+      setEditing(false);
+      setSong((prev) => ({
+        ...prev,
+        title: typeof patched.title === 'string' ? patched.title : prev.title,
+        artistName: Array.isArray(patched.artist)
+          ? patched.artist[0]
+          : typeof patched.artist === 'string'
+            ? patched.artist
+            : prev.artistName,
+        albumName: typeof patched.album === 'string' ? patched.album : prev.albumName,
+        year: typeof patched.year === 'number' ? patched.year : prev.year,
+      }));
+      invalidateLibrary();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to save song', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await api(`/songs/${song.id}`, { method: 'DELETE' });
+      setEditing(false);
+      invalidateLibrary();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to delete song', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div>
+      <ItemContextMenu sections={sections}>
+        <Card
+          href={`/tracks/${song.id}`}
+          title={
+            <ExplicitTitle explicit={song.explicit} blur={user.blurExplicitTitles === true}>
+              {song.title}
+            </ExplicitTitle>
+          }
+          fields={[
+            {
+              content: song.artistId ? (
+                <Link href={`/artists/${song.artistId}`} className="hover:text-muted">
+                  {song.artistName ?? 'Unknown artist'}
+                </Link>
+              ) : (
+                (song.artistName ?? '-')
+              ),
+            },
+            {
+              content: song.albumId ? (
+                <Link href={`/albums/${song.albumId}`} className="hover:text-muted">
+                  {song.albumName ?? '-'}
+                </Link>
+              ) : (
+                (song.albumName ?? '-')
+              ),
+            },
+          ]}
+          cover={
+            <CoverArt
+              coverArt={song.coverArt}
+              alt={`Cover art for ${song.title}`}
+              className="rounded-xl"
+            />
+          }
+          favorite={{
+            starred: song.starred,
+            onClick: () => handleFavorite(!song.starred),
+            label: song.title,
+          }}
+          rating={{
+            value: song.rating,
+            onRate: handleRate,
+          }}
+          play={{
+            onPlay: () => playSongs(songs, index),
+            onShufflePlay: () => shufflePlay(songs),
+            label: song.title,
+          }}
+          isPlaying={currentSongId === song.id}
+        />
+      </ItemContextMenu>
+      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
+      {editing && (
+        <EditEntityModal
+          open
+          entityType="song"
+          entity={{ ...song, artist: song.artistName, album: song.albumName }}
+          onClose={() => setEditing(false)}
+          onSave={handleSave}
+          onDelete={handleDelete}
+          onEditSyncedLyrics={() => setSyncEditing(true)}
+          saving={saving}
+          deleting={deleting}
+        />
+      )}
+      {syncEditing && (
+        <SyncedLyricsEditor
+          songId={song.id}
+          title={song.title}
+          artistName={song.artistName}
+          duration={song.duration}
+          onClose={() => setSyncEditing(false)}
+          onSaved={() => {
+            setSyncEditing(false);
+            invalidateLibrary();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -471,7 +672,6 @@ export function HomePage({ user }: { user: User }) {
     };
     add(data.mostPlayed[0]);
     add(data.recentlyPlayed[0]);
-    add(data.recentlyAdded[0]);
     add(data.random[0]);
     return candidates;
   }, [data]);
@@ -520,12 +720,12 @@ export function HomePage({ user }: { user: User }) {
       </ScrollRow>
 
       <ScrollRow title="Recently added">
-        {data.recentlyAdded.length === 0 ? (
-          <p className="text-sm text-fg-secondary">No recently added albums.</p>
+        {data.recentAdditions.length === 0 ? (
+          <p className="text-sm text-fg-secondary">No recently added songs.</p>
         ) : (
-          data.recentlyAdded.map((album) => (
-            <div key={album.id} className="w-40 flex-none sm:w-44">
-              <AlbumCard album={album} user={user} />
+          data.recentAdditions.map((song, index) => (
+            <div key={song.id} className="w-40 flex-none sm:w-44">
+              <RecentSongCard song={song} songs={data.recentAdditions} index={index} user={user} />
             </div>
           ))
         )}

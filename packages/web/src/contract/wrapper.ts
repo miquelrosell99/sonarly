@@ -1,10 +1,9 @@
-// Typed fetch wrapper over the generated v2 contract (schema.ts).
+// Typed fetch wrapper over the generated contract (schema.ts).
 //
-// Semantics deliberately mirror lib/api.ts (the v1 gateway): same-origin
-// relative paths, session-cookie credentials, the uniform `{error}` envelope
-// on every non-2xx, 401 -> the global `sonarly:unauthorized` event, and
-// `undefined` for bodyless (204/empty) responses. v1 call sites can migrate
-// one domain at a time without behavior changes.
+// Semantics deliberately mirror lib/api.ts: same-origin relative paths,
+// session-cookie credentials, the uniform `{error}` envelope on every
+// non-2xx, 401 -> the global `sonarly:unauthorized` event, and `undefined`
+// for bodyless (204/empty) responses.
 import type { components, paths } from './schema.js';
 
 export class ApiError extends Error {

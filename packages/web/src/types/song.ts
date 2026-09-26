@@ -5,7 +5,9 @@ export interface SyncedLyricLine {
 
 export interface Song {
   id: string;
-  filePath: string;
+  // v1-era bookkeeping fields; the server's Song DTO no longer sends them,
+  // so they stay optional for code that still handles legacy-shaped rows.
+  filePath?: string;
   title: string;
   trackNumber?: number;
   discNumber?: number;
@@ -24,8 +26,8 @@ export interface Song {
   coverArt?: string;
   albumCoverArt?: string;
   coverArtMissing?: boolean;
-  mtime: number;
-  checksum: string;
+  mtime?: number;
+  checksum?: string;
   active?: boolean;
   starred?: boolean;
   rating?: number;
