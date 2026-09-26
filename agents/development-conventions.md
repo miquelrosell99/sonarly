@@ -10,7 +10,8 @@
 - SQL is always parameterized; repositories live in the owning module.
 - Server configuration is env-based, loaded and validated once in `internal/config` at boot (fail fast on invalid config).
 - Migrations are numbered SQL files in `server/internal/db/migrations/`, one transaction each, ledger-tracked in `schema_migrations`. Never edit a shipped migration — fix forward.
-- The native API contract is `server/api/openapi.yaml`; a chi.Walk coverage test fails the build on spec drift. Changing a route means changing the spec, then regenerating the web types (`pnpm --filter @sonarly/web contract:gen`).
+- The native API contract is `server/api/openapi.yaml`; a chi.Walk coverage test fails the build on spec drift, and `server/internal/contractcheck/` fails it when a response schema drops a field the client consumes. Changing a route means changing the spec, then regenerating the web types (`pnpm --filter @sonarly/web contract:gen`).
+- **API shape paradigm — server-native on both sides.** The server defines the wire shapes; the client conforms. New or changed endpoints are designed to fit the server's existing conventions (sibling endpoints in the same module: envelopes, the `{error}` contract, 404-not-403, scope checks, transactional writes) — never copied from the retired TypeScript codebase for parity's sake. The retired implementation is a semantics reference only (what an operation does, who may call it, what cascades). When a shape changes, update the client call sites in the same change.
 - Go tests live next to the source (`*_test.go`); `go test ./... -count=1` is the bar.
 
 ### Web client (`web/`)
