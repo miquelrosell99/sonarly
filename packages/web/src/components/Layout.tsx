@@ -1,5 +1,5 @@
 import { useLocation, useSearch } from 'wouter';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { User } from '@sonarly/shared';
 import { api } from '../lib/api.js';
 import { ProfileModal } from '../features/profile/index.js';
@@ -8,7 +8,6 @@ import { NowPlaying } from '../features/now-playing/index.js';
 import { usePreferences } from '../hooks/usePreferences.js';
 import { usePlaylists } from '../hooks/usePlaylists.js';
 import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
-import { useTheme } from '../stores/themeStore.js';
 import { usePlayer } from '../stores/playerStore.js';
 import { useDominantColor } from '../hooks/useDominantColor.js';
 import { TopBar } from './TopBar.js';
@@ -43,29 +42,14 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
   const { isOpen: createPlaylistOpen, editingPlaylistId, close: closeCreatePlaylist } = useCreatePlaylistModal();
   const { data: preferences } = usePreferences();
   const { data: playlists } = usePlaylists();
-  const { themeMode, accentColor, setThemeMode, setAccentColor } = useTheme();
   const currentSong = usePlayer((state) => state.currentSong);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const openMobileNav = useCallback(() => setMobileNavOpen(true), []);
   const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
 
-  const themeModeRef = useRef(themeMode);
-  const accentColorRef = useRef(accentColor);
-
-  useEffect(() => {
-    themeModeRef.current = themeMode;
-    accentColorRef.current = accentColor;
-  });
-
-  useEffect(() => {
-    if (!preferences) return;
-    if (preferences.themeMode && preferences.themeMode !== themeModeRef.current) {
-      setThemeMode(preferences.themeMode);
-    }
-    if (preferences.accentColor && preferences.accentColor !== accentColorRef.current) {
-      setAccentColor(preferences.accentColor);
-    }
-  }, [preferences, setThemeMode, setAccentColor]);
+  // FF8: preferences never write into the theme store here. The single writer
+  // is useUpdatePreferences' onSuccess, which applies the server response;
+  // the store itself drives the DOM classes on every change.
 
   const handleLogout = async () => {
     try {

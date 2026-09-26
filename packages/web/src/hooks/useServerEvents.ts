@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { bumpCacheEpoch } from '../stores/cacheEpoch.js';
 
 export interface ServerEvent {
   type: string;
@@ -51,6 +52,7 @@ export function useServerEvents(options: UseServerEventsOptions = {}): void {
         window.dispatchEvent(
           new CustomEvent('sonarly:library-changed', { detail: data }),
         );
+        bumpCacheEpoch();
         for (const prefix of LIBRARY_QUERY_PREFIXES) {
           queryClient.invalidateQueries({ queryKey: [prefix] });
         }

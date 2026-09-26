@@ -69,6 +69,9 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
   const longPressTimerRef = useRef<number | null>(null);
   const longPressOriginRef = useRef<{ x: number; y: number } | null>(null);
   const longPressFiredRef = useRef(false);
+  // Set when the menu was opened from the keyboard (Shift+F10 / Menu key):
+  // there is no pointer position, so the menu anchors below the trigger.
+  const openedFromKeyboardRef = useRef(false);
 
   const cancelLongPress = () => {
     if (longPressTimerRef.current !== null) {
@@ -106,12 +109,18 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
   }, [open]);
 
   useLayoutEffect(() => {
-    if (!open || !anchorToTrigger) return;
+    if (!open) return;
     const trigger = childRef.current;
     const menu = menuRef.current;
     if (!trigger || !menu) return;
-    const { top, left } = computeAnchorPosition(trigger, menu, placement);
-    setPos({ x: left, y: top });
+    if (anchorToTrigger) {
+      const { top, left } = computeAnchorPosition(trigger, menu, placement);
+      setPos({ x: left, y: top });
+    } else if (openedFromKeyboardRef.current) {
+      // Keyboard opens have no pointer position; anchor below the trigger.
+      const { top, left } = computeAnchorPosition(trigger, menu, 'bottom-start');
+      setPos({ x: left, y: top });
+    }
   }, [open, anchorToTrigger, placement]);
 
   useLayoutEffect(() => {
@@ -152,6 +161,7 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     childRef.current = e.currentTarget as HTMLElement;
+    openedFromKeyboardRef.current = false;
     if (anchorToTrigger) {
       setOpen(true);
       return;
@@ -162,9 +172,21 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
     setOpen(true);
   };
 
+  // FF11: keyboard path to open the menu on the wrapped trigger — the Menu
+  // key (Windows) or Shift+F10 (the platform context-menu shortcut). Escape
+  // close and arrow-key navigation already live on the menu itself.
+  const handleTriggerKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'ContextMenu' && !(e.key === 'F10' && e.shiftKey)) return;
+    e.preventDefault();
+    childRef.current = e.currentTarget as HTMLElement;
+    openedFromKeyboardRef.current = true;
+    setOpen(true);
+  };
+
   const handlePointerDown = (e: React.PointerEvent) => {
     if (!openOnLongPress || e.pointerType === 'mouse') return;
     longPressFiredRef.current = false;
+    openedFromKeyboardRef.current = false;
     const { clientX: x, clientY: y } = e;
     longPressOriginRef.current = { x, y };
     childRef.current = e.currentTarget as HTMLElement;
@@ -213,6 +235,7 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
     onPointerUp?: Handler<React.PointerEvent>;
     onPointerCancel?: Handler<React.PointerEvent>;
     onClickCapture?: Handler<React.MouseEvent>;
+    onKeyDown?: Handler<React.KeyboardEvent>;
   };
 
   const longPressProps = openOnLongPress
@@ -273,10 +296,17 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
 
   return (
     <>
-      {cloneElement(child as ReactElement<{ onContextMenu?: (e: React.MouseEvent) => void }>, {
-        onContextMenu: handleContextMenu,
-        ...longPressProps,
-      })}
+      {cloneElement(
+        child as ReactElement<{
+          onContextMenu?: (e: React.MouseEvent) => void;
+          onKeyDown?: (e: React.KeyboardEvent) => void;
+        }>,
+        {
+          onContextMenu: handleContextMenu,
+          onKeyDown: compose(childProps.onKeyDown, handleTriggerKeyDown),
+          ...longPressProps,
+        },
+      )}
       {menu && createPortal(menu, document.body)}
     </>
   );
