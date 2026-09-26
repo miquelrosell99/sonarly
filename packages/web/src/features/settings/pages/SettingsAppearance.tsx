@@ -3,7 +3,7 @@ import { Settings } from '../components/Settings.js';
 import { useTheme } from '../../../stores/themeStore.js';
 import { useUpdatePreferences } from '../../../hooks/usePreferences.js';
 import { cn } from '../../../lib/cn.js';
-import type { ThemeMode, AccentColor } from '@sonarly/shared';
+import type { ThemeMode, AccentColor } from '../../../types';
 
 const themeModes: { value: ThemeMode; label: string }[] = [
   { value: 'light', label: 'Light' },
@@ -13,7 +13,7 @@ const themeModes: { value: ThemeMode; label: string }[] = [
 ];
 
 const accentColors: { value: AccentColor; label: string; className: string }[] = [
-  { value: 'auto', label: 'Auto', className: 'bg-gradient-to-br from-[hsl(var(--accent-blue))] to-[hsl(var(--accent-cyan))]' },
+  { value: 'auto', label: 'Auto (monochrome)', className: 'bg-gradient-to-br from-black to-white' },
   { value: 'monochrome', label: 'Monochrome', className: 'bg-fg-primary' },
   { value: 'brown', label: 'Brown', className: 'bg-[hsl(var(--accent-brown))]' },
   { value: 'green', label: 'Green', className: 'bg-[hsl(var(--accent-green))]' },

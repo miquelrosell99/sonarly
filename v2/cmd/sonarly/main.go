@@ -66,7 +66,7 @@ type app struct {
 // registry run() serves and the contract test walks — extracting it keeps
 // the two from drifting apart.
 func mountRoutes(ctx context.Context, srv *httpserver.Server, database *sql.DB, cfg config.Config, log *slog.Logger) (*app, error) {
-	system.Register(srv.Router(), system.NewService(database))
+	system.Register(srv.Router(), system.NewService(database, log))
 
 	sessionStore := auth.NewStore(database)
 	authMW := auth.NewMiddleware(sessionStore, database, cfg.SessionSecret, cfg.SessionCookieSecure)
