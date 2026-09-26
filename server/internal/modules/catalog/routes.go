@@ -35,11 +35,19 @@ func NewHandler(svc *Service, mw *auth.Middleware) *Handler {
 	return &Handler{svc: svc, mw: mw}
 }
 
-// Routes registers the catalog endpoints behind session auth, the same
-// composition the users module uses. The catalog write surface (entity
-// deletes, genre create/rename/move/delete) sits in its own admin-gated
-// group, like the tags module.
+// Routes registers the catalog endpoints. The reads sit behind session auth,
+// the same composition the users module uses — except /api/cover-art/{id},
+// which sits behind AuthMiddleware WITHOUT RequireAuth like the playback
+// stream routes: anonymous share-token viewers fetch the linked playlist's
+// artwork, and the service consults the playlist policy only when the
+// request is anonymous. The catalog write surface (entity deletes, genre
+// create/rename/move/delete) sits in its own admin-gated group, like the
+// tags module.
 func (h *Handler) Routes(r chi.Router) {
+	r.Group(func(r chi.Router) {
+		r.Use(h.mw.AuthMiddleware)
+		r.Get("/api/cover-art/{id}", h.getCoverArt)
+	})
 	r.Group(func(r chi.Router) {
 		r.Use(h.mw.AuthMiddleware, auth.RequireAuth)
 		r.Get("/api/songs", h.listSongs)
@@ -54,7 +62,6 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Get("/api/genres/tree", h.genreTree)
 		r.Get("/api/genres/{id}/albums", h.genreAlbums)
 		r.Get("/api/years", h.listYears)
-		r.Get("/api/cover-art/{id}", h.getCoverArt)
 	})
 	r.Group(func(r chi.Router) {
 		r.Use(h.mw.AuthMiddleware, auth.RequireAuth, h.mw.RequireAdmin)
@@ -70,6 +77,10 @@ func (h *Handler) Routes(r chi.Router) {
 func writeServiceError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrNotFound) {
 		httpserver.Error(w, http.StatusNotFound, "Not found")
+		return
+	}
+	if errors.Is(err, ErrUnauthorized) {
+		httpserver.Error(w, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 	if isConflict(err) {
@@ -269,10 +280,13 @@ func (h *Handler) listYears(w http.ResponseWriter, r *http.Request) {
 	httpserver.JSON(w, http.StatusOK, map[string]any{"years": years})
 }
 
-// getCoverArt serves the blob. The response is private-cacheable for a day:
-// cover art changes are rare and the id is content-addressed in practice.
+// getCoverArt serves the blob. Anonymous callers authorize with the playback
+// route's share-token convention (`?share=`, mirroring /api/stream); the
+// service answers 401 without a token and 404 for a token that grants
+// nothing. The response is private-cacheable for a day: cover art changes
+// are rare and the id is content-addressed in practice.
 func (h *Handler) getCoverArt(w http.ResponseWriter, r *http.Request) {
-	art, err := h.svc.GetCoverArt(r.Context(), identity(r), chi.URLParam(r, "id"))
+	art, err := h.svc.GetCoverArt(r.Context(), identity(r), chi.URLParam(r, "id"), r.URL.Query().Get("share"))
 	if err != nil {
 		writeServiceError(w, r, err)
 		return

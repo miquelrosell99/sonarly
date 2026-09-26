@@ -33,7 +33,7 @@ func newServer(t *testing.T, database *sql.DB) *server {
 	store := auth.NewStore(database)
 	mw := auth.NewMiddleware(store, database, testSecret, false)
 	r := chi.NewRouter()
-	catalog.NewHandler(catalog.NewService(database), mw).Routes(r)
+	catalog.NewHandler(catalog.NewService(database, nil), mw).Routes(r)
 	return &server{db: database, store: store, router: r}
 }
 

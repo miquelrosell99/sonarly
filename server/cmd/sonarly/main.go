@@ -72,12 +72,14 @@ func mountRoutes(ctx context.Context, srv *httpserver.Server, database *sql.DB, 
 	authMW := auth.NewMiddleware(sessionStore, database, cfg.SessionSecret, cfg.SessionCookieSecure)
 	users.NewHandler(users.NewService(database, sessionStore, cfg.SessionSecret, cfg.DataDir), sessionStore, authMW, cfg.SessionSecret, cfg.SessionCookieSecure).
 		Routes(srv.Router())
-	catalog.NewHandler(catalog.NewService(database), authMW).Routes(srv.Router())
-
 	// Playlists (P6): static + smart playlists, per-user shares, link
 	// sharing, and THE single access policy — the streaming endpoint's
-	// share-token hook and (in P9) the OpenSubsonic adapter consult it.
+	// share-token hook, the anonymous cover-art view, and (in P9) the
+	// OpenSubsonic adapter all consult this one instance.
 	playlistPolicy := playlists.NewPolicy()
+
+	catalog.NewHandler(catalog.NewService(database, playlistPolicy), authMW).Routes(srv.Router())
+
 	playlists.NewHandler(playlists.NewService(database, playlistPolicy), authMW).Routes(srv.Router())
 
 	// Playback (P5): streaming (direct + capped transcode), scrobble, and
