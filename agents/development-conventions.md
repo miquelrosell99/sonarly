@@ -25,14 +25,16 @@
 
 All server state flows through @tanstack/react-query — no page holds fetched data in `useState`. The hand-rolled `useFetch`/`cacheEpoch` bridge was removed (FF1, 2026-09-26); the SSE handler now only invalidates query prefixes.
 
-- **List hooks** live in `web/src/hooks/useLibraryLists.ts`: `useSongsList`, `useAlbumsList`, `useArtistsList`, `useGenresList`, `useYearsList`, `useSearchResults`. Pages never call `api()` for library lists directly.
+- **List hooks** live in `web/src/hooks/useLibraryLists.ts`: `useSongsList`, `useAlbumsList`, `useArtistsList`, `useGenresList`, `useYearsList`, `useSearchPreview`, `useSearchResults`. Pages never call `api()` for library lists directly.
 - **Key families** — one per domain, so pages share caches and SSE invalidation stays prefix-based:
   - `['songs', 'list', { libraryId?, genre?, composer?, label? }]` → `GET /songs`
   - `['albums', 'list', { … }]` → `GET /albums`
   - `['artists' | 'genres' | 'years', 'list', { libraryId? }]` → `GET /artists|/genres|/years`
-  - `['search', 'results', { q, type, libraryId }]` → `GET /search` (the SearchBox top-5 preview uses `['search', query, libraryId]` — same prefix)
-  - Only **server-relevant** params enter the key; client-side-only filters (e.g. the Tracks page's artist/album/favorites filters, the Year page's year) stay derived state in the page.
+  - `['search', 'preview', { q, libraryId }]` → `GET /search?q=…&limit=5` (SearchBox dropdown) and `['search', 'results', { q, type, libraryId }]` → `GET /search?q=…&type=…` (/search page; a matching preview entry seeds it as initialData so Enter never re-downloads the preview)
+  - `['playlists']` → `GET /playlists` (`usePlaylists`) and `['playlist', id, shareToken]` → `GET /playlists/:id` (`usePlaylist`, shareToken in the key for guest cache hygiene)
+  - Only **server-relevant** params enter the key; client-side-only filters (e.g. the Tracks page's artist/album/favorites filters, the Year page's year) stay derived state in the page. Filter consumers (TopBar) read the same families as the pages — never define a second key for the same endpoint.
 - **Defaults**: `staleTime` 30s on lists, `placeholderData: keepPreviousData` — filter/scope changes swap the key and keep the previous list visible until the new one lands (no spinner flash). Initial loads still show the `LibraryView`/`PageState` loading state.
-- **Edits**: favorite/rate actions patch the cached item in place via the hooks' `patchItem`; structural edits (tag saves, deletes, cover art, uploads completing) invalidate the domain prefix (`['songs']`, `['albums']`, …) instead of refetching ad hoc.
-- **SSE contract**: `useServerEvents` invalidates `songs`, `albums`, `artists`, `genres`, `years`, `playlists`, `playlist`, `search` on `library:changed` — new key families must start with one of these prefixes or extend the list.
+- **Edits**: favorite/rate actions patch the cached item in place via the hooks' `patchItem`; structural edits (tag saves, deletes, cover art, uploads completing) invalidate the domain prefix (`['songs']`, `['albums']`, …) instead of refetching ad hoc. Playlist favorite/rate mutations invalidate `['playlists']` (and `['playlist', id]` on the detail page) — favorites are per-user junction rows any signed-in user may set, per the server's interactions module.
+- **SSE contract**: `useServerEvents` invalidates `songs`, `albums`, `artists`, `genres`, `years`, `playlists`, `playlist`, `search`, `lyrics` on `library:changed` AND on EventSource reconnect — the server buffers nothing, so reconnect-refetch is the designed recovery for lost notifications. New key families must start with one of these prefixes or extend the list.
+- **Auth switches**: `queryClient.clear()` runs on `sonarly:unauthorized` and on login success — per-user data (starred flags, ratings, preferences) must never bleed across accounts on a shared browser profile.
 - Page tests render through `web/src/lib/testing.tsx` (`renderWithQueryClient`, retries off, fresh client per render).

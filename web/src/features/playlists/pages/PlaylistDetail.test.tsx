@@ -180,4 +180,53 @@ describe('PlaylistDetail', () => {
 
     expect(screen.queryByRole('button', { name: /^delete$/i })).toBeNull();
   });
+
+  it('invalidates the playlist caches when the favorite toggle succeeds', async () => {
+    const { queryClient } = renderPlaylistDetail();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await waitFor(() => {
+      expect(screen.getByText('Track One')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Test Playlist' }));
+
+    await waitFor(() =>
+      expect(favoriteActions.setFavorite).toHaveBeenCalledWith('playlist', 'playlist-1', true),
+    );
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['playlists'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['playlist', 'playlist-1'] });
+    });
+  });
+
+  it('notifies when the favorite toggle fails', async () => {
+    favoriteActions.setFavorite.mockRejectedValueOnce(new Error('Server exploded'));
+    renderPlaylistDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('Track One')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Test Playlist' }));
+
+    await waitFor(() =>
+      expect(mockNotify.notify).toHaveBeenCalledWith('Server exploded', 'error'),
+    );
+  });
+
+  it('notifies when the rating fails', async () => {
+    favoriteActions.setRating.mockRejectedValueOnce(new Error('Rating failed'));
+    renderPlaylistDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('Track One')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rate 3 stars' }));
+
+    await waitFor(() =>
+      expect(mockNotify.notify).toHaveBeenCalledWith('Rating failed', 'error'),
+    );
+  });
 });

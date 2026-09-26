@@ -116,6 +116,8 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
     if (!playlist) return;
     try {
       await setFavorite('playlist', playlist.id, starred);
+      await queryClient.invalidateQueries({ queryKey: ['playlists'] });
+      await queryClient.invalidateQueries({ queryKey: ['playlist', playlist.id] });
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to update favorite', 'error');
     }
@@ -125,6 +127,8 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
     if (!playlist) return;
     try {
       await setRating('playlist', playlist.id, rating);
+      await queryClient.invalidateQueries({ queryKey: ['playlists'] });
+      await queryClient.invalidateQueries({ queryKey: ['playlist', playlist.id] });
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to update rating', 'error');
     }

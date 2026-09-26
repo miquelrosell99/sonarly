@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import type { User, Song as BaseSong, Album } from '../types';
+import type { User } from '../types';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { api } from '../lib/api.js';
@@ -9,7 +9,9 @@ import { Avatar } from './Avatar.js';
 import { SearchBox } from './SearchBox.js';
 import { SponsorButton } from './SponsorButton.js';
 import { UploadModal, UploadResultsModal, type UploadSummary } from './UploadModal.js';
-import { useLibraryStore, buildLibraryQuery } from '../stores/libraryStore.js';
+import { useLibraryStore } from '../stores/libraryStore.js';
+import { usePlaylists } from '../hooks/usePlaylists.js';
+import { useAlbumsList, useSongsList } from '../hooks/useLibraryLists.js';
 import type { FilterDefinition } from './FilterPanel.js';
 import type { PlayerInfo } from '../types';
 
@@ -18,18 +20,6 @@ interface TopBarProps {
   onLogout: () => void;
   onMenuClick?: () => void;
   onUpload?: () => void;
-}
-
-interface PlaylistListItem {
-  id: string;
-  name: string;
-  ownerUsername: string;
-  visibility: string;
-}
-
-interface SongListItem extends BaseSong {
-  artistName?: string;
-  albumName?: string;
 }
 
 // FF6: poll only when there is something to show. The dropdown indicator is
@@ -287,36 +277,19 @@ function useFilterData(location: string) {
   const artistsEnabled = location === '/artists' || location.startsWith('/artists/');
   const playlistsEnabled = location === '/playlists' || location.startsWith('/playlists/');
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-  const libraryQuery = buildLibraryQuery(selectedLibraryId);
 
-  const albumsQuery = useQuery<{ albums: Album[] }, Error, Album[]>({
-    queryKey: ['albums', selectedLibraryId],
-    queryFn: () => api(`/albums${libraryQuery}`),
-    select: (data) => data.albums,
-    enabled: albumsEnabled,
-    staleTime: 60_000,
-  });
-
-  const songsQuery = useQuery<{ songs: SongListItem[] }, Error, SongListItem[]>({
-    queryKey: ['songs', selectedLibraryId],
-    queryFn: () => api(`/songs${libraryQuery}`),
-    select: (data) => data.songs,
-    enabled: tracksEnabled || artistsEnabled,
-    staleTime: 60_000,
-  });
-
-  const playlistsQuery = useQuery<{ playlists: PlaylistListItem[] }, Error, PlaylistListItem[]>({
-    queryKey: ['playlists'],
-    queryFn: () => api('/playlists'),
-    select: (data) => data.playlists,
-    enabled: playlistsEnabled,
-    staleTime: 60_000,
-  });
+  // F12: the filter options come from the SAME list families the pages use
+  // (useLibraryLists / usePlaylists), so the TopBar and the page share one
+  // cache entry and one fetch — no parallel ['albums', libId]/['songs', libId]
+  // families with their own staleTime conventions.
+  const albumsQuery = useAlbumsList({ libraryId: selectedLibraryId }, albumsEnabled);
+  const songsQuery = useSongsList({ libraryId: selectedLibraryId }, tracksEnabled || artistsEnabled);
+  const { data: playlists = [] } = usePlaylists({ enabled: playlistsEnabled });
 
   return {
-    albums: albumsQuery.data ?? [],
-    songs: songsQuery.data ?? [],
-    playlists: playlistsQuery.data ?? [],
+    albums: albumsQuery.data?.albums ?? [],
+    songs: songsQuery.data?.songs ?? [],
+    playlists,
   };
 }
 
@@ -386,7 +359,16 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
   const { libraries, selectedLibraryId, loadLibraries } = useLibraryStore();
 
   useEffect(() => {
-    loadLibraries().catch(() => undefined);
+    // The libraries list lives in libraryStore (Phase 10e migrates it to
+    // react-query); until then the SSE bridge is its only refresh signal —
+    // re-run the load when the server reports library changes so admin CRUD
+    // shows up in the selector without a reload.
+    const load = () => {
+      loadLibraries().catch(() => undefined);
+    };
+    load();
+    window.addEventListener('sonarly:library-changed', load);
+    return () => window.removeEventListener('sonarly:library-changed', load);
   }, [loadLibraries]);
 
   return (

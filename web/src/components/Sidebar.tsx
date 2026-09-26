@@ -79,7 +79,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
   const { data: preferences } = usePreferences();
   const updatePreferences = useUpdatePreferences();
   const { open: openCreatePlaylist } = useCreatePlaylistModal();
-  const { libraries, selectedLibraryId, setSelectedLibraryId } = useLibraryStore();
+  const { libraries, selectedLibraryId, setSelectedLibraryId, error: librariesError } = useLibraryStore();
   const items = mergeSidebarItems(config);
   const collapsed = preferences?.playlistsCollapsed ?? false;
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
@@ -120,6 +120,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
           libraries={libraries}
           selectedLibraryId={selectedLibraryId}
           onSelect={setSelectedLibraryId}
+          error={librariesError}
         />
       </div>
       <nav className="space-y-0.5 overflow-y-auto">
