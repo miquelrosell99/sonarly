@@ -123,6 +123,7 @@ type Detail struct {
 	ShareToken    string  `json:"shareToken,omitempty"`
 	IsSmart       bool    `json:"isSmart"`
 	ResolveMode   string  `json:"resolveMode"`
+	Rules         *Rules  `json:"rules,omitempty"`
 	SongCount     int     `json:"songCount"`
 	Entries       []Entry `json:"entries"`
 	// Shares renders for the owner even when empty (wire parity) — a pointer
