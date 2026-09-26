@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
 import { Router, Route } from 'wouter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PlaylistDetail } from './PlaylistDetail.js';
@@ -9,6 +9,13 @@ const mockApi = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../lib/api.js', () => ({
   api: (...args: unknown[]) => mockApi(...args),
+}));
+
+const mockNotify = vi.hoisted(() => ({ notify: vi.fn() }));
+
+vi.mock('../../../contexts/NotificationContext.js', () => ({
+  useNotification: () => mockNotify,
+  NotificationProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 const playActions = vi.hoisted(() => ({
@@ -37,9 +44,10 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+let playlistOwnerId = 'user-1';
 
-function renderPlaylistDetail() {
+function renderPlaylistDetail({ ownerId = 'user-1' } = {}) {
+  playlistOwnerId = ownerId;
   window.history.pushState({}, '', '/playlists/playlist-1');
   const user = {
     id: 'user-1',
@@ -47,7 +55,8 @@ function renderPlaylistDetail() {
     isAdmin: false,
     createdAt: new Date().toISOString(),
   };
-  return render(
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <Router>
         <NotificationProvider>
@@ -56,6 +65,7 @@ function renderPlaylistDetail() {
       </Router>
     </QueryClientProvider>,
   );
+  return { queryClient, ...view };
 }
 
 describe('PlaylistDetail', () => {
@@ -66,7 +76,7 @@ describe('PlaylistDetail', () => {
           playlist: {
             id: 'playlist-1',
             name: 'Test Playlist',
-            ownerId: 'user-1',
+            ownerId: playlistOwnerId,
             visibility: 'private',
             isSmart: false,
             entries: [
@@ -98,6 +108,7 @@ describe('PlaylistDetail', () => {
 
   it('hides account-only actions from anonymous guests', async () => {
     window.history.pushState({}, '', '/playlists/playlist-1?shareToken=token-123');
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={queryClient}>
         <Router>
@@ -116,5 +127,57 @@ describe('PlaylistDetail', () => {
     expect(screen.queryByRole('button', { name: /edit/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /share/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /favorite/i })).toBeNull();
+  });
+
+  it('lets the owner delete the playlist after confirmation and navigates away', async () => {
+    const { queryClient } = renderPlaylistDetail();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await waitFor(() => {
+      expect(screen.getByText('Track One')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+
+    // ConfirmModal asks first; no DELETE request until confirmed
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Delete playlist')).toBeTruthy();
+    expect(mockApi).not.toHaveBeenCalledWith('/playlists/playlist-1', { method: 'DELETE' });
+
+    mockApi.mockResolvedValueOnce({ ok: true });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() =>
+      expect(mockApi).toHaveBeenCalledWith('/playlists/playlist-1', { method: 'DELETE' }),
+    );
+    await waitFor(() =>
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['playlists'] }),
+    );
+    await waitFor(() => expect(window.location.pathname).toBe('/playlists'));
+    expect(mockNotify.notify).toHaveBeenCalledWith('Deleted playlist "Test Playlist"', 'success');
+  });
+
+  it('does not delete when the confirm dialog is cancelled', async () => {
+    renderPlaylistDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('Track One')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(mockApi).not.toHaveBeenCalledWith('/playlists/playlist-1', { method: 'DELETE' });
+  });
+
+  it('hides the delete action from non-owners', async () => {
+    renderPlaylistDetail({ ownerId: 'user-2' });
+
+    await waitFor(() => {
+      expect(screen.getByText('Track One')).toBeTruthy();
+    });
+
+    expect(screen.queryByRole('button', { name: /^delete$/i })).toBeNull();
   });
 });

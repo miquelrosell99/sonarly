@@ -66,7 +66,6 @@ export function TransportControls() {
           disabled={!hasTrack}
           ariaLabel="Progress"
           variant="progress"
-          className="h-2"
         />
         <span className="w-11 shrink-0 text-xs font-mono tabular-nums text-fg-secondary">{formatTime(displayDuration)}</span>
       </div>

@@ -1,6 +1,7 @@
-import { Children, cloneElement, isValidElement, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { Children, cloneElement, isValidElement, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../lib/cn.js';
+import { computePointerMenuPosition, type Point } from '../lib/menuPosition.js';
 import { Icon } from './ui/Icon.js';
 
 export interface ContextMenuItem {
@@ -30,10 +31,6 @@ interface ItemContextMenuProps {
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(value, max));
-}
-
-function clampPointer(value: number, max: number) {
-  return clamp(value, 8, max - 8);
 }
 
 function computeAnchorPosition(
@@ -72,6 +69,9 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
   // Set when the menu was opened from the keyboard (Shift+F10 / Menu key):
   // there is no pointer position, so the menu anchors below the trigger.
   const openedFromKeyboardRef = useRef(false);
+  // Pointer position for pointer/long-press opens; the layout effect
+  // measures the menu and clamps/flips around it before paint.
+  const pointerPosRef = useRef<Point | null>(null);
 
   const cancelLongPress = () => {
     if (longPressTimerRef.current !== null) {
@@ -108,20 +108,41 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
     };
   }, [open]);
 
-  useLayoutEffect(() => {
-    if (!open) return;
+  const positionMenu = useCallback(() => {
     const trigger = childRef.current;
     const menu = menuRef.current;
-    if (!trigger || !menu) return;
-    if (anchorToTrigger) {
+    if (!menu) return;
+    const menuRect = menu.getBoundingClientRect();
+    const menuSize = { width: menuRect.width, height: menuRect.height };
+    const viewport = { width: window.innerWidth, height: window.innerHeight };
+    if (anchorToTrigger && trigger) {
       const { top, left } = computeAnchorPosition(trigger, menu, placement);
       setPos({ x: left, y: top });
-    } else if (openedFromKeyboardRef.current) {
+    } else if (openedFromKeyboardRef.current && trigger) {
       // Keyboard opens have no pointer position; anchor below the trigger.
       const { top, left } = computeAnchorPosition(trigger, menu, 'bottom-start');
       setPos({ x: left, y: top });
+    } else if (pointerPosRef.current) {
+      const { x, y } = computePointerMenuPosition(pointerPosRef.current, menuSize, viewport);
+      setPos({ x, y });
     }
-  }, [open, anchorToTrigger, placement]);
+  }, [anchorToTrigger, placement]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    positionMenu();
+  }, [open, positionMenu]);
+
+  // Re-clamp when the menu resizes while open (e.g. a loading item swaps
+  // its icon for a spinner, or sections change).
+  useEffect(() => {
+    if (!open || typeof ResizeObserver === 'undefined') return;
+    const menu = menuRef.current;
+    if (!menu) return;
+    const observer = new ResizeObserver(() => positionMenu());
+    observer.observe(menu);
+    return () => observer.disconnect();
+  }, [open, positionMenu]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -166,9 +187,8 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
       setOpen(true);
       return;
     }
-    const x = clampPointer(e.clientX, window.innerWidth);
-    const y = clampPointer(e.clientY, window.innerHeight);
-    setPos({ x, y });
+    pointerPosRef.current = { x: e.clientX, y: e.clientY };
+    setPos({ x: e.clientX, y: e.clientY });
     setOpen(true);
   };
 
@@ -180,6 +200,7 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
     e.preventDefault();
     childRef.current = e.currentTarget as HTMLElement;
     openedFromKeyboardRef.current = true;
+    pointerPosRef.current = null;
     setOpen(true);
   };
 
@@ -194,7 +215,8 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
       longPressTimerRef.current = null;
       longPressOriginRef.current = null;
       longPressFiredRef.current = true;
-      setPos({ x: clampPointer(x, window.innerWidth), y: clampPointer(y, window.innerHeight) });
+      pointerPosRef.current = { x, y };
+      setPos({ x, y });
       setOpen(true);
     }, 500);
   };
