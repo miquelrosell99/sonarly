@@ -19,7 +19,7 @@ describe('Years', () => {
   beforeEach(() => {
     mockApi.mockImplementation(async (path: string) => {
       if (path === '/years') {
-        return { years: [2021, 2020] };
+        return { years: [{ year: 2021, songCount: 5 }, { year: 2020, songCount: 1 }] };
       }
       if (path === '/songs') {
         return {
@@ -41,9 +41,9 @@ describe('Years', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('2020')).toBeTruthy();
+      expect(screen.getByText('2020 — 1 song')).toBeTruthy();
     });
-    expect(screen.getByText('2021')).toBeTruthy();
+    expect(screen.getByText('2021 — 5 songs')).toBeTruthy();
     expect(mockApi).toHaveBeenCalledWith('/years');
     expect(mockApi).toHaveBeenCalledWith('/songs');
   });

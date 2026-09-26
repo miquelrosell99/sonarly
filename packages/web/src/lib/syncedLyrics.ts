@@ -1,10 +1,9 @@
-// Defensive normalizer for the syncedLyrics wire shape (FF4 v2 delta).
+// Defensive normalizer for the syncedLyrics wire shape.
 //
-// v1 always serializes syncedLyrics as SyncedLyricLine[] (the DB column is
-// JSON-parsed before sending). v2 passes the raw JSON column through as
-// `any`, so a string can reach the client on DTOs that did not validate the
-// column — notably raw LRC text. Every read path funnels through
-// normalizeSyncedLyrics so the render code only ever sees SyncedLyricLine[].
+// The server passes the raw JSON column through as `any`, so a string can
+// reach the client on DTOs that did not validate the column — notably raw
+// LRC text. Every read path funnels through normalizeSyncedLyrics so the
+// render code only ever sees SyncedLyricLine[].
 import type { SyncedLyricLine } from '../types';
 
 const LRC_TIMESTAMP = /\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\]/g;

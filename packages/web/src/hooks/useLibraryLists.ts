@@ -128,11 +128,17 @@ export function useGenresList(params: LibraryListParams = {}) {
   return useListQuery<GenresResponse, GenreListItem>('genres', 'genres', '/genres', params);
 }
 
-export interface YearsResponse {
-  years: number[];
+/** One distinct year of in-scope active songs and how many songs carry it. */
+export interface YearCount {
+  year: number;
+  songCount: number;
 }
 
-/** Years are plain numbers; nothing patches them in place. */
+export interface YearsResponse {
+  years: YearCount[];
+}
+
+/** Years are read-only aggregates; nothing patches them in place. */
 export function useYearsList(params: LibraryListParams = {}) {
   const queryKey = listKey('years', params);
   const url = `/years${buildListQueryString(params)}`;

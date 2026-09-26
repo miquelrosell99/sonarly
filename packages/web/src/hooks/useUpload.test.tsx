@@ -3,19 +3,9 @@ import { renderHook, act, cleanup } from '@testing-library/react';
 import { useUpload, type UploadFile } from './useUpload.js';
 
 const mockApi = vi.hoisted(() => vi.fn());
-const capabilities = vi.hoisted(() => ({ rawUpload: false }));
 
 vi.mock('../lib/api.js', () => ({
   api: (...args: unknown[]) => mockApi(...args),
-}));
-
-vi.mock('../contract/capabilities.js', () => ({
-  useCapabilities: () => ({
-    server: capabilities.rawUpload ? 'v2' : 'v1',
-    rawUpload: capabilities.rawUpload,
-    hasFilePath: !capabilities.rawUpload,
-    syncedLyricsArray: true,
-  }),
 }));
 
 class MockXMLHttpRequest {
@@ -49,7 +39,6 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   MockXMLHttpRequest.instances = [];
-  capabilities.rawUpload = false;
 });
 
 describe('useUpload', () => {
@@ -65,37 +54,7 @@ describe('useUpload', () => {
     vi.unstubAllGlobals();
   });
 
-  it('v1: sends each chunk as multipart FormData via POST', async () => {
-    capabilities.rawUpload = false;
-    const { result } = renderHook(() => useUpload());
-
-    let done: Promise<void>;
-    await act(async () => {
-      done = result.current.uploadFiles([makeUploadFile()], 'library-1');
-    });
-
-    expect(MockXMLHttpRequest.instances).toHaveLength(1);
-    const xhr = MockXMLHttpRequest.instances[0];
-    const [method, url] = xhr.open.mock.calls[0];
-    expect(method).toBe('POST');
-    expect(String(url)).toMatch(/^\/api\/upload\/sessions\/session-1\/files\/.+\/chunks\/0$/);
-    expect(xhr.setRequestHeader).not.toHaveBeenCalled();
-    expect(xhr.send).toHaveBeenCalledTimes(1);
-    expect(xhr.send.mock.calls[0][0]).toBeInstanceOf(FormData);
-
-    await act(async () => {
-      xhr.succeed();
-      await done!;
-    });
-
-    // File complete + session complete still go through the JSON api.
-    const paths = mockApi.mock.calls.map((call) => String(call[0]));
-    expect(paths.some((p) => /^\/upload\/sessions\/session-1\/files\/.+\/complete$/.test(p))).toBe(true);
-    expect(mockApi).toHaveBeenCalledWith('/upload/sessions/session-1/complete', { method: 'POST' });
-  });
-
-  it('v2: sends each chunk as raw application/octet-stream via PUT', async () => {
-    capabilities.rawUpload = true;
+  it('sends each chunk as raw application/octet-stream via PUT', async () => {
     const { result } = renderHook(() => useUpload());
 
     let done: Promise<void>;
@@ -119,11 +78,13 @@ describe('useUpload', () => {
       await done!;
     });
 
+    // File complete + session complete still go through the JSON api.
+    const paths = mockApi.mock.calls.map((call) => String(call[0]));
+    expect(paths.some((p) => /^\/upload\/sessions\/session-1\/files\/.+\/complete$/.test(p))).toBe(true);
     expect(mockApi).toHaveBeenCalledWith('/upload/sessions/session-1/complete', { method: 'POST' });
   });
 
   it('surfaces chunk failures as the upload error', async () => {
-    capabilities.rawUpload = true;
     const { result } = renderHook(() => useUpload());
 
     let done: Promise<void>;

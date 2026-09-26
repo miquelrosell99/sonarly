@@ -52,23 +52,6 @@ describe('EditEntityModal', () => {
     expect(patch).not.toHaveProperty('filePath');
   });
 
-  it('renders the file path in an info button tooltip for songs', () => {
-    render(
-      <EditEntityModal
-        open
-        entityType="song"
-        entity={{ id: '1', title: 'Track', artist: 'Artist', filePath: '/music/track.mp3' }}
-        onClose={vi.fn()}
-        onSave={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    );
-    const infoButton = screen.getByRole('button', { name: /show file path/i });
-    expect(infoButton).toBeTruthy();
-    fireEvent.mouseEnter(infoButton);
-    expect(screen.getByText('/music/track.mp3')).toBeTruthy();
-  });
-
   it('renders lyrics field and synced lyrics button for songs', () => {
     const onEditSyncedLyrics = vi.fn();
     render(
@@ -433,45 +416,7 @@ describe('EditEntityModal', () => {
     expect(screen.queryByLabelText(/album artist/i)).toBeFalsy();
   });
 
-  it('renders a file path info button for songs with a file path', () => {
-    render(
-      <EditEntityModal
-        open
-        entityType="song"
-        entity={{ id: '20', title: 'Track', filePath: '/music/artist/album/track.mp3' }}
-        onClose={vi.fn()}
-        onSave={vi.fn()}
-        onDelete={vi.fn()}
-      />,
-    );
-    expect(screen.getByRole('button', { name: /show file path/i })).toBeTruthy();
-  });
-
-  it('hides the file path popover on v2 (no filePath on song DTOs)', () => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    client.setQueryData(['capabilities'], {
-      server: 'v2',
-      rawUpload: true,
-      hasFilePath: false,
-      syncedLyricsArray: false,
-    });
-    baseRender(
-      <QueryClientProvider client={client}>
-        <EditEntityModal
-          open
-          entityType="song"
-          entity={{ id: '21', title: 'Track', genreId: 'genre-1' }}
-          onClose={vi.fn()}
-          onSave={vi.fn()}
-          onDelete={vi.fn()}
-        />
-      </QueryClientProvider>,
-    );
-    expect(screen.queryByRole('button', { name: /show file path/i })).toBeFalsy();
-    expect(screen.queryByRole('button', { name: /no file path available/i })).toBeFalsy();
-  });
-
-  it('normalizes a v2 string syncedLyrics value for the line count', () => {
+  it('normalizes a raw string syncedLyrics value for the line count', () => {
     render(
       <EditEntityModal
         open

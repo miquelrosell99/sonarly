@@ -1,28 +1,20 @@
-// Capability-aware payload builder for the song tag-edit modal (FF4).
+// Payload builder for the song tag-edit modal (FF4).
 //
-// Wire reality, verified against both implementations (do not trust the
-// "v2 wants genreId" shorthand — it does not):
+// Wire shape (PUT /api/songs/{id}/tags and PUT /api/songs/tags), per the
+// server contract (SongTags in server/api/openapi.yaml, mirrored by
+// validateSongTags in server/internal/modules/tags):
 //
-//   - v1 allowlist (packages/server/src/features/songs/routes.ts):
-//     title, artist, album, albumArtist, trackNumber, discNumber, genre,
-//     year, explicit, lyrics. `genre` accepts string | string[].
-//   - v2 allowlist (.worktrees/go-rewrite/v2/internal/modules/tags/tags.go
-//     validateSongTags, mirrored by SongTags in v2/api/openapi.yaml):
-//     the SAME keys; `genre` again accepts string | string[], resolved
-//     server-side by full path ("Rock > Indie") or name (NOCASE), creating
-//     the genre when unknown.
+//   - Allowlist: title, artist, album, albumArtist, trackNumber,
+//     discNumber, genre, year, explicit, lyrics. `artist`, `albumArtist`
+//     and `genre` accept string | string[]; `genre` is resolved server-side
+//     by full path ("Rock > Indie") or name (NOCASE), creating the genre
+//     when unknown.
+//   - Unknown keys are rejected with 400 "Unknown tag field". `genreId`
+//     exists on song/album DTOs as a read-model field (identity, separate
+//     from names) and as a query filter — never as a writable tag key.
 //
-// Neither server accepts `genreId` in this body — unknown keys are rejected
-// with 400 "Unknown tag field" by BOTH. `genreId` exists on v2 song/album
-// DTOs as a read-model field (identity, separate from names) and as a query
-// filter, never as a writable tag key.
-//
-// So today the payload is byte-identical for v1 and v2: genre NAMES under
-// `genre`. The capabilities argument is the single seam where a future wire
-// divergence lands, and the builder hard-guarantees id-shaped keys (genreId,
-// filePath, id, …) can never leak into the request body from a shared DTO.
-import type { ServerCapabilities } from '../contract/capabilities.js';
-
+// The builder hard-guarantees id-shaped keys (genreId, filePath, id, …)
+// can never leak into the request body from a shared DTO.
 export interface SongPatchField {
   key: string;
   type?: 'text' | 'number';
@@ -37,7 +29,7 @@ export interface BuildSongPatchInput {
   explicit: boolean | null;
 }
 
-/** Keys both servers' tag validators reject outright. */
+/** Keys the server's tag validator rejects outright. */
 const FORBIDDEN_BODY_KEYS = new Set(['id', 'filePath', 'checksum', 'genreId', 'genreIds', 'mtime', 'libraryId']);
 
 function parseNumber(value: string): number | undefined {
@@ -52,10 +44,7 @@ function parseNumber(value: string): number | undefined {
  * `undefined` values are dropped by JSON.stringify, which is how "leave this
  * tag untouched" is expressed on the wire.
  */
-export function buildSongTagsPatch(
-  input: BuildSongPatchInput,
-  _capabilities: ServerCapabilities,
-): Record<string, unknown> {
+export function buildSongTagsPatch(input: BuildSongPatchInput): Record<string, unknown> {
   const patched: Record<string, unknown> = {};
 
   for (const { key, type, multi } of input.fields) {
@@ -64,10 +53,10 @@ export function buildSongTagsPatch(
     if (type === 'number') {
       patched[key] = parseNumber(String(raw));
     } else if (multi) {
-      // Genre (and artists) arrive as pill arrays; both servers accept
+      // Genre (and artists) arrive as pill arrays; the server accepts
       // string | string[]. Empty means "leave untouched" (undefined is
-      // dropped by JSON.stringify) — never send `genreId`, which both
-      // validators reject as an unknown tag field.
+      // dropped by JSON.stringify) — never send `genreId`, which the
+      // validator rejects as an unknown tag field.
       const arr = Array.isArray(raw) ? raw : [];
       patched[key] = arr.length > 0 ? arr : undefined;
     } else if (key === 'releaseType') {

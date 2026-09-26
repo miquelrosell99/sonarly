@@ -1,13 +1,19 @@
 export type FavoriteEntityType = 'song' | 'album' | 'artist' | 'playlist';
 
+/** POST /api/favorites body: exactly one per-type id key plus the starred flag. */
 export interface FavoriteInput {
-  entityType: FavoriteEntityType;
-  entityId: string;
+  songId?: string;
+  albumId?: string;
+  artistId?: string;
+  playlistId?: string;
   starred: boolean;
 }
 
+/** POST /api/ratings body: exactly one per-type id key plus the rating (omit to clear). */
 export interface RatingInput {
-  entityType: FavoriteEntityType;
-  entityId: string;
+  songId?: string;
+  albumId?: string;
+  artistId?: string;
+  playlistId?: string;
   rating?: number;
 }
