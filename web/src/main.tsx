@@ -18,6 +18,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>
 );
 
+// Seed the store from the persisted snapshot BEFORE the first apply() so
+// hydration re-applies the exact classes the inline bootstrap already put on
+// <html> — a cold boot must not re-theme the first paint.
+useTheme.getState().loadPersisted();
 useTheme.getState().apply();
 
 window

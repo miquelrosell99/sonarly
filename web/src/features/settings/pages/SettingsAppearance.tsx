@@ -29,9 +29,10 @@ export function SettingsAppearance() {
   const { themeMode, accentColor } = useTheme();
   const updatePreferences = useUpdatePreferences();
 
-  // FF8: the PATCH mutation is the ONLY writer. The local theme store is
-  // updated from the server response in useUpdatePreferences' onSuccess, so
-  // a stale preferences refetch can never overwrite a local change.
+  // FF8: the PATCH mutation is the only ongoing writer. The store is seeded
+  // once per boot from the server preferences (useSyncThemePreferences), and
+  // afterwards only this mutation's server response updates it — a stale
+  // preferences refetch can never overwrite a local change.
   const handleThemeMode = (mode: ThemeMode) => {
     updatePreferences.mutate({ themeMode: mode });
   };

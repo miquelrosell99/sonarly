@@ -30,11 +30,50 @@ Semantic CSS custom properties in HSL. All components should use these tokens, n
 | `--rule` | `#E5E5E5` | `#272727` | `#1F1F1F` | Borders, dividers |
 | `--fg-primary` | `#0A0A0A` | `#FFFFFF` | `#FFFFFF` | Primary text |
 | `--fg-secondary` | `#6A6A6A` | `#A7A7A7` | `#B3B3B3` | Muted/caption text |
-| `--accent` | `#0066FF` | `#00D4FF` | `#00D4FF` | Active links, play buttons, focus rings |
+| `--muted` | `#6A6A6A` | `#A7A7A7` | `#B3B3B3` | Same values as `--fg-secondary` |
+| `--accent` | `#0066FF` | `#00D4FF` | `#00D4FF` | Active links, play buttons, focus rings. Per-theme fallback definition — the shipped default is monochrome (see Configurable accent) |
+
+Semantic palette:
+
+| Token | Light | Dark/OLED | Usage |
+|---|---|---|---|
+| `--danger` | `#EF4343` | `#F05B5B` | Errors, destructive actions |
+| `--success` | `#21C45D` | `#2ED16A` | Confirmations |
+| `--warning` | `#F59F0A` | `#FFAC17` | Cautions |
+| `--info` | `#257EFF` | `#257EFF` | Informational |
+
+Data (chart) palette, consumed by the statistics pages via `var(--chart-1)`…`var(--chart-10)` (dark and OLED share values):
+
+| Token | Light | Dark/OLED |
+|---|---|---|
+| `--chart-1` | `#257EFF` | `#257EFF` |
+| `--chart-2` | `#10B77F` | `#1FC68F` |
+| `--chart-3` | `#F59F0A` | `#FFAC17` |
+| `--chart-4` | `#8C40D9` | `#A667E4` |
+| `--chart-5` | `#1AC9F4` | `#1FCEF9` |
+| `--chart-6` | `#EF4343` | `#F05B5B` |
+| `--chart-7` | `#F54799` | `#F754A6` |
+| `--chart-8` | `#21C45D` | `#2ED16A` |
+| `--chart-9` | `#FF7415` | `#FF8122` |
+| `--chart-10` | `#4799EB` | `#54F7FF` |
 
 ### Configurable accent
 
-The default accent is mode-aware: blue in light mode, cyan in dark/OLED mode. Users can override `--accent` through Settings → Appearance. Always test a custom accent against all three modes; bright accents may need different opacity or glow treatment in OLED mode.
+The default accent is **monochrome**: `--accent` follows `--fg-primary` (near-black on light mode, white on dark/OLED) — a deliberate, owner-approved departure from Tidal's bright-accent look. The `--accent` values in the table above are the per-theme fallback definitions of the token, applied only when no accent class is set; in practice the pre-hydration bootstrap and the theme store always apply `accent-monochrome` (the default) or one of the palette classes below, which override `--accent` per choice.
+
+| Accent | Token | Sample |
+|---|---|---|
+| Monochrome | `--fg-primary` | — |
+| Brown | `--accent-brown` | `#A16B45` |
+| Green | `--accent-green` | `#21C45D` |
+| Orange | `--accent-orange` | `#FF7415` |
+| Teal | `--accent-teal` | `#1FBDAD` |
+| Purple | `--accent-purple` | `#8C40D9` |
+| Yellow | `--accent-yellow` | `#E7B008` |
+| Cyan | `--accent-cyan` | `#00D4FF` |
+| Blue | `--accent-blue` | `#0066FF` |
+
+Users can override the accent through Settings → Appearance. Always test a custom accent against all three modes; bright accents may need different opacity or glow treatment in OLED mode.
 
 ## Typography
 

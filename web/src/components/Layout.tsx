@@ -5,7 +5,7 @@ import { api } from '../lib/api.js';
 import { ProfileModal } from '../features/profile/index.js';
 import { CreatePlaylistModal } from '../features/playlists/index.js';
 import { NowPlaying, useNowPlaying } from '../features/now-playing/index.js';
-import { usePreferences } from '../hooks/usePreferences.js';
+import { usePreferences, useSyncThemePreferences } from '../hooks/usePreferences.js';
 import { usePlaylists } from '../hooks/usePlaylists.js';
 import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
 import { usePlayer } from '../stores/playerStore.js';
@@ -41,6 +41,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
   const { isOpen, close } = useProfileModal(location, search, setLocation);
   const { isOpen: createPlaylistOpen, editingPlaylistId, close: closeCreatePlaylist } = useCreatePlaylistModal();
   const { data: preferences } = usePreferences();
+  useSyncThemePreferences();
   const { data: playlists } = usePlaylists();
   const currentSong = usePlayer((state) => state.currentSong);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -62,9 +63,13 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
     previousPathRef.current = pathname;
   }, [pathname, nowPlayingOpen]);
 
-  // FF8: preferences never write into the theme store here. The single writer
-  // is useUpdatePreferences' onSuccess, which applies the server response;
-  // the store itself drives the DOM classes on every change.
+  // F3 + FF8: useSyncThemePreferences seeds the theme store ONCE per page
+  // load from the first /me/preferences response that carries theme keys;
+  // after that, the PATCH response (useUpdatePreferences' onSuccess) is the
+  // only writer, so a stale refetch can never overwrite a local change. The
+  // store drives the DOM classes on every change and mirrors the resolved
+  // values to localStorage for the pre-hydration bootstrap. Guests never
+  // mount Layout, so their localStorage snapshot is their only theme source.
 
   const handleLogout = async () => {
     try {
