@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/miquelrosell99/sonarly/server/internal/modules/auth"
 	"modernc.org/sqlite"
@@ -300,6 +301,41 @@ func SetAvatarPath(ctx context.Context, q auth.Queries, id string, filename *str
 	}
 	_, err := q.ExecContext(ctx, `UPDATE users SET avatar_path = ? WHERE id = ?`, value, id)
 	return err
+}
+
+// LookupUsers searches users by username for the playlist-share picker (old
+// lookup-routes.ts): the caller is excluded, the pattern is LIKE-escaped,
+// results are capped. name rides along so the client can display a full
+// name when there is one.
+func LookupUsers(ctx context.Context, q auth.Queries, excludeID, query string, limit int) ([]LookupUser, error) {
+	rows, err := q.QueryContext(ctx,
+		`SELECT id, username, name FROM users
+		 WHERE id != ? AND username LIKE ? ESCAPE '\'
+		 ORDER BY username LIMIT ?`,
+		excludeID, "%"+escapeLike(query)+"%", limit)
+	if err != nil {
+		return nil, fmt.Errorf("lookup users: %w", err)
+	}
+	defer rows.Close()
+	var users []LookupUser
+	for rows.Next() {
+		var u LookupUser
+		if err := rows.Scan(&u.ID, &u.Username, &u.Name); err != nil {
+			return nil, fmt.Errorf("lookup users: %w", err)
+		}
+		users = append(users, u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("lookup users: %w", err)
+	}
+	return users, nil
+}
+
+// escapeLike escapes the LIKE wildcards (%, _) and the escape character
+// itself; the ESCAPE '\' clause at the call site interprets them.
+func escapeLike(value string) string {
+	replacer := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+	return replacer.Replace(value)
 }
 
 // IsUniqueViolation reports whether err is a SQLite UNIQUE-constraint failure,

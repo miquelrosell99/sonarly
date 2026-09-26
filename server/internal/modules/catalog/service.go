@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
+	"github.com/miquelrosell99/sonarly/server/internal/audio"
 	"github.com/miquelrosell99/sonarly/server/internal/modules/auth"
 	"github.com/miquelrosell99/sonarly/server/internal/modules/libraries"
 )
@@ -272,6 +274,77 @@ func (s *Service) ListYears(ctx context.Context, id auth.Identity) ([]YearCount,
 		return nil, err
 	}
 	return listYears(ctx, s.db, scope)
+}
+
+// GetSongLyrics answers GET /api/songs/{id}/lyrics: the raw lyrics columns,
+// scoped like every other song read (out-of-scope ids answer 404). The
+// synced column may hold the one-data-path JSON-lines shape (a JSON array of
+// {time, text}) or LRC text written by the lyrics PUT; the wire shape is a
+// nullable LRC string either way.
+func (s *Service) GetSongLyrics(ctx context.Context, id auth.Identity, songID string) (*Lyrics, error) {
+	scope, err := s.scope(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	ok, err := libraries.IsSongInScope(ctx, s.db, scope, songID)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, ErrNotFound
+	}
+	var lyrics, synced sql.NullString
+	err = s.db.QueryRowContext(ctx,
+		`SELECT lyrics, synced_lyrics FROM songs WHERE id = ?`, songID).Scan(&lyrics, &synced)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("load lyrics: %w", err)
+	}
+	out := &Lyrics{}
+	if lyrics.Valid {
+		out.Lyrics = &lyrics.String
+	}
+	if synced.Valid {
+		out.SyncedLyrics = syncedWire(synced.String)
+	}
+	return out, nil
+}
+
+// syncedWire normalizes a synced_lyrics column for the wire: a stored
+// JSON-lines array renders back to LRC text, anything else passes through
+// as-is (the column may already hold LRC text from the lyrics PUT).
+func syncedWire(raw string) *string {
+	if parsed, ok := parseAnyColumn(sql.NullString{String: raw, Valid: true}); ok {
+		if lines, ok := parsed.([]any); ok {
+			wire := audio.FormatLRC(linesFromAny(lines))
+			return &wire
+		}
+	}
+	return &raw
+}
+
+// linesFromAny converts a decoded JSON-lines array back to typed lines;
+// malformed entries keep their zero values (defensive, per the catalog JSON
+// doctrine — one bad row must not 500 the endpoint).
+func linesFromAny(lines []any) []audio.SyncedLyricLine {
+	out := make([]audio.SyncedLyricLine, 0, len(lines))
+	for _, item := range lines {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		line := audio.SyncedLyricLine{}
+		if t, ok := m["time"].(float64); ok {
+			line.Time = t
+		}
+		if text, ok := m["text"].(string); ok {
+			line.Text = text
+		}
+		out = append(out, line)
+	}
+	return out
 }
 
 // GetCoverArt answers /api/cover-art/{id}: the blob when the cover belongs

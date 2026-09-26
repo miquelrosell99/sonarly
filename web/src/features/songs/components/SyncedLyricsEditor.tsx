@@ -9,7 +9,7 @@ import { Modal } from '../../../components/ui/Modal.js';
 import { PageState } from '../../../components/PageState.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { cn } from '../../../lib/cn.js';
-import { normalizeSyncedLyrics } from '../../../lib/syncedLyrics.js';
+import { normalizeSyncedLyrics, serializeLrcLines } from '../../../lib/syncedLyrics.js';
 
 const PX_PER_SECOND = 40;
 const WHEEL_STEP_SECONDS = 0.5;
@@ -142,14 +142,15 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
   const toEditLines = (synced: SyncedLyricLine[]): EditLine[] =>
     sortByTime(synced.map((l) => ({ id: nextIdRef.current++, time: l.time, text: l.text })));
 
-  // Load existing lyrics.
+  // Load existing lyrics. The server answers {lyrics, syncedLyrics} with
+  // both as nullable strings — syncedLyrics in LRC text.
   useEffect(() => {
     setLoading(true);
     setLoadError(null);
-    api<{ lyrics?: string; syncedLyrics?: unknown }>(`/songs/${songId}/lyrics`)
+    api<{ lyrics?: string | null; syncedLyrics?: string | null }>(`/songs/${songId}/lyrics`)
       .then((res) => {
         setLyrics(res.lyrics ?? '');
-        // v2 can deliver syncedLyrics as a raw string; normalize before edit.
+        // The wire shape is LRC text; normalize before edit.
         const loaded = toEditLines(normalizeSyncedLyrics(res.syncedLyrics));
         setLines(loaded);
         // Start the tape just before the first line so existing lyrics are
@@ -489,11 +490,12 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
     setSaving(true);
     setActionError(null);
     try {
+      // The PUT contract carries syncedLyrics as LRC text; null clears.
       await api(`/songs/${songId}/lyrics`, {
         method: 'PUT',
         body: JSON.stringify({
           lyrics,
-          syncedLyrics: lines.map(({ time, text }) => ({ time, text })),
+          syncedLyrics: lines.length > 0 ? serializeLrcLines(lines.map(({ time, text }) => ({ time, text }))) : null,
         }),
       });
       onSaved?.();

@@ -167,3 +167,11 @@ type YearCount struct {
 	Year      int `json:"year"`
 	SongCount int `json:"songCount"`
 }
+
+// Lyrics is the /api/songs/{id}/lyrics payload: both fields ride the wire as
+// nullable strings — syncedLyrics in LRC text form (a stored JSON-lines
+// column is rendered back to LRC so the wire shape is uniform).
+type Lyrics struct {
+	Lyrics       *string `json:"lyrics"`
+	SyncedLyrics *string `json:"syncedLyrics"`
+}
