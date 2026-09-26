@@ -239,7 +239,8 @@ func init() {
 			call: func(c *client, w *world) (*capture, error) {
 				return c.do("GET", "/api/years", nil, nil)
 			},
-			norms: []normRule{ruleYearsShape},
+			// v2 matches v1 exactly here: bare sorted union years (the old
+			// count-objects contract was reverted for client parity).
 		},
 		{
 			group: "native", name: "cover-art-embedded",
@@ -654,27 +655,13 @@ func compareHome(v1, v2 *capture, w1, w2 *world) ([]string, []Rule) {
 			failures = append(failures, fmt.Sprintf("%s: v1=%v v2=%v", section, a, b))
 		}
 	}
-	// recentlyAdded: v1 returns ALBUM cards ordered by newest song mtime;
-	// v2's deliberate deviation (home/service.go) returns recentAdditions,
-	// a SONG list in rowid order — and v2's re-import reassigns rowids in
-	// filesystem walk order, so the sequence is not seed-deterministic.
-	// Compare as an album id SET (order is asserted for v1's own shape via
-	// the mtime-staggered newest ordering in oss/getAlbumList-newest).
+	// recentlyAdded: v2 now matches v1 exactly (album cards by newest song
+	// mtime), so the sections compare as strict id sets.
 	{
-		var v2AlbumIDs []string
-		seen := map[string]bool{}
-		for _, s := range listAt(b2, "recentAdditions") {
-			if m, ok := s.(map[string]any); ok {
-				if id, ok := m["albumId"].(string); ok && !seen[id] {
-					seen[id] = true
-					v2AlbumIDs = append(v2AlbumIDs, id)
-				}
-			}
-		}
 		a := idSet(b1["recentlyAdded"])
-		sort.Strings(v2AlbumIDs)
-		if strings.Join(a, ",") != strings.Join(v2AlbumIDs, ",") {
-			failures = append(failures, fmt.Sprintf("recentlyAdded albums: v1=%v v2-from-songs=%v", a, v2AlbumIDs))
+		b := idSet(b2["recentlyAdded"])
+		if rep := compareIDSets(a, b); rep.Intersection != len(a) || len(a) != len(b) {
+			failures = append(failures, fmt.Sprintf("recentlyAdded: v1=%v v2=%v", a, b))
 		}
 	}
 	r1, r2 := idSet(b1["random"]), idSet(b2["random"])

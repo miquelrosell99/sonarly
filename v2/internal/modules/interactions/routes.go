@@ -42,12 +42,44 @@ func (h *Handler) writeError(w http.ResponseWriter, r *http.Request, err error) 
 }
 
 // favoriteBody is POST /api/favorites: exactly one entity id, starred
-// optional (absent = favorite, the endpoint's purpose).
+// optional (absent = favorite, the endpoint's purpose). Two wire shapes
+// are accepted: the v2 per-type keys (songId|albumId|artistId) and v1's
+// {entityType, entityId} — the web client shipped with v1's shape and v1
+// compatibility outranks spec purity (parity doctrine).
 type favoriteBody struct {
-	SongID   string `json:"songId"`
-	AlbumID  string `json:"albumId"`
-	ArtistID string `json:"artistId"`
-	Starred  *bool  `json:"starred"`
+	SongID     string `json:"songId"`
+	AlbumID    string `json:"albumId"`
+	ArtistID   string `json:"artistId"`
+	PlaylistID string `json:"playlistId"`
+	EntityType string `json:"entityType"`
+	EntityID   string `json:"entityID"`
+	EntityId   string `json:"entityId"`
+	Starred    *bool  `json:"starred"`
+}
+
+// resolveEntityID maps a v1 {entityType, entityId} body onto the per-type
+// id fields. Returns false when the shape is unrecognized or inconsistent.
+func (b *favoriteBody) resolveEntityID() bool {
+	if b.EntityType == "" {
+		return true
+	}
+	id := b.EntityID
+	if id == "" {
+		id = b.EntityId
+	}
+	switch b.EntityType {
+	case "song":
+		b.SongID = id
+	case "album":
+		b.AlbumID = id
+	case "artist":
+		b.ArtistID = id
+	case "playlist":
+		b.PlaylistID = id
+	default:
+		return false
+	}
+	return id != ""
 }
 
 func (h *Handler) setFavorite(w http.ResponseWriter, r *http.Request) {
@@ -56,11 +88,15 @@ func (h *Handler) setFavorite(w http.ResponseWriter, r *http.Request) {
 		httpserver.Error(w, http.StatusBadRequest, "Invalid JSON body")
 		return
 	}
+	if !body.resolveEntityID() {
+		httpserver.Error(w, http.StatusBadRequest, "Invalid entityType/entityId")
+		return
+	}
 	starred := true
 	if body.Starred != nil {
 		starred = *body.Starred
 	}
-	if err := h.svc.SetFavorite(r.Context(), identity(r), body.SongID, body.AlbumID, body.ArtistID, starred); err != nil {
+	if err := h.svc.SetFavorite(r.Context(), identity(r), body.SongID, body.AlbumID, body.ArtistID, body.PlaylistID, starred); err != nil {
 		h.writeError(w, r, err)
 		return
 	}
@@ -70,10 +106,37 @@ func (h *Handler) setFavorite(w http.ResponseWriter, r *http.Request) {
 // ratingBody is POST /api/ratings: exactly one entity id, rating a number
 // in 0.5 steps 0..5 or null/absent (clear the rating).
 type ratingBody struct {
-	SongID   string   `json:"songId"`
-	AlbumID  string   `json:"albumId"`
-	ArtistID string   `json:"artistId"`
-	Rating   *float64 `json:"rating"`
+	SongID     string   `json:"songId"`
+	AlbumID    string   `json:"albumId"`
+	ArtistID   string   `json:"artistId"`
+	PlaylistID string   `json:"playlistId"`
+	EntityType string   `json:"entityType"`
+	EntityID   string   `json:"entityID"`
+	EntityId   string   `json:"entityId"`
+	Rating     *float64 `json:"rating"`
+}
+
+func (b *ratingBody) resolveEntityID() bool {
+	if b.EntityType == "" {
+		return true
+	}
+	id := b.EntityID
+	if id == "" {
+		id = b.EntityId
+	}
+	switch b.EntityType {
+	case "song":
+		b.SongID = id
+	case "album":
+		b.AlbumID = id
+	case "artist":
+		b.ArtistID = id
+	case "playlist":
+		b.PlaylistID = id
+	default:
+		return false
+	}
+	return id != ""
 }
 
 func (h *Handler) setRating(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +145,11 @@ func (h *Handler) setRating(w http.ResponseWriter, r *http.Request) {
 		httpserver.Error(w, http.StatusBadRequest, "Invalid JSON body")
 		return
 	}
-	if err := h.svc.SetRating(r.Context(), identity(r), body.SongID, body.AlbumID, body.ArtistID, body.Rating); err != nil {
+	if !body.resolveEntityID() {
+		httpserver.Error(w, http.StatusBadRequest, "Invalid entityType/entityId")
+		return
+	}
+	if err := h.svc.SetRating(r.Context(), identity(r), body.SongID, body.AlbumID, body.ArtistID, body.PlaylistID, body.Rating); err != nil {
 		h.writeError(w, r, err)
 		return
 	}

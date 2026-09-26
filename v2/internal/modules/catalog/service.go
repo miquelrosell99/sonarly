@@ -266,7 +266,7 @@ func (s *Service) GenreAlbums(ctx context.Context, id auth.Identity, genreID str
 }
 
 // ListYears answers /api/years.
-func (s *Service) ListYears(ctx context.Context, id auth.Identity) ([]YearCount, error) {
+func (s *Service) ListYears(ctx context.Context, id auth.Identity) ([]int, error) {
 	scope, err := s.scope(ctx, id)
 	if err != nil {
 		return nil, err

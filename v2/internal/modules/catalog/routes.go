@@ -238,7 +238,7 @@ func (h *Handler) listYears(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if years == nil {
-		years = []YearCount{}
+		years = []int{}
 	}
 	httpserver.JSON(w, http.StatusOK, map[string]any{"years": years})
 }
