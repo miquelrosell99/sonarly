@@ -337,7 +337,7 @@ export function Album({ user }: { user: User }) {
           <CoverArt
             coverArt={detail.album.coverArt}
             alt={`Cover art for ${detail.album.name}`}
-            className={cn('h-48 w-48 sm:h-56 sm:w-56', blurExplicitCovers && hasFilteredSongs && 'blur-sm')}
+            className={cn('h-48 w-48 rounded-xl sm:h-56 sm:w-56', blurExplicitCovers && hasFilteredSongs && 'blur-sm')}
             iconSize={64}
           />
         )
