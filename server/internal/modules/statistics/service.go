@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/miquelrosell99/sonarly/server/internal/db"
 	"sort"
 	"strconv"
 	"strings"
@@ -199,21 +200,24 @@ func (s *Service) totals(ctx context.Context, userID string, r TimeRange) (*Tota
 	var totals Totals
 	for rows.Next() {
 		var k string
-		var n int
+		// Tolerant scan: legacy rows store duration_listened as fractional
+		// REAL, so SUM may arrive as float64.
+		var n db.NullInt64
 		if err := rows.Scan(&k, &n); err != nil {
 			return nil, fmt.Errorf("load totals: %w", err)
 		}
+		v, _ := n.Value()
 		switch k {
 		case "total_plays":
-			totals.TotalPlays = n
+			totals.TotalPlays = int(v)
 		case "total_duration":
-			totals.TotalDurationListened = n
+			totals.TotalDurationListened = int(v)
 		case "favorite_songs":
-			totals.FavoriteSongs = n
+			totals.FavoriteSongs = int(v)
 		case "favorite_albums":
-			totals.FavoriteAlbums = n
+			totals.FavoriteAlbums = int(v)
 		case "favorite_artists":
-			totals.FavoriteArtists = n
+			totals.FavoriteArtists = int(v)
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -295,7 +299,7 @@ func (s *Service) topLists(ctx context.Context, userID string, r TimeRange) (*To
 	for rows.Next() {
 		var kind string
 		var rid, name, sub, cover sql.NullString
-		var plays, dur, yr sql.NullInt64
+		var plays, dur, yr db.NullInt64
 		if err := rows.Scan(&kind, &rid, &name, &sub, &cover, &plays, &dur, &yr); err != nil {
 			return nil, fmt.Errorf("load top lists: %w", err)
 		}
@@ -474,7 +478,7 @@ func (s *Service) ratingDistribution(ctx context.Context, userID string) (*Ratin
 	for rows.Next() {
 		var k string
 		var rating sql.NullFloat64
-		var cnt, unr sql.NullInt64
+		var cnt, unr db.NullInt64
 		if err := rows.Scan(&k, &rating, &cnt, &unr); err != nil {
 			return nil, fmt.Errorf("load rating distribution: %w", err)
 		}
@@ -537,9 +541,19 @@ func (s *Service) userSummaries(ctx context.Context, r TimeRange) ([]UserSummary
 	for rows.Next() {
 		var summary UserSummary
 		var name, surname sql.NullString
+		var totalPlays, totalDuration, uniqueSongs db.NullInt64
 		if err := rows.Scan(&summary.UserID, &summary.Username, &name, &surname,
-			&summary.TotalPlays, &summary.TotalDurationListened, &summary.UniqueSongs); err != nil {
+			&totalPlays, &totalDuration, &uniqueSongs); err != nil {
 			return nil, fmt.Errorf("load user summaries: %w", err)
+		}
+		if v, ok := totalPlays.Value(); ok {
+			summary.TotalPlays = int(v)
+		}
+		if v, ok := totalDuration.Value(); ok {
+			summary.TotalDurationListened = int(v)
+		}
+		if v, ok := uniqueSongs.Value(); ok {
+			summary.UniqueSongs = int(v)
 		}
 		summary.DisplayName = displayName(name, surname)
 		summaries = append(summaries, summary)
