@@ -108,7 +108,9 @@ function NotificationItem({
     <div
       ref={cardRef}
       className={`flex max-w-sm flex-col rounded-md border shadow-lg ${cardClass}`}
-      role="alert"
+      // Only errors are assertive; success/info feedback must not interrupt
+      // a screen reader (audit F26).
+      role={notification.type === 'error' ? 'alert' : 'status'}
       style={reducedMotion.current ? undefined : { opacity: 0 }}
     >
       <div className="h-1 w-full overflow-hidden rounded-t-md bg-rule">

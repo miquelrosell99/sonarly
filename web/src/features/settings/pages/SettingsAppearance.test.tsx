@@ -112,4 +112,34 @@ describe('SettingsAppearance', () => {
       'ring-2 ring-fg-primary ring-offset-2',
     );
   });
+
+  it('exposes the selection via aria-pressed and follows server-applied changes (F27e)', async () => {
+    useTheme.getState().setThemeMode('dark');
+    useTheme.getState().setAccentColor('purple');
+
+    renderPage();
+
+    // Initial selection is pressed, siblings are not.
+    expect(screen.getByRole('button', { name: 'Dark' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Light' }).getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByRole('button', { name: 'Purple' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Auto (monochrome)' }).getAttribute('aria-pressed')).toBe(
+      'false',
+    );
+
+    // The PATCH response is the writer: selection follows the server answer.
+    apiMock.mockResolvedValue({ preferences: { themeMode: 'light' } } as never);
+    fireEvent.click(screen.getByRole('button', { name: 'Light' }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Light' }).getAttribute('aria-pressed')).toBe('true');
+      expect(screen.getByRole('button', { name: 'Dark' }).getAttribute('aria-pressed')).toBe('false');
+    });
+
+    apiMock.mockResolvedValue({ preferences: { accentColor: 'green' } } as never);
+    fireEvent.click(screen.getByRole('button', { name: 'Green' }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Green' }).getAttribute('aria-pressed')).toBe('true');
+      expect(screen.getByRole('button', { name: 'Purple' }).getAttribute('aria-pressed')).toBe('false');
+    });
+  });
 });
