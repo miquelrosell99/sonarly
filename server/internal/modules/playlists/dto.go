@@ -73,14 +73,14 @@ type ListItem struct {
 	UpdatedAt     string   `json:"updatedAt"`
 }
 
-// NameEntry is an {id, name} pair attached to a song entry (the old 
+// NameEntry is an {id, name} pair attached to a song entry (the old
 // attachSongArtistEntries shape).
 type NameEntry struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 
-// Entry is one song inside a playlist detail response (the old 
+// Entry is one song inside a playlist detail response (the old
 // fetchPlaylistSongs shape).
 type Entry struct {
 	ID            string      `json:"id"`

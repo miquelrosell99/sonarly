@@ -1,6 +1,6 @@
 // Chunk store, streaming reassembly and the ingest move. The invariants
 // here answer the audit's F10/B11 findings: reassembly streams chunk→file
-// (never more than the io.Copy buffer is resident, a far cry from the old 
+// (never more than the io.Copy buffer is resident, a far cry from the old
 // read-all-then-Buffer.concat), the cumulative size cap is enforced
 // incrementally while streaming, and a missing chunk is a typed 4xx error
 // carrying the index, not an fs read failure surfacing as a 500.

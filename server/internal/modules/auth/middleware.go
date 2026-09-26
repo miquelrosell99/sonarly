@@ -11,7 +11,7 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/httpserver"
 )
 
-// APIKeyHeader carries API keys on the native API, mirroring the header the old 
+// APIKeyHeader carries API keys on the native API, mirroring the header the old
 // OpenSubsonic adapter accepted.
 const APIKeyHeader = "X-API-Key"
 

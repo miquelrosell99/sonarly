@@ -456,12 +456,16 @@ export interface paths {
         };
         get?: never;
         /**
-         * Rename a genre (admin)
-         * @description The rename cascades into the denormalized `genre` name cache of the active songs and albums carrying the genre. Moving genres is not part of this contract (the tree is scanner-maintained).
+         * Rename and/or move a genre (admin)
+         * @description Either field may ride the request (at least one is required). A name renames — cascading into the denormalized `genre` name cache of the active songs and albums carrying the genre. A parentId moves: `null` (or an empty string) makes the genre a root, and the parent must exist. Moving under the genre itself is a no-op.
          */
-        put: operations["renameGenre"];
+        put: operations["updateGenre"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete a genre (admin)
+         * @description Only childless genres can go: active children answer 409. Songs and albums carrying the genre survive with their `genreId` nulled (the denormalized `genre` name cache is left as-is), and the junction rows cascade.
+         */
+        delete: operations["deleteGenre"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2236,8 +2240,11 @@ export interface components {
             /** @description Existing genre id under which the new genre is created. */
             parentId?: string;
         };
-        GenreRenameInput: {
-            name: string;
+        /** @description At least one of `name`, `parentId` must be present. */
+        GenreUpdateInput: {
+            name?: string;
+            /** @description Existing genre id to reparent the genre under; `null` makes it a root. Absent leaves the parent untouched. */
+            parentId?: string | null;
         };
         /** @description Plain and synced lyrics; `syncedLyrics` is LRC text. */
         Lyrics: {
@@ -3821,7 +3828,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
-    renameGenre: {
+    updateGenre: {
         parameters: {
             query?: never;
             header?: never;
@@ -3833,11 +3840,11 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["GenreRenameInput"];
+                "application/json": components["schemas"]["GenreUpdateInput"];
             };
         };
         responses: {
-            /** @description The renamed genre (mirrors the list DTO). */
+            /** @description The updated genre, with its re-resolved path (mirrors the list DTO). */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3849,6 +3856,36 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    deleteGenre: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Genre id (UUID). */
+                id: components["parameters"]["GenreId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deletion acknowledged. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        ok: true;
+                    };
+                };
+            };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];

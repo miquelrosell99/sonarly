@@ -368,7 +368,7 @@ var contentTypeByExt = map[string]string{
 	".webp": "image/webp",
 }
 
-// getImage serves the artist's local image file when one exists (the old 
+// getImage serves the artist's local image file when one exists (the old
 // column-first lookup with a filesystem fallback), else 404.
 func (h *Handler) getImage(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")

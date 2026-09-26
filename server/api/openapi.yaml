@@ -887,23 +887,25 @@ paths:
         '409': { $ref: '#/components/responses/Conflict' }
   /api/genres/{id}:
     put:
-      operationId: renameGenre
+      operationId: updateGenre
       tags: [catalog]
-      summary: Rename a genre (admin)
+      summary: Rename and/or move a genre (admin)
       description: >
-        The rename cascades into the denormalized `genre` name cache of the
-        active songs and albums carrying the genre. Moving genres is not
-        part of this contract (the tree is scanner-maintained).
+        Either field may ride the request (at least one is required). A name
+        renames — cascading into the denormalized `genre` name cache of the
+        active songs and albums carrying the genre. A parentId moves:
+        `null` (or an empty string) makes the genre a root, and the parent
+        must exist. Moving under the genre itself is a no-op.
       parameters:
         - $ref: '#/components/parameters/GenreId'
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/GenreRenameInput' }
+            schema: { $ref: '#/components/schemas/GenreUpdateInput' }
       responses:
         '200':
-          description: The renamed genre (mirrors the list DTO).
+          description: The updated genre, with its re-resolved path (mirrors the list DTO).
           content:
             application/json:
               schema:
@@ -912,6 +914,31 @@ paths:
                 properties:
                   genre: { $ref: '#/components/schemas/Genre' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    delete:
+      operationId: deleteGenre
+      tags: [catalog]
+      summary: Delete a genre (admin)
+      description: >
+        Only childless genres can go: active children answer 409. Songs and
+        albums carrying the genre survive with their `genreId` nulled (the
+        denormalized `genre` name cache is left as-is), and the junction
+        rows cascade.
+      parameters:
+        - $ref: '#/components/parameters/GenreId'
+      responses:
+        '200':
+          description: Deletion acknowledged.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok: { type: boolean, enum: [true] }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -3296,8 +3323,8 @@ components:
         id: { type: string, enum: [periodic_scan, review_cleanup, artist_images, ingest] }
         name: { type: string }
         description: { type: string }
-        intervalMinutes: { type: integer, nullable: true, description: 'null when the trigger is disabled.' }
-        lastRunAt: { type: string, nullable: true }
+        intervalMinutes: { type: [integer, 'null'], description: 'null when the trigger is disabled.' }
+        lastRunAt: { type: [string, 'null'] }
         status: { $ref: '#/components/schemas/JobStatusName' }
     SystemTaskHistoryEntry:
       type: object
@@ -3307,8 +3334,8 @@ components:
         task: { type: string, description: 'Display name (taskNameByType).' }
         type: { $ref: '#/components/schemas/JobType' }
         status: { $ref: '#/components/schemas/JobStatusName' }
-        startedAt: { type: string, nullable: true }
-        finishedAt: { type: string, nullable: true }
+        startedAt: { type: [string, 'null'] }
+        finishedAt: { type: [string, 'null'] }
         stats: { type: object, additionalProperties: true }
     SystemTaskHistoryPage:
       type: object
@@ -3375,8 +3402,8 @@ components:
       properties:
         id: { type: string }
         status: { $ref: '#/components/schemas/JobStatusName' }
-        startedAt: { type: string, nullable: true }
-        finishedAt: { type: string, nullable: true }
+        startedAt: { type: [string, 'null'] }
+        finishedAt: { type: [string, 'null'] }
         stats: { type: object, additionalProperties: true }
         error: { type: string }
     IngestRunDetail:
@@ -3704,12 +3731,15 @@ components:
       properties:
         name: { type: string, minLength: 1 }
         parentId: { type: string, description: 'Existing genre id under which the new genre is created.' }
-    GenreRenameInput:
+    GenreUpdateInput:
       type: object
-      required: [name]
       additionalProperties: false
+      description: At least one of `name`, `parentId` must be present.
       properties:
         name: { type: string, minLength: 1 }
+        parentId:
+          type: [string, 'null']
+          description: 'Existing genre id to reparent the genre under; `null` makes it a root. Absent leaves the parent untouched.'
     Lyrics:
       type: object
       description: 'Plain and synced lyrics; `syncedLyrics` is LRC text.'

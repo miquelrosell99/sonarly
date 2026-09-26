@@ -5,7 +5,7 @@
 // are album cards) with two deliberate deviations:
 //
 //   - genres ranks by in-scope active song count (the task's "top by song
-//     count") and returns {name, songCount} objects instead of the old 
+//     count") and returns {name, songCount} objects instead of the old
 //     alphabetical name union — a flat list cannot express popularity.
 //   - recentAdditions is a SONG list in import order. Songs carry no
 //     created_at column; the rowid is the import order, which is what

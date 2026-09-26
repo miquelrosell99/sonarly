@@ -1,7 +1,7 @@
 // The ingest pipeline: walk a drop folder, validate each audio file, route
 // invalid ones to review/, move valid ones into the target library along
 // the organize pattern, resolve duplicates by strategy, and persist every
-// imported song through library.PersistSong. Ports the old 
+// imported song through library.PersistSong. Ports the old
 // features/ingest/ingest.ts with per-file failure isolation, ingest_jobs
 // bookkeeping (run_id = the scan_jobs job id), companion cover images, and
 // empty-dir pruning.
@@ -184,7 +184,7 @@ func (s *Service) RunIngest(ctx context.Context, payload library.IngestPayload, 
 }
 
 // processFile ingests one validated file and updates its ingest_jobs row;
-// any error is returned for the caller's failure bookkeeping (the old 
+// any error is returned for the caller's failure bookkeeping (the old
 // try/catch around the per-file body).
 func (s *Service) processFile(ctx context.Context, filePath, sourceDir, root, reviewDir, pattern string, target *targetLibrary, strategy Strategy, jobID string, stats *Stats, importedSourceDirs map[string]string, reviewSourceDirs map[string]bool) error {
 	validation := ValidateFile(filePath)
@@ -443,7 +443,7 @@ func (s *Service) GetIngestJob(ctx context.Context, id string) (*IngestJob, erro
 	return job, nil
 }
 
-// DeleteIngestJob deletes one row; false means it did not exist (the old 
+// DeleteIngestJob deletes one row; false means it did not exist (the old
 // changes === 0 → 404).
 func (s *Service) DeleteIngestJob(ctx context.Context, id string) (bool, error) {
 	res, err := s.db.ExecContext(ctx, `DELETE FROM ingest_jobs WHERE id = ?`, id)
