@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { useParams } from 'wouter';
+import { useParams, useLocation } from 'wouter';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Song, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
+import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { EmptyState } from '../../../components/ui/EmptyState.js';
 import { PlayButton } from '../../../components/PlayButton.js';
@@ -72,6 +74,8 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
   const { data: playlist, isLoading, error, refetch } = usePlaylist(id);
   const { openForEdit } = useCreatePlaylistModal();
   const { notify } = useNotification();
+  const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
   const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
@@ -80,6 +84,7 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
   const [songEditing, setSongEditing] = useState<SongListItem[] | null>(null);
   const [syncEditing, setSyncEditing] = useState<SongListItem | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -127,6 +132,22 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
 
   const handleConvert = () => {
     refetch();
+  };
+
+  const handleDelete = async () => {
+    if (!playlist) return;
+    setDeleting(true);
+    try {
+      await api(`/playlists/${playlist.id}`, { method: 'DELETE' });
+      setDeleteOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ['playlists'] });
+      notify(`Deleted playlist "${playlist.name}"`, 'success');
+      setLocation('/playlists');
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to delete playlist', 'error');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleSongSave = async (patched: Record<string, unknown>) => {
@@ -230,6 +251,12 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
                   Edit
                 </Button>
                 {isOwner && (
+                  <Button variant="danger" onClick={() => setDeleteOpen(true)}>
+                    <Icon name="mdi-delete" size={18} className="mr-1.5" />
+                    Delete
+                  </Button>
+                )}
+                {isOwner && (
                   <Button variant="ghost" onClick={() => setShareOpen(true)}>
                     <Icon name="mdi-share-variant" size={18} className="mr-1.5" />
                     Share
@@ -328,6 +355,17 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
           open={shareOpen}
           onClose={() => setShareOpen(false)}
           playlist={playlist}
+        />
+      )}
+      {playlist && (
+        <ConfirmModal
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          title="Delete playlist"
+          message={`Delete "${playlist.name}"? This cannot be undone.`}
+          confirmLabel={deleting ? 'Deleting…' : 'Delete'}
+          danger
+          onConfirm={handleDelete}
         />
       )}
       {syncEditing && (

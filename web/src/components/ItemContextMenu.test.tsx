@@ -94,6 +94,38 @@ describe('ItemContextMenu', () => {
     Object.defineProperty(window, 'innerHeight', { value: originalHeight, configurable: true });
   });
 
+  it('flips the menu up and left when it would overflow the bottom-right corner', () => {
+    const originalWidth = window.innerWidth;
+    const originalHeight = window.innerHeight;
+    Object.defineProperty(window, 'innerWidth', { value: 600, configurable: true });
+    Object.defineProperty(window, 'innerHeight', { value: 400, configurable: true });
+    const rectSpy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 0,
+      right: 150,
+      bottom: 120,
+      left: 0,
+      width: 150,
+      height: 120,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    } as DOMRect);
+
+    render(
+      <ItemContextMenu sections={[{ items: [{ id: 'play', label: 'Play', onClick: vi.fn() }] }]}>
+        <div data-testid="target">Right click me</div>
+      </ItemContextMenu>,
+    );
+    fireEvent.contextMenu(screen.getByTestId('target'), { clientX: 590, clientY: 390 });
+    const menu = screen.getByRole('menu');
+    expect(parseInt(menu.style.left, 10)).toBe(440);
+    expect(parseInt(menu.style.top, 10)).toBe(270);
+
+    rectSpy.mockRestore();
+    Object.defineProperty(window, 'innerWidth', { value: originalWidth, configurable: true });
+    Object.defineProperty(window, 'innerHeight', { value: originalHeight, configurable: true });
+  });
+
   it('closes on Escape without letting the event bubble', () => {
     const outerHandler = vi.fn();
     document.addEventListener('keydown', outerHandler);

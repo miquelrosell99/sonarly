@@ -175,12 +175,11 @@
   .slider {
     -webkit-appearance: none;
     appearance: none;
-    /* 16px hit area with the 4px track centered; !important beats the h-1
-       utility applied alongside this class in PlayerControls. */
-    height: 16px !important;
-    padding: 6px 0;
-    background-clip: content-box;
-    border-radius: 9999px;
+    /* 24px interactive hit area; the visible track lives on the
+       pseudo-elements below. !important beats any h-* utility applied
+       alongside this class. */
+    height: 24px !important;
+    background: transparent;
     outline: none;
   }
 
@@ -189,18 +188,27 @@
   }
 
   .slider::-webkit-slider-runnable-track {
-    height: 4px;
+    height: 3px;
     border-radius: 9999px;
+    /* Filled portion follows --accent; the Slider component sets the
+       --slider-fill cutoff inline. */
+    background: linear-gradient(
+      to right,
+      hsl(var(--accent)) 0%,
+      hsl(var(--accent)) var(--slider-fill, 0%),
+      hsl(var(--fg-primary) / 0.1) var(--slider-fill, 0%),
+      hsl(var(--fg-primary) / 0.1) 100%
+    );
   }
 
   .slider::-moz-range-track {
-    height: 4px;
+    height: 3px;
     border-radius: 9999px;
     background-color: hsl(var(--fg-primary) / 0.1);
   }
 
   .slider::-moz-range-progress {
-    height: 4px;
+    height: 3px;
     border-radius: 9999px;
     background-color: hsl(var(--accent));
   }
@@ -210,19 +218,38 @@
     appearance: none;
     height: 12px;
     width: 12px;
-    border-radius: 50%;
-    background: currentColor;
-    margin-top: -4px;
-    transition: all 0.15s ease;
+    border: none;
+    border-radius: 9999px;
+    background: hsl(var(--fg-primary));
+    /* Center the 12px thumb on the 3px track. */
+    margin-top: -4.5px;
+    transition: transform 0.15s ease, opacity 0.15s ease;
   }
 
   .slider::-moz-range-thumb {
     height: 12px;
     width: 12px;
     border: none;
-    border-radius: 50%;
-    background: currentColor;
-    transition: all 0.15s ease;
+    border-radius: 9999px;
+    background: hsl(var(--fg-primary));
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+
+  /* Quiet thumb: hidden at rest on hover-capable pointers, revealed on
+     hover/focus; touch devices have no hover so it stays put. */
+  @media (hover: hover) and (pointer: fine) {
+    .slider::-webkit-slider-thumb,
+    .slider::-moz-range-thumb {
+      transform: scale(0);
+      opacity: 0;
+    }
+    .slider:hover::-webkit-slider-thumb,
+    .slider:focus-visible::-webkit-slider-thumb,
+    .slider:hover::-moz-range-thumb,
+    .slider:focus-visible::-moz-range-thumb {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 }
 

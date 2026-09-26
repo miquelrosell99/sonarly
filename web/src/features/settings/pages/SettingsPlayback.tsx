@@ -223,12 +223,8 @@ export function SettingsPlayback() {
                 value={discoveryInput}
                 aria-valuetext={discoveryLabel}
                 onChange={(e) => onDiscoveryChange(Number(e.target.value))}
-                className="slider h-2 w-full cursor-pointer rounded-full text-fg-primary transition"
-                style={
-                  {
-                    background: `linear-gradient(to right, hsl(var(--accent)) 0%, hsl(var(--accent)) ${discoveryInput}%, hsl(var(--fg-primary) / 0.1) ${discoveryInput}%, hsl(var(--fg-primary) / 0.1) 100%)`,
-                  } as React.CSSProperties
-                }
+                className="slider w-full cursor-pointer transition"
+                style={{ '--slider-fill': `${discoveryInput}%` } as React.CSSProperties}
               />
               <div className="mt-1 flex justify-between text-xs text-muted">
                 <span>Familiar</span>

@@ -90,13 +90,6 @@ function NotificationItem({
     return () => exit.cancel();
   }, [exiting, onDone]);
 
-  const bgClass =
-    notification.type === 'error'
-      ? 'bg-danger'
-      : notification.type === 'success'
-        ? 'bg-success'
-        : 'bg-info';
-
   const cardClass =
     notification.type === 'error'
       ? 'bg-surface text-danger border-danger/30'
@@ -119,7 +112,7 @@ function NotificationItem({
       style={reducedMotion.current ? undefined : { opacity: 0 }}
     >
       <div className="h-1 w-full overflow-hidden rounded-t-md bg-rule">
-        <div ref={progressRef} className={`h-full w-full ${bgClass}`} />
+        <div ref={progressRef} className="h-full w-full bg-accent" />
       </div>
       <div className="flex items-start gap-3 px-4 py-3">
         <Icon name={iconName} size={20} className="mt-0.5" />
