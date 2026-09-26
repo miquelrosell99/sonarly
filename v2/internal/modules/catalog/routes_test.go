@@ -652,14 +652,10 @@ func TestListArtistSongs(t *testing.T) {
 
 func TestListYearsScopeMatrix(t *testing.T) {
 	s := newSeededServer(t)
-	type yr struct {
-		year      int
-		songCount int
-	}
-	want := map[string][]yr{
-		"admin":        {{2021, 2}, {2020, 2}, {2019, 3}, {2017, 1}, {1999, 1}},
-		"alice(lib-a)": {{2021, 2}, {2020, 2}, {1999, 1}},
-		"carol(lib-b)": {{2019, 3}},
+	want := map[string][]int{
+		"admin":        {2022, 2021, 2020, 2019, 2018, 2017, 1999},
+		"alice(lib-a)": {2021, 2020, 1999},
+		"carol(lib-b)": {2019},
 		"bob(none)":    {},
 	}
 	for _, u := range userMatrix() {
@@ -673,10 +669,9 @@ func TestListYearsScopeMatrix(t *testing.T) {
 			if !ok {
 				t.Fatalf("no years array: %v", body)
 			}
-			got := make([]yr, 0, len(raw))
+			got := make([]int, 0, len(raw))
 			for _, item := range raw {
-				y := item.(map[string]any)
-				got = append(got, yr{year: int(y["year"].(float64)), songCount: int(y["songCount"].(float64))})
+				got = append(got, int(item.(float64)))
 			}
 			if fmt.Sprint(got) != fmt.Sprint(want[u.label]) {
 				t.Errorf("years: want %v, got %v", want[u.label], got)

@@ -160,10 +160,5 @@ type GenreNode struct {
 	Children []*GenreNode `json:"children"`
 }
 
-// YearCount is one entry of the years list: a distinct year of in-scope
-// active songs and how many songs carry it. (v1 returned bare year values
-// without counts; the v2 spec asks for counts.)
-type YearCount struct {
-	Year      int `json:"year"`
-	SongCount int `json:"songCount"`
-}
+// Years are returned as bare values ([]int, newest first) matching v1's
+// contract; see listYears in years.go.

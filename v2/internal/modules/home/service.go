@@ -1,16 +1,15 @@
 // Package home is the /api/home aggregator (P8): the five landing-page
 // sections in one round trip, scoped to the caller's libraries.
 //
-// Shapes follow v1 where they exist (mostPlayed, random and recentlyPlayed
-// are album cards) with two deliberate deviations:
+// Shapes follow v1 exactly (mostPlayed, random, recentlyAdded and
+// recentlyPlayed are album cards; recentlyAdded is ordered by the album's
+// newest file mtime, like v1) with one deliberate deviation:
 //
 //   - genres ranks by in-scope active song count (the task's "top by song
 //     count") and returns {name, songCount} objects instead of v1's
 //     alphabetical name union — a flat list cannot express popularity.
-//   - recentAdditions is a SONG list in import order. Songs carry no
-//     created_at column; the rowid is the import order, which is what
-//     "created order" means for this schema. v1 had no song section — it
-//     folded recent additions into album cards by file mtime.
+//     (The web HomeData type does not consume home genres; the /api/genres
+//     tree is the client's genre source.)
 //
 // random is seeded per request: candidate album ids are fetched once and
 // shuffled in Go with a seeded RNG, which keeps the selection reproducible
@@ -53,27 +52,6 @@ type AlbumCard struct {
 	Rating     *float64 `json:"rating,omitempty"`
 }
 
-// SongCard is the song shape the recentAdditions section returns (the
-// display subset of the catalog song DTO).
-type SongCard struct {
-	ID         string   `json:"id"`
-	Title      string   `json:"title"`
-	ArtistID   *string  `json:"artistId,omitempty"`
-	ArtistName *string  `json:"artistName,omitempty"`
-	AlbumID    *string  `json:"albumId,omitempty"`
-	AlbumName  *string  `json:"albumName,omitempty"`
-	Duration   *int     `json:"duration,omitempty"`
-	Year       *int     `json:"year,omitempty"`
-	Genre      *string  `json:"genre,omitempty"`
-	Explicit   bool     `json:"explicit"`
-	CoverArt   *string  `json:"coverArt,omitempty"`
-	Mtime      int64    `json:"mtime"`
-	Artists    []string `json:"artists,omitempty"`
-	Genres     []string `json:"genres,omitempty"`
-	Starred    bool     `json:"starred"`
-	Rating     *float64 `json:"rating,omitempty"`
-}
-
 // GenreCard is one ranked genre: the name and its in-scope active song
 // count.
 type GenreCard struct {
@@ -81,13 +59,14 @@ type GenreCard struct {
 	SongCount int    `json:"songCount"`
 }
 
-// Response is the /api/home envelope (v1 keys plus recentAdditions).
+// Response is the /api/home envelope with v1's exact keys: recentlyAdded
+// (album cards by newest file mtime) is the name the web client consumes.
 type Response struct {
-	Genres          []GenreCard `json:"genres"`
-	MostPlayed      []AlbumCard `json:"mostPlayed"`
-	Random          []AlbumCard `json:"random"`
-	RecentAdditions []SongCard  `json:"recentAdditions"`
-	RecentlyPlayed  []AlbumCard `json:"recentlyPlayed"`
+	Genres         []GenreCard `json:"genres"`
+	MostPlayed     []AlbumCard `json:"mostPlayed"`
+	Random         []AlbumCard `json:"random"`
+	RecentlyAdded  []AlbumCard `json:"recentlyAdded"`
+	RecentlyPlayed []AlbumCard `json:"recentlyPlayed"`
 }
 
 // Service loads the home sections. All queries take the caller's library
@@ -109,8 +88,8 @@ func (s *Service) Home(ctx context.Context, id auth.Identity, libraryID string, 
 		Genres:          []GenreCard{},
 		MostPlayed:      []AlbumCard{},
 		Random:          []AlbumCard{},
-		RecentAdditions: []SongCard{},
-		RecentlyPlayed:  []AlbumCard{},
+		RecentlyAdded:  []AlbumCard{},
+		RecentlyPlayed: []AlbumCard{},
 	}
 	sections := []func() error{
 		func() error { genres, err := s.topGenres(ctx, scope, libraryID); resp.Genres = genres; return err },
@@ -125,8 +104,8 @@ func (s *Service) Home(ctx context.Context, id auth.Identity, libraryID string, 
 			return err
 		},
 		func() error {
-			songs, err := s.recentAdditions(ctx, id.UserID, scope, libraryID, hideExplicit)
-			resp.RecentAdditions = songs
+			albums, err := s.recentlyAdded(ctx, id.UserID, scope, libraryID, hideExplicit)
+			resp.RecentlyAdded = albums
 			return err
 		},
 		func() error {
@@ -386,69 +365,31 @@ func (s *Service) randomAlbums(ctx context.Context, userID string, scope librari
 
 // recentAdditions lists the newest imports first: the songs rowid is the
 // import order (there is no created_at column).
-func (s *Service) recentAdditions(ctx context.Context, userID string, scope libraries.Scope, libraryID string, hideExplicit bool) ([]SongCard, error) {
-	scopeCond := libraries.ScopeCondition(scope, "s.library_id")
-	where := `WHERE s.active = 1 ` + scopeCond.SQL
-	args := append([]any{}, scopeCond.Params...)
-	if libraryID != "" {
-		where += ` AND s.library_id = ?`
-		args = append(args, libraryID)
-	}
-	if hideExplicit {
-		where += ` AND s.explicit = 0`
-	}
+// recentlyAdded is v1's recently-added albums: the album whose newest song
+// file was most recently touched first, ordered by that mtime (ties by
+// name). Legacy v1 DBs store fractional-REAL mtimes, so the aggregate scans
+// through the tolerant db.Millis.
+func (s *Service) recentlyAdded(ctx context.Context, userID string, scope libraries.Scope, libraryID string, hideExplicit bool) ([]AlbumCard, error) {
+	join, joinArgs := albumJoin("auto", scope, libraryID)
+	libWhere, libArgs := albumLibraryWhere(libraryID)
+	args := append(append([]any{}, joinArgs...), userID)
+	args = append(args, libArgs...)
 	args = append(args, homeLimit)
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT s.id, s.title, s.artist_id, ar.name, s.album_id, al.name, s.duration,
-			s.year, s.genre, s.explicit, s.cover_art_id, s.mtime, us.starred, us.rating
-		FROM songs s
-		LEFT JOIN artists ar ON ar.id = s.artist_id
-		LEFT JOIN albums al ON al.id = s.album_id
-		LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
-		`+where+`
-		ORDER BY s.rowid DESC
-		LIMIT ?`, append([]any{userID}, args...)...)
+		`SELECT `+albumCardColumns+`, MAX(s.mtime) AS last_mtime
+		FROM albums a
+		`+join+`
+		LEFT JOIN user_albums ua ON ua.album_id = a.id AND ua.user_id = ?
+		WHERE a.active = 1 `+libWhere+`
+		GROUP BY a.id`+explicitHaving(hideExplicit)+`
+		ORDER BY last_mtime DESC, a.name
+		LIMIT ?`, args...)
 	if err != nil {
-		return nil, fmt.Errorf("load recent additions: %w", err)
+		return nil, fmt.Errorf("load recently added: %w", err)
 	}
-	defer rows.Close()
-	songs := []SongCard{}
-	for rows.Next() {
-		var card SongCard
-		var artistID, artistName, albumID, albumName, genre, coverArt sql.NullString
-		var year, starred sql.NullInt64
-		var explicit sql.NullInt64
-		var rating sql.NullFloat64
-		var mtime db.Millis
-		var duration db.NullInt64 // v1 may have stored fractional REAL seconds
-		if err := rows.Scan(&card.ID, &card.Title, &artistID, &artistName, &albumID, &albumName,
-			&duration, &year, &genre, &explicit, &coverArt, &mtime, &starred, &rating); err != nil {
-			return nil, fmt.Errorf("load recent additions: %w", err)
-		}
-		card.Mtime = int64(mtime)
-		if v, ok := duration.Value(); ok {
-			d := int(v)
-			card.Duration = &d
-		}
-		card.ArtistID, card.ArtistName = strPtr(artistID), strPtr(artistName)
-		card.AlbumID, card.AlbumName = strPtr(albumID), strPtr(albumName)
-		card.Year = intPtr(year)
-		card.Genre, card.CoverArt = strPtr(genre), strPtr(coverArt)
-		card.Explicit = explicit.Valid && explicit.Int64 == 1
-		card.Starred = starred.Valid && starred.Int64 == 1
-		if rating.Valid {
-			card.Rating = &rating.Float64
-		}
-		songs = append(songs, card)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("load recent additions: %w", err)
-	}
-	return songs, nil
+	return scanAlbumCardRows(rows, new(db.Millis))
 }
 
-// recentlyPlayed is v1's section: albums ordered by the caller's most
-// recent play of any in-scope song.
 func (s *Service) recentlyPlayed(ctx context.Context, userID string, scope libraries.Scope, libraryID string, hideExplicit bool) ([]AlbumCard, error) {
 	join, joinArgs := albumJoin("inner", scope, libraryID)
 	libWhere, libArgs := albumLibraryWhere(libraryID)

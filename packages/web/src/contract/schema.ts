@@ -39,6 +39,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/client-errors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Client-side crash reporting (anonymous)
+         * @description The web ErrorBoundary, window.onerror and unhandledrejection POST here so production render crashes are diagnosable from server logs. Fire-and-forget; the response is never user-visible.
+         */
+        post: operations["reportClientError"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/ready": {
         parameters: {
             query?: never;
@@ -162,8 +182,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Star or unstar a song, album, or artist
-         * @description Upserts the caller's starred flag in the user_songs / user_albums / user_artists junction row — the same tables the OpenSubsonic star.view/unstar.view endpoints write.
+         * Star or unstar a song, album, artist, or playlist
+         * @description Upserts the caller's starred flag in the user_songs / user_albums / user_artists / user_playlists junction row — the same tables the OpenSubsonic star.view/unstar.view endpoints write (playlists excepted, which the Subsonic API does not star).
          */
         post: operations["setFavorite"];
         delete?: never;
@@ -182,7 +202,7 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Rate a song, album, or artist (0..5 in 0.5 steps)
+         * Rate a song, album, artist, or playlist (0..5 in 0.5 steps)
          * @description Upserts the caller's rating in the user_* junction row; song ratings recompute songs.average_rating. Passing null (or omitting the key) clears the rating, exactly like v1.
          */
         post: operations["setRating"];
@@ -428,7 +448,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Distinct song years with counts */
+        /** Distinct years (songs and albums union), newest first */
         get: operations["listYears"];
         put?: never;
         post?: never;
@@ -2120,10 +2140,6 @@ export interface components {
             active: boolean;
             children: components["schemas"]["GenreNode"][];
         };
-        YearCount: {
-            year: number;
-            songCount: number;
-        };
         NameEntry: {
             id: string;
             name: string;
@@ -2455,25 +2471,6 @@ export interface components {
             starred: boolean;
             rating?: number;
         };
-        HomeSongCard: {
-            id: string;
-            title: string;
-            artistId?: string;
-            artistName?: string;
-            albumId?: string;
-            albumName?: string;
-            duration?: number;
-            year?: number;
-            genre?: string;
-            explicit: boolean;
-            coverArt?: string;
-            /** Format: int64 */
-            mtime: number;
-            artists?: string[];
-            genres?: string[];
-            starred: boolean;
-            rating?: number;
-        };
         /** @description One ranked genre — the name and its in-scope active song count. */
         HomeGenreCard: {
             name: string;
@@ -2484,7 +2481,8 @@ export interface components {
             genres: components["schemas"]["HomeGenreCard"][];
             mostPlayed: components["schemas"]["HomeAlbumCard"][];
             random: components["schemas"]["HomeAlbumCard"][];
-            recentAdditions: components["schemas"]["HomeSongCard"][];
+            /** @description Albums whose newest song file is most recently touched, first (v1 semantics). */
+            recentlyAdded: components["schemas"]["HomeAlbumCard"][];
             recentlyPlayed: components["schemas"]["HomeAlbumCard"][];
         };
         /** @description Display subset of the catalog song DTO plus the caller's interaction state. */
@@ -2700,6 +2698,35 @@ export interface operations {
                     };
                 };
             };
+        };
+    };
+    reportClientError: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    message: string;
+                    stack?: string;
+                    route?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Report logged. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ok"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
         };
     };
     readinessCheck: {
@@ -2992,12 +3019,17 @@ export interface operations {
                     songId?: string;
                     albumId?: string;
                     artistId?: string;
+                    playlistId?: string;
+                    /** @enum {string} */
+                    entityType?: "song" | "album" | "artist" | "playlist";
+                    entityId?: string;
+                    entityID?: string;
                     /**
                      * @description Absent means favorite (true).
                      * @default true
                      */
                     starred?: boolean;
-                } | unknown | unknown | unknown;
+                };
             };
         };
         responses: {
@@ -3027,9 +3059,14 @@ export interface operations {
                     songId?: string;
                     albumId?: string;
                     artistId?: string;
+                    playlistId?: string;
+                    /** @enum {string} */
+                    entityType?: "song" | "album" | "artist" | "playlist";
+                    entityId?: string;
+                    entityID?: string;
                     /** @description 0..5 in 0.5 increments; null clears. */
                     rating?: number | null;
-                } | unknown | unknown | unknown;
+                };
             };
         };
         responses: {
@@ -3517,14 +3554,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Years of in-scope active songs and how many songs carry each. */
+            /** @description Bare year values, newest first — the union of in-scope active song and album years (v1 contract). */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        years: components["schemas"]["YearCount"][];
+                        years: number[];
                     };
                 };
             };

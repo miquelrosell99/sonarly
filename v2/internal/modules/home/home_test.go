@@ -187,17 +187,14 @@ func TestHomeShapes(t *testing.T) {
 		t.Fatalf("Hot Album must lead most played: %v", ids)
 	}
 
-	// Recent additions: import order (rowid DESC), newest first: s-c2 last
-	// inserted → first.
-	songIDs := []string{}
-	for _, song := range resp.RecentAdditions {
-		songIDs = append(songIDs, song.ID)
+	// Recently added: v1 semantics — ALBUMS ordered by the album's newest
+	// song mtime (fixture: quiet 900, cold 500, hot 300), tie by name.
+	recentIDs := albumIDs(resp.RecentlyAdded)
+	if !equals(recentIDs, []string{"al-quiet", "al-cold", "al-hot"}) {
+		t.Fatalf("recently added order: %v", recentIDs)
 	}
-	if len(songIDs) != 6 || songIDs[0] != "s-c2" || songIDs[1] != "s-c1" {
-		t.Fatalf("recent additions order: %v", songIDs)
-	}
-	if resp.RecentAdditions[0].ArtistName == nil || *resp.RecentAdditions[0].ArtistName != "Cold Artist" {
-		t.Fatalf("recent additions display names: %+v", resp.RecentAdditions[0])
+	if resp.RecentlyAdded[0].ArtistName == nil || *resp.RecentlyAdded[0].ArtistName != "Hot Artist" {
+		t.Fatalf("recently added display names: %+v", resp.RecentlyAdded[0])
 	}
 
 	// Recently played: Cold One (2026-09-20) beats Hot One (2026-09-18).
@@ -227,12 +224,8 @@ func TestHomeScopeIsolation(t *testing.T) {
 			t.Fatalf("lib-a album leaked to carol: %v", albumIDs(resp.MostPlayed))
 		}
 	}
-	songIDs := []string{}
-	for _, song := range resp.RecentAdditions {
-		songIDs = append(songIDs, song.ID)
-	}
-	if !equals(songIDs, []string{"s-b1"}) {
-		t.Fatalf("carol recent additions: %v", songIDs)
+	if !equals(albumIDs(resp.RecentlyAdded), []string{"al-worlds"}) {
+		t.Fatalf("carol recently added: %v", albumIDs(resp.RecentlyAdded))
 	}
 	// Carol's recently-played and most-played draw on her own user_songs
 	// rows — none exist → empty, not errors.
@@ -249,19 +242,11 @@ func TestHomeHideExplicit(t *testing.T) {
 	alice := s.session(t, "user-alice", "alice", false)
 	rec := s.do(t, http.MethodGet, "/api/home?hideExplicit=true", alice)
 	resp := decodeHome(t, rec)
-	for _, song := range resp.RecentAdditions {
-		if song.Explicit {
-			t.Fatalf("explicit song leaked: %s", song.ID)
-		}
-	}
-	if contains(func() []string {
-		ids := []string{}
-		for _, s := range resp.RecentAdditions {
-			ids = append(ids, s.ID)
-		}
-		return ids
-	}(), "s-h3") {
-		t.Fatalf("explicit Hot Three must be hidden")
+	// Albums consisting solely of explicit songs drop out (v1 HAVING rule);
+	// every fixture album has at least one non-explicit song, so the
+	// section is unchanged for alice (lib-a).
+	if !equals(albumIDs(resp.RecentlyAdded), []string{"al-quiet", "al-cold", "al-hot"}) {
+		t.Fatalf("hideExplicit recently added: %v", albumIDs(resp.RecentlyAdded))
 	}
 	// Hot Album keeps a slot: it has non-explicit songs (v1 HAVING rule).
 	if !contains(albumIDs(resp.MostPlayed), "al-hot") {
@@ -297,12 +282,8 @@ func TestHomeLibraryFilter(t *testing.T) {
 	admin := s.session(t, "user-admin", "root", true)
 	rec := s.do(t, http.MethodGet, "/api/home?libraryId=lib-b", admin)
 	resp := decodeHome(t, rec)
-	songIDs := []string{}
-	for _, song := range resp.RecentAdditions {
-		songIDs = append(songIDs, song.ID)
-	}
-	if !equals(songIDs, []string{"s-b1"}) {
-		t.Fatalf("libraryId filter: %v", songIDs)
+	if !equals(albumIDs(resp.RecentlyAdded), []string{"al-worlds"}) {
+		t.Fatalf("libraryId filter: %v", albumIDs(resp.RecentlyAdded))
 	}
 }
 
