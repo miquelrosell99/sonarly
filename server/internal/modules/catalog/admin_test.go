@@ -350,9 +350,10 @@ func TestRenameGenreConflictsAndValidation(t *testing.T) {
 	}{
 		{"missing genre", "/api/genres/nope", map[string]any{"name": "X"}, http.StatusNotFound},
 		{"duplicate name", "/api/genres/g-jazz", map[string]any{"name": "techno"}, http.StatusConflict},
-		{"missing name", "/api/genres/g-jazz", map[string]any{}, http.StatusBadRequest},
+		{"missing name and parentId", "/api/genres/g-jazz", map[string]any{}, http.StatusBadRequest},
 		{"empty name", "/api/genres/g-jazz", map[string]any{"name": " "}, http.StatusBadRequest},
-		{"unknown field (moves retired)", "/api/genres/g-jazz", map[string]any{"parentId": "g-elect"}, http.StatusBadRequest},
+		{"unknown field", "/api/genres/g-jazz", map[string]any{"name": "X", "active": false}, http.StatusBadRequest},
+		{"non-string parentId", "/api/genres/g-jazz", map[string]any{"parentId": 5}, http.StatusBadRequest},
 	}
 	for _, tc := range cases {
 		rec := s.doBody(t, http.MethodPut, tc.path, tc.body, admin)
@@ -368,5 +369,182 @@ func TestRenameGenreRequiresAdmin(t *testing.T) {
 	rec := s.doBody(t, http.MethodPut, "/api/genres/g-jazz", map[string]any{"name": "X"}, alice)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("want 403, got %d", rec.Code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// PUT /api/genres/{id} moves (parentId)
+// ---------------------------------------------------------------------------
+
+func TestMoveGenre(t *testing.T) {
+	s := newSeededServer(t)
+	admin := s.session(t, "user-admin", "root", true)
+
+	// Techno lands under Jazz, path included.
+	rec := s.doBody(t, http.MethodPut, "/api/genres/g-techno", map[string]any{"parentId": "g-jazz"}, admin)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	genre := genrePayload(t, rec)
+	if genre["parentId"] != "g-jazz" {
+		t.Fatalf("parentId: %v", genre)
+	}
+	if genre["path"] != "Jazz > Techno" {
+		t.Fatalf("path: %v", genre)
+	}
+	var parentID any
+	if err := s.db.QueryRow(`SELECT parent_id FROM genres WHERE id = 'g-techno'`).Scan(&parentID); err != nil {
+		t.Fatal(err)
+	}
+	if parentID != "g-jazz" {
+		t.Fatalf("stored parent_id: %v", parentID)
+	}
+
+	// name and parentId may ride one request (old updateGenre shape).
+	rec = s.doBody(t, http.MethodPut, "/api/genres/g-techno",
+		map[string]any{"name": "Detroit Techno", "parentId": "g-elect"}, admin)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("combined rename+move: want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	genre = genrePayload(t, rec)
+	if genre["name"] != "Detroit Techno" || genre["path"] != "Electronic > Detroit Techno" {
+		t.Fatalf("combined rename+move: %v", genre)
+	}
+	// The rename half of the combined write refreshes the name cache.
+	if n := rowCount(t, s, `SELECT COUNT(*) FROM songs WHERE genre_id = 'g-techno' AND genre = 'Detroit Techno'`); n == 0 {
+		t.Fatal("song genre cache must follow the combined rename")
+	}
+}
+
+func TestMoveGenreToRoot(t *testing.T) {
+	s := newSeededServer(t)
+	admin := s.session(t, "user-admin", "root", true)
+
+	// The admin UI sends parentId: null for "no parent".
+	rec := s.doBody(t, http.MethodPut, "/api/genres/g-ambient", map[string]any{"parentId": nil}, admin)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	genre := genrePayload(t, rec)
+	if _, present := genre["parentId"]; present {
+		t.Fatalf("root genre must omit parentId: %v", genre)
+	}
+	if genre["path"] != "Ambient" {
+		t.Fatalf("path: %v", genre)
+	}
+	// Drift still resolves under Ambient: paths follow the active set.
+	if n := rowCount(t, s, `SELECT COUNT(*) FROM genres WHERE id = 'g-ambient' AND parent_id IS NULL`); n != 1 {
+		t.Fatal("parent_id must be NULL in storage")
+	}
+}
+
+func TestMoveGenreValidation(t *testing.T) {
+	s := newSeededServer(t)
+	admin := s.session(t, "user-admin", "root", true)
+	cases := []struct {
+		name string
+		path string
+		body map[string]any
+		want int
+	}{
+		{"missing genre", "/api/genres/nope", map[string]any{"parentId": "g-elect"}, http.StatusNotFound},
+		{"missing parent", "/api/genres/g-techno", map[string]any{"parentId": "nope"}, http.StatusNotFound},
+		{"self is a no-op", "/api/genres/g-techno", map[string]any{"parentId": "g-techno"}, http.StatusOK},
+		{"empty body", "/api/genres/g-techno", map[string]any{}, http.StatusBadRequest},
+		{"unknown field", "/api/genres/g-techno", map[string]any{"parentId": "g-jazz", "active": false}, http.StatusBadRequest},
+	}
+	for _, tc := range cases {
+		rec := s.doBody(t, http.MethodPut, tc.path, tc.body, admin)
+		if rec.Code != tc.want {
+			t.Errorf("%s: want %d, got %d: %s", tc.name, tc.want, rec.Code, rec.Body.String())
+		}
+	}
+	// The self-move no-op must not have reparented anything.
+	if n := rowCount(t, s, `SELECT COUNT(*) FROM genres WHERE id = 'g-techno' AND parent_id = 'g-elect'`); n != 1 {
+		t.Fatal("self move must leave the parent untouched")
+	}
+}
+
+func TestMoveGenreRequiresAdmin(t *testing.T) {
+	s := newSeededServer(t)
+	alice := s.session(t, "user-alice", "alice", false)
+	rec := s.doBody(t, http.MethodPut, "/api/genres/g-techno", map[string]any{"parentId": "g-jazz"}, alice)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("want 403, got %d", rec.Code)
+	}
+	if n := rowCount(t, s, `SELECT COUNT(*) FROM genres WHERE id = 'g-techno' AND parent_id = 'g-elect'`); n != 1 {
+		t.Fatal("genre must survive the rejected move")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// DELETE /api/genres/{id}
+// ---------------------------------------------------------------------------
+
+func TestDeleteGenre(t *testing.T) {
+	s := newSeededServer(t)
+	admin := s.session(t, "user-admin", "root", true)
+
+	rec := s.do(t, http.MethodDelete, "/api/genres/g-techno", admin)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if body := decodeMap(t, rec); body["ok"] != true {
+		t.Fatalf("want {ok:true}, got %v", body)
+	}
+	if n := rowCount(t, s, `SELECT COUNT(*) FROM genres WHERE id = 'g-techno'`); n != 0 {
+		t.Fatal("genre row must be gone")
+	}
+	// The carrier references are nulled, the rows survive.
+	if n := rowCount(t, s, `SELECT COUNT(*) FROM songs WHERE id = 's-a3' AND genre_id IS NULL AND genre = 'Techno'`); n != 1 {
+		t.Fatal("song must survive with genre_id nulled and its name cache untouched")
+	}
+	if n := rowCount(t, s, `SELECT COUNT(*) FROM albums WHERE id = 'al-a2' AND genre_id IS NULL AND genre = 'Techno'`); n != 1 {
+		t.Fatal("album must survive with genre_id nulled and its name cache untouched")
+	}
+	// Junction rows cascade through the schema's ON DELETE CASCADE FKs.
+	if n := rowCount(t, s, `SELECT COUNT(*) FROM song_genres WHERE genre_id = 'g-techno'`); n != 0 {
+		t.Fatal("song_genres junction rows must cascade")
+	}
+	if n := rowCount(t, s, `SELECT COUNT(*) FROM album_genres WHERE genre_id = 'g-techno'`); n != 0 {
+		t.Fatal("album_genres junction rows must cascade")
+	}
+	// s-a2 carries Jazz alongside Techno; that junction row survives.
+	if n := rowCount(t, s, `SELECT COUNT(*) FROM song_genres WHERE song_id = 's-a2' AND genre_id = 'g-jazz'`); n != 1 {
+		t.Fatal("sibling junction rows must survive")
+	}
+}
+
+func TestDeleteGenreWithChildren(t *testing.T) {
+	s := newSeededServer(t)
+	admin := s.session(t, "user-admin", "root", true)
+	// g-elect has two active children (Ambient, Techno).
+	if rec := s.do(t, http.MethodDelete, "/api/genres/g-elect", admin); rec.Code != http.StatusConflict {
+		t.Fatalf("want 409, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if n := rowCount(t, s, `SELECT COUNT(*) FROM genres WHERE id = 'g-elect'`); n != 1 {
+		t.Fatal("genre must survive the rejected delete")
+	}
+}
+
+func TestDeleteGenreNotFound(t *testing.T) {
+	s := newSeededServer(t)
+	admin := s.session(t, "user-admin", "root", true)
+	if rec := s.do(t, http.MethodDelete, "/api/genres/nope", admin); rec.Code != http.StatusNotFound {
+		t.Fatalf("want 404, got %d", rec.Code)
+	}
+}
+
+func TestDeleteGenreRequiresAdmin(t *testing.T) {
+	s := newSeededServer(t)
+	alice := s.session(t, "user-alice", "alice", false)
+	if rec := s.do(t, http.MethodDelete, "/api/genres/g-techno", alice); rec.Code != http.StatusForbidden {
+		t.Fatalf("want 403, got %d", rec.Code)
+	}
+	if rec := s.do(t, http.MethodDelete, "/api/genres/g-techno", nil); rec.Code != http.StatusUnauthorized {
+		t.Fatalf("want 401, got %d", rec.Code)
+	}
+	if n := rowCount(t, s, `SELECT COUNT(*) FROM genres WHERE id = 'g-techno'`); n != 1 {
+		t.Fatal("genre must survive the rejected deletes")
 	}
 }

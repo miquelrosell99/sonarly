@@ -182,7 +182,7 @@ func listAlbums(ctx context.Context, q auth.Queries, userID string, scope librar
 	groupBy := `GROUP BY a.id`
 	if f.HideExplicit {
 		// Drop albums whose songs are all explicit, but keep songless
-		// albums: hiding explicit content must not hide empty ones (the old 
+		// albums: hiding explicit content must not hide empty ones (the old
 		// SUM(CASE) quirk kept them via a phantom count; the Go server states the rule).
 		groupBy += ` HAVING total_song_count = 0 OR shown_song_count > 0`
 	}

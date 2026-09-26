@@ -603,7 +603,6 @@ func (s *Service) CoverAlbums(ctx context.Context, id auth.Identity, playlistID,
 	return out, nil
 }
 
-
 func strAny(in []string) []any {
 	out := make([]any, len(in))
 	for i, v := range in {
@@ -761,7 +760,7 @@ func filterIDsByScope(ctx context.Context, q auth.Queries, scope libraries.Scope
 	return out, nil
 }
 
-// fetchEntries loads the display rows for ids in playlist order (the old 
+// fetchEntries loads the display rows for ids in playlist order (the old
 // fetchPlaylistSongs shape), chunked to stay under SQLite's variable limit,
 // with song artists batch-attached. Songs that are inactive or explicitly
 // hidden drop out; created is the mtime as an ISO timestamp (wire parity).
@@ -856,7 +855,7 @@ func (s *Service) fetchEntries(ctx context.Context, ids []string, hideExplicit b
 	return entries, nil
 }
 
-// attachArtists batch-attaches song_artists entries (the old 
+// attachArtists batch-attaches song_artists entries (the old
 // attachSongArtistEntries): one chunked junction query for the whole list,
 // never one per song.
 func (s *Service) attachArtists(ctx context.Context, byID map[string]*Entry) error {

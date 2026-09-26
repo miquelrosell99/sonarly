@@ -45,7 +45,7 @@ const (
 )
 
 // excludeWindowModifiers maps windows to sqlite datetime modifiers. The map
-// is hardcoded — modifiers are never interpolated from user input (the old 
+// is hardcoded — modifiers are never interpolated from user input (the old
 // whitelist pattern).
 var excludeWindowModifiers = map[ExcludeWindow]string{
 	Window24h: "-24 hours",
@@ -311,7 +311,7 @@ func (s *Service) songContext(ctx context.Context, userID, songID string) (*Song
 	return &c, nil
 }
 
-// loadGenreIDs batch-loads the genre id lists for candidates (the old 
+// loadGenreIDs batch-loads the genre id lists for candidates (the old
 // per-candidate load, batched to keep the statement count flat).
 func (s *Service) loadGenreIDs(ctx context.Context, candidates []candidateRow) error {
 	if len(candidates) == 0 {

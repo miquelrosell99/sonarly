@@ -1,5 +1,5 @@
 // Package providers is the admin external-metadata proxy surface (P9c):
-// MusicBrainz search and LRCLIB lyrics search, ported from the old 
+// MusicBrainz search and LRCLIB lyrics search, ported from the old
 // features/musicbrainz/{search,routes}.ts and features/lrclib/{search,
 // routes}.ts.
 //

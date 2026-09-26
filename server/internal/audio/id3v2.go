@@ -113,7 +113,7 @@ func fillID3v2(md *Metadata, tm tagfork.Metadata, raw map[string]interface{}) {
 	}
 
 	// Synced lyrics via LRC-in-TXXX (S1 row 26; the native SYLT branch in the
-// retired reader
+	// retired reader
 	// is dead code and intentionally not replicated).
 	for _, c := range txxxFrames(raw) {
 		desc := strings.ToUpper(c.Description)

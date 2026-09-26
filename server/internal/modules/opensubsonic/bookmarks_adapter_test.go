@@ -70,7 +70,7 @@ func TestCreateBookmarkRoundTrip(t *testing.T) {
 		t.Fatalf("bookmark = %d/%q", position, comment)
 	}
 
-	// Re-create upserts: position replaced, comment cleared (the old 
+	// Re-create upserts: position replaced, comment cleared (the old
 	// createBookmark wrote comment ?? null on every upsert).
 	rec = app.get(t, authedURL("/rest/createBookmark.view",
 		"&id="+c.SAbbey1+"&position=100"), nil)

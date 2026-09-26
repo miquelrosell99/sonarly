@@ -31,7 +31,7 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/playback"
 )
 
-// TTL is how long an entry survives without a matching stream (the old 
+// TTL is how long an entry survives without a matching stream (the old
 // PLAYER_TTL_MS).
 const TTL = 5 * time.Minute
 

@@ -253,7 +253,7 @@ func (s *Service) artistHasActiveSongs(ctx context.Context, artistID string) (bo
 }
 
 // ---------------------------------------------------------------------------
-// Genre create / rename (the old genres routes write path)
+// Genre create / rename / move / delete (the old genres routes write path)
 // ---------------------------------------------------------------------------
 
 // ErrGenreExists mirrors the NOCASE-unique genres.name index: creating or
@@ -394,4 +394,81 @@ func (s *Service) RenameGenre(ctx context.Context, id, name string) (Genre, erro
 		return Genre{}, fmt.Errorf("commit genre rename: %w", err)
 	}
 	return genreDTO(ctx, s.db, id)
+}
+
+// MoveGenre reparents a genre: parentID empty means root. The parent must
+// exist (404) and moving under itself is a no-op, mirroring the retired
+// server's changes.parentId semantics. The denormalized genre-name cache on
+// songs/albums stores names, not paths, so a move leaves it untouched.
+func (s *Service) MoveGenre(ctx context.Context, id, parentID string) (Genre, error) {
+	if _, err := getGenreByID(ctx, s.db, id); errors.Is(err, sql.ErrNoRows) {
+		return Genre{}, ErrNotFound
+	} else if err != nil {
+		return Genre{}, err
+	}
+	if parentID != "" && parentID != id {
+		if _, err := getGenreByID(ctx, s.db, parentID); errors.Is(err, sql.ErrNoRows) {
+			return Genre{}, ErrNotFound
+		} else if err != nil {
+			return Genre{}, err
+		}
+	}
+	if parentID != id {
+		var parentValue any
+		if parentID != "" {
+			parentValue = parentID
+		}
+		if _, err := s.db.ExecContext(ctx,
+			`UPDATE genres SET parent_id = ? WHERE id = ?`, parentValue, id); err != nil {
+			return Genre{}, fmt.Errorf("move genre: %w", err)
+		}
+	}
+	return genreDTO(ctx, s.db, id)
+}
+
+// ErrGenreHasChildren mirrors the retired server's 409: a genre with active
+// children cannot be deleted.
+var ErrGenreHasChildren = errors.New("Cannot delete genre with children")
+
+// DeleteGenre removes a genre with no active children (old deleteGenre): the
+// direct song/album genre_id references are nulled first, then the row. The
+// junction rows (song_genres, album_genres) cascade through the schema's
+// ON DELETE CASCADE FKs, and the denormalized genre-name cache is left
+// untouched, like the old code.
+func (s *Service) DeleteGenre(ctx context.Context, id string) error {
+	if _, err := getGenreByID(ctx, s.db, id); errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	} else if err != nil {
+		return err
+	}
+	var one int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT 1 FROM genres WHERE parent_id = ? AND active = 1 LIMIT 1`, id).Scan(&one)
+	if err == nil {
+		return ErrGenreHasChildren
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("check genre children: %w", err)
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin genre delete: %w", err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE songs SET genre_id = NULL WHERE genre_id = ?`, id); err != nil {
+		return fmt.Errorf("detach songs: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE albums SET genre_id = NULL WHERE genre_id = ?`, id); err != nil {
+		return fmt.Errorf("detach albums: %w", err)
+	}
+	res, err := tx.ExecContext(ctx, `DELETE FROM genres WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("delete genre: %w", err)
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return ErrNotFound
+	}
+	return tx.Commit()
 }

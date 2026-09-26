@@ -1,13 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 import { Icon } from '../../../components/ui/Icon.js';
+import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { AdminShell } from '../components/AdminShell.js';
 
 interface AdminGenresProps {
   user: User;
+}
+
+interface GenreFlat {
+  id: string;
+  name: string;
+  parentId?: string;
+  path: string;
+  active: boolean;
 }
 
 interface GenreNode {
@@ -29,7 +38,19 @@ interface InlineAdd {
   name: string;
 }
 
+function getDescendantIds(node: GenreNode): Set<string> {
+  const ids = new Set<string>();
+  for (const child of node.children) {
+    ids.add(child.id);
+    for (const descendant of getDescendantIds(child)) {
+      ids.add(descendant);
+    }
+  }
+  return ids;
+}
+
 export function AdminGenres({ user }: AdminGenresProps) {
+  const [flat, setFlat] = useState<GenreFlat[]>([]);
   const [tree, setTree] = useState<GenreNode[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,13 +60,19 @@ export function AdminGenres({ user }: AdminGenresProps) {
 
   const [inlineEdit, setInlineEdit] = useState<InlineEdit | null>(null);
   const [inlineAdd, setInlineAdd] = useState<InlineAdd | null>(null);
+  const [movingId, setMovingId] = useState<string | null>(null);
   const [pending, setPending] = useState<Set<string>>(new Set());
+  const [genreToDelete, setGenreToDelete] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const treeRes = await api<{ tree: GenreNode[] }>('/genres/tree');
+      const [flatRes, treeRes] = await Promise.all([
+        api<{ genres: GenreFlat[] }>('/genres'),
+        api<{ tree: GenreNode[] }>('/genres/tree'),
+      ]);
+      setFlat(flatRes.genres);
       setTree(treeRes.tree);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load genres');
@@ -58,6 +85,30 @@ export function AdminGenres({ user }: AdminGenresProps) {
     if (!user.isAdmin) return;
     load();
   }, [user.isAdmin]);
+
+  const nodeById = useMemo(() => {
+    const map = new Map<string, GenreNode>();
+    const walk = (nodes: GenreNode[]) => {
+      for (const node of nodes) {
+        map.set(node.id, node);
+        walk(node.children);
+      }
+    };
+    walk(tree);
+    return map;
+  }, [tree]);
+
+  const descendantIdsByNode = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    const walk = (nodes: GenreNode[]) => {
+      for (const node of nodes) {
+        map.set(node.id, getDescendantIds(node));
+        walk(node.children);
+      }
+    };
+    walk(tree);
+    return map;
+  }, [tree]);
 
   const markPending = (id: string, value: boolean) => {
     setPending((prev) => {
@@ -113,14 +164,52 @@ export function AdminGenres({ user }: AdminGenresProps) {
     }
   };
 
+  const handleMove = async (id: string, parentId: string | null) => {
+    markPending(id, true);
+    try {
+      await api(`/genres/${id}`, { method: 'PUT', body: JSON.stringify({ parentId }) });
+      setMovingId(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to move genre');
+    } finally {
+      markPending(id, false);
+    }
+  };
+
+  const handleDelete = (id: string) => {
+    setGenreToDelete(id);
+  };
+
+  const confirmDelete = async (id: string) => {
+    markPending(id, true);
+    try {
+      await api(`/genres/${id}`, { method: 'DELETE' });
+      setGenreToDelete(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete genre');
+    } finally {
+      markPending(id, false);
+    }
+  };
+
   const startRename = (node: GenreNode) => {
     setInlineEdit({ id: node.id, name: node.name });
     setInlineAdd(null);
+    setMovingId(null);
   };
 
   const startAddChild = (parentId: string) => {
     setInlineAdd({ parentId, name: '' });
     setInlineEdit(null);
+    setMovingId(null);
+  };
+
+  const startMove = (id: string) => {
+    setMovingId(id);
+    setInlineEdit(null);
+    setInlineAdd(null);
   };
 
   const isBusy = (id: string) => pending.has(id);
@@ -155,7 +244,7 @@ export function AdminGenres({ user }: AdminGenresProps) {
           </Button>
         </div>
 
-        {loading && tree.length === 0 ? (
+        {loading && flat.length === 0 && tree.length === 0 ? (
           <p className="text-sm text-fg-secondary">Loading genres…</p>
         ) : (
           <div className="rounded-md border border-rule">
@@ -167,8 +256,12 @@ export function AdminGenres({ user }: AdminGenresProps) {
                   <GenreTreeItem
                     key={node.id}
                     node={node}
+                    flat={flat}
+                    nodeById={nodeById}
+                    descendantIds={descendantIdsByNode}
                     inlineEdit={inlineEdit}
                     inlineAdd={inlineAdd}
+                    movingId={movingId}
                     busy={isBusy}
                     onStartRename={startRename}
                     onInlineEditChange={(name) => setInlineEdit((prev) => (prev ? { ...prev, name } : null))}
@@ -178,6 +271,9 @@ export function AdminGenres({ user }: AdminGenresProps) {
                     onInlineAddChange={(name) => setInlineAdd((prev) => (prev ? { ...prev, name } : null))}
                     onCancelAdd={() => setInlineAdd(null)}
                     onCreateChild={handleCreateChild}
+                    onStartMove={startMove}
+                    onMove={handleMove}
+                    onDelete={handleDelete}
                   />
                 ))}
               </ul>
@@ -185,14 +281,28 @@ export function AdminGenres({ user }: AdminGenresProps) {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={genreToDelete !== null}
+        onClose={() => setGenreToDelete(null)}
+        title="Delete genre"
+        message="Are you sure you want to delete this genre? This action cannot be undone."
+        confirmLabel="Delete"
+        danger
+        onConfirm={() => genreToDelete && confirmDelete(genreToDelete)}
+      />
     </AdminShell>
   );
 }
 
 interface GenreTreeItemProps {
   node: GenreNode;
+  flat: GenreFlat[];
+  nodeById: Map<string, GenreNode>;
+  descendantIds: Map<string, Set<string>>;
   inlineEdit: InlineEdit | null;
   inlineAdd: InlineAdd | null;
+  movingId: string | null;
   busy: (id: string) => boolean;
   onStartRename: (node: GenreNode) => void;
   onInlineEditChange: (name: string) => void;
@@ -202,12 +312,19 @@ interface GenreTreeItemProps {
   onInlineAddChange: (name: string) => void;
   onCancelAdd: () => void;
   onCreateChild: (parentId: string) => void;
+  onStartMove: (id: string) => void;
+  onMove: (id: string, parentId: string | null) => void;
+  onDelete: (id: string) => void;
 }
 
 function GenreTreeItem({
   node,
+  flat,
+  nodeById,
+  descendantIds,
   inlineEdit,
   inlineAdd,
+  movingId,
   busy,
   onStartRename,
   onInlineEditChange,
@@ -217,10 +334,18 @@ function GenreTreeItem({
   onInlineAddChange,
   onCancelAdd,
   onCreateChild,
+  onStartMove,
+  onMove,
+  onDelete,
 }: GenreTreeItemProps) {
+  const descendants = descendantIds.get(node.id) ?? new Set<string>();
+  const hasChildren = node.children.length > 0;
   const isEditing = inlineEdit?.id === node.id;
   const isAdding = inlineAdd?.parentId === node.id;
+  const isMoving = movingId === node.id;
   const isBusyNode = busy(node.id);
+
+  const moveTargets = flat.filter((g) => g.id !== node.id && !descendants.has(g.id));
 
   return (
     <li>
@@ -268,24 +393,73 @@ function GenreTreeItem({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="ghost"
-            onClick={() => onStartRename(node)}
-            disabled={isBusyNode}
-            className="h-10 px-3 text-xs"
-            aria-label={`Rename ${node.name}`}
-          >
-            Rename
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => onStartAddChild(node.id)}
-            disabled={isBusyNode}
-            className="h-10 px-3 text-xs"
-            aria-label={`Add child to ${node.name}`}
-          >
-            Add child
-          </Button>
+          {isMoving ? (
+            <>
+              <select
+                value={node.parentId ?? ''}
+                onChange={(e) => onMove(node.id, e.target.value || null)}
+                disabled={isBusyNode}
+                className="input h-9 py-1 text-sm"
+                aria-label={`Move ${node.name} to parent`}
+              >
+                <option value="">No parent (root)</option>
+                {moveTargets.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.path || g.name}
+                  </option>
+                ))}
+              </select>
+              <Button
+                variant="ghost"
+                onClick={() => onMove(node.id, node.parentId ?? null)}
+                disabled={isBusyNode}
+                className="px-3"
+                aria-label={`Cancel move of ${node.name}`}
+              >
+                <Icon name="mdi-close" size={18} />
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => onStartRename(node)}
+                disabled={isBusyNode}
+                className="h-10 px-3 text-xs"
+                aria-label={`Rename ${node.name}`}
+              >
+                Rename
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => onStartAddChild(node.id)}
+                disabled={isBusyNode}
+                className="h-10 px-3 text-xs"
+                aria-label={`Add child to ${node.name}`}
+              >
+                Add child
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => onStartMove(node.id)}
+                disabled={isBusyNode}
+                className="h-10 px-3 text-xs"
+                aria-label={`Move ${node.name}`}
+              >
+                Move
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => onDelete(node.id)}
+                disabled={isBusyNode || hasChildren}
+                className="h-10 px-3 text-xs disabled:opacity-40"
+                title={hasChildren ? 'Cannot delete a genre with children' : 'Delete genre'}
+                aria-label={`Delete ${node.name}`}
+              >
+                Delete
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -329,8 +503,12 @@ function GenreTreeItem({
             <GenreTreeItem
               key={child.id}
               node={child}
+              flat={flat}
+              nodeById={nodeById}
+              descendantIds={descendantIds}
               inlineEdit={inlineEdit}
               inlineAdd={inlineAdd}
+              movingId={movingId}
               busy={busy}
               onStartRename={onStartRename}
               onInlineEditChange={onInlineEditChange}
@@ -340,6 +518,9 @@ function GenreTreeItem({
               onInlineAddChange={onInlineAddChange}
               onCancelAdd={onCancelAdd}
               onCreateChild={onCreateChild}
+              onStartMove={onStartMove}
+              onMove={onMove}
+              onDelete={onDelete}
             />
           ))}
         </ul>

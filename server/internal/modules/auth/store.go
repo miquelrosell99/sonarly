@@ -108,7 +108,7 @@ func (s *Store) Delete(ctx context.Context, sid string) error {
 
 // DeleteAllForUser removes every session belonging to userID. The sessions
 // table has no user_id column (the payload is an opaque JSON blob), so this
-// scans and filters in Go, ignoring malformed payloads — exactly what the old 
+// scans and filters in Go, ignoring malformed payloads — exactly what the old
 // deleteSessionsForUser did.
 func (s *Store) DeleteAllForUser(ctx context.Context, userID string) error {
 	return deleteAllForUser(ctx, s.db, userID)

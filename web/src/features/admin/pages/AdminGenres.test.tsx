@@ -70,6 +70,15 @@ describe('AdminGenres', () => {
       if (path === '/genres' && options?.method === 'POST') {
         return { genre: { id: 'g4', name: 'Blues', active: true } };
       }
+      if (path === '/genres') {
+        return {
+          genres: [
+            { id: 'g1', name: 'Rock', path: 'Rock', active: true },
+            { id: 'g2', name: 'Classic Rock', parentId: 'g1', path: 'Rock > Classic Rock', active: true },
+            { id: 'g3', name: 'Jazz', path: 'Jazz', active: true },
+          ],
+        };
+      }
       if (path === '/genres/g2' && options?.method === 'PUT') {
         return { genre: { id: 'g2', name: 'Vintage Rock', active: true } };
       }
@@ -127,5 +136,68 @@ describe('AdminGenres', () => {
         body: JSON.stringify({ name: 'Vintage Rock' }),
       });
     });
+  });
+
+  it('moves a genre under a new parent', async () => {
+    renderAdminGenres();
+
+    await waitFor(() => {
+      expect(screen.getByText('Classic Rock')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /move classic rock/i }));
+    fireEvent.change(screen.getByLabelText(/move classic rock to parent/i), { target: { value: 'g3' } });
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledWith('/genres/g2', {
+        method: 'PUT',
+        body: JSON.stringify({ parentId: 'g3' }),
+      });
+    });
+  });
+
+  it('moves a genre to the root', async () => {
+    renderAdminGenres();
+
+    await waitFor(() => {
+      expect(screen.getByText('Classic Rock')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /move classic rock/i }));
+    fireEvent.change(screen.getByLabelText(/move classic rock to parent/i), { target: { value: '' } });
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledWith('/genres/g2', {
+        method: 'PUT',
+        body: JSON.stringify({ parentId: null }),
+      });
+    });
+  });
+
+  it('deletes a genre after confirmation', async () => {
+    renderAdminGenres();
+
+    await waitFor(() => {
+      expect(screen.getByText('Jazz')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /delete jazz/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledWith('/genres/g3', { method: 'DELETE' });
+    });
+  });
+
+  it('keeps delete disabled for genres with children', async () => {
+    renderAdminGenres();
+
+    await waitFor(() => {
+      expect(screen.getByText('Rock')).toBeTruthy();
+    });
+
+    const deleteButton = screen.getByRole('button', { name: /delete rock/i });
+    expect(deleteButton).toHaveProperty('disabled', true);
+    expect(mockApi).not.toHaveBeenCalledWith('/genres/g1', { method: 'DELETE' });
   });
 });
