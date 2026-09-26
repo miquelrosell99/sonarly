@@ -18,7 +18,7 @@ importers:
         specifier: ^5.9.0
         version: 5.9.3
 
-  packages/web:
+  web:
     dependencies:
       '@dnd-kit/core':
         specifier: ^6.3.1
