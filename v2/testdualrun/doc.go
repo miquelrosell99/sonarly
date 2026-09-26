@@ -15,10 +15,13 @@
 //     row counts plus per-row content hashes over canonical projections.
 //     Every differing row is classified (reconciliation vs. real finding);
 //     anything outside the classified set fails the test.
-//  3. Serving on real data: five songs covering formats/flags get full-file
+//  3. Serving on real data: six songs picked against a format quota (2 mp3,
+//     2 flac, 1 ogg, 1 m4a — slots for formats the library lacks degrade
+//     into the formats present, and the report says so) get full-file
 //     stream SHA-256 vs. the on-disk file, a range request vs. dd-extracted
 //     bytes, cover-art bytes, and the same through /rest u/t/s token auth
-//     (search3 + getAlbum on real metadata). A stream hash mismatch is a
+//     (search3 by song title and by a real artist directory from the file
+//     listing, plus getAlbum on real metadata). A stream hash mismatch is a
 //     release blocker and fails the test loudly.
 //  4. A transcode smoke (maxBitRate) proving the ffmpeg path end-to-end.
 //
@@ -26,7 +29,7 @@
 // cutover runbook, and the rollback story.
 //
 // Environment:
-//   - P10B_TMP_ROOT: where the scratch copies live (the snapshot is ~1.7 GB
+//   - P10B_TMP_ROOT: where the scratch copies live (the snapshot is ~1.6 GB
 //     of copies; point this at a big disk, e.g. /var/tmp).
 //   - P10B_KEEP_TMP: set to keep the scratch dir for post-run inspection.
 //
