@@ -17,12 +17,33 @@
       rel="stylesheet"
     />
     <script>
+      // Pre-hydration theme bootstrap. Must agree with readPersistedTheme in
+      // web/src/stores/themeStore.ts: same key, same accepted values, same
+      // defaults, so the first paint matches what the store applies at
+      // hydration (no accent/mode flip).
       (function () {
         var mode = 'auto';
+        var accent = 'monochrome';
         try {
           var stored = window.localStorage.getItem('sonarly-theme');
           if (stored === 'light' || stored === 'dark' || stored === 'oled') {
-            mode = stored;
+            mode = stored; // legacy bare-mode string
+          } else if (stored) {
+            try {
+              var parsed = JSON.parse(stored);
+              if (parsed && typeof parsed === 'object') {
+                if (parsed.mode === 'auto' || parsed.mode === 'light' || parsed.mode === 'dark' || parsed.mode === 'oled') {
+                  mode = parsed.mode;
+                }
+                if (
+                  ['monochrome', 'brown', 'green', 'orange', 'teal', 'purple', 'yellow', 'cyan', 'blue'].indexOf(
+                    parsed.accent,
+                  ) !== -1
+                ) {
+                  accent = parsed.accent;
+                }
+              }
+            } catch (e) {}
           }
         } catch (e) {}
         var resolved =
@@ -31,7 +52,6 @@
               ? 'dark'
               : 'light'
             : mode;
-        var accent = resolved === 'light' ? 'blue' : 'cyan';
         document.documentElement.classList.add('theme-' + resolved, 'accent-' + accent);
       })();
     </script>
