@@ -18,29 +18,70 @@ interface ThemeState {
   accentColor: AccentColor;
   setThemeMode: (themeMode: ThemeMode) => void;
   setAccentColor: (accentColor: AccentColor) => void;
+  /** Seeds themeMode/accentColor from the persisted cold-boot snapshot. */
+  loadPersisted: () => void;
   apply: () => void;
 }
 
 const THEME_STORAGE_KEY = 'sonarly-theme';
 
-const accentClasses = [
-  'accent-auto',
-  'accent-monochrome',
-  'accent-brown',
-  'accent-green',
-  'accent-orange',
-  'accent-teal',
-  'accent-purple',
-  'accent-yellow',
-  'accent-cyan',
-  'accent-blue',
+// Accents that can land on the DOM (and in storage). 'auto' is a valid
+// preference but never persists: apply() stores the resolved accent, so the
+// pre-hydration bootstrap and a cold-booted store read back the same value.
+const ACCENT_COLORS: AccentColor[] = [
+  'monochrome',
+  'brown',
+  'green',
+  'orange',
+  'teal',
+  'purple',
+  'yellow',
+  'cyan',
+  'blue',
 ];
 
-function resolveAccent(accentColor: AccentColor, resolvedMode: 'light' | 'dark' | 'oled'): string {
+const accentClasses = ACCENT_COLORS.map((accent) => `accent-${accent}`);
+
+const isThemeMode = (value: unknown): value is ThemeMode =>
+  value === 'auto' || value === 'light' || value === 'dark' || value === 'oled';
+
+const isAccentColor = (value: unknown): value is AccentColor =>
+  typeof value === 'string' && (ACCENT_COLORS as string[]).includes(value);
+
+function resolveAccent(accentColor: AccentColor): string {
   if (accentColor !== 'auto') return accentColor;
   // Default accent is monochrome: black on light mode, white on dark/OLED
   // (--accent follows --fg-primary). Owner decision 2026-09-26.
   return 'monochrome';
+}
+
+interface PersistedTheme {
+  themeMode?: ThemeMode;
+  accentColor?: AccentColor;
+}
+
+// Reads the sonarly-theme snapshot. Accepts the current JSON shape
+// ({ "mode": "…", "accent": "…" }) and the legacy bare-mode string
+// ("dark"|"light"|"oled") written by older clients. Anything unrecognized —
+// corrupt JSON, unknown enum values — yields {}, leaving the store defaults.
+// index.html's inline bootstrap validates the same values; keep them in sync.
+function readPersistedTheme(): PersistedTheme {
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (!stored) return {};
+    if (stored === 'light' || stored === 'dark' || stored === 'oled') {
+      return { themeMode: stored };
+    }
+    const parsed: unknown = JSON.parse(stored);
+    if (typeof parsed !== 'object' || parsed === null) return {};
+    const { mode, accent } = parsed as Record<string, unknown>;
+    const result: PersistedTheme = {};
+    if (isThemeMode(mode)) result.themeMode = mode;
+    if (isAccentColor(accent)) result.accentColor = accent;
+    return result;
+  } catch {
+    return {};
+  }
 }
 
 export const useTheme = create<ThemeState>((set, get) => ({
@@ -53,6 +94,9 @@ export const useTheme = create<ThemeState>((set, get) => ({
   setAccentColor: (accentColor) => {
     set({ accentColor });
     get().apply();
+  },
+  loadPersisted: () => {
+    set(readPersistedTheme());
   },
   apply: () => {
     const { themeMode, accentColor } = get();
@@ -68,15 +112,20 @@ export const useTheme = create<ThemeState>((set, get) => ({
           : 'light'
         : themeMode;
 
-    const resolvedAccent = resolveAccent(accentColor, resolvedMode);
+    const resolvedAccent = resolveAccent(accentColor);
 
     html.classList.add(`theme-${resolvedMode}`, `accent-${resolvedAccent}`);
 
-    // Persist the resolved mode so the index.html bootstrap can apply it
-    // before hydration. For 'auto' this stores the currently resolved mode;
-    // main.tsx re-applies on system preference changes, keeping it fresh.
+    // Persist the RESOLVED values as { mode, accent } so the index.html
+    // bootstrap can put the same classes on <html> before hydration — a cold
+    // boot and this store then agree, with no first-paint re-theme. While
+    // themeMode is 'auto', main.tsx re-applies on system preference changes,
+    // keeping the stored snapshot fresh.
     try {
-      window.localStorage.setItem(THEME_STORAGE_KEY, resolvedMode);
+      window.localStorage.setItem(
+        THEME_STORAGE_KEY,
+        JSON.stringify({ mode: resolvedMode, accent: resolvedAccent }),
+      );
     } catch {
       // Ignore storage failures (private mode, disabled storage).
     }
