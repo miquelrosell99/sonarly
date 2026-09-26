@@ -141,4 +141,85 @@ describe('ItemContextMenu', () => {
     expect(parseInt(menu.style.left, 10)).toBe(300);
     expect(parseInt(menu.style.top, 10)).toBe(192);
   });
+
+  it('opens from the keyboard with Shift+F10 and focuses the first item', () => {
+    render(
+      <ItemContextMenu sections={sections}>
+        <button type="button" data-testid="target">
+          Trigger
+        </button>
+      </ItemContextMenu>,
+    );
+    const target = screen.getByTestId('target');
+    target.focus();
+
+    fireEvent.keyDown(target, { key: 'F10', shiftKey: true });
+
+    const menu = screen.getByRole('menu');
+    expect(menu).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getAllByRole('menuitem')[0]);
+  });
+
+  it('opens from the keyboard with the ContextMenu key', () => {
+    render(
+      <ItemContextMenu sections={sections}>
+        <button type="button" data-testid="target">
+          Trigger
+        </button>
+      </ItemContextMenu>,
+    );
+    const target = screen.getByTestId('target');
+
+    fireEvent.keyDown(target, { key: 'ContextMenu' });
+
+    expect(screen.getByRole('menu')).toBeTruthy();
+  });
+
+  it('anchors a keyboard-opened menu below the trigger', () => {
+    render(
+      <ItemContextMenu sections={sections}>
+        <button type="button" data-testid="target">
+          Trigger
+        </button>
+      </ItemContextMenu>,
+    );
+    const target = screen.getByTestId('target');
+    vi.spyOn(target, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      right: 120,
+      bottom: 124,
+      left: 100,
+      width: 20,
+      height: 24,
+      x: 100,
+      y: 100,
+      toJSON: () => {},
+    } as DOMRect);
+
+    fireEvent.keyDown(target, { key: 'F10', shiftKey: true });
+
+    const menu = screen.getByRole('menu');
+    expect(parseInt(menu.style.top, 10)).toBe(132); // bottom (124) + margin (8)
+    expect(parseInt(menu.style.left, 10)).toBe(100); // trigger left edge
+  });
+
+  it('closes on Escape and returns focus to the trigger', () => {
+    render(
+      <ItemContextMenu sections={sections}>
+        <button type="button" data-testid="target">
+          Trigger
+        </button>
+      </ItemContextMenu>,
+    );
+    const target = screen.getByTestId('target');
+    target.focus();
+
+    fireEvent.keyDown(target, { key: 'F10', shiftKey: true });
+    expect(screen.getByRole('menu')).toBeTruthy();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('menu')).toBeFalsy();
+    expect(document.activeElement).toBe(target);
+  });
 });
+

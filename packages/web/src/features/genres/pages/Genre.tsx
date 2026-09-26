@@ -7,6 +7,7 @@ import { EntityDetail } from '../../../components/EntityDetail.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
+import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
 import { TrackList } from '../../songs/index.js';
 import { AlbumList } from '../../albums/index.js';
 import type { SongWithNames } from '../../../lib/types.js';
@@ -25,6 +26,7 @@ export function Genre() {
   const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const epoch = useCacheEpoch();
   const libraryQuery = buildLibraryQuery(selectedLibraryId);
   const libraryParam = libraryQuery ? `&${libraryQuery.slice(1)}` : '';
 
@@ -45,7 +47,7 @@ export function Genre() {
 
   useEffect(() => {
     load();
-  }, [genre, selectedLibraryId]);
+  }, [genre, selectedLibraryId, epoch]);
 
   const actions = tracks.length > 0 && (
     <>

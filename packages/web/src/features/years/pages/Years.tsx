@@ -5,6 +5,7 @@ import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
+import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
 
 interface Track extends Song {
   artistName?: string;
@@ -23,6 +24,7 @@ export function Years() {
   const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const epoch = useCacheEpoch();
 
   const load = () => {
     setLoading(true);
@@ -42,7 +44,7 @@ export function Years() {
 
   useEffect(() => {
     load();
-  }, [selectedLibraryId]);
+  }, [selectedLibraryId, epoch]);
 
   const playYear = (year: number) => {
     const matching = tracks.filter((t) => t.year === year);

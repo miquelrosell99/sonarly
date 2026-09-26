@@ -13,6 +13,7 @@ import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
+import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
 import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
 import { patchToPlayerSong } from '../../../lib/songPatch.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
@@ -106,6 +107,7 @@ export function SearchResults({ user }: SearchResultsProps) {
   const currentAlbumId = currentSong?.albumId;
   const currentArtistId = currentSong?.artistId;
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const epoch = useCacheEpoch();
   const libraryQuery = buildLibraryQuery(selectedLibraryId);
   const libraryParam = libraryQuery ? `&${libraryQuery.slice(1)}` : '';
 
@@ -126,7 +128,7 @@ export function SearchResults({ user }: SearchResultsProps) {
 
   useEffect(() => {
     load();
-  }, [query, type, selectedLibraryId]);
+  }, [query, type, selectedLibraryId, epoch]);
 
   function updateItem<T extends { id: string }>(
     prev: SearchResponse | null,

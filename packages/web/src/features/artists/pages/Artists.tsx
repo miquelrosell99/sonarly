@@ -11,6 +11,7 @@ import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
+import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
 
 function ArtistContextMenu({
   artist,
@@ -35,6 +36,7 @@ export function Artists() {
   const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const epoch = useCacheEpoch();
 
   const load = () => {
     setLoading(true);
@@ -52,7 +54,7 @@ export function Artists() {
 
   useEffect(() => {
     load();
-  }, [selectedLibraryId]);
+  }, [selectedLibraryId, epoch]);
 
   const artistGenres = useMemo(() => {
     const map = new Map<string, Set<string>>();

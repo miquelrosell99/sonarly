@@ -9,6 +9,7 @@ import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
+import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
 import { formatDuration } from '../../../lib/format.js';
 
 interface TracksProps {
@@ -30,6 +31,7 @@ export function Tracks({ user }: TracksProps) {
   const { get } = useFilterParams();
   const playingId = usePlayer((state) => state.currentSong?.id);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const epoch = useCacheEpoch();
 
   const load = () => {
     setLoading(true);
@@ -41,7 +43,7 @@ export function Tracks({ user }: TracksProps) {
 
   useEffect(() => {
     load();
-  }, [selectedLibraryId]);
+  }, [selectedLibraryId, epoch]);
 
   const artist = get('artist');
   const album = get('album');

@@ -3,6 +3,7 @@ import { render, cleanup } from '@testing-library/react';
 import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useServerEvents } from './useServerEvents.js';
+import { useCacheEpochStore, resetCacheEpoch } from '../stores/cacheEpoch.js';
 
 const mockInvalidateQueries = vi.fn();
 
@@ -52,6 +53,7 @@ describe('useServerEvents', () => {
 
   beforeEach(() => {
     eventSourceInstances = [];
+    resetCacheEpoch();
     vi.stubGlobal(
       'EventSource',
       vi.fn((url: string, options?: EventSourceInit) => {
@@ -139,6 +141,21 @@ describe('useServerEvents', () => {
     instance.simulateMessage('not json');
 
     expect(mockInvalidateQueries).not.toHaveBeenCalled();
+  });
+
+  it('bumps the cacheEpoch store on library:changed (FF1)', () => {
+    const Harness = createHarness(true);
+    render(
+      React.createElement(
+        QueryClientProvider,
+        { client: realQueryClient },
+        React.createElement(Harness),
+      ),
+    );
+
+    expect(useCacheEpochStore.getState().epoch).toBe(0);
+    eventSourceInstances[0].simulateMessage(JSON.stringify({ type: 'library:changed' }));
+    expect(useCacheEpochStore.getState().epoch).toBe(1);
   });
 
   it('closes the EventSource on unmount', () => {
