@@ -1,4 +1,4 @@
-// W5 audio-properties reader per docs/s1-metadata-findings.md §5 W5
+// W5 audio-properties reader per ../../../.audits/s1-metadata-findings.md §5 W5
 // option 1: hand-rolled, pure Go, zero dependencies. dhowden/tag (and
 // therefore tagfork) reads tags only — duration/bitrate/sampleRate/channels
 // are required by OpenSubsonic and the player timeline, so this fills the

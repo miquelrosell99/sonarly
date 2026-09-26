@@ -1,6 +1,6 @@
 // LRC synced-lyrics parsing, ported from the retired server's
 // packages/server/src/features/tags/lrc.ts (parseLrc) per
-// docs/s1-metadata-findings.md §5 W-column (row 26: synced lyrics parity
+// ../../../.audits/s1-metadata-findings.md §5 W-column (row 26: synced lyrics parity
 // is the LRC-in-tag path; the retired native SYLT branch is dead code against
 // music-metadata@11.14.0 and intentionally not replicated).
 

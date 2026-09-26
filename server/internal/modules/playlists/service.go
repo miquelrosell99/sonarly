@@ -485,6 +485,133 @@ func (s *Service) DeleteShareLink(ctx context.Context, id auth.Identity, playlis
 // stored member list for static playlists, the compiled rules for smart
 // ones. User-scoped fields resolve against rulesUserID (owner for 'tracks',
 // the viewer for 'query').
+// CoverAlbums is GET /api/playlists/{id}/albums: up to `limit` distinct
+// albums from the playlist's songs, in playlist order — the 2x2 cover
+// mosaic the playlist cards and detail header render. Access, scope
+// filtering, and the share-token view grant mirror Get: plain viewers see
+// only their in-scope subset, anonymous token viewers are authorized
+// against the linked playlist's content, and no access is a 404.
+func (s *Service) CoverAlbums(ctx context.Context, id auth.Identity, playlistID, shareToken string, limit int) ([]CoverAlbum, error) {
+	p, err := GetByID(ctx, s.db, playlistID)
+	if err != nil {
+		return nil, err
+	}
+	access, err := Resolve(ctx, s.db, p, id, shareToken)
+	if err != nil {
+		return nil, err
+	}
+	if access == AccessNone && shareToken != "" && p.ShareToken != "" && shareToken == p.ShareToken {
+		access = AccessView
+	}
+	if access == AccessNone {
+		return nil, ErrNotFound
+	}
+
+	ids, err := s.resolveSongIDs(ctx, p, id.UserID)
+	if err != nil {
+		return nil, err
+	}
+	if id.UserID != "" && access == AccessView {
+		scope, err := libraries.GetScope(ctx, s.db, id.UserID, id.IsAdmin)
+		if err != nil {
+			return nil, err
+		}
+		ids, err = filterIDsByScope(ctx, s.db, scope, ids)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if len(ids) == 0 {
+		return []CoverAlbum{}, nil
+	}
+
+	hideExplicit, err := HideExplicit(ctx, s.db, id.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Distinct album ids in first-seen (playlist) order.
+	seen := map[string]bool{}
+	albumIDs := []string{}
+	const chunk = 400
+	for start := 0; start < len(ids) && len(albumIDs) < limit; start += chunk {
+		end := start + chunk
+		if end > len(ids) {
+			end = len(ids)
+		}
+		placeholders := placeholders(len(ids[start:end]))
+		rows, err := s.db.QueryContext(ctx,
+			`SELECT album_id FROM songs WHERE id IN (`+placeholders+`) AND album_id IS NOT NULL`, strAny(ids[start:end])...)
+		if err != nil {
+			return nil, fmt.Errorf("load playlist album ids: %w", err)
+		}
+		for rows.Next() {
+			var a sql.NullString
+			if err := rows.Scan(&a); err != nil {
+				rows.Close()
+				return nil, fmt.Errorf("load playlist album ids: %w", err)
+			}
+			if a.Valid && !seen[a.String] {
+				seen[a.String] = true
+				albumIDs = append(albumIDs, a.String)
+			}
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return nil, fmt.Errorf("load playlist album ids: %w", err)
+		}
+	}
+	if len(albumIDs) == 0 {
+		return []CoverAlbum{}, nil
+	}
+	explicitFilter := ""
+	if hideExplicit {
+		explicitFilter = ` AND EXISTS (SELECT 1 FROM songs s2 WHERE s2.album_id = albums.id AND s2.active = 1 AND s2.explicit = 0)`
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT id, name, cover_art_id FROM albums
+		WHERE active = 1 AND id IN (`+placeholders(len(albumIDs))+`)`+explicitFilter, strAny(albumIDs)...)
+	if err != nil {
+		return nil, fmt.Errorf("load cover albums: %w", err)
+	}
+	byID := map[string]CoverAlbum{}
+	for rows.Next() {
+		var c CoverAlbum
+		var cover sql.NullString
+		if err := rows.Scan(&c.ID, &c.Name, &cover); err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("load cover albums: %w", err)
+		}
+		if cover.Valid {
+			c.CoverArt = &cover.String
+		}
+		byID[c.ID] = c
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("load cover albums: %w", err)
+	}
+	out := []CoverAlbum{}
+	for _, aID := range albumIDs {
+		if c, ok := byID[aID]; ok {
+			out = append(out, c)
+			if len(out) >= limit {
+				break
+			}
+		}
+	}
+	return out, nil
+}
+
+
+func strAny(in []string) []any {
+	out := make([]any, len(in))
+	for i, v := range in {
+		out[i] = v
+	}
+	return out
+}
+
 func (s *Service) resolveSongIDs(ctx context.Context, p *Playlist, viewerUserID string) ([]string, error) {
 	if !p.IsSmart {
 		return SongIDs(ctx, s.db, p.ID)

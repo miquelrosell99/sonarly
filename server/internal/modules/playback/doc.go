@@ -3,7 +3,7 @@
 // bookmarks. It is the Go server replacement for the old 
 // features/{transcode,opensubsonic/routes/retrieval,songs scrobble,bookmarks}
 // paths and implements the architecture the S2 spike signed off
-// (docs/s2-streaming-findings.md §8): one StreamingService-shaped service
+// (../../../.audits/s2-streaming-findings.md §8): one StreamingService-shaped service
 // that both the native routes here and the future OpenSubsonic adapter
 // (P6/P9) reuse.
 //

@@ -4,7 +4,7 @@
 // cookie), the system endpoint group, and the Song/Album/Artist DTO +
 // serializer layer. P9a added the browsing group (17 endpoints) and the
 // retrieval group (7 endpoints, stream/download delegating to the playback
-// StreamingService), all against docs/opensubsonic-quirks.md — the
+// StreamingService), all against ../../../.audits/opensubsonic-quirks.md — the
 // archaeology of every old behavior this adapter must reproduce (or
 // deliberately fix). P9b completed the adapter: the starring group
 // (star/unstar/setRating/scrobble/getStarred(2)), getNowPlaying from the P8
