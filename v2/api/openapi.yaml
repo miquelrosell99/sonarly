@@ -1,0 +1,4086 @@
+# Sonarly v2 — native REST API contract.
+#
+# Hand-authored from the v2 Go route registry (cmd/sonarly/mountRoutes) and
+# the modules' JSON DTOs. cmd/sonarly/spec_test.go walks the chi router and
+# asserts this spec documents exactly the registered /api routes — the spec
+# cannot drift from the code silently.
+#
+# Wire conventions:
+#   - All JSON is camelCase; field names match the Go DTO tags exactly.
+#   - Every non-2xx response is the error contract: {"error": string}.
+#   - Auth: signed `sessionId` cookie (HttpOnly, SameSite=Strict) OR the
+#     `X-API-Key` header on ordinary /api routes. /api/events is
+#     session-cookie-only (EventSource cannot set headers).
+#   - /api/stream/{id} and /api/events are exempt from the global 60s API
+#     timeout (long-lived by design).
+openapi: 3.1.0
+info:
+  title: Sonarly v2 API
+  version: 2.0.0
+  license:
+    name: AGPL-3.0-or-later
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+  description: >
+    Native REST API of the Sonarly v2 server (Go rewrite). Documented routes
+    are the native /api surface plus the /health, /healthz and /ready
+    liveness probes;
+    the OpenSubsonic adapter under /rest is a separate (Subsonic-compatible)
+    contract and is intentionally not part of this spec.
+
+    Error contract: every non-2xx response body is `{"error": "..."}` with a
+    generic message for 5xx (driver errors never reach the client).
+servers:
+  - url: /
+# Default auth: the signed sessionId cookie OR the X-API-Key header.
+# Public operations override with `security: []`; /api/events overrides with
+# session-cookie-only (EventSource cannot set headers).
+security:
+  - sessionId: []
+  - apiKey: []
+tags:
+  - name: system
+    description: Liveness and readiness probes.
+  - name: auth
+    description: Login, logout, first-run setup, and the caller's own profile.
+  - name: users-admin
+    description: Admin-only user management.
+  - name: catalog
+    description: Songs, albums, artists, genres, years, and cover art.
+  - name: playlists
+    description: Static and smart playlists, per-user shares, and share links.
+  - name: playback
+    description: Streaming, scrobbling, and bookmarks.
+  - name: library
+    description: Scan enqueueing and job status.
+  - name: search
+    description: Full-text search across the catalog and playlists.
+  - name: statistics
+    description: Listening statistics, per-user and server-wide.
+  - name: home
+    description: Landing-page aggregation.
+  - name: auto-dj
+    description: Automatic DJ candidate generation.
+  - name: interactions
+    description: Per-user favorites (stars) and ratings on catalog entities — the same user_* junction rows the OpenSubsonic adapter writes.
+  - name: players
+    description: Live now-playing dashboard.
+  - name: events
+    description: Server-sent events feed.
+  - name: uploads
+    description: Chunked uploads into the ingest pipeline.
+  - name: ingest
+    description: Ingest history and duplicate-conflict cleanup, media settings, and the organize routes.
+  - name: libraries
+    description: Library administration and the user↔library assignment endpoints.
+  - name: tags
+    description: Song/album tag editing and cover-art upload — the mutagen-backed write path.
+  - name: providers
+    description: Admin proxies for external metadata providers (MusicBrainz, LRCLIB).
+  - name: admin
+    description: Admin dashboard — system tasks, status counters, missing-file management, ingest runs.
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      tags: [system]
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: Server is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: [ok] }
+  /healthz:
+    get:
+      operationId: healthCheckContainer
+      tags: [system]
+      summary: Liveness probe alias (container HEALTHCHECK; same handler as /health)
+      security: []
+      responses:
+        '200':
+          description: Server is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: [ok] }
+  /ready:
+    get:
+      operationId: readinessCheck
+      tags: [system]
+      summary: Readiness probe (database ping)
+      security: []
+      responses:
+        '200':
+          description: Database is reachable.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, enum: [ready] }
+        '503':
+          description: Database not ready.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Log in (issues the signed session cookie)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Authenticated; session cookie set.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user: { $ref: '#/components/schemas/PublicUser' }
+        '400':
+          description: Malformed JSON body.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401':
+          description: Invalid credentials (unknown username and wrong password are indistinguishable).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429':
+          description: Too many failed attempts for this ip:username pair.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Log out (always answers ok; destroys any presented session)
+      description: >
+        Exempt from auth like v1: always answers `{ok: true}` and expires the
+        session cookie, destroying whatever session was presented, if any.
+      security: []
+      responses:
+        '200':
+          description: Logged out (or nothing to log out).
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+  /api/setup:
+    get:
+      operationId: getSetupStatus
+      tags: [auth]
+      summary: First-run setup status
+      security: []
+      responses:
+        '200':
+          description: Whether the zero-users setup gate is open.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [needsSetup]
+                properties:
+                  needsSetup: { type: boolean }
+        '500':
+          description: Internal failure.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    post:
+      operationId: setup
+      tags: [auth]
+      summary: Create the first admin (only while no users exist)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password, minLength: 8 }
+                name: { type: string }
+                surname: { type: string }
+                email: { type: string, format: email }
+      responses:
+        '201':
+          description: First admin created; session cookie set.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user: { $ref: '#/components/schemas/PublicUser' }
+        '400':
+          description: Validation failure (missing username/password, password shorter than 8 chars).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403':
+          description: Setup already completed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Current user's public profile
+      responses:
+        '200':
+          description: The caller's user row.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user: { $ref: '#/components/schemas/PublicUser' }
+        '401':
+          description: No (or dead) session.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/me/preferences:
+    get:
+      operationId: getMyPreferences
+      tags: [auth]
+      summary: Current user's preferences document
+      description: >
+        The stored preferences merged over the shared defaults (an absent row
+        or a corrupt blob yields the defaults). Persisted verbatim keys
+        (theme, sidebar layout, view options) ride along with the validated
+        auto-dj and appearance keys.
+      responses:
+        '200':
+          description: The merged preferences document.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [preferences]
+                properties:
+                  preferences: { $ref: '#/components/schemas/Preferences' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    patch:
+      operationId: patchMyPreferences
+      tags: [auth]
+      summary: Update current user's preferences (allowlisted keys)
+      description: >
+        Partial update: every key in the body must be in the explicit
+        allowlist (auto-dj knobs, appearance, hideSponsorButton, and the
+        structural sidebar/theme documents) or the whole patch is rejected
+        with 400 — unknown keys are never silently dropped or stored
+        (mass-assignment fix). Values are validated per key; out-of-range
+        auto-dj numbers clamp like v1 instead of failing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PreferencesPatch' }
+      responses:
+        '200':
+          description: The merged document after the patch.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [preferences]
+                properties:
+                  preferences: { $ref: '#/components/schemas/Preferences' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/favorites:
+    post:
+      operationId: setFavorite
+      tags: [interactions]
+      summary: Star or unstar a song, album, or artist
+      description: >
+        Upserts the caller's starred flag in the user_songs / user_albums /
+        user_artists junction row — the same tables the OpenSubsonic
+        star.view/unstar.view endpoints write.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Exactly one of the three id keys is required.
+              properties:
+                songId: { type: string }
+                albumId: { type: string }
+                artistId: { type: string }
+                starred:
+                  type: boolean
+                  default: true
+                  description: Absent means favorite (true).
+              anyOf:
+                - required: [songId]
+                - required: [albumId]
+                - required: [artistId]
+      responses:
+        '200':
+          description: Favorite stored.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/ratings:
+    post:
+      operationId: setRating
+      tags: [interactions]
+      summary: Rate a song, album, or artist (0..5 in 0.5 steps)
+      description: >
+        Upserts the caller's rating in the user_* junction row; song ratings
+        recompute songs.average_rating. Passing null (or omitting the key)
+        clears the rating, exactly like v1.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                songId: { type: string }
+                albumId: { type: string }
+                artistId: { type: string }
+                rating:
+                  type: [number, 'null']
+                  minimum: 0
+                  maximum: 5
+                  multipleOf: 0.5
+                  description: 0..5 in 0.5 increments; null clears.
+              anyOf:
+                - required: [songId]
+                - required: [albumId]
+                - required: [artistId]
+      responses:
+        '200':
+          description: Rating stored.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/avatars/{id}:
+    get:
+      operationId: getAvatar
+      tags: [auth]
+      summary: User avatar image
+      security: []
+      description: >
+        Serves the user's avatar file when one has been uploaded; 404
+        otherwise. Public like v1 — avatars render in <img> tags, which
+        carry no API key.
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: The avatar bytes (Content-Type by stored extension).
+          content:
+            image/jpeg: {}
+            image/png: {}
+            image/webp: {}
+            image/gif: {}
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/admin/users:
+    get:
+      operationId: listUsers
+      tags: [users-admin]
+      summary: List all users (admin)
+      responses:
+        '200':
+          description: Every user, public shape.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [users]
+                properties:
+                  users:
+                    type: array
+                    items: { $ref: '#/components/schemas/PublicUser' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      operationId: createUser
+      tags: [users-admin]
+      summary: Create a user (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password, minLength: 8 }
+                isAdmin: { type: boolean }
+                name: { type: string }
+                surname: { type: string }
+                email: { type: string, format: email }
+                maxBitrateKbps:
+                  type: integer
+                  minimum: 64
+                  maximum: 320
+                transcodeFormat: { $ref: '#/components/schemas/TranscodeFormat' }
+      responses:
+        '201':
+          description: User created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Username already exists.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/admin/users/{id}:
+    put:
+      operationId: updateUser
+      tags: [users-admin]
+      summary: Update a user (admin)
+      description: >
+        Pointer fields are absent (untouched) vs present (applied).
+        `name`, `surname`, `email`, `maxBitrateKbps`, `transcodeFormat`,
+        `hideExplicit`, `blurExplicitTitles` and `blurExplicitCovers`
+        additionally accept explicit `null`, which clears the stored value;
+        `isAdmin` and `password` treat absent and null alike (untouched). A
+        role or password change invalidates every session of the target user.
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AdminUpdateInput' }
+      responses:
+        '200':
+          description: User updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Would demote/delete the last admin.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    delete:
+      operationId: deleteUser
+      tags: [users-admin]
+      summary: Delete a user (admin; not yourself, not the last admin)
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: User and sessions deleted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Self-delete, or deleting the last admin.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/songs:
+    get:
+      operationId: listSongs
+      tags: [catalog]
+      summary: List songs (filters optional, library-scoped)
+      parameters:
+        - { name: albumId, in: query, schema: { type: string }, description: Filter by album. }
+        - { name: artistId, in: query, schema: { type: string }, description: Filter by primary artist. }
+        - { name: genreId, in: query, schema: { type: string }, description: Filter by genre. }
+        - { name: libraryId, in: query, schema: { type: string }, description: Narrow to one library. }
+        - { name: hideExplicit, in: query, schema: { type: boolean }, description: Drop explicit songs. }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 500 } }
+      responses:
+        '200':
+          description: Matching songs (empty array when none).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [songs]
+                properties:
+                  songs:
+                    type: array
+                    items: { $ref: '#/components/schemas/Song' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/songs/{id}:
+    get:
+      operationId: getSong
+      tags: [catalog]
+      summary: One song
+      parameters:
+        - $ref: '#/components/parameters/SongId'
+      responses:
+        '200':
+          description: The song.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [song]
+                properties:
+                  song: { $ref: '#/components/schemas/Song' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/albums:
+    get:
+      operationId: listAlbums
+      tags: [catalog]
+      summary: List albums (filters optional, library-scoped)
+      parameters:
+        - { name: artistId, in: query, schema: { type: string } }
+        - { name: genreId, in: query, schema: { type: string } }
+        - { name: year, in: query, schema: { type: integer } }
+        - { name: libraryId, in: query, schema: { type: string } }
+        - { name: hideExplicit, in: query, schema: { type: boolean } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 500 } }
+      responses:
+        '200':
+          description: Matching albums (empty array when none).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [albums]
+                properties:
+                  albums:
+                    type: array
+                    items: { $ref: '#/components/schemas/Album' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/albums/{id}:
+    get:
+      operationId: getAlbum
+      tags: [catalog]
+      summary: Album detail with its songs
+      parameters:
+        - $ref: '#/components/parameters/AlbumId'
+        - { name: hideExplicit, in: query, schema: { type: boolean }, description: Exclude explicit songs from the song list (and ShownSongCount). }
+      responses:
+        '200':
+          description: The album plus its in-scope songs.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [album, songs]
+                properties:
+                  album: { $ref: '#/components/schemas/Album' }
+                  songs:
+                    type: array
+                    items: { $ref: '#/components/schemas/Song' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/artists:
+    get:
+      operationId: listArtists
+      tags: [catalog]
+      summary: List artists (library-scoped)
+      parameters:
+        - { name: libraryId, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Matching artists (empty array when none).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [artists]
+                properties:
+                  artists:
+                    type: array
+                    items: { $ref: '#/components/schemas/Artist' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/artists/{id}:
+    get:
+      operationId: getArtist
+      tags: [catalog]
+      summary: Artist detail with songs (albums ride the artist payload)
+      parameters:
+        - $ref: '#/components/parameters/ArtistId'
+        - { name: libraryId, in: query, schema: { type: string } }
+        - { name: hideExplicit, in: query, schema: { type: boolean } }
+      responses:
+        '200':
+          description: The artist (with its `albums` cards) plus in-scope songs.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [artist, songs]
+                properties:
+                  artist: { $ref: '#/components/schemas/Artist' }
+                  songs:
+                    type: array
+                    items: { $ref: '#/components/schemas/Song' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/artists/{id}/songs:
+    get:
+      operationId: listArtistSongs
+      tags: [catalog]
+      summary: All songs by one artist
+      parameters:
+        - $ref: '#/components/parameters/ArtistId'
+        - { name: hideExplicit, in: query, schema: { type: boolean } }
+      responses:
+        '200':
+          description: The artist's songs (empty array when none).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [songs]
+                properties:
+                  songs:
+                    type: array
+                    items: { $ref: '#/components/schemas/Song' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/genres:
+    get:
+      operationId: listGenres
+      tags: [catalog]
+      summary: Flat genre list with resolved paths
+      parameters:
+        - { name: libraryId, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Genres with their `Parent > Child` path (empty array when none).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [genres]
+                properties:
+                  genres:
+                    type: array
+                    items: { $ref: '#/components/schemas/Genre' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/genres/tree:
+    get:
+      operationId: getGenreTree
+      tags: [catalog]
+      summary: Genre hierarchy
+      parameters:
+        - { name: libraryId, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Forest of genre nodes; `children` is always present (possibly empty).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tree]
+                properties:
+                  tree:
+                    type: array
+                    items: { $ref: '#/components/schemas/GenreNode' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/genres/{id}/albums:
+    get:
+      operationId: listGenreAlbums
+      tags: [catalog]
+      summary: Album cards for one genre
+      parameters:
+        - $ref: '#/components/parameters/GenreId'
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 20, default: 4 } }
+        - { name: hideExplicit, in: query, schema: { type: boolean } }
+        - { name: libraryId, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Albums in the genre (empty array when none).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [albums]
+                properties:
+                  albums:
+                    type: array
+                    items: { $ref: '#/components/schemas/Album' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/years:
+    get:
+      operationId: listYears
+      tags: [catalog]
+      summary: Distinct song years with counts
+      responses:
+        '200':
+          description: Years of in-scope active songs and how many songs carry each.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [years]
+                properties:
+                  years:
+                    type: array
+                    items: { $ref: '#/components/schemas/YearCount' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/cover-art/{id}:
+    get:
+      operationId: getCoverArt
+      tags: [catalog]
+      summary: Cover art blob
+      parameters:
+        - $ref: '#/components/parameters/CoverArtId'
+      responses:
+        '200':
+          description: The image bytes, private-cacheable for a day.
+          headers:
+            Cache-Control:
+              schema: { type: string, example: 'private, max-age=86400' }
+          content:
+            image/jpeg: {}
+            image/png: {}
+            image/webp: {}
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/playlists:
+    get:
+      operationId: listPlaylists
+      tags: [playlists]
+      summary: List playlists visible to the caller
+      description: >
+        `shareToken` is populated only for the playlist's owner: other
+        viewers authorize with it but never see it.
+      responses:
+        '200':
+          description: Visible playlists (empty array when none).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [playlists]
+                properties:
+                  playlists:
+                    type: array
+                    items: { $ref: '#/components/schemas/PlaylistListItem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      operationId: createPlaylist
+      tags: [playlists]
+      summary: Create a playlist (static, or smart when `rules` is present)
+      description: >
+        A body with `rules` creates a smart playlist; the v1 explicit
+        `isSmart` flag is folded into rules presence. `visibility` defaults
+        per service rules when omitted; `resolveMode` defaults to `tracks`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                visibility: { $ref: '#/components/schemas/PlaylistVisibility' }
+                songIds:
+                  type: array
+                  items: { type: string }
+                rules: { $ref: '#/components/schemas/SmartPlaylistRules' }
+                resolveMode: { $ref: '#/components/schemas/ResolveMode' }
+      responses:
+        '201':
+          description: Created playlist.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [playlist]
+                properties:
+                  playlist: { $ref: '#/components/schemas/PlaylistDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/playlists/{id}:
+    get:
+      operationId: getPlaylist
+      tags: [playlists]
+      summary: Playlist detail with resolved entries
+      description: >
+        `shares` and `shareToken` are owner-only. The `shareToken` query
+        parameter authorizes non-owner access to link-shared playlists.
+      parameters:
+        - $ref: '#/components/parameters/PlaylistId'
+        - { name: shareToken, in: query, schema: { type: string }, description: 'Link-share token (for viewers, not the owner).' }
+      responses:
+        '200':
+          description: The playlist detail.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [playlist]
+                properties:
+                  playlist: { $ref: '#/components/schemas/PlaylistDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: updatePlaylist
+      tags: [playlists]
+      summary: Update a playlist (every field optional)
+      description: >
+        `rules` present (including explicit null) re-parses the smart rules;
+        `songIds` present replaces the membership.
+      parameters:
+        - $ref: '#/components/parameters/PlaylistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                description: { type: string }
+                visibility: { $ref: '#/components/schemas/PlaylistVisibility' }
+                songIds:
+                  type: array
+                  items: { type: string }
+                isSmart: { type: boolean }
+                rules:
+                  anyOf:
+                    - { $ref: '#/components/schemas/SmartPlaylistRules' }
+                    - { type: 'null' }
+                resolveMode: { $ref: '#/components/schemas/ResolveMode' }
+      responses:
+        '200':
+          description: Updated playlist.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [playlist]
+                properties:
+                  playlist: { $ref: '#/components/schemas/PlaylistDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deletePlaylist
+      tags: [playlists]
+      summary: Delete a playlist
+      parameters:
+        - $ref: '#/components/parameters/PlaylistId'
+      responses:
+        '200':
+          description: Deleted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/playlists/{id}/share:
+    post:
+      operationId: sharePlaylist
+      tags: [playlists]
+      summary: Share a playlist with a user (owner)
+      parameters:
+        - $ref: '#/components/parameters/PlaylistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId: { type: string }
+                canEdit: { type: boolean }
+      responses:
+        '200':
+          description: Shared.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/playlists/{id}/share/{userId}:
+    delete:
+      operationId: unsharePlaylist
+      tags: [playlists]
+      summary: Revoke a user's share (owner)
+      parameters:
+        - $ref: '#/components/parameters/PlaylistId'
+        - $ref: '#/components/parameters/ShareUserId'
+      responses:
+        '200':
+          description: Share revoked.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/playlists/{id}/share-link:
+    post:
+      operationId: createPlaylistShareLink
+      tags: [playlists]
+      summary: Create (or return) the link-share token (owner)
+      parameters:
+        - $ref: '#/components/parameters/PlaylistId'
+      responses:
+        '200':
+          description: The share token.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [shareToken]
+                properties:
+                  shareToken: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deletePlaylistShareLink
+      tags: [playlists]
+      summary: Revoke the link-share token (owner)
+      parameters:
+        - $ref: '#/components/parameters/PlaylistId'
+      responses:
+        '200':
+          description: Token revoked.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/stream/{id}:
+    get:
+      operationId: streamSong
+      tags: [playback]
+      summary: Stream a song (direct or transcoded)
+      description: >
+        Anonymous callers may stream with a valid `share` token (the linked
+        playlist's songs); anonymous without a token gets 401; a known token
+        whose playlist does not contain the song gets 404. Direct streams
+        honor Range requests; transcodes (when `maxBitRate` forces one, and
+        never with `download`) are plain 200s. The route is exempt from the
+        global API timeout.
+      parameters:
+        - $ref: '#/components/parameters/SongId'
+        - { name: maxBitRate, in: query, schema: { type: integer }, description: 'Requested transcode bitrate, clamped against the user''s cap.' }
+        - { name: download, in: query, schema: { type: boolean }, description: Force a direct download (Content-Disposition attachment; never transcodes). }
+        - { name: share, in: query, schema: { type: string }, description: Playlist share token (anonymous access). }
+      responses:
+        '200':
+          description: Audio stream (Range honored for direct streams).
+          content:
+            audio/mpeg: {}
+            audio/x-flac: {}
+            application/octet-stream: {}
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    head:
+      operationId: streamSongHeaders
+      tags: [playback]
+      summary: Stream headers only (v1 parity; answered explicitly)
+      parameters:
+        - $ref: '#/components/parameters/SongId'
+        - { name: maxBitRate, in: query, schema: { type: integer } }
+        - { name: download, in: query, schema: { type: boolean } }
+        - { name: share, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Headers the GET would answer (Content-Length for direct streams).
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/songs/{id}/scrobble:
+    post:
+      operationId: scrobbleSong
+      tags: [playback]
+      summary: Record one play
+      description: >
+        The body is optional — an absent (or empty) body means "no details".
+        `completion` is clamped to [0,100]; `durationListened` to >= 0;
+        `playedAt` must parse as a date; `client`/`source` are capped at 255
+        characters. Retries double-count, like v1 (no idempotency key).
+      parameters:
+        - $ref: '#/components/parameters/SongId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ScrobbleDetails' }
+      responses:
+        '200':
+          description: Play recorded.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/bookmarks:
+    get:
+      operationId: listBookmarks
+      tags: [playback]
+      summary: The caller's bookmarks, newest change first
+      responses:
+        '200':
+          description: Bookmarks joined with song display info (empty array when none).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [bookmarks]
+                properties:
+                  bookmarks:
+                    type: array
+                    items: { $ref: '#/components/schemas/Bookmark' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/songs/{id}/bookmark:
+    put:
+      operationId: putBookmark
+      tags: [playback]
+      summary: Upsert a playback position bookmark
+      parameters:
+        - $ref: '#/components/parameters/SongId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [position]
+              properties:
+                position: { type: integer, minimum: 0 }
+                comment: { type: string, maxLength: 1000 }
+      responses:
+        '200':
+          description: Bookmark saved.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteBookmark
+      tags: [playback]
+      summary: Remove a bookmark
+      parameters:
+        - $ref: '#/components/parameters/SongId'
+      responses:
+        '200':
+          description: Bookmark removed (or none existed).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/scans:
+    post:
+      operationId: enqueueScan
+      tags: [library]
+      summary: Enqueue a library scan (admin)
+      responses:
+        '200':
+          description: Scan enqueued.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, jobId]
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  jobId: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/scans/status:
+    get:
+      operationId: getScanStatus
+      tags: [library]
+      summary: Most recent scan job (any status), or null
+      description: >
+        Orders by COALESCE(started_at, created_at) so a queued job is
+        reported instead of sinking behind finished ones.
+      responses:
+        '200':
+          description: 'The latest job, or `{"job": null}` when no job exists yet.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [job]
+                properties:
+                  job:
+                    anyOf:
+                      - { $ref: '#/components/schemas/JobStatus' }
+                      - { type: 'null' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/search:
+    get:
+      operationId: search
+      tags: [search]
+      summary: Full-text search across songs, albums, artists and playlists
+      description: >
+        The envelope always carries all four categories; unasked categories
+        come back empty. An FTS syntax error degrades to a LIKE prefix query.
+      parameters:
+        - { name: q, in: query, schema: { type: string }, description: Free text. }
+        - { name: type, in: query, schema: { $ref: '#/components/schemas/SearchCategory' }, description: Restrict to one category. }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 250, default: 5 }, description: Per-category cap. }
+        - { name: hideExplicit, in: query, schema: { type: boolean } }
+      responses:
+        '200':
+          description: Search results envelope.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SearchResults' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/statistics/me:
+    get:
+      operationId: getMyStatistics
+      tags: [statistics]
+      summary: The caller's listening statistics
+      parameters:
+        - $ref: '#/components/parameters/TimeRange'
+      responses:
+        '200':
+          description: Consolidated statistics for the caller.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserStatistics' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/statistics/me/monthly-grouped:
+    get:
+      operationId: getMyMonthlyGroupedStatistics
+      tags: [statistics]
+      summary: The caller's monthly plays grouped by a dimension
+      parameters:
+        - $ref: '#/components/parameters/GroupBy'
+        - $ref: '#/components/parameters/TimeRange'
+      responses:
+        '200':
+          description: Top 6 groups per month plus an "Other" rollup.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/MonthlyGroupedItem' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/statistics/overall:
+    get:
+      operationId: getOverallStatistics
+      tags: [statistics]
+      summary: Server-wide statistics (admin)
+      parameters:
+        - $ref: '#/components/parameters/TimeRange'
+      responses:
+        '200':
+          description: Consolidated statistics across all users.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OverallStatistics' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/statistics/users/{id}:
+    get:
+      operationId: getUserStatistics
+      tags: [statistics]
+      summary: One user's listening statistics (admin)
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/TimeRange'
+      responses:
+        '200':
+          description: Consolidated statistics for the user.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserStatistics' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/statistics/users/{id}/monthly-grouped:
+    get:
+      operationId: getUserMonthlyGroupedStatistics
+      tags: [statistics]
+      summary: One user's monthly plays grouped by a dimension (admin)
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/GroupBy'
+        - $ref: '#/components/parameters/TimeRange'
+      responses:
+        '200':
+          description: Top 6 groups per month plus an "Other" rollup.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/MonthlyGroupedItem' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/home:
+    get:
+      operationId: getHome
+      tags: [home]
+      summary: Landing-page sections in one round trip
+      description: >
+        `genres` ranks by in-scope active song count (unlike v1's
+        alphabetical union) and `recentAdditions` is a song list in import
+        order (the rowid is the import order; v1 folded additions into album
+        cards). `random` is seeded per request; `limit` only caps the random
+        section.
+      parameters:
+        - { name: libraryId, in: query, schema: { type: string } }
+        - { name: hideExplicit, in: query, schema: { type: boolean } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 10 }, description: Random-section cap. }
+      responses:
+        '200':
+          description: The five sections, each an array (never null).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HomeResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/playback/auto-dj:
+    get:
+      operationId: getAutoDjCandidates
+      tags: [auto-dj]
+      summary: Auto-DJ candidates (legacy query-string variant)
+      parameters:
+        - { name: mode, in: query, schema: { $ref: '#/components/schemas/AutoDjMode' } }
+        - { name: count, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 10 } }
+        - { name: currentSongId, in: query, schema: { type: string }, description: Context song (optional for every mode). }
+        - { name: excludeIds, in: query, schema: { type: string }, description: Comma-separated song ids to exclude (capped at 500). }
+      responses:
+        '200':
+          description: Candidate songs (empty array when the pool is honestly empty).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [songs]
+                properties:
+                  songs:
+                    type: array
+                    items: { $ref: '#/components/schemas/AutoDjSong' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '502':
+          description: Generation failed (v1 answered a silent empty 200).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    post:
+      operationId: generateAutoDjCandidates
+      tags: [auto-dj]
+      summary: Auto-DJ candidates (body variant)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode]
+              properties:
+                mode: { $ref: '#/components/schemas/AutoDjMode' }
+                count: { type: integer, minimum: 1, maximum: 50, default: 10 }
+                currentSongId: { type: string }
+                excludeIds:
+                  type: array
+                  items: { type: string }
+                  description: Over 500 entries is a 400 (v1's zod cap).
+      responses:
+        '200':
+          description: Candidate songs (empty array when the pool is honestly empty).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [songs]
+                properties:
+                  songs:
+                    type: array
+                    items: { $ref: '#/components/schemas/AutoDjSong' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '502':
+          description: Generation failed (v1 answered a silent empty 200).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/players:
+    get:
+      operationId: listPlayers
+      tags: [players]
+      summary: Live now-playing set (household dashboard, any signed-in user)
+      description: >
+        One entry per user + device, TTL 5 minutes, refreshed on every stream
+        — v2 records EVERY stream (native player, API-key clients,
+        share-token guests), unlike v1 which only saw Subsonic clients.
+      responses:
+        '200':
+          description: Live players (empty array when none).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [players]
+                properties:
+                  players:
+                    type: array
+                    items: { $ref: '#/components/schemas/PlayerInfo' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/events:
+    get:
+      operationId: getEventStream
+      tags: [events]
+      summary: Server-sent events feed (session cookie only — no API keys)
+      security:
+        - sessionId: []
+      description: >
+        `text/event-stream` until disconnect. Emits an initial `connected`
+        event (the web client's readiness signal), then `library:changed`
+        events for content-changing job completions, with 30-second heartbeat
+        comments. Failed jobs broadcast nothing; there is no replay buffer.
+        The route is exempt from the global API timeout.
+      responses:
+        '200':
+          description: The event stream.
+          content:
+            text/event-stream:
+              schema: { type: string, example: "event: connected\ndata: {\"type\":\"connected\"}\n\n" }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/upload/sessions:
+    post:
+      operationId: createUploadSession
+      tags: [uploads]
+      summary: Create an upload session (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [libraryId]
+              properties:
+                libraryId: { type: string, format: uuid }
+                duplicateStrategy: { $ref: '#/components/schemas/DuplicateStrategy' }
+      responses:
+        '201':
+          description: Session created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadSessionCreated' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/upload/sessions/{id}:
+    get:
+      operationId: getUploadSession
+      tags: [uploads]
+      summary: Upload session status (chunks received, reassembled files)
+      parameters:
+        - $ref: '#/components/parameters/UploadSessionId'
+      responses:
+        '200':
+          description: Per-file chunk counts and reassembled files with sizes.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadSessionStatus' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/upload/sessions/{id}/complete:
+    post:
+      operationId: completeUploadSession
+      tags: [uploads]
+      summary: Complete the session — move files to ingest and enqueue an ingest job
+      description: >
+        Moves every reassembled file into `<ingestPath>/<libraryId>`, enqueues
+        one typed ingest job, then deletes the session row and directory.
+        Repeating a completed session answers 404 (the row is gone), which is
+        what makes a double-tap idempotent.
+      parameters:
+        - $ref: '#/components/parameters/UploadSessionId'
+      responses:
+        '200':
+          description: Files moved and ingest job enqueued.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, moved]
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  moved: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/upload/sessions/{id}/files/{fileId}/complete:
+    post:
+      operationId: completeUploadedFile
+      tags: [uploads]
+      summary: Reassemble one file from its chunks
+      parameters:
+        - $ref: '#/components/parameters/UploadSessionId'
+        - $ref: '#/components/parameters/FileId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [totalChunks, relativePath]
+              properties:
+                totalChunks: { type: integer, minimum: 1, maximum: 10000 }
+                relativePath: { type: string, description: 'Safe relative path (no absolute paths, no dot segments, forward slashes). The reassembled file lands under its final relative path.' }
+      responses:
+        '200':
+          description: File reassembled.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [fileName, size]
+                properties:
+                  fileName: { type: string }
+                  size: { type: integer, format: int64 }
+        '400':
+          description: Invalid input, or a chunk is missing (message carries the missing index).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413':
+          description: Reassembled file exceeds the 1 GiB cap.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/upload/sessions/{id}/files/{fileId}/chunks/{index}:
+    put:
+      operationId: uploadChunk
+      tags: [uploads]
+      summary: Upload one raw-body chunk
+      description: >
+        The body is the chunk bytes exactly — `application/octet-stream`,
+        no multipart framing (a deliberate v2 protocol deviation; the URL
+        shape is v1-compatible). Re-PUT of the same index overwrites (retry
+        idempotency). Chunk cap 10 MiB; index is a 0..9999 integer.
+      parameters:
+        - $ref: '#/components/parameters/UploadSessionId'
+        - $ref: '#/components/parameters/FileId'
+        - $ref: '#/components/parameters/ChunkIndex'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        '200':
+          description: Chunk stored.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413':
+          description: Chunk exceeds the 10 MiB cap.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/ingest:
+    get:
+      operationId: listIngestJobs
+      tags: [ingest]
+      summary: Last 100 per-file ingest rows
+      responses:
+        '200':
+          description: Newest-first ingest rows (empty array when none).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [jobs]
+                properties:
+                  jobs:
+                    type: array
+                    items: { $ref: '#/components/schemas/IngestJob' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    delete:
+      operationId: wipeIngestJobs
+      tags: [ingest]
+      summary: Wipe the ingest history table (admin)
+      responses:
+        '200':
+          description: Table wiped.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/ingest/{id}:
+    get:
+      operationId: getIngestJob
+      tags: [ingest]
+      summary: One ingest row
+      parameters:
+        - $ref: '#/components/parameters/IngestJobId'
+      responses:
+        '200':
+          description: The ingest row.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [job]
+                properties:
+                  job: { $ref: '#/components/schemas/IngestJob' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteIngestJob
+      tags: [ingest]
+      summary: Delete one ingest row (admin)
+      parameters:
+        - $ref: '#/components/parameters/IngestJobId'
+      responses:
+        '200':
+          description: Row deleted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/ingest/trigger:
+    post:
+      operationId: triggerIngest
+      tags: [ingest]
+      summary: Enqueue an ingest job for a library's drop dir (admin)
+      description: >
+        The body is optional: an empty/absent body (or `{"libraryId": ""}`)
+        targets the default library. The library's drop dir is created if
+        missing before the job is enqueued.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                libraryId: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Ingest job enqueued.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, jobId]
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  jobId: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/conflicts:
+    get:
+      operationId: listConflicts
+      tags: [ingest]
+      summary: Songs parked on " (n)" collision paths (admin)
+      responses:
+        '200':
+          description: Collision candidates with artist/album names.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [conflicts]
+                properties:
+                  conflicts:
+                    type: array
+                    items: { $ref: '#/components/schemas/Conflict' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      operationId: deleteConflicts
+      tags: [ingest]
+      summary: Delete collision files and their song rows (admin)
+      description: >
+        For every collision song the FILE is deleted first and the row
+        second, so a row pointing at a live file never outlives it.
+      responses:
+        '200':
+          description: Number of conflicts deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, deleted]
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  deleted: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/libraries:
+    get:
+      operationId: listLibrariesForPicker
+      tags: [libraries]
+      summary: Libraries visible to the caller (picker DTO)
+      description: >
+        The scope-trimmed list every library picker renders: only
+        `id`/`name`/`isDefault`, in the caller's assignment order — never
+        host paths or organize patterns. Admins see everything.
+      responses:
+        '200':
+          description: Visible libraries.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [libraries]
+                properties:
+                  libraries:
+                    type: array
+                    items: { $ref: '#/components/schemas/LibraryPicker' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/admin/libraries:
+    get:
+      operationId: listLibrariesAdmin
+      tags: [libraries]
+      summary: List all libraries (admin)
+      responses:
+        '200':
+          description: Every library, full DTO.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [libraries]
+                properties:
+                  libraries:
+                    type: array
+                    items: { $ref: '#/components/schemas/Library' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      operationId: createLibrary
+      tags: [libraries]
+      summary: Create a library (admin)
+      description: >
+        The first library ever created becomes the default; `isDefault: true`
+        clears the flag on every other library in the same transaction. An
+        omitted pattern falls back to the global `organize_pattern` setting.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, path]
+              properties:
+                name: { type: string, minLength: 1 }
+                path: { type: string, minLength: 1 }
+                organizePattern: { type: string, minLength: 1 }
+                isDefault: { type: boolean }
+      responses:
+        '201':
+          description: Library created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Library path already exists.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/admin/libraries/{id}:
+    put:
+      operationId: updateLibrary
+      tags: [libraries]
+      summary: Update a library (admin)
+      description: >
+        Partial update; absent fields keep their values. A resulting
+        `isDefault: true` clears the flag on every other library in the same
+        transaction.
+      parameters:
+        - $ref: '#/components/parameters/LibraryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, minLength: 1 }
+                path: { type: string, minLength: 1 }
+                organizePattern: { type: string, minLength: 1 }
+                isDefault: { type: boolean }
+      responses:
+        '200':
+          description: Library updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Library path already exists.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    delete:
+      operationId: deleteLibrary
+      tags: [libraries]
+      summary: Delete a library (admin)
+      description: >
+        When the deleted library was the default, the first remaining
+        library (by name) is promoted — in the same transaction, so the
+        one-default invariant cannot be observed half-applied.
+      parameters:
+        - $ref: '#/components/parameters/LibraryId'
+      responses:
+        '200':
+          description: Library deleted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/admin/libraries/{id}/users:
+    get:
+      operationId: listLibraryUsers
+      tags: [libraries]
+      summary: Users assigned to a library (admin)
+      parameters:
+        - $ref: '#/components/parameters/LibraryId'
+      responses:
+        '200':
+          description: Assigned user ids.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [users]
+                properties:
+                  users:
+                    type: array
+                    items: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: assignUsersToLibrary
+      tags: [libraries]
+      summary: Assign users to a library (admin)
+      description: Additive — duplicates are ignored (INSERT OR IGNORE).
+      parameters:
+        - $ref: '#/components/parameters/LibraryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userIds]
+              properties:
+                userIds:
+                  type: array
+                  items: { type: string }
+      responses:
+        '200':
+          description: Assignments added.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/admin/libraries/{id}/users/{userId}:
+    delete:
+      operationId: removeUserFromLibrary
+      tags: [libraries]
+      summary: Remove one user assignment (admin)
+      parameters:
+        - $ref: '#/components/parameters/LibraryId'
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: Assignment removed (or never existed).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/admin/users/{id}/libraries:
+    get:
+      operationId: listUserLibraries
+      tags: [libraries]
+      summary: Libraries assigned to a user (admin)
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Assigned library ids.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [libraries]
+                properties:
+                  libraries:
+                    type: array
+                    items: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      operationId: assignLibrariesToUser
+      tags: [libraries]
+      summary: Assign libraries to a user (admin)
+      description: Additive — duplicates are ignored (INSERT OR IGNORE).
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [libraryIds]
+              properties:
+                libraryIds:
+                  type: array
+                  items: { type: string }
+      responses:
+        '200':
+          description: Assignments added.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/admin/users/{id}/libraries/{libraryId}:
+    delete:
+      operationId: removeLibraryFromUser
+      tags: [libraries]
+      summary: Remove one library assignment (admin)
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/LibraryIdPath'
+      responses:
+        '200':
+          description: Assignment removed (or never existed).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/songs/{id}/tags:
+    put:
+      operationId: updateSongTags
+      tags: [tags]
+      summary: Edit a song's tags (admin)
+      description: >
+        Writes the tags into the file through the mutagen-backed tag writer
+        (atomic temp-sibling rewrite), re-organizes the file when the new
+        tags change the pattern target, refreshes the database through the
+        one persist path, and queues a coalesced resync. Reports entities
+        (artist/album) orphaned by the rename.
+      parameters:
+        - $ref: '#/components/parameters/SongId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SongTags' }
+      responses:
+        '200':
+          description: Tags applied.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  orphanedEntities:
+                    type: array
+                    items: { $ref: '#/components/schemas/OrphanedEntity' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/songs/tags:
+    put:
+      operationId: updateSongsTags
+      tags: [tags]
+      summary: Apply one tag edit to many songs (admin)
+      description: >
+        The same edit applied sequentially; the first failing song stops the
+        run and its id comes back in `failedId`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids, tags]
+              properties:
+                ids:
+                  type: array
+                  items: { type: string }
+                tags: { $ref: '#/components/schemas/SongTags' }
+      responses:
+        '200':
+          description: Tags applied to every id.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  orphanedEntities:
+                    type: array
+                    items: { $ref: '#/components/schemas/OrphanedEntity' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: A song id did not resolve.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error, failedId]
+                properties:
+                  error: { type: string }
+                  failedId: { type: string }
+  /api/albums/{id}/tags:
+    put:
+      operationId: updateAlbumTags
+      tags: [tags]
+      summary: Edit an album's tags across its songs (admin)
+      description: >
+        `releaseType` is album-level metadata (not a file tag) and is pulled
+        out before validation. The per-song file writes exclude `genre`
+        (album-level genres live on the album junctions). Album-wide edits
+        queue ONE coalesced resync for the whole run.
+      parameters:
+        - $ref: '#/components/parameters/AlbumId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - { $ref: '#/components/schemas/SongTags' }
+                - type: object
+                  properties:
+                    releaseType: { type: string }
+      responses:
+        '200':
+          description: Number of songs updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [updated]
+                properties:
+                  updated: { type: integer }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/songs/{id}/cover-art:
+    post:
+      operationId: uploadSongCoverArt
+      tags: [tags]
+      summary: Upload a song's cover art (admin)
+      description: >
+        Raw body, at most 2 MiB, magic-byte sniffed (jpeg/png/webp — a
+        declared mimetype is NOT trusted). The blob is stored hash-dedup and
+        linked on the song row; the previously linked blob is removed when
+        nothing references it. Unlike v1 the art is NOT embedded into the
+        audio file (read-only doctrine — all readers consult the link).
+      parameters:
+        - $ref: '#/components/parameters/SongId'
+      requestBody:
+        required: true
+        content:
+          image/jpeg: {}
+          image/png: {}
+          image/webp: {}
+      responses:
+        '200':
+          description: The stored cover art id.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [coverArt]
+                properties:
+                  coverArt: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteSongCoverArt
+      tags: [tags]
+      summary: Unlink a song's cover art (admin)
+      parameters:
+        - $ref: '#/components/parameters/SongId'
+      responses:
+        '200':
+          description: Cover unlinked.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/albums/{id}/cover-art:
+    post:
+      operationId: uploadAlbumCoverArt
+      tags: [tags]
+      summary: Upload an album's cover art (admin)
+      description: >
+        Same sniffed, hash-dedup blob storage as the song variant, linked on
+        the album row. Unlike v1 the art is NOT embedded into every song
+        file (read-only doctrine).
+      parameters:
+        - $ref: '#/components/parameters/AlbumId'
+      requestBody:
+        required: true
+        content:
+          image/jpeg: {}
+          image/png: {}
+          image/webp: {}
+      responses:
+        '200':
+          description: The stored cover art id.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [coverArt]
+                properties:
+                  coverArt: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteAlbumCoverArt
+      tags: [tags]
+      summary: Unlink an album's cover art (admin)
+      parameters:
+        - $ref: '#/components/parameters/AlbumId'
+      responses:
+        '200':
+          description: Cover unlinked.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/suggestions:
+    get:
+      operationId: getSuggestions
+      tags: [catalog]
+      summary: Field-whitelist autocomplete (admin)
+      description: >
+        Case-insensitive contains-match over the whitelisted fields
+        (`artist`, `album`, `albumArtist`, `releaseType`, `genre` full
+        paths). `limit` clamps to 1–50 and defaults to 20. `releaseType`
+        merges the canonical seeds with stored values.
+      parameters:
+        - name: field
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [artist, album, genre, albumArtist, releaseType]
+        - name: q
+          in: query
+          schema: { type: string, default: '' }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        '200':
+          description: Suggestion strings.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [suggestions]
+                properties:
+                  suggestions:
+                    type: array
+                    items: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/musicbrainz/search:
+    get:
+      operationId: searchMusicBrainz
+      tags: [providers]
+      summary: Proxy a MusicBrainz search (admin)
+      description: >
+        `mbid` performs an exact entity lookup (a miss falls through to the
+        query search). Requests are spaced process-wide by at least 1.2s
+        (MusicBrainz etiquette), bounded by a 10s timeout, and never cached.
+        Failures answer a generic 502 — upstream details stay server-side.
+      parameters:
+        - name: entityType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [song, album, artist]
+        - name: title
+          in: query
+          schema: { type: string }
+        - name: artist
+          in: query
+          schema: { type: string }
+        - name: album
+          in: query
+          schema: { type: string }
+        - name: mbid
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Search matches.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [matches]
+                properties:
+                  matches:
+                    type: array
+                    items: { $ref: '#/components/schemas/MusicBrainzMatch' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '502':
+          description: MusicBrainz unreachable or erroring.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/lrclib/search:
+    get:
+      operationId: searchLrcLib
+      tags: [providers]
+      summary: Proxy a LRCLIB lyrics search (admin)
+      description: >
+        10s timeout, one retry with backoff on 429/503, never cached.
+        Failures answer a generic 502 — upstream details stay server-side.
+      parameters:
+        - name: title
+          in: query
+          required: true
+          schema: { type: string }
+        - name: artist
+          in: query
+          schema: { type: string }
+        - name: album
+          in: query
+          schema: { type: string }
+        - name: duration
+          in: query
+          schema: { type: number }
+      responses:
+        '200':
+          description: Lyric matches.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [matches]
+                properties:
+                  matches:
+                    type: array
+                    items: { $ref: '#/components/schemas/LrcLibMatch' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '502':
+          description: LRCLIB unreachable or erroring.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/artist-images/{id}:
+    get:
+      operationId: getArtistImage
+      tags: [catalog]
+      summary: Artist image file
+      security: []
+      description: >
+        Serves the artist's locally synced image (the recorded path, or a
+        DATA_DIR/artist-images/<id>.* leftover) when one exists; 404
+        otherwise. Public like v1 — the file renders in <img> tags.
+      parameters:
+        - $ref: '#/components/parameters/ArtistId'
+      responses:
+        '200':
+          description: The image bytes (Content-Type by extension).
+          content:
+            image/jpeg: {}
+            image/png: {}
+            image/gif: {}
+            image/webp: {}
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/admin/artists/refetch:
+    post:
+      operationId: refetchArtistImages
+      tags: [catalog]
+      summary: Enqueue an artist image re-sync (admin)
+      description: >
+        Enqueues an artist_images job with `refetchExisting` set, so every
+        active artist is re-fetched (the periodic sync only covers artists
+        missing a local image).
+      responses:
+        '202':
+          description: Job enqueued.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, jobId]
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  jobId: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/me/avatar:
+    post:
+      operationId: uploadAvatar
+      tags: [auth]
+      summary: Upload the caller's avatar
+      description: >
+        Raw body, at most 2 MiB, magic-byte sniffed (jpeg/png/webp/gif).
+        Stored under the server data dir and recorded on the user row; the
+        previous file with a different extension is removed. Answers the
+        refreshed public user.
+      responses:
+        '200':
+          description: Avatar stored.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user: { $ref: '#/components/schemas/PublicUser' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/admin/system-tasks:
+    get:
+      operationId: listSystemTasks
+      tags: [admin]
+      summary: Periodic system tasks and their state (admin)
+      responses:
+        '200':
+          description: Task definitions with the latest job status.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tasks]
+                properties:
+                  tasks:
+                    type: array
+                    items: { $ref: '#/components/schemas/SystemTask' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/admin/system-tasks/history:
+    get:
+      operationId: systemTaskHistory
+      tags: [admin]
+      summary: System task run history, paginated (admin)
+      description: >
+        v1's only paginated endpoint; the page/limit/total/totalPages shape
+        is preserved. `page` defaults to 1, `limit` to 10 (max 100).
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        '200':
+          description: One history page.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SystemTaskHistoryPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/admin/system-tasks/{taskId}/run:
+    post:
+      operationId: runSystemTask
+      tags: [admin]
+      summary: Enqueue a system task run (admin)
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '202':
+          description: Job enqueued.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/admin/status:
+    get:
+      operationId: adminStatus
+      tags: [admin]
+      summary: Admin dashboard counters (admin)
+      responses:
+        '200':
+          description: Counts dashboard.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminStatus' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/admin/missing:
+    get:
+      operationId: listMissing
+      tags: [admin]
+      summary: Inactive (file-missing) songs, albums, and artists (admin)
+      responses:
+        '200':
+          description: The missing entities.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [songs, albums, artists]
+                properties:
+                  songs:
+                    type: array
+                    items: { $ref: '#/components/schemas/MissingSong' }
+                  albums:
+                    type: array
+                    items: { $ref: '#/components/schemas/MissingAlbum' }
+                  artists:
+                    type: array
+                    items: { $ref: '#/components/schemas/MissingArtist' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/admin/missing/songs/{id}:
+    delete:
+      operationId: deleteMissingSong
+      tags: [admin]
+      summary: Delete one missing song row (admin)
+      parameters:
+        - $ref: '#/components/parameters/SongId'
+      responses:
+        '200':
+          description: Row deleted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/admin/missing/albums/{id}:
+    delete:
+      operationId: deleteMissingAlbum
+      tags: [admin]
+      summary: Delete one missing album row (admin)
+      parameters:
+        - $ref: '#/components/parameters/AlbumId'
+      responses:
+        '200':
+          description: Row deleted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/admin/missing/artists/{id}:
+    delete:
+      operationId: deleteMissingArtist
+      tags: [admin]
+      summary: Delete one missing artist row (admin)
+      parameters:
+        - $ref: '#/components/parameters/ArtistId'
+      responses:
+        '200':
+          description: Row deleted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/admin/missing/songs:
+    delete:
+      operationId: deleteAllMissingSongs
+      tags: [admin]
+      summary: Delete every missing song row (admin)
+      responses:
+        '200':
+          description: Rows deleted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/admin/missing/albums:
+    delete:
+      operationId: deleteAllMissingAlbums
+      tags: [admin]
+      summary: Delete every missing album row (admin)
+      responses:
+        '200':
+          description: Rows deleted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/admin/missing/artists:
+    delete:
+      operationId: deleteAllMissingArtists
+      tags: [admin]
+      summary: Delete every missing artist row (admin)
+      responses:
+        '200':
+          description: Rows deleted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/admin/ingest-runs:
+    get:
+      operationId: listIngestRuns
+      tags: [admin]
+      summary: Last 100 ingest runs (admin)
+      responses:
+        '200':
+          description: Runs, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [runs]
+                properties:
+                  runs:
+                    type: array
+                    items: { $ref: '#/components/schemas/IngestRun' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      operationId: deleteAllIngestRuns
+      tags: [admin]
+      summary: Delete all ingest runs and their per-file rows (admin)
+      responses:
+        '200':
+          description: Everything deleted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/admin/ingest-runs/{id}:
+    get:
+      operationId: getIngestRun
+      tags: [admin]
+      summary: One ingest run with its per-file jobs (admin)
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+      responses:
+        '200':
+          description: The run detail.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IngestRunDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteIngestRun
+      tags: [admin]
+      summary: Delete one ingest run and its per-file rows (admin)
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+      responses:
+        '200':
+          description: Run deleted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/settings/media:
+    get:
+      operationId: getMediaSettings
+      tags: [ingest]
+      summary: Media settings with pattern templates (admin)
+      responses:
+        '200':
+          description: The effective settings plus the template presets.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MediaSettings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    patch:
+      operationId: patchMediaSettings
+      tags: [ingest]
+      summary: Update media settings (admin)
+      description: >
+        Every field is optional; the pattern must be relative with no `..`
+        segments, the strategy must be a known DuplicateStrategy, and the
+        retention clamps to 1–365. Answers the effective settings.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                organizePattern: { type: string, minLength: 1 }
+                duplicateStrategy: { $ref: '#/components/schemas/DuplicateStrategy' }
+                reviewRetentionDays: { type: integer, minimum: 1, maximum: 365 }
+      responses:
+        '200':
+          description: The effective settings after the patch.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MediaSettingsWithoutTemplates' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/organize:
+    post:
+      operationId: organize
+      tags: [ingest]
+      summary: Enqueue an organize job (admin, 202)
+      description: >
+        Re-applies every library's organize pattern to the files already in
+        the library. The job runs on the worker — never inline on the
+        request goroutine.
+      responses:
+        '202':
+          description: Job enqueued.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [jobId]
+                properties:
+                  jobId: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/organize/job:
+    post:
+      operationId: organizeJob
+      tags: [ingest]
+      summary: Enqueue an organize job (admin, 200 — v1 shape)
+      responses:
+        '200':
+          description: Job enqueued.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [jobId]
+                properties:
+                  jobId: { type: string }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/organize/preview:
+    get:
+      operationId: organizePreview
+      tags: [ingest]
+      summary: The effective organize pattern
+      security: []
+      description: >
+        Unauthenticated exactly like v1 — the route only answers the
+        configured pattern.
+      responses:
+        '200':
+          description: The effective pattern.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [pattern]
+                properties:
+                  pattern: { type: string }
+  /api/organize/status/{jobId}:
+    get:
+      operationId: organizeStatus
+      tags: [ingest]
+      summary: One organize job's status (admin)
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: The job status document.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [job]
+                properties:
+                  job: { $ref: '#/components/schemas/OrganizeJobStatus' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  securitySchemes:
+    sessionId:
+      type: apiKey
+      in: cookie
+      name: sessionId
+      description: Signed session cookie (HttpOnly, SameSite=Strict), set by /api/login and /api/setup. The only credential /api/events accepts.
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Alternative to the session cookie on ordinary /api routes (not /api/events). SHA-256 digest looked up in api_keys.
+  parameters:
+    SongId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: Song id (UUID).
+    AlbumId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: Album id (UUID).
+    ArtistId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: Artist id (UUID).
+    GenreId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: Genre id (UUID).
+    CoverArtId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: Cover art id.
+    PlaylistId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: Playlist id (UUID).
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: User id (UUID).
+    ShareUserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: string }
+      description: The share recipient's user id (UUID).
+    IngestJobId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: Ingest job id (UUID).
+    UploadSessionId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: Upload session id (server-minted UUID).
+    FileId:
+      name: fileId
+      in: path
+      required: true
+      schema: { type: string }
+      description: Client-chosen file id (alphanumeric, dash, underscore).
+    ChunkIndex:
+      name: index
+      in: path
+      required: true
+      schema: { type: integer, minimum: 0, maximum: 9999 }
+      description: Chunk index within the file.
+    TimeRange:
+      name: range
+      in: query
+      schema: { $ref: '#/components/schemas/TimeRange' }
+      description: Statistics window; an unrecognized value falls back to `all` rather than failing.
+    GroupBy:
+      name: groupBy
+      in: query
+      required: true
+      schema: { $ref: '#/components/schemas/GroupBy' }
+    LibraryId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: Library id (UUID).
+    LibraryIdPath:
+      name: libraryId
+      in: path
+      required: true
+      schema: { type: string }
+      description: Library id (UUID).
+    UserIdPath:
+      name: userId
+      in: path
+      required: true
+      schema: { type: string }
+      description: User id (UUID).
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [periodic_scan, review_cleanup, artist_images, ingest]
+      description: System task id.
+    RunId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+      description: Ingest run id (the scan_jobs row id).
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      schema: { type: string }
+      description: Scan job id (UUID).
+  responses:
+    BadRequest:
+      description: Malformed input.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: No or invalid credentials.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Authenticated but not allowed (admin-gated route, or playlist access denied).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Resource not found (or out of the caller's scope).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+    Ok:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean, enum: [true] }
+    # --- enums ---------------------------------------------------------------
+    TranscodeFormat:
+      type: string
+      enum: [mp3, aac, opus]
+    PlaylistVisibility:
+      type: string
+      enum: [private, shared, public, link]
+    ResolveMode:
+      type: string
+      enum: [tracks, query]
+      description: >
+        `tracks` resolves a smart playlist's user-scoped rule fields against
+        the owner's data so every viewer receives the same curated list;
+        `query` re-resolves live against each viewer's own data.
+    DuplicateStrategy:
+      type: string
+      enum:
+        - replace_file_and_metadata
+        - keep_file_replace_metadata
+        - replace_file_aggregate_metadata
+        - keep_file_aggregate_metadata
+        - skip
+    TimeRange:
+      type: string
+      enum: ['7d', '30d', '90d', '1y', all]
+    GroupBy:
+      type: string
+      enum: [artist, genre, year, rating, favorite]
+    SearchCategory:
+      type: string
+      enum: [songs, albums, artists, playlists]
+    AutoDjMode:
+      type: string
+      enum: [similar, random, smart]
+    AutoDjExcludeWindow:
+      type: string
+      enum: ['24h', '7d', '30d']
+    JobType:
+      type: string
+      enum: [scan, resync, ingest, organize, cleanup_review, artist_images]
+    JobStatusName:
+      type: string
+      enum: [pending, running, completed, failed]
+    # --- libraries -------------------------------------------------------------
+    Library:
+      type: object
+      required: [id, name, path, organizePattern, isDefault, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        path: { type: string, description: 'Host filesystem path — admin surface only, never in the picker DTO.' }
+        organizePattern: { type: string }
+        isDefault: { type: boolean }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    LibraryPicker:
+      type: object
+      required: [id, name, isDefault]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        isDefault: { type: boolean }
+    # --- tag editing -------------------------------------------------------------
+    SongTags:
+      type: object
+      description: >
+        The v1 tag-edit allowlist — any other key is rejected with 400.
+        Absent fields leave the file and database untouched. String fields
+        `artist`/`albumArtist`/`genre` also accept an array of strings.
+      properties:
+        title: { type: string }
+        artist:
+          oneOf:
+            - { type: string }
+            - { type: array, items: { type: string } }
+        album: { type: string }
+        albumArtist:
+          oneOf:
+            - { type: string }
+            - { type: array, items: { type: string } }
+        trackNumber: { type: integer }
+        discNumber: { type: integer }
+        genre:
+          oneOf:
+            - { type: string }
+            - { type: array, items: { type: string } }
+        year: { type: integer }
+        explicit: { type: boolean }
+        lyrics: { type: string }
+    OrphanedEntity:
+      type: object
+      required: [type, id, name]
+      properties:
+        type: { type: string, enum: [artist, album] }
+        id: { type: string }
+        name: { type: string }
+    # --- providers ---------------------------------------------------------------
+    MusicBrainzMatch:
+      type: object
+      required: [id, title]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        artist: { type: string }
+        artists: { type: array, items: { type: string } }
+        album: { type: string }
+        albumArtist: { type: string }
+        albumArtists: { type: array, items: { type: string } }
+        genres: { type: array, items: { type: string } }
+        year: { type: integer }
+        coverArt: { type: string, description: 'Cover Art Archive front URL.' }
+        disambiguation: { type: string }
+    LrcLibMatch:
+      type: object
+      required: [id, title]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        artistName: { type: string }
+        albumName: { type: string }
+        duration: { type: number }
+        instrumental: { type: boolean }
+        lyrics: { type: string }
+        syncedLyrics:
+          type: array
+          items: { $ref: '#/components/schemas/SyncedLyricLine' }
+    # --- admin dashboard ---------------------------------------------------------
+    SystemTask:
+      type: object
+      required: [id, name, description]
+      properties:
+        id: { type: string, enum: [periodic_scan, review_cleanup, artist_images, ingest] }
+        name: { type: string }
+        description: { type: string }
+        intervalMinutes: { type: integer, nullable: true, description: 'null when the trigger is disabled.' }
+        lastRunAt: { type: string, nullable: true }
+        status: { $ref: '#/components/schemas/JobStatusName' }
+    SystemTaskHistoryEntry:
+      type: object
+      required: [id, task, type, status]
+      properties:
+        id: { type: string }
+        task: { type: string, description: 'Display name (v1 taskNameByType).' }
+        type: { $ref: '#/components/schemas/JobType' }
+        status: { $ref: '#/components/schemas/JobStatusName' }
+        startedAt: { type: string, nullable: true }
+        finishedAt: { type: string, nullable: true }
+        stats: { type: object, additionalProperties: true }
+    SystemTaskHistoryPage:
+      type: object
+      required: [history, page, limit, total, totalPages]
+      properties:
+        history:
+          type: array
+          items: { $ref: '#/components/schemas/SystemTaskHistoryEntry' }
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }
+    AdminStatus:
+      type: object
+      required: [counts, conflictsCount, missingCounts, ingestJobsCount, latestIngest]
+      properties:
+        counts:
+          type: object
+          required: [users, songs, albums, artists]
+          properties:
+            users: { type: integer }
+            songs: { type: integer }
+            albums: { type: integer }
+            artists: { type: integer }
+        conflictsCount: { type: integer }
+        missingCounts:
+          type: object
+          required: [songs, albums, artists]
+          properties:
+            songs: { type: integer }
+            albums: { type: integer }
+            artists: { type: integer }
+        ingestJobsCount: { type: integer }
+        latestIngest: { $ref: '#/components/schemas/IngestRun' }
+    MissingSong:
+      type: object
+      required: [id, filePath, title]
+      properties:
+        id: { type: string }
+        filePath: { type: string }
+        title: { type: string }
+        artistName: { type: string }
+        albumName: { type: string }
+        year: { type: integer }
+        genre: { type: string }
+    MissingAlbum:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        artistName: { type: string }
+        year: { type: integer }
+        genre: { type: string }
+    MissingArtist:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+    IngestRun:
+      type: object
+      required: [id, status]
+      properties:
+        id: { type: string }
+        status: { $ref: '#/components/schemas/JobStatusName' }
+        startedAt: { type: string, nullable: true }
+        finishedAt: { type: string, nullable: true }
+        stats: { type: object, additionalProperties: true }
+        error: { type: string }
+    IngestRunDetail:
+      allOf:
+        - { $ref: '#/components/schemas/IngestRun' }
+        - type: object
+          required: [jobs]
+          properties:
+            jobs:
+              type: array
+              items: { $ref: '#/components/schemas/IngestJob' }
+    MediaSettings:
+      type: object
+      required: [organizePattern, duplicateStrategy, reviewRetentionDays, templates]
+      properties:
+        organizePattern: { type: string }
+        duplicateStrategy: { $ref: '#/components/schemas/DuplicateStrategy' }
+        reviewRetentionDays: { type: integer, minimum: 1, maximum: 365 }
+        templates:
+          type: array
+          items:
+            type: object
+            required: [label, value]
+            properties:
+              label: { type: string }
+              value: { type: string }
+    MediaSettingsWithoutTemplates:
+      type: object
+      required: [organizePattern, duplicateStrategy, reviewRetentionDays]
+      properties:
+        organizePattern: { type: string }
+        duplicateStrategy: { $ref: '#/components/schemas/DuplicateStrategy' }
+        reviewRetentionDays: { type: integer, minimum: 1, maximum: 365 }
+    OrganizeJobStatus:
+      type: object
+      required: [id, type, status]
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [organize] }
+        status: { $ref: '#/components/schemas/JobStatusName' }
+        startedAt: { type: string }
+        finishedAt: { type: string }
+        stats: { type: object, additionalProperties: true }
+    # --- users ---------------------------------------------------------------
+    PublicUser:
+      type: object
+      required: [id, username, isAdmin, createdAt, hideExplicit, blurExplicitTitles, blurExplicitCovers]
+      properties:
+        id: { type: string }
+        username: { type: string }
+        isAdmin: { type: boolean }
+        createdAt: { type: string, description: 'UTC ISO 8601 timestamp with milliseconds.' }
+        name: { type: string }
+        surname: { type: string }
+        email: { type: string, format: email }
+        avatarUrl: { type: string, description: '`/api/avatars/{id}` when the user has an avatar.' }
+        maxBitrateKbps: { type: integer, minimum: 64, maximum: 320 }
+        transcodeFormat: { $ref: '#/components/schemas/TranscodeFormat' }
+        hideExplicit: { type: boolean }
+        blurExplicitTitles: { type: boolean }
+        blurExplicitCovers: { type: boolean }
+    Preferences:
+      type: object
+      description: >
+        The user preferences document: shared defaults under stored
+        overrides. Keys outside this list can exist in the stored blob
+        (legacy clients) and are returned as-is, but PATCH only accepts the
+        allowlisted set.
+      properties:
+        autoDjEnabled: { type: boolean }
+        autoDjMode: { $ref: '#/components/schemas/AutoDjMode' }
+        autoDjTopUpThreshold: { type: number, minimum: 1, maximum: 20 }
+        autoDjBatchSize: { type: number, minimum: 1, maximum: 50 }
+        autoDjExcludeWindow: { $ref: '#/components/schemas/AutoDjExcludeWindow' }
+        autoDjPreferFavorites: { type: boolean }
+        autoDjDiscovery: { type: number, minimum: 0, maximum: 100 }
+        hideSponsorButton: { type: boolean }
+        themeMode: { type: string, enum: [light, dark, oled, auto] }
+        accentColor:
+          type: string
+          enum: [auto, monochrome, brown, green, orange, teal, purple, yellow, cyan, blue]
+        playlistsCollapsed: { type: boolean }
+        sidebar: { type: object }
+        theme: { type: object }
+        sidebarConfig: { type: object }
+        viewOptions: { type: object }
+      additionalProperties: true
+    PreferencesPatch:
+      type: object
+      description: >
+        PATCH body for /api/me/preferences: every present key must be in the
+        allowlist (the Preferences properties above); unknown keys are
+        rejected with 400. Out-of-range numbers clamp into range.
+      properties:
+        autoDjEnabled: { type: boolean }
+        autoDjMode: { $ref: '#/components/schemas/AutoDjMode' }
+        autoDjTopUpThreshold: { type: number, minimum: 1, maximum: 20 }
+        autoDjBatchSize: { type: number, minimum: 1, maximum: 50 }
+        autoDjExcludeWindow: { $ref: '#/components/schemas/AutoDjExcludeWindow' }
+        autoDjPreferFavorites: { type: boolean }
+        autoDjDiscovery: { type: number, minimum: 0, maximum: 100 }
+        hideSponsorButton: { type: boolean }
+        themeMode: { type: string, enum: [light, dark, oled, auto] }
+        accentColor:
+          type: string
+          enum: [auto, monochrome, brown, green, orange, teal, purple, yellow, cyan, blue]
+        playlistsCollapsed: { type: boolean }
+        sidebar: { type: object }
+        theme: { type: object }
+        sidebarConfig: { type: object }
+        viewOptions: { type: object }
+      additionalProperties: false
+    AdminUpdateInput:
+      type: object
+      description: >
+        All properties optional. `name`, `surname`, `email`,
+        `maxBitrateKbps`, `transcodeFormat`, `hideExplicit`,
+        `blurExplicitTitles` and `blurExplicitCovers` accept explicit `null`
+        to clear the stored value; `isAdmin` and `password` treat null like
+        absent (untouched).
+      properties:
+        isAdmin: { type: [boolean, 'null'] }
+        name: { type: [string, 'null'] }
+        surname: { type: [string, 'null'] }
+        email: { type: [string, 'null'], format: email }
+        password: { type: [string, 'null'], format: password, minLength: 8 }
+        maxBitrateKbps: { type: [integer, 'null'], minimum: 64, maximum: 320 }
+        transcodeFormat:
+          anyOf:
+            - { $ref: '#/components/schemas/TranscodeFormat' }
+            - { type: 'null' }
+        hideExplicit: { type: [boolean, 'null'] }
+        blurExplicitTitles: { type: [boolean, 'null'] }
+        blurExplicitCovers: { type: [boolean, 'null'] }
+    # --- catalog -------------------------------------------------------------
+    Entry:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+    SyncedLyricLine:
+      type: object
+      required: [time, text]
+      properties:
+        time: { type: number }
+        text: { type: string }
+    Song:
+      type: object
+      description: The API-facing song shape (no filePath/checksum anywhere in v2).
+      required:
+        - id
+        - title
+        - explicit
+        - coverArtMissing
+        - mtime
+        - active
+        - gapless
+        - starred
+      properties:
+        id: { type: string }
+        title: { type: string }
+        trackNumber: { type: integer }
+        discNumber: { type: integer }
+        duration: { type: integer, description: Seconds. }
+        artistId: { type: string }
+        albumId: { type: string }
+        genre: { type: string }
+        genreId: { type: string }
+        libraryId: { type: string }
+        year: { type: integer }
+        explicit: { type: boolean }
+        coverArt: { type: string }
+        albumCoverArt: { type: string }
+        coverArtMissing: { type: boolean }
+        mtime: { type: integer, format: int64 }
+        active: { type: boolean }
+        bitRate: { type: integer }
+        bitsPerSample: { type: integer }
+        sampleRate: { type: integer }
+        channels: { type: integer }
+        bpm: { type: integer }
+        musicBrainzId: { type: string }
+        musicBrainzTrackId: { type: string }
+        musicBrainzWorkId: { type: string }
+        musicBrainzDiscId: { type: string }
+        replayGain: { type: number }
+        averageRating: { type: number }
+        comment: { type: string }
+        sortName: { type: string }
+        mood: { type: string }
+        mediaType: { type: string }
+        originalReleaseDate: { type: string }
+        releaseDate: { type: string }
+        remixOf: { type: string }
+        displayArtist: { type: string }
+        displayAlbumArtist: { type: string }
+        lyrics: { type: string }
+        syncedLyrics:
+          description: Parsed LRC payload; usually SyncedLyricLine[], but any JSON stored in the column passes through.
+          oneOf:
+            - type: array
+              items: { $ref: '#/components/schemas/SyncedLyricLine' }
+            - type: string
+        producers:
+          type: array
+          items: { type: string }
+        isrcs:
+          type: array
+          items: { type: string }
+        originalYear: { type: integer }
+        originalArtist: { type: string }
+        gapless: { type: boolean }
+        totalTracks: { type: string }
+        totalDiscs: { type: string }
+        artistName: { type: string }
+        albumName: { type: string }
+        albumArtistName: { type: string }
+        artists:
+          type: array
+          items: { type: string }
+        artistEntries:
+          type: array
+          items: { $ref: '#/components/schemas/Entry' }
+        composerEntries:
+          type: array
+          items: { $ref: '#/components/schemas/Entry' }
+        genres:
+          type: array
+          items: { type: string }
+        starred: { type: boolean }
+        rating: { type: number }
+    Album:
+      type: object
+      description: >
+        `totalSongCount` counts every in-scope active song; `shownSongCount`
+        excludes explicit songs when the caller asked to hide them;
+        `explicit` mirrors v1 (any in-scope active song is explicit).
+      required: [id, name, active, totalSongCount, shownSongCount, explicit, starred]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        artistId: { type: string }
+        artistName: { type: string }
+        releaseType: { type: string }
+        year: { type: integer }
+        genre: { type: string }
+        coverArt: { type: string }
+        active: { type: boolean }
+        catalogNumbers:
+          type: array
+          items: { type: string }
+        barcode: { type: string }
+        asin: { type: string }
+        musicBrainzAlbumId: { type: string }
+        musicBrainzReleaseGroupId: { type: string }
+        musicBrainzAlbumArtistIds:
+          type: array
+          items: { type: string }
+        originalYear: { type: integer }
+        compilation: { type: boolean }
+        totalTracks: { type: string }
+        totalDiscs: { type: string }
+        totalSongCount: { type: integer }
+        shownSongCount: { type: integer }
+        explicit: { type: boolean }
+        artists:
+          type: array
+          items: { type: string }
+        genres:
+          type: array
+          items: { type: string }
+        labelEntries:
+          type: array
+          items: { $ref: '#/components/schemas/Entry' }
+        starred: { type: boolean }
+        rating: { type: number }
+    ArtistAlbum:
+      type: object
+      description: Trimmed album card embedded in the artist detail response (v1 parity).
+      required: [id, name, totalSongCount, shownSongCount, starred]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        year: { type: integer }
+        genre: { type: string }
+        coverArt: { type: string }
+        totalSongCount: { type: integer }
+        shownSongCount: { type: integer }
+        starred: { type: boolean }
+        rating: { type: number }
+    Artist:
+      type: object
+      description: '`albums` is populated on the detail endpoint only.'
+      required: [id, name, active, starred]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        active: { type: boolean }
+        musicBrainzArtistIds:
+          type: array
+          items: { type: string }
+        bio: { type: string }
+        externalUrls: { description: 'Stored artist links (v1 contract: string map).', type: object, additionalProperties: { type: string } }
+        artistImageUrl: { type: string }
+        albums:
+          type: array
+          items: { $ref: '#/components/schemas/ArtistAlbum' }
+        starred: { type: boolean }
+        rating: { type: number }
+    Genre:
+      type: object
+      description: Flat genre list entry with its resolved `Parent > Child` path.
+      required: [id, name, path, active]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        parentId: { type: string }
+        path: { type: string }
+        active: { type: boolean }
+    GenreNode:
+      type: object
+      description: 'Genre tree node; `children` is always present (possibly empty).'
+      required: [id, name, path, active, children]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        parentId: { type: string }
+        path: { type: string }
+        active: { type: boolean }
+        children:
+          type: array
+          items: { $ref: '#/components/schemas/GenreNode' }
+    YearCount:
+      type: object
+      required: [year, songCount]
+      properties:
+        year: { type: integer }
+        songCount: { type: integer }
+    # --- playlists -----------------------------------------------------------
+    NameEntry:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+    PlaylistListItem:
+      type: object
+      description: >
+        One entry of GET /api/playlists. `shareToken` is populated only for
+        the playlist's owner (other viewers never see it).
+      required: [id, name, ownerId, ownerUsername, visibility, isSmart, resolveMode, songCount, starred, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        ownerId: { type: string }
+        ownerUsername: { type: string }
+        visibility: { $ref: '#/components/schemas/PlaylistVisibility' }
+        shareToken: { type: string }
+        isSmart: { type: boolean }
+        resolveMode: { $ref: '#/components/schemas/ResolveMode' }
+        songCount: { type: integer }
+        starred: { type: boolean }
+        rating: { type: number }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    PlaylistEntry:
+      type: object
+      description: >
+        One song inside a playlist detail. `track`, `discNumber` and
+        `duration` are always present but null when unknown; `album` and
+        `artist` are the display names (empty string when unset), matching
+        v1's fetchPlaylistSongs shape.
+      required: [id, title, album, artist, explicit, track, discNumber, duration, type, isDir, created]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        album: { type: string }
+        albumId: { type: string }
+        artist: { type: string }
+        artistId: { type: string }
+        artists:
+          type: array
+          items: { type: string }
+        artistEntries:
+          type: array
+          items: { $ref: '#/components/schemas/NameEntry' }
+        track: { type: [integer, 'null'] }
+        discNumber: { type: [integer, 'null'] }
+        genre: { type: string }
+        year: { type: integer }
+        explicit: { type: boolean }
+        duration: { type: [integer, 'null'], description: Seconds. }
+        coverArt: { type: string }
+        albumCoverArt: { type: string }
+        type: { type: string }
+        isDir: { type: boolean }
+        created: { type: string }
+    ShareEntry:
+      type: object
+      required: [userId, username, canEdit]
+      properties:
+        userId: { type: string }
+        username: { type: string }
+        canEdit: { type: boolean }
+    PlaylistDetail:
+      type: object
+      description: '`shares` and `shareToken` are owner-only.'
+      required: [id, name, ownerId, ownerUsername, visibility, isSmart, resolveMode, songCount, entries, starred, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string }
+        ownerId: { type: string }
+        ownerUsername: { type: string }
+        visibility: { $ref: '#/components/schemas/PlaylistVisibility' }
+        shareToken: { type: string }
+        isSmart: { type: boolean }
+        resolveMode: { $ref: '#/components/schemas/ResolveMode' }
+        songCount: { type: integer }
+        entries:
+          type: array
+          items: { $ref: '#/components/schemas/PlaylistEntry' }
+        shares:
+          type: array
+          items: { $ref: '#/components/schemas/ShareEntry' }
+        starred: { type: boolean }
+        rating: { type: number }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    SmartPlaylistRules:
+      type: object
+      description: >
+        Smart playlist rules (v1 parity: single-level groups, no nesting).
+        A song matches when every `all` rule matches AND at least one `any`
+        rule matches; a missing group side is not constrained.
+        Field/operator whitelists are enforced by the rules compiler (see
+        docs/smart-playlists.md), not by this schema.
+      properties:
+        rules:
+          type: object
+          properties:
+            all:
+              type: array
+              items: { $ref: '#/components/schemas/SmartPlaylistRule' }
+            any:
+              type: array
+              items: { $ref: '#/components/schemas/SmartPlaylistRule' }
+        sort:
+          type: array
+          items: { $ref: '#/components/schemas/SmartPlaylistSort' }
+        limit: { type: integer }
+        limitPercent: { type: integer }
+    SmartPlaylistRule:
+      type: object
+      required: [field, operator]
+      properties:
+        field: { type: string }
+        operator: { type: string }
+        value:
+          description: 'String, number, boolean, or a two-element number array (inTheRange).'
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+            - type: array
+              items: { type: number }
+    SmartPlaylistSort:
+      type: object
+      description: 'Either `{field, direction}` or `{random: true}` — never both.'
+      properties:
+        field: { type: string }
+        direction: { type: string, enum: [asc, desc] }
+        random: { type: boolean }
+    # --- playback ------------------------------------------------------------
+    ScrobbleDetails:
+      type: object
+      description: Optional scrobble detail fields; absent fields are simply not stored.
+      properties:
+        durationListened: { type: number, minimum: 0 }
+        completion: { type: number, minimum: 0, maximum: 100 }
+        client: { type: string, maxLength: 255 }
+        source: { type: string, maxLength: 255 }
+        playedAt: { type: string, description: 'Date string in any format Go/JavaScript Date.parse accepts; stored verbatim.' }
+    BookmarkSong:
+      type: object
+      required: [id, title, duration]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        duration: { type: integer, description: 'Seconds; 0 when unknown.' }
+        artistName: { type: string }
+        albumName: { type: string }
+    Bookmark:
+      type: object
+      required: [songId, position, comment, createdAt, updatedAt, song]
+      properties:
+        songId: { type: string }
+        position: { type: integer }
+        comment: { type: [string, 'null'] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+        song: { $ref: '#/components/schemas/BookmarkSong' }
+    # --- library jobs --------------------------------------------------------
+    JobStatus:
+      type: object
+      description: Public shape of a scan_jobs row; timestamps keep the raw SQLite `datetime('now')` strings.
+      required: [id, type, status, stats]
+      properties:
+        id: { type: string }
+        type: { $ref: '#/components/schemas/JobType' }
+        status: { $ref: '#/components/schemas/JobStatusName' }
+        createdAt: { type: string }
+        startedAt: { type: string }
+        finishedAt: { type: string }
+        stats:
+          description: The job's raw progress/stats document (arbitrary JSON), or null.
+          type: [object, 'null']
+          additionalProperties: true
+        error: { type: string }
+    # --- search --------------------------------------------------------------
+    SearchSong:
+      type: object
+      description: Display subset of the catalog song DTO plus joined display names.
+      required: [id, title, explicit, mtime, active, starred]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        trackNumber: { type: integer }
+        discNumber: { type: integer }
+        duration: { type: integer }
+        artistId: { type: string }
+        albumId: { type: string }
+        artistName: { type: string }
+        albumName: { type: string }
+        genre: { type: string }
+        genreId: { type: string }
+        year: { type: integer }
+        explicit: { type: boolean }
+        coverArt: { type: string }
+        mtime: { type: integer, format: int64 }
+        active: { type: boolean }
+        artists:
+          type: array
+          items: { type: string }
+        genres:
+          type: array
+          items: { type: string }
+        starred: { type: boolean }
+        rating: { type: number }
+    SearchAlbum:
+      type: object
+      required: [id, name, active, starred, explicit]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        artistId: { type: string }
+        artistName: { type: string }
+        year: { type: integer }
+        genre: { type: string }
+        coverArt: { type: string }
+        active: { type: boolean }
+        artists:
+          type: array
+          items: { type: string }
+        genres:
+          type: array
+          items: { type: string }
+        starred: { type: boolean }
+        rating: { type: number }
+        explicit: { type: boolean }
+    SearchArtist:
+      type: object
+      required: [id, name, active, starred]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        active: { type: boolean }
+        starred: { type: boolean }
+        rating: { type: number }
+    SearchPlaylist:
+      type: object
+      description: '`songIds` stays empty; `songCount` carries the count (v1 parity).'
+      required: [id, name, ownerId, ownerUsername, visibility, isSmart, createdAt, updatedAt, songIds, songCount, starred]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        ownerId: { type: string }
+        ownerUsername: { type: string }
+        visibility: { $ref: '#/components/schemas/PlaylistVisibility' }
+        shareToken: { type: string }
+        isSmart: { type: boolean }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+        songIds:
+          type: array
+          items: { type: string }
+        songCount: { type: integer }
+        starred: { type: boolean }
+        rating: { type: number }
+    SearchResults:
+      type: object
+      description: 'The envelope always carries all four categories; unasked categories come back empty (never null).'
+      required: [songs, albums, artists, playlists]
+      properties:
+        songs:
+          type: array
+          items: { $ref: '#/components/schemas/SearchSong' }
+        albums:
+          type: array
+          items: { $ref: '#/components/schemas/SearchAlbum' }
+        artists:
+          type: array
+          items: { $ref: '#/components/schemas/SearchArtist' }
+        playlists:
+          type: array
+          items: { $ref: '#/components/schemas/SearchPlaylist' }
+    # --- statistics ----------------------------------------------------------
+    StatisticsTotals:
+      type: object
+      required: [totalPlays, totalDurationListened, favoriteSongs, favoriteAlbums, favoriteArtists]
+      properties:
+        totalPlays: { type: integer }
+        totalDurationListened: { type: integer, description: Seconds. }
+        favoriteSongs: { type: integer }
+        favoriteAlbums: { type: integer }
+        favoriteArtists: { type: integer }
+    TopSongItem:
+      type: object
+      required: [songId, title, plays]
+      properties:
+        songId: { type: string }
+        title: { type: string }
+        artistName: { type: string }
+        albumCoverArt: { type: string }
+        plays: { type: integer }
+    TopArtistItem:
+      type: object
+      required: [artistName, plays]
+      properties:
+        artistId: { type: string }
+        artistName: { type: string }
+        plays: { type: integer }
+    TopAlbumItem:
+      type: object
+      required: [albumName, plays]
+      properties:
+        albumId: { type: string }
+        albumName: { type: string }
+        artistName: { type: string }
+        coverArt: { type: string }
+        plays: { type: integer }
+    GenreDistributionItem:
+      type: object
+      required: [genre, plays, totalDurationListened]
+      properties:
+        genre: { type: string }
+        plays: { type: integer }
+        totalDurationListened: { type: integer }
+    TopYearItem:
+      type: object
+      required: [year, plays, totalDurationListened]
+      properties:
+        year: { type: integer }
+        plays: { type: integer }
+        totalDurationListened: { type: integer }
+    StatisticsTopLists:
+      type: object
+      required: [topSongs, topArtists, topAlbums, topGenres, topYears]
+      properties:
+        topSongs:
+          type: array
+          items: { $ref: '#/components/schemas/TopSongItem' }
+        topArtists:
+          type: array
+          items: { $ref: '#/components/schemas/TopArtistItem' }
+        topAlbums:
+          type: array
+          items: { $ref: '#/components/schemas/TopAlbumItem' }
+        topGenres:
+          type: array
+          items: { $ref: '#/components/schemas/GenreDistributionItem' }
+        topYears:
+          type: array
+          items: { $ref: '#/components/schemas/TopYearItem' }
+    RatedArtistItem:
+      type: object
+      required: [artistName, averageRating, bayesianAverage, ratedSongs]
+      properties:
+        artistId: { type: string }
+        artistName: { type: string }
+        averageRating: { type: number }
+        bayesianAverage: { type: number }
+        ratedSongs: { type: integer }
+    TopRatedGenreItem:
+      type: object
+      required: [genre, averageRating, bayesianAverage, ratedSongs]
+      properties:
+        genre: { type: string }
+        averageRating: { type: number }
+        bayesianAverage: { type: number }
+        ratedSongs: { type: integer }
+    TopRatedYearItem:
+      type: object
+      required: [year, averageRating, bayesianAverage, ratedSongs]
+      properties:
+        year: { type: integer }
+        averageRating: { type: number }
+        bayesianAverage: { type: number }
+        ratedSongs: { type: integer }
+    StatisticsRatedLists:
+      type: object
+      required: [topRatedArtists, topRatedGenres, topRatedYears]
+      properties:
+        topRatedArtists:
+          type: array
+          items: { $ref: '#/components/schemas/RatedArtistItem' }
+        topRatedGenres:
+          type: array
+          items: { $ref: '#/components/schemas/TopRatedGenreItem' }
+        topRatedYears:
+          type: array
+          items: { $ref: '#/components/schemas/TopRatedYearItem' }
+    RatingDistributionItem:
+      type: object
+      required: [rating, count]
+      properties:
+        rating: { type: integer }
+        count: { type: integer }
+    StatisticsCharts:
+      type: object
+      required: [ratingDistribution]
+      properties:
+        ratingDistribution:
+          type: object
+          required: [unrated, ratings]
+          properties:
+            unrated: { type: integer }
+            ratings:
+              type: array
+              items: { $ref: '#/components/schemas/RatingDistributionItem' }
+    MonthlyPlaysItem:
+      type: object
+      required: [month, plays]
+      properties:
+        month: { type: string }
+        plays: { type: integer }
+    MonthlyGroupedItem:
+      type: object
+      description: One month of a grouped breakdown (top 6 groups plus an "Other" rollup).
+      required: [month, groups]
+      properties:
+        month: { type: string }
+        groups:
+          type: array
+          items:
+            type: object
+            required: [key, plays]
+            properties:
+              key: { type: string }
+              plays: { type: integer }
+    UserStatistics:
+      type: object
+      required: [userId, username, range, totals, top, rated, charts, monthlyPlays]
+      properties:
+        userId: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        range: { $ref: '#/components/schemas/TimeRange' }
+        totals: { $ref: '#/components/schemas/StatisticsTotals' }
+        top: { $ref: '#/components/schemas/StatisticsTopLists' }
+        rated: { $ref: '#/components/schemas/StatisticsRatedLists' }
+        charts: { $ref: '#/components/schemas/StatisticsCharts' }
+        monthlyPlays:
+          type: array
+          items: { $ref: '#/components/schemas/MonthlyPlaysItem' }
+    UserSummary:
+      type: object
+      required: [userId, username, totalPlays, totalDurationListened, uniqueSongs]
+      properties:
+        userId: { type: string }
+        username: { type: string }
+        displayName: { type: string }
+        totalPlays: { type: integer }
+        totalDurationListened: { type: integer }
+        uniqueSongs: { type: integer }
+    OverallStatistics:
+      type: object
+      required: [range, totals, top, rated, charts, monthlyPlays, userSummaries]
+      properties:
+        range: { $ref: '#/components/schemas/TimeRange' }
+        totals: { $ref: '#/components/schemas/StatisticsTotals' }
+        top: { $ref: '#/components/schemas/StatisticsTopLists' }
+        rated: { $ref: '#/components/schemas/StatisticsRatedLists' }
+        charts: { $ref: '#/components/schemas/StatisticsCharts' }
+        monthlyPlays:
+          type: array
+          items: { $ref: '#/components/schemas/MonthlyPlaysItem' }
+        userSummaries:
+          type: array
+          items: { $ref: '#/components/schemas/UserSummary' }
+    # --- home ----------------------------------------------------------------
+    HomeAlbumCard:
+      type: object
+      required: [id, name, active, starred]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        artistId: { type: string }
+        artistName: { type: string }
+        year: { type: integer }
+        genre: { type: string }
+        coverArt: { type: string }
+        active: { type: boolean }
+        artists:
+          type: array
+          items: { type: string }
+        genres:
+          type: array
+          items: { type: string }
+        starred: { type: boolean }
+        rating: { type: number }
+    HomeSongCard:
+      type: object
+      required: [id, title, explicit, mtime, starred]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        artistId: { type: string }
+        artistName: { type: string }
+        albumId: { type: string }
+        albumName: { type: string }
+        duration: { type: integer }
+        year: { type: integer }
+        genre: { type: string }
+        explicit: { type: boolean }
+        coverArt: { type: string }
+        mtime: { type: integer, format: int64 }
+        artists:
+          type: array
+          items: { type: string }
+        genres:
+          type: array
+          items: { type: string }
+        starred: { type: boolean }
+        rating: { type: number }
+    HomeGenreCard:
+      type: object
+      description: One ranked genre — the name and its in-scope active song count.
+      required: [name, songCount]
+      properties:
+        name: { type: string }
+        songCount: { type: integer }
+    HomeResponse:
+      type: object
+      description: All five sections are always present (possibly empty arrays).
+      required: [genres, mostPlayed, random, recentAdditions, recentlyPlayed]
+      properties:
+        genres:
+          type: array
+          items: { $ref: '#/components/schemas/HomeGenreCard' }
+        mostPlayed:
+          type: array
+          items: { $ref: '#/components/schemas/HomeAlbumCard' }
+        random:
+          type: array
+          items: { $ref: '#/components/schemas/HomeAlbumCard' }
+        recentAdditions:
+          type: array
+          items: { $ref: '#/components/schemas/HomeSongCard' }
+        recentlyPlayed:
+          type: array
+          items: { $ref: '#/components/schemas/HomeAlbumCard' }
+    # --- auto-dj / players ---------------------------------------------------
+    AutoDjSong:
+      type: object
+      description: Display subset of the catalog song DTO plus the caller's interaction state.
+      required: [id, title, explicit, mtime, starred]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        trackNumber: { type: integer }
+        discNumber: { type: integer }
+        duration: { type: integer }
+        artistId: { type: string }
+        artistName: { type: string }
+        albumId: { type: string }
+        albumName: { type: string }
+        genre: { type: string }
+        genreId: { type: string }
+        year: { type: integer }
+        explicit: { type: boolean }
+        coverArt: { type: string }
+        mtime: { type: integer, format: int64 }
+        starred: { type: boolean }
+        rating: { type: number }
+    PlayerInfo:
+      type: object
+      description: >
+        One live player entry (user + device). `userId` is absent for
+        anonymous share-token streams. Entries expire 5 minutes after their
+        last stream heartbeat; a restart clears the registry.
+      required: [id, clientId, songId, songTitle, startedAt, updatedAt]
+      properties:
+        id: { type: string, description: '`userId|clientId` registry key.' }
+        userId: { type: string }
+        clientId: { type: string }
+        songId: { type: string }
+        songTitle: { type: string }
+        artistName: { type: string }
+        albumName: { type: string }
+        durationSeconds: { type: integer }
+        startedAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    # --- uploads / ingest ----------------------------------------------------
+    UploadSessionCreated:
+      type: object
+      required: [sessionId, libraryId]
+      properties:
+        sessionId: { type: string }
+        libraryId: { type: string }
+        duplicateStrategy: { $ref: '#/components/schemas/DuplicateStrategy' }
+    UploadSessionStatus:
+      type: object
+      required: [sessionId, libraryId, createdAt, files, reassembled]
+      properties:
+        sessionId: { type: string }
+        libraryId: { type: string }
+        createdAt: { type: string, format: date-time }
+        files:
+          type: array
+          description: Per-file chunk reception state.
+          items:
+            type: object
+            required: [fileId, chunksReceived, chunkBytes]
+            properties:
+              fileId: { type: string }
+              chunksReceived: { type: integer }
+              chunkBytes: { type: integer, format: int64 }
+        reassembled:
+          type: array
+          description: Reassembled files with sizes.
+          items:
+            type: object
+            required: [path, size]
+            properties:
+              path: { type: string }
+              size: { type: integer, format: int64 }
+        duplicateStrategy: { $ref: '#/components/schemas/DuplicateStrategy' }
+    IngestJob:
+      type: object
+      required: [id, runId, sourcePath, status, duplicate, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        runId: { type: string }
+        sourcePath: { type: string }
+        status: { type: string, enum: [pending, needs_review, imported, skipped, failed] }
+        targetPath: { type: [string, 'null'] }
+        error: { type: [string, 'null'] }
+        duplicate: { type: boolean }
+        duplicateStrategy:
+          anyOf:
+            - { $ref: '#/components/schemas/DuplicateStrategy' }
+            - { type: 'null' }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+    Conflict:
+      type: object
+      description: One collision candidate — an active song parked on a ` (n)` collision path.
+      required: [id, filePath, title]
+      properties:
+        id: { type: string }
+        filePath: { type: string }
+        title: { type: string }
+        artistName: { type: string }
+        albumName: { type: string }
