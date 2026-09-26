@@ -5,15 +5,16 @@ Shared components live in `packages/web/src/components/`. Use them for consisten
 | Component | Path | Purpose |
 |-----------|------|---------|
 | `Layout` | `components/Layout.tsx` | App shell with sidebar and main content area. |
+| `ErrorBoundary` | `components/ErrorBoundary.tsx` | Class-component error boundary wrapping every route outlet (setup, guest, app trees) in `App.tsx`. A render crash shows a "Something went wrong / Reload" fallback instead of unmounting the whole root; the player chrome survives. |
 | `Card` | `components/Card.tsx` | Content card with link, optional cover art, favorite, rating, and play actions. Use for grid views. |
 | `CoverArt` | `components/CoverArt.tsx` | Cover art image with placeholder fallback. |
 | `ArtistImage` | `components/ArtistImage.tsx` | Artist image from local disk with placeholder fallback. |
 | `LibraryView` | `components/LibraryView.tsx` | Toggleable list/grid view for library entities (artists, albums, etc.). |
 | `ListRow` | `components/ListRow.tsx` | Clickable table row with play, favorite, and rating actions. |
-| `ItemContextMenu` | `components/ItemContextMenu.tsx` | Right-click/long-press context menu wrapper. |
+| `ItemContextMenu` | `components/ItemContextMenu.tsx` | Right-click/long-press/keyboard context menu wrapper. Keyboard path: the wrapped trigger opens the menu with Shift+F10 or the Menu key (menu anchors below the trigger); ArrowUp/Down cycle items, Escape closes and returns focus to the trigger. |
 | `FilterPanel` | `components/FilterPanel.tsx` | Filter controls for library pages. |
 | `SearchBox` | `components/SearchBox.tsx` | Global search input. |
-| `TopBar` | `components/TopBar.tsx` | Header with search and user menu. |
+| `TopBar` | `components/TopBar.tsx` | Header with search and user menu. The connected-devices indicator polls `/api/players` only while other players are present (and never in background tabs) — see `playersPollInterval`. |
 | `Sidebar` | `components/Sidebar.tsx` | Navigation sidebar. |
 | `PlayerBar` | `components/PlayerBar.tsx` | Persistent playback controls. |
 | `AudioController` | `components/AudioController.tsx` | Audio element and playback state bridge. |
@@ -22,18 +23,24 @@ Shared components live in `packages/web/src/components/`. Use them for consisten
 | `EntityHeader` | `components/EntityHeader.tsx` | Reusable header with cover, title, metadata chips, and actions. |
 | `MetadataBreadcrumb` | `components/MetadataBreadcrumb.tsx` | Horizontal metadata chips with optional links. |
 | `ExplicitTitle` | `components/ExplicitTitle.tsx` | Title text with explicit-content badge and blur toggle. |
-| `PageState` | `components/PageState.tsx` | Loading, empty, and error states for pages. Loading renders `role="status"` with a spinner; error renders `role="alert"` with an icon and an optional `onRetry` button; empty accepts an optional `emptyIcon`. All pages must use it instead of hand-rolled state blocks. |
+| `PageState` | `components/PageState.tsx` | Loading, empty, and error states for pages. Loading renders `role="status"` with a spinner; error renders `role="alert"` with an icon and an optional `onRetry` button; empty accepts an optional `emptyIcon`, `emptyDescription`, and `emptyAction`. All pages must use it instead of hand-rolled state blocks. |
 | `Avatar` | `components/Avatar.tsx` | User avatar with placeholder fallback. |
+| `Skeletons` | `components/Skeletons.tsx` | Route-shaped Suspense fallbacks (`ListPageSkeleton`, `GridPageSkeleton`, `EntityDetailSkeleton`, `PageSkeleton`) that mirror real page markup with `animate-pulse` placeholders (static under reduced motion). Used by every lazy route in `App.tsx`. |
 | `SidebarPlaylistItem` | `components/SidebarPlaylistItem.tsx` | Sidebar playlist link with right-click/long-press menu (play, shuffle, edit, share, delete). |
 | `SleepTimerButton` | `components/SleepTimerButton.tsx` | Player-bar sleep timer with countdown and option popover. |
 | `TrackActionsMenu` | `components/TrackActionsMenu.tsx` | "More actions" popover for the current track (go to album/artist, save queue as playlist). |
 | `Button` | `components/ui/Button.tsx` | Button primitive. Optional `loading` prop shows a spinner and disables the button. |
+| `Modal` | `components/ui/Modal.tsx` | Dialog primitive (portal, focus trap, focus restore, Escape). The title id is scoped per instance with `useId()` so simultaneously open modals never share an `aria-labelledby` target. |
 | `Input` | `components/ui/Input.tsx` | Text input primitive. |
 | `Icon` | `components/ui/Icon.tsx` | Icon renderer. |
 | `Table` | `components/ui/Table.tsx` | Generic table component. |
 | `AutocompleteInput` | `components/ui/AutocompleteInput.tsx` | Autocomplete input primitive backed by `/api/suggestions` (fields: artist, album, albumArtist, genre, releaseType via the `AutocompleteField` union). Supports ref forwarding and an `onValueSelect` callback for use inside `PillInput`. |
 | `PillInput` | `components/ui/PillInput.tsx` | Multi-value pill list with inline autocomplete. Used for artists and genres in edit and metadata-fetch modals. |
 | `ProgressBar` | `components/ui/ProgressBar.tsx` | Progress indicator. |
+| `Skeleton` | `components/ui/Skeleton.tsx` | Single `animate-pulse` placeholder block (disabled under reduced motion). Compose into page-shaped fallbacks; see `components/Skeletons.tsx`. |
+| `EmptyState` | `components/ui/EmptyState.tsx` | Icon + one-line explanation + optional primary action for empty views that need more than `PageState`'s plain message. |
+| `VirtualList` | `components/ui/VirtualList.tsx` | Windowed table body over @tanstack/react-virtual (overscan 5, spacer rows keep total scroll height exact). Renders all rows when disabled or when no scroll container resolves. |
+| `VirtualGrid` | `components/ui/VirtualGrid.tsx` | Windowed card grid (masonry lanes, responsive column count matching the app grid breakpoints, DOM-measured card heights). Renders all cards when no scroll container resolves. |
 | `SongTable` | `features/songs/components/SongTable.tsx` | Opinionated song table; accepts `SongListItem` rows. |
 | `SharePlaylistModal` | `features/playlists/components/SharePlaylistModal.tsx` | Playlist sharing: visibility cards (private/shared/public/link), share-link copy, and per-user shares with view/edit roles. Owner-only, opened from the playlist detail header. |
 | `TrackList` | `features/songs/components/TrackList.tsx` | Simple vertical list of tracks. |

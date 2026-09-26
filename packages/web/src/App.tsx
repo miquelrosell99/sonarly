@@ -1,44 +1,173 @@
 import { Router, Route, Switch, useLocation } from 'wouter';
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import type { User } from '@sonarly/shared';
+import type { StatisticsMode } from './features/statistics/index.js';
 import { Layout } from './components/Layout.js';
 import { Login } from './features/auth/index.js';
 import { Setup } from './features/setup/index.js';
-import { HomePage } from './features/home/index.js';
-import { Playlists } from './features/playlists/index.js';
-import { PlaylistDetail } from './features/playlists/index.js';
-import { GuestPlaylist } from './features/playlists/index.js';
-import { NowPlayingRoute } from './features/now-playing/index.js';
-import { Organize } from './features/organize/index.js';
 import {
-  AdminStatus,
-  AdminMedia,
-  AdminUsers,
-  AdminSystemTasks,
-  AdminGenres,
-  AdminLibraries,
-} from './features/admin/index.js';
-import { SettingsProfile } from './features/settings/index.js';
-import { SettingsAppearance } from './features/settings/index.js';
-import { SettingsPlayback } from './features/settings/index.js';
-import { SettingsSidebar } from './features/settings/index.js';
-import { Artists, Artist } from './features/artists/index.js';
-import { Albums, Album } from './features/albums/index.js';
-import { Tracks, Track } from './features/tracks/index.js';
-import { SearchResults } from './features/search/index.js';
-import { AlbumArtists } from './features/album-artists/index.js';
-import { Genres, Genre } from './features/genres/index.js';
-import { Years, Year } from './features/years/index.js';
-import { Composers } from './features/composers/index.js';
-import { Composer } from './features/composers/pages/Composer.js';
-import { Labels } from './features/labels/index.js';
-import { Label } from './features/labels/pages/Label.js';
-import { StatisticsPage } from './features/statistics/index.js';
+  EntityDetailSkeleton,
+  GridPageSkeleton,
+  ListPageSkeleton,
+  PageSkeleton,
+} from './components/Skeletons.js';
 import { AdminRefreshProvider } from './features/admin/contexts/AdminRefreshContext.js';
 import { useServerEvents } from './hooks/useServerEvents.js';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { api } from './lib/api.js';
 import { getShareToken } from './lib/shareToken.js';
+
+// FF2: every route is lazy so first paint only downloads the shell + the
+// current page. Login/Setup stay static — they are the first paint for
+// unauthenticated visitors and are small. Shared chrome (Layout, TopBar,
+// PlayerBar, AudioController, NowPlaying overlay) stays in the entry chunk.
+function lazyRoute<P extends object>(
+  factory: () => Promise<{ default: ComponentType<P> }>,
+  fallback: ReactNode,
+) {
+  // A lazy exotic component IS the component type; the double cast only
+  // exists because TS cannot prove it for an unresolved generic P.
+  const Component = lazy(factory) as unknown as ComponentType<P>;
+  const LazyRoute = (props: P) => (
+    <Suspense fallback={fallback}>
+      <Component {...props} />
+    </Suspense>
+  );
+  return LazyRoute;
+}
+
+const HomePage = lazyRoute<{ user: User }>(
+  () => import('./features/home/index.js').then((m) => ({ default: m.HomePage })),
+  <PageSkeleton />,
+);
+const Tracks = lazyRoute<{ user: User }>(
+  () => import('./features/tracks/index.js').then((m) => ({ default: m.Tracks })),
+  <ListPageSkeleton />,
+);
+const Track = lazyRoute<{}>(
+  () => import('./features/tracks/index.js').then((m) => ({ default: m.Track })),
+  <EntityDetailSkeleton />,
+);
+const SearchResults = lazyRoute<{ user: User }>(
+  () => import('./features/search/index.js').then((m) => ({ default: m.SearchResults })),
+  <ListPageSkeleton />,
+);
+const Playlists = lazyRoute<{}>(
+  () => import('./features/playlists/index.js').then((m) => ({ default: m.Playlists })),
+  <GridPageSkeleton />,
+);
+const PlaylistDetail = lazyRoute<{ user: User }>(
+  () => import('./features/playlists/index.js').then((m) => ({ default: m.PlaylistDetail })),
+  <EntityDetailSkeleton />,
+);
+const GuestPlaylist = lazyRoute<{}>(
+  () => import('./features/playlists/index.js').then((m) => ({ default: m.GuestPlaylist })),
+  <EntityDetailSkeleton />,
+);
+const NowPlayingRoute = lazyRoute<{ user: User | null }>(
+  () => import('./features/now-playing/index.js').then((m) => ({ default: m.NowPlayingRoute })),
+  <EntityDetailSkeleton />,
+);
+const Organize = lazyRoute<{}>(
+  () => import('./features/organize/index.js').then((m) => ({ default: m.Organize })),
+  <PageSkeleton />,
+);
+const AdminStatus = lazyRoute<{ user: User }>(
+  () => import('./features/admin/index.js').then((m) => ({ default: m.AdminStatus })),
+  <PageSkeleton />,
+);
+const AdminMedia = lazyRoute<{ user: User }>(
+  () => import('./features/admin/index.js').then((m) => ({ default: m.AdminMedia })),
+  <PageSkeleton />,
+);
+const AdminUsers = lazyRoute<{ user: User }>(
+  () => import('./features/admin/index.js').then((m) => ({ default: m.AdminUsers })),
+  <PageSkeleton />,
+);
+const AdminSystemTasks = lazyRoute<{ user: User }>(
+  () => import('./features/admin/index.js').then((m) => ({ default: m.AdminSystemTasks })),
+  <PageSkeleton />,
+);
+const AdminGenres = lazyRoute<{ user: User }>(
+  () => import('./features/admin/index.js').then((m) => ({ default: m.AdminGenres })),
+  <PageSkeleton />,
+);
+const AdminLibraries = lazyRoute<{ user: User }>(
+  () => import('./features/admin/index.js').then((m) => ({ default: m.AdminLibraries })),
+  <PageSkeleton />,
+);
+const SettingsProfile = lazyRoute<{ user: User; onUserChange: (user: User) => void }>(
+  () => import('./features/settings/index.js').then((m) => ({ default: m.SettingsProfile })),
+  <PageSkeleton />,
+);
+const SettingsAppearance = lazyRoute<{}>(
+  () => import('./features/settings/index.js').then((m) => ({ default: m.SettingsAppearance })),
+  <PageSkeleton />,
+);
+const SettingsPlayback = lazyRoute<{}>(
+  () => import('./features/settings/index.js').then((m) => ({ default: m.SettingsPlayback })),
+  <PageSkeleton />,
+);
+const SettingsSidebar = lazyRoute<{}>(
+  () => import('./features/settings/index.js').then((m) => ({ default: m.SettingsSidebar })),
+  <PageSkeleton />,
+);
+const Artists = lazyRoute<{}>(
+  () => import('./features/artists/index.js').then((m) => ({ default: m.Artists })),
+  <GridPageSkeleton />,
+);
+const Artist = lazyRoute<{ user: User }>(
+  () => import('./features/artists/index.js').then((m) => ({ default: m.Artist })),
+  <EntityDetailSkeleton />,
+);
+const Albums = lazyRoute<{ user: User }>(
+  () => import('./features/albums/index.js').then((m) => ({ default: m.Albums })),
+  <GridPageSkeleton />,
+);
+const Album = lazyRoute<{ user: User }>(
+  () => import('./features/albums/index.js').then((m) => ({ default: m.Album })),
+  <EntityDetailSkeleton />,
+);
+const AlbumArtists = lazyRoute<{}>(
+  () => import('./features/album-artists/index.js').then((m) => ({ default: m.AlbumArtists })),
+  <GridPageSkeleton />,
+);
+const Genres = lazyRoute<{}>(
+  () => import('./features/genres/index.js').then((m) => ({ default: m.Genres })),
+  <GridPageSkeleton />,
+);
+const Genre = lazyRoute<{}>(
+  () => import('./features/genres/index.js').then((m) => ({ default: m.Genre })),
+  <EntityDetailSkeleton />,
+);
+const Years = lazyRoute<{}>(
+  () => import('./features/years/index.js').then((m) => ({ default: m.Years })),
+  <GridPageSkeleton />,
+);
+const Year = lazyRoute<{}>(
+  () => import('./features/years/index.js').then((m) => ({ default: m.Year })),
+  <EntityDetailSkeleton />,
+);
+const Composers = lazyRoute<{}>(
+  () => import('./features/composers/index.js').then((m) => ({ default: m.Composers })),
+  <ListPageSkeleton />,
+);
+const Composer = lazyRoute<{}>(
+  () => import('./features/composers/index.js').then((m) => ({ default: m.Composer })),
+  <EntityDetailSkeleton />,
+);
+const Labels = lazyRoute<{}>(
+  () => import('./features/labels/index.js').then((m) => ({ default: m.Labels })),
+  <ListPageSkeleton />,
+);
+const Label = lazyRoute<{}>(
+  () => import('./features/labels/index.js').then((m) => ({ default: m.Label })),
+  <EntityDetailSkeleton />,
+);
+const StatisticsPage = lazyRoute<{ mode: StatisticsMode }>(
+  () => import('./features/statistics/index.js').then((m) => ({ default: m.StatisticsPage })),
+  <PageSkeleton />,
+);
 
 function Redirect({ to }: { to: string }) {
   const [, setLocation] = useLocation();

@@ -45,6 +45,7 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
 
   const [, setLocation] = useLocation();
   const playQueue = usePlayer((state) => state.playQueue);
+  const queue = usePlayer((state) => state.queue);
   const queueContext = usePlayer((state) => state.queueContext);
   const currentSong = usePlayer((state) => state.currentSong);
   const isOpen = useNowPlaying((state) => state.isOpen);
@@ -66,9 +67,27 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
     : context === 'label' ? `/labels/${encodedId}`
     : `/playlists/${contextId}`;
 
-  // Load context songs when the URL carries a context.
+  // FF5: the player store already materializes the queue (persisted across
+  // refresh). When it covers this URL, refreshing the overlay must not
+  // re-download the whole context (up to 2×500 rows) to rebuild it — derive
+  // the queue from the store instead. Only a queue that cannot resolve the
+  // URL (cold deep link, or the referenced song is gone) lazily resolves the
+  // single referenced context.
+  const storeQueueCoversUrl = hasContext
+    ? queueContext?.type === context &&
+      queueContext.id === contextId &&
+      queue.length > 0 &&
+      (songId === undefined || queue.some((song) => song.id === songId))
+    : false;
+
+  // Load context songs when the URL carries a context the store can't cover.
   useEffect(() => {
     if (!hasContext) {
+      setReady(true);
+      return;
+    }
+    if (storeQueueCoversUrl) {
+      songsRef.current = queue;
       setReady(true);
       return;
     }
@@ -106,7 +125,7 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [context, contextId, hasContext]);
+  }, [context, contextId, hasContext, storeQueueCoversUrl, queue]);
 
   // Start playback when the URL targets something the store doesn't already
   // hold, then open the overlay (the guest shell has no overlay — playback
@@ -121,15 +140,21 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
         playQueue(songsRef.current, startIndex, false, { type: context as QueueContext['type'], id: contextId });
       }
     } else if (songId && currentSong?.id !== songId) {
-      // Lone-track link: play just that song.
-      api<{ song: Song }>(`/songs/${songId}`)
-        .then((res) => playQueue([res.song as unknown as PlayerSong], 0, false, undefined))
-        .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load track'));
+      // Lone-track link: play just that song. If the store already holds it,
+      // reposition within the persisted queue instead of re-fetching it.
+      const storeIndex = queue.findIndex((song) => song.id === songId);
+      if (storeIndex >= 0) {
+        playQueue(queue, storeIndex, false, undefined);
+      } else {
+        api<{ song: Song }>(`/songs/${songId}`)
+          .then((res) => playQueue([res.song as unknown as PlayerSong], 0, false, undefined))
+          .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load track'));
+      }
       return;
     }
     if (currentSong && !isGuest) openNowPlaying();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, songId]);
+  }, [ready, songId, queue]);
 
   // Keep the URL in sync as tracks change while the overlay is open.
   useEffect(() => {

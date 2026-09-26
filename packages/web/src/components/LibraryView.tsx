@@ -21,6 +21,9 @@ import { Card } from './Card.js';
 import { CoverArt } from './CoverArt.js';
 import { ListRow } from './ListRow.js';
 import { PageState } from './PageState.js';
+import { VirtualGrid } from './ui/VirtualGrid.js';
+import { VirtualList } from './ui/VirtualList.js';
+import { useScrollParent } from './ui/useScrollParent.js';
 
 export interface LibraryViewColumn<T> {
   key: string;
@@ -56,6 +59,12 @@ interface LibraryViewProps<T> {
   getRating?: (item: T) => number | undefined;
   renderContextMenu?: (item: T, children: ReactNode, selectedItems: T[]) => ReactNode;
   emptyMessage?: string;
+  /** Extra explanation line under the empty message (e.g. an upload pointer). */
+  emptyDescription?: string;
+  /** Primary action for the empty state, when one exists (e.g. "Clear filters"). */
+  emptyAction?: { label: string; onClick: () => void };
+  /** Retry affordance for the error state; the server message stays inline. */
+  onRetry?: () => void;
   defaultView?: 'list' | 'grid';
   availableViews?: ViewMode[];
   getCover?: (item: T) => string | undefined;
@@ -71,6 +80,11 @@ interface LibraryViewProps<T> {
   groupBy?: (item: T) => string | undefined;
   /** Render a custom header for a group. Receives the group key and the items in the group. */
   renderGroupHeader?: (key: string, items: T[]) => ReactNode;
+  /**
+   * Lists longer than this are windowed (only visible rows/cards render).
+   * dnd-sortable and grouped lists are never windowed. Defaults to 150.
+   */
+  virtualizeThreshold?: number;
 }
 
 type ViewMode = 'list' | 'grid';
@@ -176,6 +190,9 @@ export function LibraryView<T>({
   getRating,
   renderContextMenu,
   emptyMessage = 'No items found.',
+  emptyDescription,
+  emptyAction,
+  onRetry,
   defaultView = 'list',
   availableViews = ['list', 'grid'],
   getCover,
@@ -188,11 +205,13 @@ export function LibraryView<T>({
   getIndexLabel,
   groupBy,
   renderGroupHeader,
+  virtualizeThreshold = 150,
 }: LibraryViewProps<T>) {
   const effectiveDefaultView = availableViews.includes(defaultView) ? defaultView : availableViews[0];
   const [viewMode, setViewMode] = useState<ViewMode>(effectiveDefaultView);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
+  const { ref: scrollAnchorRef, scrollParent } = useScrollParent<HTMLDivElement>();
 
   const errorText = error instanceof Error ? error.message : error ?? null;
 
@@ -291,7 +310,7 @@ export function LibraryView<T>({
     return (
       <div>
         {title && <h2 className="mb-4 font-display text-lg font-semibold tracking-tight">{title}</h2>}
-        <PageState error={errorText}>{null}</PageState>
+        <PageState error={errorText} onRetry={onRetry}>{null}</PageState>
       </div>
     );
   }
@@ -300,7 +319,7 @@ export function LibraryView<T>({
     return (
       <div>
         {title && <h2 className="mb-4 font-display text-lg font-semibold tracking-tight">{title}</h2>}
-        <PageState isEmpty emptyMessage={emptyMessage}>{null}</PageState>
+        <PageState isEmpty emptyMessage={emptyMessage} emptyDescription={emptyDescription} emptyAction={emptyAction}>{null}</PageState>
       </div>
     );
   }
@@ -330,6 +349,80 @@ export function LibraryView<T>({
     const groupHeaderColSpan =
       (sortable ? 1 : 0) + 1 + columns.length + (onFavorite ? 1 : 0) + (onRate ? 1 : 0);
 
+    // The dnd-sortable list (queue editor) and grouped lists keep the
+    // unwindowed renderer: dnd and group headers do not survive windowing.
+    const useVirtualRows =
+      scrollParent !== null && !sortable && !groupBy && data.length > virtualizeThreshold;
+
+    const renderItemRow = (item: T) => {
+      const index = rowIndexMap.get(item) ?? 0;
+      const id = getId(item);
+      const href = getHref(item);
+      const starred = getFavorite?.(item);
+      const rating = getRating?.(item);
+      const isSelected = selectedIds.has(id);
+      const isPlaying = playingId !== undefined && playingId === id;
+      const indexLabel = getIndexLabel?.(item, index);
+
+      if (sortable) {
+        return (
+          <SortableLibraryRow
+            key={id}
+            item={item}
+            getId={getId}
+            index={index}
+            columns={columns}
+            isSelected={isSelected}
+            isPlaying={isPlaying}
+            onSelect={(e) => handleRowSelect(item, e)}
+            onActivate={() => handleRowActivate(item)}
+            onPlay={onPlay ? () => onPlay(item) : undefined}
+            onShufflePlay={onShufflePlay && !disableRowShuffle ? () => onShufflePlay(data) : undefined}
+            favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
+            rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
+            renderContextMenu={
+              renderContextMenu
+                ? (children, selectedItems) => {
+                    const menuSelection = selectedItems.length > 0 ? selectedItems : [item];
+                    return renderContextMenu(item, children, menuSelection);
+                  }
+                : undefined
+            }
+            selectedItems={selectedItems}
+            rowClassName={getRowClassName?.(item)}
+            indexPad={indexPad}
+            indexLabel={indexLabel}
+          />
+        );
+      }
+
+      const row = (
+        <ListRow
+          href={href}
+          index={index}
+          isSelected={isSelected}
+          isPlaying={isPlaying}
+          onSelect={(e) => handleRowSelect(item, e)}
+          onActivate={() => handleRowActivate(item)}
+          onPlay={onPlay ? () => onPlay(item) : undefined}
+          onShufflePlay={onShufflePlay && !disableRowShuffle ? () => onShufflePlay(data) : undefined}
+          favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
+          rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
+          className={getRowClassName?.(item)}
+          indexPad={indexPad}
+          indexLabel={indexLabel}
+        >
+          {columns.map((col) => (
+            <td key={col.key} className={cn('truncate py-2 pr-4', col.className)}>
+              {col.render(item)}
+            </td>
+          ))}
+        </ListRow>
+      );
+      const menuSelection = selectedItems.length > 0 ? selectedItems : [item];
+      return renderContextMenu ? renderContextMenu(item, row, menuSelection) : row;
+    };
+
     const table = (
       <table className="w-full text-left text-sm">
         <thead className="border-b border-rule text-muted">
@@ -345,95 +438,36 @@ export function LibraryView<T>({
             {onRate && <th className="w-32 py-2 pr-4 font-medium" aria-label="Rating" />}
           </tr>
         </thead>
-        <tbody className="divide-y divide-rule">
-          {groups.map((group, groupIndex) => (
-            <Fragment key={group.key ?? `group-${groupIndex}`}>
-              {group.key !== undefined && group.key !== '' && (
-                <tr className="border-t border-rule first:border-t-0">
-                  <th
-                    colSpan={groupHeaderColSpan}
-                    className="py-2 pr-4 text-left text-xs font-semibold uppercase tracking-wider text-muted"
-                    scope="rowgroup"
-                  >
-                    {renderGroupHeader ? renderGroupHeader(group.key, group.items) : group.key}
-                  </th>
-                </tr>
-              )}
-              {group.items.map((item) => {
-                const index = rowIndexMap.get(item) ?? 0;
-                const id = getId(item);
-                const href = getHref(item);
-                const starred = getFavorite?.(item);
-                const rating = getRating?.(item);
-                const isSelected = selectedIds.has(id);
-                const isPlaying = playingId !== undefined && playingId === id;
-                const indexLabel = getIndexLabel?.(item, index);
-
-                if (sortable) {
-                  return (
-                    <SortableLibraryRow
-                      key={id}
-                      item={item}
-                      getId={getId}
-                      index={index}
-                      columns={columns}
-                      isSelected={isSelected}
-                      isPlaying={isPlaying}
-                      onSelect={(e) => handleRowSelect(item, e)}
-                      onActivate={() => handleRowActivate(item)}
-                      onPlay={onPlay ? () => onPlay(item) : undefined}
-                      onShufflePlay={onShufflePlay && !disableRowShuffle ? () => onShufflePlay(data) : undefined}
-                      favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
-                      rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
-                      renderContextMenu={
-                        renderContextMenu
-                          ? (children, selectedItems) => {
-                              const menuSelection = selectedItems.length > 0 ? selectedItems : [item];
-                              return renderContextMenu(item, children, menuSelection);
-                            }
-                          : undefined
-                      }
-                      selectedItems={selectedItems}
-                      rowClassName={getRowClassName?.(item)}
-                      indexPad={indexPad}
-                      indexLabel={indexLabel}
-                    />
-                  );
-                }
-
-                const row = (
-                  <ListRow
-                    href={href}
-                    index={index}
-                    isSelected={isSelected}
-                    isPlaying={isPlaying}
-                    onSelect={(e) => handleRowSelect(item, e)}
-                    onActivate={() => handleRowActivate(item)}
-                    onPlay={onPlay ? () => onPlay(item) : undefined}
-                    onShufflePlay={onShufflePlay && !disableRowShuffle ? () => onShufflePlay(data) : undefined}
-                    favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
-                    rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
-                    className={getRowClassName?.(item)}
-                    indexPad={indexPad}
-                    indexLabel={indexLabel}
-                  >
-                    {columns.map((col) => (
-                      <td key={col.key} className={cn('truncate py-2 pr-4', col.className)}>
-                        {col.render(item)}
-                      </td>
-                    ))}
-                  </ListRow>
-                );
-                const menuSelection = selectedItems.length > 0 ? selectedItems : [item];
-                return (
-                  <Fragment key={id}>
-                    {renderContextMenu ? renderContextMenu(item, row, menuSelection) : row}
-                  </Fragment>
-                );
-              })}
-            </Fragment>
-          ))}
-        </tbody>
+        {useVirtualRows ? (
+          <VirtualList
+            items={data}
+            getId={getId}
+            scrollElement={scrollParent}
+            spacerColSpan={groupHeaderColSpan}
+            renderItem={renderItemRow}
+          />
+        ) : (
+          <tbody className="divide-y divide-rule">
+            {groups.map((group, groupIndex) => (
+              <Fragment key={group.key ?? `group-${groupIndex}`}>
+                {group.key !== undefined && group.key !== '' && (
+                  <tr className="border-t border-rule first:border-t-0">
+                    <th
+                      colSpan={groupHeaderColSpan}
+                      className="py-2 pr-4 text-left text-xs font-semibold uppercase tracking-wider text-muted"
+                      scope="rowgroup"
+                    >
+                      {renderGroupHeader ? renderGroupHeader(group.key, group.items) : group.key}
+                    </th>
+                  </tr>
+                )}
+                {group.items.map((item) => (
+                  <Fragment key={getId(item)}>{renderItemRow(item)}</Fragment>
+                ))}
+              </Fragment>
+            ))}
+          </tbody>
+        )}
       </table>
     );
 
@@ -452,47 +486,65 @@ export function LibraryView<T>({
     );
   };
 
-  const renderGrid = () => (
-    <div className="library-view-grid grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-      {data.map((item) => {
-        const href = getHref(item);
-        const starred = getFavorite?.(item);
-        const rating = getRating?.(item);
-        const coverId = getCover?.(item);
-        const customCover = renderCover?.(item);
-        const isPlaying = playingId !== undefined && playingId === getId(item);
-        const [titleField, ...extraFields] = cardFields;
-        const coverElement =
-          customCover ??
-          (coverId !== undefined ? (
-            <CoverArt coverArt={coverId} alt={getCoverAlt?.(item) ?? 'Cover art'} />
-          ) : undefined);
-        const card = (
-          <Card
-            href={href}
-            title={titleField.render(item)}
-            fields={extraFields.map((field) => ({
-              content: field.render(item),
-              href: field.getHref?.(item),
-            }))}
-            cover={coverElement}
-            favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
-            rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
-            play={onPlay ? { onPlay: () => onPlay(item), onShufflePlay: onShufflePlay && !disableRowShuffle ? () => onShufflePlay(data) : undefined } : undefined}
-            isPlaying={isPlaying}
-          />
-        );
-        return (
-          <Fragment key={getId(item)}>
-            {renderContextMenu ? renderContextMenu(item, card, [item]) : card}
-          </Fragment>
-        );
-      })}
-    </div>
-  );
+  const renderGrid = () => {
+    const renderCardItem = (item: T) => {
+      const href = getHref(item);
+      const starred = getFavorite?.(item);
+      const rating = getRating?.(item);
+      const coverId = getCover?.(item);
+      const customCover = renderCover?.(item);
+      const isPlaying = playingId !== undefined && playingId === getId(item);
+      const [titleField, ...extraFields] = cardFields;
+      const coverElement =
+        customCover ??
+        (coverId !== undefined ? (
+          <CoverArt coverArt={coverId} alt={getCoverAlt?.(item) ?? 'Cover art'} />
+        ) : undefined);
+      const card = (
+        <Card
+          href={href}
+          title={titleField.render(item)}
+          fields={extraFields.map((field) => ({
+            content: field.render(item),
+            href: field.getHref?.(item),
+          }))}
+          cover={coverElement}
+          favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
+          rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
+          play={onPlay ? { onPlay: () => onPlay(item), onShufflePlay: onShufflePlay && !disableRowShuffle ? () => onShufflePlay(data) : undefined } : undefined}
+          isPlaying={isPlaying}
+        />
+      );
+      return renderContextMenu ? renderContextMenu(item, card, [item]) : card;
+    };
+
+    const useVirtualGrid = scrollParent !== null && data.length > virtualizeThreshold;
+
+    if (useVirtualGrid) {
+      // className carries the grid marker + column config for styling hooks;
+      // VirtualGrid owns layout (absolute positioning inside a sized box).
+      return (
+        <VirtualGrid
+          items={data}
+          getId={getId}
+          scrollElement={scrollParent}
+          className="library-view-grid"
+          renderItem={renderCardItem}
+        />
+      );
+    }
+
+    return (
+      <div className="library-view-grid grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        {data.map((item) => (
+          <Fragment key={getId(item)}>{renderCardItem(item)}</Fragment>
+        ))}
+      </div>
+    );
+  };
 
   return (
-    <div>
+    <div ref={scrollAnchorRef}>
       {title && (
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold tracking-tight">{title}</h2>
