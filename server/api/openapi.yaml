@@ -3610,6 +3610,10 @@ components:
         shareToken: { type: string }
         isSmart: { type: boolean }
         resolveMode: { $ref: '#/components/schemas/ResolveMode' }
+        rules:
+          anyOf:
+            - { $ref: '#/components/schemas/SmartPlaylistRules' }
+            - { type: 'null' }
         songCount: { type: integer }
         entries:
           type: array
@@ -4058,10 +4062,10 @@ components:
         random:
           type: array
           items: { $ref: '#/components/schemas/HomeAlbumCard' }
-        recentlyAdded:
+        recentAdditions:
           type: array
-          description: Albums whose newest song file is most recently touched, first.
-          items: { $ref: '#/components/schemas/HomeAlbumCard' }
+          description: Songs in import order (the songs rowid is the import order).
+          items: { $ref: '#/components/schemas/HomeSongCard' }
         recentlyPlayed:
           type: array
           items: { $ref: '#/components/schemas/HomeAlbumCard' }
