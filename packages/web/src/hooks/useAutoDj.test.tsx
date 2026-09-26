@@ -3,7 +3,7 @@ import { render, waitFor } from '@testing-library/react';
 import { useState, useEffect } from 'react';
 import { useAutoDj } from './useAutoDj.js';
 import type { PlayerSong } from '../stores/playerStore.js';
-import type { UserPreferences, AutoDjMode } from '@sonarly/shared';
+import type { UserPreferences, AutoDjMode } from '../types';
 
 const mockApi = vi.hoisted(() =>
   vi.fn(((_path: string, _options?: { method?: string; body?: string }) =>

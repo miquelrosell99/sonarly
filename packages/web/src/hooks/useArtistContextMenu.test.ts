@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import * as React from 'react';
-import type { Artist, Song } from '@sonarly/shared';
+import type { Artist, Song } from '../types';
 import { api } from '../lib/api.js';
 import { useArtistContextMenu } from './useArtistContextMenu.js';
 

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { UserPreferences } from '@sonarly/shared';
+import type { UserPreferences } from '../types';
 import { api } from '../lib/api.js';
 import { useTheme } from '../stores/themeStore.js';
 

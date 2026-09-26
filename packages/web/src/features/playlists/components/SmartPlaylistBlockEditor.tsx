@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { SmartPlaylistRule, SmartPlaylistRules, SmartPlaylistRuleGroup, SmartPlaylistSort, SmartPlaylistFieldType } from '@sonarly/shared';
-import { SMART_PLAYLIST_FIELDS } from '@sonarly/shared';
+import type { SmartPlaylistRule, SmartPlaylistRules, SmartPlaylistRuleGroup, SmartPlaylistSort, SmartPlaylistFieldType } from '../../../types';
+import { SMART_PLAYLIST_FIELDS } from '../../../types';
 import { cn } from '../../../lib/cn.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';

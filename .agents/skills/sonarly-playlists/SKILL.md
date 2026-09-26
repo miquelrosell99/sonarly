@@ -9,29 +9,30 @@ whenToUse: When working on playlist CRUD, smart playlist rules or compilation, p
 
 ## Map of the subsystem
 
-- `packages/server/src/features/playlists/` — `repository.ts` (CRUD + `playlist_songs` with `position` + share/ACL queries), `management-routes.ts` (10 native endpoints), `opensubsonic-routes.ts` (5 Subsonic endpoints).
-- `packages/server/src/features/smart-playlists/compiler.ts` — compiles the rule AST to parameterized SQL. Fields from a fixed switch (unknown field silently falls back to `s.title` — validate rules at the API boundary if you touch this).
-- Rule model: shared types in `packages/shared/src/smart-playlist.ts` (`isSmartPlaylistRuleGroup` shape guard, `SMART_PLAYLIST_FIELDS`). Single-level groups: `all` AND'd with `any`; no nesting by design.
+- `v2/internal/modules/playlists/` — `repository.go` (CRUD + `playlist_songs` with `position`), `policy.go` (**ONE** `Resolve` for every surface), `service.go` (orchestration), `routes.go` (native `/api/playlists`), `subsonic.go` (`/rest` playlist endpoints delegating to the same service), `rules.go` (rule validation).
+- `v2/internal/modules/playlists/compiler.go` — compiles the rule AST to parameterized SQL. Whitelisting: unknown fields are a **400** (v1's silent `s.title` fallback was fixed); LIKE-escaping (`ESCAPE '\'`) and the join/WHERE bind-order handling are load-bearing.
+- Rule model: types in `packages/web/src/types/smart-playlist.ts` (`SMART_PLAYLIST_FIELDS`, `isSmartPlaylistRuleGroup`). Single-level groups: `all` AND'd with `any`; no nesting by design.
 - Deep dive doc: `docs/smart-playlists.md`.
 
 ## Sharing model (read before changing)
 
-- Visibility: private / public / link. `share_token` (random UUID) grants anonymous access to the linked playlist's *content* via SQL EXISTS scoping (`shareTokenGrantsSong`/`CoverArt` in `repository.ts`).
-- ACL: `playlist_shares(playlist_id, user_id, can_edit)`.
-- **Known divergence**: `canViewPlaylist` in `management-routes.ts` accepts tokens regardless of visibility; `opensubsonic-routes.ts` requires `visibility='link'`. Token lifecycle also differs (Subsonic update clears token when visibility≠'link'; management PUT keeps it). Unify when touching either.
-- `GET /api/playlists/:id` currently leaks `shareToken` to any viewer — the list endpoint strips it.
-- 30s grant cache for smart-playlist share resolution is keyed `${id}:${rules_json}` in an unbounded Map — bounded caches only, please.
+- ONE access policy (`policy.Resolve`): levels `none < view < edit < owner`. Owner = delete/share/manage-link; edit = owner or `can_edit` share; view = visibility (public/shared) or membership.
+- Visibility: `private` / `shared` (per-user `playlist_shares`) / `public` (all users) / `link`.
+- `share_token` is crypto/rand, minted iff visibility=`link`, and grants anonymous access to the linked playlist's *content* via SQL EXISTS scoping (song streams, cover art, smart-rule resolution).
+- The smart-playlist grant cache is **bounded** and keyed by playlist id + `rules_json` (rule edits invalidate immediately).
+- `GET /api/playlists/:id` exposes `shareToken` to the owner only (v1 leaked it to any viewer — fixed in v2).
 
 ## Smart playlist facts
 
 - Compilation + execution runs **per HTTP request**; the playlist list view compiles once per smart row. Keep rules cheap.
 - `limitPercent` triggers an extra `COUNT(DISTINCT …)` query per compile.
-- The `genre` rule joins on `s.genre_id` (primary genre only) — multi-genre songs miss secondary genres; auto-dj does it correctly via `song_genres` EXISTS.
-- `inPlaylist` doesn't verify the referenced playlist belongs to the requesting user (UUID-guessability only).
+- The `genre` rule matches via the `song_genres` junction (secondary genres included — v1's primary-genre-only gap is fixed); `inPlaylist` verifies the referenced playlist is accessible to the requesting user (v1's UUID-guessability hole is fixed).
+- Auto-dj uses its own scoring, not the compiler.
 
 ## Invariants to preserve
 
-- `createPlaylist`/`updatePlaylist` rewrite `playlist_songs` non-transactionally — wrap in `db.transaction` when touching them.
-- Playlist authorization is enforced consistently on **both** surfaces; any change must update `management-routes.ts` and `opensubsonic-routes.ts` together (or better: extract the shared policy).
-- Smart rules are data, never SQL strings — the compiler's parameterization and LIKE-escaping (`ESCAPE '\'`) are load-bearing; preserve them and the join/WHERE bind-order handling (`compiler.ts:296-305`).
-- Tests: `tests/features/playlists/` (management 20 tests, opensubsonic 21), `tests/features/smart-playlists/` (compiler 17, routes 4), `packages/server/scripts/test-smart-compiler.ts` (debug script, hardcoded paths).
+- Playlist writes are transactional (member rewrites, type conversion, share changes) — don't open non-transactional write paths.
+- Authorization is the single `policy.Resolve`; the native routes and the Subsonic endpoints both go through it. Any policy change applies everywhere at once — that is the point.
+- Smart rules are data, never SQL strings — preserve the compiler's parameterization, LIKE-escaping, and join/WHERE bind order.
+- `resolve_mode` = `tracks` resolves user-scoped rules against the **owner's** data (shared curated list, default); `query` re-resolves per viewer.
+- Tests: `compiler_test.go`, `policy_test.go`, `repository_test.go`, `routes_test.go`, `subsonic_test.go`, `rules_test.go`, `cache_test.go` in the module — run `go test ./... -count=1` from `v2/`.

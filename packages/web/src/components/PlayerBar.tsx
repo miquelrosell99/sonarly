@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'wouter';
-import type { AutoDjMode, User } from '@sonarly/shared';
+import type { AutoDjMode, User } from '../types';
 import { Icon } from './ui/Icon.js';
 import { CoverArt } from './CoverArt.js';
 import { FavoriteButton, StarRating } from './ActionButtons.js';

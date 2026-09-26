@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { Song } from '@sonarly/shared';
+import type { Song } from '../types';
 import { usePlayer, resetPlayer, type PlayerSong } from './playerStore.js';
 
 function createSong(id: string, title = `Song ${id}`): Song {

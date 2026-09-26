@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { screen, cleanup, waitFor } from '@testing-library/react';
 import { Router } from 'wouter';
-import type { User } from '@sonarly/shared';
+import type { User } from '../../../types';
 import { Tracks } from './Tracks.js';
 import { renderWithQueryClient } from '../../../lib/testing.js';
 

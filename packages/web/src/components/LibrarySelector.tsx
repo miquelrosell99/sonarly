@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Library } from '@sonarly/shared';
+import type { Library } from '../types';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 

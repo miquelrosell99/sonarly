@@ -1,5 +1,5 @@
 import { cn } from '../lib/cn.js';
-import type { User } from '@sonarly/shared';
+import type { User } from '../types';
 
 interface AvatarProps {
   user: User;

@@ -1,4 +1,4 @@
-import type { SidebarItem, UserPreferences } from '@sonarly/shared';
+import type { SidebarItem, UserPreferences } from '../types';
 
 export interface SidebarItemDefinition {
   id: string;

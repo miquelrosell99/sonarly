@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'wouter';
-import type { Song, User } from '@sonarly/shared';
+import type { Song, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
@@ -41,7 +41,7 @@ function PlaylistHeaderContextMenu({
   children: React.ReactNode;
 }) {
   const sections = usePlaylistContextMenu(
-    playlist as unknown as import('@sonarly/shared').Playlist,
+    playlist as unknown as import('../../../types').Playlist,
     onEdit,
     onConvert,
   );

@@ -1,4 +1,4 @@
-import type { Song } from '@sonarly/shared';
+import type { Song } from '../types';
 
 export type SongWithNames = Song & {
   artistName?: string;

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { MAX_EXCLUDE_IDS } from '@sonarly/shared';
+import { MAX_EXCLUDE_IDS } from '../types';
 import { usePlayer, type PlayerSong } from '../stores/playerStore.js';
 import { usePreferences } from './usePreferences.js';
 import { useNotification } from '../contexts/NotificationContext.js';

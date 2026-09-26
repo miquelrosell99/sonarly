@@ -2,16 +2,13 @@
 
 A self-hosted music server that speaks the OpenSubsonic API and provides a premium, dark-themed web player for your personal music library.
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Go](https://img.shields.io/badge/Go-1.23-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
-[![Fastify](https://img.shields.io/badge/Fastify-5-000000?logo=fastify&logoColor=white)](https://fastify.dev/)
 [![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)](https://sqlite.org/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![pnpm](https://img.shields.io/badge/pnpm-9-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
-[![Vitest](https://img.shields.io/badge/Vitest-3-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev/)
-[![Tests](https://img.shields.io/badge/tests-703%20passing-6E9F18?logo=vitest&logoColor=white)]()
 [![OpenSubsonic](https://img.shields.io/badge/OpenSubsonic-1.16.1-FF6B6B?logo=audioboom&logoColor=white)]()
 [![Self-hosted](https://img.shields.io/badge/Self--hosted-✓-2EA043?logo=linux&logoColor=white)]()
 
@@ -22,6 +19,8 @@ A self-hosted music server that speaks the OpenSubsonic API and provides a premi
 ## What is Sonarly?
 
 Sonarly organizes your music library, serves it through the **OpenSubsonic API** (so your favorite Subsonic clients just work), and provides a web management UI inspired by TIDAL's dark, art-first aesthetic.
+
+The server is a single Go binary — it serves the web client, the SQLite database, the native management API at `/api`, and the OpenSubsonic-compatible API at `/rest`.
 
 ## Quick start
 
@@ -42,14 +41,18 @@ cp .env.example .env
 docker compose -f compose.yaml up -d
 ```
 
-### Building locally
+### Building from source
 
-If you prefer to build the image yourself (the repo `compose.yaml` has no `build:` section):
+The all-in-one image builds the web client and the Go server in one multi-stage build (build context is the repo root):
 
 ```bash
-docker build -f docker/Dockerfile.server -t ghcr.io/miquelrosell99/sonarly:latest .
+docker build -f docker/Dockerfile.v2 \
+  --build-arg SONARLY_VERSION=$(git describe --tags --always) \
+  -t ghcr.io/miquelrosell99/sonarly:v2.0.0-rc1 .
 docker compose -f compose.yaml up -d
 ```
+
+To run the pieces directly without Docker, see [docs/development.md](docs/development.md).
 
 The web UI is available at `http://localhost:4533` (change with `SONARLY_PORT`). On first visit you will be redirected to `/setup` to create the admin account.
 
@@ -62,58 +65,21 @@ The web UI is available at `http://localhost:4533` (change with `SONARLY_PORT`).
 - **Smart playlists** — create dynamic playlists from rules that update automatically.
 - **Auto DJ** — let Sonarly keep the music going based on your library.
 - **Self-hosted and containerized** — single Docker image with everything included.
-- **Well tested** — 429+ backend and 274+ frontend tests run on every change.
+- **Well tested** — the Go server and the React client each have extensive test suites that run on every change.
 - **Tag editing** — write metadata back to files with Python Mutagen.
-- **Users and permissions** — admin and regular user roles.
+- **Users and permissions** — admin and regular user roles, with per-user library assignment enforced on every content path.
 - **Multi-library support** — manage several media folders from the admin panel.
-
-## Development
-
-Requirements:
-
-- Node.js 20
-- pnpm 9
-- Python 3 + Mutagen (`pip3 install mutagen`)
-
-```bash
-pnpm install
-pnpm dev
-```
-
-For Docker-based development with hot reload:
-
-```bash
-cp .env.example .env
-cp docker/compose.dev.yaml.example compose.dev.yaml
-# edit .env and set SESSION_SECRET
-docker compose -f compose.dev.yaml up -d --build
-```
-
-- Web UI: http://localhost:4534
-- Backend directly: http://localhost:3001
-
-Run the test suite:
-
-```bash
-pnpm test
-```
-
-Trigger a library scan from the host without opening the UI:
-
-```bash
-docker exec sonarly-dev sh -c "cd /app/packages/server && pnpm trigger-scan"
-```
 
 ## Documentation
 
 | Document | What it covers |
 |---|---|
 | [docs/README.md](docs/README.md) | Documentation index |
-| [docs/deployment.md](docs/deployment.md) | Docker production/development deployment, environment variables, volumes, troubleshooting |
+| [docs/deployment.md](docs/deployment.md) | Docker deployment, environment variables, volumes, upgrades, rollback, troubleshooting |
 | [docs/development.md](docs/development.md) | Development setup, scripts, testing, database migrations |
-| [docs/architecture.md](docs/architecture.md) | Application structure, request pipeline, data flow |
+| [docs/architecture.md](docs/architecture.md) | Server modules, request pipeline, data flow, web app structure |
 | [docs/smart-playlists.md](docs/smart-playlists.md) | Smart playlists: rule model, fields, operators, resolve modes |
-| [docs/api.md](docs/api.md) | Management REST API and OpenSubsonic API reference |
+| [docs/api.md](docs/api.md) | Management REST API (`/api`) and OpenSubsonic API (`/rest`) reference |
 | [docs/db-schema.md](docs/db-schema.md) | SQLite database schema and conventions |
 | [docs/design-language.md](docs/design-language.md) | UI design tokens, typography, and visual principles |
 | [CHANGELOG.md](CHANGELOG.md) | Release notes and notable changes |
@@ -124,16 +90,18 @@ docker exec sonarly-dev sh -c "cd /app/packages/server && pnpm trigger-scan"
 
 ```
 .
-├── docker/                 # Dockerfiles and entrypoint
-├── docs/                   # Public documentation
+├── v2/                     # Go server (the only server)
+│   ├── cmd/sonarly/        # entrypoint
+│   ├── internal/           # config, db, httpserver, modules/*, staticfs
+│   ├── api/openapi.yaml    # native REST contract (OpenAPI 3.1)
+│   └── testparity/         # v1↔v2 parity harness (skips without a v1 checkout)
 ├── packages/
-│   ├── server/             # Fastify backend, SQLite, OpenSubsonic API
-│   ├── shared/             # Shared TypeScript types
-│   └── web/                # React management UI
-├── compose.yaml            # Production deployment
+│   └── web/                # React web client (Vite, Tailwind, react-query)
 ├── docker/
-│   ├── compose.yaml.example # Production deployment example
-│   └── compose.dev.yaml.example # Dev deployment with hot reload example
+│   ├── Dockerfile.v2       # all-in-one image (web build → Go build → runtime)
+│   ├── entrypoint.sh       # PUID/PGID privilege drop
+│   └── compose.v2.yaml.example
+├── compose.yaml            # Production deployment (gitignored, copy from example)
 └── .env.example            # Required environment variables
 ```
 
@@ -143,22 +111,29 @@ docker exec sonarly-dev sh -c "cd /app/packages/server && pnpm trigger-scan"
 ┌─────────────────────────────────────────────────┐
 │                Sonarly container                │
 │                                                 │
-│  ┌──────────────┐   ┌─────────────────────┐     │
-│  │ React + Vite │   │   Fastify backend   │     │
-│  │ (dev: 5173)  │   │    (port 3000)      │     │
-│  └──────┬───────┘   └──────────┬──────────┘     │
-│         │                      │                │
-│         └───────────┬──────────┘                │
+│  ┌───────────────────────────────────────────┐  │
+│  │          Go server (port 3000)            │  │
+│  │                                           │  │
+│  │   /rest/*  OpenSubsonic adapter           │  │
+│  │   /api/*   native management REST API     │  │
+│  │   /*       built React web client (SPA)   │  │
+│  │                                           │  │
+│  │   worker/queue: scans, ingest, organize   │  │
+│  │   SQLite (WAL) ──┐                        │  │
+│  └──────────────────┼────────────────────────┘  │
 │                     │                           │
-│            OpenSubsonic /api                    │
-│            /rest/ /api/ /*                      │
-└─────────────────────────────────────────────────┘
+└─────────────────────┼───────────────────────────┘
+                      │
+        ┌─────────────┴──────────────┐
+        │ bind mounts: /data/db      │  SQLite DB + server state
+        │              /data/ingest  │  drop folder
+        │              /media/music  │  the music library
+        └────────────────────────────┘
 ```
 
-- **Frontend**: React 18 + Vite 6 + Tailwind CSS + wouter + Zustand.
-- **Backend**: Fastify 5 + better-sqlite3 + Zod.
-- **Scanner**: background worker thread with chokidar watchers.
-- **Storage**: SQLite for metadata, filesystem for audio/cover art.
+- **Server**: Go 1.23, `net/http` + chi v5, SQLite via `modernc.org/sqlite` (pure Go, WAL). Modular monolith under `v2/internal/modules/<domain>`.
+- **Web client**: React 18 + Vite 6 + Tailwind CSS, react-query for server state, wouter router, Zustand for client state, code-split by route.
+- **Storage**: SQLite for metadata and user data; filesystem for audio, cover art, and avatars.
 
 ## Compatible clients
 
@@ -168,6 +143,7 @@ Sonarly implements the OpenSubsonic REST API at `/rest/` and has been tested wit
 |---|---|---|
 | Feishin | Working | Desktop/web player. |
 | Symphonium | Working | Android player; full library sync and playback confirmed. |
+| Music Assistant | Working | Library sync verified during the v2 parity run. |
 | DSub | Not tested yet | Should work; feedback welcome. |
 | Ultrasonic | Not tested yet | Should work; feedback welcome. |
 

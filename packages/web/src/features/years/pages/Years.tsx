@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import type { Song } from '@sonarly/shared';
+import type { Song } from '../../../types';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useLibraryStore } from '../../../stores/libraryStore.js';

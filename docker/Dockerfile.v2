@@ -13,7 +13,7 @@
 #   runtime        alpine          — ffmpeg + python3/mutagen + su-exec, non-root
 
 # ---------------------------------------------------------------------------
-# Stage 1: web client build (Vite + tsc). Same pnpm toolchain shape as v1.
+# Stage 1: web client build (Vite + tsc).
 # ---------------------------------------------------------------------------
 FROM node:22-alpine AS web-builder
 WORKDIR /app
@@ -21,12 +21,10 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
-COPY packages/shared/package.json packages/shared/
 COPY packages/web/package.json packages/web/
 
 RUN pnpm install --frozen-lockfile
 
-COPY packages/shared packages/shared
 COPY packages/web packages/web
 
 # --filter <pkg>... (trailing dots) builds the package and its workspace deps.
@@ -51,9 +49,8 @@ RUN cd v2 && CGO_ENABLED=0 go build \
       -o /out/sonarly ./cmd/sonarly
 
 # ---------------------------------------------------------------------------
-# Stage 3: runtime. Mirrors the v1 image's tooling: ffmpeg (transcoding),
-# python3 + mutagen==1.48.1 (tag editing, the v1 pip pin), su-exec (privilege
-# drop in the entrypoint), wget (HEALTHCHECK).
+# Stage 3: runtime. Tooling: ffmpeg (transcoding), python3 + mutagen==1.48.1
+# (tag editing), su-exec (privilege drop in the entrypoint), wget (HEALTHCHECK).
 # ---------------------------------------------------------------------------
 FROM alpine:3.20
 
@@ -64,7 +61,7 @@ WORKDIR /app
 
 COPY --from=server-builder /out/sonarly ./sonarly
 COPY --from=web-builder /app/packages/web/dist ./web-dist
-COPY docker/entrypoint.v2.sh /entrypoint.sh
+COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # Defaults mirror the v1 compose shape; everything is overridable at runtime.

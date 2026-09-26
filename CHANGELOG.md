@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-rc1] - 2026-09-26
+
+Complete server rewrite in Go and production cutover. The v1 TypeScript server (`packages/server`) has been **removed from the codebase**; the Go server in `v2/` is the only server.
+
+### Changed
+
+- **Server rewritten in Go 1.23** (`net/http` + chi v5, `modernc.org/sqlite` — pure Go, WAL, single writer connection). Modular monolith under `v2/internal/modules/<domain>/`: catalog, library (scanner + job queue + polling watcher + schedulers), ingest, uploads, playlists (with the whitelisting smart-playlist SQL compiler), search (FTS5), playback (direct + ffmpeg transcode), users/auth, opensubsonic adapter, and admin — one policy and one data path per domain.
+- **Database migrations consolidated**: the v1 migration chain (001–049) is distilled into four embedded migrations (`0001_baseline` + `0002` job payloads + `0003`/`0004` FTS search), applied over the existing v1 database in place. Migrations are forward-only, ledger-tracked (`schema_migrations`).
+- **The v2 binary serves everything**: web client (SPA with index.html fallback), native management REST API at `/api`, OpenSubsonic API at `/rest`, SQLite database, background jobs, SSE events.
+- Web client: domain types migrated from the retired `@sonarly/shared` package into `packages/web/src/types/`; OpenAPI-generated contract client (`src/contract/`) consumed via react-query.
+- **Deployment**: single all-in-one image from `docker/Dockerfile.v2` (web build → Go build → alpine runtime with ffmpeg, python3+mutagen, su-exec). Environment variables renamed to the `SONARLY_*` family (see docs/deployment.md); `docker/entrypoint.sh` handles the PUID/PGID privilege drop.
+- OpenSubsonic compatibility preserved per `docs/v2-opensubsonic-quirks.md` (62 v1-observed quirks, all implemented).
+
+### Removed
+
+- `packages/server` (TypeScript/Fastify backend), `packages/shared`, `docker/Dockerfile.server`, `docker/Dockerfile.dev`, and the v1 compose examples. CI builds/tests the web client; the Go suite covers the server.
+- `v2/testparity` now skips unless `P10_V1_CHECKOUT` points at a pre-removal v1 checkout (the harness boots v1 as its baseline).
+
 ## [0.7.1] - 2026-09-24
 
 ### Fixed
@@ -122,7 +140,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.0.0-rc1...HEAD
+[2.0.0-rc1]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.0.0-rc1
 [0.7.1]: https://github.com/miquelrosell99/sonarly/releases/tag/v0.7.1
 [0.7.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v0.7.0
 [0.6.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v0.6.0

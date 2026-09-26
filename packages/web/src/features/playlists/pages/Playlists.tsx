@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import type { Playlist } from '@sonarly/shared';
+import type { Playlist } from '../../../types';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';

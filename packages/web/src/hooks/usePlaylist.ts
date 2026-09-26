@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { Playlist } from '@sonarly/shared';
+import type { Playlist } from '../types';
 import { api } from '../lib/api.js';
 import { getShareToken, withShareToken } from '../lib/shareToken.js';
 
