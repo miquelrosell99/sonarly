@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import type { Artist, Song } from '@sonarly/shared';
-import { api } from '../../../lib/api.js';
+import type { Artist } from '@sonarly/shared';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { ArtistImage } from '../../../components/ArtistImage.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
@@ -10,8 +9,8 @@ import { useArtistContextMenu } from '../../../hooks/useArtistContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
-import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
-import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
+import { useLibraryStore } from '../../../stores/libraryStore.js';
+import { useArtistsList, useSongsList } from '../../../hooks/useLibraryLists.js';
 
 function ArtistContextMenu({
   artist,
@@ -27,35 +26,16 @@ function ArtistContextMenu({
 }
 
 export function Artists() {
-  const [artists, setArtists] = useState<Artist[]>([]);
-  const [songs, setSongs] = useState<Song[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Artist | null>(null);
   const { notify } = useNotification();
   const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
   const [, setLocation] = useLocation();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-  const epoch = useCacheEpoch();
-
-  const load = () => {
-    setLoading(true);
-    Promise.all([
-      api<{ artists: Artist[] }>(`/artists${buildLibraryQuery(selectedLibraryId)}`),
-      api<{ songs: Song[] }>(`/songs${buildLibraryQuery(selectedLibraryId)}`),
-    ])
-      .then(([artistsRes, songsRes]) => {
-        setArtists(artistsRes.artists);
-        setSongs(songsRes.songs);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load artists'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-  }, [selectedLibraryId, epoch]);
+  const { data: artistsData, isLoading, error, refetch, patchItem } = useArtistsList({ libraryId: selectedLibraryId });
+  const { data: songsData } = useSongsList({ libraryId: selectedLibraryId });
+  const artists = artistsData?.artists ?? [];
+  const songs = songsData?.songs ?? [];
 
   const artistGenres = useMemo(() => {
     const map = new Map<string, Set<string>>();
@@ -78,9 +58,7 @@ export function Artists() {
   const handleFavorite = async (artist: Artist, starred: boolean) => {
     try {
       await setFavorite('artist', artist.id, starred);
-      setArtists((prev) =>
-        prev.map((a) => (a.id === artist.id ? { ...a, starred } : a)),
-      );
+      patchItem(artist.id, { starred });
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to update favorite', 'error');
     }
@@ -89,9 +67,7 @@ export function Artists() {
   const handleRate = async (artist: Artist, rating?: number) => {
     try {
       await setRating('artist', artist.id, rating);
-      setArtists((prev) =>
-        prev.map((a) => (a.id === artist.id ? { ...a, rating } : a)),
-      );
+      patchItem(artist.id, { rating });
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to update rating', 'error');
     }
@@ -118,8 +94,8 @@ export function Artists() {
       <LibraryView
         title="Artists"
         data={filteredArtists}
-        isLoading={loading}
-        error={error}
+        isLoading={isLoading}
+        error={error?.message ?? null}
         columns={columns}
         cardFields={cardFields}
         getId={(artist) => artist.id}
@@ -136,7 +112,7 @@ export function Artists() {
         )}
         emptyMessage={genre ? 'No artists match the current filters.' : 'Your library has no artists yet.'}
         emptyAction={genre ? { label: 'Clear filters', onClick: () => setLocation('/artists') } : undefined}
-        onRetry={load}
+        onRetry={() => void refetch()}
         defaultView="grid"
       />
       {editing && (

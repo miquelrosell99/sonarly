@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Album, Song, User } from '@sonarly/shared';
 import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
@@ -14,7 +15,7 @@ import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
-import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
+import { useAlbumsList } from '../../../hooks/useLibraryLists.js';
 
 interface AlbumDetail {
   album: Album;
@@ -40,9 +41,6 @@ function AlbumContextMenu({
 
 export function Albums({ user }: { user: User }) {
   const blurExplicitTitles = user.blurExplicitTitles === true;
-  const [albums, setAlbums] = useState<Album[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Album | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -55,19 +53,13 @@ export function Albums({ user }: { user: User }) {
   const currentAlbumId = usePlayer((state) => state.currentSong?.albumId);
   const { get } = useFilterParams();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-  const epoch = useCacheEpoch();
+  const queryClient = useQueryClient();
+  const { data, isLoading, error, refetch, patchItem } = useAlbumsList({ libraryId: selectedLibraryId });
+  const albums = data?.albums ?? [];
 
-  const load = () => {
-    setLoading(true);
-    api<{ albums: Album[] }>(`/albums${buildLibraryQuery(selectedLibraryId)}`)
-      .then((res) => setAlbums(res.albums))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load albums'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-  }, [selectedLibraryId, epoch]);
+  // Album edits (tags, delete, cover art) can reshuffle list membership and
+  // ordering beyond a single-row patch; drop the domain cache instead.
+  const invalidateAlbums = () => queryClient.invalidateQueries({ queryKey: ['albums'] });
 
   const yearFrom = get('yearFrom');
   const yearTo = get('yearTo');
@@ -94,7 +86,7 @@ export function Albums({ user }: { user: User }) {
       const detail = await api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
       playSongs(detail.songs);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to play album');
+      notify(err instanceof Error ? err.message : 'Failed to play album', 'error');
     }
   };
 
@@ -106,29 +98,25 @@ export function Albums({ user }: { user: User }) {
       );
       shufflePlay(details.flatMap((detail) => detail.songs));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to shuffle albums');
+      notify(err instanceof Error ? err.message : 'Failed to shuffle albums', 'error');
     }
   };
 
   const handleFavorite = async (album: Album, starred: boolean) => {
     try {
       await setFavorite('album', album.id, starred);
-      setAlbums((prev) =>
-        prev.map((a) => (a.id === album.id ? { ...a, starred } : a)),
-      );
+      patchItem(album.id, { starred });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+      notify(err instanceof Error ? err.message : 'Failed to update favorite', 'error');
     }
   };
 
   const handleRate = async (album: Album, rating?: number) => {
     try {
       await setRating('album', album.id, rating);
-      setAlbums((prev) =>
-        prev.map((a) => (a.id === album.id ? { ...a, rating } : a)),
-      );
+      patchItem(album.id, { rating });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update rating');
+      notify(err instanceof Error ? err.message : 'Failed to update rating', 'error');
     }
   };
 
@@ -141,7 +129,7 @@ export function Albums({ user }: { user: User }) {
         body: JSON.stringify(patched),
       });
       setEditing(null);
-      load();
+      await invalidateAlbums();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to save album', 'error');
     } finally {
@@ -155,7 +143,7 @@ export function Albums({ user }: { user: User }) {
     try {
       await api(`/albums/${editing.id}`, { method: 'DELETE' });
       setEditing(null);
-      load();
+      await invalidateAlbums();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to delete album', 'error');
     } finally {
@@ -178,7 +166,7 @@ export function Albums({ user }: { user: User }) {
         method: 'POST',
         body: formData,
       });
-      load();
+      await invalidateAlbums();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to update cover art', 'error');
     } finally {
@@ -192,7 +180,7 @@ export function Albums({ user }: { user: User }) {
     setCoverArtBusy(true);
     try {
       await api(`/albums/${editing.id}/cover-art`, { method: 'DELETE' });
-      load();
+      await invalidateAlbums();
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to remove cover art', 'error');
     } finally {
@@ -267,8 +255,8 @@ export function Albums({ user }: { user: User }) {
       <LibraryView
         title="Albums"
         data={filteredAlbums}
-        isLoading={loading}
-        error={error}
+        isLoading={isLoading}
+        error={error?.message ?? null}
         columns={columns}
         cardFields={cardFields}
         getId={(album) => album.id}
@@ -290,7 +278,7 @@ export function Albums({ user }: { user: User }) {
         emptyMessage={hasActiveFilters ? 'No albums match the current filters.' : 'Your library has no albums yet.'}
         emptyDescription={!hasActiveFilters && albums.length === 0 && user.isAdmin ? 'Upload music from the top bar to get started.' : undefined}
         emptyAction={hasActiveFilters ? { label: 'Clear filters', onClick: () => setLocation('/albums') } : undefined}
-        onRetry={load}
+        onRetry={() => void refetch()}
         defaultView="grid"
       />
       {editEntity && (

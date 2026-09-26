@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import type { SmartPlaylistRules, Song, SyncedLyricLine } from '@sonarly/shared';
+import type { SmartPlaylistRules, Song } from '@sonarly/shared';
 import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
 import { Button } from './ui/Button.js';
@@ -17,6 +17,9 @@ import { Icon } from './ui/Icon.js';
 import { SmartPlaylistBlockEditor } from '../features/playlists/index.js';
 import { FetchMetadataModal } from './FetchMetadataModal.js';
 import { FetchLyricsModal } from './FetchLyricsModal.js';
+import { useCapabilities } from '../contract/capabilities.js';
+import { normalizeSyncedLyrics } from '../lib/syncedLyrics.js';
+import { buildSongTagsPatch } from '../lib/songEditPatch.js';
 
 type EntityType = 'song' | 'album' | 'artist' | 'playlist';
 
@@ -208,6 +211,8 @@ export function EditEntityModal({
   const [fetchLyricsOpen, setFetchLyricsOpen] = useState(false);
   const [syncedLyricsOverride, setSyncedLyricsOverride] = useState<unknown[] | undefined>(undefined);
   const queryClient = useQueryClient();
+  const capabilities = useCapabilities();
+  const { hasFilePath } = capabilities;
   const wasOpenRef = useRef(open);
 
   useEffect(() => {
@@ -283,6 +288,21 @@ export function EditEntityModal({
       }
     } else if (entityType === 'artist') {
       patched.name = values.name;
+    } else if (entityType === 'song') {
+      // Capability-aware builder: v1 and v2 accept the same SongTags body
+      // today (genre NAMES under `genre`, string|string[]); both reject
+      // `genreId` with 400. The builder is the one seam for a future wire
+      // divergence and hard-strips id-shaped keys from the payload.
+      const songPatch = buildSongTagsPatch(
+        { values, fields, isMulti, touchedFields, explicit },
+        capabilities,
+      );
+      if (isMulti) {
+        onSaveMany?.(songPatch);
+      } else {
+        onSave?.(songPatch);
+      }
+      return;
     } else {
       for (const { key, type, multi } of fields) {
         if (isMulti && !touchedFields.has(key)) continue;
@@ -297,14 +317,6 @@ export function EditEntityModal({
           patched[key] = raw === '' ? null : raw;
         } else {
           patched[key] = raw === '' ? undefined : raw;
-        }
-      }
-      if (entityType === 'song') {
-        if (!isMulti || touchedFields.has('lyrics')) {
-          patched.lyrics = values.lyrics === '' ? undefined : values.lyrics;
-        }
-        if (!isMulti || touchedFields.has('explicit')) {
-          patched.explicit = explicit === null ? undefined : explicit;
         }
       }
     }
@@ -335,6 +347,14 @@ export function EditEntityModal({
 
   const primaryFields = useMemo(() => fields.filter((f) => f.primary), [fields]);
   const secondaryFields = useMemo(() => fields.filter((f) => !f.primary), [fields]);
+
+  // v2 drops filePath from song DTOs; hide the popover instead of rendering
+  // an empty "No file path available".
+  const showFilePath = hasFilePath && !isMulti && entityType === 'song';
+  // v2 can deliver syncedLyrics as a raw string; count normalized lines.
+  const syncedLinesCount = normalizeSyncedLyrics(
+    syncedLyricsOverride ?? getCommonValue(activeEntities, 'syncedLyrics'),
+  ).length;
 
   const handleMetadataFetched = (patch: Record<string, string | string[]>) => {
     for (const [key, value] of Object.entries(patch)) {
@@ -389,7 +409,7 @@ export function EditEntityModal({
         title={
           <span className="flex items-center gap-2">
             {isMulti ? `Edit ${activeEntities.length} ${entityType}s` : `Edit ${entityType}`}
-            {!isMulti && entityType === 'song' && (
+            {showFilePath && (
               <FilePathInfo filePath={String(activeEntities[0]?.filePath ?? '')} />
             )}
           </span>
@@ -592,7 +612,7 @@ export function EditEntityModal({
 
                 <div className="flex items-center justify-between rounded-lg border border-rule bg-surface px-4 py-3">
                   <span className="text-sm text-fg-secondary">
-                    {((syncedLyricsOverride ?? (getCommonValue(activeEntities, 'syncedLyrics') as unknown[] | undefined))?.length ?? 0)} synced lines
+                    {syncedLinesCount} synced lines
                   </span>
                   {!readOnly && !isMulti && (
                     <Button variant="ghost" onClick={onEditSyncedLyrics}>
@@ -650,10 +670,9 @@ export function EditEntityModal({
           albumName={String(activeEntities[0].albumName ?? activeEntities[0].album ?? '')}
           duration={typeof activeEntities[0].duration === 'number' ? activeEntities[0].duration : undefined}
           currentLyrics={String(values.lyrics ?? '')}
-          currentSyncedLyrics={
-            (syncedLyricsOverride as SyncedLyricLine[] | undefined) ??
-            (activeEntities[0].syncedLyrics as SyncedLyricLine[] | undefined)
-          }
+          currentSyncedLyrics={normalizeSyncedLyrics(
+            syncedLyricsOverride ?? activeEntities[0].syncedLyrics,
+          )}
           onClose={() => setFetchLyricsOpen(false)}
           onApply={async (patch) => {
             const songId = String(activeEntities[0].id);

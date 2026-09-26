@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { Router } from 'wouter';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Albums } from './Albums.js';
 import { NotificationProvider } from '../../../contexts/NotificationContext.js';
 
@@ -36,6 +37,22 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+function renderAlbums() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return {
+    queryClient,
+    ...render(
+      <Router>
+        <QueryClientProvider client={queryClient}>
+          <NotificationProvider>
+            <Albums user={{ id: 'user-1', username: 'admin', isAdmin: true, createdAt: new Date().toISOString() }} />
+          </NotificationProvider>
+        </QueryClientProvider>
+      </Router>,
+    ),
+  };
+}
+
 describe('Albums', () => {
   beforeEach(() => {
     mockApi.mockImplementation(async (path: string) => {
@@ -51,14 +68,17 @@ describe('Albums', () => {
     });
   });
 
+  it('loads albums from the react-query cache (loading → success)', async () => {
+    renderAlbums();
+
+    await waitFor(() => {
+      expect(screen.getByText('Album One')).toBeTruthy();
+    });
+    expect(mockApi).toHaveBeenCalledWith('/albums');
+  });
+
   it('passes renderContextMenu to LibraryView and the menu renders', async () => {
-    render(
-      <Router>
-        <NotificationProvider>
-          <Albums user={{ id: 'user-1', username: 'admin', isAdmin: true, createdAt: new Date().toISOString() }} />
-        </NotificationProvider>
-      </Router>,
-    );
+    renderAlbums();
 
     await waitFor(() => {
       expect(screen.getByText('Album One')).toBeTruthy();
@@ -73,5 +93,20 @@ describe('Albums', () => {
     expect(screen.getByRole('menu')).toBeTruthy();
     expect(screen.getByRole('menuitem', { name: /^play$/i })).toBeTruthy();
     expect(screen.getByRole('menuitem', { name: /edit/i })).toBeTruthy();
+  });
+
+  it('drops its cache when the library:changed prefixes are invalidated (SSE contract)', async () => {
+    const { queryClient } = renderAlbums();
+
+    await waitFor(() => {
+      expect(screen.getByText('Album One')).toBeTruthy();
+    });
+    expect(mockApi).toHaveBeenCalledTimes(1);
+
+    await queryClient.invalidateQueries({ queryKey: ['albums'] });
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledTimes(2);
+    });
   });
 });

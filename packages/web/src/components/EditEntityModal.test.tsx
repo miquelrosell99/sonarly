@@ -446,4 +446,46 @@ describe('EditEntityModal', () => {
     );
     expect(screen.getByRole('button', { name: /show file path/i })).toBeTruthy();
   });
+
+  it('hides the file path popover on v2 (no filePath on song DTOs)', () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(['capabilities'], {
+      server: 'v2',
+      rawUpload: true,
+      hasFilePath: false,
+      syncedLyricsArray: false,
+    });
+    baseRender(
+      <QueryClientProvider client={client}>
+        <EditEntityModal
+          open
+          entityType="song"
+          entity={{ id: '21', title: 'Track', genreId: 'genre-1' }}
+          onClose={vi.fn()}
+          onSave={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      </QueryClientProvider>,
+    );
+    expect(screen.queryByRole('button', { name: /show file path/i })).toBeFalsy();
+    expect(screen.queryByRole('button', { name: /no file path available/i })).toBeFalsy();
+  });
+
+  it('normalizes a v2 string syncedLyrics value for the line count', () => {
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{
+          id: '22',
+          title: 'Track',
+          syncedLyrics: '[00:01.00]first\n[00:02.00]second\n[00:03.00]third',
+        }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('3 synced lines')).toBeTruthy();
+  });
 });

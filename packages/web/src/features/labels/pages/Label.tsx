@@ -1,13 +1,11 @@
-import { useEffect, useState } from 'react';
 import { useParams } from 'wouter';
 import type { Song, Album } from '@sonarly/shared';
-import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
-import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
-import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
+import { useLibraryStore } from '../../../stores/libraryStore.js';
+import { useAlbumsList, useSongsList } from '../../../hooks/useLibraryLists.js';
 import { TrackList } from '../../songs/index.js';
 import { AlbumList } from '../../albums/index.js';
 import type { SongWithNames } from '../../../lib/types.js';
@@ -20,34 +18,20 @@ export function Label() {
   const { name: encodedName } = useParams<{ name: string }>();
   const label = encodedName ? decodeURIComponent(encodedName) : '';
 
-  const [tracks, setTracks] = useState<SongWithNames[]>([]);
-  const [albums, setAlbums] = useState<AlbumWithArtist[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-  const epoch = useCacheEpoch();
-  const libraryQuery = buildLibraryQuery(selectedLibraryId);
-  const libraryParam = libraryQuery ? `&${libraryQuery.slice(1)}` : '';
-
-  const load = () => {
-    if (!label) return;
-    setLoading(true);
-    Promise.all([
-      api<{ songs: SongWithNames[] }>(`/songs?label=${encodeURIComponent(label)}${libraryParam}`),
-      api<{ albums: AlbumWithArtist[] }>(`/albums?label=${encodeURIComponent(label)}${libraryParam}`),
-    ])
-      .then(([songsRes, albumsRes]) => {
-        setTracks(songsRes.songs);
-        setAlbums(albumsRes.albums);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load label'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-  }, [label, selectedLibraryId, epoch]);
+  const songsQuery = useSongsList(
+    { libraryId: selectedLibraryId, label: label || undefined },
+    Boolean(label),
+  );
+  const albumsQuery = useAlbumsList(
+    { libraryId: selectedLibraryId, label: label || undefined },
+    Boolean(label),
+  );
+  const tracks: SongWithNames[] = songsQuery.data?.songs ?? [];
+  const albums: AlbumWithArtist[] = albumsQuery.data?.albums ?? [];
+  const isLoading = songsQuery.isLoading || albumsQuery.isLoading;
+  const error = songsQuery.error ?? albumsQuery.error;
 
   const actions = tracks.length > 0 && (
     <>
@@ -62,8 +46,8 @@ export function Label() {
 
   return (
     <EntityDetail
-      isLoading={loading}
-      error={error}
+      isLoading={isLoading}
+      error={error?.message ?? null}
       notFound={!label}
       notFoundMessage="Label not found."
       documentTitle={label || null}

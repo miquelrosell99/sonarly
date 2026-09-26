@@ -288,8 +288,10 @@ export function AudioController() {
     if (songId === lastScrobbledRef.current) return;
     const body: Record<string, unknown> = { client: 'web', source: 'web' };
     if (listenedSeconds !== undefined && trackDuration && trackDuration > 0) {
-      body.durationListened = Math.round(listenedSeconds);
-      body.completion = Math.min(1, listenedSeconds / trackDuration);
+      body.durationListened = Math.max(0, Math.round(listenedSeconds));
+      // Both servers store completion on a 0–100 scale and clamp server-side;
+      // send the percentage (not a 0–1 fraction) and clamp here as well.
+      body.completion = Math.min(100, Math.max(0, Math.round((listenedSeconds / trackDuration) * 100)));
     }
     api(`/songs/${songId}/scrobble`, { method: 'POST', body: JSON.stringify(body) }).catch(() => {});
     lastScrobbledRef.current = songId;

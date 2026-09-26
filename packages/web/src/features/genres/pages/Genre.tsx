@@ -1,13 +1,11 @@
-import { useEffect, useState } from 'react';
 import { useParams } from 'wouter';
 import type { Song, Album } from '@sonarly/shared';
-import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
-import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
-import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
+import { useLibraryStore } from '../../../stores/libraryStore.js';
+import { useAlbumsList, useSongsList } from '../../../hooks/useLibraryLists.js';
 import { TrackList } from '../../songs/index.js';
 import { AlbumList } from '../../albums/index.js';
 import type { SongWithNames } from '../../../lib/types.js';
@@ -20,34 +18,14 @@ export function Genre() {
   const { genre: encodedGenre } = useParams<{ genre: string }>();
   const genre = encodedGenre ? decodeURIComponent(encodedGenre) : '';
 
-  const [tracks, setTracks] = useState<SongWithNames[]>([]);
-  const [albums, setAlbums] = useState<AlbumWithArtist[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-  const epoch = useCacheEpoch();
-  const libraryQuery = buildLibraryQuery(selectedLibraryId);
-  const libraryParam = libraryQuery ? `&${libraryQuery.slice(1)}` : '';
-
-  const load = () => {
-    if (!genre) return;
-    setLoading(true);
-    Promise.all([
-      api<{ songs: SongWithNames[] }>(`/songs?genre=${encodeURIComponent(genre)}${libraryParam}`),
-      api<{ albums: AlbumWithArtist[] }>(`/albums?genre=${encodeURIComponent(genre)}${libraryParam}`),
-    ])
-      .then(([songsRes, albumsRes]) => {
-        setTracks(songsRes.songs);
-        setAlbums(albumsRes.albums);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load genre'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-  }, [genre, selectedLibraryId, epoch]);
+  const songsQuery = useSongsList({ libraryId: selectedLibraryId, genre: genre || undefined }, Boolean(genre));
+  const albumsQuery = useAlbumsList({ libraryId: selectedLibraryId, genre: genre || undefined }, Boolean(genre));
+  const tracks: SongWithNames[] = songsQuery.data?.songs ?? [];
+  const albums: AlbumWithArtist[] = albumsQuery.data?.albums ?? [];
+  const isLoading = songsQuery.isLoading || albumsQuery.isLoading;
+  const error = songsQuery.error ?? albumsQuery.error;
 
   const actions = tracks.length > 0 && (
     <>
@@ -62,8 +40,8 @@ export function Genre() {
 
   return (
     <EntityDetail
-      isLoading={loading}
-      error={error}
+      isLoading={isLoading}
+      error={error?.message ?? null}
       notFound={!genre}
       notFoundMessage="Genre not found."
       documentTitle={genre || null}

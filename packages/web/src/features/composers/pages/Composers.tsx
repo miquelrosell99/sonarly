@@ -1,27 +1,15 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import type { Song } from '@sonarly/shared';
-import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
-import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
-import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
+import { useLibraryStore } from '../../../stores/libraryStore.js';
+import { useSongsList } from '../../../hooks/useLibraryLists.js';
 
 export function Composers() {
-  const [songs, setSongs] = useState<Song[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-  const epoch = useCacheEpoch();
-
-  useEffect(() => {
-    setLoading(true);
-    api<{ songs: Song[] }>(`/songs${buildLibraryQuery(selectedLibraryId)}`)
-      .then((res) => setSongs(res.songs))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load composers'))
-      .finally(() => setLoading(false));
-  }, [selectedLibraryId, epoch]);
+  const { data, isLoading, error, refetch } = useSongsList({ libraryId: selectedLibraryId });
+  const songs: Song[] = data?.songs ?? [];
 
   const composerNames = (song: Song) => song.composerEntries?.map((entry) => entry.name) ?? [];
 
@@ -65,8 +53,8 @@ export function Composers() {
     <LibraryView
       title="Composers"
       data={composers}
-      isLoading={loading}
-      error={error}
+      isLoading={isLoading}
+      error={error?.message ?? null}
       columns={columns}
       cardFields={cardFields}
       getId={(composer) => composer}
@@ -74,6 +62,7 @@ export function Composers() {
       onPlay={playComposer}
       onShufflePlay={shuffleComposers}
       emptyMessage="No composers found."
+      onRetry={() => void refetch()}
       defaultView="list"
     />
   );

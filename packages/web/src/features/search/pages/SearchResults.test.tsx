@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/react';
 import { Router } from 'wouter';
+import { memoryLocation } from 'wouter/memory-location';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { User } from '@sonarly/shared';
 import { SearchResults } from './SearchResults.js';
 import { NotificationProvider } from '../../../contexts/NotificationContext.js';
@@ -17,13 +19,19 @@ const mockLocation = (search: string) => {
 
 function renderWithRouter(search: string, user = mockUser) {
   mockLocation(search);
-  return render(
-    <Router>
-      <NotificationProvider>
-        <SearchResults user={user} />
-      </NotificationProvider>
-    </Router>,
-  );
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return {
+    queryClient,
+    ...render(
+      <Router>
+        <QueryClientProvider client={queryClient}>
+          <NotificationProvider>
+            <SearchResults user={user} />
+          </NotificationProvider>
+        </QueryClientProvider>
+      </Router>,
+    ),
+  };
 }
 
 afterEach(() => {
@@ -230,5 +238,63 @@ describe('SearchResults', () => {
     expect(screen.getByRole('menu')).toBeTruthy();
     expect(screen.getByText('Playback')).toBeTruthy();
     expect(screen.getByText('Edit')).toBeTruthy();
+  });
+
+  it('refetches when the query param changes (new query key)', async () => {
+    const apiSpy = vi.spyOn(apiModule, 'api').mockResolvedValue({
+      songs: [{ id: 'song-1', title: 'Alpha Song', filePath: '', mtime: 0, checksum: '' }],
+      albums: [],
+      artists: [],
+      playlists: [],
+    });
+
+    const loc = memoryLocation({ path: '/search?q=alpha&type=songs' });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <Router hook={loc.hook}>
+        <QueryClientProvider client={queryClient}>
+          <NotificationProvider>
+            <SearchResults user={mockUser} />
+          </NotificationProvider>
+        </QueryClientProvider>
+      </Router>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Songs matching "alpha"')).toBeTruthy();
+    });
+    expect(apiSpy).toHaveBeenCalledTimes(1);
+    expect(apiSpy).toHaveBeenLastCalledWith('/search?q=alpha&type=songs');
+
+    loc.navigate('/search?q=beta&type=songs');
+
+    await waitFor(() => {
+      expect(screen.getByText('Songs matching "beta"')).toBeTruthy();
+    });
+    expect(apiSpy).toHaveBeenCalledTimes(2);
+    expect(apiSpy).toHaveBeenLastCalledWith('/search?q=beta&type=songs');
+  });
+
+  it('drops its cache when the library:changed prefixes are invalidated (SSE contract)', async () => {
+    const apiSpy = vi.spyOn(apiModule, 'api').mockResolvedValue({
+      songs: [{ id: 'song-1', title: 'Alpha Song', filePath: '', mtime: 0, checksum: '' }],
+      albums: [],
+      artists: [],
+      playlists: [],
+    });
+
+    const { queryClient } = renderWithRouter('?q=alpha&type=songs');
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Song')).toBeTruthy();
+    });
+    expect(apiSpy).toHaveBeenCalledTimes(1);
+
+    // Same key + fresh 30s staleTime: without invalidation a remount-style
+    // refetch would be suppressed. The SSE handler invalidates by prefix.
+    await queryClient.invalidateQueries({ queryKey: ['search'] });
+
+    await waitFor(() => {
+      expect(apiSpy).toHaveBeenCalledTimes(2);
+    });
   });
 });

@@ -1,50 +1,22 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import type { Song, Album } from '@sonarly/shared';
-import { api } from '../../../lib/api.js';
+import type { Song } from '@sonarly/shared';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
-import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
-import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
+import { useLibraryStore } from '../../../stores/libraryStore.js';
+import { useSongsList, useYearsList } from '../../../hooks/useLibraryLists.js';
 
 interface Track extends Song {
   artistName?: string;
   albumName?: string;
 }
 
-interface AlbumWithArtist extends Album {
-  artistName?: string;
-}
-
 export function Years() {
-  const [years, setYears] = useState<number[]>([]);
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [albums, setAlbums] = useState<AlbumWithArtist[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { playSongs, shufflePlay } = usePlayActions();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-  const epoch = useCacheEpoch();
-
-  const load = () => {
-    setLoading(true);
-    Promise.all([
-      api<{ years: number[] }>(`/years${buildLibraryQuery(selectedLibraryId)}`),
-      api<{ songs: Track[] }>(`/songs${buildLibraryQuery(selectedLibraryId)}`),
-      api<{ albums: AlbumWithArtist[] }>(`/albums${buildLibraryQuery(selectedLibraryId)}`),
-    ])
-      .then(([yearsRes, songsRes, albumsRes]) => {
-        setYears(yearsRes.years);
-        setTracks(songsRes.songs);
-        setAlbums(albumsRes.albums);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load years'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-  }, [selectedLibraryId, epoch]);
+  const { data: yearsData, isLoading, error, refetch } = useYearsList({ libraryId: selectedLibraryId });
+  const { data: songsData } = useSongsList({ libraryId: selectedLibraryId });
+  const years = yearsData?.years ?? [];
+  const tracks: Track[] = songsData?.songs ?? [];
 
   const playYear = (year: number) => {
     const matching = tracks.filter((t) => t.year === year);
@@ -80,8 +52,8 @@ export function Years() {
     <LibraryView
       title="Years"
       data={years}
-      isLoading={loading}
-      error={error}
+      isLoading={isLoading}
+      error={error?.message ?? null}
       columns={columns}
       cardFields={cardFields}
       getId={(year) => String(year)}
@@ -89,6 +61,7 @@ export function Years() {
       onPlay={playYear}
       onShufflePlay={shuffleYears}
       emptyMessage="No years found."
+      onRetry={() => void refetch()}
       defaultView="list"
       availableViews={['list']}
     />

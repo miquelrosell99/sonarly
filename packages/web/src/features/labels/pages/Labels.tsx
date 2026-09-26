@@ -1,27 +1,14 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import type { Album } from '@sonarly/shared';
-import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
-import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
-import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
+import { useLibraryStore } from '../../../stores/libraryStore.js';
+import { useAlbumsList } from '../../../hooks/useLibraryLists.js';
 
 export function Labels() {
-  const [albums, setAlbums] = useState<Album[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-  const epoch = useCacheEpoch();
+  const { data, isLoading, error, refetch } = useAlbumsList({ libraryId: selectedLibraryId });
+  const albums = data?.albums ?? [];
 
-  useEffect(() => {
-    setLoading(true);
-    api<{ albums: Album[] }>(`/albums${buildLibraryQuery(selectedLibraryId)}`)
-      .then((res) => setAlbums(res.albums))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load labels'))
-      .finally(() => setLoading(false));
-  }, [selectedLibraryId, epoch]);
-
-  const labelNames = (album: Album) => album.labelEntries?.map((entry) => entry.name) ?? [];
+  const labelNames = (album: (typeof albums)[number]) => album.labelEntries?.map((entry) => entry.name) ?? [];
 
   const labels = Array.from(
     new Set(albums.flatMap((album) => labelNames(album))),
@@ -47,13 +34,14 @@ export function Labels() {
     <LibraryView
       title="Labels"
       data={labels}
-      isLoading={loading}
-      error={error}
+      isLoading={isLoading}
+      error={error?.message ?? null}
       columns={columns}
       cardFields={cardFields}
       getId={(label) => label}
       getHref={(label) => `/labels/${encodeURIComponent(label)}`}
       emptyMessage="No labels found."
+      onRetry={() => void refetch()}
       defaultView="list"
     />
   );
