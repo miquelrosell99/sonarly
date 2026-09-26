@@ -5,12 +5,12 @@ Sonarly is distributed and run as a single Docker image. The image contains the 
 ## Requirements
 
 - Docker Engine 20.10+
-- Docker Compose v2+
+- Docker Compose (plugin)
 - A Linux/macOS/Windows host with a filesystem that can bind-mount directories
 
 ## Production deployment
 
-The production image is built from `docker/Dockerfile.v2` and orchestrated with `compose.yaml` (copied from `docker/compose.v2.yaml.example`).
+The production image is built from `docker/Dockerfile` and orchestrated with `compose.yaml` (copied from `docker/compose.yaml.example`).
 
 ### 1. Configure environment variables
 
@@ -140,7 +140,7 @@ Database migrations run automatically on startup from the embedded SQL files (le
 ### Building from source
 
 ```bash
-docker build -f docker/Dockerfile.v2 \
+docker build -f docker/Dockerfile \
   --build-arg SONARLY_VERSION=$(git describe --tags --always) \
   -t ghcr.io/miquelrosell99/sonarly:v2.0.0-rc1 .
 docker compose -f compose.yaml up -d
@@ -156,7 +156,7 @@ Migrations are forward-only. To roll back to a previous release:
 2. Restore the database backup taken before the update into `./config/sonarly/data` (the SQLite file must match the older binary's schema).
 3. Pull or build the previous image tag and `docker compose -f compose.yaml up -d`.
 
-The v1→v2 cutover runbook (including the pre-cutover backup) is preserved in [v2-cutover-readiness.md](v2-cutover-readiness.md).
+The production cutover runbook (including the pre-cutover backup) is preserved in [cutover-readiness.md](cutover-readiness.md).
 
 ---
 

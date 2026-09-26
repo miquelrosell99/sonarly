@@ -1,8 +1,8 @@
-// Review-folder retention cleanup (v1 review-cleanup.ts): files parked in
+// Review-folder retention cleanup (old review-cleanup.ts): files parked in
 // any review/ folder under the ingest path older than the retention setting
 // are deleted. Runs as the cleanup_review scan_jobs type, enqueued daily by
 // the library scheduler; the handler marks last_review_cleanup on success
-// (v1's worker did), which is the scheduler's interval anchor.
+// (the old worker did), which is the scheduler's interval anchor.
 package ingest
 
 import (
@@ -14,13 +14,13 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/library"
 )
 
-// ReviewCleanupStats is v1's ReviewCleanupStats.
+// ReviewCleanupStats is the old ReviewCleanupStats.
 type ReviewCleanupStats struct {
 	Deleted int `json:"deleted"`
 	Failed  int `json:"failed"`
 }
 
-// settingLastReviewCleanup is the scheduler's last-run anchor (v1 key name).
+// settingLastReviewCleanup is the scheduler's last-run anchor (old key name).
 const settingLastReviewCleanup = "last_review_cleanup"
 
 // RunReviewCleanupJob is the library.Worker handler for cleanup_review jobs.
@@ -48,11 +48,11 @@ func (s *Service) RunReviewCleanup(ctx context.Context, now time.Time) (*ReviewC
 }
 
 // cleanupReviewTree walks the ingest tree; a directory named "review" is
-// swept but never descended into (v1 cleanupAllReviewFolders).
+// swept but never descended into (old cleanupAllReviewFolders).
 func (s *Service) cleanupReviewTree(ctx context.Context, dir string, retentionDays int, now time.Time, stats *ReviewCleanupStats) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		// Unreadable trees are skipped, as v1's try/catch did.
+		// Unreadable trees are skipped, as the old try/catch did.
 		return nil
 	}
 	for _, entry := range entries {
@@ -75,7 +75,7 @@ func (s *Service) cleanupReviewTree(ctx context.Context, dir string, retentionDa
 }
 
 // cleanupReviewFolder deletes the folder's FILES older than the retention;
-// per-file failures are counted, never fatal (v1 cleanupReviewFolder).
+// per-file failures are counted, never fatal (old cleanupReviewFolder).
 func (s *Service) cleanupReviewFolder(ctx context.Context, dir string, retentionDays int, now time.Time, stats *ReviewCleanupStats) {
 	cutoff := now.Add(-time.Duration(retentionDays) * 24 * time.Hour)
 	entries, err := os.ReadDir(dir)

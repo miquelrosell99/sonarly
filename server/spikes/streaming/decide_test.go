@@ -18,7 +18,7 @@ func TestParseMaxBitRate(t *testing.T) {
 		{"", 0, false},
 		{"  128  ", 128, true}, // Number() trims whitespace
 		{"1e2", 100, true},     // Number("1e2") === 100
-		{"0x40", 0, false},     // v1 quirk: Number("0x40") === 64 → honored; port rejects hex
+		{"0x40", 0, false},     // old quirk: Number("0x40") === 64 → honored; port rejects hex
 		{"NaN", 0, false},
 		{"Infinity", 0, false},
 		{"128abc", 0, false},
@@ -118,7 +118,7 @@ func TestFFmpegArgs(t *testing.T) {
 			t.Errorf("arg[%d] = %q; want %q (full: %v)", i, got[i], want[i], got)
 		}
 	}
-	// No bitrate → -q:a 2 (v1 parity)
+	// No bitrate → -q:a 2 (wire parity)
 	got = ffmpegArgs("/a.flac", "mp3", 0)
 	if got[9] != "-q:a" || got[10] != "2" {
 		t.Errorf("default quality args: %v", got)

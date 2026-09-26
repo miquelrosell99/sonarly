@@ -1,5 +1,5 @@
 // Admin dashboard status, missing-file management, and ingest-runs views —
-// the remaining handlers of v1's features/users/admin-routes.ts.
+// the remaining handlers of the old features/users/admin-routes.ts.
 package admin
 
 import (
@@ -21,7 +21,7 @@ func countOf(ctx context.Context, db *sql.DB, query string, args ...any) (int, e
 	return n, err
 }
 
-// AdminStatus is v1's /api/admin/status response.
+// AdminStatus is the old /api/admin/status response.
 type AdminStatus struct {
 	Counts struct {
 		Users   int `json:"users"`
@@ -39,7 +39,7 @@ type AdminStatus struct {
 	LatestIngest    *IngestRunEntry `json:"latestIngest"`
 }
 
-// Status ports v1's GET /api/admin/status.
+// Status ports the old GET /api/admin/status.
 func (s *Service) Status(ctx context.Context) (*AdminStatus, error) {
 	var out AdminStatus
 	var err error
@@ -102,7 +102,7 @@ func (h *Handler) status(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------------------------------------------------------------------------
-// Missing-file management (v1's missing* endpoints)
+// Missing-file management (the old missing* endpoints)
 // ---------------------------------------------------------------------------
 
 // MissingSong is one inactive song row (the fields a management UI lists).
@@ -131,7 +131,7 @@ type MissingArtist struct {
 	Name string `json:"name"`
 }
 
-// missingSongs lists inactive songs (v1 listInactiveSongs without userId).
+// missingSongs lists inactive songs (old listInactiveSongs without userId).
 func (s *Service) missingSongs(ctx context.Context) ([]MissingSong, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT s.id, s.file_path, s.title, ar.name, al.name, s.year, s.genre
@@ -230,7 +230,7 @@ func (h *Handler) deleteMissingArtist(w http.ResponseWriter, r *http.Request) {
 	h.deleteMissingRow(w, r, `DELETE FROM artists WHERE id = ?`, chi.URLParam(r, "id"))
 }
 
-// deleteMissingRow removes one row (v1 deleteSongById/deleteAlbumById/
+// deleteMissingRow removes one row (old deleteSongById/deleteAlbumById/
 // deleteArtistById — plain row deletes; the file is already gone, junction
 // and user rows cascade through the schema's FKs).
 func (h *Handler) deleteMissingRow(w http.ResponseWriter, r *http.Request, statement, id string) {
@@ -240,7 +240,7 @@ func (h *Handler) deleteMissingRow(w http.ResponseWriter, r *http.Request, state
 		return
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
-		// v1 answered {ok:true} unconditionally; v2 keeps the 404 honest for
+		// the retired server answered {ok:true} unconditionally; the Go server keeps the 404 honest for
 		// a missing id.
 		httpserver.Error(w, http.StatusNotFound, "Not found")
 		return
@@ -269,10 +269,10 @@ func (h *Handler) deleteAllMissing(w http.ResponseWriter, r *http.Request, state
 }
 
 // ---------------------------------------------------------------------------
-// Ingest runs (v1's /api/admin/ingest-routes)
+// Ingest runs (the old /api/admin/ingest-routes)
 // ---------------------------------------------------------------------------
 
-// IngestRunEntry is one ingest scan_jobs row (v1 shape).
+// IngestRunEntry is one ingest scan_jobs row (old shape).
 type IngestRunEntry struct {
 	ID         string          `json:"id"`
 	Status     string          `json:"status"`
@@ -282,13 +282,13 @@ type IngestRunEntry struct {
 	Error      *string         `json:"error,omitempty"`
 }
 
-// IngestRunDetail adds the per-file ingest_jobs rows (v1 shape).
+// IngestRunDetail adds the per-file ingest_jobs rows (old shape).
 type IngestRunDetail struct {
 	IngestRunEntry
 	Jobs []IngestJobEntry `json:"jobs"`
 }
 
-// IngestJobEntry is one ingest_jobs row (v1 shape).
+// IngestJobEntry is one ingest_jobs row (old shape).
 type IngestJobEntry struct {
 	ID                string  `json:"id"`
 	SourcePath        string  `json:"sourcePath"`
@@ -330,7 +330,7 @@ func (h *Handler) ingestRuns(w http.ResponseWriter, r *http.Request) {
 	httpserver.JSON(w, http.StatusOK, map[string]any{"runs": runs})
 }
 
-// getIngestRun loads one run and its per-file jobs (v1 falls back to the
+// getIngestRun loads one run and its per-file jobs (old falls back to the
 // created_at window for rows whose run_id predates the column).
 func (s *Service) getIngestRun(ctx context.Context, id string) (*IngestRunDetail, error) {
 	var run IngestRunEntry

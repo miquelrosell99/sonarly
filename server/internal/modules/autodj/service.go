@@ -13,10 +13,10 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/libraries"
 )
 
-// ErrGeneration is the typed failure routes map to 502 Bad Gateway. v1
-// caught every error and answered 200 with an empty list, which the audit
+// ErrGeneration is the typed failure routes map to 502 Bad Gateway. The old
+// server caught every error and answered 200 with an empty list, which the audit
 // flagged: clients could not distinguish "no candidates" from "server
-// broke". v2 keeps the empty list for an honestly empty pool and reserves
+// broke". The Go server keeps the empty list for an honestly empty pool and reserves
 // 5xx for failures. The message stays generic — driver errors never reach
 // the client.
 var ErrGeneration = errors.New("auto-dj generation failed")
@@ -35,7 +35,7 @@ func NewService(db *sql.DB) *Service {
 // Candidates returns count songs for the mode. The context song is optional
 // for every mode (a missing id, or an id outside the catalog, just means
 // "no context"); excludeIDs are never repeated in the result; the options
-// come from the caller's stored preferences (v1).
+// come from the caller's stored preferences (the retired server).
 func (s *Service) Candidates(ctx context.Context, id auth.Identity, currentSongID string, mode Mode, count int, excludeIDs []string) ([]Song, error) {
 	scope, err := libraries.GetScope(ctx, s.db, id.UserID, id.IsAdmin)
 	if err != nil {
@@ -63,7 +63,7 @@ func (s *Service) candidates(ctx context.Context, userID, currentSongID string, 
 			return nil, err
 		}
 		// A current song outside the catalog (or out of scope) simply
-		// degrades to context-free generation, like v1's undefined context.
+		// degrades to context-free generation, like the old undefined context.
 		c = loaded
 	}
 	switch mode {
@@ -79,8 +79,8 @@ func (s *Service) candidates(ctx context.Context, userID, currentSongID string, 
 }
 
 // resolveOptions loads the dj configuration from the user's stored
-// preferences (v1): the exclude window through the shared whitelist, the
-// discovery dial clamped to [0, 100] with v1's fallback of 50.
+// preferences (the retired server): the exclude window through the shared whitelist, the
+// discovery dial clamped to [0, 100] with the old fallback of 50.
 func (s *Service) resolveOptions(ctx context.Context, userID string) (Options, error) {
 	opts := Options{ExcludeWindow: Window24h, Discovery: 50}
 	var raw sql.NullString
@@ -96,7 +96,7 @@ func (s *Service) resolveOptions(ctx context.Context, userID string) (Options, e
 	}
 	prefs, err := decodePreferences(raw.String)
 	if err != nil {
-		// A corrupt preferences blob falls back to defaults (v1 parsed with
+		// A corrupt preferences blob falls back to defaults (old parsed with
 		// a try/catch into the same defaults).
 		return opts, nil
 	}
@@ -114,7 +114,7 @@ func (s *Service) resolveOptions(ctx context.Context, userID string) (Options, e
 	return opts, nil
 }
 
-// smartCandidates ports v1's getSmartCandidates: score the bounded random
+// smartCandidates ports the old getSmartCandidates: score the bounded random
 // pool against the context, then pick the top count with a deterministic
 // tiebreak, backfilling from random mode when the pool comes up short.
 func (s *Service) smartCandidates(ctx context.Context, userID string, c *SongContext, count int, excludeIDs []string, opts Options, scope libraries.Scope) ([]Song, error) {
@@ -195,7 +195,7 @@ func (s *Service) smartCandidates(ctx context.Context, userID string, c *SongCon
 		if scoredCandidates[i].score != scoredCandidates[j].score {
 			return scoredCandidates[i].score > scoredCandidates[j].score
 		}
-		// Deterministic tiebreak by id (v1's localeCompare).
+		// Deterministic tiebreak by id (the old localeCompare).
 		return scoredCandidates[i].candidate.song.ID < scoredCandidates[j].candidate.song.ID
 	})
 

@@ -11,7 +11,7 @@ import (
 // idChunkSize bounds the bind variables per IN query. SQLite caps host
 // parameters per statement; chunking keeps the batch loaders correct for
 // arbitrarily large lists while still issuing exactly one query per chunk
-// (v1's anti-N+1 batch pattern, made safe for big libraries).
+// (the old anti-N+1 batch pattern, made safe for big libraries).
 const idChunkSize = 400
 
 func chunkIDs(ids []string) [][]string {
@@ -57,7 +57,7 @@ func albumIDs(albums []Album) []string {
 }
 
 // entriesForMany loads {id, name} entries grouped by an owner id, issuing
-// one chunked IN query — v1's getSongArtistEntriesForMany pattern. joinSQL
+// one chunked IN query — the old getSongArtistEntriesForMany pattern. joinSQL
 // is a fixed internal fragment naming the junction alias j and the entry
 // alias e and ending at the owner predicate, e.g.
 //
@@ -93,7 +93,7 @@ func entriesForMany(ctx context.Context, q auth.Queries, ownerCol, joinSQL strin
 	return out, nil
 }
 
-// namesForMany loads entry name lists grouped by an owner id — v1's
+// namesForMany loads entry name lists grouped by an owner id — the old 
 // getSongGenreNamesForMany pattern. joinSQL matches entriesForMany.
 func namesForMany(ctx context.Context, q auth.Queries, ownerCol, joinSQL string, ids []string) (map[string][]string, error) {
 	out := make(map[string][]string)

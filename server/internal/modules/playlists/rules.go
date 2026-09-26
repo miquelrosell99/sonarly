@@ -8,7 +8,7 @@ import (
 )
 
 // Rules is the JSON shape stored in playlists.rules_json — single-level
-// groups, matching packages/shared/src/smart-playlist.ts (v1 parity, no
+// groups, matching packages/shared/src/smart-playlist.ts (wire parity, no
 // nested groups):
 //
 //	{rules?: {all?: Rule[], any?: Rule[]}, sort?: Sort[], limit?: number, limitPercent?: number}
@@ -22,7 +22,7 @@ type Rules struct {
 	LimitPercent *int       `json:"limitPercent,omitempty"`
 }
 
-// RuleGroup is one single-level group of rules (v1 parity: no nesting).
+// RuleGroup is one single-level group of rules (wire parity: no nesting).
 type RuleGroup struct {
 	All []Rule `json:"all,omitempty"`
 	Any []Rule `json:"any,omitempty"`

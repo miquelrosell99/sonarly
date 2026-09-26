@@ -16,9 +16,9 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/playback"
 )
 
-// Retrieval group payloads (v1 routes/retrieval.ts, quirks doc R group).
+// Retrieval group payloads (retired routes/retrieval.ts, quirks doc R group).
 
-// coverArtCacheControl is v1's immutable-by-id caching header (R7).
+// coverArtCacheControl is the old immutable-by-id caching header (R7).
 const coverArtCacheControl = "private, max-age=86400"
 
 type lyricsBody struct {
@@ -63,7 +63,7 @@ type newestPodcastsPayload struct {
 	NewestPodcasts newestPodcastsBody `xml:"newestPodcasts" json:"newestPodcasts"`
 }
 
-// notFoundPlain answers the binary-endpoint 404 v1 sent on missing /
+// notFoundPlain answers the binary-endpoint 404 the retired server sent on missing /
 // out-of-scope ids (R1): plain text, no envelope.
 func notFoundPlain(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -71,7 +71,7 @@ func notFoundPlain(w http.ResponseWriter) {
 	w.Write([]byte("Not found"))
 }
 
-// stream/download share v1's retrieval flow with the streaming half
+// stream/download share the old retrieval flow with the streaming half
 // delegated to the playback StreamingService (P5): this handler only maps
 // the adapter-boundary error contract (R1/R3), the service owns liveness,
 // scope, transcode decision, ranges and the body.
@@ -112,8 +112,8 @@ func (h *Handler) streamOrDownload(w http.ResponseWriter, r *http.Request, downl
 		return
 	}
 	if !active {
-		// v2 deviation surfaced at the boundary: the playback service
-		// refuses inactive songs (S2 sign-off S5 — v1 silently streamed
+		// the Go server deviation surfaced at the boundary: the playback service
+		// refuses inactive songs (S2 sign-off S5 — the retired server silently streamed
 		// them); the Subsonic contract answers the data-not-found code.
 		Error(w, r, CodeForbidden, "Data not found")
 		return
@@ -143,7 +143,7 @@ func (h *Handler) streamOrDownload(w http.ResponseWriter, r *http.Request, downl
 }
 
 // probeSong loads the slice of the songs row the stream boundary needs.
-// Active is returned separately: v1's getSongById had no active filter, so
+// Active is returned separately: the old getSongById had no active filter, so
 // existence and liveness stay distinguishable (inactive → 70, missing → 404).
 func (h *Handler) probeSong(ctx context.Context, songID string) (filePath string, active bool, ok bool) {
 	var activeFlag int
@@ -159,7 +159,7 @@ func (h *Handler) probeSong(ctx context.Context, songID string) (filePath string
 	return filePath, activeFlag == 1, true
 }
 
-// coverArtHit serves one resolved cover art payload with v1's cache header.
+// coverArtHit serves one resolved cover art payload with the old cache header.
 func coverArtHit(w http.ResponseWriter, contentType string, data []byte) {
 	w.Header().Set("Cache-Control", coverArtCacheControl)
 	w.Header().Set("Content-Type", contentType)
@@ -168,7 +168,7 @@ func coverArtHit(w http.ResponseWriter, contentType string, data []byte) {
 }
 
 // imageContentType is the pinned artist-image lookup: extension → MIME for
-// the formats Sonarly writes (v1 used the host mime table; container images
+// the formats Sonarly writes (retired used the host mime table; container images
 // may lack /etc/mime.types, so the table is pinned like playback's).
 func imageContentType(filePath string) string {
 	switch strings.ToLower(strings.TrimPrefix(filepath.Ext(filePath), ".")) {
@@ -184,7 +184,7 @@ func imageContentType(filePath string) string {
 	return "application/octet-stream"
 }
 
-// getCoverArt ports v1's multi-tier resolution (retrieval.ts:156-253, R7):
+// getCoverArt ports the old multi-tier resolution (retrieval.ts:156-253, R7):
 // cached blob (scope-checked) → song → song's art → embedded picture →
 // album → album's art → album's first song's embedded picture → artist
 // image file on disk → 302 redirect to the external artist_image_url →
@@ -294,7 +294,7 @@ func (h *Handler) getCoverArt(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Tier 4: artist image file on disk (active artists only, v1 parity).
+	// Tier 4: artist image file on disk (active artists only, wire parity).
 	var localPath sql.NullString
 	err = h.db.QueryRowContext(ctx,
 		`SELECT artist_image_local_path FROM artists WHERE id = ? AND active = 1`, artID).
@@ -314,7 +314,7 @@ func (h *Handler) getCoverArt(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Tier 5: external artist image → redirect without the cache header
-	// (v1's redirect branch set none).
+	// (the old redirect branch set none).
 	var imageURL sql.NullString
 	err = h.db.QueryRowContext(ctx,
 		`SELECT artist_image_url FROM artists WHERE id = ? AND active = 1`, artID).
@@ -332,7 +332,7 @@ func (h *Handler) getCoverArt(w http.ResponseWriter, r *http.Request) {
 	Error(w, r, CodeForbidden, "Cover art not found")
 }
 
-// coverArtBlob loads a cover_arts row (v1 getCoverArtById).
+// coverArtBlob loads a cover_arts row (retired getCoverArtById).
 func (h *Handler) coverArtBlob(ctx context.Context, id string) (format string, data []byte, found bool) {
 	err := h.db.QueryRowContext(ctx,
 		`SELECT format, data FROM cover_arts WHERE id = ?`, id).
@@ -347,8 +347,8 @@ func (h *Handler) coverArtBlob(ctx context.Context, id string) (format string, d
 }
 
 // embeddedPicture parses the first embedded picture of the file via the P4a
-// metadata reader (v1's music-metadata tier). Any failure → nil (fall
-// through), exactly like v1's try/catch.
+// metadata reader (the old music-metadata tier). Any failure → nil (fall
+// through), exactly like the old try/catch.
 func embeddedPicture(filePath string) *audio.Picture {
 	md, err := audio.ReadMetadata(filePath)
 	if err != nil || md.Picture == nil {
@@ -357,7 +357,7 @@ func embeddedPicture(filePath string) *audio.Picture {
 	return md.Picture
 }
 
-// getLyrics ports v1:255-285 (R8): lyrics by id (scope-checked) or
+// getLyrics ports the old implementation, retired lines 255-285 (R8): lyrics by id (scope-checked) or
 // artist+title (COLLATE NOCASE, scoped), always wrapped in the {value,
 // artist?, title?} object — a bare string breaks py-opensonic.
 func (h *Handler) getLyrics(w http.ResponseWriter, r *http.Request) {
@@ -416,7 +416,7 @@ func (h *Handler) getLyrics(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// getAvatar stays a v2 stub even though native avatars exist (P9c): v1 had
+// getAvatar stays a the Go server stub even though native avatars exist (P9c): the retired server had
 // no getAvatar endpoint at all — Subsonic clients received its default 404
 // — and serving avatar bytes through /rest would leak them outside the
 // session policy the native /api/avatars/{id} route deliberately keeps
@@ -427,7 +427,7 @@ func (h *Handler) getAvatar(w http.ResponseWriter, r *http.Request) {
 }
 
 // getInternetRadioStations / getPodcasts / getNewestPodcasts are the empty
-// stubs v1 served so sync clients succeed with zero items (R9).
+// stubs the retired server served so sync clients succeed with zero items (R9).
 func (h *Handler) getInternetRadioStations(w http.ResponseWriter, r *http.Request) {
 	respond(w, r, internetRadioStationsPayload{
 		Envelope: okEnvelope(),

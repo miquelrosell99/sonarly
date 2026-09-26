@@ -6,12 +6,12 @@ import (
 )
 
 // TestLoadActiveSongToleratesLegacyFractionalNumerics is the regression for
-// the corrected P10b dual-run finding (2026-09-26): v1-written catalog rows
+// the corrected P10b dual-run finding (2026-09-26): written by the retired server catalog rows
 // carry fractional REAL numerics — production example, Eminem's
 // "Amityville": bit_rate 924936.3617333054, duration 254.77333333333334 —
 // and the strict sql.NullInt64 scan failed with "converting driver.Value
 // type float64 ... invalid syntax", 500-ing /api/stream for every such row.
-// The tolerant db.NullInt64 truncates instead (v2's integer-second spec).
+// The tolerant db.NullInt64 truncates instead (the Go server's integer-second spec).
 func TestLoadActiveSongToleratesLegacyFractionalNumerics(t *testing.T) {
 	env := newEnv(t, Options{})
 	env.mustExec(t, `UPDATE songs SET bit_rate = 924936.3617333054, duration = 254.77333333333334 WHERE id = 's-a1'`)

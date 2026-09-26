@@ -60,12 +60,12 @@ func TestRunOrganizeFlatLibrary(t *testing.T) {
 		t.Error("emptied folder was not pruned")
 	}
 
-	// Second run: v1 behavior, pinned — the preview compares each file
+	// Second run: the retired server behavior, pinned — the preview compares each file
 	// against its PATTERN target without accounting for occupancy, so the
 	// collision-suffixed copy ("... (1).mp3") still previews as "not in
 	// place" and moves again (suffix churn, one per run). Files unique to
 	// their target are skipped. Fixing the churn is a known follow-up; the
-	// parity port keeps v1's semantics.
+	// parity port keeps the old semantics.
 	second, err := e.svc.RunOrganize(ctx, library.OrganizePayload{LibraryID: e.libraryID}, nil)
 	if err != nil {
 		t.Fatalf("second RunOrganize: %v", err)
@@ -79,7 +79,7 @@ func TestRunOrganizeFlatLibrary(t *testing.T) {
 }
 
 // TestRunOrganizeLibraryPrefixBoundary is the /music vs /music2 trap from
-// v1 organize-existing.ts: a file under /music2 must resolve to the music2
+// the retired server organize-existing.ts: a file under /music2 must resolve to the music2
 // library (its own pattern), not to the /music library whose path is a
 // non-boundary prefix.
 func TestRunOrganizeLibraryPrefixBoundary(t *testing.T) {
@@ -125,7 +125,7 @@ func TestRunOrganizeLibraryPrefixBoundary(t *testing.T) {
 }
 
 // TestRunOrganizeAllLibraries scopes by every libraries row when the payload
-// carries no library id (v1 parity).
+// carries no library id (wire parity).
 func TestRunOrganizeAllLibraries(t *testing.T) {
 	e := newEnv(t, true)
 	ctx := context.Background()

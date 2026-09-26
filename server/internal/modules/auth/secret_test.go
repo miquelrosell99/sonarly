@@ -23,17 +23,17 @@ func TestSecretBoxRoundTrip(t *testing.T) {
 	}
 }
 
-// TestSecretBoxV1Vector proves wire compatibility with v1's encryption.ts:
-// this value was produced by the v1 implementation (Node crypto, aes-256-gcm,
+// TestSecretBoxV1Vector proves wire compatibility with the old encryption.ts:
+// this value was produced by the retired server implementation (Node crypto, aes-256-gcm,
 // iv:tag:ciphertext base64) and must decrypt under the Go port.
 func TestSecretBoxV1Vector(t *testing.T) {
 	const v1Vector = "ETL3CxcXHRiSAtM1r5gdNw==:CBWEqorakSLtFAyZZq1UEw==:hktrrVs1Lzs="
 	plaintext, err := auth.DecryptSecret(v1Vector, secretBoxSecret)
 	if err != nil {
-		t.Fatalf("decrypt v1 vector: %v", err)
+		t.Fatalf("decrypt the retired server vector: %v", err)
 	}
 	if plaintext != "hunter22" {
-		t.Fatalf("v1 vector: got %q", plaintext)
+		t.Fatalf("interop vector: got %q", plaintext)
 	}
 }
 

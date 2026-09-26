@@ -1,7 +1,7 @@
 // The ingest pipeline: walk a drop folder, validate each audio file, route
 // invalid ones to review/, move valid ones into the target library along
 // the organize pattern, resolve duplicates by strategy, and persist every
-// imported song through library.PersistSong. Ports v1's
+// imported song through library.PersistSong. Ports the old 
 // features/ingest/ingest.ts with per-file failure isolation, ingest_jobs
 // bookkeeping (run_id = the scan_jobs job id), companion cover images, and
 // empty-dir pruning.
@@ -21,7 +21,7 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/library"
 )
 
-// Statuses stored in ingest_jobs.status (v1 IngestStatus).
+// Statuses stored in ingest_jobs.status (old IngestStatus).
 const (
 	StatusPending     = "pending"
 	StatusNeedsReview = "needs_review"
@@ -31,7 +31,7 @@ const (
 )
 
 // maxFailures caps the per-file failure list; the failure count itself is
-// not capped (v1's cap-20 list).
+// not capped (the old cap-20 list).
 const maxFailures = 20
 
 var companionImageExts = map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".webp": true, ".gif": true, ".bmp": true}
@@ -43,7 +43,7 @@ type Failure struct {
 	Error string `json:"error"`
 }
 
-// Stats is v1's IngestStats plus the capped failure list.
+// Stats is the old IngestStats plus the capped failure list.
 type Stats struct {
 	Processed   int       `json:"processed"`
 	Imported    int       `json:"imported"`
@@ -55,7 +55,7 @@ type Stats struct {
 }
 
 // targetLibrary is the resolved ingest destination: the payload's library
-// when set (typed payload — v1's bare-path bug is impossible by
+// when set (typed payload — the old bare-path bug is impossible by
 // construction), else the default library, else the configured library
 // path fallback with the global organize pattern.
 type targetLibrary struct {
@@ -107,7 +107,7 @@ func (s *Service) RunIngestJob(ctx context.Context, job *library.Job) (any, erro
 	})
 }
 
-// RunIngest ports v1's processIngestFolder. runID (the scan_jobs job id)
+// RunIngest ports the old processIngestFolder. runID (the scan_jobs job id)
 // batches this run's ingest_jobs rows. Cancellation aborts the walk between
 // files and surfaces as an error, like the scanner.
 func (s *Service) RunIngest(ctx context.Context, payload library.IngestPayload, runID string, onProgress func(*Stats)) (*Stats, error) {
@@ -184,7 +184,7 @@ func (s *Service) RunIngest(ctx context.Context, payload library.IngestPayload, 
 }
 
 // processFile ingests one validated file and updates its ingest_jobs row;
-// any error is returned for the caller's failure bookkeeping (v1's
+// any error is returned for the caller's failure bookkeeping (the old 
 // try/catch around the per-file body).
 func (s *Service) processFile(ctx context.Context, filePath, sourceDir, root, reviewDir, pattern string, target *targetLibrary, strategy Strategy, jobID string, stats *Stats, importedSourceDirs map[string]string, reviewSourceDirs map[string]bool) error {
 	validation := ValidateFile(filePath)
@@ -270,7 +270,7 @@ func (s *Service) processFile(ctx context.Context, filePath, sourceDir, root, re
 	return nil
 }
 
-// failFile is v1's catch block: the job row is marked failed, the failure
+// failFile is the old catch block: the job row is marked failed, the failure
 // counted, and (below the cap) listed — the walk continues.
 func (s *Service) failFile(ctx context.Context, jobID, path string, runErr error, stats *Stats) {
 	_ = s.updateIngestJob(context.WithoutCancel(ctx), jobID, StatusFailed, nil, runErr.Error(), false, "")
@@ -281,7 +281,7 @@ func (s *Service) failFile(ctx context.Context, jobID, path string, runErr error
 	s.log.WarnContext(ctx, "ingest: failed to import file", "path", path, "err", runErr)
 }
 
-// walkIngestFiles ports v1's walkIngestFiles: recursive, audio extensions
+// walkIngestFiles ports the old walkIngestFiles: recursive, audio extensions
 // only, and only the TOP-LEVEL review directory is skipped — a 'review'
 // folder nested deeper is legitimate user content. Entries come back in
 // name order (os.ReadDir sorts), like fs.readdir.
@@ -294,7 +294,7 @@ func walkIngestFiles(root string) ([]string, error) {
 func walkIngestFilesInto(dir, root string, out *[]string) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		// Unreadable directories are skipped, as v1's try/catch did.
+		// Unreadable directories are skipped, as the old try/catch did.
 		return nil
 	}
 	for _, entry := range entries {
@@ -316,7 +316,7 @@ func walkIngestFilesInto(dir, root string, out *[]string) error {
 }
 
 // moveToReview parks an invalid file in the review folder, flat, with a
-// " (n)" suffix on collision (v1 moveToReview + resolveUniquePath).
+// " (n)" suffix on collision (old moveToReview + resolveUniquePath).
 func moveToReview(sourcePath, reviewDir string) (string, error) {
 	target, err := ResolveDuplicateTarget(filepath.Join(reviewDir, filepath.Base(sourcePath)))
 	if err != nil {
@@ -331,7 +331,7 @@ func moveToReview(sourcePath, reviewDir string) (string, error) {
 	return target, nil
 }
 
-// moveCompanionImages ports v1's moveCompanionImages: image files named
+// moveCompanionImages ports the old moveCompanionImages: image files named
 // cover/folder/album/front/art (any of six extensions) follow their album
 // folder into the library, or into review/ when every song was rejected.
 func moveCompanionImages(sourceDir, targetDir string) error {
@@ -357,7 +357,7 @@ func moveCompanionImages(sourceDir, targetDir string) error {
 }
 
 // ---------------------------------------------------------------------------
-// ingest_jobs rows (v1 features/ingest/repository.ts)
+// ingest_jobs rows (old features/ingest/repository.ts)
 // ---------------------------------------------------------------------------
 
 // IngestJob is one ingest_jobs row.
@@ -375,7 +375,7 @@ type IngestJob struct {
 }
 
 // createIngestJob opens the per-file row before any work happens, so a file
-// that never finishes still leaves a trace (v1 createIngestJob).
+// that never finishes still leaves a trace (old createIngestJob).
 func (s *Service) createIngestJob(ctx context.Context, sourcePath, runID string) (string, error) {
 	id := uuid.NewString()
 	if runID == "" {
@@ -416,7 +416,7 @@ func (s *Service) updateIngestJob(ctx context.Context, id, status string, target
 	return nil
 }
 
-// ListIngestJobs returns the newest 100 rows (v1 GET /api/ingest).
+// ListIngestJobs returns the newest 100 rows (old GET /api/ingest).
 func (s *Service) ListIngestJobs(ctx context.Context) ([]IngestJob, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT id, COALESCE(run_id, ''), source_path, status, target_path, error, duplicate, duplicate_strategy, created_at, updated_at
@@ -443,7 +443,7 @@ func (s *Service) GetIngestJob(ctx context.Context, id string) (*IngestJob, erro
 	return job, nil
 }
 
-// DeleteIngestJob deletes one row; false means it did not exist (v1's
+// DeleteIngestJob deletes one row; false means it did not exist (the old 
 // changes === 0 → 404).
 func (s *Service) DeleteIngestJob(ctx context.Context, id string) (bool, error) {
 	res, err := s.db.ExecContext(ctx, `DELETE FROM ingest_jobs WHERE id = ?`, id)
@@ -454,7 +454,7 @@ func (s *Service) DeleteIngestJob(ctx context.Context, id string) (bool, error) 
 	return n > 0, nil
 }
 
-// DeleteAllIngestJobs wipes the table (v1 DELETE /api/ingest).
+// DeleteAllIngestJobs wipes the table (old DELETE /api/ingest).
 func (s *Service) DeleteAllIngestJobs(ctx context.Context) error {
 	_, err := s.db.ExecContext(ctx, `DELETE FROM ingest_jobs`)
 	if err != nil {

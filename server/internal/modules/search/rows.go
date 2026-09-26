@@ -9,7 +9,7 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/auth"
 )
 
-// maxQueryLen bounds free-text search input (v1 bounded nothing; the web
+// maxQueryLen bounds free-text search input (old bounded nothing; the web
 // search box is far smaller than this).
 const maxQueryLen = 200
 
@@ -68,11 +68,11 @@ func scanSongs(rows *sql.Rows) ([]Song, error) {
 	for rows.Next() {
 		var s Song
 		var artistName, albumName, genre, genreID, coverArt sql.NullString
-		// v1's scanner stored raw JS numbers, so legacy rows carry fractional
+		// the old scanner stored raw JS numbers, so legacy rows carry fractional
 		// REALs (mtimeMs, duration seconds, music-metadata format ints);
 		// scan every numeric through the tolerant db.NullInt64 (see
 		// internal/db.Int64) — a plain int64 scan of a REAL mtime fails and
-		// took down the whole songs category on v1-migrated databases.
+		// took down the whole songs category on databases migrated from the old server.
 		var track, disc, duration, year db.NullInt64
 		var mtime db.Millis
 		var explicit, active, starred sql.NullInt64
@@ -107,7 +107,7 @@ func scanAlbums(rows *sql.Rows) ([]Album, error) {
 	for rows.Next() {
 		var a Album
 		var artistName, genre, coverArt sql.NullString
-		// See scanSongs: v1 may have written any metadata number as REAL.
+		// See scanSongs: the retired server may have written any metadata number as REAL.
 		var year db.NullInt64
 		var active, starred, explicit sql.NullInt64
 		var rating sql.NullFloat64

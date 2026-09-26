@@ -1,4 +1,4 @@
-// MutagenWriter round-trip tests against a corpus copy, guarded like v1's
+// MutagenWriter round-trip tests against a corpus copy, guarded like the old
 // tag-writer suite: skipped unless python3 and the mutagen package are
 // importable on the host.
 package audio_test

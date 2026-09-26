@@ -6,7 +6,7 @@
 // license, see LICENSE). Vendored as an owned fork per S1 decision; applied
 // patches W1 (multi-value tags: vorbis/flac map[string][]string, id3v2
 // multi-value text frames, mp4 repeated data atoms) and W2 (m4a rtng atom +
-// 2-byte tmpo) per docs/v2-s1-metadata-findings.md. SONARLY(W1)/SONARLY(W2)
+// 2-byte tmpo) per docs/s1-metadata-findings.md. SONARLY(W1)/SONARLY(W2)
 // comments mark every deviation from upstream.
 //
 // Package tagfork provides MP3 (ID3: v1, 2.2, 2.3 and 2.4), MP4, FLAC and OGG metadata detection,

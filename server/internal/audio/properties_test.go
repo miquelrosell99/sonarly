@@ -1,6 +1,6 @@
 // W5 properties-reader accuracy test: cross-checks ReadMetadata's Properties
-// against the format block of testdata/gold_v1.json (music-metadata@11.14.0,
-// v1's exact version) with the S1-documented tolerances:
+// against the format block of testdata/gold_legacy.json (music-metadata@11.14.0,
+// the old reader's exact version) with the S1-documented tolerances:
 //
 //   - duration: within ±50 ms or 1%, whichever is larger
 //   - bitrate:  within 10%
@@ -9,7 +9,7 @@
 //   - m4a bitrate: gold reports 800 — music-metadata derives mp4 bitrate
 //     from the stsz sample table (audio bytes x 8 / duration), NOT the
 //     esds avgBitrate (128000). P10 parity found the mm-derived value is
-//     what v1 stores, so the reader sums stsz exactly like mm.
+//     what the old reader stored, so the reader sums stsz exactly like mm.
 //     Gold's 800 is therefore the asserted value.
 //   - flac bitrate: gold is 0 (mm reports 0 for lossless); we mirror that.
 
@@ -34,13 +34,13 @@ type goldDump struct {
 }
 
 func TestPropertiesParity(t *testing.T) {
-	raw, err := os.ReadFile(filepath.Join("testdata", "gold_v1.json"))
+	raw, err := os.ReadFile(filepath.Join("testdata", "gold_legacy.json"))
 	if err != nil {
-		t.Fatalf("read gold_v1.json: %v", err)
+		t.Fatalf("read gold_legacy.json: %v", err)
 	}
 	var gold map[string]goldDump
 	if err := json.Unmarshal(raw, &gold); err != nil {
-		t.Fatalf("parse gold_v1.json: %v", err)
+		t.Fatalf("parse gold_legacy.json: %v", err)
 	}
 
 	// m4a bitrate: music-metadata derives it from the stsz sample table

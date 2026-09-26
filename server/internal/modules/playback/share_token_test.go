@@ -24,7 +24,7 @@ func (e *testEnv) seedSharePlaylists(t *testing.T) {
 
 // TestStreamAnonymousShareToken: anonymous + valid token streams the linked
 // playlist's songs — including songs outside every signed-in scope, which
-// is exactly what link sharing is for (v1 share semantics).
+// is exactly what link sharing is for (the old share semantics).
 func TestStreamAnonymousShareToken(t *testing.T) {
 	env := newEnv(t, Options{})
 	env.seedSharePlaylists(t)

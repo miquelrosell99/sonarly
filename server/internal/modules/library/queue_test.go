@@ -10,8 +10,8 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/library"
 )
 
-// The audit's coalescing fix: v1 only coalesced 'resync', so tagging a whole
-// album queued one scan per track. v2 coalesces any pending job with the
+// The audit's coalescing fix: the retired server only coalesced 'resync', so tagging a whole
+// album queued one scan per track. The Go server coalesces any pending job with the
 // same type AND target.
 func TestPushCoalescesSameTypeAndTarget(t *testing.T) {
 	database := openDB(t)
@@ -89,7 +89,7 @@ func TestPushCoalescingMatchesTarget(t *testing.T) {
 }
 
 // Typed payload round-trip: what the producer marshals is what the worker
-// decodes — v1's stats-column path smuggling cannot happen because the
+// decodes — the old stats-column path smuggling cannot happen because the
 // payload column carries a schema'd document.
 func TestPayloadRoundTrip(t *testing.T) {
 	database := openDB(t)
@@ -242,7 +242,7 @@ func TestPruneTerminalKeepsNewest(t *testing.T) {
 	}
 }
 
-// The status endpoint must see queued jobs: v1 ordered by started_at, which
+// The status endpoint must see queued jobs: the retired server ordered by started_at, which
 // is NULL until a job runs, so pending jobs sank to the bottom and the
 // endpoint hid them.
 func TestLatestSurfacesPendingJob(t *testing.T) {

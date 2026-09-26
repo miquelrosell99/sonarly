@@ -27,7 +27,7 @@ type Config struct {
 	ReviewCleanupInterval time.Duration // periodic review-folder retention sweep (default 24h)
 
 	// Ingest (P7b): review/ file retention default; the settings table
-	// key review_retention_days overrides it (clamped to 1–365 like v1).
+	// key review_retention_days overrides it (clamped to 1–365).
 	ReviewRetentionDays int
 
 	// Playback (P5).

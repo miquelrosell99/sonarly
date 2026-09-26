@@ -1,4 +1,4 @@
-// HTTP routes for ingest management and conflict cleanup, v1 parity:
+// HTTP routes for ingest management and conflict cleanup, wire parity:
 //
 //	GET    /api/ingest            last 100 per-file ingest rows (any user)
 //	GET    /api/ingest/{id}       one row (any user)
@@ -46,7 +46,7 @@ func NewHandler(svc *Service, mw *auth.Middleware, ingestPath string) *Handler {
 }
 
 // Routes registers the endpoints behind session auth. The organize preview
-// is the deliberate exception: v1 left it unauthenticated, and v2 matches
+// is the deliberate exception: the retired server left it unauthenticated, and the Go server matches
 // (it only answers the configured pattern).
 func (h *Handler) Routes(r chi.Router) {
 	h.previewRoute(r)
@@ -120,7 +120,7 @@ func (h *Handler) wipeJobs(w http.ResponseWriter, r *http.Request) {
 	httpserver.JSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
-// trigger ports v1's POST /api/ingest/trigger: resolve the target library
+// trigger ports the old POST /api/ingest/trigger: resolve the target library
 // (payload's id, else the default), make sure its drop dir exists, enqueue
 // the typed ingest job.
 func (h *Handler) trigger(w http.ResponseWriter, r *http.Request) {
@@ -186,16 +186,16 @@ func (h *Handler) trigger(w http.ResponseWriter, r *http.Request) {
 
 // ---------------------------------------------------------------------------
 // Conflicts: songs parked on " (n)" collision paths by the organizer's
-// duplicate-target resolution. v1's B5 fix (already on main) deletes the
+// duplicate-target resolution. the old B5 fix (already on main) deletes the
 // FILE first and the row second — a row pointing at a live file must never
 // outlive it, and a gone file must never block its row's removal.
 // ---------------------------------------------------------------------------
 
-// collisionSuffixRe ports v1's COLLISION_SUFFIX_REGEX: " (digits)" right
+// collisionSuffixRe ports the old COLLISION_SUFFIX_REGEX: " (digits)" right
 // before the extension.
 var collisionSuffixRe = regexp.MustCompile(`(?i) \(\d+\)\.[a-z0-9]+$`)
 
-// Conflict is one collision candidate (v1 conflicts route DTO).
+// Conflict is one collision candidate (old conflicts route DTO).
 type Conflict struct {
 	ID         string  `json:"id"`
 	FilePath   string  `json:"filePath"`
@@ -222,7 +222,7 @@ func (h *Handler) deleteConflicts(w http.ResponseWriter, r *http.Request) {
 	httpserver.JSON(w, http.StatusOK, map[string]any{"ok": true, "deleted": deleted})
 }
 
-// ListConflicts ports v1's listCollisionSongs + name join: active songs
+// ListConflicts ports the old listCollisionSongs + name join: active songs
 // whose path ends in a collision suffix, with artist/album names.
 func (s *Service) ListConflicts(ctx context.Context) ([]Conflict, error) {
 	rows, err := s.db.QueryContext(ctx,
@@ -256,8 +256,8 @@ func (s *Service) ListConflicts(ctx context.Context) ([]Conflict, error) {
 	return conflicts, nil
 }
 
-// DeleteConflicts ports v1's DELETE /api/conflicts: for every collision song
-// delete the FILE first (ENOENT still removes the row — v1 B5), aborting on
+// DeleteConflicts ports the old DELETE /api/conflicts: for every collision song
+// delete the FILE first (ENOENT still removes the row — the retired server B5), aborting on
 // any other filesystem error, then delete the row. Junction/user rows
 // cascade with the song (FK ON DELETE CASCADE).
 func (s *Service) DeleteConflicts(ctx context.Context) (int, error) {

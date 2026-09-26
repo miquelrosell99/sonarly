@@ -1,10 +1,10 @@
-// W5 audio-properties reader per docs/v2-s1-metadata-findings.md §5 W5
+// W5 audio-properties reader per docs/s1-metadata-findings.md §5 W5
 // option 1: hand-rolled, pure Go, zero dependencies. dhowden/tag (and
 // therefore tagfork) reads tags only — duration/bitrate/sampleRate/channels
 // are required by OpenSubsonic and the player timeline, so this fills the
-// gap v1 got from music-metadata's `format` block.
+// gap the old reader got from music-metadata's `format` block.
 //
-// Format support (mirrors v1's coverage):
+// Format support (mirrors the old coverage):
 //   - MP3:   frame-header scan with Xing/Info/VBRI VBR headers; full frame
 //     walk for exact CBR duration (matches music-metadata's
 //     numberOfSamples/sampleRate result on CBR streams).
@@ -23,11 +23,11 @@ import (
 	"os"
 )
 
-// Properties holds the audio stream properties v1 sourced from
+// Properties holds the audio stream properties the old reader sourced from
 // music-metadata's format block.
 type Properties struct {
 	Duration      float64 // seconds
-	Bitrate       int     // bits per second; 0 for lossless FLAC (v1 parity — mm reports 0)
+	Bitrate       int     // bits per second; 0 for lossless FLAC (parity — mm reports 0)
 	SampleRate    int     // Hz
 	Channels      int
 	BitsPerSample int // 0 when unknown (e.g. lossy codecs)
@@ -91,7 +91,7 @@ func flacProperties(f *os.File) (Properties, error) {
 			if p.SampleRate > 0 && totalSamples > 0 {
 				p.Duration = float64(totalSamples) / float64(p.SampleRate)
 			}
-			// v1 parity: music-metadata reports bitrate 0 for FLAC (lossless
+			// parity: music-metadata reports bitrate 0 for FLAC (lossless
 			// streams have no nominal bitrate); keep Bitrate 0.
 			return p, nil
 		}
@@ -196,7 +196,7 @@ func oggProperties(f *os.File) (Properties, error) {
 
 // oggLastGranule scans the file tail for the last Ogg page carrying a
 // granule position for the given serial. Returns ok=false when no such page
-// exists (e.g. truncated streams — v1 still reports the nominal fields then).
+// exists (e.g. truncated streams — the old reader still reported the nominal fields then).
 func oggLastGranule(f *os.File, serial uint32) (granule uint64, ok bool, err error) {
 	end, err := f.Seek(0, io.SeekEnd)
 	if err != nil {
@@ -280,7 +280,7 @@ func mp4Properties(f *os.File) (Properties, error) {
 			// music-metadata's MP4 bitrate is audio-sample-bytes*8/duration
 			// (from stsz), NOT the esds avgBitrate field — for the synthetic
 			// corpus m4a they disagree wildly (esds lies). Sum the sample
-			// sizes so the stored bit_rate matches v1 (P10 parity finding).
+			// sizes so the stored bit_rate matches the old reader (P10 parity finding).
 			// Best-effort: a handcrafted file may carry an inconsistent
 			// table; fall back to the esds bitrate instead of failing.
 			if len(data) < 16 {

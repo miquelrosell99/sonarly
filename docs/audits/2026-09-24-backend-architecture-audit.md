@@ -1,5 +1,7 @@
 # Sonarly Backend Architecture Audit
 
+> Historical transition-era artifact: audit of the pre-rewrite TypeScript backend and the web client during the Go rewrite; version names inside refer to the pre- and post-rewrite codebases. Preserved as project history.
+
 **Date:** 2026-09-24
 **Scope:** `packages/server` (primary), `packages/shared`, `packages/web` (boundary only), deployment & tooling
 **Method:** full read-only audit of `packages/server/src` (169 files, ~15.5k LOC), all 49 migrations, all route/repository/feature files, test suite, Docker/CI config, docs

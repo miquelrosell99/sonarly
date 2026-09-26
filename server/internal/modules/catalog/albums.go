@@ -11,7 +11,7 @@ import (
 )
 
 // albumColumns is the explicit column list album SELECTs share (no
-// genre_id: v1's album responses never exposed it). Interaction columns
+// genre_id: the old album responses never exposed it). Interaction columns
 // (starred, rating) and list aggregates are appended per query.
 const albumColumns = `a.id, a.name, a.artist_id, a.artist_name, a.release_type, a.year,
 	a.genre, a.cover_art_id, a.active, a.catalog_numbers, a.barcode, a.asin,
@@ -130,7 +130,7 @@ func (r *albumRow) toArtistAlbum() ArtistAlbum {
 
 // albumSongJoin builds the songs join album aggregations ride on. Scoped or
 // library-filtered queries INNER JOIN in-scope active songs (counts and the
-// library filter live on the join, v1 parity); unrestricted queries LEFT
+// library filter live on the join, wire parity); unrestricted queries LEFT
 // JOIN so empty albums keep appearing with zero counts. joinArgs carries the
 // join's bind values in placeholder order (library id, then scope ids).
 func albumSongJoin(scope libraries.Scope, libraryID string) (joinSQL string, joinArgs []any) {
@@ -147,15 +147,15 @@ func albumSongJoin(scope libraries.Scope, libraryID string) (joinSQL string, joi
 }
 
 // shownSongCountExpr counts songs the caller would actually see: real songs
-// only (a LEFT JOIN gap does not count as a visible song — v1's SUM(CASE)
-// reported 1 for empty albums, which v2 fixes), minus explicit songs when
+// only (a LEFT JOIN gap does not count as a visible song — the old SUM(CASE)
+// reported 1 for empty albums, which the Go server fixes), minus explicit songs when
 // the hide flag binds to 1.
 const shownSongCountExpr = `SUM(CASE
 		WHEN s.id IS NOT NULL AND ? = 1 AND s.explicit = 1 THEN 0
 		WHEN s.id IS NOT NULL THEN 1
 		ELSE 0 END)`
 
-// listAlbums is the /api/albums query (v1's list with the artist/year
+// listAlbums is the /api/albums query (the old list with the artist/year
 // filters folded in).
 func listAlbums(ctx context.Context, q auth.Queries, userID string, scope libraries.Scope, f AlbumFilter) ([]Album, error) {
 	joinSQL, joinArgs := albumSongJoin(scope, f.LibraryID)
@@ -182,8 +182,8 @@ func listAlbums(ctx context.Context, q auth.Queries, userID string, scope librar
 	groupBy := `GROUP BY a.id`
 	if f.HideExplicit {
 		// Drop albums whose songs are all explicit, but keep songless
-		// albums: hiding explicit content must not hide empty ones (v1's
-		// SUM(CASE) quirk kept them via a phantom count; v2 states the rule).
+		// albums: hiding explicit content must not hide empty ones (the old 
+		// SUM(CASE) quirk kept them via a phantom count; the Go server states the rule).
 		groupBy += ` HAVING total_song_count = 0 OR shown_song_count > 0`
 	}
 	args = append(args, f.Limit)
@@ -240,7 +240,7 @@ func getAlbumByID(ctx context.Context, q auth.Queries, userID, id string) (*Albu
 }
 
 // listAlbumsByArtist loads the album cards embedded in the artist detail
-// response (v1's /api/artists/:id albums query: year, name order, no limit).
+// response (the old /api/artists/:id albums query: year, name order, no limit).
 func listAlbumsByArtist(ctx context.Context, q auth.Queries, userID, artistID, libraryID string, scope libraries.Scope, hideExplicit bool) ([]ArtistAlbum, error) {
 	joinSQL, joinArgs := albumSongJoin(scope, libraryID)
 	hide := 0
@@ -284,7 +284,7 @@ func listAlbumsByArtist(ctx context.Context, q auth.Queries, userID, artistID, l
 }
 
 // attachAlbumRelations batch-attaches artist names, genre names, and label
-// entries to a list of albums (v1's list handler), one chunked IN query per
+// entries to a list of albums (the old list handler), one chunked IN query per
 // relation.
 func attachAlbumRelations(ctx context.Context, q auth.Queries, albums []Album) error {
 	if len(albums) == 0 {
@@ -318,7 +318,7 @@ func attachAlbumRelations(ctx context.Context, q auth.Queries, albums []Album) e
 }
 
 // albumRelations loads one album's artist names, genre names, and label
-// entries in a single UNION ALL query (v1's detail handler ran
+// entries in a single UNION ALL query (the old detail handler ran
 // getAlbumArtistNames + getAlbumGenreNames + getAlbumLabelEntries
 // separately; folding them keeps the detail endpoint's statement count
 // flat). Rows come out grouped by kind and ordered by junction position.

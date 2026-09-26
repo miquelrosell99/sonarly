@@ -26,7 +26,7 @@ var errSlotsFull = errors.New("transcode slots full")
 // can back off deterministically (S2 §5).
 const retryAfterSeconds = "3"
 
-const copyChunkBytes = 64 * 1024 // v1 createReadStream highWaterMark parity
+const copyChunkBytes = 64 * 1024 // old createReadStream highWaterMark parity
 
 // streamOutcome labels the terminal state of one transcode attempt, for
 // tests and logging.
@@ -75,7 +75,7 @@ func NewTranscodingStreamer(maxConcurrent int, ffmpegPath string, log *slog.Logg
 	}
 }
 
-// HeadHeaders writes the v1-parity HEAD response for a transcode-decided
+// HeadHeaders writes the wire-parity HEAD response for a transcode-decided
 // stream: Content-Type by format, Accept-Ranges: none, no body, and no
 // ffmpeg spawned (asserted in the S2 spike).
 func HeadHeaders(w http.ResponseWriter, format string) {
@@ -93,10 +93,10 @@ func ErrSlotsFull(err error) bool { return errors.Is(err, errSlotsFull) }
 func RetryAfter() string { return retryAfterSeconds }
 
 // Stream runs one transcode to w. Spawn errors are returned synchronously —
-// Go's exec.Cmd.Start has no v1-B12 async-spawn trap, so the caller can fall
+// Go's exec.Cmd.Start has no the old B12 async-spawn trap, so the caller can fall
 // back to direct serving with zero bytes written (S2 surprise 3). Semaphore
 // saturation is errSlotsFull. Mid-stream failures are logged with slog
-// including the request ID; the client sees a truncated stream (v1 parity,
+// including the request ID; the client sees a truncated stream (wire parity,
 // S2 decision D5). ffmpeg dying before its first output byte upgrades to a
 // 500 (accepted deviation, S2 sign-off S2).
 func (t *TranscodingStreamer) Stream(w http.ResponseWriter, r *http.Request, filePath, format string, maxKbps int) (*streamOutcome, error) {
@@ -115,7 +115,7 @@ func (t *TranscodingStreamer) Stream(w http.ResponseWriter, r *http.Request, fil
 	}
 
 	// 2. Spawn ffmpeg. CommandContext wires r.Context() to process Kill
-	//    (SIGKILL on Linux) on client disconnect — v1 parity via stdlib,
+	//    (SIGKILL on Linux) on client disconnect — wire parity via stdlib,
 	//    measured at 3.4 ms in the S2 spike.
 	cmd := exec.CommandContext(r.Context(), t.ffmpegPath, ffmpegArgs(filePath, format, maxKbps)...)
 	stdout, err := cmd.StdoutPipe()
@@ -147,9 +147,9 @@ func (t *TranscodingStreamer) Stream(w http.ResponseWriter, r *http.Request, fil
 		t.mu.Unlock()
 	}()
 
-	// 3. Headers — v1 parity: Content-Type by format, Accept-Ranges: none,
+	// 3. Headers — wire parity: Content-Type by format, Accept-Ranges: none,
 	//    no Content-Length → net/http answers chunked. Range request headers
-	//    are deliberately ignored (stream always starts at 0 — v1 parity).
+	//    are deliberately ignored (stream always starts at 0 — wire parity).
 	h := w.Header()
 	h.Set("Content-Type", transcodeContentType(format))
 	h.Set("Accept-Ranges", "none")
@@ -195,7 +195,7 @@ func (t *TranscodingStreamer) Stream(w http.ResponseWriter, r *http.Request, fil
 		res.StderrTail = stderr.String()
 		if res.Bytes == 0 {
 			// Died before any output: response headers are not committed yet,
-			// so upgrade to 500. (v1 answers an empty 200 here — the one
+			// so upgrade to 500. (old answers an empty 200 here — the one
 			// deliberate wire deviation, S2 sign-off S2.)
 			res.Failure = "exit-early"
 			t.log.Error("transcode failed before first byte",

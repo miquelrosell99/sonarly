@@ -196,7 +196,7 @@ func TestGetSongShape(t *testing.T) {
 		t.Fatalf("response has no song object: %v", body)
 	}
 
-	// v1-parity field mapping.
+	// wire-parity field mapping.
 	want := map[string]any{
 		"id": "s-a1", "title": "One", "trackNumber": 1, "discNumber": 1,
 		"duration": 200, "artistId": "ar-alpha", "albumId": "al-a1",
@@ -470,8 +470,8 @@ func TestGetAlbumScopeAndShape(t *testing.T) {
 		}
 	})
 	t.Run("empty album has zero counts", func(t *testing.T) {
-		// v1's LEFT JOIN reported shownSongCount 1 for songless albums;
-		// v2 counts only real songs.
+		// the old LEFT JOIN reported shownSongCount 1 for songless albums;
+		// the Go server counts only real songs.
 		rec := s.do(t, http.MethodGet, "/api/albums/al-empty", admin)
 		body := decodeMap(t, rec)
 		album := body["album"].(map[string]any)
@@ -488,7 +488,7 @@ func TestGetAlbumScopeAndShape(t *testing.T) {
 func TestListArtistsScopeMatrix(t *testing.T) {
 	s := newSeededServer(t)
 	// Admin (no library filter) sees every active artist — including ones
-	// with no reachable songs (v1 parity). Scoped users see only artists
+	// with no reachable songs (wire parity). Scoped users see only artists
 	// with an in-scope active song via songs.artist_id.
 	want := map[string][]string{
 		"admin":        {"ar-alpha", "ar-beta", "ar-gamma", "ar-delta", "ar-feat", "ar-comp"},
@@ -552,7 +552,7 @@ func TestGetArtistScopeAndShape(t *testing.T) {
 	t.Run("junction-only artist reachable for admin only", func(t *testing.T) {
 		// ar-feat appears in song_artists but never as songs.artist_id:
 		// scoped users cannot reach it (the policy probes songs), while an
-		// admin's unrestricted scope admits any active artist — v1 parity.
+		// admin's unrestricted scope admits any active artist — wire parity.
 		rec := s.do(t, http.MethodGet, "/api/artists/ar-feat", alice)
 		if rec.Code != http.StatusNotFound {
 			t.Fatalf("alice: want 404, got %d", rec.Code)

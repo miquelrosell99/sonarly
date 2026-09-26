@@ -1,6 +1,6 @@
 package search
 
-// Entry is an id+name pair, the artistEntries shape v1's search attaches to
+// Entry is an id+name pair, the artistEntries shape the old search attaches to
 // song hits (songs/routes attachSongArtistEntries).
 type Entry struct {
 	ID   string `json:"id"`
@@ -8,7 +8,7 @@ type Entry struct {
 }
 
 // Song is one hit of the songs category: the display subset of the catalog
-// song DTO (v2 omits filePath/checksum everywhere; search adds the joined
+// song DTO (Go-server omits filePath/checksum everywhere; search adds the joined
 // artist/album display names and the caller's interaction state).
 type Song struct {
 	ID            string   `json:"id"`
@@ -34,7 +34,7 @@ type Song struct {
 	Rating        *float64 `json:"rating,omitempty"`
 }
 
-// Album is one hit of the albums category (v1's search album shape).
+// Album is one hit of the albums category (the old search album shape).
 type Album struct {
 	ID         string   `json:"id"`
 	Name       string   `json:"name"`
@@ -51,7 +51,7 @@ type Album struct {
 	Explicit   bool     `json:"explicit"`
 }
 
-// Artist is one hit of the artists category (v1's search artist shape).
+// Artist is one hit of the artists category (the old search artist shape).
 type Artist struct {
 	ID      string   `json:"id"`
 	Name    string   `json:"name"`
@@ -60,7 +60,7 @@ type Artist struct {
 	Rating  *float64 `json:"rating,omitempty"`
 }
 
-// Playlist is one hit of the playlists category (v1's search playlist shape:
+// Playlist is one hit of the playlists category (the old search playlist shape:
 // songIds stays empty; songCount carries the count).
 type Playlist struct {
 	ID            string   `json:"id"`
@@ -79,7 +79,7 @@ type Playlist struct {
 }
 
 // Results is the /api/search envelope: every category is always present
-// (possibly empty), exactly like v1.
+// (possibly empty), exactly like the retired server.
 type Results struct {
 	Songs     []Song     `json:"songs"`
 	Albums    []Album    `json:"albums"`

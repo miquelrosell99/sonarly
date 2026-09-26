@@ -301,7 +301,7 @@ func TestCreateSessionValidation(t *testing.T) {
 		t.Fatalf("bad strategy: want 400, got %d", rec.Code)
 	}
 
-	// Valid, no strategy: response omits the key (v1 shape).
+	// Valid, no strategy: response omits the key (old shape).
 	rec = s.doJSON(t, http.MethodPost, "/api/upload/sessions", map[string]string{"libraryId": libraryID}, admin)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("create: want 201, got %d", rec.Code)
@@ -344,7 +344,7 @@ func TestValidationMatrix(t *testing.T) {
 		t.Fatalf("index >= 10000: want 400, got %d", rec.Code)
 	}
 
-	// Unknown session: 404 and, per the v1 rule, no disk write at all.
+	// Unknown session: 404 and, per the retired server rule, no disk write at all.
 	unknownID := uuid.NewString()
 	rec := put(fmt.Sprintf("/api/upload/sessions/%s/files/f1/chunks/0", unknownID), []byte("x"))
 	if rec.Code != http.StatusNotFound {
@@ -402,7 +402,7 @@ func TestValidationMatrix(t *testing.T) {
 }
 
 // TestReassemblyMemoryBounded streams ~30 MiB through complete-file and
-// asserts the total allocation delta stays far below v1's behavior, which
+// asserts the total allocation delta stays far below the old behavior, which
 // buffered the whole file in the heap (Buffer.concat). Loose enough for CI
 // noise, tight enough to catch a regression to buffering.
 func TestReassemblyMemoryBounded(t *testing.T) {
@@ -573,7 +573,7 @@ func TestGetSessionStatus(t *testing.T) {
 }
 
 // TestAuthz: every route 401s anonymous callers and 403s authenticated
-// non-admins (matching v1's requireAdmin), with no side effects.
+// non-admins (matching the old requireAdmin), with no side effects.
 func TestAuthz(t *testing.T) {
 	s := newUploadServer(t)
 	admin := s.session(t, "user-admin", "root", true)

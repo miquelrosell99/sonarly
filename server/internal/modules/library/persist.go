@@ -1,14 +1,14 @@
 // Persist is the ONE data path for writing a song and everything it
 // references: artists/genres/labels get-or-create, the album row and its
-// junctions, the song upsert (average_rating excluded — the v1 B4 fix lives
+// junctions, the song upsert (average_rating excluded — the old B4 fix lives
 // here), junction rewrites, and cover-art hash dedup + links. It was
 // extracted from the scanner (P4b) so the ingest pipeline writes through the
 // exact same code — the audit's "one data path" principle: a song imported
 // by a scan and a song imported by ingest produce identical rows.
 //
-// PersistSong runs everything in ONE transaction per song (v1 was
+// PersistSong runs everything in ONE transaction per song (old was
 // multi-statement autocommit; a crash mid-song could leave partial rows).
-// Merge modes implement v1's persistSong options for duplicate handling
+// Merge modes implement the old persistSong options for duplicate handling
 // (aggregate / replacePresentOnly / keepCoverArt).
 package library
 
@@ -51,7 +51,7 @@ type albumMeta struct {
 	totalDiscs       int
 }
 
-// PersistMerge carries v1's persistSong merge options. The zero value means
+// PersistMerge carries the old persistSong merge options. The zero value means
 // "full replace" (scanner behavior). The combinations the duplicate
 // strategies use:
 //
@@ -74,7 +74,7 @@ type PersistMerge struct {
 	KeepCoverArt bool
 }
 
-// merging reports whether v1's merge path applies (both modes merge scalars;
+// merging reports whether the old merge path applies (both modes merge scalars;
 // only the list handling differs).
 func (m PersistMerge) merging() bool { return m.Aggregate || m.ReplacePresentOnly }
 
@@ -84,7 +84,7 @@ type PersistInput struct {
 	ExistingID *string
 	Path       string
 	Meta       *audio.Metadata
-	Mtime      int64 // Unix milliseconds, v1 mtimeMs
+	Mtime      int64 // Unix milliseconds (old mtimeMs)
 	Checksum   string
 	LibraryID  *string
 	Merge      PersistMerge
@@ -123,7 +123,7 @@ func PersistSong(ctx context.Context, db *sql.DB, in PersistInput) (string, erro
 func persistSongTx(ctx context.Context, ex execer, in PersistInput) (string, error) {
 	meta := in.Meta
 
-	// Song artists, with per-index MusicBrainz ids (v1 parity).
+	// Song artists, with per-index MusicBrainz ids (wire parity).
 	artistNames := artistNames(meta)
 	var artistIDs []string
 	for i, name := range artistNames {
@@ -193,8 +193,8 @@ func persistSongTx(ctx context.Context, ex execer, in PersistInput) (string, err
 	}
 
 	// Cover art: hash-dedup blob, album seeded from the first song carrying
-	// embedded art (v1 behavior). Album seeding happens even under
-	// KeepCoverArt (v1 parity).
+	// embedded art (the old behavior). Album seeding happens even under
+	// KeepCoverArt (wire parity).
 	var ownCoverID *string
 	if meta.HasCoverArt && meta.Picture != nil {
 		id, err := ensureCoverArt(ctx, ex, meta.Picture)
@@ -229,8 +229,8 @@ func persistSongTx(ctx context.Context, ex execer, in PersistInput) (string, err
 	}
 
 	// Song cover link: the existing row's link survives a reuse unless
-	// overwritten; otherwise the link follows the album cover (v1 embedded
-	// the album cover INTO the file; v2 reconciles the link only — scans
+	// overwritten; otherwise the link follows the album cover (the old server embedded
+	// the album cover INTO the file; the Go server reconciles the link only — scans
 	// never mutate audio files).
 	var songCoverID *string
 	coverArtMissing := !meta.HasCoverArt
@@ -312,7 +312,7 @@ func persistSongTx(ctx context.Context, ex execer, in PersistInput) (string, err
 
 	// Junction rewrites, all inside the song's tx. Under a merge with an
 	// absent new list, final*IDs stays nil and the existing rows are left
-	// untouched (v1 persistSong only rewrote non-empty lists in that path).
+	// untouched (old persistSong only rewrote non-empty lists in that path).
 	if finalArtistIDs != nil {
 		if err := setJunction(ctx, ex, "song_artists", "song_id", "artist_id", songID, finalArtistIDs); err != nil {
 			return "", err
@@ -352,14 +352,14 @@ func persistSongTx(ctx context.Context, ex execer, in PersistInput) (string, err
 }
 
 // ---------------------------------------------------------------------------
-// Merge (v1 persistSong options: aggregate / replacePresentOnly)
+// Merge (old persistSong options: aggregate / replacePresentOnly)
 // ---------------------------------------------------------------------------
 
 // mergeSongData folds the existing row's values into the new song row under
 // a merge: every field the new metadata leaves absent keeps its existing
 // value; mtime and checksum always come from the new write (callers pass the
 // right ones — keep-file strategies pass the existing file's); title falls
-// back to the existing title when the new one is empty (v1 `||`).
+// back to the existing title when the new one is empty (the old `||`).
 func mergeSongData(next, existing songData, meta *audio.Metadata, m PersistMerge) songData {
 	next.trackNo = orPtr(next.trackNo, existing.trackNo)
 	next.discNo = orPtr(next.discNo, existing.discNo)
@@ -408,7 +408,7 @@ func mergeSongData(next, existing songData, meta *audio.Metadata, m PersistMerge
 }
 
 // mergeJunctions computes the junction membership for a merged write.
-// Aggregate unions existing rows with the new list (existing first, v1
+// Aggregate unions existing rows with the new list (existing first, old
 // unionIds); ReplacePresentOnly replaces with the new list when present.
 // An absent new list yields nil, meaning "leave the junction untouched".
 func mergeJunctions(ctx context.Context, ex execer, songID string, artistIDs, genreIDs, composerIDs []string, m PersistMerge) (artists, genres, composers []string, err error) {
@@ -462,7 +462,7 @@ func junctionIDs(ctx context.Context, ex execer, table, member, songID string) (
 	return ids, nil
 }
 
-// unionStrings returns a ∪ b, a's order first, de-duplicated (v1 unionIds /
+// unionStrings returns a ∪ b, a's order first, de-duplicated (old unionIds /
 // unionArrays).
 func unionStrings(a, b []string) []string {
 	if len(a) == 0 {
@@ -507,7 +507,7 @@ func orSync(next, existing []audio.SyncedLyricLine) []audio.SyncedLyricLine {
 // from persist)
 // ---------------------------------------------------------------------------
 
-// songData carries the columns the persist path writes. Columns the v2
+// songData carries the columns the persist path writes. Columns the Go
 // metadata reader does not extract (sort_name, mood, the date/remix/
 // original* family, track/work/disc MBIDs) stay NULL — the upsert below
 // never touches them. average_rating is deliberately absent: user ratings
@@ -560,7 +560,7 @@ func scanSongData(row interface{ Scan(...any) error }) (*songData, error) {
 	var s songData
 	var explicit, coverMissing int
 	var mtime db.Millis
-	// Numeric columns v1 may have written as fractional REALs scan through
+	// Numeric columns the retired server may have written as fractional REALs scan through
 	// the tolerant db.NullInt64 (see internal/db).
 	var trackNo, discNo, duration, year db.NullInt64
 	var bitRate, bitsPerSample, sampleRate, channels, bpm db.NullInt64
@@ -615,7 +615,7 @@ func songDataByID(ctx context.Context, ex execer, id string) (*songData, error) 
 }
 
 // upsertSong inserts or replaces a song row by id. The column list excludes
-// average_rating entirely so a rescan can never reset user ratings (v1 B4).
+// average_rating entirely so a rescan can never reset user ratings (the old B4).
 func upsertSong(ctx context.Context, ex execer, s songData) error {
 	explicit := 0
 	if s.explicit {
@@ -732,7 +732,7 @@ func ensureLabel(ctx context.Context, ex execer, name string) (string, error) {
 	return id, nil
 }
 
-// ensureAlbum ports v1's ensureAlbum: match by (name, primary artist), fill
+// ensureAlbum ports the old ensureAlbum: match by (name, primary artist), fill
 // junctions and release metadata on first create, only add multi-value
 // junctions and never overwrite release_type on later songs. All in the
 // caller's tx.
@@ -870,7 +870,7 @@ func setJunction(ctx context.Context, ex execer, table, owner, member, ownerID s
 }
 
 // ensureCoverArt returns the id of the blob with this content (sha256
-// hash-dedup, v1 createCoverArt), inserting it on first sight.
+// hash-dedup, old createCoverArt), inserting it on first sight.
 func ensureCoverArt(ctx context.Context, ex execer, pic *audio.Picture) (string, error) {
 	sum := sha256.Sum256(pic.Data)
 	hash := hex.EncodeToString(sum[:])
@@ -891,7 +891,7 @@ func ensureCoverArt(ctx context.Context, ex execer, pic *audio.Picture) (string,
 	return id, nil
 }
 
-// EnsureCoverArt stores a cover art blob with sha256 hash-dedup (v1
+// EnsureCoverArt stores a cover art blob with sha256 hash-dedup (old
 // createCoverArt) and returns its id. It is the exported surface for
 // modules outside the scan/ingest data path (cover-art uploads).
 func EnsureCoverArt(ctx context.Context, db *sql.DB, format string, data []byte) (string, error) {
@@ -948,10 +948,10 @@ func normalizeReleaseType(value string) string {
 	return trimmed
 }
 
-// mediaTypes mirrors v1's mime-types lookup for the four audio extensions;
+// mediaTypes mirrors the old mime-types lookup for the four audio extensions;
 // a static map keeps the mapping deterministic regardless of the host's
-// /etc/mime.types. flac is audio/x-flac like v1's mime-types package (NOT
-// Go's builtin audio/flac) — the OpenSubsonic contentType must match v1.
+// /etc/mime.types. flac is audio/x-flac like the old mime-types package (NOT
+// Go's builtin audio/flac) — the OpenSubsonic contentType must match the old one.
 var mediaTypes = map[string]string{
 	".mp3":  "audio/mpeg",
 	".flac": "audio/x-flac",
@@ -1105,16 +1105,16 @@ func EnsureArtist(ctx context.Context, db *sql.DB, name string, mbids []string) 
 
 // ResolveLibraryIDForPath maps a file path to its library by exact path or
 // prefix at a separator boundary, longest prefix winning, so /music does not
-// claim /music2 (v1 parity; the organize-existing trap).
+// claim /music2 (wire parity; the organize-existing trap).
 func ResolveLibraryIDForPath(ctx context.Context, db *sql.DB, path string) (*string, error) {
 	return resolveLibraryID(ctx, db, path)
 }
 
-// ChecksumFile streams the file through SHA-256 (v1 computeChecksum).
+// ChecksumFile streams the file through SHA-256 (old computeChecksum).
 func ChecksumFile(path string) (string, error) {
 	return checksumFile(path)
 }
 
-// DefaultOrganizePattern matches the libraries table default and v1's
+// DefaultOrganizePattern matches the libraries table default and the old
 // ORGANIZE_PATTERN config default.
 const DefaultOrganizePattern = "{albumArtist}/({year}) {album}/{disc:00}{track:00} - {title}"

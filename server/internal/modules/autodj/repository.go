@@ -1,18 +1,18 @@
-// Package autodj ports v1's auto-dj: similar / random / smart candidate
+// Package autodj ports the old auto-dj: similar / random / smart candidate
 // generation for playback continuity. The selection SQL, the JS scoring
 // port, the exclude windows, the 500-id cap and the user-preference-driven
-// options all follow v1; two deliberate deviations:
+// options all follow the old server; two deliberate deviations:
 //
-//   - Errors surface as a typed 502 instead of v1's silent "200 with an
+//   - Errors surface as a typed 502 instead of the old silent "200 with an
 //     empty songs array" — the audit called that swallow a bug: a client
 //     cannot tell "nothing fits" from "the server broke". Generation
 //     failures (DB errors) answer 502 Bad Gateway with a generic message;
 //     "nothing fits" is still a 200 with an empty list.
-//   - ORDER BY RANDOM() stays (v1 parity): at SQLite scale — one library,
+//   - ORDER BY RANDOM() stays (wire parity): at SQLite scale — one library,
 //     one writer, candidate sets capped at 500 — the sort is milliseconds.
-//     The smart pool is additionally bounded (500 rows) like v1.
+//     The smart pool is additionally bounded (500 rows) like the retired server.
 //
-// Explicit-content filtering stays OFF (v1 parity): auto-dj follows the
+// Explicit-content filtering stays OFF (wire parity): auto-dj follows the
 // user's own listening context, and the client can post-filter.
 package autodj
 
@@ -26,13 +26,13 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/libraries"
 )
 
-// maxExcludeIDs caps the exclusion id list (v1's MAX_EXCLUDE_IDS).
+// maxExcludeIDs caps the exclusion id list (the old MAX_EXCLUDE_IDS).
 const maxExcludeIDs = 500
 
 // idChunkSize bounds the genre batch loader's IN lists.
 const idChunkSize = 400
 
-// smartPoolSize bounds the smart-mode candidate pool (v1's LIMIT 500).
+// smartPoolSize bounds the smart-mode candidate pool (the old LIMIT 500).
 const smartPoolSize = 500
 
 // ExcludeWindow is a whitelisted recent-history exclusion window.
@@ -45,7 +45,7 @@ const (
 )
 
 // excludeWindowModifiers maps windows to sqlite datetime modifiers. The map
-// is hardcoded — modifiers are never interpolated from user input (v1's
+// is hardcoded — modifiers are never interpolated from user input (the old 
 // whitelist pattern).
 var excludeWindowModifiers = map[ExcludeWindow]string{
 	Window24h: "-24 hours",
@@ -60,7 +60,7 @@ func windowModifier(w ExcludeWindow) string {
 	return excludeWindowModifiers[Window24h]
 }
 
-// Options carries the dj configuration v1 stored in user preferences.
+// Options carries the dj configuration the retired server stored in user preferences.
 type Options struct {
 	ExcludeWindow   ExcludeWindow
 	PreferFavorites bool
@@ -77,7 +77,7 @@ const (
 )
 
 // Song is one auto-dj candidate (the display subset of the catalog song
-// DTO, plus the caller's interaction state — v1's rowToSong shape).
+// DTO, plus the caller's interaction state — the old rowToSong shape).
 type Song struct {
 	ID          string   `json:"id"`
 	Title       string   `json:"title"`
@@ -98,7 +98,7 @@ type Song struct {
 	Rating      *float64 `json:"rating,omitempty"`
 }
 
-// SongContext is the current song's similarity inputs (v1's SongContext).
+// SongContext is the current song's similarity inputs (the old SongContext).
 type SongContext struct {
 	ID         string
 	ArtistID   *string
@@ -119,7 +119,7 @@ type candidateRow struct {
 	albumID      *string
 	bpm          *int
 	mood         *string
-	genreIDs     []string // loaded separately, like v1
+	genreIDs     []string // loaded separately, like the old server
 	rating       *float64
 	playCount    *int
 	lastPlayed   *string
@@ -143,7 +143,7 @@ func scanCandidate(rows *sql.Rows, withOverlap bool) ([]candidateRow, error) {
 	for rows.Next() {
 		var r candidateRow
 		var track, disc, year sql.NullInt64
-		var duration db.NullInt64 // v1 may have stored fractional REAL seconds
+		var duration db.NullInt64 // the retired server may have stored fractional REAL seconds
 		var mtime db.NullMillis
 		var artistID, albumID, artistName, albumName, genre, genreID, coverArt sql.NullString
 		var bpm sql.NullInt64
@@ -216,7 +216,7 @@ func strPtr(v sql.NullString) *string {
 	return &v.String
 }
 
-// buildExcludeClause caps and placeholders the exclusion list (v1 parity:
+// buildExcludeClause caps and placeholders the exclusion list (wire parity:
 // slice to MAX_EXCLUDE_IDS, NOT IN).
 func buildExcludeClause(excludeIDs []string) (string, []any) {
 	if len(excludeIDs) == 0 {
@@ -241,8 +241,8 @@ func buildExcludeClause(excludeIDs []string) (string, []any) {
 }
 
 // recentHistoryClause excludes songs the user played inside the window,
-// per listening_history (v1 parity). The threshold renders in the same ISO
-// 8601 shape scrobble writes into played_at — v1 compared a space-format
+// per listening_history (wire parity). The threshold renders in the same ISO
+// 8601 shape scrobble writes into played_at — the retired server compared a space-format
 // datetime() against ISO strings, which string-sorted differently (T > space).
 func recentHistoryClause(userID string, w ExcludeWindow) (string, []any) {
 	return ` AND NOT EXISTS (
@@ -259,7 +259,7 @@ func favoritesFirst(preferFavorites bool) string {
 	return ` ORDER BY RANDOM()`
 }
 
-// songContext loads the similarity inputs for one song (v1's getSongContext:
+// songContext loads the similarity inputs for one song (the old getSongContext:
 // a missing song yields nil, which the modes treat as "no context").
 func (s *Service) songContext(ctx context.Context, userID, songID string) (*SongContext, error) {
 	var c SongContext
@@ -311,7 +311,7 @@ func (s *Service) songContext(ctx context.Context, userID, songID string) (*Song
 	return &c, nil
 }
 
-// loadGenreIDs batch-loads the genre id lists for candidates (v1's
+// loadGenreIDs batch-loads the genre id lists for candidates (the old 
 // per-candidate load, batched to keep the statement count flat).
 func (s *Service) loadGenreIDs(ctx context.Context, candidates []candidateRow) error {
 	if len(candidates) == 0 {
@@ -358,7 +358,7 @@ func (s *Service) loadGenreIDs(ctx context.Context, candidates []candidateRow) e
 	return nil
 }
 
-// similarCandidates ports v1's getSimilarCandidates: artist/album/genre
+// similarCandidates ports the old getSimilarCandidates: artist/album/genre
 // overlap first, then random backfill so the request still returns count
 // songs when the overlap pool runs dry.
 func (s *Service) similarCandidates(ctx context.Context, userID string, c *SongContext, count int, excludeIDs []string, opts Options, scope libraries.Scope) ([]Song, error) {
@@ -444,8 +444,8 @@ func nilOr(p *string) any {
 	return *p
 }
 
-// randomCandidates ports v1's getRandomCandidates: the recent-play window
-// applies through user_songs.last_played (v1 behavior — similar/smart use
+// randomCandidates ports the old getRandomCandidates: the recent-play window
+// applies through user_songs.last_played (old behavior — similar/smart use
 // listening_history instead), with a no-window fallback pass when the
 // window drains the pool.
 func (s *Service) randomCandidates(ctx context.Context, userID string, count int, excludeIDs []string, opts Options, scope libraries.Scope) ([]Song, error) {
@@ -495,7 +495,7 @@ func (s *Service) randomCandidates(ctx context.Context, userID string, count int
 }
 
 // smartCandidateRows draws the bounded random pool with per-candidate genre
-// overlap against the context (v1's getSmartCandidateRows).
+// overlap against the context (the old getSmartCandidateRows).
 func (s *Service) smartCandidateRows(ctx context.Context, userID string, c *SongContext, excludeIDs []string, opts Options, scope libraries.Scope) ([]candidateRow, error) {
 	exclude, excludeArgs := buildExcludeClause(excludeIDs)
 	recent, recentArgs := recentHistoryClause(userID, opts.ExcludeWindow)
@@ -517,7 +517,7 @@ func (s *Service) smartCandidateRows(ctx context.Context, userID string, c *Song
 	}
 	// Params appear in SELECT order (genre ids), then the user_songs join
 	// (user id), then WHERE (scope ids, exclusions, recent-history user id
-	// + window) — exactly like v1.
+	// + window) — exactly like the retired server.
 	args := append([]any{}, genreArgs...)
 	args = append(args, userID)
 	args = append(args, scopeCond.Params...)
@@ -544,7 +544,7 @@ func (s *Service) smartCandidateRows(ctx context.Context, userID string, c *Song
 	return candidates, nil
 }
 
-// userAveragePlayCount is v1's getUserAveragePlayCount: the familiarity
+// userAveragePlayCount is the old getUserAveragePlayCount: the familiarity
 // baseline for the overplayed penalty.
 func (s *Service) userAveragePlayCount(ctx context.Context, userID string) (float64, error) {
 	var avg sql.NullFloat64

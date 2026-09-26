@@ -1,18 +1,18 @@
 // Package tags is the tag-mutation surface (P9c): song/album tag editing
-// and cover-art upload/delete, ported from v1's features/songs/routes.ts
+// and cover-art upload/delete, ported from the old features/songs/routes.ts
 // (applySongTags, validateSongTags, the cover-art endpoints) and
 // features/albums/routes.ts (the album-wide variants).
 //
-// The write path is v1's: python3 + mutagen behind the audio.TagWriter
+// The write path is the old one: python3 + mutagen behind the audio.TagWriter
 // interface (see internal/audio/write.go). After a tag write the file is
-// re-organized when its tags change the pattern target (v1
+// re-organized when its tags change the pattern target (old
 // organizeSongFile), the database is refreshed through library.PersistSong
 // — the ONE data path, reading the freshly tagged file — and a resync job
 // is queued (the P4b queue coalesces, so an album-wide edit collapses into
-// one pending resync per library, the v1 B6 lesson).
+// one pending resync per library, the retired server B6 lesson).
 //
-// Read-only doctrine deviation: v1 wrote uploaded cover art INTO the audio
-// files via mutagen. v2 never mutates audio files outside tag editing; an
+// Read-only doctrine deviation: the retired server wrote uploaded cover art INTO the audio
+// files via mutagen. The Go server never mutates audio files outside tag editing; an
 // upload stores the blob (hash-dedup) and links it on the song/album row,
 // which is what every reader consults.
 package tags
@@ -53,7 +53,7 @@ func NewService(db *sql.DB, writer audio.TagWriter, ingestSvc *ingest.Service, q
 	return &Service{db: db, writer: writer, ingest: ingestSvc, queue: queue}
 }
 
-// SongTagsInput is the validated tag-edit payload (v1 SongTags). A nil
+// SongTagsInput is the validated tag-edit payload (old SongTags). A nil
 // field is absent — the file and the database keep their value.
 type SongTagsInput struct {
 	Title       *string
@@ -72,13 +72,13 @@ type SongTagsInput struct {
 	genreSet       bool
 }
 
-// ErrValidation marks a 400 from the tag payload validation, carrying v1's
+// ErrValidation marks a 400 from the tag payload validation, carrying the old
 // message text.
 type ErrValidation struct{ Message string }
 
 func (e *ErrValidation) Error() string { return e.Message }
 
-// validateSongTags ports v1's validateSongTags: the explicit allowlist and
+// validateSongTags ports the old validateSongTags: the explicit allowlist and
 // per-field type checks. Unknown keys are rejected (Q8 mass-assignment
 // discipline), never silently dropped.
 func validateSongTags(body map[string]any) (*SongTagsInput, error) {
@@ -169,7 +169,7 @@ func validateSongTags(body map[string]any) (*SongTagsInput, error) {
 	return in, nil
 }
 
-// stringOrArray ports v1's validateStringOrArray + normalizeMultiValue:
+// stringOrArray ports the old validateStringOrArray + normalizeMultiValue:
 // accept a string or an array of strings; normalize to trimmed non-empty
 // values; a key sent with no usable values normalizes to nil.
 func stringOrArray(v any, field string) ([]string, error) {
@@ -230,7 +230,7 @@ func (in *SongTagsInput) writerTags() audio.SongTags {
 }
 
 // ---------------------------------------------------------------------------
-// applySongTags (v1 port)
+// applySongTags (old port)
 // ---------------------------------------------------------------------------
 
 // songRow is the slice of the songs table the tag-edit flow needs.
@@ -263,7 +263,7 @@ func (s *Service) loadSong(ctx context.Context, id string) (*songRow, error) {
 	return &row, nil
 }
 
-// OrphanedEntity is a v1 applySongTags orphan report entry: an artist or
+// OrphanedEntity is an old applySongTags orphan report entry: an artist or
 // album left with no other active songs after the edit.
 type OrphanedEntity struct {
 	Type string `json:"type"`
@@ -276,9 +276,9 @@ type applyResult struct {
 	orphaned []OrphanedEntity
 }
 
-// stageError pairs a failure message with the HTTP status v1 answered. The
-// tag-edit flow can fail mid-way (tags written, file moved, DB updated); v1
-// reported each stage with its own message and status.
+// stageError pairs a failure message with the HTTP status the retired server answered. The
+// tag-edit flow can fail mid-way (tags written, file moved, DB updated);
+// the old server reported each stage with its own message and status.
 type stageError struct {
 	status  int
 	message string
@@ -286,7 +286,7 @@ type stageError struct {
 
 func (e *stageError) Error() string { return e.message }
 
-// applySongTags ports v1's applySongTags: write tags, re-organize the file,
+// applySongTags ports the old applySongTags: write tags, re-organize the file,
 // refresh the database through PersistSong, queue a resync, and report
 // entities orphaned by the rename.
 func (s *Service) applySongTags(ctx context.Context, id string, in *SongTagsInput) (*applyResult, error) {
@@ -319,7 +319,7 @@ func (s *Service) applySongTags(ctx context.Context, id string, in *SongTagsInpu
 
 // persistFresh re-reads the freshly tagged file and persists it through the
 // one data path. KeepCoverArt is false: the file is the source of truth for
-// its own cover link after a tag write (v1 parity — v1's manual UPDATE plus
+// its own cover link after a tag write (wire parity — the old manual UPDATE plus
 // resync converged to the same state).
 func (s *Service) persistFresh(ctx context.Context, songID, path string) error {
 	meta, err := audio.ReadMetadata(path)
@@ -363,7 +363,7 @@ func (s *Service) queueResync(ctx context.Context, path string) error {
 	return err
 }
 
-// findOrphaned ports v1's findOrphanedEntities: the pre-edit primary artist
+// findOrphaned ports the old findOrphanedEntities: the pre-edit primary artist
 // or album is reported when the edit renamed it away and no other active
 // song references it.
 func (s *Service) findOrphaned(ctx context.Context, song *songRow, in *SongTagsInput) []OrphanedEntity {
@@ -399,7 +399,7 @@ func (s *Service) findOrphaned(ctx context.Context, song *songRow, in *SongTagsI
 	return orphaned
 }
 
-// joinNames mirrors v1's joinNames for the orphan check: multi-value
+// joinNames mirrors the old joinNames for the orphan check: multi-value
 // artists join with " / ".
 func joinNames(values []string, set bool) *string {
 	if !set {
@@ -419,7 +419,7 @@ func joinNames(values []string, set bool) *string {
 }
 
 // ---------------------------------------------------------------------------
-// Album-wide tag edit (v1 features/albums/routes.ts port)
+// Album-wide tag edit (old features/albums/routes.ts port)
 // ---------------------------------------------------------------------------
 
 // albumRow is the slice of the albums table the album tag-edit needs.
@@ -447,7 +447,7 @@ func (s *Service) loadAlbum(ctx context.Context, id string) (*albumRow, error) {
 	return &row, nil
 }
 
-// albumSongs lists the album's songs in playing order (v1 listSongsByAlbum).
+// albumSongs lists the album's songs in playing order (old listSongsByAlbum).
 func (s *Service) albumSongs(ctx context.Context, albumID string) ([]songRow, error) {
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT s.id, s.file_path, s.artist_id, s.album_id, s.title,
@@ -476,9 +476,9 @@ func (s *Service) albumSongs(ctx context.Context, albumID string) ([]songRow, er
 	return songs, nil
 }
 
-// applyAlbumTags ports v1's PUT /api/albums/:id/tags. releaseType is
+// applyAlbumTags ports the old PUT /api/albums/:id/tags. releaseType is
 // album-level metadata, validated by the caller and applied here. The
-// per-song file writes exclude genre (v1 deletes it from the written set):
+// per-song file writes exclude genre (old deletes it from the written set):
 // genre is an album junction update, not a file tag, in the album flow.
 func (s *Service) applyAlbumTags(ctx context.Context, albumID string, in *SongTagsInput, releaseType *string) (int, error) {
 	album, err := s.loadAlbum(ctx, albumID)
@@ -494,11 +494,11 @@ func (s *Service) applyAlbumTags(ctx context.Context, albumID string, in *SongTa
 	}
 
 	fileTags := in.writerTags()
-	fileTags.Genre = nil // v1: genre is not written into files on album edits
+	fileTags.Genre = nil // old: genre is not written into files on album edits
 
 	// Album row FIRST: renaming it before PersistSong runs means the
 	// per-song ensure-album finds the renamed row and the songs stay on it
-	// (v1 achieved the same by updating the row and then resyncing).
+	// (old achieved the same by updating the row and then resyncing).
 	if err := s.updateAlbumRow(ctx, album, in, releaseType); err != nil {
 		return 0, err
 	}
@@ -516,7 +516,7 @@ func (s *Service) applyAlbumTags(ctx context.Context, albumID string, in *SongTa
 			return 0, &stageError{status: 500, message: "Tags saved and files reorganized, but the database update failed"}
 		}
 	}
-	// ONE coalesced resync for the whole album edit (v1 queued one per file;
+	// ONE coalesced resync for the whole album edit (old queued one per file;
 	// the P4b queue collapses identical pending payloads into a single job).
 	if len(songs) > 0 {
 		if err := s.queueResync(ctx, songs[0].filePath); err != nil {
@@ -526,7 +526,7 @@ func (s *Service) applyAlbumTags(ctx context.Context, albumID string, in *SongTa
 	return len(songs), nil
 }
 
-// updateAlbumRow applies the album-level update (v1's SQL block): name,
+// updateAlbumRow applies the album-level update (the old SQL block): name,
 // album artist, year, genre, release type, and the artist/genre junctions.
 func (s *Service) updateAlbumRow(ctx context.Context, album *albumRow, in *SongTagsInput, releaseType *string) error {
 	name := album.name
@@ -558,7 +558,7 @@ func (s *Service) updateAlbumRow(ctx context.Context, album *albumRow, in *SongT
 		}
 	}
 
-	// Genre: resolve path-or-name, creating the genre when unknown (v1
+	// Genre: resolve path-or-name, creating the genre when unknown (old
 	// resolveGenreForTagWrite).
 	var genreID, genreName *string
 	if in.genreSet && in.Genre != nil {
@@ -575,7 +575,7 @@ func (s *Service) updateAlbumRow(ctx context.Context, album *albumRow, in *SongT
 	if len(artistIDs) > 0 {
 		primaryArtistID = &artistIDs[0]
 	} else if in.albumArtistSet && in.AlbumArtist == nil {
-		// v1: an explicit empty albumArtist clears the album artist.
+		// old: an explicit empty albumArtist clears the album artist.
 		primaryArtistID = nil
 		artistName = nil
 	} else {
@@ -636,7 +636,7 @@ func (s *Service) updateAlbumRow(ctx context.Context, album *albumRow, in *SongT
 	return nil
 }
 
-// resolveGenreForTagWrite ports v1's resolveGenreForTagWrite: match an
+// resolveGenreForTagWrite ports the old resolveGenreForTagWrite: match an
 // existing genre by full path ("Rock > Indie") or name (NOCASE), else
 // create it.
 func (s *Service) resolveGenreForTagWrite(ctx context.Context, genre string) (string, string, error) {
@@ -695,7 +695,7 @@ func (s *Service) resolveGenreForTagWrite(ctx context.Context, genre string) (st
 		}
 		return out
 	}
-	// Path match first (v1 findExistingGenreByPathOrName).
+	// Path match first (old findExistingGenreByPathOrName).
 	for _, g := range all {
 		if pathOf(g) == trimmed {
 			return g.id, g.name, nil

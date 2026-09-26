@@ -1,5 +1,5 @@
 // Pattern rendering, sanitize, and move-collision tests: the organizer is
-// pure given (pattern, tags, paths), so these are table-driven against v1's
+// pure given (pattern, tags, paths), so these are table-driven against the old 
 // documented behavior including its sharpest edges.
 package ingest_test
 
@@ -43,7 +43,7 @@ func TestBuildTargetPathEveryToken(t *testing.T) {
 		{"{disc:00}/x", "01/x"},
 		{"{year}/x", "2021/x"},
 		{"{genre}/x", "Jazz/x"},
-		// v1 default pattern composition.
+		// the retired server default pattern composition.
 		{"{albumArtist}/({year}) {album}/{disc:00}{track:00} - {title}",
 			"The Artist/(2021) The Album/0103 - The Title"},
 	}
@@ -58,20 +58,20 @@ func TestBuildTargetPathEveryToken(t *testing.T) {
 
 func TestBuildTargetPathAbsentValues(t *testing.T) {
 	// Title carries the filename fallback ReadMetadata would have applied
-	// (v1's readMetadata ran before buildTargetPath saw the tags).
+	// (the old readMetadata ran before buildTargetPath saw the tags).
 	m := &audio.Metadata{Title: "file"}
 
 	cases := []struct {
 		pattern string
 		want    string
 	}{
-		// Unknown tokens expand to "" (v1), and an empty segment sanitizes
-		// to "_" — the same outcome v1 produced.
+		// Unknown tokens expand to "" (old behavior), and an empty segment sanitizes
+		// to "_" — the same outcome the retired server produced.
 		{"{unknown}/{title}", "_/file"},
 		// Absent track/disc/year: bare tokens and :00 variants all expand
 		// to "", the empty segment sanitizes to "_".
 		{"{track}{track:00}{disc}{disc:00}{year}", "_"},
-		// Defaults v1 filled in buildVariables.
+		// Defaults the retired server filled in buildVariables.
 		{"{artist}/{album}/{title}", "Unknown Artist/Unknown Album/file"},
 	}
 	for _, tc := range cases {
@@ -123,8 +123,8 @@ func TestBuildTargetPathSanitizesSegments(t *testing.T) {
 func TestResolveDuplicateTargetCollisionSuffix(t *testing.T) {
 	dir := t.TempDir()
 	target := filepath.Join(dir, "song.mp3")
-	writeFile(t, target, "v0")
-	writeFile(t, filepath.Join(dir, "song (1).mp3"), "v1")
+	writeFile(t, target, "a")
+	writeFile(t, filepath.Join(dir, "song (1).mp3"), "b")
 
 	got, err := ingest.ResolveDuplicateTarget(target)
 	if err != nil {
@@ -167,7 +167,7 @@ func TestMoveToLibraryPicksCollisionFreeTarget(t *testing.T) {
 
 // TestMoveToLibraryAcrossDevices exercises the EXDEV copy+unlink fallback
 // when the ingest folder and the library live on different filesystems
-// (v1 organizer.ts:73-84). It skips on hosts without a second mount
+// (old organizer.ts:73-84). It skips on hosts without a second mount
 // writable to the test user.
 func TestMoveToLibraryAcrossDevices(t *testing.T) {
 	other, err := os.MkdirTemp("/dev/shm", "sonarly-exdev-")

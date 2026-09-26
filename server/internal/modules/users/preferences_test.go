@@ -28,7 +28,7 @@ func TestGetPreferencesDefaults(t *testing.T) {
 	admin := s.setup(t, "admin", adminPass)
 
 	prefs := s.getPreferences(t, admin)
-	// The shared defaults ride along even with no stored row (v1 parity).
+	// The shared defaults ride along even with no stored row (wire parity).
 	if prefs["autoDjEnabled"] != false || prefs["autoDjMode"] != "smart" {
 		t.Fatalf("defaults missing: %v", prefs)
 	}
@@ -47,7 +47,7 @@ func TestPatchPreferencesMergesAndValidates(t *testing.T) {
 	rec := s.do(t, http.MethodPatch, "/api/me/preferences", map[string]any{
 		"autoDjEnabled":        true,
 		"autoDjMode":           "similar",
-		"autoDjTopUpThreshold": 99, // clamped to 20 like v1
+		"autoDjTopUpThreshold": 99, // clamped to 20 like the old server
 		"autoDjBatchSize":      0,  // clamped to 1
 		"themeMode":            "oled",
 		"accentColor":          "purple",
@@ -110,7 +110,7 @@ func TestPatchPreferencesAllowlistRejectsUnknownKeys(t *testing.T) {
 	admin := s.setup(t, "admin", adminPass)
 
 	// Q8 mass-assignment fix: an unknown key is a 400, not a silent drop
-	// (v1 ignored everything it didn't recognize — the frontend's theme
+	// (old ignored everything it didn't recognize — the frontend's theme
 	// keys were silently lost on every save).
 	rec := s.do(t, http.MethodPatch, "/api/me/preferences",
 		map[string]any{"isAdmin": true}, admin)
@@ -187,7 +187,7 @@ func TestAvatarStubIs404(t *testing.T) {
 	s.setup(t, "admin", adminPass)
 
 	// The route exists (PublicUser.avatarUrl points at it); a user without
-	// an avatar answers 404, anonymously too (v1 parity).
+	// an avatar answers 404, anonymously too (wire parity).
 	if rec := s.do(t, http.MethodGet, "/api/avatars/any-id", nil); rec.Code != http.StatusNotFound {
 		t.Fatalf("anonymous avatar: want 404, got %d", rec.Code)
 	}

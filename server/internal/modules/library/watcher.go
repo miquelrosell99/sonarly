@@ -1,7 +1,7 @@
 // Watcher polls the library roots for mtime/size changes and enqueues a
 // coalesced resync when the on-disk set drifts from its snapshot.
 //
-// v1 used chokidar (native fsevents/inotify, optional polling). v2 polls
+// the retired server used chokidar (native fsevents/inotify, optional polling). The Go server polls
 // unconditionally, for three reasons: (1) pure Go, zero CGO/dependencies;
 // (2) the target deployment is a self-hosted NAS/SMB share, where inotify is
 // unreliable or absent and every robust setup ends up on polling anyway;
@@ -62,7 +62,7 @@ func NewWatcher(db *sql.DB, queue *Queue, log *slog.Logger, interval time.Durati
 
 // Run polls until ctx is cancelled. The first poll only records the
 // baseline: files that existed before startup are not "changes" (boot
-// already enqueues an initial scan; v1's chokidar add-events at watch start
+// already enqueues an initial scan; the old chokidar add-events at watch start
 // just queued a duplicate resync behind it).
 func (w *Watcher) Run(ctx context.Context) {
 	w.log.InfoContext(ctx, "library watcher started", "interval", w.interval.String())

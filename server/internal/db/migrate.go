@@ -14,7 +14,7 @@ var migrationsFS embed.FS
 
 // Migrate applies pending migrations in filename order inside per-file
 // transactions, recording each in a ledger table — the same semantics as the
-// v1 TypeScript migrator.
+// retired TypeScript migrator.
 func Migrate(ctx context.Context, database *sql.DB) error {
 	if _, err := database.ExecContext(ctx,
 		`CREATE TABLE IF NOT EXISTS schema_migrations (filename TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT (datetime('now')))`); err != nil {

@@ -1,7 +1,7 @@
-// LRC synced-lyrics parsing, ported from v1's
+// LRC synced-lyrics parsing, ported from the retired server's
 // packages/server/src/features/tags/lrc.ts (parseLrc) per
-// docs/v2-s1-metadata-findings.md §5 W-column (row 26: synced lyrics parity
-// is the LRC-in-tag path; v1's native SYLT branch is dead code against
+// docs/s1-metadata-findings.md §5 W-column (row 26: synced lyrics parity
+// is the LRC-in-tag path; the retired native SYLT branch is dead code against
 // music-metadata@11.14.0 and intentionally not replicated).
 
 package audio
@@ -13,17 +13,17 @@ import (
 )
 
 // SyncedLyricLine is one timestamped lyrics line. Time is in seconds, matching
-// v1's SyncedLyricLine ({time, text} with time in seconds).
+// the retired SyncedLyricLine shape ({time, text} with time in seconds).
 type SyncedLyricLine struct {
 	Time float64 `json:"time"`
 	Text string  `json:"text"`
 }
 
-// lrcLineRe mirrors v1's LRC_LINE_REGEX:
+// lrcLineRe mirrors the retired LRC_LINE_REGEX:
 // ^\[(\d{2}):(\d{2})\.(\d{2,3})\]\s*(.*)$
 var lrcLineRe = regexp.MustCompile(`^\[(\d{2}):(\d{2})\.(\d{2,3})\]\s*(.*)$`)
 
-// parseLrc parses LRC text into synced lyric lines (v1 parseLrc port).
+// parseLrc parses LRC text into synced lyric lines (port of the old parseLrc).
 func parseLrc(text string) []SyncedLyricLine {
 	var lines []SyncedLyricLine
 	for _, raw := range strings.Split(text, "\n") {
@@ -56,7 +56,7 @@ func parseLrc(text string) []SyncedLyricLine {
 }
 
 // ParseLRC is the exported LRC parser for non-audio consumers (the LRCLIB
-// lyrics proxy parses provider responses with the same v1 semantics).
+// lyrics proxy parses provider responses with the same semantics).
 func ParseLRC(text string) []SyncedLyricLine {
 	return parseLrc(text)
 }

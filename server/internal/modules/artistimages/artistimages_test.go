@@ -217,7 +217,7 @@ func TestSyncSkipsNonImageContentAndMissingArtists(t *testing.T) {
 	if err != nil {
 		t.Fatalf("sync: %v", err)
 	}
-	// No-hit is neither updated nor a failure (v1 continue); the HTML
+	// No-hit is neither updated nor a failure (old continue); the HTML
 	// content is a failure but does not abort the run.
 	if stats.Scanned != 2 || stats.Failed != 1 || stats.Updated != 0 {
 		t.Fatalf("stats = %+v", stats)

@@ -5,7 +5,7 @@
 // Routes (mirror of the planned P5 StreamingService split):
 //
 //	GET /direct/<file>          ServeContent mode (stdlib range handling)
-//	GET /direct/<file>?mode=v1  custom v1-parity range handler
+//	GET /direct/<file>?mode=v1  custom wire-parity range handler
 //	GET /transcode/<file>?format=mp3&maxBitRate=128   semaphore-capped ffmpeg pipe
 //
 // Both direct modes bypass the transcode semaphore by construction (cap lives
@@ -58,7 +58,7 @@ func (s *streamingService) routes(mux *http.ServeMux) {
 		}
 
 		if r.Method == http.MethodHead {
-			// v1 parity: HEAD on a transcode-decided stream → headers only.
+			// wire parity: HEAD on a transcode-decided stream → headers only.
 			w.Header().Set("Content-Type", transcodeContentType(format))
 			w.Header().Set("Accept-Ranges", "none")
 			w.WriteHeader(http.StatusOK)
@@ -72,7 +72,7 @@ func (s *streamingService) routes(mux *http.ServeMux) {
 				w.Header().Set("Retry-After", "3")
 				http.Error(w, "Transcode slots full", http.StatusServiceUnavailable)
 			default:
-				// Spawn/pipe failure BEFORE any body byte: v1 B12-parity fallback
+				// Spawn/pipe failure BEFORE any body byte: the old B12-parity fallback
 				// to direct serving is possible here because Go surfaces spawn
 				// errors synchronously (measured in tests).
 				s.log.Error("transcode spawn failed, falling back to direct",

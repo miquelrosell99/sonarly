@@ -31,8 +31,8 @@ func TestCreateBookmarkValidation(t *testing.T) {
 		{"negative position", "&id=" + c.SAbbey1 + "&position=-5", CodeMissingParam},
 		{"fractional position", "&id=" + c.SAbbey1 + "&position=1.5", CodeMissingParam},
 		{"unknown song", "&id=s-nope&position=3", CodeForbidden},
-		// v2 one-path delta: the playback service enforces scope, so a
-		// lib-b song is a data-not-found for alice (v1 checked liveness
+		// the Go server one-path delta: the playback service enforces scope, so a
+		// lib-b song is a data-not-found for alice (old checked liveness
 		// only — recorded in the quirks doc).
 		{"out of scope song", "&id=" + c.SLow1 + "&position=3", CodeForbidden},
 	}
@@ -70,7 +70,7 @@ func TestCreateBookmarkRoundTrip(t *testing.T) {
 		t.Fatalf("bookmark = %d/%q", position, comment)
 	}
 
-	// Re-create upserts: position replaced, comment cleared (v1's
+	// Re-create upserts: position replaced, comment cleared (the old 
 	// createBookmark wrote comment ?? null on every upsert).
 	rec = app.get(t, authedURL("/rest/createBookmark.view",
 		"&id="+c.SAbbey1+"&position=100"), nil)
@@ -94,7 +94,7 @@ func TestGetBookmarksShape(t *testing.T) {
 	app.get(t, authedURL("/rest/createBookmark.view", "&id="+c.SAbbey1+"&position=42&comment=halfway"), nil)
 	app.get(t, authedURL("/rest/createBookmark.view", "&id="+c.SAbbey2+"&position=7"), nil)
 	// A bookmark whose song is out of scope stays in the list with the
-	// entry omitted (v1 getBookmarks.view behavior).
+	// entry omitted (old getBookmarks.view behavior).
 	app.exec(t, `INSERT INTO bookmarks (user_id, song_id, position) VALUES (?, ?, 3)`, testUserID, c.SLow1)
 
 	rec := app.get(t, authedURL("/rest/getBookmarks.view", ""), nil)
@@ -173,7 +173,7 @@ func TestDeleteBookmark(t *testing.T) {
 
 	app.get(t, authedURL("/rest/createBookmark.view", "&id="+c.SAbbey1+"&position=42"), nil)
 
-	// Deleting works and is idempotent (v1: missing bookmark is a no-op).
+	// Deleting works and is idempotent (retired: missing bookmark is a no-op).
 	rec = app.get(t, authedURL("/rest/deleteBookmark.view", "&id="+c.SAbbey1), nil)
 	assertOK(t, rec)
 	rec = app.get(t, authedURL("/rest/deleteBookmark.view", "&id="+c.SAbbey1), nil)
@@ -188,8 +188,8 @@ func TestDeleteBookmark(t *testing.T) {
 		t.Fatalf("bookmark not deleted (%d rows)", n)
 	}
 
-	// v2 one-path delta: an out-of-scope/inactive song answers 70 through
-	// the playback service (v1 deleted unconditionally).
+	// the Go server one-path delta: an out-of-scope/inactive song answers 70 through
+	// the playback service (old deleted unconditionally).
 	rec = app.get(t, authedURL("/rest/deleteBookmark.view", "&id="+c.SLow1), nil)
 	assertFailed(t, rec, CodeForbidden)
 }

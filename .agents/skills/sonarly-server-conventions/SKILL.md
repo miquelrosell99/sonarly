@@ -2,27 +2,27 @@
 name: sonarly-server-conventions
 description: Conventions for adding or changing Sonarly server code — Go module layout, endpoints, OpenAPI contract, migrations, job queue, validation, errors, and tests
 type: prompt
-whenToUse: When adding or modifying API endpoints, repositories, database migrations, job types, or tests in v2/
+whenToUse: When adding or modifying API endpoints, repositories, database migrations, job types, or tests in server/
 ---
 
-# Sonarly Server Conventions (v2 Go)
+# Sonarly Server Conventions (Go)
 
 ## Layout
 
-- Modular monolith: one package per domain under `v2/internal/modules/<name>/` (catalog, library, ingest, playlists, opensubsonic, …). Cross-module imports go through the owning module, never its internal files.
-- Wiring: `v2/cmd/sonarly/main.go` builds config → db → modules → chi router (`internal/httpserver`). Env config lives in `internal/config`, loaded and validated at boot (fail fast on invalid config).
+- Modular monolith: one package per domain under `server/internal/modules/<name>/` (catalog, library, ingest, playlists, opensubsonic, …). Cross-module imports go through the owning module, never its internal files.
+- Wiring: `server/cmd/sonarly/main.go` builds config → db → modules → chi router (`internal/httpserver`). Env config lives in `internal/config`, loaded and validated at boot (fail fast on invalid config).
 - DTO types are defined per-module (`dto.go`); there is no shared types package. The web client types are generated from the OpenAPI spec.
 
 ## Endpoints
 
-- Native routes are mounted in `internal/httpserver` and implemented in the owning module. The contract is `v2/api/openapi.yaml`; `v2/cmd/sonarly/spec_test.go` fails the build if the router and spec drift in either direction. Change both together, then regenerate the web types (`pnpm --filter @sonarly/web contract:gen`).
-- `/rest` (OpenSubsonic) changes: implement against the decisions in `docs/v2-opensubsonic-quirks.md`, not the spec text. Errors are enveloped with HTTP 200; code 70 = data not found / out of scope.
+- Native routes are mounted in `internal/httpserver` and implemented in the owning module. The contract is `server/api/openapi.yaml`; `server/cmd/sonarly/spec_test.go` fails the build if the router and spec drift in either direction. Change both together, then regenerate the web types (`pnpm --filter @sonarly/web contract:gen`).
+- `/rest` (OpenSubsonic) changes: implement against the decisions in `docs/opensubsonic-quirks.md`, not the spec text. Errors are enveloped with HTTP 200; code 70 = data not found / out of scope.
 - Native API error shape is JSON `{"error": "..."}` with a proper status code. Bad client input is a 4xx, never a leaked 500.
 - SQL is parameterized everywhere; dynamic fragments may only interpolate fixed whitelists; LIKE patterns are escaped (`ESCAPE '\'`).
 
 ## Database
 
-- Migrations: numbered SQL files in `v2/internal/db/migrations/` (`NNNN_name.sql`), embedded into the binary, one transaction per file, recorded in the `schema_migrations` ledger. Use `IF NOT EXISTS`. **Never edit a shipped migration** — fix forward.
+- Migrations: numbered SQL files in `server/internal/db/migrations/` (`NNNN_name.sql`), embedded into the binary, one transaction per file, recorded in the `schema_migrations` ledger. Use `IF NOT EXISTS`. **Never edit a shipped migration** — fix forward.
 - New tables: explicit FKs with actions, indexes for every observed query pattern (including FK cascade child columns), UNIQUE constraints instead of check-then-insert where possible.
 - Pragmas are set once in `internal/db` (WAL, foreign_keys, busy_timeout, synchronous=NORMAL, single writer connection). Multi-write operations go in a transaction — follow `library.PersistSong` for the pattern (unconditional junction rewrites inside the same tx).
 
@@ -33,9 +33,9 @@ whenToUse: When adding or modifying API endpoints, repositories, database migrat
 
 ## Tests
 
-- Go tests live next to source (`*_test.go`) in the owning package. `go test ./... -count=1` and `go vet ./...` (from `v2/`) are the pre-merge bar.
+- Go tests live next to source (`*_test.go`) in the owning package. `go test ./... -count=1` and `go vet ./...` (from `server/`) are the pre-merge bar.
 - Integration patterns already established: httptest servers against the chi router; file-backed SQLite via the db package helpers; temp dirs for library fixtures. Reuse each module's `helpers_test.go` / `TestMain` scaffolding.
-- `v2/testparity` (v1↔v2 request parity) skips cleanly unless `P10_V1_CHECKOUT` points at a pre-removal v1 checkout — don't "fix" the skip. `v2/testdualrun` boots the built binary against a data snapshot; keep both green where runnable.
+- The request-parity and dual-run harnesses existed only during the cutover and were removed with the old server — there is nothing to keep green beyond the main suite.
 
 ## Web contract conventions
 

@@ -1,8 +1,9 @@
 // Package buildinfo carries the server version reported by API surfaces.
 //
-// v1 hardcoded serverVersion "0.1.0" in its Subsonic envelope while the
-// released server was already v0.7.x (docs/v2-opensubsonic-quirks.md E2).
-// v2 injects the real version at build time:
+// The retired TypeScript server hardcoded serverVersion "0.1.0" in its
+// Subsonic envelope while the released server was already at 0.7.x
+// (docs/opensubsonic-quirks.md E2). The Go server injects the real version
+// at build time:
 //
 //	go build -ldflags "-X github.com/miquelrosell99/sonarly/server/internal/buildinfo.Version=0.8.0"
 //

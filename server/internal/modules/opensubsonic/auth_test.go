@@ -203,7 +203,7 @@ func TestAPIKeyQueryTakesPrecedenceOverHeader(t *testing.T) {
 	app.seedUser(t, testUserID, testUser, testPass, false)
 	app.seedAPIKey(t, testAPIKey, testUserID)
 
-	// v1 precedence: query apiKey beats the header (A1) — a valid query key
+	// the retired server precedence: query apiKey beats the header (A1) — a valid query key
 	// wins even next to an invalid header key.
 	rec := app.get(t, "/rest/ping.view?apiKey="+testAPIKey,
 		map[string]string{auth.APIKeyHeader: wrongAPIKey})
@@ -312,8 +312,8 @@ func TestPasswordParamNotImplemented(t *testing.T) {
 	app := newTestApp(t)
 	app.seedUser(t, testUserID, testUser, testPass, false)
 
-	// A7: p= password auth is documented but v1 never implemented it. With
-	// u+p and no t/s the request lands in v1's missing-auth branch: code 10,
+	// A7: p= password auth is documented but the retired server never implemented it. With
+	// u+p and no t/s the request lands in the old missing-auth branch: code 10,
 	// not 40.
 	rec := app.get(t, "/rest/ping.view?u="+testUser+"&p="+testPass, nil)
 	assertFailed(t, rec, CodeMissingParam)
@@ -322,9 +322,9 @@ func TestPasswordParamNotImplemented(t *testing.T) {
 func TestAnonymousRejected(t *testing.T) {
 	app := newTestApp(t)
 
-	// A6: v1 answers fully anonymous requests with 10 "Missing
-	// authentication" (the P6.5 brief said 40; v1's code and tests assert
-	// 10, so v1 parity wins — quirks doc A6).
+	// A6: the retired server answers fully anonymous requests with 10 "Missing
+	// authentication" (the P6.5 brief said 40; the old code and tests assert
+	// 10, so wire parity wins — quirks doc A6).
 	rec := app.get(t, "/rest/ping.view", nil)
 	assertFailed(t, rec, CodeMissingParam)
 }

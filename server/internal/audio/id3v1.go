@@ -1,7 +1,7 @@
-// W4 shim per docs/v2-s1-metadata-findings.md §5: ID3v1 text fields are
+// W4 shim per docs/s1-metadata-findings.md §5: ID3v1 text fields are
 // Latin-1, and tagfork (like upstream dhowden/tag) returns the raw bytes as a
-// Go string without re-encoding. music-metadata (v1) decodes ID3v1 as
-// Latin-1, so old rips show matching text in v1 and mojibake in the unshimmed
+// Go string without re-encoding. The retired music-metadata reader decodes
+// ID3v1 as Latin-1, so old rips showed matching text there and mojibake in the unshimmed
 // fork. Apply this only to ID3v1-sourced strings.
 
 package audio

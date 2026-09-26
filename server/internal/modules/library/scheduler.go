@@ -1,8 +1,8 @@
 // Scheduler enqueues interval-based jobs with persisted last-run timestamps
-// and no-overlap guards — v1 ScanScheduler/ArtistImageScheduler/
+// and no-overlap guards — the retired server ScanScheduler/ArtistImageScheduler/
 // IngestScheduler semantics on one ticker. Interval 0 (or negative)
 // disables a trigger; the first tick after boot only records the timestamp
-// (v1 priming), so enabling an interval never fires a job immediately.
+// (old priming), so enabling an interval never fires a job immediately.
 package library
 
 import (
@@ -15,10 +15,10 @@ import (
 )
 
 // Scheduler tick cadence while running; the per-trigger intervals are read
-// from config in minutes, so a 1s cadence matches v1's per-loop tick.
+// from config in minutes, so a 1s cadence matches the old per-loop tick.
 const schedulerTick = time.Second
 
-// Interval settings keys in the settings table (v1 key names).
+// Interval settings keys in the settings table (old key names).
 const (
 	settingLastPeriodicScan    = "last_periodic_scan"
 	settingLastArtistImageSync = "last_artist_image_sync"
@@ -92,7 +92,7 @@ func (s *Scheduler) tickScan(ctx context.Context, now time.Time) error {
 	if err != nil || !due {
 		return err
 	}
-	// No-overlap guard (v1): never stack a periodic scan on top of a
+	// No-overlap guard (old behavior): never stack a periodic scan on top of a
 	// pending/running scan or resync.
 	pending, err := s.hasPendingOrRunning(ctx, JobTypeScan, JobTypeResync)
 	if err != nil || pending {
@@ -140,9 +140,9 @@ func (s *Scheduler) tickIngest(ctx context.Context, now time.Time) error {
 	return s.markRan(ctx, settingLastPeriodicIngest, now)
 }
 
-// tickReviewCleanup ports v1's worker.scheduleReviewCleanupIfNeeded. Unlike
+// tickReviewCleanup ports the old worker.scheduleReviewCleanupIfNeeded. Unlike
 // the priming schedulers above, a missing or unparseable last-run timestamp
-// means DUE (v1 treats it as 0 and pushes immediately); the success mark is
+// means DUE (old treats it as 0 and pushes immediately); the success mark is
 // written by the cleanup handler when the job finishes, not here.
 func (s *Scheduler) tickReviewCleanup(ctx context.Context, now time.Time) error {
 	if s.options.ReviewCleanupInterval <= 0 {
@@ -171,7 +171,7 @@ func (s *Scheduler) tickReviewCleanup(ctx context.Context, now time.Time) error 
 
 // due reports whether the trigger's interval has elapsed since its persisted
 // last-run. A missing or unparseable timestamp is (re)primed to now without
-// firing — v1 semantics.
+// firing — the old semantics.
 func (s *Scheduler) due(ctx context.Context, key string, interval time.Duration, now time.Time) (bool, error) {
 	raw, err := getSetting(ctx, s.db, key)
 	if err != nil {
@@ -214,7 +214,7 @@ func (s *Scheduler) hasPendingOrRunning(ctx context.Context, types ...JobType) (
 	return false, fmt.Errorf("check pending jobs: %w", err)
 }
 
-// getSetting/setSetting read and write the settings table (v1 settings
+// getSetting/setSetting read and write the settings table (old settings
 // feature, key/value strings).
 func getSetting(ctx context.Context, db *sql.DB, key string) (string, error) {
 	var value string

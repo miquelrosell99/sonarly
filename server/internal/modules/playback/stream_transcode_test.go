@@ -12,7 +12,7 @@ import (
 )
 
 // TestTranscodeHeadersBodyAndTTFB: real ffmpeg, query-driven decision
-// (mp3 134 kbps + maxBitRate=64 → transcode). Asserts the v1 wire shape,
+// (mp3 134 kbps + maxBitRate=64 → transcode). Asserts the retired server wire shape,
 // ID3v2-headed mp3 output, and a sane TTFB (S2 measured 42 ms).
 func TestTranscodeHeadersBodyAndTTFB(t *testing.T) {
 	requireFFmpeg(t)
@@ -54,7 +54,7 @@ func TestTranscodeHeadersBodyAndTTFB(t *testing.T) {
 }
 
 // TestTranscodeIgnoresRange: Range headers on a transcode request are ignored
-// (200 chunked from t=0 — v1 parity; clients send Range out of habit).
+// (200 chunked from t=0 — wire parity; clients send Range out of habit).
 func TestTranscodeIgnoresRange(t *testing.T) {
 	requireFFmpeg(t)
 	env := newEnv(t, Options{})
@@ -79,7 +79,7 @@ func TestTranscodeIgnoresRange(t *testing.T) {
 	}
 }
 
-// TestTranscodeHEAD: headers only, no ffmpeg spawned (v1 parity, asserted in
+// TestTranscodeHEAD: headers only, no ffmpeg spawned (wire parity, asserted in
 // the S2 spike). Runs without ffmpeg — a HEAD must never reach exec.
 func TestTranscodeHEAD(t *testing.T) {
 	env := newEnv(t, Options{})
@@ -238,7 +238,7 @@ func TestTranscodeExternalKillMidStream(t *testing.T) {
 }
 
 // TestTranscodeFailureBeforeFirstByte: corrupt input dies before any output
-// byte → 500 (accepted deviation, S2 sign-off S2; v1 answered an empty 200).
+// byte → 500 (accepted deviation, S2 sign-off S2; the retired server answered an empty 200).
 func TestTranscodeFailureBeforeFirstByte(t *testing.T) {
 	requireFFmpeg(t)
 	env := newEnv(t, Options{})
@@ -348,7 +348,7 @@ done`)
 }
 
 // TestTranscodeMissingFFmpegFallsBackToDirect: an unresolvable binary path
-// surfaces synchronously from exec.Start (no v1-B12 race), so the service
+// surfaces synchronously from exec.Start (no the old B12 race), so the service
 // falls back to direct file serving with zero client impact.
 func TestTranscodeMissingFFmpegFallsBackToDirect(t *testing.T) {
 	env := newEnv(t, Options{FFmpegPath: "/no/such/ffmpeg-deadbeef"})

@@ -38,8 +38,8 @@ const (
 	songGenreJoin    = "FROM song_genres j JOIN genres e ON e.id = j.genre_id WHERE j.song_id"
 )
 
-// SongFilter is the /api/songs query surface (v1's list plus the by-album /
-// by-artist filters the v2 spec folds into one endpoint).
+// SongFilter is the /api/songs query surface (the old list plus the by-album /
+// by-artist filters the Go server spec folds into one endpoint).
 type SongFilter struct {
 	AlbumID      string
 	ArtistID     string
@@ -54,7 +54,7 @@ func scanSong(s interface{ Scan(...any) error }) (*Song, error) {
 	var syncedLyrics, producers, isrcs sql.NullString
 	var explicit, coverArtMissing, gapless sql.NullInt64
 	var mtime db.Millis
-	// Numeric columns v1 may have written as fractional REALs (mtimeMs,
+	// Numeric columns the retired server may have written as fractional REALs (mtimeMs,
 	// duration seconds, and any music-metadata format number) scan through
 	// the tolerant db.NullInt64 — see internal/db.
 	var trackNo, discNo, duration, year db.NullInt64
@@ -131,7 +131,7 @@ func scanSongs(rows *sql.Rows) ([]Song, error) {
 	return songs, nil
 }
 
-// attachSongCredits batch-attaches artist and composer entries (v1's
+// attachSongCredits batch-attaches artist and composer entries (the old 
 // attachSongArtistEntries + attachSongComposerEntries): one chunked IN
 // query per relation, never one per song.
 func attachSongCredits(ctx context.Context, q auth.Queries, songs []Song) error {
@@ -162,7 +162,7 @@ func attachSongCredits(ctx context.Context, q auth.Queries, songs []Song) error 
 	return nil
 }
 
-// attachSongGenres batch-attaches genre names (v1's getSongGenreNamesForMany
+// attachSongGenres batch-attaches genre names (the old getSongGenreNamesForMany
 // step of the /api/songs list).
 func attachSongGenres(ctx context.Context, q auth.Queries, songs []Song) error {
 	if len(songs) == 0 {
@@ -258,7 +258,7 @@ func getSongByID(ctx context.Context, q auth.Queries, userID, id string) (*Song,
 }
 
 // listSongsByAlbum loads an album's active in-scope songs in playing order
-// (v1's listSongsByAlbum: disc, track, title).
+// (the old listSongsByAlbum: disc, track, title).
 func listSongsByAlbum(ctx context.Context, q auth.Queries, userID, albumID string, scope libraries.Scope) ([]Song, error) {
 	scopeCond := libraries.ScopeCondition(scope, "s.library_id")
 	rows, err := q.QueryContext(ctx,
@@ -284,7 +284,7 @@ func listSongsByAlbum(ctx context.Context, q auth.Queries, userID, albumID strin
 	return songs, nil
 }
 
-// listSongsByArtist loads an artist's active in-scope songs (v1's
+// listSongsByArtist loads an artist's active in-scope songs (the old 
 // listSongsByArtist: year, album, disc, track, title).
 func listSongsByArtist(ctx context.Context, q auth.Queries, userID, artistID string, scope libraries.Scope) ([]Song, error) {
 	scopeCond := libraries.ScopeCondition(scope, "s.library_id")

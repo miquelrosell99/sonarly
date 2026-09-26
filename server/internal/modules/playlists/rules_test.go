@@ -42,7 +42,7 @@ func TestParseRulesStrictness(t *testing.T) {
 		}
 	}
 
-	// Negative/zero limits parse fine and mean "no limit" (v1 resolveLimit
+	// Negative/zero limits parse fine and mean "no limit" (old resolveLimit
 	// semantics) — the compiler clamps oversized positive limits instead.
 	if rules, err := ParseRules([]byte(`{"limitPercent":-5}`)); err != nil || rules.LimitPercent == nil {
 		t.Errorf("negative limitPercent: rules=%v err=%v", rules, err)

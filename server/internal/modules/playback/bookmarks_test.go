@@ -92,12 +92,12 @@ func TestBookmarkRoundTrip(t *testing.T) {
 		t.Fatalf("bookmarks = %d, want 2", len(bookmarks.Bookmarks))
 	}
 
-	// Delete; deleting again is a v1-parity no-op success.
+	// Delete; deleting again is a wire-parity no-op success.
 	if res, _ := env.do(t, "DELETE", "/api/songs/s-a1/bookmark", alice, nil); res.StatusCode != 200 {
 		t.Fatalf("DELETE: status %d", res.StatusCode)
 	}
 	if res, _ := env.do(t, "DELETE", "/api/songs/s-a1/bookmark", alice, nil); res.StatusCode != 200 {
-		t.Errorf("DELETE of missing bookmark: status %d, want 200 (v1 no-op)", res.StatusCode)
+		t.Errorf("DELETE of missing bookmark: status %d, want 200 (old no-op)", res.StatusCode)
 	}
 	bookmarks = listBookmarks(t, env, alice)
 	if len(bookmarks.Bookmarks) != 1 || bookmarks.Bookmarks[0].SongID != "s-a2" {

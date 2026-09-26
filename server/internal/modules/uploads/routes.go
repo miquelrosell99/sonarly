@@ -1,13 +1,13 @@
-// HTTP routes for chunked uploads — the v1 features/uploads surface with
-// the same URL shapes, all admin-gated like v1. One deliberate protocol
+// HTTP routes for chunked uploads — the retired server features/uploads surface with
+// the same URL shapes, all admin-gated like the retired server. One deliberate protocol
 // deviation: chunk bodies are raw application/octet-stream with
-// Content-Length where v1 accepted a multipart form per chunk. Multipart
+// Content-Length where the retired server accepted a multipart form per chunk. Multipart
 // bought nothing here (the client is ours and sends exactly one unnamed
 // blob per request) and parsing it forces a multipart reader into the hot
 // path; the raw body is the same bytes minus framing, the route path is
 // unchanged, and the web client's uploadChunk switches by sending the blob
 // directly with the method POST→PUT (see useUpload.ts). The per-request
-// limits v1 took from its global multipart config are enforced explicitly
+// limits the retired server took from its global multipart config are enforced explicitly
 // per request instead.
 
 package uploads
@@ -42,7 +42,7 @@ func NewHandler(repo *Repository, queue *library.Queue, mw *auth.Middleware, dat
 	return &Handler{repo: repo, queue: queue, mw: mw, dataDir: dataDir, ingestPath: ingestPath}
 }
 
-// Routes registers the upload endpoints. Every route is admin-gated (v1
+// Routes registers the upload endpoints. Every route is admin-gated (wire
 // parity: uploads reshape the library). AuthMiddleware runs first, then
 // RequireAuth — so anonymous callers get 401 before RequireAdmin's 403 —
 // then RequireAdmin re-reads is_admin from the database.
@@ -212,7 +212,7 @@ func writeReassembleError(w http.ResponseWriter, err error) {
 	var missing MissingChunkError
 	switch {
 	case errors.As(err, &missing):
-		// Typed 4xx with the missing index (v1 answered a bare 500).
+		// Typed 4xx with the missing index (old answered a bare 500).
 		httpserver.Error(w, http.StatusBadRequest, missing.Error())
 	case errors.Is(err, ErrFileTooLarge):
 		httpserver.Error(w, http.StatusRequestEntityTooLarge, "File too large")

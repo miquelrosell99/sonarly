@@ -14,7 +14,7 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/playback"
 )
 
-// Starring group (v1 routes/starring.ts, quirks doc T1-T4). Every write
+// Starring group (retired routes/starring.ts, quirks doc T1-T4). Every write
 // lands in the same user_songs/user_albums/user_artists junction tables the
 // native API uses — one data path — and scrobble delegates to the playback
 // service so the Subsonic surface cannot drift from the native scrobble
@@ -48,7 +48,7 @@ func (h *Handler) unstar(w http.ResponseWriter, r *http.Request) {
 	h.setStar(w, r, false)
 }
 
-// normalizeIDs flattens one repeated query param the way v1's normalizeIds
+// normalizeIDs flattens one repeated query param the way the old normalizeIds
 // did: absent or empty → nothing, arrays keep every non-empty value.
 func normalizeIDs(q map[string][]string, key string) []string {
 	values := q[key]
@@ -61,8 +61,8 @@ func normalizeIDs(q map[string][]string, key string) []string {
 	return out
 }
 
-// entityExists is v1's check-then-write probe: existence only, deliberately
-// NOT active- or scope-filtered (quirks doc T1/T2 — v1 ran
+// entityExists is the old check-then-write probe: existence only, deliberately
+// NOT active- or scope-filtered (quirks doc T1/T2 — the retired server ran
 // `SELECT 1 FROM <table> WHERE id = ?`).
 func (h *Handler) entityExists(ctx context.Context, table, id string) bool {
 	var one int
@@ -70,10 +70,10 @@ func (h *Handler) entityExists(ctx context.Context, table, id string) bool {
 	return err == nil
 }
 
-// setStar implements star.view/unstar.view (v1 starring.ts:23-60, T1):
+// setStar implements star.view/unstar.view (retired starring.ts:23-60, T1):
 // multi-id (id, albumId, artistId repeatable), all-or-nothing existence
-// validation — ANY unknown id answers 70 and nothing is written. v1 wrote
-// each row in its own statement; v2 wraps the whole set in one transaction
+// validation — ANY unknown id answers 70 and nothing is written. the retired server wrote
+// each row in its own statement; the Go server wraps the whole set in one transaction
 // (cheap robustness fix recorded in the quirks doc, same wire behavior).
 func (h *Handler) setStar(w http.ResponseWriter, r *http.Request, starred bool) {
 	ctx := r.Context()
@@ -144,11 +144,11 @@ func starEach(ctx context.Context, tx *sql.Tx, table, idColumn, userID string, i
 	return nil
 }
 
-// ratingPattern is v1's setRating validation regex, verbatim (T2):
+// ratingPattern is the old setRating validation regex, verbatim (T2):
 // integers or x.5 only, no sign, no exponent.
 var ratingPattern = regexp.MustCompile(`^\d+(\.5)?$`)
 
-// parseRating ports v1's parseRating: undefined/empty or anything outside
+// parseRating ports the old parseRating: undefined/empty or anything outside
 // ^\d+(\.5)?$ in 0..5 → invalid (the route answers enveloped 10).
 func parseRating(values []string) (float64, bool) {
 	if len(values) == 0 || values[0] == "" {
@@ -165,11 +165,11 @@ func parseRating(values []string) (float64, bool) {
 	return n, true
 }
 
-// setRating implements setRating.view (v1 starring.ts:143-179, T2): the
-// song must exist (existence only, any scope — the deferred v1 semantics)
+// setRating implements setRating.view (retired starring.ts:143-179, T2): the
+// song must exist (existence only, any scope — the deferred the old semantics)
 // else 70; the rating must match the regex and range else 10. The write
 // upserts user_songs.rating and recomputes songs.average_rating exactly like
-// v1 (and like the native ratings endpoint — one data path).
+// the retired server (and like the native ratings endpoint — one data path).
 func (h *Handler) setRating(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id, _ := auth.IdentityFrom(ctx)
@@ -216,9 +216,9 @@ func (h *Handler) setRating(w http.ResponseWriter, r *http.Request) {
 	respond(w, r, emptyPayload{Envelope: okEnvelope()})
 }
 
-// scrobble implements scrobble.view (v1 starring.ts:181-203, T3):
+// scrobble implements scrobble.view (retired starring.ts:181-203, T3):
 // submission=false (or anything that is not undefined/”/'true') is a
-// COMPLETE no-op answering OK — v1 never implemented now-playing. Real
+// COMPLETE no-op answering OK — the retired server never implemented now-playing. Real
 // submissions delegate to the playback scrobble service, so the Subsonic
 // surface shares the native scrobble's transaction, history row, and
 // liveness/scope validation (B13 semantics); unknown/inactive/out-of-scope
@@ -235,7 +235,7 @@ func (h *Handler) scrobble(w http.ResponseWriter, r *http.Request) {
 	}
 
 	songIDs := normalizeIDs(q, "id")
-	// v1's all-or-nothing existence probe (nothing written when any id is
+	// the old all-or-nothing existence probe (nothing written when any id is
 	// unknown); the service then re-checks liveness + scope per id.
 	for _, songID := range songIDs {
 		if !h.entityExists(ctx, "songs", songID) {
@@ -266,12 +266,12 @@ func (h *Handler) getStarred2(w http.ResponseWriter, r *http.Request) {
 	h.starred(w, r, true)
 }
 
-// starred implements getStarred/getStarred2 (v1 starring.ts:62-132, T4):
+// starred implements getStarred/getStarred2 (retired starring.ts:62-132, T4):
 // the caller's starred songs/albums/artists under the caller's library
 // scope. Songs drop out when they leave the catalog or scope; albums and
 // artists are filtered by the same EXISTS-scope pattern as the browsing
 // endpoints. Starred entities carry the fabricated epoch timestamp (X6).
-func (h *Handler) starred(w http.ResponseWriter, r *http.Request, v2 bool) {
+func (h *Handler) starred(w http.ResponseWriter, r *http.Request, starred2 bool) {
 	ctx := r.Context()
 	id, _ := auth.IdentityFrom(ctx)
 	scope, err := libraries.GetScope(ctx, h.db, id.UserID, id.IsAdmin)
@@ -376,7 +376,7 @@ func (h *Handler) starred(w http.ResponseWriter, r *http.Request, v2 bool) {
 	}
 	body.Artist = artists
 
-	if v2 {
+	if starred2 {
 		respond(w, r, starred2Payload{Envelope: okEnvelope(), Starred2: body})
 		return
 	}

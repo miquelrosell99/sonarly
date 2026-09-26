@@ -1,5 +1,7 @@
 # Sonarly v2 — OpenSubsonic adapter quirks checklist (P6.5–P9b)
 
+> Historical transition-era artifact (2026-09): documents the TypeScript→Go rewrite and cutover. Version names inside refer to the pre- and post-rewrite codebases; preserved as project history.
+
 Archaeology of every behavioral quirk in v1's OpenSubsonic adapter
 (`packages/server/src/features/opensubsonic/` + its dependencies), each with
 evidence and the v2 decision. This document is the lookup table the P9

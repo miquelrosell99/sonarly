@@ -263,7 +263,7 @@ func TestHomeHideExplicit(t *testing.T) {
 	}(), "s-h3") {
 		t.Fatalf("explicit Hot Three must be hidden")
 	}
-	// Hot Album keeps a slot: it has non-explicit songs (v1 HAVING rule).
+	// Hot Album keeps a slot: it has non-explicit songs (old HAVING rule).
 	if !contains(albumIDs(resp.MostPlayed), "al-hot") {
 		t.Fatalf("Hot Album must survive hideExplicit")
 	}

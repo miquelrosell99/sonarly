@@ -1,9 +1,9 @@
-// Cover-art upload and unlink (P9c): the v2 port of v1's
+// Cover-art upload and unlink (P9c): the Go server port of the old 
 // POST/DELETE /api/songs/:id/cover-art and /api/albums/:id/cover-art.
 //
-// v1 trusted the multipart mimetype; v2 sniffs magic bytes (jpeg/png/webp)
+// the retired server trusted the multipart mimetype; the Go server sniffs magic bytes (jpeg/png/webp)
 // — the frontend-audit fix: a renamed executable must never become a
-// stored blob. v1 also embedded the uploaded art into every audio file via
+// stored blob. the retired server also embedded the uploaded art into every audio file via
 // mutagen; the read-only doctrine defers that: the blob is stored
 // hash-dedup and linked on the song/album row, which is what all readers
 // consult. Embedded-art parity is a documented deferral (writing art into
@@ -25,7 +25,7 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/library"
 )
 
-// maxCoverArtBytes mirrors v1's 2 MiB cap.
+// maxCoverArtBytes mirrors the old 2 MiB cap.
 const maxCoverArtBytes = 2 * 1024 * 1024
 
 // sniffImageFormat identifies jpeg/png/webp by magic bytes. The returned
@@ -93,7 +93,7 @@ func (s *Service) albumCoverArtID(ctx context.Context, albumID string) (*string,
 }
 
 // cleanupOrphanCoverArt deletes a cover_arts blob nothing references
-// anymore (v1 cleanupOrphanCoverArt).
+// anymore (old cleanupOrphanCoverArt).
 func (s *Service) cleanupOrphanCoverArt(ctx context.Context, coverArtID string) error {
 	var one int
 	err := s.db.QueryRowContext(ctx,
@@ -139,7 +139,7 @@ func (s *Service) uploadSongCoverArt(ctx context.Context, id string, body []byte
 			return "", err
 		}
 	}
-	// v1 queued a resync because it had rewritten the file; v2 only links
+	// the retired server queued a resync because it had rewritten the file; the Go server only links
 	// the blob, so nothing on disk changed — no resync.
 	return coverArtID, nil
 }
@@ -167,8 +167,8 @@ func (s *Service) deleteSongCoverArt(ctx context.Context, id string) error {
 	return nil
 }
 
-// uploadAlbumCoverArt is POST /api/albums/{id}/cover-art. v1 also embedded
-// the art into every song file; v2 links the blob only (read-only doctrine).
+// uploadAlbumCoverArt is POST /api/albums/{id}/cover-art. the retired server also embedded
+// the art into every song file; the Go server links the blob only (read-only doctrine).
 func (s *Service) uploadAlbumCoverArt(ctx context.Context, id string, body []byte, mime string) (string, error) {
 	var exists int
 	if err := s.db.QueryRowContext(ctx,
@@ -226,7 +226,7 @@ func (s *Service) deleteAlbumCoverArt(ctx context.Context, id string) error {
 // ---------------------------------------------------------------------------
 
 // Handler wires the tag-edit and cover-art endpoints to HTTP (admin-gated,
-// v1 parity).
+// wire parity).
 type Handler struct {
 	svc *Service
 	mw  *auth.Middleware
@@ -268,7 +268,7 @@ func (h *Handler) putSongTags(w http.ResponseWriter, r *http.Request) {
 	httpserver.JSON(w, http.StatusOK, out)
 }
 
-// putSongsTags is v1's PUT /api/songs/tags: the same edit applied to a list
+// putSongsTags is the old PUT /api/songs/tags: the same edit applied to a list
 // of ids, applied sequentially; the first failure stops with that id.
 func (h *Handler) putSongsTags(w http.ResponseWriter, r *http.Request) {
 	var body struct {
@@ -335,7 +335,7 @@ func (h *Handler) putAlbumTags(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// releaseType is album-level metadata, pulled out before the song-tag
-	// validation like v1.
+	// validation like the retired server.
 	var releaseType *string
 	if v, present := body["releaseType"]; present {
 		s, ok := v.(string)
@@ -435,7 +435,7 @@ func decodeJSONBody(w http.ResponseWriter, r *http.Request, v any) error {
 	return nil
 }
 
-// writeStageError maps the apply-flow failures to v1's statuses; anything
+// writeStageError maps the apply-flow failures to the old statuses; anything
 // unexpected is a generic 500.
 func writeStageError(w http.ResponseWriter, r *http.Request, err error) {
 	var stage *stageError

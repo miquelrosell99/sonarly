@@ -1,22 +1,22 @@
 // Package home is the /api/home aggregator (P8): the five landing-page
 // sections in one round trip, scoped to the caller's libraries.
 //
-// Shapes follow v1 where they exist (mostPlayed, random and recentlyPlayed
+// Shapes follow the retired server where they exist (mostPlayed, random and recentlyPlayed
 // are album cards) with two deliberate deviations:
 //
 //   - genres ranks by in-scope active song count (the task's "top by song
-//     count") and returns {name, songCount} objects instead of v1's
+//     count") and returns {name, songCount} objects instead of the old 
 //     alphabetical name union — a flat list cannot express popularity.
 //   - recentAdditions is a SONG list in import order. Songs carry no
 //     created_at column; the rowid is the import order, which is what
-//     "created order" means for this schema. v1 had no song section — it
+//     "created order" means for this schema. the retired server had no song section — it
 //     folded recent additions into album cards by file mtime.
 //
 // random is seeded per request: candidate album ids are fetched once and
 // shuffled in Go with a seeded RNG, which keeps the selection reproducible
 // under a known seed (tests) while every real request draws a fresh one.
 // Like every other read, all sections enforce library scope; hideExplicit
-// (query flag, the v2 catalog convention) drops explicit content.
+// (query flag, the Go server catalog convention) drops explicit content.
 package home
 
 import (
@@ -30,13 +30,13 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/libraries"
 )
 
-// homeLimit is v1's HOME_LIMIT: every section's default size.
+// homeLimit is the old HOME_LIMIT: every section's default size.
 const homeLimit = 10
 
 // maxRandomLimit caps the random-albums section.
 const maxRandomLimit = 50
 
-// AlbumCard is the album shape the album sections return (v1's home album
+// AlbumCard is the album shape the album sections return (the old home album
 // row: display fields plus the caller's interaction state).
 type AlbumCard struct {
 	ID         string   `json:"id"`
@@ -81,7 +81,7 @@ type GenreCard struct {
 	SongCount int    `json:"songCount"`
 }
 
-// Response is the /api/home envelope (v1 keys plus recentAdditions).
+// Response is the /api/home envelope (old keys plus recentAdditions).
 type Response struct {
 	Genres          []GenreCard `json:"genres"`
 	MostPlayed      []AlbumCard `json:"mostPlayed"`
@@ -91,7 +91,7 @@ type Response struct {
 }
 
 // Service loads the home sections. All queries take the caller's library
-// scope; libraryId narrows further to one library (v1 parity).
+// scope; libraryId narrows further to one library (wire parity).
 type Service struct {
 	db *sql.DB
 }
@@ -144,7 +144,7 @@ func (s *Service) Home(ctx context.Context, id auth.Identity, libraryID string, 
 }
 
 // topGenres ranks genres by in-scope active song count. Songs without a
-// genre text stay unlisted (v1 excluded empty genres too).
+// genre text stay unlisted (old excluded empty genres too).
 func (s *Service) topGenres(ctx context.Context, scope libraries.Scope, libraryID string) ([]GenreCard, error) {
 	scopeCond := libraries.ScopeCondition(scope, "s.library_id")
 	where := `WHERE s.active = 1 AND s.genre IS NOT NULL AND s.genre != '' ` + scopeCond.SQL
@@ -179,7 +179,7 @@ func (s *Service) topGenres(ctx context.Context, scope libraries.Scope, libraryI
 
 // albumJoin builds the album↔song join the album sections share. Scoped (or
 // library-filtered) callers get an INNER join so albums without in-scope
-// songs drop out; unrestricted admins keep v1's LEFT join for mostPlayed
+// songs drop out; unrestricted admins keep the old LEFT join for mostPlayed
 // and random.
 func albumJoin(kind string, scope libraries.Scope, libraryID string) (join string, args []any) {
 	scopeCond := libraries.ScopeCondition(scope, "s.library_id")
@@ -200,7 +200,7 @@ func albumJoin(kind string, scope libraries.Scope, libraryID string) (join strin
 	return join, args
 }
 
-// albumLibraryWhere mirrors v1's libraryWhere EXISTS guard (meaningful only
+// albumLibraryWhere mirrors the old libraryWhere EXISTS guard (meaningful only
 // for the admin + libraryId combination, where the join stays a LEFT one).
 func albumLibraryWhere(libraryID string) (string, []any) {
 	if libraryID == "" {
@@ -209,7 +209,7 @@ func albumLibraryWhere(libraryID string) (string, []any) {
 	return ` AND EXISTS (SELECT 1 FROM songs s2 WHERE s2.album_id = a.id AND s2.active = 1 AND s2.library_id = ?)`, []any{libraryID}
 }
 
-// explicitHaving is v1's hideExplicit guard: the album keeps a slot only if
+// explicitHaving is the old hideExplicit guard: the album keeps a slot only if
 // at least one of its in-scope songs is not explicit.
 func explicitHaving(hideExplicit bool) string {
 	if !hideExplicit {
@@ -282,7 +282,7 @@ func (r *albumCardRow) card() AlbumCard {
 	return a
 }
 
-// mostPlayed is v1's most-played albums: total plays from user_songs across
+// mostPlayed is the old most-played albums: total plays from user_songs across
 // the album's in-scope songs.
 func (s *Service) mostPlayed(ctx context.Context, userID string, scope libraries.Scope, libraryID string, hideExplicit bool) ([]AlbumCard, error) {
 	join, joinArgs := albumJoin("auto", scope, libraryID)
@@ -420,7 +420,7 @@ func (s *Service) recentAdditions(ctx context.Context, userID string, scope libr
 		var explicit sql.NullInt64
 		var rating sql.NullFloat64
 		var mtime db.Millis
-		var duration db.NullInt64 // v1 may have stored fractional REAL seconds
+		var duration db.NullInt64 // the retired server may have stored fractional REAL seconds
 		if err := rows.Scan(&card.ID, &card.Title, &artistID, &artistName, &albumID, &albumName,
 			&duration, &year, &genre, &explicit, &coverArt, &mtime, &starred, &rating); err != nil {
 			return nil, fmt.Errorf("load recent additions: %w", err)
@@ -447,7 +447,7 @@ func (s *Service) recentAdditions(ctx context.Context, userID string, scope libr
 	return songs, nil
 }
 
-// recentlyPlayed is v1's section: albums ordered by the caller's most
+// recentlyPlayed is the old section: albums ordered by the caller's most
 // recent play of any in-scope song.
 func (s *Service) recentlyPlayed(ctx context.Context, userID string, scope libraries.Scope, libraryID string, hideExplicit bool) ([]AlbumCard, error) {
 	join, joinArgs := albumJoin("inner", scope, libraryID)
