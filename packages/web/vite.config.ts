@@ -20,6 +20,29 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
+      rollupOptions: {
+        output: {
+          // Cache-friendly vendor chunks, split by independent release
+          // cadence so a deploy only invalidates the chunks it touches:
+          //   react   — react + react-dom + scheduler (~140 KB, ships rarely)
+          //   tanstack— react-query + react-virtual (+ cores): the server-state
+          //             and virtualization layers, versioned together
+          //   dnd-kit — drag and drop (core + sortable + utilities)
+          //   wouter  — router (tiny, stable API)
+          //   zustand — client-state stores (tiny)
+          // Everything else (app code) keeps Rollup's default per-route
+          // chunks. Micro-dependencies without an independent release
+          // cadence (e.g. clsx-style helpers) stay in their importer's chunk.
+          manualChunks(id: string) {
+            if (!id.includes('node_modules')) return;
+            if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'react';
+            if (id.includes('@tanstack')) return 'tanstack';
+            if (id.includes('@dnd-kit')) return 'dnd-kit';
+            if (id.includes('wouter')) return 'wouter';
+            if (id.includes('zustand')) return 'zustand';
+          },
+        },
+      },
     },
     test: {
       environment: 'jsdom',

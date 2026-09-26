@@ -1,10 +1,10 @@
 import { useLocation, useSearch } from 'wouter';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { User } from '@sonarly/shared';
 import { api } from '../lib/api.js';
 import { ProfileModal } from '../features/profile/index.js';
 import { CreatePlaylistModal } from '../features/playlists/index.js';
-import { NowPlaying } from '../features/now-playing/index.js';
+import { NowPlaying, useNowPlaying } from '../features/now-playing/index.js';
 import { usePreferences } from '../hooks/usePreferences.js';
 import { usePlaylists } from '../hooks/usePlaylists.js';
 import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
@@ -46,6 +46,21 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const openMobileNav = useCallback(() => setMobileNavOpen(true), []);
   const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
+
+  // Start each page at the top. Virtualized lists only render the window at
+  // the current scroll offset, so inheriting a deep offset from the previous
+  // page would show a blank region. The now-playing overlay swaps the URL
+  // while open (Immich-style) — never reset underneath it.
+  const mainRef = useRef<HTMLElement | null>(null);
+  const nowPlayingOpen = useNowPlaying((state) => state.isOpen);
+  const pathname = location.split('?')[0] ?? location;
+  const previousPathRef = useRef(pathname);
+  useEffect(() => {
+    if (previousPathRef.current !== pathname && !nowPlayingOpen) {
+      mainRef.current?.scrollTo?.({ top: 0 });
+    }
+    previousPathRef.current = pathname;
+  }, [pathname, nowPlayingOpen]);
 
   // FF8: preferences never write into the theme store here. The single writer
   // is useUpdatePreferences' onSuccess, which applies the server response;
@@ -89,6 +104,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
         />
         <main
           id="main-content"
+          ref={mainRef}
           tabIndex={-1}
           className="relative flex-1 overflow-y-auto motion-safe:scroll-smooth p-6 focus:outline-none"
         >

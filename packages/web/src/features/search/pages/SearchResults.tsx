@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { useSearch, Link } from 'wouter';
+import { useSearch, Link, useLocation } from 'wouter';
 import type { Song, Album, Artist, Playlist, FavoriteEntityType, User } from '@sonarly/shared';
 import { api } from '../../../lib/api.js';
 import { PageState } from '../../../components/PageState.js';
@@ -87,6 +87,7 @@ function SongContextMenu({
 export function SearchResults({ user }: SearchResultsProps) {
   const blurExplicitTitles = user.blurExplicitTitles === true;
   const search = useSearch();
+  const [, setLocation] = useLocation();
   const params = new URLSearchParams(search);
   const query = params.get('q') ?? '';
   const rawType = params.get('type');
@@ -317,6 +318,7 @@ export function SearchResults({ user }: SearchResultsProps) {
           </SongContextMenu>
         )}
         emptyMessage={`No songs match "${query}".`}
+        emptyAction={{ label: 'Clear search', onClick: () => setLocation('/search') }}
       />
     );
   };
@@ -375,6 +377,7 @@ export function SearchResults({ user }: SearchResultsProps) {
         playingId={currentAlbumId}
         renderContextMenu={(album, children) => <AlbumContextMenu album={album}>{children}</AlbumContextMenu>}
         emptyMessage={`No albums match "${query}".`}
+        emptyAction={{ label: 'Clear search', onClick: () => setLocation('/search') }}
         defaultView="grid"
       />
     );
@@ -421,6 +424,7 @@ export function SearchResults({ user }: SearchResultsProps) {
           <ArtistContextMenu artist={artist}>{children}</ArtistContextMenu>
         )}
         emptyMessage={`No artists match "${query}".`}
+        emptyAction={{ label: 'Clear search', onClick: () => setLocation('/search') }}
         defaultView="grid"
       />
     );
@@ -472,6 +476,7 @@ export function SearchResults({ user }: SearchResultsProps) {
           <PlaylistContextMenu playlist={playlist}>{children}</PlaylistContextMenu>
         )}
         emptyMessage={`No playlists match "${query}".`}
+        emptyAction={{ label: 'Clear search', onClick: () => setLocation('/search') }}
         defaultView="grid"
       />
     );

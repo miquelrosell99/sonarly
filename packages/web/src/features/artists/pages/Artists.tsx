@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import type { Artist, Song } from '@sonarly/shared';
 import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
@@ -35,6 +35,7 @@ export function Artists() {
   const { notify } = useNotification();
   const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
+  const [, setLocation] = useLocation();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
   const epoch = useCacheEpoch();
 
@@ -133,7 +134,9 @@ export function Artists() {
             {children}
           </ArtistContextMenu>
         )}
-        emptyMessage="No artists match the current filters."
+        emptyMessage={genre ? 'No artists match the current filters.' : 'Your library has no artists yet.'}
+        emptyAction={genre ? { label: 'Clear filters', onClick: () => setLocation('/artists') } : undefined}
+        onRetry={load}
         defaultView="grid"
       />
       {editing && (
