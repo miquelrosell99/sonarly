@@ -15,16 +15,16 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/library"
 )
 
-// Pattern tokens (v1 organizer.ts): {artist} {albumArtist} {album} {title}
+// Pattern tokens (old organizer.ts): {artist} {albumArtist} {album} {title}
 // {track} {track:00} {disc} {disc:00} {year} {genre}. Unknown tokens expand
-// to "" — v1 deliberately lets custom patterns carry tokens a file's tags
+// to "" — the retired server deliberately lets custom patterns carry tokens a file's tags
 // don't fill.
 var patternTokenRe = regexp.MustCompile(`\{([a-zA-Z0-9:]+)\}`)
 
 var forbiddenCharRe = regexp.MustCompile(`[\\/:*?"<>|]`)
 var whitespaceRunRe = regexp.MustCompile(`\s+`)
 
-// BuildTargetPath ports v1's buildTargetPath: token replacement, per-segment
+// BuildTargetPath ports the old buildTargetPath: token replacement, per-segment
 // sanitize, extension always taken from the source file (so patterns never
 // need an {ext} token), rooted at libraryPath.
 func BuildTargetPath(pattern, libraryPath string, meta *audio.Metadata, originalPath string) string {
@@ -43,8 +43,8 @@ func BuildTargetPath(pattern, libraryPath string, meta *audio.Metadata, original
 	return filepath.Join(libraryPath, strings.Join(segments, "/")+filepath.Ext(originalPath))
 }
 
-// buildVariables ports v1's buildVariables. Text values are pre-sanitized
-// there and the per-segment pass below sanitizes again (idempotent, v1
+// buildVariables ports the old buildVariables. Text values are pre-sanitized
+// there and the per-segment pass below sanitizes again (idempotent, wire
 // parity); numeric tokens are formatted as numbers and never sanitized.
 func buildVariables(meta *audio.Metadata) map[string]string {
 	artist := firstNonEmpty(meta.Artists)
@@ -116,7 +116,7 @@ func firstNonEmpty(values []string) string {
 	return ""
 }
 
-// Sanitize ports v1's sanitize EXACTLY: forbidden characters become "_"
+// Sanitize ports the old sanitize EXACTLY: forbidden characters become "_"
 // (they are replaced, not stripped), whitespace runs collapse to one space,
 // ends trim, and exactly ONE trailing dot is removed — so "..." collapses
 // to "..". An empty result becomes "_".
@@ -131,7 +131,7 @@ func Sanitize(name string) string {
 	return sanitized
 }
 
-// MoveToLibrary ports v1's organizer.moveToLibrary: create the target's
+// MoveToLibrary ports the old organizer.moveToLibrary: create the target's
 // parent, pick a collision-free " (n)" target, then rename — EXDEV falls
 // back to copy + checksum-verified unlink. Returns the final path.
 func MoveToLibrary(sourcePath, targetPath string) (string, error) {
@@ -151,7 +151,7 @@ func MoveToLibrary(sourcePath, targetPath string) (string, error) {
 	return finalPath, nil
 }
 
-// ResolveDuplicateTarget ports v1's resolveDuplicateTarget / resolveUniquePath:
+// ResolveDuplicateTarget ports the old resolveDuplicateTarget / resolveUniquePath:
 // an occupied target gets " (1)", " (2)", ... suffixes before the extension.
 func ResolveDuplicateTarget(targetPath string) (string, error) {
 	if !fileExists(targetPath) {
@@ -169,7 +169,7 @@ func ResolveDuplicateTarget(targetPath string) (string, error) {
 }
 
 // moveFile renames, falling back to a copy + checksum-verified unlink across
-// filesystem boundaries (v1 organizer.ts EXDEV handling).
+// filesystem boundaries (old organizer.ts EXDEV handling).
 func moveFile(sourcePath, targetPath string) error {
 	err := os.Rename(sourcePath, targetPath)
 	if err == nil {
@@ -181,7 +181,7 @@ func moveFile(sourcePath, targetPath string) error {
 	return copyAndRemove(sourcePath, targetPath)
 }
 
-// copyAndRemove ports v1's copyAndRemove: copy, verify both checksums match,
+// copyAndRemove ports the old copyAndRemove: copy, verify both checksums match,
 // only then unlink the source.
 func copyAndRemove(sourcePath, targetPath string) error {
 	if err := copyFile(sourcePath, targetPath); err != nil {
@@ -230,8 +230,8 @@ func fileExists(path string) bool {
 	return err == nil
 }
 
-// cleanupEmptyDirs ports v1's rmdir sweep: post-order remove every emptied
-// directory except root and reviewDir (v1 never removed the review folder
+// cleanupEmptyDirs ports the old rmdir sweep: post-order remove every emptied
+// directory except root and reviewDir (old never removed the review folder
 // itself — parked files live there).
 func cleanupEmptyDirs(dir, root, reviewDir string) {
 	entries, err := os.ReadDir(dir)

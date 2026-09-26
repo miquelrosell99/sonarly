@@ -1,10 +1,10 @@
 // Organize-existing: re-apply each library's organize pattern to files
-// already in the library (v1 organize-job.ts two-phase runner +
+// already in the library (old organize-job.ts two-phase runner +
 // organize-existing.ts helpers). Phase one collects candidates without
 // touching anything; phase two moves them with per-file progress and a
 // failedPaths list. A moved file's song row follows it, and the cover link
-// is reconciled in the database — v1 rewrote the album cover INTO the moved
-// file; v2 never mutates audio files.
+// is reconciled in the database — the retired server rewrote the album cover INTO the moved
+// file; the Go server never mutates audio files.
 package ingest
 
 import (
@@ -20,7 +20,7 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/library"
 )
 
-// OrganizeStats is v1's OrganizeJobStats (the scan_jobs stats document).
+// OrganizeStats is the old OrganizeJobStats (the scan_jobs stats document).
 type OrganizeStats struct {
 	Total       int      `json:"total"`
 	Scanned     int      `json:"scanned"`
@@ -43,7 +43,7 @@ func (s *Service) RunOrganizeJob(ctx context.Context, job *library.Job) (any, er
 	})
 }
 
-// RunOrganize ports v1's runOrganizeJob: collect candidates (read-only
+// RunOrganize ports the old runOrganizeJob: collect candidates (read-only
 // preview of every file's target path), then move them one at a time with
 // live stats, and finally prune emptied directories.
 func (s *Service) RunOrganize(ctx context.Context, payload library.OrganizePayload, onProgress func(*OrganizeStats)) (*OrganizeStats, error) {
@@ -116,7 +116,7 @@ func (s *Service) RunOrganize(ctx context.Context, payload library.OrganizePaylo
 }
 
 // organizeRoots resolves which library roots an organize job covers: the
-// payload's library when set, otherwise every library (v1 parity), falling
+// payload's library when set, otherwise every library (wire parity), falling
 // back to the configured library path when no libraries row exists.
 func (s *Service) organizeRoots(ctx context.Context, libraryID string) ([]string, error) {
 	if libraryID != "" {
@@ -155,7 +155,7 @@ func (s *Service) organizeRoots(ctx context.Context, libraryID string) ([]string
 	return paths, nil
 }
 
-// targetPathForFile ports v1's getTargetPathForFile: the file's own tags
+// targetPathForFile ports the old getTargetPathForFile: the file's own tags
 // (re-read), its library resolved by longest-prefix separator-boundary
 // match (so /music does not claim /music2), the library's organize pattern
 // or the global fallback.
@@ -190,10 +190,10 @@ func (s *Service) targetPathForMeta(ctx context.Context, filePath string, meta *
 	return BuildTargetPath(s.globalOrganizePattern(ctx), s.libraryPath, meta, filePath), nil
 }
 
-// organizeSongFile ports v1's organizeSongFile: resolve the pattern target,
+// organizeSongFile ports the old organizeSongFile: resolve the pattern target,
 // move with collision handling, and point the song row at the new path. The
-// v2 deviation is the cover sync: v1 embedded the album's cover art into the
-// moved audio file; v2 reconciles the song's cover_art_id link in the
+// the Go server deviation is the cover sync: the retired server embedded the album's cover art into the
+// moved audio file; the Go server reconciles the song's cover_art_id link in the
 // database only (read-only doctrine — no audio file is ever mutated).
 func (s *Service) organizeSongFile(ctx context.Context, filePath string) (string, error) {
 	var songID string
@@ -234,7 +234,7 @@ func (s *Service) organizeSongFile(ctx context.Context, filePath string) (string
 }
 
 // syncSongCoverWithAlbum reconciles the song's cover link with its album's
-// cover after a move (the database-side equivalent of v1's
+// cover after a move (the database-side equivalent of the old 
 // syncSongCoverWithAlbum, which rewrote tags).
 func (s *Service) syncSongCoverWithAlbum(ctx context.Context, songID string) error {
 	var albumID *string
@@ -260,8 +260,8 @@ func (s *Service) syncSongCoverWithAlbum(ctx context.Context, songID string) err
 	return nil
 }
 
-// walkLibraryFiles ports v1's walkLibraryFiles: every audio file under the
-// root, name order. (Deliberately no dotfile skip — v1 parity; non-audio
+// walkLibraryFiles ports the old walkLibraryFiles: every audio file under the
+// root, name order. (Deliberately no dotfile skip — wire parity; non-audio
 // extensions are filtered out.)
 func walkLibraryFiles(dir string) []string {
 	var files []string

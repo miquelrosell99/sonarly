@@ -3,7 +3,7 @@
 Sonarly exposes two HTTP APIs from a single Go process:
 
 1. **Native management REST API** at `/api/*` — used by the React web UI. The
-   machine-readable contract is [`v2/api/openapi.yaml`](../v2/api/openapi.yaml)
+   machine-readable contract is [`server/api/openapi.yaml`](../server/api/openapi.yaml)
    (OpenAPI 3.1, ~80 paths).
 2. **OpenSubsonic API** at `/rest/*` — compatible with Subsonic clients.
 
@@ -11,7 +11,7 @@ The server also serves the built React SPA at `/*` in production.
 
 ## Native REST API (`/api`)
 
-**Source of truth: [`v2/api/openapi.yaml`](../v2/api/openapi.yaml).** Every
+**Source of truth: [`server/api/openapi.yaml`](../server/api/openapi.yaml).** Every
 native endpoint, its request/response schemas, and its error shapes are
 documented there. The Go router is coverage-tested against the spec in both
 directions (a chi.Walk test fails the build if a route is missing from the
@@ -20,7 +20,7 @@ spec or vice versa), so the spec cannot drift from the implementation.
 Validate or browse the spec with [Redocly](https://redocly.com/):
 
 ```bash
-cd v2/api
+cd server/api
 npx @redocly/cli lint openapi.yaml     # lint (config: redocly.yaml)
 npx @redocly/cli build-docs openapi.yaml   # render reference docs
 ```
@@ -61,7 +61,7 @@ code. The OpenSubsonic adapter is different by design — see below.
 
 Subsonic clients talk to `/rest/*`. The compatibility contract — envelope
 shape, auth precedence, error codes, XML mapping, per-endpoint quirks — is
-documented in [`v2-opensubsonic-quirks.md`](v2-opensubsonic-quirks.md). That
+documented in [`opensubsonic-quirks.md`](opensubsonic-quirks.md). That
 document is the authoritative reference; implement against its decisions.
 
 Key properties:
@@ -87,7 +87,7 @@ Key properties:
 The web client generates its TypeScript types from the spec:
 
 ```bash
-pnpm --filter @sonarly/web contract:gen   # v2/api/openapi.yaml → src/contract/schema.ts
+pnpm --filter @sonarly/web contract:gen   # server/api/openapi.yaml → src/contract/schema.ts
 ```
 
 `src/contract/wrapper.ts` + `capabilities.ts` layer typed access and feature

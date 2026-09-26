@@ -1,4 +1,4 @@
--- FTS5 search indexes (P8, plan/DR-2): replaces v1's leading-wildcard LIKE
+-- FTS5 search indexes (P8, plan/DR-2): replaces the pre-rewrite leading-wildcard LIKE
 -- full scans with prefix-matchable full-text indexes.
 --
 -- The tables are REGULAR (self-contained) FTS5 tables keyed by the content

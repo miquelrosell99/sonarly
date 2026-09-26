@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	// defaultListLimit mirrors v1's hardcoded 500-row catalog lists.
+	// defaultListLimit mirrors the old hardcoded 500-row catalog lists.
 	defaultListLimit = 500
 	maxListLimit     = 500
-	// genreAlbumsLimit mirrors v1's /api/genres/:id/albums clamp (1..20,
+	// genreAlbumsLimit mirrors the old /api/genres/:id/albums clamp (1..20,
 	// default 4).
 	defaultGenreAlbumsLimit = 4
 	maxGenreAlbumsLimit     = 20
@@ -23,7 +23,7 @@ const (
 
 // Handler wires the catalog service to HTTP. Route handlers parse and
 // validate, the service enforces library scope, and the route layer maps
-// sentinel errors to the v2 error contract ({"error": "..."}).
+// sentinel errors to the Go server error contract ({"error": "..."}).
 type Handler struct {
 	svc *Service
 	mw  *auth.Middleware

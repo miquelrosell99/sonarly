@@ -11,17 +11,17 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/libraries"
 )
 
-// This file is the browsing/retrieval repository layer: the SQL v1's
+// This file is the browsing/retrieval repository layer: the SQL the old
 // browsing.ts and retrieval.ts ran, ported statement for statement (quirks
 // doc B/X/R groups). Handlers stay thin — parse params, call these loaders,
 // map through serializer.go, respond through envelope.go.
 
 // ---------------------------------------------------------------------------
-// Scope helpers (v1 browsing.ts albumScopeFilter/artistScopeFilter)
+// Scope helpers (retired browsing.ts albumScopeFilter/artistScopeFilter)
 // ---------------------------------------------------------------------------
 
 // albumScopeFilter scopes albums to those with at least one active in-scope
-// song (v1's EXISTS pattern; albums have no library_id of their own).
+// song (the old EXISTS pattern; albums have no library_id of their own).
 func albumScopeFilter(scope libraries.Scope) libraries.Condition {
 	if scope.All {
 		return libraries.Condition{}
@@ -46,13 +46,13 @@ func artistScopeFilter(scope libraries.Scope) libraries.Condition {
 	}
 }
 
-// millisToISO renders an mtime the way JS Date.toISOString() did in v1.
+// millisToISO renders an mtime the way JS Date.toISOString() did in the old server.
 func millisToISO(mtime int64) string {
 	return time.UnixMilli(mtime).UTC().Format(createdLayout)
 }
 
 // ---------------------------------------------------------------------------
-// Chunked IN loaders (v1's get*ForMany batch pattern, catalog-parity)
+// Chunked IN loaders (the old get*ForMany batch pattern, catalog-parity)
 // ---------------------------------------------------------------------------
 
 const idChunkSize = 400
@@ -82,7 +82,7 @@ func stringArgs(ids []string) []any {
 	return args
 }
 
-// entryJoin mirrors v1's junction batch loads: ownerCol is the junction
+// entryJoin mirrors the old junction batch loads: ownerCol is the junction
 // column selected for grouping, joinSQL the fixed fragment naming junction
 // alias j and entry alias e ending at the owner predicate.
 type entryJoin struct {
@@ -155,8 +155,8 @@ func namesForMany(ctx context.Context, q *sql.DB, join entryJoin, ids []string) 
 	return out, nil
 }
 
-// albumSongStats is v1's getAlbumSongStatsForMany row: active song count and
-// summed duration per album. Deliberately NOT scope-filtered (v1 parity:
+// albumSongStats is the old getAlbumSongStatsForMany row: active song count and
+// summed duration per album. Deliberately NOT scope-filtered (wire parity:
 // stats describe the album, not the caller's slice).
 type albumSongStats struct {
 	SongCount int
@@ -176,7 +176,7 @@ func albumStatsForMany(ctx context.Context, q *sql.DB, albumIDs []string) (map[s
 		for rows.Next() {
 			var id string
 			var st albumSongStats
-			// SUM(duration) returns REAL when any song carries a v1-written
+			// SUM(duration) returns REAL when any song carries a legacy-written
 			// fractional duration (production reality); the tolerant
 			// db.NullInt64 truncates instead of failing the whole listing —
 			// strict scanning 500'd search3/getAlbumList on real data.
@@ -199,7 +199,7 @@ func albumStatsForMany(ctx context.Context, q *sql.DB, albumIDs []string) (map[s
 	return out, nil
 }
 
-// albumMaxMtimeForMany is v1's getAlbumMaxMtimesForMany: the newest active
+// albumMaxMtimeForMany is the old getAlbumMaxMtimesForMany: the newest active
 // song mtime per album, used for the album `created` approximation (X13).
 func albumMaxMtimeForMany(ctx context.Context, q *sql.DB, albumIDs []string) (map[string]int64, error) {
 	out := make(map[string]int64)
@@ -232,11 +232,11 @@ func albumMaxMtimeForMany(ctx context.Context, q *sql.DB, albumIDs []string) (ma
 }
 
 // ---------------------------------------------------------------------------
-// Song rows (v1 SongRow + songSelectSql)
+// Song rows (retired SongRow + songSelectSql)
 // ---------------------------------------------------------------------------
 
 // songColumns is the explicit songs-column list every Subsonic song SELECT
-// shares (v1's `s.*` made deterministic); joined display columns and the
+// shares (the old `s.*` made deterministic); joined display columns and the
 // per-user interaction columns follow in a fixed order (scanSongRow).
 const songColumns = `s.id, s.album_id, s.artist_id, s.title, s.track_number, s.disc_number,
 	s.genre, s.year, s.duration, s.cover_art_id, s.mtime, s.file_path,
@@ -256,7 +256,7 @@ const songJoins = `FROM songs s
 func scanSongRow(s interface{ Scan(...any) error }) (SongSource, error) {
 	var src SongSource
 	var albumID, artistID, genre, coverArtID sql.NullString
-	// v1 may have written any of these as fractional REALs (music-metadata
+	// the retired server may have written any of these as fractional REALs (music-metadata
 	// floats) — scan through the tolerant db.NullInt64 (see internal/db).
 	var trackNumber, discNumber, year, duration db.NullInt64
 	var bitRate, bitsPerSample, sampleRate, channels, bpm db.NullInt64
@@ -356,7 +356,7 @@ func nullInt(v sql.NullInt64) *int {
 }
 
 // nullIntTolerant is nullInt for the db.NullInt64 columns that may hold
-// v1-written fractional REALs (duration, format numbers).
+// written by the retired server fractional REALs (duration, format numbers).
 func nullIntTolerant(v db.NullInt64) *int {
 	if n, ok := v.Value(); ok {
 		i := int(n)
@@ -377,7 +377,7 @@ func nullFloat(v sql.NullFloat64) *float64 {
 // Album / artist rows
 // ---------------------------------------------------------------------------
 
-// albumColumns is v1's `a.*` made explicit.
+// albumColumns is the old `a.*` made explicit.
 const albumColumns = `a.id, a.name, a.artist_id, a.artist_name, a.cover_art_id, a.year, a.genre,
 	a.catalog_numbers, a.barcode, a.asin, a.musicbrainz_album_id, a.musicbrainz_release_group_id,
 	a.musicbrainz_album_artist_ids, a.original_year, a.compilation, a.total_tracks, a.total_discs`
@@ -423,7 +423,7 @@ func scanAlbumRow(s interface{ Scan(...any) error }) (AlbumSource, error) {
 	return src, nil
 }
 
-// albumSelect is v1's shared album SELECT: row + per-user interactions +
+// albumSelect is the old shared album SELECT: row + per-user interactions +
 // the global average rating subquery.
 const albumSelect = `SELECT ` + albumColumns + `,
 		(SELECT AVG(rating) FROM user_albums WHERE album_id = a.id) AS average_rating,
@@ -455,7 +455,7 @@ func scanArtistRow(s interface{ Scan(...any) error }) (ArtistSource, error) {
 }
 
 // scanIndexArtistRow scans the artist columns plus album count without the
-// interaction join (v1's getIndexes shape — no user_artists columns).
+// interaction join (the old getIndexes shape — no user_artists columns).
 func scanIndexArtistRow(s interface{ Scan(...any) error }) (ArtistSource, error) {
 	var src ArtistSource
 	var imageURL, mbIDs sql.NullString
@@ -470,7 +470,7 @@ func scanIndexArtistRow(s interface{ Scan(...any) error }) (ArtistSource, error)
 	return src, nil
 }
 
-// artistAlbumCountSQL is v1's correlated album-count subquery (X15): active
+// artistAlbumCountSQL is the old correlated album-count subquery (X15): active
 // albums via the primary artist column OR the album_artists junction.
 const artistAlbumCountSQL = `(SELECT COUNT(*)
 	FROM albums a
@@ -479,7 +479,7 @@ const artistAlbumCountSQL = `(SELECT COUNT(*)
 			OR EXISTS (SELECT 1 FROM album_artists aa WHERE aa.album_id = a.id AND aa.artist_id = ar.id))
 	) AS album_count`
 
-// mapSongs runs the v1 mapSongRowsToOpenSubsonic batch-attach: artist and
+// mapSongs runs the old mapSongRowsToOpenSubsonic batch-attach: artist and
 // composer entries plus genre names, one chunked query per relation.
 func (h *Handler) mapSongs(ctx context.Context, rows []SongSource, forUser bool) ([]Song, error) {
 	songs := make([]Song, len(rows))
@@ -508,7 +508,7 @@ func (h *Handler) mapSongs(ctx context.Context, rows []SongSource, forUser bool)
 	return songs, nil
 }
 
-// mapAlbums runs the v1 fetchAlbumList/search3 album mapping pipeline:
+// mapAlbums runs the old fetchAlbumList/search3 album mapping pipeline:
 // artist/label/genre entries, stats and newest-mtime per album.
 func (h *Handler) mapAlbums(ctx context.Context, rows []AlbumSource, forUser bool) ([]Album, error) {
 	albums := make([]Album, len(rows))
@@ -549,7 +549,7 @@ func (h *Handler) mapAlbums(ctx context.Context, rows []AlbumSource, forUser boo
 	return albums, nil
 }
 
-// albumCreatedAt converts a newest-song mtime to the ISO string v1 put in
+// albumCreatedAt converts a newest-song mtime to the ISO string the retired server put in
 // `created` (X13); absent mtime → nil → the mapper's epoch fallback.
 func albumCreatedAt(mtime int64, ok bool) *string {
 	if !ok || mtime == 0 {
@@ -560,14 +560,14 @@ func albumCreatedAt(mtime int64, ok bool) *string {
 }
 
 // ---------------------------------------------------------------------------
-// Songs by id list (v1 fetchOpenSubsonicSongsByIds)
+// Songs by id list (retired fetchOpenSubsonicSongsByIds)
 // ---------------------------------------------------------------------------
 
-// songsByIDs is v1's fetchOpenSubsonicSongsByIds: the full Subsonic Child
+// songsByIDs is the old fetchOpenSubsonicSongsByIds: the full Subsonic Child
 // rows for an id list, active only, in the caller's interaction context.
-// A nil scope means NO library filter (v1's getNowPlaying call passed none);
+// A nil scope means NO library filter (the old getNowPlaying call passed none);
 // getStarred/getBookmarks pass the caller's scope. Ids that are missing,
-// inactive, or out of scope simply drop out of the result (v1 parity).
+// inactive, or out of scope simply drop out of the result (wire parity).
 func (h *Handler) songsByIDs(ctx context.Context, userID string, ids []string, scope *libraries.Scope) ([]Song, error) {
 	if len(ids) == 0 {
 		return []Song{}, nil

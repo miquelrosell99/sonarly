@@ -46,7 +46,7 @@ func TestCreateOrdersMembers(t *testing.T) {
 }
 
 // TestUpdateTransactionalRewrite: a failed member rewrite leaves the
-// original membership untouched (v1 B3 fix — one tx).
+// original membership untouched (the old B3 fix — one tx).
 func TestUpdateTransactionalRewrite(t *testing.T) {
 	env := newEnv(t)
 	ctx := context.Background()
@@ -114,7 +114,7 @@ func TestShareLifecycle(t *testing.T) {
 	}
 }
 
-// TestShareLinkLifecycle: v1 semantics (P10 decision) — enabling stores
+// TestShareLinkLifecycle: the old semantics (P10 decision) — enabling stores
 // the token WITHOUT touching visibility; disabling clears the token only.
 func TestShareLinkLifecycle(t *testing.T) {
 	env := newEnv(t)

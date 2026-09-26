@@ -13,14 +13,14 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/playlists"
 )
 
-// Playlist group (v1 features/playlists/opensubsonic-routes.ts, quirks doc
+// Playlist group (retired features/playlists/opensubsonic-routes.ts, quirks doc
 // P1). All access decisions go through the playlists module's ONE policy
 // (playlists.Resolve) and all reads/writes through its service — the
 // adapter never runs its own playlist SQL beyond what the module exports.
 
-// playlistEntry is the reduced song child v1's fetchPlaylistSongs built for
+// playlistEntry is the reduced song child the old fetchPlaylistSongs built for
 // playlist payloads (NOT the full browsing Child): album/artist display
-// names, no ids. v1 emitted JSON nulls for absent track/discNumber/genre/
+// names, no ids. the retired server emitted JSON nulls for absent track/discNumber/genre/
 // year/duration while XML omitted them (xml-js dropped nulls) — the Go tags
 // reproduce exactly that split: no json omitempty, xml omitempty.
 type playlistEntry struct {
@@ -39,7 +39,7 @@ type playlistEntry struct {
 	Created    string  `xml:"created,attr" json:"created"`
 }
 
-// subsonicPlaylist is v1's toOpenSubsonicPlaylist: the fields Subsonic
+// subsonicPlaylist is the old toOpenSubsonicPlaylist: the fields Subsonic
 // clients read, with `entry` present only on detail responses. coverArt is
 // the playlist's own id (self-reference placeholder; playlist art does not
 // exist yet — getCoverArt answers 70 for it, same as any unknown id).
@@ -72,9 +72,9 @@ type playlistPayload struct {
 	Playlist subsonicPlaylist `xml:"playlist" json:"playlist"`
 }
 
-// dbTimeToISO renders a stored playlist timestamp the way v1 did: v1 kept
-// ISO strings in the table, v2 stores SQLite datetime('now') ("YYYY-MM-DD
-// HH:MM:SS", UTC) — the wire format stays v1's toISOString with millis.
+// dbTimeToISO renders a stored playlist timestamp the way the retired server did: the retired server kept
+// ISO strings in the table, the Go server stores SQLite datetime('now') ("YYYY-MM-DD
+// HH:MM:SS", UTC) — the wire format stays the old toISOString with millis.
 func dbTimeToISO(s string) string {
 	for _, layout := range []string{"2006-01-02 15:04:05", time.RFC3339Nano} {
 		if t, err := time.Parse(layout, s); err == nil {
@@ -100,7 +100,7 @@ func listItemToPlaylist(item playlists.SubsonicListItem) subsonicPlaylist {
 
 // mapDetailToPlaylist maps the service detail (P6 Get: viewer-scope filtered,
 // hideExplicit applied, owner's shares/token stripped for non-owners) onto
-// the wire shape. Duration follows v1's includeEntries math: the rounded
+// the wire shape. Duration follows the old includeEntries math: the rounded
 // sum of the visible entry durations.
 func mapDetailToPlaylist(d *playlists.Detail) subsonicPlaylist {
 	duration := 0
@@ -140,7 +140,7 @@ func mapDetailToPlaylist(d *playlists.Detail) subsonicPlaylist {
 }
 
 // writePlaylistServiceError maps playlists-module sentinel errors onto the
-// envelope: vanished mid-request → 70, forbidden → 50 (v1's adapter code
+// envelope: vanished mid-request → 70, forbidden → 50 (the old adapter code
 // for playlist authorization), validation → 10 (family of missing/invalid
 // params). Returns true when the error was handled.
 func writePlaylistServiceError(w http.ResponseWriter, r *http.Request, err error) bool {
@@ -169,7 +169,7 @@ func playlistIsSmart(w http.ResponseWriter, r *http.Request) {
 
 // resolvePlaylistAccess loads the playlist (70 when missing) and resolves
 // the ONE policy. minAccess gates the operation; below it the caller gets
-// v1's authorization error (50), never a presence leak.
+// the old authorization error (50), never a presence leak.
 func (h *Handler) resolvePlaylistAccess(w http.ResponseWriter, r *http.Request, playlistID, shareToken string, minAccess playlists.Access) (*playlists.Playlist, bool) {
 	p, err := playlists.GetByID(r.Context(), h.db, playlistID)
 	if errors.Is(err, playlists.ErrNotFound) {
@@ -198,7 +198,7 @@ func authIdentity(r *http.Request) auth.Identity {
 }
 
 // getPlaylists implements getPlaylists.view: own + public + shared, ordered
-// by name (v1), no entries (v1 includeEntries=false).
+// by name (old behavior), no entries (old includeEntries=false).
 func (h *Handler) getPlaylists(w http.ResponseWriter, r *http.Request) {
 	items, err := h.playlists.SubsonicList(r.Context(), authIdentity(r))
 	if err != nil {
@@ -224,7 +224,7 @@ func (h *Handler) getPlaylists(w http.ResponseWriter, r *http.Request) {
 // hook (A8) already let the request through the auth hook; the ONE policy
 // validates it — token honored only for visibility=link with an exact
 // match, otherwise owner/public/share rules as usual. Missing → 70, no
-// access → 50 (v1's adapter code).
+// access → 50 (the old adapter code).
 func (h *Handler) getPlaylist(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	playlistID := r.URL.Query().Get("id")
@@ -239,7 +239,7 @@ func (h *Handler) getPlaylist(w http.ResponseWriter, r *http.Request) {
 	respond(w, r, playlistPayload{Envelope: okEnvelope(), Playlist: mapDetailToPlaylist(detail)})
 }
 
-// firstParam is v1's asName: the first value of a maybe-repeated param, ""
+// firstParam is the old asName: the first value of a maybe-repeated param, ""
 // when absent or empty.
 func firstParam(q map[string][]string, key string) string {
 	if values := q[key]; len(values) > 0 {
@@ -248,12 +248,12 @@ func firstParam(q map[string][]string, key string) string {
 	return ""
 }
 
-// getPlaylists implements createPlaylist.view (v1 opensubsonic-routes.ts):
+// getPlaylists implements createPlaylist.view (retired opensubsonic-routes.ts):
 // songId params seed a new playlist (name defaults to "New Playlist",
 // visibility to private, link visibility mints a share token); a
 // playlistId param instead REPLACES an existing playlist's songs per the
 // Subsonic API contract. Song ids are validated by the playlists service
-// (one data path) — v1 stored bogus ids silently, v2 answers enveloped 10.
+// (one data path) — the retired server stored bogus ids silently, the Go server answers enveloped 10.
 func (h *Handler) createPlaylist(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	q := r.URL.Query()
@@ -283,7 +283,7 @@ func (h *Handler) createPlaylist(w http.ResponseWriter, r *http.Request) {
 	}
 	visibility := firstParam(q, "visibility")
 	if visibility != "" && !playlists.IsVisibility(visibility) {
-		visibility = "" // v1's asVisibility: garbage → default (private)
+		visibility = "" // the old asVisibility: garbage → default (private)
 	}
 	detail, err := h.playlists.Create(ctx, id, playlists.Input{
 		Name:       name,
@@ -298,8 +298,8 @@ func (h *Handler) createPlaylist(w http.ResponseWriter, r *http.Request) {
 
 // updatePlaylist implements updatePlaylist.view: songId replaces the member
 // list, songIdToAdd appends, songIndexToRemove splices (descending, invalid
-// indexes ignored — v1 semantics), name/visibility patch when present.
-// v1 answered an EMPTY OK envelope, not the playlist — preserve.
+// indexes ignored — the old semantics), name/visibility patch when present.
+// the retired server answered an EMPTY OK envelope, not the playlist — preserve.
 func (h *Handler) updatePlaylist(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	q := r.URL.Query()
@@ -353,7 +353,7 @@ func (h *Handler) updatePlaylist(w http.ResponseWriter, r *http.Request) {
 	if visibility := firstParam(q, "visibility"); visibility != "" && playlists.IsVisibility(visibility) {
 		in.Visibility = &visibility
 	}
-	// v1 opensubsonic-routes.ts updatePlaylist re-derives the share token
+	// the retired server opensubsonic-routes.ts updatePlaylist re-derives the share token
 	// from the RESOLVED visibility (param when valid, else existing) on
 	// every adapter update: link keeps or mints a token, any other
 	// visibility clears it — even when no visibility param was passed.
@@ -365,9 +365,9 @@ func (h *Handler) updatePlaylist(w http.ResponseWriter, r *http.Request) {
 	respond(w, r, emptyPayload{Envelope: okEnvelope()})
 }
 
-// deletePlaylist implements deletePlaylist.view. v1 semantics: a missing
+// deletePlaylist implements deletePlaylist.view. the old semantics: a missing
 // playlist is a silent OK (NOT 70); otherwise the editor-or-owner rule
-// (the Subsonic adapter's verb rule, v1 canEditOrOwnPlaylist — the native
+// (the Subsonic adapter's verb rule, old canEditOrOwnPlaylist — the native
 // route stays owner-only) decides, then the module deletes.
 func (h *Handler) deletePlaylist(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

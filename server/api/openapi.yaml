@@ -1,6 +1,6 @@
-# Sonarly v2 — native REST API contract.
+# Sonarly — native REST API contract.
 #
-# Hand-authored from the v2 Go route registry (cmd/sonarly/mountRoutes) and
+# Hand-authored from the Go route registry (cmd/sonarly/mountRoutes) and
 # the modules' JSON DTOs. cmd/sonarly/spec_test.go walks the chi router and
 # asserts this spec documents exactly the registered /api routes — the spec
 # cannot drift from the code silently.
@@ -15,13 +15,13 @@
 #     timeout (long-lived by design).
 openapi: 3.1.0
 info:
-  title: Sonarly v2 API
+  title: Sonarly API
   version: 2.0.0
   license:
     name: AGPL-3.0-or-later
     url: https://www.gnu.org/licenses/agpl-3.0.html
   description: >
-    Native REST API of the Sonarly v2 server (Go rewrite). Documented routes
+    Native REST API of the Sonarly Go server. Documented routes
     are the native /api surface plus the /health, /healthz and /ready
     liveness probes;
     the OpenSubsonic adapter under /rest is a separate (Subsonic-compatible)
@@ -210,7 +210,7 @@ paths:
       tags: [auth]
       summary: Log out (always answers ok; destroys any presented session)
       description: >
-        Exempt from auth like v1: always answers `{ok: true}` and expires the
+        Exempt from auth, as before: always answers `{ok: true}` and expires the
         session cookie, destroying whatever session was presented, if any.
       security: []
       responses:
@@ -335,7 +335,7 @@ paths:
         structural sidebar/theme documents) or the whole patch is rejected
         with 400 — unknown keys are never silently dropped or stored
         (mass-assignment fix). Values are validated per key; out-of-range
-        auto-dj numbers clamp like v1 instead of failing.
+        out-of-range auto-dj numbers clamp instead of failing.
       requestBody:
         required: true
         content:
@@ -371,8 +371,8 @@ paths:
               type: object
               description: >
                 Exactly one entity: a per-type id key (songId, albumId,
-                artistId, playlistId) OR the v1 shape {entityType,
-                entityId} with entityType song|album|artist|playlist.
+                artistId, playlistId) OR the legacy {entityType,
+                entityId} form with entityType song|album|artist|playlist.
               properties:
                 songId: { type: string }
                 albumId: { type: string }
@@ -403,7 +403,7 @@ paths:
       description: >
         Upserts the caller's rating in the user_* junction row; song ratings
         recompute songs.average_rating. Passing null (or omitting the key)
-        clears the rating, exactly like v1.
+        Passing null (or omitting the key) clears the rating.
       requestBody:
         required: true
         content:
@@ -412,8 +412,8 @@ paths:
               type: object
               description: >
                 Exactly one entity: a per-type id key (songId, albumId,
-                artistId, playlistId) OR the v1 shape {entityType,
-                entityId} with entityType song|album|artist|playlist.
+                artistId, playlistId) OR the legacy {entityType,
+                entityId} form with entityType song|album|artist|playlist.
               properties:
                 songId: { type: string }
                 albumId: { type: string }
@@ -446,7 +446,7 @@ paths:
       security: []
       description: >
         Serves the user's avatar file when one has been uploaded; 404
-        otherwise. Public like v1 — avatars render in <img> tags, which
+        otherwise. Publicly readable — avatars render in <img> tags, which
         carry no API key.
       parameters:
         - $ref: '#/components/parameters/UserId'
@@ -795,10 +795,10 @@ paths:
     get:
       operationId: listYears
       tags: [catalog]
-      summary: Distinct years (songs and albums union), newest first
+      summary: Distinct song years with counts, newest first
       responses:
         '200':
-          description: Bare year values, newest first — the union of in-scope active song and album years (v1 contract).
+          description: Distinct years of in-scope active songs and how many songs carry each.
           content:
             application/json:
               schema:
@@ -807,7 +807,7 @@ paths:
                 properties:
                   years:
                     type: array
-                    items: { type: integer }
+                    items: { $ref: '#/components/schemas/YearCount' }
         '401': { $ref: '#/components/responses/Unauthorized' }
   /api/cover-art/{id}:
     get:
@@ -854,7 +854,7 @@ paths:
       tags: [playlists]
       summary: Create a playlist (static, or smart when `rules` is present)
       description: >
-        A body with `rules` creates a smart playlist; the v1 explicit
+        A body with `rules` creates a smart playlist; the old explicit
         `isSmart` flag is folded into rules presence. `visibility` defaults
         per service rules when omitted; `resolveMode` defaults to `tracks`.
       requestBody:
@@ -1074,7 +1074,7 @@ paths:
     head:
       operationId: streamSongHeaders
       tags: [playback]
-      summary: Stream headers only (v1 parity; answered explicitly)
+      summary: Stream headers only (wire parity; answered explicitly)
       parameters:
         - $ref: '#/components/parameters/SongId'
         - { name: maxBitRate, in: query, schema: { type: integer } }
@@ -1094,7 +1094,7 @@ paths:
         The body is optional — an absent (or empty) body means "no details".
         `completion` is clamped to [0,100]; `durationListened` to >= 0;
         `playedAt` must parse as a date; `client`/`source` are capped at 255
-        characters. Retries double-count, like v1 (no idempotency key).
+        characters. Retries double-count — there is no idempotency key.
       parameters:
         - $ref: '#/components/parameters/SongId'
       requestBody:
@@ -1329,9 +1329,9 @@ paths:
       tags: [home]
       summary: Landing-page sections in one round trip
       description: >
-        `genres` ranks by in-scope active song count (unlike v1's
-        alphabetical union) and `recentAdditions` is a song list in import
-        order (the rowid is the import order; v1 folded additions into album
+        `genres` ranks by in-scope active song count (not an alphabetical
+        union) and `recentAdditions` is a song list in import
+        order (the rowid is the import order; the old server folded additions into album
         cards). `random` is seeded per request; `limit` only caps the random
         section.
       parameters:
@@ -1371,7 +1371,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '502':
-          description: Generation failed (v1 answered a silent empty 200).
+          description: Generation failed (the old server answered a silent empty 200).
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -1393,7 +1393,7 @@ paths:
                 excludeIds:
                   type: array
                   items: { type: string }
-                  description: Over 500 entries is a 400 (v1's zod cap).
+                  description: Over 500 entries is a 400 (the old zod cap).
       responses:
         '200':
           description: Candidate songs (empty array when the pool is honestly empty).
@@ -1409,7 +1409,7 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '502':
-          description: Generation failed (v1 answered a silent empty 200).
+          description: Generation failed (the old server answered a silent empty 200).
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -1420,8 +1420,8 @@ paths:
       summary: Live now-playing set (household dashboard, any signed-in user)
       description: >
         One entry per user + device, TTL 5 minutes, refreshed on every stream
-        — v2 records EVERY stream (native player, API-key clients,
-        share-token guests), unlike v1 which only saw Subsonic clients.
+        — the server records EVERY stream (native player, API-key clients,
+        share-token guests), unlike the old tracker which only saw Subsonic clients.
       responses:
         '200':
           description: Live players (empty array when none).
@@ -1571,8 +1571,8 @@ paths:
       summary: Upload one raw-body chunk
       description: >
         The body is the chunk bytes exactly — `application/octet-stream`,
-        no multipart framing (a deliberate v2 protocol deviation; the URL
-        shape is v1-compatible). Re-PUT of the same index overwrites (retry
+        no multipart framing (a deliberate protocol deviation; the URL
+        shape stays compatible with the old client). Re-PUT of the same index overwrites (retry
         idempotency). Chunk cap 10 MiB; index is a 0..9999 integer.
       parameters:
         - $ref: '#/components/parameters/UploadSessionId'
@@ -2124,7 +2124,7 @@ paths:
         Raw body, at most 2 MiB, magic-byte sniffed (jpeg/png/webp — a
         declared mimetype is NOT trusted). The blob is stored hash-dedup and
         linked on the song row; the previously linked blob is removed when
-        nothing references it. Unlike v1 the art is NOT embedded into the
+        nothing references it. Unlike the old behavior the art is NOT embedded into the
         audio file (read-only doctrine — all readers consult the link).
       parameters:
         - $ref: '#/components/parameters/SongId'
@@ -2170,7 +2170,7 @@ paths:
       summary: Upload an album's cover art (admin)
       description: >
         Same sniffed, hash-dedup blob storage as the song variant, linked on
-        the album row. Unlike v1 the art is NOT embedded into every song
+        the album row. Unlike the old behavior the art is NOT embedded into every song
         file (read-only doctrine).
       parameters:
         - $ref: '#/components/parameters/AlbumId'
@@ -2347,7 +2347,7 @@ paths:
       description: >
         Serves the artist's locally synced image (the recorded path, or a
         DATA_DIR/artist-images/<id>.* leftover) when one exists; 404
-        otherwise. Public like v1 — the file renders in <img> tags.
+        otherwise. Publicly readable — the file renders in <img> tags.
       parameters:
         - $ref: '#/components/parameters/ArtistId'
       responses:
@@ -2428,7 +2428,7 @@ paths:
       tags: [admin]
       summary: System task run history, paginated (admin)
       description: >
-        v1's only paginated endpoint; the page/limit/total/totalPages shape
+        The only paginated endpoint; the page/limit/total/totalPages shape
         is preserved. `page` defaults to 1, `limit` to 10 (max 100).
       parameters:
         - name: page
@@ -2714,7 +2714,7 @@ paths:
     post:
       operationId: organizeJob
       tags: [ingest]
-      summary: Enqueue an organize job (admin, 200 — v1 shape)
+      summary: Enqueue an organize job (admin, 200 — legacy response shape)
       responses:
         '200':
           description: Job enqueued.
@@ -2734,7 +2734,7 @@ paths:
       summary: The effective organize pattern
       security: []
       description: >
-        Unauthenticated exactly like v1 — the route only answers the
+        Unauthenticated, exactly as before — the route only answers the
         configured pattern.
       responses:
         '200':
@@ -2998,7 +2998,7 @@ components:
     SongTags:
       type: object
       description: >
-        The v1 tag-edit allowlist — any other key is rejected with 400.
+        The tag-edit allowlist — any other key is rejected with 400.
         Absent fields leave the file and database untouched. String fields
         `artist`/`albumArtist`/`genre` also accept an array of strings.
       properties:
@@ -3074,7 +3074,7 @@ components:
       required: [id, task, type, status]
       properties:
         id: { type: string }
-        task: { type: string, description: 'Display name (v1 taskNameByType).' }
+        task: { type: string, description: 'Display name (taskNameByType).' }
         type: { $ref: '#/components/schemas/JobType' }
         status: { $ref: '#/components/schemas/JobStatusName' }
         startedAt: { type: string, nullable: true }
@@ -3296,7 +3296,7 @@ components:
         text: { type: string }
     Song:
       type: object
-      description: The API-facing song shape (no filePath/checksum anywhere in v2).
+      description: The API-facing song shape (no filePath/checksum anywhere in the API).
       required:
         - id
         - title
@@ -3384,7 +3384,7 @@ components:
       description: >
         `totalSongCount` counts every in-scope active song; `shownSongCount`
         excludes explicit songs when the caller asked to hide them;
-        `explicit` mirrors v1 (any in-scope active song is explicit).
+        `explicit` mirrors the old behavior (any in-scope active song is explicit).
       required: [id, name, active, totalSongCount, shownSongCount, explicit, starred]
       properties:
         id: { type: string }
@@ -3426,7 +3426,7 @@ components:
         rating: { type: number }
     ArtistAlbum:
       type: object
-      description: Trimmed album card embedded in the artist detail response (v1 parity).
+      description: Trimmed album card embedded in the artist detail response.
       required: [id, name, totalSongCount, shownSongCount, starred]
       properties:
         id: { type: string }
@@ -3450,7 +3450,7 @@ components:
           type: array
           items: { type: string }
         bio: { type: string }
-        externalUrls: { description: 'Stored artist links (v1 contract: string map).', type: object, additionalProperties: { type: string } }
+        externalUrls: { description: 'Stored artist links (string map).', type: object, additionalProperties: { type: string } }
         artistImageUrl: { type: string }
         albums:
           type: array
@@ -3480,6 +3480,12 @@ components:
         children:
           type: array
           items: { $ref: '#/components/schemas/GenreNode' }
+    YearCount:
+      type: object
+      required: [year, songCount]
+      properties:
+        year: { type: integer }
+        songCount: { type: integer }
     # --- playlists -----------------------------------------------------------
     NameEntry:
       type: object
@@ -3514,7 +3520,7 @@ components:
         One song inside a playlist detail. `track`, `discNumber` and
         `duration` are always present but null when unknown; `album` and
         `artist` are the display names (empty string when unset), matching
-        v1's fetchPlaylistSongs shape.
+        the old fetchPlaylistSongs shape.
       required: [id, title, album, artist, explicit, track, discNumber, duration, type, isDir, created]
       properties:
         id: { type: string }
@@ -3575,7 +3581,7 @@ components:
     SmartPlaylistRules:
       type: object
       description: >
-        Smart playlist rules (v1 parity: single-level groups, no nesting).
+        Smart playlist rules (single-level groups, no nesting).
         A song matches when every `all` rule matches AND at least one `any`
         rule matches; a missing group side is not constrained.
         Field/operator whitelists are enforced by the rules compiler (see
@@ -3724,7 +3730,7 @@ components:
         rating: { type: number }
     SearchPlaylist:
       type: object
-      description: '`songIds` stays empty; `songCount` carries the count (v1 parity).'
+      description: '`songIds` stays empty; `songCount` carries the count.'
       required: [id, name, ownerId, ownerUsername, visibility, isSmart, createdAt, updatedAt, songIds, songCount, starred]
       properties:
         id: { type: string }
@@ -3964,6 +3970,30 @@ components:
           items: { type: string }
         starred: { type: boolean }
         rating: { type: number }
+    HomeSongCard:
+      type: object
+      required: [id, title, explicit, mtime, starred]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        artistId: { type: string }
+        artistName: { type: string }
+        albumId: { type: string }
+        albumName: { type: string }
+        duration: { type: integer }
+        year: { type: integer }
+        genre: { type: string }
+        explicit: { type: boolean }
+        coverArt: { type: string }
+        mtime: { type: integer, format: int64 }
+        artists:
+          type: array
+          items: { type: string }
+        genres:
+          type: array
+          items: { type: string }
+        starred: { type: boolean }
+        rating: { type: number }
     HomeGenreCard:
       type: object
       description: One ranked genre — the name and its in-scope active song count.
@@ -3974,7 +4004,7 @@ components:
     HomeResponse:
       type: object
       description: All five sections are always present (possibly empty arrays).
-      required: [genres, mostPlayed, random, recentlyAdded, recentlyPlayed]
+      required: [genres, mostPlayed, random, recentAdditions, recentlyPlayed]
       properties:
         genres:
           type: array
@@ -3987,7 +4017,7 @@ components:
           items: { $ref: '#/components/schemas/HomeAlbumCard' }
         recentlyAdded:
           type: array
-          description: Albums whose newest song file is most recently touched, first (v1 semantics).
+          description: Albums whose newest song file is most recently touched, first.
           items: { $ref: '#/components/schemas/HomeAlbumCard' }
         recentlyPlayed:
           type: array

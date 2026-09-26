@@ -365,7 +365,7 @@ func TestConflictRoutes(t *testing.T) {
 		t.Errorf("deleted = %v, want 1", deleted)
 	}
 
-	// v1 B5: the FILE went first and the row followed — assert BOTH.
+	// the retired server B5: the FILE went first and the row followed — assert BOTH.
 	if fileExists(collisionFile) {
 		t.Error("conflict file survived deletion")
 	}

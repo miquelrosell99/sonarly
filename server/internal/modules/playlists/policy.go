@@ -40,8 +40,8 @@ func (a Access) String() string {
 
 // Resolve is THE playlist access policy — the only implementation in the
 // server, used by the native routes and (in P9) the OpenSubsonic adapter.
-// v1 kept two divergent copies that disagreed on whether a share token
-// required visibility=link; v2 has exactly this one, and the rule is:
+// the retired server kept two divergent copies that disagreed on whether a share token
+// required visibility=link; the Go server has exactly this one, and the rule is:
 //
 //	owner                                    → AccessOwner
 //	playlist_shares row with can_edit        → AccessEdit
@@ -52,10 +52,10 @@ func (a Access) String() string {
 //
 // The token branch intentionally requires visibility='link': Resolve gates
 // data-mutating and Subsonic-adapter paths (including getPlaylist's
-// anonymous shareToken bypass). The NATIVE metadata view adds v1's looser
+// anonymous shareToken bypass). The NATIVE metadata view adds the old looser
 // canViewPlaylist rule on top — a matching token grants view regardless of
 // visibility (service.Get; the P10 decision records this as an intentional
-// v1 divergence). Streaming/cover-art grants couple link+token in SQL
+// the retired server divergence). Streaming/cover-art grants couple link+token in SQL
 // (TokenGrantsSong/TokenGrantsCoverArt).
 // identity is the zero value for anonymous callers; shareToken is the token
 // presented by the caller (query param or stream parameter), "" when none.
@@ -88,8 +88,8 @@ func Resolve(ctx context.Context, q auth.Queries, p *Playlist, identity auth.Ide
 }
 
 // MintShareToken generates a new share token: 32 random bytes as hex
-// (64 chars), matching the v2 lifecycle decision that a token is an opaque
-// high-entropy secret rather than v1's UUID (better guess-resistance for a
+// (64 chars), matching the Go server lifecycle decision that a token is an opaque
+// high-entropy secret rather than the old UUID (better guess-resistance for a
 // bearer token).
 func MintShareToken() (string, error) {
 	buf := make([]byte, 32)
@@ -102,7 +102,7 @@ func MintShareToken() (string, error) {
 // Policy answers content-granting questions for share tokens: does this
 // token authorize streaming this song / fetching this cover art? It owns the
 // bounded grant cache backing smart-playlist resolution (30s TTL, matching
-// v1's intent, but size-capped — v1's cache was unbounded).
+// the old intent, but size-capped — the old cache was unbounded).
 type Policy struct {
 	grants *grantCache
 }
@@ -131,7 +131,7 @@ func (pol *Policy) TokenExists(ctx context.Context, q auth.Queries, token string
 }
 
 // TokenGrantsSong implements the streaming share-token grant, ported from
-// v1's shareTokenGrantsSong with the same scoping guarantee: a token only
+// the old shareTokenGrantsSong with the same scoping guarantee: a token only
 // ever authorizes content belonging to the link-shared playlist it was
 // minted for. Static playlists are probed with the EXISTS-scoped SQL; smart
 // playlists resolve their rules against the OWNER's data (never the
@@ -162,7 +162,7 @@ func (pol *Policy) TokenGrantsSong(ctx context.Context, q auth.Queries, token, s
 
 // TokenGrantsCoverArt mirrors TokenGrantsSong for cover art: the art must
 // belong to a granted active song — either its own art or its album's.
-// (Kept for the P9 OpenSubsonic adapter; v1's shareTokenGrantsCoverArt.)
+// (Kept for the P9 OpenSubsonic adapter; the old shareTokenGrantsCoverArt.)
 func (pol *Policy) TokenGrantsCoverArt(ctx context.Context, q auth.Queries, token, coverArtID string) (bool, error) {
 	var one int
 	err := q.QueryRowContext(ctx, `
@@ -186,7 +186,7 @@ func (pol *Policy) TokenGrantsCoverArt(ctx context.Context, q auth.Queries, toke
 		return false, err
 	}
 	// Chunk the granted id set: one placeholder per song id would exceed
-	// SQLite's variable limit on huge playlists (v1 parity, chunk 500).
+	// SQLite's variable limit on huge playlists (wire parity, chunk 500).
 	const chunk = 500
 	list := make([]string, 0, len(ids))
 	for id := range ids {
@@ -308,7 +308,7 @@ func (pol *Policy) resolveSmartGrant(ctx context.Context, q auth.Queries, playli
 }
 
 // rulesHash fingerprints rules JSON for the cache key so an edit
-// invalidates the entry immediately (v1 keyed on the raw rules_json, same
+// invalidates the entry immediately (old keyed on the raw rules_json, same
 // intent).
 func rulesHash(rulesJSON string) string {
 	sum := sha256.Sum256([]byte(rulesJSON))

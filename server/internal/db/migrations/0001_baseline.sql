@@ -1,12 +1,12 @@
--- Baseline schema distilled from v1 migrations 001–049 (see docs/audits/2026-09-24-backend-architecture-audit.md)
+-- Baseline schema distilled from the pre-rewrite migration chain 001–049 (see docs/audits/2026-09-24-backend-architecture-audit.md)
 -- plus audit schema fixes: FKs on user_libraries, UNIQUE genres.name, FK-child indexes.
 --
 -- Notes on distillation choices:
 --   * Data-only migrations (021/024/025/026/028 splits/032/033/037/039/041/047/049 rewrites)
 --     carry no structural residue and are intentionally absent.
 --   * ingest_jobs keeps the post-038 shape: source_path is NOT NULL but no longer UNIQUE
---     (038's rebuild dropped it; v1's ingest repository inserts plain rows across runs).
---   * albums/songs cover_art_id FKs had no ON DELETE action in v1 (NO ACTION); written
+--     (038's rebuild dropped it; the pre-rewrite ingest repository inserted plain rows across runs).
+--   * albums/songs cover_art_id FKs had no ON DELETE action pre-rewrite (NO ACTION); written
 --     explicitly here with identical semantics.
 --   * rating columns are REAL (042 half-ratings rebuild), not INTEGER.
 
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS api_keys (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- Audit fix: index FK-cascade child column (v1 lacked it).
+-- Audit fix: index FK-cascade child column (the pre-rewrite schema lacked it).
 CREATE INDEX IF NOT EXISTS idx_api_keys_user ON api_keys(user_id);
 
 CREATE TABLE IF NOT EXISTS settings (
@@ -281,7 +281,7 @@ CREATE TABLE IF NOT EXISTS libraries (
   is_default INTEGER NOT NULL DEFAULT 0
 );
 
--- Audit fix: real FKs on user_libraries (v1 had none, orphaning rows on delete).
+-- Audit fix: real FKs on user_libraries (the pre-rewrite schema had none, orphaning rows on delete).
 CREATE TABLE IF NOT EXISTS user_libraries (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   library_id TEXT NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
@@ -305,7 +305,7 @@ CREATE TABLE IF NOT EXISTS user_songs (
   PRIMARY KEY (user_id, song_id)
 );
 
--- Audit fix: index FK-cascade child column (v1 lacked it).
+-- Audit fix: index FK-cascade child column (the pre-rewrite schema lacked it).
 CREATE INDEX IF NOT EXISTS idx_user_songs_song ON user_songs(song_id);
 
 CREATE TABLE IF NOT EXISTS user_albums (
@@ -316,7 +316,7 @@ CREATE TABLE IF NOT EXISTS user_albums (
   PRIMARY KEY (user_id, album_id)
 );
 
--- Audit fix: index FK-cascade child column (v1 lacked it).
+-- Audit fix: index FK-cascade child column (the pre-rewrite schema lacked it).
 CREATE INDEX IF NOT EXISTS idx_user_albums_album ON user_albums(album_id);
 
 CREATE TABLE IF NOT EXISTS user_artists (
@@ -327,7 +327,7 @@ CREATE TABLE IF NOT EXISTS user_artists (
   PRIMARY KEY (user_id, artist_id)
 );
 
--- Audit fix: index FK-cascade child column (v1 lacked it).
+-- Audit fix: index FK-cascade child column (the pre-rewrite schema lacked it).
 CREATE INDEX IF NOT EXISTS idx_user_artists_artist ON user_artists(artist_id);
 
 CREATE TABLE IF NOT EXISTS user_playlists (
@@ -338,7 +338,7 @@ CREATE TABLE IF NOT EXISTS user_playlists (
   PRIMARY KEY (user_id, playlist_id)
 );
 
--- Audit fix: index FK-cascade child column (v1 lacked it).
+-- Audit fix: index FK-cascade child column (the pre-rewrite schema lacked it).
 CREATE INDEX IF NOT EXISTS idx_user_playlists_playlist ON user_playlists(playlist_id);
 
 -- ---------------------------------------------------------------------------
@@ -366,7 +366,7 @@ CREATE TABLE IF NOT EXISTS playlist_songs (
   PRIMARY KEY (playlist_id, song_id)
 );
 
--- Audit fix: index FK-cascade child column (v1 lacked it).
+-- Audit fix: index FK-cascade child column (the pre-rewrite schema lacked it).
 CREATE INDEX IF NOT EXISTS idx_playlist_songs_song ON playlist_songs(song_id);
 
 CREATE TABLE IF NOT EXISTS playlist_shares (
@@ -376,7 +376,7 @@ CREATE TABLE IF NOT EXISTS playlist_shares (
   PRIMARY KEY (playlist_id, user_id)
 );
 
--- Audit fix: index FK-cascade child column (v1 lacked it).
+-- Audit fix: index FK-cascade child column (the pre-rewrite schema lacked it).
 CREATE INDEX IF NOT EXISTS idx_playlist_shares_user ON playlist_shares(user_id);
 
 -- ---------------------------------------------------------------------------
@@ -408,7 +408,7 @@ CREATE TABLE IF NOT EXISTS bookmarks (
 );
 
 CREATE INDEX IF NOT EXISTS idx_bookmarks_user ON bookmarks(user_id);
--- Audit fix: index FK-cascade child column (v1 lacked it).
+-- Audit fix: index FK-cascade child column (the pre-rewrite schema lacked it).
 CREATE INDEX IF NOT EXISTS idx_bookmarks_song ON bookmarks(song_id);
 
 -- ---------------------------------------------------------------------------

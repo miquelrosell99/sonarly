@@ -1,4 +1,4 @@
-// MusicBrainz search client: the v1 features/musicbrainz/search.ts port —
+// MusicBrainz search client: the retired server features/musicbrainz/search.ts port —
 // Lucene query building/escaping, the recording/release/artist response
 // mapping (coverartarchive URLs, tag-to-genre extraction, artist-credit
 // splitting), and the mbid-fetch variants the route uses for exact lookups.
@@ -16,15 +16,15 @@ import (
 	"time"
 )
 
-// mbBaseURL is v1's MB_BASE_URL. Tests point the client at an httptest
+// mbBaseURL is the old MB_BASE_URL. Tests point the client at an httptest
 // server by overriding it.
 const mbBaseURL = "https://musicbrainz.org/ws/2"
 
-// mbRateLimitDelay is v1's RATE_LIMIT_DELAY_MS: MusicBrainz asks anonymous
-// users to stay under 1 req/sec; v1 waited 1.2s between requests.
+// mbRateLimitDelay is the old RATE_LIMIT_DELAY_MS: MusicBrainz asks anonymous
+// users to stay under 1 req/sec; the retired server waited 1.2s between requests.
 const mbRateLimitDelay = 1200 * time.Millisecond
 
-// Match is v1's MusicBrainzMatch DTO.
+// Match is the old MusicBrainzMatch DTO.
 type Match struct {
 	ID             string   `json:"id"`
 	Title          string   `json:"title"`
@@ -78,7 +78,7 @@ func NewMusicBrainzClient(opts ...MBOption) *MusicBrainzClient {
 	return c
 }
 
-// mbArtistCredit/MbTag/MbRelease/MbRecording mirror v1's interfaces.
+// mbArtistCredit/MbTag/MbRelease/MbRecording mirror the old interfaces.
 type mbArtistCredit struct {
 	Name   string `json:"name"`
 	Artist *struct {
@@ -134,7 +134,7 @@ func extractYear(date string) int {
 	return year
 }
 
-// artistSplitRe is v1's ARTIST_SPLIT_REGEX.
+// artistSplitRe is the old ARTIST_SPLIT_REGEX.
 var artistSplitRe = regexp.MustCompile(`\s*[,;/]\s*|\s+&\s+|\s+feat\.\s+|\s+featuring\s+|\s+ft\.\s+`)
 
 func splitArtists(value string) []string {
@@ -300,7 +300,7 @@ func artistToMatch(artist mbArtist) Match {
 	}
 }
 
-// escapeLucene ports v1's escapeLucene: the Lucene specials get backslash
+// escapeLucene ports the old escapeLucene: the Lucene specials get backslash
 // escapes, and values containing spaces are wrapped in quotes.
 var luceneSpecialRe = regexp.MustCompile(`([+\-!(){}\[\]^"~*?:\\/])`)
 
@@ -350,7 +350,7 @@ func (c *MusicBrainzClient) get(ctx context.Context, url string, out any) error 
 	return json.NewDecoder(resp.Body).Decode(out)
 }
 
-// SearchRecordings is v1's searchMusicBrainzRecordings (limit 5 by default).
+// SearchRecordings is the old searchMusicBrainzRecordings (limit 5 by default).
 func (c *MusicBrainzClient) SearchRecordings(ctx context.Context, title, artist, album string, limit int) ([]Match, error) {
 	query := buildRecordingQuery(title, artist, album)
 	endpoint := fmt.Sprintf("%s/recording/?query=%s&fmt=json&limit=%d",
@@ -368,7 +368,7 @@ func (c *MusicBrainzClient) SearchRecordings(ctx context.Context, title, artist,
 	return matches, nil
 }
 
-// SearchReleases is v1's searchMusicBrainzReleases.
+// SearchReleases is the old searchMusicBrainzReleases.
 func (c *MusicBrainzClient) SearchReleases(ctx context.Context, title, artist string, limit int) ([]Match, error) {
 	query := buildReleaseQuery(title, artist)
 	endpoint := fmt.Sprintf("%s/release/?query=%s&fmt=json&limit=%d",
@@ -386,7 +386,7 @@ func (c *MusicBrainzClient) SearchReleases(ctx context.Context, title, artist st
 	return matches, nil
 }
 
-// SearchArtists is v1's searchMusicBrainzArtists.
+// SearchArtists is the old searchMusicBrainzArtists.
 func (c *MusicBrainzClient) SearchArtists(ctx context.Context, name string, limit int) ([]Match, error) {
 	query := "artist:" + escapeLucene(name)
 	endpoint := fmt.Sprintf("%s/artist/?query=%s&fmt=json&limit=%d",
@@ -404,7 +404,7 @@ func (c *MusicBrainzClient) SearchArtists(ctx context.Context, name string, limi
 	return matches, nil
 }
 
-// FetchRecording is v1's fetchMusicBrainzRecording: a 404 answers nil.
+// FetchRecording is the old fetchMusicBrainzRecording: a 404 answers nil.
 func (c *MusicBrainzClient) FetchRecording(ctx context.Context, mbid string) (*Match, error) {
 	endpoint := fmt.Sprintf("%s/recording/%s?inc=releases+tags&fmt=json",
 		c.baseURL, url.PathEscape(mbid))
@@ -417,7 +417,7 @@ func (c *MusicBrainzClient) FetchRecording(ctx context.Context, mbid string) (*M
 	return &m, nil
 }
 
-// FetchRelease is v1's fetchMusicBrainzRelease.
+// FetchRelease is the old fetchMusicBrainzRelease.
 func (c *MusicBrainzClient) FetchRelease(ctx context.Context, mbid string) (*Match, error) {
 	endpoint := fmt.Sprintf("%s/release/%s?inc=tags&fmt=json",
 		c.baseURL, url.PathEscape(mbid))
@@ -430,7 +430,7 @@ func (c *MusicBrainzClient) FetchRelease(ctx context.Context, mbid string) (*Mat
 	return &m, nil
 }
 
-// FetchArtist is v1's fetchMusicBrainzArtistMatch.
+// FetchArtist is the old fetchMusicBrainzArtistMatch.
 func (c *MusicBrainzClient) FetchArtist(ctx context.Context, mbid string) (*Match, error) {
 	endpoint := fmt.Sprintf("%s/artist/%s?inc=tags&fmt=json",
 		c.baseURL, url.PathEscape(mbid))
@@ -444,7 +444,7 @@ func (c *MusicBrainzClient) FetchArtist(ctx context.Context, mbid string) (*Matc
 }
 
 // fetchEntity GETs one entity endpoint and decodes it; a 404 answers
-// found=false without an error (v1 returns undefined and the route falls
+// found=false without an error (old returns undefined and the route falls
 // through to a search).
 func (c *MusicBrainzClient) fetchEntity(ctx context.Context, endpoint string, out any) (bool, error) {
 	c.limiter.wait()

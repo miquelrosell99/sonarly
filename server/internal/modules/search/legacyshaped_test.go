@@ -1,7 +1,8 @@
 package search_test
 
-// Regression test for the P10b gap on v1-migrated databases: catalog rows
-// written by v1 (fractional REAL mtimes/durations, a TEXT mtime, NULL
+// Regression test for the P10b gap on databases migrated from the retired
+// server: catalog rows
+// written by the retired server (fractional REAL mtimes/durations, a TEXT mtime, NULL
 // genres, an album with NULL artist_name), persisted without any FTS
 // maintenance, converged by the 0004 backfill migration. Every /api/search
 // category must return them — on the production snapshot this exact shape
@@ -18,8 +19,8 @@ import (
 )
 
 // v1ShapedServer builds a migrated database whose catalog rows are raw
-// v1-shaped inserts (no FTS maintenance), then converges the indexes with
-// the real 0004 migration file — the state a v1-migrated database ends in.
+// legacy-shaped inserts (no FTS maintenance), then converges the indexes with
+// the real 0004 migration file — the state a migrated database ends in.
 func v1ShapedServer(t *testing.T) *server {
 	t.Helper()
 	database, err := db.OpenInMemory(context.Background())
@@ -30,7 +31,7 @@ func v1ShapedServer(t *testing.T) *server {
 	s := newServer(t, database)
 
 	// The rows predate the indexes: wipe what the empty-table backfills
-	// produced and insert the catalog exactly the way v1 left it.
+	// produced and insert the catalog exactly the way the retired server left it.
 	s.mustExec(t, `DELETE FROM songs_fts; DELETE FROM albums_fts; DELETE FROM artists_fts`)
 	s.mustExec(t, `INSERT INTO users (id, username, password_hash, is_admin) VALUES ('user-admin', 'root', 'x', 1)`)
 	s.mustExec(t, `INSERT INTO artists (id, name, active) VALUES ('ar-1', 'Alpha', 1)`)

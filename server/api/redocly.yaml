@@ -1,4 +1,4 @@
-# Redocly lint configuration for the Sonarly v2 native API contract.
+# Redocly lint configuration for the Sonarly native API contract.
 # Run: npx @redocly/cli lint openapi.yaml
 extends:
   - recommended
@@ -7,7 +7,7 @@ rules:
   # probes either answer 200 or 5xx, and logout always answers {ok:true}.
   operation-4xx-response: off
   # The spec is hand-maintained next to the Go DTOs; descriptions carry the
-  # v1-parity notes the web client audit needs, so the prose rules stay off.
+  # parity notes the web client audit needs, so the prose rules stay off.
   tags-alphabetical: off
   operation-summary: error
   no-unused-components: error

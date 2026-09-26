@@ -1,4 +1,4 @@
-// Stale-session GC. v1 had no sweeper at all: an upload abandoned
+// Stale-session GC. the retired server had no sweeper at all: an upload abandoned
 // mid-session (client crashed, tab closed, token expired) leaked its
 // upload_sessions row and every chunk on disk forever. This sweeper deletes
 // rows older than MaxSessionAge along with their chunk directories, and
@@ -17,7 +17,7 @@ import (
 	"time"
 )
 
-// Sweeper cadence and retention (v1 lesson: unbounded accumulation).
+// Sweeper cadence and retention (old lesson: unbounded accumulation).
 const (
 	// DefaultSweepInterval is how often RunSweeper scans for garbage.
 	DefaultSweepInterval = time.Hour

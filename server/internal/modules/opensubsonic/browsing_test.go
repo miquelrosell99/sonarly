@@ -41,7 +41,7 @@ func TestGetMusicFoldersAdminSeesAllRealIDs(t *testing.T) {
 	if len(folders) != 2 {
 		t.Fatalf("folders = %v", folders)
 	}
-	// B1 fix: real library ids, name order — not v1's positional indexes.
+	// B1 fix: real library ids, name order — not the old positional indexes.
 	if folders[0].(map[string]any)["id"] != "lib-a" || folders[0].(map[string]any)["name"] != "Alpha" {
 		t.Fatalf("folder[0] = %v", folders[0])
 	}
@@ -78,7 +78,7 @@ func TestGetMusicFoldersEmptyScopeEmptyList(t *testing.T) {
 
 func TestGetMusicFoldersAdminEmptyLibrariesBasenameFallback(t *testing.T) {
 	app := newTestApp(t)
-	// libraryPath "/music" → basename "music" (B1's v1 fallback).
+	// libraryPath "/music" → basename "music" (B1's the retired server fallback).
 	app.seedUser(t, testUserID, testUser, testPass, true)
 
 	env := getOK(t, app, "/rest/getMusicFolders.view", "")
@@ -424,7 +424,7 @@ func TestGetAlbumAverageRating(t *testing.T) {
 
 	env := getOK(t, app, "/rest/getAlbum.view", "&id=al-abbey")
 	album := env["album"].(map[string]any)
-	// v1 average_rating = AVG over ALL user_albums rows (not just the caller).
+	// the retired server average_rating = AVG over ALL user_albums rows (not just the caller).
 	if album["averageRating"] != float64(3) {
 		t.Fatalf("averageRating = %v", album)
 	}
@@ -747,7 +747,7 @@ func TestSearch3EmptyQueryPagination(t *testing.T) {
 }
 
 // TestSearch3ToleratesLegacyFractionalSongNumerics is the regression for the
-// corrected P10b finding (2026-09-26): production v1-written rows carry
+// corrected P10b finding (2026-09-26): production written by the retired server rows carry
 // fractional REAL durations/bit_rates (Eminem catalog: duration 254.77,
 // bit_rate 924936.36). SUM(duration) returns REAL in SQLite whenever any
 // song is fractional, and albumStatsForMany's strict int scan failed the
@@ -964,7 +964,7 @@ func TestGetRandomSongsScopedAndFiltered(t *testing.T) {
 
 	// Year window (swapped bounds behave the same): abbey tracks are 1969,
 	// so 1980..1990 matches nothing for alice; the song array still renders
-	// as [] (v1 always emits it).
+	// as [] (old always emits it).
 	env = getOK(t, app, "/rest/getRandomSongs.view", "&fromYear=1990&toYear=1980")
 	songs = env["randomSongs"].(map[string]any)["song"].([]any)
 	if len(songs) != 0 {
@@ -1049,7 +1049,7 @@ func TestGetSimilarSongs2Scoped(t *testing.T) {
 	if len(songs) != 1 || songs[0].(map[string]any)["id"] != "s-abbey-2" {
 		t.Fatalf("scoped peers = %v", songs)
 	}
-	// Out-of-scope seed: v1 parity — the probe has no scope check (B4 covers
+	// Out-of-scope seed: wire parity — the probe has no scope check (B4 covers
 	// missing/inactive), and the candidate query is scoped, so the answer is
 	// an empty list, never a leak of lib-b content.
 	rec := app.get(t, authedURL("/rest/getSimilarSongs2.view", "&id=s-low-1"), nil)
@@ -1095,7 +1095,7 @@ func TestGetArtistInfo2(t *testing.T) {
 	}
 }
 
-// v1 always emits similarArtists — [] when no similar artists exist.
+// the retired server always emits similarArtists — [] when no similar artists exist.
 func TestGetArtistInfo2EmitsEmptySimilarArtists(t *testing.T) {
 	app := newTestApp(t)
 	app.seedUser(t, testUserID, testUser, testPass, true)
@@ -1105,7 +1105,7 @@ func TestGetArtistInfo2EmitsEmptySimilarArtists(t *testing.T) {
 	info := env["artistInfo2"].(map[string]any)
 	similar, ok := info["similarArtists"].([]any)
 	if !ok || len(similar) != 0 {
-		t.Fatalf("empty similarArtists must render as [] (v1 parity): %v", info)
+		t.Fatalf("empty similarArtists must render as [] (wire parity): %v", info)
 	}
 }
 
@@ -1114,7 +1114,7 @@ func TestGetArtistInfo2EmptyStructure(t *testing.T) {
 	app.seedUser(t, testUserID, testUser, testPass, true)
 	app.seedCatalog(t, "")
 
-	// No image, no MB ids: the empty structure, exactly like v1.
+	// No image, no MB ids: the empty structure, exactly like the old adapter.
 	env := getOK(t, app, "/rest/getArtistInfo2.view", "&id=ar-beatles")
 	info := env["artistInfo2"].(map[string]any)
 	if info["biography"] != "" {
@@ -1134,8 +1134,8 @@ func TestGetArtistInfo2MissingAndOutOfScope(t *testing.T) {
 
 	rec := app.get(t, authedURL("/rest/getArtistInfo2.view", "&id=nope"), nil)
 	assertFailed(t, rec, CodeForbidden)
-	// Bowie has no lib-a songs → out of scope → 70 (v2 scope enforcement on
-	// an endpoint v1 left unscoped; recorded under B4).
+	// Bowie has no lib-a songs → out of scope → 70 (Go-server scope enforcement on
+	// an endpoint the retired server left unscoped; recorded under B4).
 	rec = app.get(t, authedURL("/rest/getArtistInfo2.view", "&id=ar-bowie"), nil)
 	assertFailed(t, rec, CodeForbidden)
 }
@@ -1234,7 +1234,7 @@ func nullableRating(f float64) sql.NullFloat64 {
 
 // TestGetSongLiveFileSize is the X9 sign-off: `size` is a live stat at
 // serialize time — the real byte count for existing files, 0 when the file
-// vanished (v1's statSync-in-try/catch).
+// vanished (the old statSync-in-try/catch).
 func TestGetSongLiveFileSize(t *testing.T) {
 	app := newTestApp(t)
 	app.seedUser(t, testUserID, testUser, testPass, true)

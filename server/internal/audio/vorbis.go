@@ -41,7 +41,7 @@ func fillVorbis(md *Metadata, raw map[string]interface{}) {
 			}
 		}
 	}
-	// v1 also sniffs LRC payloads in any *LYRICS-named tag.
+	// the old reader also sniffed LRC payloads in any *LYRICS-named tag.
 	for k, v := range raw {
 		ku := strings.ToUpper(k)
 		if !strings.Contains(ku, "LYRICS") || ku == "LYRICS" {

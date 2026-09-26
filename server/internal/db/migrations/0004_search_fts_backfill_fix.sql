@@ -1,6 +1,6 @@
 -- P10b follow-up: idempotent full-corpus FTS backfill.
 --
--- 0003's initial backfill populates fresh-migrated v1 databases correctly
+-- 0003's initial backfill populates fresh-migrated legacy databases correctly
 -- (verified against the production snapshot), but it ran while 0003 was
 -- applied, and databases that already recorded 0003 never re-run it. Any
 -- catalog rows that reached the database with the FTS sync bypassed (raw
@@ -13,7 +13,7 @@
 -- INSERT OR REPLACE keyed by rowid over the active rows only is idempotent
 -- under re-runs (spike-verified on the modernc.org/sqlite FTS5 build; the
 -- tables are regular, self-contained FTS5 tables, not external-content) and
--- tolerates v1-shaped data: the indexed columns are all TEXT and the album
+-- tolerates legacy-shaped data: the indexed columns are all TEXT and the album
 -- projection COALESCEs the nullable denormalized artist_name. Removals stay
 -- the writers' job — the scanner deletes index rows on deactivation — so a
 -- re-run never re-adds a deactivated row; it only (re)writes active ones.

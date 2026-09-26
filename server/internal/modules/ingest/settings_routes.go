@@ -1,7 +1,7 @@
-// Media settings routes (P9c): v1's features/settings/routes.ts — GET/PATCH
+// Media settings routes (P9c): the old features/settings/routes.ts — GET/PATCH
 // /api/settings/media over the settings table keys the ingest pipeline
 // already owns (organize_pattern, duplicate_strategy,
-// review_retention_days). Admin-gated like v1.
+// review_retention_days). Admin-gated like the retired server.
 package ingest
 
 import (
@@ -14,7 +14,7 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/httpserver"
 )
 
-// patternTemplates is v1's templates list (settings/routes.ts), returned
+// patternTemplates is the old templates list (settings/routes.ts), returned
 // verbatim so the settings UI can offer presets.
 var patternTemplates = []map[string]string{
 	{"label": "Album Artist / (Year) Album / Disc Number Track Number - Title", "value": "{albumArtist}/({year}) {album}/{disc:00}{track:00} - {title}"},
@@ -25,7 +25,7 @@ var patternTemplates = []map[string]string{
 	{"label": "Artist / Title", "value": "{artist}/{title}"},
 }
 
-// MediaSettings is the GET/PATCH response body (v1 shape).
+// MediaSettings is the GET/PATCH response body (old shape).
 type MediaSettings struct {
 	OrganizePattern     string              `json:"organizePattern"`
 	DuplicateStrategy   string              `json:"duplicateStrategy"`
@@ -34,7 +34,7 @@ type MediaSettings struct {
 }
 
 // currentMediaSettings reads the three settings through the service's
-// readers (which carry the v1 defaults and clamps).
+// readers (which carry the retired server defaults and clamps).
 func (s *Service) currentMediaSettings(r *http.Request) MediaSettings {
 	ctx := r.Context()
 	strategy := s.settingsDuplicateStrategy(ctx)
@@ -104,7 +104,7 @@ func (h *Handler) patchMediaSettings(w http.ResponseWriter, r *http.Request) {
 	httpserver.JSON(w, http.StatusOK, h.svc.currentMediaSettings(r))
 }
 
-// validatePattern is v1's validatePattern: relative paths only, no '..'
+// validatePattern is the old validatePattern: relative paths only, no '..'
 // segments, no NUL bytes.
 func validatePattern(pattern string) string {
 	if strings.HasPrefix(pattern, "/") {

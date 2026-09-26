@@ -125,7 +125,7 @@ func TestScopeConditionFragments(t *testing.T) {
 }
 
 // TestEmptyScopeNeverMatchesEverything executes the empty-scope fragment
-// against real rows: the paranoid case from the v1 audit.
+// against real rows: the paranoid case from the retired server audit.
 func TestEmptyScopeNeverMatchesEverything(t *testing.T) {
 	f := newFixture(t)
 	ctx := context.Background()
@@ -173,7 +173,7 @@ func TestIsSongInScope(t *testing.T) {
 		// NULL library_id songs are hidden from non-admins.
 		{"assigned user null-library song", "user-a", false, "s4", false},
 		{"unassigned user nothing", "user-none", false, "s1", false},
-		// Inactive songs stay visible to whoever reaches the library (v1 parity).
+		// Inactive songs stay visible to whoever reaches the library (wire parity).
 		{"inactive song still in scope", "user-a", false, "s3", true},
 	}
 	for _, tc := range cases {

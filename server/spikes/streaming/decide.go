@@ -1,5 +1,5 @@
 // S2 streaming spike — NOT part of the production build (own go module).
-// Ports v1 semantics from packages/server/src/features/transcode/service.ts
+// Ports the old semantics from packages/server/src/features/transcode/service.ts
 // (main checkout, post ff4a1ec clamp) and .../opensubsonic/routes/retrieval.ts.
 package main
 
@@ -11,13 +11,13 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Transcode decision (port of v1 transcode/service.ts)
+// Transcode decision (port of the retired server transcode/service.ts)
 // ---------------------------------------------------------------------------
 
 type TranscodeDecision struct {
 	ShouldTranscode bool
 	Format          string // "mp3" | "aac" | "opus"; "" when ShouldTranscode is false
-	MaxBitrateKbps  int    // 0 = codec default (v1 passes -q:a 2 instead of -b:a)
+	MaxBitrateKbps  int    // 0 = codec default (the old server passes -q:a 2 instead of -b:a)
 }
 
 var formatToCodec = map[string]string{"mp3": "libmp3lame", "aac": "aac", "opus": "libopus"}
@@ -33,8 +33,8 @@ type UserTranscodePrefs struct {
 	TranscodeFormat string // "" = unset
 }
 
-// parseMaxBitRate ports v1: integer 64..10000, anything else ignored.
-// v1 uses Number(): whitespace is trimmed, "1e2" is honored (100), hex
+// parseMaxBitRate ports old: integer 64..10000, anything else ignored.
+// the retired server uses Number(): whitespace is trimmed, "1e2" is honored (100), hex
 // ("0x40" = 64) is honored. This port trims and accepts exponents but rejects
 // hex — the one intentional nano-delta (no Subsonic client sends hex).
 func parseMaxBitRate(value string) (int, bool) {
@@ -52,7 +52,7 @@ func sourceBitrateKbps(s SongInfo) (int, bool) {
 	return 0, false
 }
 
-// decideTranscode ports v1 (post-clamp): the requested bitrate is a
+// decideTranscode ports the retired server (post-clamp): the requested bitrate is a
 // preference, the user cap a hard ceiling — effective = min(requested, userCap).
 func decideTranscode(song SongInfo, user *UserTranscodePrefs, requested int, hasRequested bool) TranscodeDecision {
 	var userCap int
@@ -75,7 +75,7 @@ func decideTranscode(song SongInfo, user *UserTranscodePrefs, requested int, has
 	}
 
 	if targetFormat != "" {
-		// v1 compares the raw file SUFFIX to the target format — preserved
+		// the retired server compares the raw file SUFFIX to the target format — preserved
 		// verbatim, including the m4a-vs-aac "mismatch" quirk.
 		sourceSuffix := strings.ToLower(filepath.Base(song.FilePath))
 		if i := strings.LastIndex(sourceSuffix, "."); i >= 0 {
@@ -100,8 +100,8 @@ func decideTranscode(song SongInfo, user *UserTranscodePrefs, requested int, has
 	return TranscodeDecision{}
 }
 
-// inferFormat ports v1's mime-based inference by extension outcome:
-// m4a/aac/mp4 → aac; "opus" extension → opus (v1 mime-types maps .opus to
+// inferFormat ports the retired server's mime-based inference by extension outcome:
+// m4a/aac/mp4 → aac; "opus" extension → opus (the old mime-types maps .opus to
 // audio/ogg! so .opus infers opus ONLY via the lookup chain... see findings);
 // everything else (incl. ogg, flac, wav) → mp3.
 func inferFormat(filePath string) string {
@@ -110,7 +110,7 @@ func inferFormat(filePath string) string {
 	case "aac", "m4a", "mp4":
 		return "aac"
 	case "opus":
-		// v1: mime-types maps .opus → audio/ogg, NOT audio/opus, so v1 infers
+		// old: mime-types maps .opus → audio/ogg, NOT audio/opus, so the retired server infers
 		// mp3 for .opus files too. Preserved verbatim (quirk).
 		return "mp3"
 	default:
@@ -121,12 +121,12 @@ func inferFormat(filePath string) string {
 func transcodeContentType(format string) string { return formatToMime[format] }
 
 // ---------------------------------------------------------------------------
-// Range parsing (port of v1 retrieval.ts parseRange — single-range only)
+// Range parsing (port of the retired server retrieval.ts parseRange — single-range only)
 // ---------------------------------------------------------------------------
 
 type byteRange struct{ start, end int64 }
 
-// parseRangeV1 ports v1 semantics exactly: multi-range → invalid (v1 answers
+// parseRangeV1 ports the old semantics exactly: multi-range → invalid (old answers
 // 416), suffix "bytes=-N", open-ended "bytes=N-", end clamped to size-1.
 func parseRangeV1(header string, size int64) (byteRange, bool) {
 	var r byteRange
@@ -135,10 +135,10 @@ func parseRangeV1(header string, size int64) (byteRange, bool) {
 	}
 	spec := strings.TrimPrefix(header, "bytes=")
 	if strings.Contains(spec, ",") {
-		return r, false // multi-range unsupported in v1
+		return r, false // multi-range unsupported by the old server
 	}
 	if strings.HasPrefix(spec, "-") {
-		// v1 parseInt trims whitespace; strconv.ParseInt does not → trim.
+		// the retired server parseInt trims whitespace; strconv.ParseInt does not → trim.
 		suffix, err := strconv.ParseInt(strings.TrimSpace(spec[1:]), 10, 64)
 		if err != nil || suffix <= 0 {
 			return r, false

@@ -31,7 +31,7 @@ func IsVisibility(v string) bool {
 	return false
 }
 
-// ResolveModes mirrors v1 migration 048: 'tracks' resolves a smart
+// ResolveModes mirrors the retired server migration 048: 'tracks' resolves a smart
 // playlist's user-scoped rule fields against the owner's data so every
 // viewer receives the same curated list; 'query' re-resolves live against
 // each viewer's own data.
@@ -45,7 +45,7 @@ func IsResolveMode(v string) bool {
 	return v == ResolveModeTracks || v == ResolveModeQuery
 }
 
-// NormalizeResolveMode maps anything unknown to the v1 default 'tracks'.
+// NormalizeResolveMode maps anything unknown to the retired server default 'tracks'.
 func NormalizeResolveMode(v string) string {
 	if v == ResolveModeQuery {
 		return ResolveModeQuery
@@ -54,7 +54,7 @@ func NormalizeResolveMode(v string) string {
 }
 
 // ListItem is one entry of GET /api/playlists. ShareToken rides the struct
-// but is only populated for the playlist's owner (v1 B10 fix: the token is
+// but is only populated for the playlist's owner (the old B10 fix: the token is
 // the owner's secret; other viewers authorize with it but never see it).
 type ListItem struct {
 	ID            string   `json:"id"`
@@ -73,14 +73,14 @@ type ListItem struct {
 	UpdatedAt     string   `json:"updatedAt"`
 }
 
-// NameEntry is an {id, name} pair attached to a song entry (v1's
+// NameEntry is an {id, name} pair attached to a song entry (the old 
 // attachSongArtistEntries shape).
 type NameEntry struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
 
-// Entry is one song inside a playlist detail response (v1's
+// Entry is one song inside a playlist detail response (the old 
 // fetchPlaylistSongs shape).
 type Entry struct {
 	ID            string      `json:"id"`
@@ -125,7 +125,7 @@ type Detail struct {
 	ResolveMode   string  `json:"resolveMode"`
 	SongCount     int     `json:"songCount"`
 	Entries       []Entry `json:"entries"`
-	// Shares renders for the owner even when empty (v1 parity) — a pointer
+	// Shares renders for the owner even when empty (wire parity) — a pointer
 	// so nil (non-owner) omits entirely while &[] renders as [].
 	Shares    *[]ShareEntry `json:"shares,omitempty"`
 	Starred   bool          `json:"starred"`

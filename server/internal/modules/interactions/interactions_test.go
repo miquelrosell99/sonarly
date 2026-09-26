@@ -53,7 +53,7 @@ func (s *testServer) seedUser(t *testing.T, id, username string) {
 
 // seedEntities inserts one song/album/artist row each so the junction FK
 // constraints are satisfiable (the junction tables reference real rows,
-// exactly like v1's schema).
+// exactly like the old schema).
 func (s *testServer) seedEntities(t *testing.T) {
 	t.Helper()
 	s.exec(t, `INSERT INTO artists (id, name) VALUES ('e-1', 'Artist')`)
@@ -337,7 +337,7 @@ func TestInteractionsRequireAuth(t *testing.T) {
 	_ = errorMessage
 }
 
-// v1 wire parity: the shipped web client posts {entityType, entityId}
+// the retired server wire parity: the shipped web client posts {entityType, entityId}
 // (entityId casing) for all four entity types, playlists included.
 func TestV1EntityTypeShape(t *testing.T) {
 	s := newTestServer(t)
@@ -360,7 +360,7 @@ func TestV1EntityTypeShape(t *testing.T) {
 		t.Run(tc.entityType, func(t *testing.T) {
 			rec := s.do(t, http.MethodPost, "/api/favorites", map[string]any{"entityType": tc.entityType, "entityId": "e-1", "starred": true}, ck)
 			if rec.Code != http.StatusOK {
-				t.Fatalf("v1 favorite shape: %d %s", rec.Code, rec.Body.String())
+				t.Fatalf("old favorite shape: %d %s", rec.Code, rec.Body.String())
 			}
 			var starred int
 			if err := s.db.QueryRow(`SELECT starred FROM `+tc.table+` WHERE user_id = ? AND `+tc.col+` = ?`, userID, "e-1").Scan(&starred); err != nil {
@@ -374,7 +374,7 @@ func TestV1EntityTypeShape(t *testing.T) {
 
 	rec := s.do(t, http.MethodPost, "/api/ratings", map[string]any{"entityType": "song", "entityId": "e-1", "rating": 4.5}, ck)
 	if rec.Code != http.StatusOK {
-		t.Fatalf("v1 rating shape: %d %s", rec.Code, rec.Body.String())
+		t.Fatalf("old rating shape: %d %s", rec.Code, rec.Body.String())
 	}
 	var rating float64
 	if err := s.db.QueryRow(`SELECT rating FROM user_songs WHERE user_id = ? AND song_id = ?`, userID, "e-1").Scan(&rating); err != nil {

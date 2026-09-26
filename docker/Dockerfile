@@ -1,15 +1,15 @@
 # syntax=docker/dockerfile:1
-# Sonarly v2 (Go rewrite) — all-in-one image.
+# Sonarly — all-in-one image (web build → Go build → runtime).
 #
 # Build context must be the REPO ROOT (the directory containing packages/
-# and v2/), not docker/:
+# and server/), not docker/:
 #
-#   docker build -f docker/Dockerfile.v2 \
-#     --build-arg SONARLY_VERSION=$(git describe --tags --always) -t sonarly:v2 .
+#   docker build -f docker/Dockerfile \
+#     --build-arg SONARLY_VERSION=$(git describe --tags --always) -t sonarly:local .
 #
 # Stages:
 #   web-builder    node:22-alpine  — builds packages/web into packages/web/dist
-#   server-builder golang:1.23-alpine — builds the v2 Go binary (pure Go, CGO off)
+#   server-builder golang:1.23-alpine — builds the Go binary (pure Go, CGO off)
 #   runtime        alpine          — ffmpeg + python3/mutagen + su-exec, non-root
 
 # ---------------------------------------------------------------------------
@@ -31,7 +31,7 @@ COPY packages/web packages/web
 RUN pnpm --filter @sonarly/web... build
 
 # ---------------------------------------------------------------------------
-# Stage 2: v2 Go server. modernc.org/sqlite is pure Go, so CGO stays off and
+# Stage 2: Go server. modernc.org/sqlite is pure Go, so CGO stays off and
 # the binary runs on a bare alpine runtime.
 # ---------------------------------------------------------------------------
 FROM golang:1.23-alpine AS server-builder
@@ -39,13 +39,13 @@ WORKDIR /src
 
 ARG SONARLY_VERSION=0.0.0-dev
 
-COPY v2/go.mod v2/go.sum ./v2/
-RUN cd v2 && go mod download
+COPY server/go.mod server/go.sum ./server/
+RUN cd server && go mod download
 
-COPY v2 ./v2
+COPY server ./server
 
-RUN cd v2 && CGO_ENABLED=0 go build \
-      -ldflags "-X github.com/miquelrosell99/sonarly/v2/internal/buildinfo.Version=${SONARLY_VERSION}" \
+RUN cd server && CGO_ENABLED=0 go build \
+      -ldflags "-X github.com/miquelrosell99/sonarly/server/internal/buildinfo.Version=${SONARLY_VERSION}" \
       -o /out/sonarly ./cmd/sonarly
 
 # ---------------------------------------------------------------------------
@@ -64,7 +64,7 @@ COPY --from=web-builder /app/packages/web/dist ./web-dist
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Defaults mirror the v1 compose shape; everything is overridable at runtime.
+# Defaults; everything is overridable at runtime.
 #   /data/db     SQLite DB + server-owned state (artist images, uploads)
 #   /data/ingest drop folder
 #   /media/music the music library (mounted read-only is fine)

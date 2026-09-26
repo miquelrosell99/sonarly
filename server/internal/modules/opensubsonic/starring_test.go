@@ -51,7 +51,7 @@ func TestStarMultiIDParams(t *testing.T) {
 	app.seedUser(t, testUserID, testUser, testPass, false)
 	c := app.seedCatalog(t, "")
 
-	// Repeated id params (comma-free), exactly like v1's normalizeIds.
+	// Repeated id params (comma-free), exactly like the old normalizeIds.
 	rec := app.get(t, authedURL("/rest/star.view",
 		"&id="+c.SAbbey1+"&id="+c.SAbbey2+"&id="), nil) // empty value filtered out
 	assertOK(t, rec)
@@ -132,7 +132,7 @@ func TestSetRatingHalfStepsAndAverage(t *testing.T) {
 	app.seedUser(t, testUserID, testUser, testPass, false)
 	c := app.seedCatalog(t, "")
 
-	// The regex accepts 4.5 (v1 half-ratings).
+	// The regex accepts 4.5 (old half-ratings).
 	rec := app.get(t, authedURL("/rest/setRating.view", "&id="+c.SAbbey1+"&rating=4.5"), nil)
 	assertOK(t, rec)
 
@@ -239,7 +239,7 @@ func TestScrobbleScopeAndLivenessMatchNative(t *testing.T) {
 
 	// The adapter delegates to the playback scrobble service, so out-of-
 	// scope (lib-b for alice) and inactive songs answer 70 exactly like the
-	// native endpoint would 404 (v1 checked existence only — the v2 delta
+	// native endpoint would 404 (old behavior: existence only — the Go-server delta
 	// is recorded in the quirks doc).
 	rec := app.get(t, authedURL("/rest/scrobble.view", "&id="+c.SLow1), nil)
 	assertFailed(t, rec, CodeForbidden)
@@ -286,7 +286,7 @@ func TestGetStarredRoundTrip(t *testing.T) {
 		t.Fatalf("starred album/artist missing: %v", starred)
 	}
 
-	// Unstar and the lists go empty (keys stay, arrays empty — v1 shape).
+	// Unstar and the lists go empty (keys stay, arrays empty — the retired server shape).
 	app.get(t, authedURL("/rest/unstar.view",
 		"&id="+c.SAbbey1+"&albumId="+c.AlAbbey+"&artistId="+c.ArBeatles), nil)
 	rec = app.get(t, authedURL("/rest/getStarred.view", ""), nil)

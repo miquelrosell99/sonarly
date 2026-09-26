@@ -1,5 +1,5 @@
-// Package artistimages is the artist image sync (P9c): the v1
-// features/artists/images.ts port running as the P4b artist_images job
+// Package artistimages is the artist image sync (P9c): the port of the old
+// features/artists/images.ts, running as the P4b artist_images job
 // handler, plus the public file-serving route and the admin refetch
 // trigger.
 //
@@ -35,16 +35,16 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/library"
 )
 
-// fetchTimeout is v1's FETCH_TIMEOUT_MS.
+// fetchTimeout is the old FETCH_TIMEOUT_MS.
 const fetchTimeout = 10 * time.Second
 
-// defaultPolitenessDelay is v1's RATE_LIMIT_DELAY_MS between artists.
+// defaultPolitenessDelay is the old RATE_LIMIT_DELAY_MS between artists.
 const defaultPolitenessDelay = 200 * time.Millisecond
 
-// deezerBaseURL is v1's hardcoded API origin; tests override it.
+// deezerBaseURL is the old hardcoded API origin; tests override it.
 const deezerBaseURL = "https://api.deezer.com"
 
-// SyncStats is v1's ArtistImageSyncStats (the scan_jobs stats document).
+// SyncStats is the old ArtistImageSyncStats (the scan_jobs stats document).
 type SyncStats struct {
 	Scanned int `json:"scanned"`
 	Updated int `json:"updated"`
@@ -110,7 +110,7 @@ type deezerSearchResult struct {
 	Data []deezerArtist `json:"data"`
 }
 
-// fetchArtistImageURL is v1's fetchArtistImageUrl: the Deezer artist search,
+// fetchArtistImageURL is the old fetchArtistImageUrl: the Deezer artist search,
 // best picture variant first. No usable hit answers ("", nil).
 func (s *Syncer) fetchArtistImageURL(ctx context.Context, name string) (string, error) {
 	endpoint := fmt.Sprintf("%s/search/artist?q=%s&limit=1", s.deezer, url.QueryEscape(name))
@@ -144,7 +144,7 @@ func (s *Syncer) fetchArtistImageURL(ctx context.Context, name string) (string, 
 	return "", nil
 }
 
-// sniffImageFormat is v1's magic-byte sniffer (jpeg/png/gif/webp).
+// sniffImageFormat is the old magic-byte sniffer (jpeg/png/gif/webp).
 func sniffImageFormat(data []byte) string {
 	switch {
 	case len(data) >= 3 && data[0] == 0xff && data[1] == 0xd8 && data[2] == 0xff:
@@ -161,7 +161,7 @@ func sniffImageFormat(data []byte) string {
 	return ""
 }
 
-// extensionFromResponse mirrors v1's extensionFromResponse: the content type
+// extensionFromResponse mirrors the old extensionFromResponse: the content type
 // wins, then the URL's own extension, defaulting to .jpg.
 func extensionFromResponse(contentType, rawURL string) string {
 	switch contentType {
@@ -191,7 +191,7 @@ type artistRow struct {
 	localPath *string
 }
 
-// candidates returns the artist rows to process (v1's SQL): active, named,
+// candidates returns the artist rows to process (the old SQL): active, named,
 // and — unless refetchExisting — only those missing a local image.
 func (s *Syncer) candidates(ctx context.Context, refetchExisting bool) ([]artistRow, error) {
 	statement := `SELECT id, name, artist_image_url, artist_image_local_path FROM artists
@@ -262,7 +262,7 @@ func (s *Syncer) RunJob(ctx context.Context, job *library.Job) (any, error) {
 	return s.Sync(ctx, payload.RefetchExisting)
 }
 
-// Sync is v1's syncMissingArtistImages: per-artist error isolation, the
+// Sync is the old syncMissingArtistImages: per-artist error isolation, the
 // write-new-then-remove-old ordering, and the politeness delay.
 func (s *Syncer) Sync(ctx context.Context, refetchExisting bool) (*SyncStats, error) {
 	stats := &SyncStats{}
@@ -300,7 +300,7 @@ func (s *Syncer) Sync(ctx context.Context, refetchExisting bool) (*SyncStats, er
 }
 
 // syncOne resolves, downloads, stores, and records one artist image. A
-// missing remote image is not an error (v1: `continue`) — updated is false
+// missing remote image is not an error (old: `continue`) — updated is false
 // and nothing was written.
 func (s *Syncer) syncOne(ctx context.Context, artist artistRow) (bool, error) {
 	imageURL, err := s.fetchArtistImageURL(ctx, artist.name)
@@ -317,7 +317,7 @@ func (s *Syncer) syncOne(ctx context.Context, artist artistRow) (bool, error) {
 	localPath := filepath.Join(s.imagesDir(), artist.id+ext)
 
 	// Write the new image before removing the old one so a failed write
-	// cannot leave the artist without any image on disk (v1).
+	// cannot leave the artist without any image on disk (the retired server).
 	if err := os.WriteFile(localPath, data, 0o644); err != nil {
 		return false, err
 	}
@@ -351,7 +351,7 @@ func NewHandler(syncer *Syncer, queue *library.Queue) *Handler {
 }
 
 // Routes registers GET /api/artist-images/{id} (public — <img> tags carry
-// no API key, v1 parity) and POST /api/admin/artists/refetch (admin).
+// no API key, wire parity) and POST /api/admin/artists/refetch (admin).
 func (h *Handler) Routes(r chi.Router, mw *auth.Middleware) {
 	r.Get("/api/artist-images/{id}", h.getImage)
 	r.Group(func(r chi.Router) {
@@ -368,7 +368,7 @@ var contentTypeByExt = map[string]string{
 	".webp": "image/webp",
 }
 
-// getImage serves the artist's local image file when one exists (v1's
+// getImage serves the artist's local image file when one exists (the old 
 // column-first lookup with a filesystem fallback), else 404.
 func (h *Handler) getImage(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
@@ -414,7 +414,7 @@ func (h *Handler) localPath(r *http.Request, id string) (string, bool) {
 }
 
 // refetch is POST /api/admin/artists/refetch: enqueue an artist_images job
-// that re-downloads every artist (v1: RefetchExisting true), answering 202
+// that re-downloads every artist (old: RefetchExisting true), answering 202
 // with the job id.
 func (h *Handler) refetch(w http.ResponseWriter, r *http.Request) {
 	jobID, err := h.queue.Push(r.Context(), library.JobTypeArtistImages,

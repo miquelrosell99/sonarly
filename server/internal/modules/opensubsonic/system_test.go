@@ -184,7 +184,7 @@ func TestGetUserOmitsUnsetTranscodingPrefs(t *testing.T) {
 	env := assertOK(t, rec)
 	user := env["user"].(map[string]any)
 	if _, present := user["maxBitRate"]; present {
-		t.Fatalf("unset maxBitRate must be omitted (v1 spreads undefined): %v", user)
+		t.Fatalf("unset maxBitRate must be omitted (old spreads undefined): %v", user)
 	}
 	if _, present := user["transcodeFormat"]; present {
 		t.Fatalf("unset transcodeFormat must be omitted: %v", user)
@@ -214,7 +214,7 @@ func TestUnknownRouteEnvelopedError(t *testing.T) {
 	app := newTestApp(t)
 	app.seedUser(t, testUserID, testUser, testPass, false)
 
-	// E5: unknown /rest/* answers an enveloped error 0 instead of v1's bare
+	// E5: unknown /rest/* answers an enveloped error 0 instead of the old bare
 	// Fastify 404 — Subsonic clients get a parseable envelope. The path is
 	// deliberately NOT one of the adapter's endpoints (getStarred and
 	// friends landed in P9b).

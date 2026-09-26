@@ -1,14 +1,14 @@
 package opensubsonic
 
 // Subsonic/OpenSubsonic DTOs. These are wire shapes, not domain types: the
-// XML mapping follows v1's xml-js compact conventions (quirks doc E6/E7) —
+// XML mapping follows the old xml-js compact conventions (quirks doc E6/E7) —
 // scalar fields render as attributes, nested structs/slices as child
 // elements (slices repeat their element), a Value field renders as element
-// text. JSON mirrors v1's response objects field for field, including the
+// text. JSON mirrors the old response objects field for field, including the
 // legacy aliases and duplicated keys Subsonic clients depend on.
 
 // Entry is an {id, name} pair: an artist/composer attached to a song or
-// album through its junction table (v1's inline {id, name} objects).
+// album through its junction table (the old inline {id, name} objects).
 type Entry struct {
 	ID   string `xml:"id,attr" json:"id"`
 	Name string `xml:"name,attr" json:"name"`
@@ -19,15 +19,15 @@ type NamedRef struct {
 	Name string `xml:"name,attr" json:"name"`
 }
 
-// ReplayGain is the OpenSubsonic replayGain object. v1 learned that a bare
+// ReplayGain is the OpenSubsonic replayGain object. the retired server learned that a bare
 // number here crashes strict clients (py-opensonic / Music Assistant), so
 // the object shape is contractual (quirks doc X4).
 type ReplayGain struct {
 	TrackGain float64 `xml:"trackGain,attr" json:"trackGain"`
 }
 
-// Song is the Subsonic "Child" shape for a music track (v1
-// toOpenSubsonicSong, quirks doc X1-X11). Fields the v1 mapper always
+// Song is the Subsonic "Child" shape for a music track (old
+// toOpenSubsonicSong, quirks doc X1-X11). Fields the retired-server mapper always
 // emits (even empty) carry no omitempty; conditionally-emitted fields do.
 type Song struct {
 	ID                 string  `xml:"id,attr" json:"id"`
@@ -99,7 +99,7 @@ type Song struct {
 	UserRating *float64 `xml:"userRating,attr,omitempty" json:"userRating,omitempty"`
 }
 
-// Album is the Subsonic album shape (v1 toOpenSubsonicAlbum, quirks doc
+// Album is the Subsonic album shape (the old toOpenSubsonicAlbum, quirks doc
 // X13). Title and Album duplicate Name, and Parent/ArtistID fall back
 // through the artist entries — all deliberate client-compat behavior.
 type Album struct {
@@ -143,7 +143,7 @@ type Album struct {
 }
 
 // Artist is the Subsonic artist shape used by getArtists, getIndexes,
-// search3 and getArtistInfo2 (v1 toOpenSubsonicArtist; v2 fixes v1's B7
+// search3 and getArtistInfo2 (the old toOpenSubsonicArtist; the Go server fixes the old B7
 // divergence by using this one DTO everywhere).
 type Artist struct {
 	ID             string   `xml:"id,attr" json:"id"`
@@ -166,9 +166,9 @@ type Genre struct {
 	SongCount  int    `xml:"songCount,attr" json:"songCount"`
 }
 
-// User is the getUser response body (v1 system.ts role matrix, quirks doc
-// S4/S5). Folder lists the caller's scoped library ids — v1 hardcoded
-// ["0"], v2 reports the real scope.
+// User is the getUser response body (the old system.ts role matrix, quirks doc
+// S4/S5). Folder lists the caller's scoped library ids — the retired server hardcoded
+// ["0"], the Go server reports the real scope.
 type User struct {
 	Username          string   `xml:"username,attr" json:"username"`
 	AdminRole         bool     `xml:"adminRole,attr" json:"adminRole"`

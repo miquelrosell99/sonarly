@@ -20,7 +20,7 @@ type GenreRecord struct {
 	Path     string
 }
 
-// listGenres loads every active genre ordered by name (v1's listGenres).
+// listGenres loads every active genre ordered by name (the old listGenres).
 func listGenres(ctx context.Context, q auth.Queries) ([]GenreRecord, error) {
 	rows, err := q.QueryContext(ctx,
 		`SELECT id, name, parent_id, active FROM genres WHERE active = 1 ORDER BY name`)
@@ -48,7 +48,7 @@ func listGenres(ctx context.Context, q auth.Queries) ([]GenreRecord, error) {
 	return genres, nil
 }
 
-// getGenreByID loads a genre regardless of its active flag (v1's getGenreById
+// getGenreByID loads a genre regardless of its active flag (the old getGenreById
 // for the albums-by-genre route).
 func getGenreByID(ctx context.Context, q auth.Queries, id string) (*GenreRecord, error) {
 	var g GenreRecord
@@ -71,7 +71,7 @@ func getGenreByID(ctx context.Context, q auth.Queries, id string) (*GenreRecord,
 }
 
 // genreIDsForLibraries returns the genres touched by active songs in the
-// given libraries, via both song-level and album-level genre junctions (v1's
+// given libraries, via both song-level and album-level genre junctions (the old 
 // getGenreIdsForLibraries). An empty library list matches nothing.
 func genreIDsForLibraries(ctx context.Context, q auth.Queries, libraryIDs []string) (map[string]bool, error) {
 	out := make(map[string]bool)
@@ -107,13 +107,13 @@ func genreIDsForLibraries(ctx context.Context, q auth.Queries, libraryIDs []stri
 	return out, nil
 }
 
-// genreIDsForLibrary is genreIDsForLibraries for one library (v1's
+// genreIDsForLibrary is genreIDsForLibraries for one library (the old 
 // getGenreIdsForLibrary), used by the libraryId query filter.
 func genreIDsForLibrary(ctx context.Context, q auth.Queries, libraryID string) (map[string]bool, error) {
 	return genreIDsForLibraries(ctx, q, []string{libraryID})
 }
 
-// buildGenrePaths resolves "Root > ... > Leaf" paths with a cycle guard (v1's
+// buildGenrePaths resolves "Root > ... > Leaf" paths with a cycle guard (the old 
 // buildGenrePaths).
 func buildGenrePaths(genres []GenreRecord) map[string]string {
 	byID := make(map[string]GenreRecord, len(genres))
@@ -142,7 +142,7 @@ func buildGenrePaths(genres []GenreRecord) map[string]string {
 }
 
 // buildGenreTree assembles the genre tree and prunes it against the allowed
-// set (nil = unrestricted). Pruning mirrors v1: a node survives when it is
+// set (nil = unrestricted). Pruning mirrors old: a node survives when it is
 // itself allowed or keeps at least one surviving child, so an out-of-scope
 // parent stays in the tree as a structural carrier for its in-scope
 // descendants (e.g. Electronic survives with only Techno allowed, keeping
@@ -213,7 +213,7 @@ func buildGenreTree(genres []GenreRecord, allowed map[string]bool) []*GenreNode 
 }
 
 // genreAlbums returns up to limit random active albums carrying the genre,
-// restricted to in-scope (and optionally one-library) active songs (v1's
+// restricted to in-scope (and optionally one-library) active songs (the old 
 // getRandomAlbumsByGenre). Albums that would show no songs once explicit
 // ones are hidden are dropped.
 func genreAlbums(ctx context.Context, q auth.Queries, genreID string, limit int, hideExplicit bool, libraryID string, scope libraries.Scope) ([]Album, error) {

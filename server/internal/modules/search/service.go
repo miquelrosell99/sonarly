@@ -79,8 +79,8 @@ func (s *Service) Search(ctx context.Context, id auth.Identity, q string, typ Ca
 }
 
 func trimQuery(q string) string {
-	// Bound free text the same way v1's zod string did implicitly (it did
-	// not bound at all; v2 caps the search box at maxQueryLen).
+	// Bound free text the same way the old zod string did implicitly (it did
+	// not bound at all; the Go server caps the search box at maxQueryLen).
 	if len(q) > maxQueryLen {
 		q = q[:maxQueryLen]
 	}
@@ -150,7 +150,7 @@ func (s *Service) searchSongs(ctx context.Context, userID string, scope librarie
 
 // searchAlbums searches name + the denormalized artist text; bm25 weights
 // the name column 5x the artist column so an album-name hit outranks an
-// artist-name hit (the LIKE fallback orders by name, v1 parity).
+// artist-name hit (the LIKE fallback orders by name, wire parity).
 func (s *Service) searchAlbums(ctx context.Context, userID string, scope libraries.Scope, q string, limit int) ([]Album, error) {
 	scopeCond := libraries.ScopeCondition(scope, "s.library_id")
 	scopeFilter := ""
@@ -249,7 +249,7 @@ func (s *Service) searchArtists(ctx context.Context, userID string, scope librar
 
 // searchPlaylists is name LIKE (escaped) under the playlist visibility
 // rule — owner, public, or shared — the same policy the playlists module
-// enforces per playlist, expressed as the list-form WHERE clause (v1
+// enforces per playlist, expressed as the list-form WHERE clause (wire
 // parity; a per-row Resolve would be an N+1).
 func (s *Service) searchPlaylists(ctx context.Context, userID, q string, limit int) ([]Playlist, error) {
 	rows, err := s.db.QueryContext(ctx,

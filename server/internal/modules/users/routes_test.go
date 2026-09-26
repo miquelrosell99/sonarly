@@ -163,7 +163,7 @@ func TestSetupFlow(t *testing.T) {
 		t.Fatalf("post-setup status: %s", rec.Body.String())
 	}
 
-	// Second setup attempt is rejected (v1 parity: 403).
+	// Second setup attempt is rejected (wire parity: 403).
 	rec = s.do(t, http.MethodPost, "/api/setup", map[string]string{"username": "hacker", "password": "hacker-pass-1"})
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("second setup: want 403, got %d", rec.Code)
@@ -318,7 +318,7 @@ func TestLogout(t *testing.T) {
 		t.Fatalf("session must be dead after logout: %d", rec.Code)
 	}
 
-	// Logout stays a polite no-op for anonymous clients (v1 parity).
+	// Logout stays a polite no-op for anonymous clients (wire parity).
 	rec = s.do(t, http.MethodPost, "/api/logout", nil)
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"ok":true`) {
 		t.Fatalf("anonymous logout: %d %s", rec.Code, rec.Body.String())
@@ -463,7 +463,7 @@ func TestAdminUpdateLastAdminProtection(t *testing.T) {
 		t.Fatalf("demote with second admin: want 200, got %d", rec.Code)
 	}
 
-	// ...and the role change invalidates sessions (v1 parity): the old
+	// ...and the role change invalidates sessions (wire parity): the old
 	// cookie is fully dead, not merely downgraded.
 	rec = s.do(t, http.MethodGet, "/api/admin/users", nil, admin)
 	if rec.Code != http.StatusUnauthorized {
@@ -520,7 +520,7 @@ func TestAdminUpdateIsAdminInvalidatesSessions(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("promote: %d", rec.Code)
 	}
-	// v1 parity: a role change also kills sessions, so the old cookie is a
+	// wire parity: a role change also kills sessions, so the old cookie is a
 	// 401 (session gone), not merely a 403.
 	if rec := s.do(t, http.MethodGet, "/api/admin/users", nil, alice); rec.Code != http.StatusUnauthorized {
 		t.Fatalf("session must be invalidated on role change: got %d", rec.Code)

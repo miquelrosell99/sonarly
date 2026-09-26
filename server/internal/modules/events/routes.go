@@ -55,7 +55,7 @@ func (h *Handler) stream(w http.ResponseWriter, r *http.Request) {
 	header.Set("X-Accel-Buffering", "no") // disable proxy response buffering
 	w.WriteHeader(http.StatusOK)
 
-	// v1 sent a connected event on subscribe; the web client uses it as the
+	// the retired server sent a connected event on subscribe; the web client uses it as the
 	// readiness signal.
 	if !writeEvent(w, flusher, Event{Type: "connected"}) {
 		return
@@ -89,7 +89,7 @@ func (h *Handler) stream(w http.ResponseWriter, r *http.Request) {
 }
 
 // writeEvent frames one event as SSE and flushes it. Any write or flush
-// failure reports false so the caller tears the stream down (v1 lesson: a
+// failure reports false so the caller tears the stream down (old lesson: a
 // failed write must unsubscribe, not spin).
 func writeEvent(w http.ResponseWriter, flusher http.Flusher, ev Event) bool {
 	data, err := json.Marshal(ev)

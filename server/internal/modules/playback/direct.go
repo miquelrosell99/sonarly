@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-// contentTypeByExt is the pinned v1 mime-types table, measured in the S2
-// spike against the v1 node_modules (docs/v2-s2-streaming-findings.md §3.2):
+// contentTypeByExt is the pinned the retired server mime-types table, measured in the S2
+// spike against the old server's node_modules (docs/s2-streaming-findings.md §3.2):
 // flac → audio/x-flac (NOT audio/flac), wav → audio/wav (NOT audio/x-wav),
 // opus → audio/ogg. Host mime databases differ and container images may lack
 // /etc/mime.types entirely — Content-Type must never depend on the host.
@@ -30,27 +30,27 @@ func contentTypeFor(filePath string) string {
 	return "application/octet-stream"
 }
 
-// DirectStreamer serves files as-is behind the S2 v1-parity guards. It is
+// DirectStreamer serves files as-is behind the S2 wire-parity guards. It is
 // stateless — the zero value is ready to use.
 type DirectStreamer struct{}
 
 // Stream answers w with the file at filePath. Guards, in order:
 //
-//   - missing/unopenable file → 404 (v1 answered a Subsonic code-70 envelope
-//     on the /rest routes; the native route has no envelope, 404 is the v2
+//   - missing/unopenable file → 404 (old answered a Subsonic code-70 envelope
+//     on the /rest routes; the native route has no envelope, 404 is the Go
 //     error contract);
-//   - ?download variant → Content-Disposition with v1's filename sanitization
+//   - ?download variant → Content-Disposition with the old filename sanitization
 //     and encodeURIComponent-shaped filename* parameter;
 //   - HEAD → Range header stripped before handing to ServeContent, so HEAD
-//     answers 200 + full Content-Length exactly like v1 (S2 delta 3);
-//   - Range header present but v1-invalid (multi-range, zero suffix,
+//     answers 200 + full Content-Length exactly like the retired server (S2 delta 3);
+//   - Range header present but invalid for the old server (multi-range, zero suffix,
 //     unparseable) → 416 + "Invalid range" (S2 surprises 1 and 2);
 //   - otherwise http.ServeContent does the I/O: single-range 206s are
-//     byte-identical to v1, and Last-Modified/If-Modified-Since → 304 is the
-//     accepted v2 improvement (S2 sign-off S3).
+//     byte-identical to the retired server, and Last-Modified/If-Modified-Since → 304 is the
+//     accepted the Go server improvement (S2 sign-off S3).
 //
 // Accept-Ranges: bytes is set explicitly because ServeContent only sets it on
-// 206; v1 advertised it on full 200s too.
+// 206; the retired server advertised it on full 200s too.
 func (DirectStreamer) Stream(w http.ResponseWriter, r *http.Request, filePath string, download bool) {
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -71,7 +71,7 @@ func (DirectStreamer) Stream(w http.ResponseWriter, r *http.Request, filePath st
 	}
 
 	if r.Method == http.MethodHead {
-		// v1 special-cases HEAD before range parsing: 200 + full size, the
+		// the retired server special-cases HEAD before range parsing: 200 + full size, the
 		// Range header is ignored. ServeContent would answer 206.
 		head := r.Clone(r.Context())
 		head.Header = r.Header.Clone()
@@ -82,7 +82,7 @@ func (DirectStreamer) Stream(w http.ResponseWriter, r *http.Request, filePath st
 	}
 
 	if rangeHeader := r.Header.Get("Range"); rangeHeader != "" {
-		if _, ok := parseRangeV1(rangeHeader, st.Size()); !ok {
+		if _, ok := parseRangeLegacy(rangeHeader, st.Size()); !ok {
 			w.WriteHeader(http.StatusRequestedRangeNotSatisfiable)
 			io.WriteString(w, "Invalid range")
 			return
@@ -93,13 +93,13 @@ func (DirectStreamer) Stream(w http.ResponseWriter, r *http.Request, filePath st
 	http.ServeContent(w, r, st.Name(), st.ModTime(), f)
 }
 
-// contentDisposition ports v1 download.view:
+// contentDisposition ports the retired server download.view:
 //
 //	attachment; filename="<safe>"; filename*=UTF-8''<encodeURIComponent(name)>
 //
-// safe replaces " \ and CR/LF with _ (v1's filename.replace); the filename*
+// safe replaces " \ and CR/LF with _ (the old filename.replace); the filename*
 // parameter replicates JS encodeURIComponent's unreserved set so the header
-// is byte-identical to v1 for filenames containing e.g. parentheses.
+// is byte-identical to the retired server for filenames containing e.g. parentheses.
 func contentDisposition(filename string) string {
 	safe := strings.NewReplacer(`"`, "_", `\`, "_", "\r", "_", "\n", "_").Replace(filename)
 	return `attachment; filename="` + safe + `"; filename*=UTF-8''` + encodeURIComponent(filename)

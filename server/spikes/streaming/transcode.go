@@ -18,7 +18,7 @@ import (
 // Policy (measured in this spike): reject with 503 + Retry-After, no queue.
 var errSlotsFull = errors.New("transcode slots full")
 
-const copyChunkBytes = 64 * 1024 // v1 createReadStream highWaterMark parity
+const copyChunkBytes = 64 * 1024 // old createReadStream highWaterMark parity
 
 // transcodeStreamer owns the ffmpeg concurrency cap. One instance per server
 // (cap lives in the streaming service, not per-route — audit §18 playback).
@@ -113,9 +113,9 @@ func requestID(r *http.Request) string {
 }
 
 // stream runs one transcode to w. Spawn errors are returned synchronously
-// (Go exec.Start semantics — the v1 B12 async-spawn trap does not exist here).
+// (Go exec.Start semantics — the the old B12 async-spawn trap does not exist here).
 // Semaphore-full is errSlotsFull. Mid-stream failures are logged with slog
-// and reported in the result; the client sees a truncated stream (v1 parity).
+// and reported in the result; the client sees a truncated stream (wire parity).
 func (t *transcodeStreamer) stream(w http.ResponseWriter, r *http.Request, filePath, format string, maxKbps int) (*streamResult, error) {
 	res := &streamResult{}
 
@@ -132,7 +132,7 @@ func (t *transcodeStreamer) stream(w http.ResponseWriter, r *http.Request, fileP
 	}
 
 	// 2. Spawn ffmpeg. CommandContext wires r.Context() to process Kill
-	//    (SIGKILL on Linux) on client disconnect — v1 parity via stdlib.
+	//    (SIGKILL on Linux) on client disconnect — wire parity via stdlib.
 	cmd := exec.CommandContext(r.Context(), "ffmpeg", ffmpegArgs(filePath, format, maxKbps)...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -163,9 +163,9 @@ func (t *transcodeStreamer) stream(w http.ResponseWriter, r *http.Request, fileP
 		t.mu.Unlock()
 	}()
 
-	// 3. Headers — v1 parity: Content-Type by format, Accept-Ranges: none,
+	// 3. Headers — wire parity: Content-Type by format, Accept-Ranges: none,
 	//    no Content-Length → net/http answers chunked. Range request headers
-	//    are deliberately ignored (stream always starts at 0 — v1 parity).
+	//    are deliberately ignored (stream always starts at 0 — wire parity).
 	h := w.Header()
 	h.Set("Content-Type", transcodeContentType(format))
 	h.Set("Accept-Ranges", "none")
@@ -210,7 +210,7 @@ func (t *transcodeStreamer) stream(w http.ResponseWriter, r *http.Request, fileP
 		res.StderrTail = stderr.String()
 		if res.Bytes == 0 {
 			// Died before any output: response headers are not committed yet,
-			// so upgrade to 500. (v1 answers an empty 200 here — the one
+			// so upgrade to 500. (the old server answers an empty 200 here — the one
 			// deliberate wire deviation recommended by this spike.)
 			res.Failure = "exit-early"
 			t.log.Error("transcode failed before first byte",

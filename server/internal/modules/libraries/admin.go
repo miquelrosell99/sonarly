@@ -1,7 +1,7 @@
-// Library admin routes (P9c): v1's features/libraries/admin-routes.ts —
+// Library admin routes (P9c): the old features/libraries/admin-routes.ts —
 // the library CRUD, both directions of the user_libraries assignment
-// endpoints, and the scoped picker list. v1's restartWatcher callback is
-// unnecessary in v2: the filesystem watcher re-reads the libraries table
+// endpoints, and the scoped picker list. the old restartWatcher callback is
+// unnecessary here: the filesystem watcher re-reads the libraries table
 // every poll cycle, so a created or renamed library is picked up without a
 // nudge.
 package libraries
@@ -28,7 +28,7 @@ func NewHandler(db *sql.DB, mw *auth.Middleware) *Handler {
 }
 
 // Routes registers the library endpoints. The picker list needs any
-// session (v1 mounted it behind the shared session middleware; a missing
+// session (old mounted it behind the shared session middleware; a missing
 // session yields an empty scope, i.e. an empty list, never host paths).
 // Everything under /api/admin is admin-gated.
 func (h *Handler) Routes(r chi.Router) {
@@ -56,7 +56,7 @@ func (h *Handler) Routes(r chi.Router) {
 	})
 }
 
-// pickerList is GET /api/libraries: the scope-trimmed picker DTO (v1 parity,
+// pickerList is GET /api/libraries: the scope-trimmed picker DTO (wire parity,
 // including the B8 fix — the route is auth+scoped, never exposing paths or
 // patterns).
 func (h *Handler) pickerList(w http.ResponseWriter, r *http.Request) {
@@ -78,7 +78,7 @@ func (h *Handler) pickerList(w http.ResponseWriter, r *http.Request) {
 			out = append(out, LibraryPicker{ID: lib.ID, Name: lib.Name, IsDefault: lib.IsDefault})
 		}
 	} else {
-		// v1 order: the scope's assignment order, not the libraries table order.
+		// the retired server order: the scope's assignment order, not the libraries table order.
 		byID := make(map[string]Library, len(libs))
 		for _, lib := range libs {
 			byID[lib.ID] = lib
@@ -194,7 +194,7 @@ func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
 	httpserver.JSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
-// libraryUsers is GET /api/admin/libraries/{id}/users (v1 shape: a bare
+// libraryUsers is GET /api/admin/libraries/{id}/users (old shape: a bare
 // string array).
 func (h *Handler) libraryUsers(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
@@ -243,7 +243,7 @@ func (h *Handler) removeUser(w http.ResponseWriter, r *http.Request) {
 	httpserver.JSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
-// userLibraries is GET /api/admin/users/{id}/libraries (v1 shape: a bare
+// userLibraries is GET /api/admin/users/{id}/libraries (old shape: a bare
 // string array).
 func (h *Handler) userLibraries(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
@@ -299,7 +299,7 @@ func (h *Handler) userExists(r *http.Request, id string) bool {
 }
 
 // defaultOrganizePattern resolves the fallback for a create without a
-// pattern: the global settings key, else the v1 constant (v1
+// pattern: the global settings key, else the retired server constant (old
 // getDefaultOrganizePattern).
 func (h *Handler) defaultOrganizePattern(r *http.Request) string {
 	var value string

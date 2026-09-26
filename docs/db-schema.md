@@ -1,12 +1,12 @@
 # Sonarly Database Schema
 
-Sonarly uses **SQLite** via `modernc.org/sqlite` (pure Go). The database file defaults to `${SONARLY_DATA_DIR}/sonarly.db` (`/data/db/sonarly.db` in the image). Migrations run automatically on startup from the embedded files in `v2/internal/db/migrations/`.
+Sonarly uses **SQLite** via `modernc.org/sqlite` (pure Go). The database file defaults to `${SONARLY_DATA_DIR}/sonarly.db` (`/data/db/sonarly.db` in the image). Migrations run automatically on startup from the embedded files in `server/internal/db/migrations/`.
 
 This document reflects the schema produced by migrations **0001–0004**:
 
 | Migration | What it does |
 |---|---|
-| `0001_baseline.sql` | Complete schema distilled from the v1 migration chain (001–049), with audit fixes (real FKs on `user_libraries`, unique `genres.name`, FK-child indexes) |
+| `0001_baseline.sql` | Complete schema distilled from the old migration chain (001–049), with audit fixes (real FKs on `user_libraries`, unique `genres.name`, FK-child indexes) |
 | `0002_job_payload.sql` | `scan_jobs.payload` (typed JSON job payloads) + `scan_jobs.created_at` (pending-visible job ordering) |
 | `0003_search_fts.sql` | FTS5 virtual tables (`songs_fts`, `albums_fts`, `artists_fts`) + initial backfill |
 | `0004_search_fts_backfill_fix.sql` | Idempotent full-corpus FTS re-backfill (re-asserts index↔corpus invariant on every database) |
@@ -66,7 +66,7 @@ Embedded/cached artwork: `id`, `format`, `data` (BLOB), `hash` (indexed — dedu
 | `artist_id` → `artists`, `artist_name` | Cached display name |
 | `year`, `original_year` | |
 | `genre`, `genre_id` → `genres` | Cached name + FK |
-| `cover_art_id` → `cover_arts` | `ON DELETE NO ACTION` (same as v1) |
+| `cover_art_id` → `cover_arts` | `ON DELETE NO ACTION` (unchanged from the old schema) |
 | `active` | Missing-file detection |
 | `catalog_numbers`, `barcode`, `asin` | Identifiers |
 | `musicbrainz_album_id`, `musicbrainz_release_group_id`, `musicbrainz_album_artist_ids` | MusicBrainz linkage |
@@ -103,7 +103,7 @@ Admin-managed folders: `id`, `name`, `path` (UNIQUE), `organize_pattern` (defaul
 
 ### `user_libraries`
 
-Per-user library assignment — **a security boundary**, enforced on every content query and stream/download path. Composite PK `(user_id, library_id)` with real cascading FKs (audit fix; v1 had none).
+Per-user library assignment — **a security boundary**, enforced on every content query and stream/download path. Composite PK `(user_id, library_id)` with real cascading FKs (audit fix; the old schema had none).
 
 ## Per-user interaction state
 

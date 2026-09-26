@@ -9,8 +9,8 @@ whenToUse: When working on playlist CRUD, smart playlist rules or compilation, p
 
 ## Map of the subsystem
 
-- `v2/internal/modules/playlists/` — `repository.go` (CRUD + `playlist_songs` with `position`), `policy.go` (**ONE** `Resolve` for every surface), `service.go` (orchestration), `routes.go` (native `/api/playlists`), `subsonic.go` (`/rest` playlist endpoints delegating to the same service), `rules.go` (rule validation).
-- `v2/internal/modules/playlists/compiler.go` — compiles the rule AST to parameterized SQL. Whitelisting: unknown fields are a **400** (v1's silent `s.title` fallback was fixed); LIKE-escaping (`ESCAPE '\'`) and the join/WHERE bind-order handling are load-bearing.
+- `server/internal/modules/playlists/` — `repository.go` (CRUD + `playlist_songs` with `position`), `policy.go` (**ONE** `Resolve` for every surface), `service.go` (orchestration), `routes.go` (native `/api/playlists`), `subsonic.go` (`/rest` playlist endpoints delegating to the same service), `rules.go` (rule validation).
+- `server/internal/modules/playlists/compiler.go` — compiles the rule AST to parameterized SQL. Whitelisting: unknown fields are a **400** (the old silent `s.title` fallback was fixed); LIKE-escaping (`ESCAPE '\'`) and the join/WHERE bind-order handling are load-bearing.
 - Rule model: types in `packages/web/src/types/smart-playlist.ts` (`SMART_PLAYLIST_FIELDS`, `isSmartPlaylistRuleGroup`). Single-level groups: `all` AND'd with `any`; no nesting by design.
 - Deep dive doc: `docs/smart-playlists.md`.
 
@@ -20,13 +20,13 @@ whenToUse: When working on playlist CRUD, smart playlist rules or compilation, p
 - Visibility: `private` / `shared` (per-user `playlist_shares`) / `public` (all users) / `link`.
 - `share_token` is crypto/rand, minted iff visibility=`link`, and grants anonymous access to the linked playlist's *content* via SQL EXISTS scoping (song streams, cover art, smart-rule resolution).
 - The smart-playlist grant cache is **bounded** and keyed by playlist id + `rules_json` (rule edits invalidate immediately).
-- `GET /api/playlists/:id` exposes `shareToken` to the owner only (v1 leaked it to any viewer — fixed in v2).
+- `GET /api/playlists/:id` exposes `shareToken` to the owner only (it used to leak to any viewer — fixed).
 
 ## Smart playlist facts
 
 - Compilation + execution runs **per HTTP request**; the playlist list view compiles once per smart row. Keep rules cheap.
 - `limitPercent` triggers an extra `COUNT(DISTINCT …)` query per compile.
-- The `genre` rule matches via the `song_genres` junction (secondary genres included — v1's primary-genre-only gap is fixed); `inPlaylist` verifies the referenced playlist is accessible to the requesting user (v1's UUID-guessability hole is fixed).
+- The `genre` rule matches via the `song_genres` junction (secondary genres included — the old primary-genre-only gap is fixed); `inPlaylist` verifies the referenced playlist is accessible to the requesting user (the old UUID-guessability hole is fixed).
 - Auto-dj uses its own scoring, not the compiler.
 
 ## Invariants to preserve
@@ -35,4 +35,4 @@ whenToUse: When working on playlist CRUD, smart playlist rules or compilation, p
 - Authorization is the single `policy.Resolve`; the native routes and the Subsonic endpoints both go through it. Any policy change applies everywhere at once — that is the point.
 - Smart rules are data, never SQL strings — preserve the compiler's parameterization, LIKE-escaping, and join/WHERE bind order.
 - `resolve_mode` = `tracks` resolves user-scoped rules against the **owner's** data (shared curated list, default); `query` re-resolves per viewer.
-- Tests: `compiler_test.go`, `policy_test.go`, `repository_test.go`, `routes_test.go`, `subsonic_test.go`, `rules_test.go`, `cache_test.go` in the module — run `go test ./... -count=1` from `v2/`.
+- Tests: `compiler_test.go`, `policy_test.go`, `repository_test.go`, `routes_test.go`, `subsonic_test.go`, `rules_test.go`, `cache_test.go` in the module — run `go test ./... -count=1` from `server/`.

@@ -133,7 +133,7 @@ func TestTokenGrantsSongSmart(t *testing.T) {
 	ctx := context.Background()
 	// pl-smart resolves (title contains "a") to {s-b1, s-b2} — all in
 	// lib-b, outside the owner's library scope: the token path is
-	// scope-free by design (v1 share semantics).
+	// scope-free by design (old share semantics).
 	granted := []string{"s-b1", "s-b2"}
 	for _, song := range granted {
 		ok, err := env.policy.TokenGrantsSong(ctx, env.db, "tok-smart", song)

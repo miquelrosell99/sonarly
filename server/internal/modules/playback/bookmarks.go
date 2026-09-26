@@ -10,12 +10,12 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/libraries"
 )
 
-// maxBookmarkCommentLen bounds the free-form bookmark comment (v1's
+// maxBookmarkCommentLen bounds the free-form bookmark comment (the old 
 // createBookmark accepted an unbounded OpenSubsonic query parameter).
 const maxBookmarkCommentLen = 1000
 
 // BookmarkSong is the song information joined into a bookmark entry (the
-// slice the v1 web client's bookmark UI displays).
+// slice the retired server web client's bookmark UI displays).
 type BookmarkSong struct {
 	ID         string `json:"id"`
 	Title      string `json:"title"`
@@ -24,7 +24,7 @@ type BookmarkSong struct {
 	AlbumName  string `json:"albumName,omitempty"`
 }
 
-// Bookmark is one row of GET /api/bookmarks. Shape follows v1's bookmark
+// Bookmark is one row of GET /api/bookmarks. Shape follows the old bookmark
 // repository; the song embeds the joined display names.
 type Bookmark struct {
 	SongID    string       `json:"songId"`
@@ -37,7 +37,7 @@ type Bookmark struct {
 
 // ListBookmarks returns the caller's own bookmarks, newest change first,
 // joined with song display info and restricted to songs that are still
-// active and inside the caller's library scope (v1 getBookmarks semantics:
+// active and inside the caller's library scope (the old getBookmarks semantics:
 // out-of-scope or vanished songs simply drop out of the list).
 func (s *Service) ListBookmarks(ctx context.Context, id auth.Identity) ([]Bookmark, error) {
 	scope, err := libraries.GetScope(ctx, s.db, id.UserID, id.IsAdmin)
@@ -64,7 +64,7 @@ func (s *Service) ListBookmarks(ctx context.Context, id auth.Identity) ([]Bookma
 	for rows.Next() {
 		var b Bookmark
 		var comment sql.NullString
-		// s.duration is a fractional REAL on v1-written legacy rows; the
+		// s.duration is a fractional REAL on written by the retired server legacy rows; the
 		// tolerant db.NullInt64 truncates instead of failing the list.
 		var duration db.NullInt64
 		var artistName, albumName sql.NullString
@@ -91,7 +91,7 @@ func (s *Service) ListBookmarks(ctx context.Context, id auth.Identity) ([]Bookma
 // SubsonicBookmark is one raw bookmark row for the OpenSubsonic adapter
 // (P9b): no song join, no scope filter. The adapter renders the full
 // Subsonic song child itself and keeps bookmarks whose song dropped out of
-// the catalog in the list with the entry omitted — v1's getBookmarks.view
+// the catalog in the list with the entry omitted — the old getBookmarks.view
 // behavior, which differs from the native list view above.
 type SubsonicBookmark struct {
 	SongID    string
@@ -102,7 +102,7 @@ type SubsonicBookmark struct {
 }
 
 // SubsonicBookmarks returns the caller's bookmark rows newest-change-first,
-// exactly as stored (v1's bookmarks getBookmarks repository function).
+// exactly as stored (the old bookmarks getBookmarks repository function).
 func (s *Service) SubsonicBookmarks(ctx context.Context, id auth.Identity) ([]SubsonicBookmark, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT song_id, position, comment, created_at, updated_at
@@ -131,7 +131,7 @@ func (s *Service) SubsonicBookmarks(ctx context.Context, id auth.Identity) ([]Su
 	return out, nil
 }
 
-// PutBookmark upserts the caller's bookmark for the song (v1 createBookmark:
+// PutBookmark upserts the caller's bookmark for the song (old createBookmark:
 // PK (user_id, song_id), position and comment replaced, updated_at bumped).
 // The song must be active and in scope, else ErrNotFound.
 func (s *Service) PutBookmark(ctx context.Context, id auth.Identity, songID string, position int, comment *string) error {
@@ -153,7 +153,7 @@ func (s *Service) PutBookmark(ctx context.Context, id auth.Identity, songID stri
 	return err
 }
 
-// DeleteBookmark removes the caller's bookmark for the song. Like v1's
+// DeleteBookmark removes the caller's bookmark for the song. Like the old 
 // deleteBookmark route, deleting a bookmark that does not exist is a no-op,
 // not an error; only an unplayable (missing/inactive/out-of-scope) song id
 // answers ErrNotFound.

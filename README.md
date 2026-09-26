@@ -46,7 +46,7 @@ docker compose -f compose.yaml up -d
 The all-in-one image builds the web client and the Go server in one multi-stage build (build context is the repo root):
 
 ```bash
-docker build -f docker/Dockerfile.v2 \
+docker build -f docker/Dockerfile \
   --build-arg SONARLY_VERSION=$(git describe --tags --always) \
   -t ghcr.io/miquelrosell99/sonarly:v2.0.0-rc1 .
 docker compose -f compose.yaml up -d
@@ -90,17 +90,17 @@ The web UI is available at `http://localhost:4533` (change with `SONARLY_PORT`).
 
 ```
 .
-├── v2/                     # Go server (the only server)
+├── server/                 # Go server (the only server)
 │   ├── cmd/sonarly/        # entrypoint
 │   ├── internal/           # config, db, httpserver, modules/*, staticfs
 │   ├── api/openapi.yaml    # native REST contract (OpenAPI 3.1)
-│   └── testparity/         # v1↔v2 parity harness (skips without a v1 checkout)
+│   └── spikes/             # archived investigation artifacts
 ├── packages/
 │   └── web/                # React web client (Vite, Tailwind, react-query)
 ├── docker/
-│   ├── Dockerfile.v2       # all-in-one image (web build → Go build → runtime)
+│   ├── Dockerfile          # all-in-one image (web build → Go build → runtime)
 │   ├── entrypoint.sh       # PUID/PGID privilege drop
-│   └── compose.v2.yaml.example
+│   └── compose.yaml.example
 ├── compose.yaml            # Production deployment (gitignored, copy from example)
 └── .env.example            # Required environment variables
 ```
@@ -131,7 +131,7 @@ The web UI is available at `http://localhost:4533` (change with `SONARLY_PORT`).
         └────────────────────────────┘
 ```
 
-- **Server**: Go 1.23, `net/http` + chi v5, SQLite via `modernc.org/sqlite` (pure Go, WAL). Modular monolith under `v2/internal/modules/<domain>`.
+- **Server**: Go 1.23, `net/http` + chi v5, SQLite via `modernc.org/sqlite` (pure Go, WAL). Modular monolith under `server/internal/modules/<domain>`.
 - **Web client**: React 18 + Vite 6 + Tailwind CSS, react-query for server state, wouter router, Zustand for client state, code-split by route.
 - **Storage**: SQLite for metadata and user data; filesystem for audio, cover art, and avatars.
 
@@ -143,7 +143,7 @@ Sonarly implements the OpenSubsonic REST API at `/rest/` and has been tested wit
 |---|---|---|
 | Feishin | Working | Desktop/web player. |
 | Symphonium | Working | Android player; full library sync and playback confirmed. |
-| Music Assistant | Working | Library sync verified during the v2 parity run. |
+| Music Assistant | Working | Library sync verified during the production parity run. |
 | DSub | Not tested yet | Should work; feedback welcome. |
 | Ultrasonic | Not tested yet | Should work; feedback welcome. |
 

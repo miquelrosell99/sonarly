@@ -41,7 +41,7 @@ func newTranscodeServer(t *testing.T, cap int) (*httptest.Server, *transcodeStre
 }
 
 // mp3FrameSync accounts for the ID3v2 tag ffmpeg's mp3 muxer writes at the
-// head of pipe output (v1 behaves identically — same argv), then checks the
+// head of pipe output (the old server behaves identically — same argv), then checks the
 // MPEG frame sync.
 func mp3FrameSync(b []byte) bool {
 	off := 0
@@ -107,7 +107,7 @@ func TestTranscodeHeadersBodyAndDecode(t *testing.T) {
 	}
 }
 
-// v1 parity: Range headers on transcode requests are ignored; the stream
+// wire parity: Range headers on transcode requests are ignored; the stream
 // always starts from t=0 with a 200 (clients send Range out of habit).
 func TestTranscodeIgnoresRange(t *testing.T) {
 	srv, _, _ := newTranscodeServer(t, 2)
@@ -231,7 +231,7 @@ func TestDisconnectKillsFFmpeg(t *testing.T) {
 }
 
 // ffmpeg dying on its own mid-stream (external kill): client sees a truncated
-// stream; v2 logs with slog incl. request ID. v1: truncated stream + console.
+// stream; the Go server logs with slog incl. request ID. old: truncated stream + console.
 func TestExternalKillMidStream(t *testing.T) {
 	srv, tr, logBuf := newTranscodeServer(t, 2)
 
@@ -299,8 +299,8 @@ drained:
 	}
 }
 
-// Corrupt input / missing file: ffmpeg dies BEFORE any output byte. v1: empty
-// 200. Spike-recommended v2: 500 (headers not yet committed — Go lets us).
+// Corrupt input / missing file: ffmpeg dies BEFORE any output byte. old: empty
+// 200. Spike-recommended the Go server: 500 (headers not yet committed — Go lets us).
 func TestTranscodeFailureBeforeFirstByte(t *testing.T) {
 	srv, _, _ := newTranscodeServer(t, 2)
 
@@ -312,7 +312,7 @@ func TestTranscodeFailureBeforeFirstByte(t *testing.T) {
 	res.Body.Close()
 	t.Logf("corrupt input: status=%d body=%dB", res.StatusCode, len(body))
 	if res.StatusCode != 500 {
-		t.Errorf("want 500 on pre-first-byte failure (v1 answers empty 200); got %d", res.StatusCode)
+		t.Errorf("want 500 on pre-first-byte failure (old server answers empty 200); got %d", res.StatusCode)
 	}
 
 	res, err = http.Get(srv.URL + "/transcode/does-not-exist.mp3?format=mp3")
@@ -327,10 +327,10 @@ func TestTranscodeFailureBeforeFirstByte(t *testing.T) {
 	}
 }
 
-// Go's exec.Start reports spawn failures SYNCHRONOUSLY — the v1 B13 async
+// Go's exec.Start reports spawn failures SYNCHRONOUSLY — the the old B13 async
 // trap (spawn 'error' event fires after reply headers) cannot occur. When the
 // binary is missing we can still fall back to direct serving with zero client
-// impact, matching the INTENT of the v1 B12 fix without the race.
+// impact, matching the INTENT of the the old B12 fix without the race.
 func TestSpawnFailureIsSynchronous(t *testing.T) {
 	srv, tr, _ := newTranscodeServer(t, 2)
 

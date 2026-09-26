@@ -14,7 +14,7 @@ import (
 
 // Handler wires the playback service to HTTP. Route handlers parse and
 // validate, the service enforces liveness + library scope, and the route
-// layer maps sentinel errors to the v2 error contract ({"error": "..."}).
+// layer maps sentinel errors to the Go server error contract ({"error": "..."}).
 type Handler struct {
 	svc *Service
 	mw  *auth.Middleware
@@ -34,7 +34,7 @@ func (h *Handler) Routes(r chi.Router) {
 	r.Group(func(r chi.Router) {
 		r.Use(h.mw.AuthMiddleware)
 		r.Get("/api/stream/{id}", h.stream)
-		r.Head("/api/stream/{id}", h.stream) // v1 parity: HEAD is answered explicitly
+		r.Head("/api/stream/{id}", h.stream) // wire parity: HEAD is answered explicitly
 	})
 	r.Group(func(r chi.Router) {
 		r.Use(h.mw.AuthMiddleware, auth.RequireAuth)
@@ -76,11 +76,11 @@ func invalidBody(msg string) error { return &bodyError{msg: msg} }
 // stream is GET /api/stream/{id}: the native playback endpoint behind the
 // same StreamingService the OpenSubsonic adapter (P9) will reuse.
 //
-// Query surface: maxBitRate (v1 parse semantics, clamped against the user's
+// Query surface: maxBitRate (the old parse semantics, clamped against the user's
 // cap), download (direct + Content-Disposition, never transcodes), and the
 // P6 share token (`?share=`): consulted only when the request is anonymous;
 // a session identity wins. Anonymous with a valid token streams the linked
-// playlist's songs without the library-scope check (v1 share semantics);
+// playlist's songs without the library-scope check (the old share semantics);
 // anonymous with a missing/unknown token gets 401; a known token whose
 // playlist does not contain the song gets 404.
 func (h *Handler) stream(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +97,7 @@ func (h *Handler) stream(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// scrobble is POST /api/songs/{id}/scrobble (v1 /api/songs/:id/scrobble).
+// scrobble is POST /api/songs/{id}/scrobble (old /api/songs/:id/scrobble).
 func (h *Handler) scrobble(w http.ResponseWriter, r *http.Request) {
 	body, err := decodeScrobbleBody(r.Body)
 	if err != nil {

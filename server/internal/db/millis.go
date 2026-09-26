@@ -5,15 +5,17 @@ import (
 	"strconv"
 )
 
-// Int64 is an int64 that tolerates v1-written fractional REAL values. v1's
-// scanner stored raw JS floats via better-sqlite3 — stat.mtimeMs (fractional
-// milliseconds), music-metadata's duration (fractional seconds) and, in
-// principle, any format integer — which SQLite persisted as REALs. v2 reads
-// with modernc.org/sqlite, which returns REALs as float64 and refuses to
-// convert them into int64, so a v1-created database made numeric scans fail
-// with "converting driver.Value type float64 ... invalid syntax". Truncating
-// the fraction matches v2's own integer-second/integer-milli semantics and
-// loses nothing the scanners compare.
+// Int64 is an int64 that tolerates fractional REAL values written by the
+// retired TypeScript server. Its scanner stored raw JS floats via
+// better-sqlite3 — stat.mtimeMs (fractional milliseconds), music-metadata's
+// duration (fractional seconds) and, in principle, any format integer —
+// which SQLite persisted as REALs. The Go server reads with
+// modernc.org/sqlite, which returns REALs as float64 and refuses to
+// convert them into int64, so a database created by the old server made
+// numeric scans fail with "converting driver.Value type float64 ... invalid
+// syntax". Truncating the fraction matches the Go server's own
+// integer-second/integer-milli semantics and loses nothing the scanners
+// compare.
 type Int64 int64
 
 // Scan implements sql.Scanner.

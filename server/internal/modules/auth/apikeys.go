@@ -9,7 +9,7 @@ import (
 	"fmt"
 )
 
-// VerifyAPIKey hashes key with SHA-256 (hex, like v1's api-keys.ts) and looks
+// VerifyAPIKey hashes key with SHA-256 (hex, like the old api-keys.ts) and looks
 // it up in api_keys. It returns the owning user's id. Keys are digests at
 // rest, so a lookup never reveals or accepts plaintext material beyond what
 // the caller presented.

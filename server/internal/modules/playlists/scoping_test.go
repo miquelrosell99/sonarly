@@ -11,7 +11,7 @@ import (
 // TestScopingCrossLibraryPlaylist: a playlist whose members span libraries
 // — the owner sees everything they curated, a same-library viewer sees only
 // the in-scope subset, and an anonymous share-token viewer sees the linked
-// playlist's own content regardless of library scope (v1 share semantics).
+// playlist's own content regardless of library scope (old share semantics).
 func TestScopingCrossLibraryPlaylist(t *testing.T) {
 	env := newEnv(t)
 	// Cross-library link playlist, deliberately unordered to catch ordering
@@ -43,7 +43,7 @@ func TestScopingCrossLibraryPlaylist(t *testing.T) {
 	}
 
 	// Anonymous with the token: full content, scope-free (the token
-	// authorizes the linked playlist's own content — v1 /api/stream).
+	// authorizes the linked playlist's own content — the retired server /api/stream).
 	d, err = env.svc.Get(context.Background(), auth.Identity{}, "pl-link-x", "tok-x")
 	if err != nil {
 		t.Fatal(err)

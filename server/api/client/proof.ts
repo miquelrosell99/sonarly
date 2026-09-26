@@ -1,4 +1,4 @@
-// Proof-of-use for the generated contract types (v2/api/client/index.ts).
+// Proof-of-use for the generated contract types (server/api/client/index.ts).
 // Compile-only: tsc --noEmit proves the TS side of the pipeline end to end
 // without touching packages/web. Nothing here runs.
 
@@ -66,7 +66,7 @@ async function api<P extends Path, M extends Method>(
     credentials: 'same-origin', // the sessionId cookie
   });
   if (!res.ok) {
-    // The v2 error contract: every non-2xx is {error: string}.
+    // The error contract: every non-2xx is {error: string}.
     const err = (await res.json()) as components['schemas']['Error'];
     throw new Error(`${res.status}: ${err.error}`);
   }

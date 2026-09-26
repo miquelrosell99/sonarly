@@ -26,7 +26,7 @@ func NewService(db *sql.DB, log *slog.Logger) *Service {
 
 func Register(r chi.Router, svc *Service) {
 	r.Get("/health", svc.health)
-	// Alias kept for the container HEALTHCHECK and v1 parity: the v1 image
+	// Alias kept for the container HEALTHCHECK and wire parity: the retired server image
 	// (and its compose healthcheck) probes /healthz.
 	r.Get("/healthz", svc.health)
 	r.Get("/ready", svc.ready)

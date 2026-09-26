@@ -1,6 +1,6 @@
 // HTTP routes for library runtime operations: enqueueing scans and reading
 // job status. POST /api/scans is admin-gated (a scan is heavy); status is
-// available to any authenticated user (the v1 web player polls it).
+// available to any authenticated user (the retired server web player polls it).
 package library
 
 import (
@@ -46,7 +46,7 @@ func (h *Handler) enqueueScan(w http.ResponseWriter, r *http.Request) {
 }
 
 // jobStatus is the public shape of a scan_jobs row; timestamps keep the raw
-// datetime('now') strings v1 returned. Stats stays raw JSON so the endpoint
+// datetime('now') strings the retired server returned. Stats stays raw JSON so the endpoint
 // forwards progress documents unchanged.
 type jobStatus struct {
 	ID         string          `json:"id"`
@@ -72,7 +72,7 @@ func toJobStatus(j *Job) jobStatus {
 	}
 }
 
-// status returns the most recent job — including a queued one. v1's
+// status returns the most recent job — including a queued one. The old
 // ORDER BY started_at DESC pushed pending jobs (NULL started_at) to the
 // bottom, so the endpoint claimed nothing was queued while a scan waited
 // behind a running job; the queue now orders by COALESCE(started_at,

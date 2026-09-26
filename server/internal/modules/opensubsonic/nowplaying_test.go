@@ -48,7 +48,7 @@ func TestGetNowPlayingShape(t *testing.T) {
 	if alice["username"] != testUser {
 		t.Fatalf("username = %v", alice["username"])
 	}
-	// v2 tracker key: user + device (P8 deviation, documented in N1).
+	// the Go server tracker key: user + device (P8 deviation, documented in N1).
 	if alice["playerId"] != testUserID+"|symfonium" {
 		t.Fatalf("playerId = %v", alice["playerId"])
 	}
@@ -77,7 +77,7 @@ func TestGetNowPlayingMinutesAgoFloored(t *testing.T) {
 	app.seedUser(t, testUserID, testUser, testPass, false)
 	c := app.seedCatalog(t, "")
 
-	// Record 3m30s in the past: the floor makes it 3 (v1 Math.floor).
+	// Record 3m30s in the past: the floor makes it 3 (old Math.floor).
 	past := time.Now().Add(-(3*time.Minute + 30*time.Second))
 	app.tracker.SetClock(func() time.Time { return past })
 	recordStream(app, testUserID, "symfonium", c.SAbbey1, "Come Together", c.ArBeatles, 259)
@@ -122,7 +122,7 @@ func TestGetNowPlayingSongVanished(t *testing.T) {
 	c := app.seedCatalog(t, "")
 
 	recordStream(app, testUserID, "symfonium", c.SLow1, "Speed of Life", c.ArBowie, 146)
-	// The song leaves the catalog: the entry stays, the child omits (v1
+	// The song leaves the catalog: the entry stays, the child omits (old
 	// answered entry: undefined, JSON drops the key).
 	app.exec(t, `UPDATE songs SET active = 0 WHERE id = ?`, c.SLow1)
 

@@ -10,16 +10,16 @@ import (
 )
 
 // This file is the /api/me/preferences surface (P9c native-parity gap).
-// v1 stored a JSON blob and PATCHed it by spreading the request body over
+// the retired server stored a JSON blob and PATCHed it by spreading the request body over
 // the stored map — the audit's Q8 mass-assignment flag: any key a client
-// sent was persisted verbatim. v2 keeps the blob (the shape is the shared
+// sent was persisted verbatim. The Go server keeps the blob (the shape is the shared
 // UserPreferences document) but PATCH runs through an explicit allowlist
 // with per-key validation; unknown keys are REJECTED (400), not silently
-// dropped like v1's five-handpicked fields (which also silently lost the
+// dropped like the old five-handpicked fields (which also silently lost the
 // frontend's theme keys on every save).
 
 // defaultPreferences mirrors shared/types DEFAULT_USER_PREFERENCES; stored
-// values win over these (v1's {...defaults, ...parsed} merge).
+// values win over these (the old {...defaults, ...parsed} merge).
 var defaultPreferences = map[string]any{
 	"autoDjEnabled":         false,
 	"autoDjMode":            "smart",
@@ -58,7 +58,7 @@ func clampedNumberValidator(key string, min, max float64) preferenceValidator {
 		if !ok || math.IsNaN(n) || math.IsInf(n, 0) {
 			return nil, fmt.Errorf("%s must be a number", key)
 		}
-		// v1 clamped out-of-range numbers into range (Math.min/max) instead
+		// the retired server clamped out-of-range numbers into range (Math.min/max) instead
 		// of rejecting; that normalization is preserved.
 		if n < min {
 			n = min
@@ -94,7 +94,7 @@ func objectValidator(key string) preferenceValidator {
 }
 
 // preferenceAllowlist is THE set of patchable keys (Q8 fix). Anything else
-// answers 400 — including keys v1 would have silently ignored, so a client
+// answers 400 — including keys the retired server would have silently ignored, so a client
 // bug surfaces immediately instead of corrupting or losing data.
 var preferenceAllowlist = map[string]preferenceValidator{
 	"autoDjEnabled":         boolValidator("autoDjEnabled"),
@@ -110,7 +110,7 @@ var preferenceAllowlist = map[string]preferenceValidator{
 		"orange", "teal", "purple", "yellow", "cyan", "blue"),
 	"playlistsCollapsed": boolValidator("playlistsCollapsed"),
 	// Structural documents (sidebar layout, theme, per-view options) are
-	// validated as JSON objects and stored verbatim — same contract as v1's
+	// validated as JSON objects and stored verbatim — same contract as the old 
 	// repository, now behind the allowlist.
 	"sidebar":       objectValidator("sidebar"),
 	"theme":         objectValidator("theme"),
@@ -120,7 +120,7 @@ var preferenceAllowlist = map[string]preferenceValidator{
 
 // loadPreferences returns the merged preferences document: defaults under
 // the stored blob. A missing row or a corrupt blob yields the defaults
-// (v1's try/catch → defaults parity).
+// (the old try/catch → defaults parity).
 func (s *Service) loadPreferences(ctx context.Context, userID string) (map[string]any, error) {
 	merged := make(map[string]any, len(defaultPreferences)+16)
 	for k, v := range defaultPreferences {
@@ -151,7 +151,7 @@ func (s *Service) GetPreferences(ctx context.Context, userID string) (map[string
 // UpdatePreferences answers PATCH /api/me/preferences: every key must be in
 // the allowlist (else ErrUnknownPreferenceKey/400), values are validated,
 // the patch merges over the stored document, and the upserted result is
-// returned (v1 replied with the merged document too).
+// returned (old replied with the merged document too).
 func (s *Service) UpdatePreferences(ctx context.Context, userID string, body map[string]any) (map[string]any, error) {
 	patch := make(map[string]any, len(body))
 	for key, raw := range body {

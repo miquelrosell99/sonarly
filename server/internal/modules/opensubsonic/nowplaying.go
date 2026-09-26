@@ -9,13 +9,13 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/auth"
 )
 
-// Now-playing group (v1 routes/now-playing.ts, quirks doc N1). Entries come
+// Now-playing group (retired routes/now-playing.ts, quirks doc N1). Entries come
 // from the P8 players tracker — the in-memory, single-process registry every
-// stream (native web player included) records into. v2 deviation carried
+// stream (native web player included) records into. The Go server deviation carried
 // over from P8: the tracker keys by user + device, so one user on two
-// devices produces TWO entries where v1's user-keyed map kept only the last.
+// devices produces TWO entries where the old user-keyed map kept only the last.
 
-// nowPlayingEntry is one getNowPlaying entry (v1 now-playing.ts:19-29):
+// nowPlayingEntry is one getNowPlaying entry (retired now-playing.ts:19-29):
 // the player metadata plus the full song child; the child embeds under the
 // literal key `entry` and is omitted when the song left the catalog.
 type nowPlayingEntry struct {
@@ -38,9 +38,9 @@ type nowPlayingPayload struct {
 
 // getNowPlaying implements getNowPlaying.view (N1): one entry per live
 // player with the caller-context song child, username resolved from the
-// users table, minutesAgo floored (v1: Math.max(0, Math.floor(...))).
+// users table, minutesAgo floored (retired: Math.max(0, Math.floor(...))).
 // playerName is the tracker client id — the `c` query param, else the user
-// agent's first product token, else "unknown" (P8 tracker derivation, v1's
+// agent's first product token, else "unknown" (P8 tracker derivation, the old
 // getClientId semantics).
 func (h *Handler) getNowPlaying(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -60,7 +60,7 @@ func (h *Handler) getNowPlaying(w http.ResponseWriter, r *http.Request) {
 			userIDs = append(userIDs, p.UserID)
 		}
 	}
-	// v1 fetched the song children WITHOUT a library-scope filter
+	// the retired server fetched the song children WITHOUT a library-scope filter
 	// (fetchOpenSubsonicSongsByIds called with no scope); missing/inactive
 	// songs drop out and their entries render without a child.
 	songs, err := h.songsByIDs(ctx, id.UserID, songIDs, nil)

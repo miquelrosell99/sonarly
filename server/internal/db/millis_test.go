@@ -15,7 +15,7 @@ func TestMillisScan(t *testing.T) {
 	}{
 		{"nil", nil, 0},
 		{"integer", int64(1790354785324), Millis(1790354785324)},
-		{"fractional real v1 mtimeMs", 1790354785324.7063, Millis(1790354785324)},
+		{"fractional real legacy mtimeMs", 1790354785324.7063, Millis(1790354785324)},
 		{"real integral", float64(42), Millis(42)},
 		{"text integer", []byte("1790354785324"), Millis(1790354785324)},
 		{"text real", []byte("1790354785324.7063"), Millis(1790354785324)},
@@ -64,7 +64,7 @@ func TestNullMillis(t *testing.T) {
 }
 
 // TestMillisAgainstRealColumn reproduces the P10 parity-suite failure mode:
-// a v1-created database stores songs.mtime as fractional REALs (better-
+// a database created by the retired TypeScript server stores songs.mtime as fractional REALs (better-
 // sqlite3 bound stat.mtimeMs, a JS float), and every song query used to
 // fail with "converting driver.Value type float64 to a int64".
 func TestMillisAgainstRealColumn(t *testing.T) {

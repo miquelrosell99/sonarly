@@ -12,15 +12,15 @@ import (
 // (/rest/getPlaylists.view) must NOT grow its own playlist queries: the
 // visibility set, the smart/static count semantics, and the duration math
 // all live here, on top of the same ListVisible + Compile + Resolve policy
-// the native routes use. v1 parity notes:
+// the native routes use. wire parity notes:
 //
-//   - getPlaylists sorts by playlist NAME (v1 opensubsonic-routes.ts), not
+//   - getPlaylists sorts by playlist NAME (old opensubsonic-routes.ts), not
 //     by updated_at like the native list view.
-//   - the list view carries no entries; songCount follows v1's
+//   - the list view carries no entries; songCount follows the old 
 //     resolvePlaylistSongCount (smart → limit-aware compiled count, static →
-//     raw member count) and duration follows v1's
+//     raw member count) and duration follows the old 
 //     resolvePlaylistSongDuration (SUM over the resolved ids, no liveness
-//     filter — v1's sumSongDurations did not check active).
+//     filter — the old sumSongDurations did not check active).
 
 // SubsonicListItem is one getPlaylists entry: display fields plus the
 // resolved count/duration, no entries. CreatedAt/UpdatedAt are the raw
@@ -119,9 +119,9 @@ func (s *Service) SubsonicList(ctx context.Context, id auth.Identity) ([]Subsoni
 	return out, nil
 }
 
-// sumDurations is v1's sumSongDurations: the summed duration of exactly the
+// sumDurations is the old sumSongDurations: the summed duration of exactly the
 // given ids, chunked under SQLite's variable limit, with NO liveness or
-// scope filter (the list view describes the playlist, like v1).
+// scope filter (the list view describes the playlist, like the retired server).
 func sumDurations(ctx context.Context, q auth.Queries, ids []string) (int, error) {
 	total := 0
 	const chunk = 500

@@ -76,7 +76,7 @@ func TestUploadAvatarValidation(t *testing.T) {
 	if rec := s.uploadAvatar(t, user, nil); rec.Code != http.StatusBadRequest {
 		t.Fatalf("empty: want 400, got %d", rec.Code)
 	}
-	// gif + webp are in v1's allowlist.
+	// gif + webp are in the old allowlist.
 	if rec := s.uploadAvatar(t, user, tinyGIF); rec.Code != http.StatusOK {
 		t.Fatalf("gif: want 200, got %d", rec.Code)
 	}

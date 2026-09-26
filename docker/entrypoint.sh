@@ -33,5 +33,5 @@ fi
 mkdir -p /data/db /data/ingest
 chown -R "$PUID:$PGID" /data
 
-echo "Starting Sonarly v2 as $APP_USER (UID=$(id -u "$APP_USER"), GID=$(id -g "$APP_USER"))"
+echo "Starting Sonarly as $APP_USER (UID=$(id -u "$APP_USER"), GID=$(id -g "$APP_USER"))"
 exec su-exec "$APP_USER" /app/sonarly

@@ -9,8 +9,8 @@ import (
 )
 
 // listYears returns the distinct years of active in-scope songs with their
-// song counts, newest first. (v1 unioned in album years and returned bare
-// values; the v2 spec scopes years to songs and asks for counts.)
+// song counts, newest first. (old unioned in album years and returned bare
+// values; the Go server spec scopes years to songs and asks for counts.)
 func listYears(ctx context.Context, q auth.Queries, scope libraries.Scope) ([]YearCount, error) {
 	scopeCond := libraries.ScopeCondition(scope, "library_id")
 	rows, err := q.QueryContext(ctx,

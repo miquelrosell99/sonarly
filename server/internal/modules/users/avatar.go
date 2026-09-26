@@ -1,5 +1,5 @@
-// Avatar upload and serving (P9c): v1's features/users/profile-routes.ts
-// avatar half ported. Storage is file-based exactly like v1 — the
+// Avatar upload and serving (P9c): the old features/users/profile-routes.ts
+// avatar half ported. Storage is file-based exactly like the retired server — the
 // users.avatar_path column names a file under DATA_DIR/avatars — and the
 // upload is validated by magic-byte sniffing (jpeg/png/webp/gif), not by
 // trusting a mimetype, with the same 2 MiB cap.
@@ -16,10 +16,10 @@ import (
 	"path/filepath"
 )
 
-// maxAvatarBytes mirrors v1's 2 MiB cap.
+// maxAvatarBytes mirrors the old 2 MiB cap.
 const maxAvatarBytes = 2 * 1024 * 1024
 
-// sniffAvatarFormat identifies jpeg/png/webp/gif by magic bytes (v1's
+// sniffAvatarFormat identifies jpeg/png/webp/gif by magic bytes (the old 
 // ALLOWED_AVATAR_TYPES, content-verified).
 func sniffAvatarFormat(data []byte) (ext string, ok bool) {
 	switch {
@@ -41,7 +41,7 @@ func (s *Service) avatarsDir() string { return filepath.Join(s.dataDir, "avatars
 
 // SaveAvatar validates, stores, and records the caller's avatar. The file
 // lands at DATA_DIR/avatars/<userId>.<ext>; a previous avatar file with a
-// different extension is removed (v1 profile-routes.ts).
+// different extension is removed (old profile-routes.ts).
 func (s *Service) SaveAvatar(ctx context.Context, userID string, r *http.Request) (*PublicUser, error) {
 	body, err := io.ReadAll(io.LimitReader(r.Body, maxAvatarBytes+1))
 	if err != nil || len(body) == 0 {
@@ -78,7 +78,7 @@ func (s *Service) SaveAvatar(ctx context.Context, userID string, r *http.Request
 
 	if existing.AvatarPath != nil && *existing.AvatarPath != "" && *existing.AvatarPath != filename {
 		if err := os.Remove(filepath.Join(s.avatarsDir(), *existing.AvatarPath)); err != nil && !errors.Is(err, os.ErrNotExist) {
-			// v1 ignores cleanup errors.
+			// the retired server ignores cleanup errors.
 		}
 	}
 	return s.GetPublicByID(ctx, userID)
@@ -92,7 +92,7 @@ var (
 )
 
 // LoadAvatar resolves the user's avatar file for serving: the recorded
-// avatar_path must exist on disk (v1 checks existsSync), else not-found.
+// avatar_path must exist on disk (old checks existsSync), else not-found.
 func (s *Service) LoadAvatar(ctx context.Context, userID string) (data []byte, contentType string, err error) {
 	user, err := GetByID(ctx, s.db, userID)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -124,7 +124,7 @@ func (s *Service) LoadAvatar(ctx context.Context, userID string) (data []byte, c
 	return data, contentType, nil
 }
 
-// avatarErrorStatus maps avatar validation errors to v1's 400s.
+// avatarErrorStatus maps avatar validation errors to the old 400s.
 func avatarErrorStatus(err error) int {
 	switch {
 	case errors.Is(err, ErrNoAvatar),

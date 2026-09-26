@@ -49,7 +49,7 @@ func TestNegotiateFormatFParam(t *testing.T) {
 		{"xml", "/rest/ping.view?f=xml", formatXML},
 		{"json", "/rest/ping.view?f=json", formatJSON},
 		{"absent", "/rest/ping.view", formatJSON},
-		// v1 parity: only the exact string "xml" selects XML; anything else
+		// wire parity: only the exact string "xml" selects XML; anything else
 		// silently falls back to JSON (quirks doc E4).
 		{"uppercase XML falls back", "/rest/ping.view?f=XML", formatJSON},
 		{"unknown value falls back", "/rest/ping.view?f=jsonp", formatJSON},
@@ -133,14 +133,14 @@ func TestJSONEnvelopeRoundTrip(t *testing.T) {
 	}
 }
 
-// TestXMLEnvelopeSnapshot pins the v2 XML shape conventions against what v1
+// TestXMLEnvelopeSnapshot pins the Go server XML shape conventions against what the old
 // produced for the same payload (js2xml compact, spaces:2):
 //
-//	v1:  <subsonic-response status="ok" ...>\n  <license valid="true"/>\n</subsonic-response>
+//	retired:  <subsonic-response status="ok" ...>\n  <license valid="true"/>\n</subsonic-response>
 //
 // Deltas are cosmetic and parse-identical (quirks doc E6): Go emits end
 // tags instead of self-closing, and would escape quotes in attribute values
-// numerically (&#34;) where v1 used named entities (&quot;).
+// numerically (&#34;) where the old server used named entities (&quot;).
 func TestXMLEnvelopeSnapshot(t *testing.T) {
 	rec := respondVia(func(w http.ResponseWriter, r *http.Request) {
 		respond(w, r, licenseEnvelope{Envelope: okEnvelope(), License: licenseBody{Valid: true}})
@@ -154,12 +154,12 @@ func TestXMLEnvelopeSnapshot(t *testing.T) {
 		t.Fatalf("XML snapshot mismatch:\ngot:  %s\nwant: %s", rec.Body.String(), want)
 	}
 	if strings.HasPrefix(rec.Body.String(), "<?xml") {
-		t.Fatalf("v1 emitted no XML declaration, v2 must not either: %s", rec.Body.String())
+		t.Fatalf("the old server emitted no XML declaration, the Go server must not either: %s", rec.Body.String())
 	}
 }
 
 // TestXMLFailedEnvelopeSnapshot covers the error element and the attribute
-// escaping both sides must agree on (v1 escapes & < > " in attribute
+// escaping both sides must agree on (the old server escapes & < > " in attribute
 // values; Go also escapes ' as &#39; — parse-identical).
 func TestXMLFailedEnvelopeSnapshot(t *testing.T) {
 	rec := respondVia(func(w http.ResponseWriter, r *http.Request) {
@@ -200,7 +200,7 @@ func TestJSONErrorEnvelope(t *testing.T) {
 
 // TestEmptyListJSONvsXML pins quirks doc E7/S3: the empty
 // openSubsonicExtensions list stays "[]" in JSON but produces no XML
-// element — exactly what v1's xml-js compact mapping did with empty arrays.
+// element — exactly what the old xml-js compact mapping did with empty arrays.
 func TestEmptyListJSONvsXML(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		respond(w, r, extensionsPayload{Envelope: okEnvelope(), OpenSubsonicExtensions: []string{}})
@@ -215,12 +215,12 @@ func TestEmptyListJSONvsXML(t *testing.T) {
 
 	xmlRec := respondVia(handler, "/rest/getOpenSubsonicExtensions.view?f=xml")
 	if strings.Contains(xmlRec.Body.String(), "openSubsonicExtensions") {
-		t.Fatalf("v1 dropped empty arrays from XML (E7), got: %s", xmlRec.Body.String())
+		t.Fatalf("the old server dropped empty arrays from XML (E7), got: %s", xmlRec.Body.String())
 	}
 }
 
-// TestSongXMLShapeSnapshot compares the v2 Go rendering of a song child
-// against v1's xml-js output for the equivalent JSON payload:
+// TestSongXMLShapeSnapshot compares the Go rendering of a song child
+// against the old xml-js output for the equivalent JSON payload:
 //
 //	<song id="s1" title="T" isDir="false" duration="1">
 //	  <artists id="a1" name="A &amp; B"/>
@@ -231,7 +231,7 @@ func TestEmptyListJSONvsXML(t *testing.T) {
 //
 // Same mapping: scalars as attributes, entry objects as child elements,
 // string arrays as repeated text elements; Go differs only in end-tag
-// style and the full attribute set the v2 DTO always carries.
+// style and the full attribute set the Go DTO always carries.
 func TestSongXMLShapeSnapshot(t *testing.T) {
 	type songEnvelope struct {
 		XMLName xml.Name `xml:"subsonic-response" json:"-"`

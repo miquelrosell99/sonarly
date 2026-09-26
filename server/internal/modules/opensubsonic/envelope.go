@@ -11,25 +11,25 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/httpserver"
 )
 
-// Wire constants of the subsonic-response envelope (v1 responses.ts
+// Wire constants of the subsonic-response envelope (the old responses.ts
 // parity: version and type are fixed; serverVersion comes from build info
-// instead of v1's stale "0.1.0" constant — quirks doc E2).
+// instead of the old stale "0.1.0" constant — quirks doc E2).
 const (
 	apiVersion = "1.16.1"
 	serverType = "sonarly"
 )
 
-// Subsonic error codes (quirks doc E3). v1's adapter used 10 (missing
+// Subsonic error codes (quirks doc E3). the old adapter used 10 (missing
 // auth/param), 40 (bad credentials) and — deviating from the spec's 50 —
-// 70 for "Data not found"; v2 keeps that mapping at the adapter boundary
+// 70 for "Data not found"; the Go server keeps that mapping at the adapter boundary
 // because shipped clients were tested against it.
 const (
 	CodeNotImplemented = 0
 	CodeMissingParam   = 10
 	CodeGeneric        = 20
 	CodeUnauthorized   = 40
-	CodeDataNotFound   = 50 // spec assignment; v1 actually used 70 (CodeForbidden)
-	CodeForbidden      = 70 // v1's de-facto data-not-found code, kept for wire parity
+	CodeDataNotFound   = 50 // spec assignment; the retired server actually used 70 (CodeForbidden)
+	CodeForbidden      = 70 // the old de-facto data-not-found code, kept for wire parity
 )
 
 // Response formats.
@@ -115,7 +115,7 @@ func Error(w http.ResponseWriter, r *http.Request, code int, message string) {
 }
 
 // negotiateFormat selects the response format (quirks doc E4): an explicit
-// f param wins — exactly "xml" yields XML, anything else JSON, v1 parity —
+// f param wins — exactly "xml" yields XML, anything else JSON, wire parity —
 // and only when f is absent does the Accept header get a say.
 func negotiateFormat(r *http.Request) string {
 	if f := r.URL.Query().Get("f"); f != "" {
@@ -128,7 +128,7 @@ func negotiateFormat(r *http.Request) string {
 }
 
 // acceptFormat parses an Accept header value and returns xml only when an
-// XML media type strictly outranks JSON. */* and empty headers keep the v1
+// XML media type strictly outranks JSON. */* and empty headers keep the old
 // JSON default.
 func acceptFormat(accept string) string {
 	best, bestQ := formatJSON, 0.0

@@ -1,5 +1,7 @@
 # S1 — Metadata spike findings: Go tag-reading vs v1 `music-metadata`
 
+> Historical transition-era artifact (2026-09): documents the TypeScript→Go rewrite and cutover. Version names inside refer to the pre- and post-rewrite codebases; preserved as project history.
+
 > Date: 2026-09-24 · Branch: `feat/go-rewrite` (worktree `.worktrees/go-rewrite`)
 > Gate: plan.md S1 — gates P4 (library runtime). Deliverable per plan: *"an
 > explicit accept/reject list of every tag semantic v1 supports, with product

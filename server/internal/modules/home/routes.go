@@ -30,8 +30,8 @@ func (h *Handler) Routes(r chi.Router) {
 	})
 }
 
-// home is GET /api/home. Query surface: libraryId (v1 parity), hideExplicit
-// (v2 catalog convention), limit (random section only, clamped to
+// home is GET /api/home. Query surface: libraryId (wire parity), hideExplicit
+// (Go-server catalog convention), limit (random section only, clamped to
 // [1, maxRandomLimit], default homeLimit).
 func (h *Handler) home(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()

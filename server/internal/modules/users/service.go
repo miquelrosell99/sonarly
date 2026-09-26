@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Domain rules carried over from v1.
+// Domain rules carried over from the retired server.
 const (
 	MinPasswordLength = 8
 	bcryptCost        = 12
@@ -164,9 +164,9 @@ type SetupInput struct {
 }
 
 // Setup creates the first admin. The zero-users check and the insert run in
-// one transaction (bcrypt outside it — v1 checked the count, yielded, then
+// one transaction (bcrypt outside it — the retired server checked the count, yielded, then
 // inserted, so two concurrent setups could both pass; this closes that
-// TOCTOU). The new user is an admin, like v1.
+// TOCTOU). The new user is an admin, like the retired server.
 func (s *Service) Setup(ctx context.Context, in SetupInput) (*PublicUser, error) {
 	username := strings.TrimSpace(in.Username)
 	if username == "" {
@@ -300,7 +300,7 @@ func (s *Service) CreateUser(ctx context.Context, in CreateInput) error {
 
 // AdminUpdateInput is the admin user-edit payload. Pointer fields are absent
 // (untouched) vs present; Optional* fields additionally distinguish explicit
-// null (clear the column), mirroring v1's undefined|null semantics.
+// null (clear the column), mirroring the old undefined|null semantics.
 type AdminUpdateInput struct {
 	IsAdmin         *bool          `json:"isAdmin"`
 	Name            OptionalString `json:"name"`
@@ -315,7 +315,7 @@ type AdminUpdateInput struct {
 }
 
 // UpdateUser applies an admin edit to the target user. A role or password
-// change invalidates every session of that user (audit B9, v1 parity).
+// change invalidates every session of that user (audit B9, wire parity).
 func (s *Service) UpdateUser(ctx context.Context, targetID string, in AdminUpdateInput) error {
 	existing, err := GetByID(ctx, s.db, targetID)
 	if IsNoRows(err) {

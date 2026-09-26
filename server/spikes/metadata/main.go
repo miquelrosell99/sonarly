@@ -1,5 +1,6 @@
 // S1 metadata spike: parse the corpus with github.com/dhowden/tag and dump
-// everything it extracts, for comparison against the v1 gold dump (gold_v1.json,
+// everything it extracts, for comparison against the old gold dump
+// (internal/audio/testdata/gold_legacy.json,
 // produced by dump_v1.mjs with npm music-metadata@11.14.0).
 //
 // This is a throwaway spike program, not production code. It lives in its own

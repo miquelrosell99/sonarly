@@ -1,4 +1,4 @@
-// Command sonarly runs the Sonarly v2 server (Go rewrite, exploration branch).
+// Command sonarly runs the Sonarly server.
 package main
 
 import (
@@ -90,7 +90,8 @@ func mountRoutes(ctx context.Context, srv *httpserver.Server, database *sql.DB, 
 		FFmpegPath:              cfg.FFmpegPath,
 	}, log, playlistPolicy)
 	// Players (P8): the tracker records EVERY stream through the playback
-	// service's recorder hook (v1 only saw Subsonic clients — the players
+	// service's recorder hook (the old tracker only saw Subsonic clients —
+	// the players
 	// module documents the deviation).
 	playersTracker := players.NewTracker()
 	playbackService.SetRecorder(playersTracker)
@@ -98,9 +99,9 @@ func mountRoutes(ctx context.Context, srv *httpserver.Server, database *sql.DB, 
 	players.NewHandler(playersTracker, database, authMW).Routes(srv.Router())
 
 	// Search, statistics, home, auto-dj (P8). Search runs on the FTS5
-	// indexes PersistSong maintains; statistics consolidates v1's ~20
+	// indexes PersistSong maintains; statistics consolidates the old ~20
 	// queries per request into six; home aggregates the five landing
-	// sections; auto-dj surfaces failures as 502 instead of v1's silent
+	// sections; auto-dj surfaces failures as 502 instead of the old silent
 	// empty 200.
 	search.NewHandler(search.NewService(database), authMW).Routes(srv.Router())
 	statistics.NewHandler(statistics.NewService(database), authMW).Routes(srv.Router())
@@ -165,7 +166,7 @@ func mountRoutes(ctx context.Context, srv *httpserver.Server, database *sql.DB, 
 
 	// Admin dashboard (P9c): system-tasks (definitions, manual run, the
 	// paginated history), the status counters, missing-file management, and
-	// the ingest-runs views — all v1 admin-routes.ts ports.
+	// the ingest-runs views — all ports of the old admin routes.
 	admin.NewHandler(admin.NewService(database, libraryQueue, admin.TaskIntervals{
 		ScanInterval:          cfg.ScanInterval,
 		ArtistImageInterval:   cfg.ArtistImageInterval,
@@ -182,7 +183,8 @@ func mountRoutes(ctx context.Context, srv *httpserver.Server, database *sql.DB, 
 	events.NewHandler(eventsBroker, authMW).Routes(srv.Router())
 
 	// Uploads (P7a): chunked upload sessions with streaming reassembly (the
-	// audit's F10/B11 fixes) and a stale-session sweeper v1 never had.
+	// audit's F10/B11 fixes) and a stale-session sweeper the old server
+	// never had.
 	uploadRepo := uploads.NewRepository(database)
 	uploads.NewHandler(uploadRepo, libraryQueue, authMW, cfg.DataDir, cfg.IngestPath).Routes(srv.Router())
 
@@ -243,7 +245,7 @@ func run() error {
 		ReviewCleanupInterval: cfg.ReviewCleanupInterval,
 		IngestPath:            cfg.IngestPath,
 	}).Run(ctx)
-	// Boot push of the initial scan (v1 parity); coalesces with a scan left
+	// Boot push of the initial scan (wire parity); coalesces with a scan left
 	// pending by a previous run instead of queueing a duplicate.
 	if _, err := app.libraryQueue.Push(ctx, library.JobTypeScan, library.ScanPayload{}); err != nil {
 		log.WarnContext(ctx, "initial scan enqueue failed", "err", err)

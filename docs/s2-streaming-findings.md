@@ -1,5 +1,7 @@
 # S2 — Streaming spike findings: Go `net/http` + ffmpeg vs v1 Fastify streaming
 
+> Historical transition-era artifact (2026-09): documents the TypeScript→Go rewrite and cutover. Version names inside refer to the pre- and post-rewrite codebases; preserved as project history.
+
 > Date: 2026-09-25 · Branch: `feat/go-rewrite` (worktree `.worktrees/go-rewrite`)
 > Gate: plan.md S2 — gates P5 (playback). Deliverable per plan: measured results
 > + architecture recommendation, not "it works".
@@ -345,7 +347,7 @@ sign-off):
    (audit gap: v1 native stream records nothing); vanished-file → Subsonic
    code-70 envelope (keep v1's stat-first order so ffmpeg never sees a missing
    file).
-7. Quirks-checklist entries in `docs/v2-opensubsonic-quirks.md` (P6.5):
+7. Quirks-checklist entries in `docs/opensubsonic-quirks.md` (P6.5):
    multi-range 416, HEAD+Range 200-full, `Accept-Ranges: none` on transcode,
    ID3v2-headed transcode bodies, 500-on-early-transcode-failure, 503 cap
    behavior, code-70 envelope.

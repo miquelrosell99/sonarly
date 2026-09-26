@@ -9,7 +9,7 @@ This folder contains the project documentation. Start here.
 | [deployment.md](deployment.md) | Docker deployment: production and development compose files, environment variables, volumes, permissions, updates, troubleshooting |
 | [development.md](development.md) | Local and Docker-based development: setup, scripts, testing, database migrations, code conventions |
 | [architecture.md](architecture.md) | Application structure: monorepo layout, server request pipeline, background workers, data flow, web app structure |
-| [plan.md](plan.md) | Completed engineering plan (2026-09-26): v2 Go rewrite track — preserved as project history |
+| [plan.md](plan.md) | Completed engineering plan (2026-09-26): Go rewrite track — preserved as project history |
 
 ## Feature deep dives
 
@@ -21,13 +21,13 @@ This folder contains the project documentation. Start here.
 
 | Document | What it covers |
 |---|---|
-| [api.md](api.md) | Management REST API (`/api`, contract: `v2/api/openapi.yaml`) and OpenSubsonic API (`/rest`) reference |
+| [api.md](api.md) | Management REST API (`/api`, contract: `server/api/openapi.yaml`) and OpenSubsonic API (`/rest`) reference |
 | [db-schema.md](db-schema.md) | SQLite database schema, tables, and conventions |
 | [design-language.md](design-language.md) | UI design tokens, typography, and visual principles |
-| [v2-opensubsonic-quirks.md](v2-opensubsonic-quirks.md) | The OpenSubsonic compatibility contract: envelope, auth, error codes, per-endpoint quirks |
-| [v2-cutover-readiness.md](v2-cutover-readiness.md) | v1→v2 cutover runbook, go/no-go checklist, and rollback (completed 2026-09-26) |
+| [opensubsonic-quirks.md](opensubsonic-quirks.md) | The OpenSubsonic compatibility contract: envelope, auth, error codes, per-endpoint quirks |
+| [cutover-readiness.md](cutover-readiness.md) | Production cutover runbook, go/no-go checklist, and rollback (completed 2026-09-26) |
 | [audits/2026-09-24-backend-architecture-audit.md](audits/2026-09-24-backend-architecture-audit.md) | Full backend architecture audit: findings, target architecture, migration roadmap, implementation backlog |
-| [audits/2026-09-25-frontend-architecture-audit.md](audits/2026-09-25-frontend-architecture-audit.md) | Full frontend architecture audit (Track 3): state model, player deep-dive, v2 contract alignment, FF1–FF12 |
+| [audits/2026-09-25-frontend-architecture-audit.md](audits/2026-09-25-frontend-architecture-audit.md) | Full frontend architecture audit (Track 3): state model, player deep-dive, contract alignment, FF1–FF12 |
 
 Related files in the repository root: [README.md](../README.md) (overview and quick start), [CHANGELOG.md](../CHANGELOG.md) (release notes), [CONTRIBUTING.md](../CONTRIBUTING.md) (contribution process), [SECURITY.md](../SECURITY.md) (vulnerability reporting).
 

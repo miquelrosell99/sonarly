@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// grantCache is the bounded replacement for v1's unbounded smartGrantCache:
+// grantCache is the bounded replacement for the old unbounded smartGrantCache:
 // a size-capped map with insertion-order eviction plus a per-entry TTL.
 // When full, the oldest inserted entry is dropped; expired entries are
 // dropped lazily on access. Not LRU: get does not refresh insertion order,

@@ -10,12 +10,12 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/libraries"
 )
 
-// artistColumns is the v1 artist API surface: image fields pass through to
+// artistColumns is the retired server artist API surface: image fields pass through to
 // the DTO, with the local path becoming an artistImageUrl route reference.
 const artistColumns = `ar.id, ar.name, ar.active, ar.artist_image_local_path,
 	ar.musicbrainz_artist_ids, ar.bio, ar.external_urls`
 
-// artistScopeExists matches v1's artist reachability rule: at least one
+// artistScopeExists matches the old artist reachability rule: at least one
 // active song whose library is in scope (optionally within one library).
 // The placeholder order is [library_id?, ...scope ids].
 const artistScopeExists = `EXISTS (
@@ -66,7 +66,7 @@ func (r *artistRow) toArtist() Artist {
 	return a
 }
 
-// listArtists returns active artists reachable under the scope (v1 parity:
+// listArtists returns active artists reachable under the scope (wire parity:
 // an artist appears when at least one of its songs is an in-scope active
 // song; admins with no library filter see every active artist).
 func listArtists(ctx context.Context, q auth.Queries, userID, libraryID string, scope libraries.Scope) ([]Artist, error) {

@@ -13,7 +13,7 @@ import (
 
 // Handler wires the playlists service to HTTP. Route handlers parse and
 // validate; the service enforces the access policy through Resolve; the
-// route layer maps sentinel errors onto the v2 error contract
+// route layer maps sentinel errors onto the Go server error contract
 // ({"error": "..."}). Every route is behind RequireAuth — anonymous
 // share-token consumption happens through the streaming endpoint (P5) and,
 // in P9, the OpenSubsonic adapter, both of which consult the same policy.
@@ -28,9 +28,9 @@ func NewHandler(svc *Service, mw *auth.Middleware) *Handler {
 
 // Routes registers the playlist endpoints behind session auth. The detail
 // GET exempts requests carrying a shareToken from the session requirement
-// (v1's public-route list, docs/api.md): the service's policy is the one
+// (the old public-route list, docs/api.md): the service's policy is the one
 // access gate — a wrong token still answers the service's 404, and
-// anonymous callers without any token are rejected here exactly like v1's
+// anonymous callers without any token are rejected here exactly like the old 
 // session preHandler rejected them.
 func (h *Handler) Routes(r chi.Router) {
 	r.Group(func(r chi.Router) {
@@ -48,7 +48,7 @@ func (h *Handler) Routes(r chi.Router) {
 }
 
 // shareTokenOrAuth runs the session parser always, but enforces a logged-in
-// caller only when no shareToken is present (mirrors v1's exemption of
+// caller only when no shareToken is present (mirrors the old exemption of
 // GET /api/playlists/:id?shareToken=... from the session gate).
 func (h *Handler) shareTokenOrAuth(next http.Handler) http.Handler {
 	return h.mw.AuthMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +92,7 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 // createBody mirrors the POST body; presence of Rules makes the playlist
-// smart (v1's explicit isSmart flag folded into the rules presence).
+// smart (the old explicit isSmart flag folded into the rules presence).
 type createBody struct {
 	Name        string          `json:"name"`
 	Description string          `json:"description"`

@@ -1,6 +1,6 @@
 // Review-folder retention cleanup tests: aged files in any review/ folder
 // under the ingest path are deleted, fresh files survive, the settings
-// value is clamped to 1–365 like v1, and a successful run anchors the
+// value is clamped to 1–365 like the retired server, and a successful run anchors the
 // scheduler's last_review_cleanup timestamp.
 package ingest_test
 
@@ -65,7 +65,7 @@ func TestRunReviewCleanupAgesFilesOut(t *testing.T) {
 		t.Error("non-review file was deleted")
 	}
 
-	// The scheduler's anchor is written (v1: handler marks the last run).
+	// The scheduler's anchor is written (old: handler marks the last run).
 	var last string
 	if err := e.db.QueryRow(`SELECT value FROM settings WHERE key = 'last_review_cleanup'`).Scan(&last); err != nil {
 		t.Errorf("last_review_cleanup not written: %v", err)

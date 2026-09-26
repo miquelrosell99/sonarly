@@ -3,7 +3,7 @@ package autodj
 import "encoding/json"
 
 // decodePreferences parses the user_preferences JSON blob. Callers treat a
-// parse error as "no preferences" (v1's try/catch → defaults).
+// parse error as "no preferences" (the old try/catch → defaults).
 func decodePreferences(raw string) (map[string]any, error) {
 	var prefs map[string]any
 	if err := json.Unmarshal([]byte(raw), &prefs); err != nil {

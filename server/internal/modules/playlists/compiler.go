@@ -53,7 +53,7 @@ type fieldSpec struct {
 	userScoped bool   // resolves against the compiling user's row
 }
 
-// fieldWhitelist is THE field table (v1 compiler.ts fieldColumn, with the
+// fieldWhitelist is THE field table (old compiler.ts fieldColumn, with the
 // fixes: unknown fields are a 400 here instead of silently compiling
 // against s.title, and genre is the song_genres junction so secondary
 // genres match).
@@ -73,8 +73,8 @@ var fieldWhitelist = map[string]fieldSpec{
 	"lastplayed":  {kind: kindDate, expr: "us.last_played", join: joinUserSongs, userScoped: true},
 }
 
-// operatorsByKind validates operator/field compatibility (v1 fell through
-// to '1=1' for mismatches; v2 rejects them). isMissing/isPresent and
+// operatorsByKind validates operator/field compatibility (old fell through
+// to '1=1' for mismatches; the Go server rejects them). isMissing/isPresent and
 // inPlaylist/notInPlaylist are valid on any field.
 var operatorsByKind = map[fieldKind]map[string]bool{
 	kindString:  {"is": true, "isNot": true, "contains": true, "notContains": true, "startsWith": true, "endsWith": true},
@@ -118,7 +118,7 @@ func (c *compileCtx) ensureJoin(join string) {
 // parameterized SQL. userID is the user the user-scoped fields (loved,
 // rating, playcount, lastplayed) resolve against — the playlist owner for
 // 'tracks' resolve mode, the viewer for 'query' — and the owner the
-// inPlaylist rule verifies membership against (v1 fix: a rule may only
+// inPlaylist rule verifies membership against (old fix: a rule may only
 // reference the compiling user's own playlists). All rule values are bound
 // parameters; LIKE metacharacters are escaped with ESCAPE '\'; LIMIT is
 // always a bound parameter (limitPercent is resolved through the count
@@ -174,7 +174,7 @@ func Compile(ctx context.Context, q auth.Queries, rules *Rules, userID string) (
 	}, nil
 }
 
-// compileGroup ANDs the all-parts with the any-parts (v1 parity: single
+// compileGroup ANDs the all-parts with the any-parts (wire parity: single
 // level, no nesting).
 func compileGroup(c *compileCtx, g *RuleGroup) (string, error) {
 	parts := []string{}
@@ -252,7 +252,7 @@ func compileRule(c *compileCtx, rule Rule) (string, error) {
 }
 
 // compileStringRule handles plain string fields and the genre junction.
-// Junction semantics differ deliberately from v1's s.genre_id match: a
+// Junction semantics differ deliberately from the old s.genre_id match: a
 // negated match (isNot/notContains/isMissing) is true for songs carrying no
 // genre at all — "no genre equals X" — instead of falling out through a
 // LEFT JOIN NULL.
@@ -361,7 +361,7 @@ func compileDateRule(c *compileCtx, rule Rule, spec fieldSpec) (string, error) {
 		if err != nil {
 			return "", rulesErrorf("field %q: %v", rule.Field, err)
 		}
-		// Bound parameter, never interpolated (v1 interpolated the digits
+		// Bound parameter, never interpolated (old interpolated the digits
 		// into the SQL text; the value is bound here).
 		modifier := "-" + strconv.Itoa(days) + " days"
 		p := c.pushParam(modifier)
@@ -383,7 +383,7 @@ func compileDateRule(c *compileCtx, rule Rule, spec fieldSpec) (string, error) {
 }
 
 // compileInPlaylist builds the inPlaylist EXISTS, verifying the referenced
-// playlist exists and belongs to the compiling user (v1 accepted any id —
+// playlist exists and belongs to the compiling user (old accepted any id —
 // a rule could leak foreign playlists' membership).
 func compileInPlaylist(c *compileCtx, rule Rule) (string, error) {
 	pid, err := stringValue(rule.Value)
@@ -482,7 +482,7 @@ func resolveLimit(c *compileCtx, rules *Rules, countSQL string, countParams []an
 }
 
 // escapeLike prefixes LIKE metacharacters with the backslash escape char
-// (v1 parity; the clauses carry ESCAPE '\').
+// (wire parity; the clauses carry ESCAPE '\').
 func escapeLike(s string) string {
 	r := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 	return r.Replace(s)
@@ -561,7 +561,7 @@ func boolValue(v any) (bool, error) {
 	}
 }
 
-// daysValue mirrors v1's digit-stripping parse of inTheLast values
+// daysValue mirrors the old digit-stripping parse of inTheLast values
 // ("7", "7 days", 7 → 7); anything without digits is 0 (match nothing
 // recent / everything not-recent, per the operator).
 func daysValue(v any) (int, error) {

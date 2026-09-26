@@ -34,7 +34,7 @@ func TestParseChunkIndex(t *testing.T) {
 		{"0", 0, false},
 		{"7", 7, false},
 		{"9999", 9999, false},
-		{"01", 1, false}, // digits-only, leading zero: v1 accepted it too
+		{"01", 1, false}, // digits-only, leading zero: the retired server accepted it too
 		{"10000", 0, true},
 		{"", 0, true},
 		{"-1", 0, true},
@@ -61,7 +61,7 @@ func TestIsSafeRelativePath(t *testing.T) {
 	safe := []string{
 		"spike.mp3",
 		"incoming/spike.mp3",
-		`incoming\nested\spike.mp3`, // backslash is a filename char on the Linux server (v1 parity)
+		`incoming\nested\spike.mp3`, // backslash is a filename char on the Linux server (wire parity)
 		"a//b.mp3",
 		"./x.mp3",
 		"a/b/c.flac",

@@ -201,7 +201,7 @@ func TestSuggestionsLimitClamp(t *testing.T) {
 	if got := suggestionsOf(t, rec); len(got) != 3 {
 		t.Fatalf("default limit gave %v", got)
 	}
-	// Zero limit falls back too (v1's Number(limit) || 20).
+	// Zero limit falls back too (the old Number(limit) || 20).
 	rec = s.do(t, http.MethodGet, "/api/suggestions?field=artist&q=a&limit=0", admin)
 	if got := suggestionsOf(t, rec); len(got) != 3 {
 		t.Fatalf("limit=0 gave %v", got)

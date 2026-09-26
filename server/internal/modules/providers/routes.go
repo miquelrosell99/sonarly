@@ -1,4 +1,4 @@
-// HTTP wiring for the provider proxies (admin-gated, v1 parity). Error
+// HTTP wiring for the provider proxies (admin-gated, wire parity). Error
 // surfaces stay bounded: upstream statuses, URLs, and body fragments never
 // reach the client — a failed proxy answers 502 with a generic message and
 // the details stay in the server log.
@@ -21,7 +21,7 @@ func slogError(ctx context.Context, msg string, err error) {
 	slog.ErrorContext(ctx, msg, "err", err)
 }
 
-// mbSearchLimit is v1's default search limit.
+// mbSearchLimit is the old default search limit.
 const mbSearchLimit = 5
 
 // Handler wires the provider endpoints to HTTP.
@@ -46,7 +46,7 @@ func (h *Handler) Routes(r chi.Router) {
 	})
 }
 
-// searchMusicBrainz is v1's GET /api/musicbrainz/search: entityType
+// searchMusicBrainz is the old GET /api/musicbrainz/search: entityType
 // song|album|artist, an optional exact mbid lookup falling through to the
 // query search.
 func (h *Handler) searchMusicBrainz(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +109,7 @@ func (h *Handler) searchMusicBrainz(w http.ResponseWriter, r *http.Request) {
 	httpserver.JSON(w, http.StatusOK, map[string]any{"matches": matches})
 }
 
-// searchLrcLib is v1's GET /api/lrclib/search: title required, the rest
+// searchLrcLib is the old GET /api/lrclib/search: title required, the rest
 // optional; duration is a number when present.
 func (h *Handler) searchLrcLib(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()

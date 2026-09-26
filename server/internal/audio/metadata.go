@@ -1,9 +1,9 @@
-// Package audio is Sonarly v2's production audio metadata reader (P4a),
-// fulfilling the S1 sign-off list in docs/v2-s1-metadata-findings.md:
+// Package audio is Sonarly's production audio metadata reader (P4a),
+// fulfilling the S1 sign-off list in docs/s1-metadata-findings.md:
 //
 //   - tagfork: owned fork of github.com/dhowden/tag with the S1-approved
 //     patches W1 (multi-value tags) and W2 (m4a rtng/tmpo), vendored at
-//     v2/internal/audio/tagfork/. P9c added W3: atoms carrying several
+//     server/internal/audio/tagfork/. P9c added W3: atoms carrying several
 //     `data` children (mutagen's multi-value layout) read every child
 //     instead of folding the trailing children into the value as garbage
 //     bytes — the tag-edit round trip depends on it.
@@ -11,7 +11,7 @@
 //   - properties.go: W5 hand-rolled duration/bitrate/sampleRate/channels
 //     reader (dhowden/tag provides tags only).
 //
-// ReadMetadata is the v2 entry point replacing v1's
+// ReadMetadata is the Go entry point replacing the retired server's
 // packages/server/src/features/tags/reader.ts (readMetadata). It never
 // panics: malformed files yield a wrapped error (the scanner recovers
 // per-file on top of that).
@@ -28,20 +28,20 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/audio/tagfork"
 )
 
-// Picture is embedded cover art (v1 CoverArtPicture: data + mime).
+// Picture is embedded cover art (data + mime).
 type Picture struct {
 	Data     []byte
 	MIMEType string
 }
 
-// Metadata is the v1-equivalent audio metadata schema (reader.ts
-// AudioMetadata). Numeric/string zero values mean "absent" (v1's
+// Metadata is the audio metadata schema (reader.ts AudioMetadata,
+// unchanged). Numeric/string zero values mean "absent" (the retired
 // `?? undefined`); Explicit and Compilation use pointers because false-vs-
-// absent is observable in v1 (detectExplicit / common.compilation).
+// absent is observable in the old reader (detectExplicit / common.compilation).
 type Metadata struct {
 	Title        string
 	Artist       string   // display artist (first tag value)
-	Artists      []string // multi-value artists, v1 splitArtists applied
+	Artists      []string // multi-value artists, splitArtists applied
 	Album        string
 	AlbumArtist  string
 	AlbumArtists []string
@@ -55,7 +55,7 @@ type Metadata struct {
 	Composers    []string
 	Producers    []string
 	Labels       []string
-	ReleaseType  string // v1 primaryReleaseType: prefers "soundtrack"
+	ReleaseType  string // primaryReleaseType: prefers "soundtrack"
 	Comment      string
 	BPM          int
 
@@ -86,7 +86,7 @@ type Metadata struct {
 
 // ReadMetadata reads tags and stream properties for the file at path.
 // Tag parsing failures are not fatal when the file is still identifiable:
-// v1 returns metadata with a filename-fallback title for untagged files, so
+// The old reader returned metadata with a filename-fallback title for untagged files, so
 // this does too (properties are still read). Unidentifiable/unreadable files
 // return an error.
 func ReadMetadata(path string) (md *Metadata, err error) {
@@ -111,7 +111,7 @@ func ReadMetadata(path string) (md *Metadata, err error) {
 			return nil, e
 		}
 	} else {
-		// Untagged/undetectable tag section: keep v1's filename-fallback
+		// Untagged/undetectable tag section: keep the filename-fallback
 		// behavior; properties below still apply.
 		md.Title = filenameStem(path)
 	}
@@ -123,7 +123,7 @@ func ReadMetadata(path string) (md *Metadata, err error) {
 	return md, nil
 }
 
-// fillTags maps the tagfork Metadata onto the v1 schema.
+// fillTags maps the tagfork Metadata onto the native schema.
 func (md *Metadata) fillTags(tm tagfork.Metadata, path string) error {
 	raw := tm.Raw()
 
@@ -143,7 +143,7 @@ func (md *Metadata) fillTags(tm tagfork.Metadata, path string) error {
 	md.Compilation = findCompilation(tm, raw)
 
 	if md.Title == "" {
-		md.Title = filenameStem(path) // v1 getFilenameFallback
+		md.Title = filenameStem(path) // old getFilenameFallback
 	}
 
 	switch tm.Format() {
@@ -158,7 +158,7 @@ func (md *Metadata) fillTags(tm tagfork.Metadata, path string) error {
 		fillMP4(md, tm, raw)
 	}
 
-	// v1 reader.ts: displayArtist/albumArtists go through splitArtists.
+	// reader.ts: displayArtist/albumArtists go through splitArtists.
 	md.Artists = splitArtists(flattenStrings(rawArtistValues(tm, raw)))
 	md.Artist = firstString(rawArtistValues(tm, raw))
 	md.AlbumArtists = splitArtists(flattenStrings(rawAlbumArtistValues(tm, raw)))
@@ -168,7 +168,7 @@ func (md *Metadata) fillTags(tm tagfork.Metadata, path string) error {
 
 // ------------------------------------------------------------------ helpers
 
-// filenameStem mirrors v1 getFilenameFallback: basename minus the extension.
+// filenameStem mirrors the old getFilenameFallback: basename minus the extension.
 func filenameStem(path string) string {
 	base := filepath.Base(path)
 	if ext := filepath.Ext(base); ext != "" {
@@ -177,11 +177,11 @@ func filenameStem(path string) string {
 	return base
 }
 
-// artistSplitRe mirrors v1 ARTIST_SPLIT_REGEX:
+// artistSplitRe mirrors ARTIST_SPLIT_REGEX:
 // /\s*[,;/]\s*|\s+&\s+|\s+feat\.\s+|\s+featuring\s+|\s+ft\.\s+/i
 var artistSplitRe = regexp.MustCompile(`\s*[,;/]\s*|\s+&\s*|\s+(?i:feat\.|featuring|ft\.)\s*`)
 
-// splitArtists ports v1 splitArtists.
+// splitArtists ports the old splitArtists.
 func splitArtists(values []string) []string {
 	var out []string
 	for _, value := range values {
@@ -201,7 +201,7 @@ func splitArtists(values []string) []string {
 	return out
 }
 
-// primaryReleaseType ports v1's 3-line preference fn: multi-value
+// primaryReleaseType ports the old 3-line preference fn: multi-value
 // "album; soundtrack" prefers the specific "soundtrack" marker.
 func primaryReleaseType(values []string) string {
 	if len(values) == 0 {
@@ -322,8 +322,8 @@ func parseIntLoose(s string) (int, bool) {
 	return n, true
 }
 
-// parseReplayGain parses v1's replaygain value into dB: "-7.03 dB" → -7.03.
-// Falls back to treating the value as a plain number (v1 ratio fallback).
+// parseReplayGain parses the old replaygain value into dB: "-7.03 dB" → -7.03.
+// Falls back to treating the value as a plain number (ratio fallback).
 func parseReplayGain(s string) (float64, bool) {
 	s = strings.TrimSpace(s)
 	s = strings.TrimSuffix(s, "dB")

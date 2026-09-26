@@ -128,7 +128,7 @@ func TestGenreTreeScopeMatrix(t *testing.T) {
 	t.Run("scoped tree keeps carriers for in-scope children", func(t *testing.T) {
 		// g-techno and g-drift have in-scope songs for alice. Their
 		// out-of-scope ancestors survive as structural carriers, so the
-		// children stay nested under their real parents (v1 prune rule);
+		// children stay nested under their real parents (old prune rule);
 		// g-ambient's branch survives only through g-drift.
 		got := tree(s.session(t, "user-alice", "alice", false))
 		want := []node{
@@ -260,7 +260,7 @@ func TestCoverArt(t *testing.T) {
 		}
 	})
 	t.Run("orphan art is 404 for scoped users only", func(t *testing.T) {
-		// Unrestricted admins can fetch any stored blob (v1 parity);
+		// Unrestricted admins can fetch any stored blob (wire parity);
 		// scoped users get 404 because no reachable song references it.
 		for _, tc := range []struct {
 			cookie *http.Cookie

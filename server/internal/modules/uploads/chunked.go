@@ -1,6 +1,6 @@
 // Chunk store, streaming reassembly and the ingest move. The invariants
 // here answer the audit's F10/B11 findings: reassembly streams chunk→file
-// (never more than the io.Copy buffer is resident, a far cry from v1's
+// (never more than the io.Copy buffer is resident, a far cry from the old 
 // read-all-then-Buffer.concat), the cumulative size cap is enforced
 // incrementally while streaming, and a missing chunk is a typed 4xx error
 // carrying the index, not an fs read failure surfacing as a 500.
@@ -20,13 +20,13 @@ import (
 // Limits. They are variables (not constants) so tests can lower them; the
 // chunk PUT and the reassembler read them at call time. The 1 GiB file cap
 // exists so a malicious totalChunks cannot make the server write unbounded
-// disk — v1 enforced the same number but after buffering everything.
+// disk — the retired server enforced the same number but after buffering everything.
 var (
 	// MaxTotalChunks bounds the per-file chunk count and the chunk index
 	// (0..9999). 10_000 × 10 MiB already overshoots MaxFileBytes.
 	MaxTotalChunks = 10_000
-	// MaxChunkBytes caps one chunk PUT (v1's multipart parts were
-	// implicitly bounded by the global body limit; v2 states it).
+	// MaxChunkBytes caps one chunk PUT (the old multipart parts were
+	// implicitly bounded by the global body limit; the Go server states it).
 	MaxChunkBytes int64 = 10 << 20
 	// MaxFileBytes is the per-file reassembly cap, enforced incrementally.
 	MaxFileBytes int64 = 1 << 30
@@ -42,7 +42,7 @@ var (
 	ErrFileTooLarge        = errors.New("file too large")
 )
 
-// MissingChunkError is the typed 4xx for a gap at reassembly time (v1
+// MissingChunkError is the typed 4xx for a gap at reassembly time (old
 // lesson: a missing chunk surfaced as a 500 read error, teaching clients
 // nothing). Index is the first chunk index with no file on disk.
 type MissingChunkError struct {
@@ -53,7 +53,7 @@ func (e MissingChunkError) Error() string {
 	return fmt.Sprintf("missing chunk %d", e.Index)
 }
 
-// IsValidFileID ports v1's FILE_ID_PATTERN. The id doubles as a directory
+// IsValidFileID ports the old FILE_ID_PATTERN. The id doubles as a directory
 // name, so it must be strictly alphanumeric/dash/underscore.
 func IsValidFileID(fileID string) bool {
 	if fileID == "" {
@@ -89,7 +89,7 @@ func ParseChunkIndex(raw string) (int, error) {
 	return n, nil
 }
 
-// IsSafeRelativePath ports v1's guard: reject empty and absolute paths and
+// IsSafeRelativePath ports the old guard: reject empty and absolute paths and
 // any ".." segment on either separator, before the path ever joins the
 // session dir. Reassembly re-checks containment on the resolved path — the
 // double guard stays.
@@ -112,7 +112,7 @@ func chunkPath(sessionDir, fileID string, index int) string {
 
 // WriteChunk stores one chunk at <sessionDir>/chunks/<fileId>/<index>,
 // streaming r and refusing more than MaxChunkBytes. A re-PUT of the same
-// index overwrites (retry/idempotency support, v1 parity). The chunk lands
+// index overwrites (retry/idempotency support, wire parity). The chunk lands
 // via a temp file + rename so a crash mid-PUT cannot leave a truncated
 // chunk that reassembly would concatenate silently.
 func WriteChunk(sessionDir, fileID string, index int, r io.Reader) (int64, error) {
@@ -174,7 +174,7 @@ func ReassembleFile(sessionDir, fileID string, totalChunks int, relativePath str
 
 	filesDir := filepath.Join(sessionDir, "files")
 	target := filepath.Join(filesDir, relativePath)
-	// Resolved-containment re-check (v1's double guard): the lexical
+	// Resolved-containment re-check (the old double guard): the lexical
 	// IsSafeRelativePath filter runs first, this one proves the joined,
 	// resolved path still cannot escape the session.
 	absFilesDir, err := filepath.Abs(filesDir)
@@ -236,7 +236,7 @@ func ReassembleFile(sessionDir, fileID string, totalChunks int, relativePath str
 	return relativePath, total, nil
 }
 
-// MoveSessionFilesToIngest ports v1's moveDirectoryContents: every file
+// MoveSessionFilesToIngest ports the old moveDirectoryContents: every file
 // under <sessionDir>/files is renamed into ingestDir keeping its relative
 // path; EXDEV (cross-device) falls back to copy+unlink. It returns the moved
 // file count. A missing files dir means nothing was reassembled — nothing
@@ -244,7 +244,7 @@ func ReassembleFile(sessionDir, fileID string, totalChunks int, relativePath str
 // is worth an ingest job).
 //
 // The move is non-atomic by nature: a crash between renames leaves some
-// files moved and some not. That is the same window v1 had, and the safety
+// files moved and some not. That is the same window the retired server had, and the safety
 // net is the same too — the scanner/ingest reconciliation re-derives the
 // library from what is actually on disk, so a half-moved file is either
 // ingested on the next pass or its source half is re-uploaded.
@@ -282,7 +282,7 @@ func MoveSessionFilesToIngest(sessionDir, ingestDir string) (int, error) {
 }
 
 // moveFile renames, converting cross-device renames (EXDEV) into
-// copy+unlink — v1's fallback, for when DATA_DIR and INGEST_PATH live on
+// copy+unlink — the old fallback, for when DATA_DIR and INGEST_PATH live on
 // different mounts (the stock docker layout does exactly that).
 func moveFile(sourcePath, targetPath string) error {
 	if err := os.Rename(sourcePath, targetPath); err != nil {

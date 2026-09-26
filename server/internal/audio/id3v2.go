@@ -1,8 +1,8 @@
 // ID3v1/v2 extraction for the ReadMetadata facade: maps tagfork raw frames
-// onto the v1 schema, plus the detectExplicit port (reader.ts). mp3
-// producers are intentionally NOT extracted: v1 drops v2.4 TIPL producers
-// too (music-metadata maps only v2.3 IPLS), so doing nothing is parity
-// (docs/v2-s1-metadata-findings.md §5 W3).
+// onto the native schema, plus the detectExplicit port (reader.ts). mp3
+// producers are intentionally NOT extracted: the retired reader dropped v2.4
+// TIPL producers too (music-metadata maps only v2.3 IPLS), so doing nothing
+// is parity (docs/s1-metadata-findings.md §5 W3).
 
 package audio
 
@@ -59,8 +59,8 @@ func atoiDefault(s string, def int) int {
 // txxxValues collects the values of every TXXX frame with the given
 // description, in file order. Multi-value frames are NUL-separated, and
 // music-metadata additionally splits a single value on ';' — both splits
-// are applied so MBID lists match v1's reader (P10: v1 stored ["id1,id2"]
-// from one "id1;id2" TXXX while v2 kept the joined string).
+// are applied so MBID lists match the retired reader (P10: it stored
+// ["id1,id2"] from one "id1;id2" TXXX while the Go port kept the joined string).
 func txxxValues(raw map[string]interface{}, desc string) []string {
 	var out []string
 	seen := map[string]bool{}
@@ -112,7 +112,8 @@ func fillID3v2(md *Metadata, tm tagfork.Metadata, raw map[string]interface{}) {
 		md.ReplayGainAlbum = v
 	}
 
-	// Synced lyrics via LRC-in-TXXX (S1 row 26; the native SYLT branch in v1
+	// Synced lyrics via LRC-in-TXXX (S1 row 26; the native SYLT branch in the
+// retired reader
 	// is dead code and intentionally not replicated).
 	for _, c := range txxxFrames(raw) {
 		desc := strings.ToUpper(c.Description)
@@ -146,7 +147,8 @@ func fillID3v1(md *Metadata, tm tagfork.Metadata) {
 //   - vorbis: ITUNESADVISORY / ADVISORY comment value "1"
 //   - MP4: rtng atom (iTunes rating) value 1 (W2 patch exposes it)
 //
-// A present-but-clean marker yields *false; absence yields nil (v1's
+// A present-but-clean marker yields *false; absence yields nil (the retired
+// reader's
 // boolean | undefined).
 func detectExplicit(tm tagfork.Metadata, raw map[string]interface{}) *bool {
 	explicit := func(on bool) *bool { return &on }

@@ -2,8 +2,8 @@
 // store, the signed session cookie, the auth middleware chain, API-key
 // verification, and the secret-box helpers used for at-rest credentials.
 //
-// It mirrors v1's features/auth (session.ts, api-keys.ts, encryption.ts,
-// password.ts) with the same wire shapes so a v1 client works unchanged.
+// It mirrors the old features/auth (session.ts, api-keys.ts, encryption.ts,
+// password.ts) with the same wire shapes so a retired server client works unchanged.
 package auth
 
 import (
@@ -16,7 +16,7 @@ import (
 )
 
 // SessionTTL is the absolute session lifetime: 7 days, no rolling renewal
-// (v1: cookie maxAge 7d, store expire = now + maxAge).
+// (old: cookie maxAge 7d, store expire = now + maxAge).
 const SessionTTL = 7 * 24 * time.Hour
 
 // Session is the payload stored in the sessions table's sess column.
@@ -52,7 +52,7 @@ func NewStore(db Queries) *Store {
 	return &Store{db: db, now: time.Now}
 }
 
-// iso renders t the way v1 did (toISOString): UTC with millisecond precision,
+// iso renders t the way the retired server did (toISOString): UTC with millisecond precision,
 // so expire strings written by either implementation compare consistently.
 func iso(t time.Time) string {
 	return t.UTC().Format("2006-01-02T15:04:05.000Z07:00")
@@ -77,7 +77,7 @@ func (s *Store) Create(ctx context.Context, sid string, sess Session) error {
 }
 
 // Get loads the session for sid. An expired or missing session is reported as
-// ErrNotFound, matching the store contract v1's get() had.
+// ErrNotFound, matching the store contract the old get() had.
 func (s *Store) Get(ctx context.Context, sid string) (*Session, error) {
 	var payload string
 	err := s.db.QueryRowContext(ctx,
@@ -108,7 +108,7 @@ func (s *Store) Delete(ctx context.Context, sid string) error {
 
 // DeleteAllForUser removes every session belonging to userID. The sessions
 // table has no user_id column (the payload is an opaque JSON blob), so this
-// scans and filters in Go, ignoring malformed payloads — exactly what v1's
+// scans and filters in Go, ignoring malformed payloads — exactly what the old 
 // deleteSessionsForUser did.
 func (s *Store) DeleteAllForUser(ctx context.Context, userID string) error {
 	return deleteAllForUser(ctx, s.db, userID)
@@ -152,7 +152,7 @@ func deleteAllForUser(ctx context.Context, q Queries, userID string) error {
 	return nil
 }
 
-// SweepExpired deletes every expired session. v1 ran it once at startup and
+// SweepExpired deletes every expired session. the retired server ran it once at startup and
 // then hourly; the sweeper goroutine in cmd/sonarly keeps that cadence.
 func (s *Store) SweepExpired(ctx context.Context) (int64, error) {
 	res, err := s.db.ExecContext(ctx, `DELETE FROM sessions WHERE expire <= ?`, iso(s.now()))

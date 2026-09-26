@@ -31,7 +31,7 @@ func (h *Handler) Routes(r chi.Router) {
 }
 
 // search is GET /api/search?q=&type=&limit=&hideExplicit=. The envelope is
-// always the full v1 shape; unasked categories come back empty.
+// always the full the retired server shape; unasked categories come back empty.
 func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	rawType := q.Get("type")

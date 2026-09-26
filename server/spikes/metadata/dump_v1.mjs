@@ -1,4 +1,4 @@
-// Gold-standard dump: run v1's actual tag reader (npm music-metadata@11.14.0,
+// Gold-standard dump: run the retired server's actual tag reader (npm music-metadata@11.14.0,
 // the exact version pnpm-locked in the main checkout) against the spike corpus.
 //
 // Usage (from anywhere):

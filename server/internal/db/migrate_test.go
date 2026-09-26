@@ -1,10 +1,11 @@
 package db
 
-// Regression tests for the P10b gap: a v1-shaped database (tables pre-date
-// the v2 migrations, rows written raw the way v1's better-sqlite3 bindings
-// wrote them) must end up fully searchable after Migrate, on both the
-// fresh-migration path and the already-migrated-dev-database path, and the
-// 0004 backfill must be safe to re-run.
+// Regression tests for the P10b gap: a legacy-shaped database (tables
+// pre-dating these migrations, rows written raw the way the retired
+// better-sqlite3 bindings wrote them) must end up fully searchable after
+// Migrate, on both the fresh-migration path and the
+// already-migrated-dev-database path, and the 0004 backfill must be safe to
+// re-run.
 
 import (
 	"context"
@@ -35,11 +36,11 @@ func execMigrationFile(t *testing.T, database *sql.DB, name string) {
 	}
 }
 
-// seedV1ShapedLibrary inserts catalog rows the way v1's scanner did: raw
-// better-sqlite3 bindings of JS values — fractional REAL mtimes/durations, a
-// TEXT mtime, NULL genres, an album with a NULL denormalized artist_name —
-// with no FTS maintenance whatsoever.
-func seedV1ShapedLibrary(t *testing.T, database *sql.DB) {
+// seedLegacyShapedLibrary inserts catalog rows the way the retired
+// scanner did: raw better-sqlite3 bindings of JS values — fractional REAL
+// mtimes/durations, a TEXT mtime, NULL genres, an album with a NULL
+// denormalized artist_name — with no FTS maintenance whatsoever.
+func seedLegacyShapedLibrary(t *testing.T, database *sql.DB) {
 	t.Helper()
 	if _, err := database.Exec(`
 		INSERT INTO artists (id, name, active) VALUES ('ar-1', 'Alpha', 1);
@@ -51,7 +52,7 @@ func seedV1ShapedLibrary(t *testing.T, database *sql.DB) {
 			('s-2', '/m/2.flac', 'Green Lights', 'ar-1', 'al-2', 'Jazz', '1785303722784', 'k2', 1, 210.75),
 			('s-3', '/m/3.flac', 'Blue Ghost', 'ar-1', 'al-1', NULL, 1785303723784, 'k3', 0, 199);
 	`); err != nil {
-		t.Fatalf("seed v1-shaped library: %v", err)
+		t.Fatalf("seed legacy-shaped library: %v", err)
 	}
 }
 
@@ -77,19 +78,19 @@ func ftsSnapshot(t *testing.T, database *sql.DB) map[string]int {
 	return out
 }
 
-func openV1ShapedDB(t *testing.T) *sql.DB {
+func openLegacyShapedDB(t *testing.T) *sql.DB {
 	t.Helper()
 	database, err := Open(context.Background(), ":memory:")
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { database.Close() })
-	// v1 tables exist, built by v1's own migration chain; the ledger records
-	// 0001+0002 as a migrated v1 database would.
+	// Legacy tables exist, built by the pre-rewrite migration chain; the
+	// ledger records 0001+0002 as a migrated legacy database would.
 	execMigrationFile(t, database, "0001_baseline.sql")
 	execMigrationFile(t, database, "0002_job_payload.sql")
 	recordApplied(t, database, "0001_baseline.sql", "0002_job_payload.sql")
-	seedV1ShapedLibrary(t, database)
+	seedLegacyShapedLibrary(t, database)
 	return database
 }
 
@@ -109,7 +110,7 @@ func recordApplied(t *testing.T, database *sql.DB, names ...string) {
 }
 
 func TestMigrateBackfillsV1ShapedLibraryFTS(t *testing.T) {
-	database := openV1ShapedDB(t)
+	database := openLegacyShapedDB(t)
 	if err := Migrate(context.Background(), database); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
@@ -148,7 +149,7 @@ func TestMigrateBackfillsV1ShapedLibraryFTS(t *testing.T) {
 }
 
 func TestFTSBackfillMigrationIsIdempotent(t *testing.T) {
-	database := openV1ShapedDB(t)
+	database := openLegacyShapedDB(t)
 	if err := Migrate(context.Background(), database); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
@@ -167,8 +168,8 @@ func TestFTSBackfillMigrationIsIdempotent(t *testing.T) {
 }
 
 func TestMigrateFreshAndExistingDBsConverge(t *testing.T) {
-	// Fresh path: v1 tables + rows first, then the whole 0001-0004 chain.
-	fresh := openV1ShapedDB(t)
+	// Fresh path: legacy tables + rows first, then the whole 0001-0004 chain.
+	fresh := openLegacyShapedDB(t)
 	if err := Migrate(context.Background(), fresh); err != nil {
 		t.Fatalf("migrate fresh: %v", err)
 	}
@@ -185,7 +186,7 @@ func TestMigrateFreshAndExistingDBsConverge(t *testing.T) {
 	execMigrationFile(t, existing, "0002_job_payload.sql")
 	execMigrationFile(t, existing, "0003_search_fts.sql") // backfills empty tables
 	recordApplied(t, existing, "0001_baseline.sql", "0002_job_payload.sql", "0003_search_fts.sql")
-	seedV1ShapedLibrary(t, existing)
+	seedLegacyShapedLibrary(t, existing)
 	if err := Migrate(context.Background(), existing); err != nil {
 		t.Fatalf("migrate existing: %v", err)
 	}
@@ -199,7 +200,7 @@ func TestMigrateFreshAndExistingDBsConverge(t *testing.T) {
 }
 
 func TestBackfillRerunKeepsDeactivatedSongsOut(t *testing.T) {
-	database := openV1ShapedDB(t)
+	database := openLegacyShapedDB(t)
 	if err := Migrate(context.Background(), database); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}

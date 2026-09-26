@@ -351,7 +351,7 @@ func readAll(t *testing.T, res *http.Response) []byte {
 }
 
 // mp3FrameSync accounts for the ID3v2 tag ffmpeg's mp3 muxer writes at the
-// head of pipe output (v1 behaves identically — same argv), then checks the
+// head of pipe output (old behaves identically — same argv), then checks the
 // MPEG frame sync.
 func mp3FrameSync(b []byte) bool {
 	off := 0

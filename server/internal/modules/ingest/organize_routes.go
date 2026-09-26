@@ -1,7 +1,7 @@
-// Organize HTTP routes (P9c): v1's features/ingest/organize-routes.ts shape
+// Organize HTTP routes (P9c): the old features/ingest/organize-routes.ts shape
 // over the P7b organize job — POST /api/organize and /api/organize/job
 // enqueue (the job runs on the worker, never inline: running it on the
-// request goroutine would stall streaming and race the worker, the v1
+// request goroutine would stall streaming and race the worker, the old
 // lesson the route comment recorded), GET /api/organize/preview answers the
 // effective pattern, and GET /api/organize/status/{jobId} reports one job.
 package ingest
@@ -18,7 +18,7 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/library"
 )
 
-// OrganizeJobStatus is v1's OrganizeJobStatus DTO.
+// OrganizeJobStatus is the old OrganizeJobStatus DTO.
 type OrganizeJobStatus struct {
 	ID         string          `json:"id"`
 	Type       string          `json:"type"`
@@ -28,14 +28,14 @@ type OrganizeJobStatus struct {
 	Stats      json.RawMessage `json:"stats,omitempty"`
 }
 
-// previewRoute registers GET /api/organize/preview EXACTLY like v1: the
-// route has no session or admin gate in v1 (it only answers the configured
+// previewRoute registers GET /api/organize/preview EXACTLY like old: the
+// route has no session or admin gate in the retired server (it only answers the configured
 // pattern), so it stays public here too.
 func (h *Handler) previewRoute(r chi.Router) {
 	r.Get("/api/organize/preview", h.organizePreview)
 }
 
-// organize is v1's POST /api/organize: enqueue and answer 202.
+// organize is the old POST /api/organize: enqueue and answer 202.
 func (h *Handler) organize(w http.ResponseWriter, r *http.Request) {
 	jobID, err := h.svc.queue.Push(r.Context(), library.JobTypeOrganize, library.OrganizePayload{})
 	if err != nil {
@@ -45,7 +45,7 @@ func (h *Handler) organize(w http.ResponseWriter, r *http.Request) {
 	httpserver.JSON(w, http.StatusAccepted, map[string]any{"jobId": jobID})
 }
 
-// organizeJob is v1's POST /api/organize/job: same enqueue, 200 like v1.
+// organizeJob is the old POST /api/organize/job: same enqueue, 200 like the retired server.
 func (h *Handler) organizeJob(w http.ResponseWriter, r *http.Request) {
 	jobID, err := h.svc.queue.Push(r.Context(), library.JobTypeOrganize, library.OrganizePayload{})
 	if err != nil {
@@ -55,14 +55,14 @@ func (h *Handler) organizeJob(w http.ResponseWriter, r *http.Request) {
 	httpserver.JSON(w, http.StatusOK, map[string]any{"jobId": jobID})
 }
 
-// organizePreview is v1's GET /api/organize/preview: the effective pattern.
+// organizePreview is the old GET /api/organize/preview: the effective pattern.
 func (h *Handler) organizePreview(w http.ResponseWriter, r *http.Request) {
 	httpserver.JSON(w, http.StatusOK, map[string]any{
 		"pattern": h.svc.globalOrganizePattern(r.Context()),
 	})
 }
 
-// organizeStatus is v1's GET /api/organize/status/:jobId: 404 unless the id
+// organizeStatus is the old GET /api/organize/status/:jobId: 404 unless the id
 // names an organize job.
 func (h *Handler) organizeStatus(w http.ResponseWriter, r *http.Request) {
 	jobID := chi.URLParam(r, "jobId")

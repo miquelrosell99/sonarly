@@ -13,7 +13,7 @@ func postScrobble(t *testing.T, env *testEnv, path string, cookie *http.Cookie, 
 	return res
 }
 
-// TestScrobbleBadBodies: the 400 matrix (v1 B13 semantics).
+// TestScrobbleBadBodies: the 400 matrix (old B13 semantics).
 func TestScrobbleBadBodies(t *testing.T) {
 	env := newEnv(t, Options{})
 	alice := env.cookie(t, "user-alice", "alice", false)
@@ -62,7 +62,7 @@ func TestScrobbleBadBodies(t *testing.T) {
 	}
 }
 
-// TestScrobbleClamps: out-of-range numbers are clamped, not rejected (v1 B13).
+// TestScrobbleClamps: out-of-range numbers are clamped, not rejected (old B13).
 func TestScrobbleClamps(t *testing.T) {
 	env := newEnv(t, Options{})
 	alice := env.cookie(t, "user-alice", "alice", false)
@@ -132,7 +132,7 @@ func TestScrobbleSuccess(t *testing.T) {
 		t.Errorf("history row = {%d %v %q %q}", listened, completion, client, source)
 	}
 
-	// A bare scrobble (empty body) is v1-valid: details default, play counts.
+	// A bare scrobble (empty body) is accepted by the old server: details default, play counts.
 	res = postScrobble(t, env, "/api/songs/s-a1/scrobble", alice, nil)
 	if res.StatusCode != 200 {
 		t.Fatalf("empty body: status %d", res.StatusCode)
@@ -241,7 +241,7 @@ func TestScrobbleGuards(t *testing.T) {
 }
 
 // TestScrobbleBodyIsAnObjectButNotAnObject: guard the JSON decode contract
-// (top-level non-objects 400 through the same path as v1).
+// (top-level non-objects 400 through the same path as the retired server).
 func TestScrobblePlayedAtFormats(t *testing.T) {
 	env := newEnv(t, Options{})
 	alice := env.cookie(t, "user-alice", "alice", false)

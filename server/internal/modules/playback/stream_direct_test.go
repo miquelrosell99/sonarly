@@ -91,12 +91,12 @@ func TestStreamRangeMatrix(t *testing.T) {
 				}
 			case 416:
 				if len(body) == 0 {
-					t.Errorf("416 with empty body — v1 parity answers \"Invalid range\"")
+					t.Errorf("416 with empty body — wire parity answers \"Invalid range\"")
 				}
 				if string(body) != "Invalid range" {
-					t.Errorf("416 body = %q, want v1's \"Invalid range\"", body)
+					t.Errorf("416 body = %q, want the old \"Invalid range\"", body)
 				}
-				// The v1-guard 416 (multi-range, zero suffix) must not set
+				// The old-server 416 guard (multi-range, zero suffix) must not set
 				// Content-Range — Go's native 416 does (cosmetic delta).
 				if strings.Contains(c.rangeHeader, ",") || strings.HasPrefix(c.rangeHeader, "bytes=-0") {
 					if cr := res.Header.Get("Content-Range"); cr != "" {
@@ -111,7 +111,7 @@ func TestStreamRangeMatrix(t *testing.T) {
 }
 
 // TestStreamHEAD covers both HEAD shapes: plain (200 + full CL) and with a
-// Range header, which v1 special-cases to 200 + full CL (guard 3).
+// Range header, which the retired server special-cases to 200 + full CL (guard 3).
 func TestStreamHEAD(t *testing.T) {
 	env := newEnv(t, Options{})
 	alice := env.cookie(t, "user-alice", "alice", false)
@@ -140,7 +140,7 @@ func TestStreamHEAD(t *testing.T) {
 	res = do(map[string]string{"Range": "bytes=0-99"})
 	body = readAll(t, res)
 	if res.StatusCode != 200 || res.Header.Get("Content-Length") != size || len(body) != 0 {
-		t.Errorf("HEAD+Range must be 200 + full CL (v1 parity): status=%d CL=%q body=%dB",
+		t.Errorf("HEAD+Range must be 200 + full CL (wire parity): status=%d CL=%q body=%dB",
 			res.StatusCode, res.Header.Get("Content-Length"), len(body))
 	}
 	if res.Header.Get("Content-Range") != "" {
@@ -150,7 +150,7 @@ func TestStreamHEAD(t *testing.T) {
 }
 
 // TestStreamConditionalGet: Last-Modified is always present and a future
-// If-Modified-Since answers 304 (accepted v2 improvement, S2 sign-off S3).
+// If-Modified-Since answers 304 (accepted the Go server improvement, S2 sign-off S3).
 func TestStreamConditionalGet(t *testing.T) {
 	env := newEnv(t, Options{})
 	alice := env.cookie(t, "user-alice", "alice", false)
@@ -237,7 +237,7 @@ func TestStreamGuards(t *testing.T) {
 }
 
 // TestStreamDownloadDisposition: ?download=1 answers the original bytes with
-// v1 download.view's Content-Disposition, sanitized and percent-encoded.
+// the retired server download.view's Content-Disposition, sanitized and percent-encoded.
 func TestStreamDownloadDisposition(t *testing.T) {
 	env := newEnv(t, Options{})
 	alice := env.cookie(t, "user-alice", "alice", false)
@@ -258,7 +258,7 @@ func TestStreamDownloadDisposition(t *testing.T) {
 	}
 
 	// Download on a transcode-pref user must still serve the ORIGINAL file
-	// (v1 download.view never transcodes).
+	// (old download.view never transcodes).
 	res, body = env.do(t, "GET", "/api/stream/s-a2?download=1", alice, nil)
 	if res.StatusCode != 200 {
 		t.Fatalf("status %d", res.StatusCode)

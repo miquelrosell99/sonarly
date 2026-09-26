@@ -4,13 +4,13 @@
 > Generic security practices — see `security-hardening`.
 > Generic self-hosting/deployment patterns — see `selfhost-release`.
 
-### Go server (`v2/`)
+### Go server (`server/`)
 
-- **Modular monolith**: one package per domain under `v2/internal/modules/<name>/` with a small exported surface. Cross-module imports go through the owning module, never its internal files.
+- **Modular monolith**: one package per domain under `server/internal/modules/<name>/` with a small exported surface. Cross-module imports go through the owning module, never its internal files.
 - SQL is always parameterized; repositories live in the owning module.
 - Server configuration is env-based, loaded and validated once in `internal/config` at boot (fail fast on invalid config).
-- Migrations are numbered SQL files in `v2/internal/db/migrations/`, one transaction each, ledger-tracked in `schema_migrations`. Never edit a shipped migration — fix forward.
-- The native API contract is `v2/api/openapi.yaml`; a chi.Walk coverage test fails the build on spec drift. Changing a route means changing the spec, then regenerating the web types (`pnpm --filter @sonarly/web contract:gen`).
+- Migrations are numbered SQL files in `server/internal/db/migrations/`, one transaction each, ledger-tracked in `schema_migrations`. Never edit a shipped migration — fix forward.
+- The native API contract is `server/api/openapi.yaml`; a chi.Walk coverage test fails the build on spec drift. Changing a route means changing the spec, then regenerating the web types (`pnpm --filter @sonarly/web contract:gen`).
 - Go tests live next to the source (`*_test.go`); `go test ./... -count=1` is the bar.
 
 ### Web client (`packages/web/`)

@@ -1,7 +1,7 @@
 // Package users owns the users domain: repository (raw SQL), service
 // (validation, password policy, last-admin protections, setup transaction),
-// and HTTP routes. Layering is routes → service → repository, the v2
-// replacement for v1's fastify route closures calling repositories directly.
+// and HTTP routes. Layering is routes → service → repository, the Go
+// replacement for the old fastify route closures calling repositories directly.
 package users
 
 import (
@@ -136,7 +136,7 @@ func SetIsAdmin(ctx context.Context, q auth.Queries, id string, isAdmin bool) er
 }
 
 // OptionalString distinguishes an absent key (untouched) from an explicit
-// null (set NULL) from a value — v1's undefined|null|string semantics.
+// null (set NULL) from a value — the old undefined|null|string semantics.
 type OptionalString struct {
 	Set   bool
 	Null  bool
@@ -226,7 +226,7 @@ func UpdateContentFilters(ctx context.Context, q auth.Queries, id string, hide, 
 		if !f.v.Set {
 			continue
 		}
-		// v1 mapped an explicit null to false via a truthiness coercion.
+		// the retired server mapped an explicit null to false via a truthiness coercion.
 		sets = append(sets, f.col+" = ?")
 		args = append(args, !f.v.Null && f.v.Value)
 	}
@@ -292,7 +292,7 @@ func Delete(ctx context.Context, q auth.Queries, id string) error {
 }
 
 // SetAvatarPath records the avatar filename (relative to the avatars dir);
-// nil clears it (v1 updateAvatar).
+// nil clears it (old updateAvatar).
 func SetAvatarPath(ctx context.Context, q auth.Queries, id string, filename *string) error {
 	var value any
 	if filename != nil {

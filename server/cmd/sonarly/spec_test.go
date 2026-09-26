@@ -1,5 +1,5 @@
 // Spec coverage test: walks the production chi router (the one mountRoutes
-// registers) and asserts v2/api/openapi.yaml documents exactly the native
+// registers) and asserts server/api/openapi.yaml documents exactly the native
 // routes — the spec cannot drift from the code silently.
 //
 // Scope: every /api route plus /health, /healthz and /ready. The OpenSubsonic adapter
@@ -47,7 +47,7 @@ type openAPISpec struct {
 	} `yaml:"components"`
 }
 
-// loadSpec parses the OpenAPI document next to the v2 module root.
+// loadSpec parses the OpenAPI document next to the module root.
 func loadSpec(t *testing.T) *openAPISpec {
 	t.Helper()
 	raw, err := os.ReadFile(specPath)
@@ -282,7 +282,7 @@ func TestSpecKeepsStreamingAndShareShapes(t *testing.T) {
 		t.Fatal("/api/stream/{id} missing from spec")
 	}
 	if _, ok := stream["head"]; !ok {
-		t.Error("/api/stream/{id} HEAD missing from spec (chi registers it explicitly, v1 parity)")
+		t.Error("/api/stream/{id} HEAD missing from spec (chi registers it explicitly, wire parity)")
 	}
 	get := stream["get"].(map[string]any)
 	names := paramNames(get["parameters"].([]any), spec)

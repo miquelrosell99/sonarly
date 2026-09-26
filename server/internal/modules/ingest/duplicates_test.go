@@ -1,7 +1,7 @@
 // Duplicate strategy tests: seed the catalog by ingesting the corpus spike,
 // then re-ingest a retagged copy (same title/album/artists, different
 // genre/year/comment-class tags) under each of the five strategies and
-// assert v1's semantics: who survives on disk, which mtime/checksum the row
+// assert the old semantics: who survives on disk, which mtime/checksum the row
 // keeps, and how the metadata merge modes fold values together.
 package ingest_test
 
@@ -222,9 +222,9 @@ func TestDuplicateSkip(t *testing.T) {
 	assertDupJob(t, e, ingest.StatusSkipped, string(ingest.StrategySkip))
 }
 
-// TestDuplicateStrategyFromSettings verifies the v1 precedence: an absent
+// TestDuplicateStrategyFromSettings verifies the retired server precedence: an absent
 // payload strategy defers to the settings table, and an invalid setting
-// degrades to the v1 default (keep_file_replace_metadata).
+// degrades to the retired server default (keep_file_replace_metadata).
 func TestDuplicateStrategyFromSettings(t *testing.T) {
 	e := newEnv(t, true)
 	seeded, drop := seedSpike(t, e)
@@ -238,7 +238,7 @@ func TestDuplicateStrategyFromSettings(t *testing.T) {
 		t.Error("settings-level skip strategy was not honored")
 	}
 
-	// Invalid setting value → v1 default (keep file).
+	// Invalid setting value → the retired server default (keep file).
 	seeded2 := seedSecondSong(t, e, drop)
 	if _, err := e.db.Exec(
 		`UPDATE settings SET value = 'not-a-strategy' WHERE key = 'duplicate_strategy'`); err != nil {

@@ -1,25 +1,25 @@
 // Scanner walks the configured library roots and reconciles the database
 // with what is on disk: new files are imported, changed files re-imported,
 // moved files detected by content hash, and vanished files deactivated
-// (never deleted). It ports v1's features/library/scanner.ts with the audit's
+// (never deleted). It ports the old features/library/scanner.ts with the audit's
 // required fixes:
 //
 //   - every song is written through PersistSong (persist.go) — ONE
-//     transaction per song (v1 was multi-statement autocommit; a crash
+//     transaction per song (old was multi-statement autocommit; a crash
 //     mid-song could leave partial rows). A crash now rolls back the whole
 //     song. The ingest pipeline writes through the same path.
 //   - average_rating is absent from the upsert column list entirely — the
-//     v1 B4 bug clobbered user ratings on rescan because the upsert wrote
+//     the old B4 bug clobbered user ratings on rescan because the upsert wrote
 //     NULL over them (fixed on main; never ported).
 //   - junction tables (song_artists/song_genres/song_composers) are rewritten
 //     unconditionally in the same transaction, so tags that DROP an artist
-//     actually drop the junction (v1 only rewrote when the new list was
+//     actually drop the junction (old only rewrote when the new list was
 //     non-empty, leaking stale rows).
 //   - the walk is context-driven: cancellation stops it between songs, the
 //     worker marks the job failed, and the in-flight per-song tx rolls back.
 //
-// One deliberate deviation: v1's syncSongCoverWithAlbum embedded the album
-// cover INTO the audio file (tag rewrite). v2 is read-only during scans —
+// One deliberate deviation: the old syncSongCoverWithAlbum embedded the album
+// cover INTO the audio file (tag rewrite). The Go server is read-only during scans —
 // the same reconciliation happens in the database (song cover link follows
 // the album cover), and no audio file is ever mutated by a scan.
 package library
@@ -44,10 +44,10 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/audio"
 )
 
-// AUDIO_EXTS is the extension set v1 scanned.
+// AUDIO_EXTS is the extension set the retired server scanned.
 var AUDIO_EXTS = map[string]bool{".mp3": true, ".flac": true, ".ogg": true, ".m4a": true}
 
-// maxScanFailures caps the per-file failure list v1 carried in stats; the
+// maxScanFailures caps the per-file failure list the retired server carried in stats; the
 // failure count itself is not capped.
 const maxScanFailures = 20
 
@@ -88,7 +88,7 @@ func NewScanner(db *sql.DB, log *slog.Logger, fallbackRoot string) *Scanner {
 }
 
 // EnsureDefaultLibrary creates the default libraries row from the configured
-// library path when the table is empty — v1 parity (worker.ts boot).
+// library path when the table is empty — wire parity (worker.ts boot).
 func EnsureDefaultLibrary(ctx context.Context, db *sql.DB, path string) error {
 	var count int
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(1) FROM libraries`).Scan(&count); err != nil {
@@ -123,7 +123,7 @@ type scanRoot struct {
 
 // scanRoots resolves which roots a scan job covers: the payload's library
 // when set, otherwise every library (falling back to the configured library
-// path when the table is empty, as v1 did).
+// path when the table is empty, as the retired server did).
 func (s *Scanner) scanRoots(ctx context.Context, libraryID string) ([]scanRoot, error) {
 	if libraryID != "" {
 		var path string
@@ -184,7 +184,7 @@ func (s *Scanner) Scan(ctx context.Context, payload ScanPayload, onProgress func
 		}
 		// Probe the root BEFORE walking (and remember it for the
 		// deactivation pass): an unmounted drive must not mass-deactivate
-		// its songs — the v1 lesson the audit called out as done well.
+		// its songs — the lesson the audit called out as done well.
 		if _, err := os.ReadDir(root.path); err != nil {
 			s.log.WarnContext(ctx, "scanner: library root unreadable, skipping",
 				"root", root.path, "err", err)
@@ -211,7 +211,8 @@ func (s *Scanner) Scan(ctx context.Context, payload ScanPayload, onProgress func
 
 // walkFiles recursively yields audio files under root, skipping dotfiles and
 // dot-directories (including crashed atomic-tag-rewrite leftovers such as
-// .sonarly-tmp-*). Unreadable subdirectories are logged and skipped, as v1.
+// .sonarly-tmp-*). Unreadable subdirectories are logged and skipped, as
+// the retired server did.
 func (s *Scanner) walkFiles(ctx context.Context, root string, visit func(path string) error) error {
 	entries, err := os.ReadDir(root)
 	if err != nil {
@@ -291,7 +292,7 @@ func (s *Scanner) processFileInner(ctx context.Context, path string, foundPaths,
 		}
 	}
 	if unchanged && !needsCover {
-		return nil // v1 fast path: mtime unchanged and no cover link to fix
+		return nil // old fast path: mtime unchanged and no cover link to fix
 	}
 
 	meta, err := audio.ReadMetadata(path)
@@ -428,7 +429,7 @@ func (s *Scanner) findMoveTarget(ctx context.Context, checksum string, foundPath
 // deactivateMissing marks DB rows under walked roots as inactive when their
 // file was not seen this scan. Deactivation (not deletion) is deliberate:
 // user data (ratings, history) survives and a file that reappears reuses its
-// row. Paths under a failed root are protected (the v1 unmounted-drive
+// row. Paths under a failed root are protected (the retired server unmounted-drive
 // lesson), and paths under no walked root are left alone — a library-scoped
 // scan must not touch other libraries' rows.
 func (s *Scanner) deactivateMissing(ctx context.Context, foundPaths, movedFromPaths map[string]struct{}, failedRoots []string, walkedRoots []scanRoot, stats *ScanStats) error {
@@ -506,7 +507,7 @@ func (s *Scanner) deactivateMissing(ctx context.Context, foundPaths, movedFromPa
 	return nil
 }
 
-// recomputeActivity ports v1's end-of-scan pass: album/artist/label active
+// recomputeActivity ports the old end-of-scan pass: album/artist/label active
 // flags reflect whether any reachable (active) song still references them.
 func (s *Scanner) recomputeActivity(ctx context.Context) error {
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -547,7 +548,7 @@ func (s *Scanner) recomputeActivity(ctx context.Context) error {
 }
 
 // persistCoverOnly reconciles cover-art links for a file whose mtime is
-// unchanged (v1's needsCoverSync path) without re-importing it.
+// unchanged (the old needsCoverSync path) without re-importing it.
 func (s *Scanner) persistCoverOnly(ctx context.Context, path string, meta *audio.Metadata, existing *songRow) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -682,7 +683,7 @@ func needsCoverSync(ctx context.Context, db *sql.DB, s *songRow) (bool, error) {
 
 func resolveLibraryID(ctx context.Context, db *sql.DB, path string) (*string, error) {
 	// Exact path or prefix at a separator boundary so /music does not
-	// claim /music2 (v1 parity).
+	// claim /music2 (wire parity).
 	var id string
 	err := db.QueryRowContext(ctx,
 		`SELECT id FROM libraries
@@ -697,7 +698,7 @@ func resolveLibraryID(ctx context.Context, db *sql.DB, path string) (*string, er
 	return &id, nil
 }
 
-// checksumFile streams the file through SHA-256 (v1 computeChecksum).
+// checksumFile streams the file through SHA-256 (old computeChecksum).
 func checksumFile(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {

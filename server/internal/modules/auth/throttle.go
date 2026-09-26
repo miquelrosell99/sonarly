@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Login throttle, ported from v1's auth-routes.ts: keyed per client IP +
+// Login throttle, ported from the old auth-routes.ts: keyed per client IP +
 // lowercase username, five failures lock the pair out for 15 minutes. It is
 // deliberate brute-force friction, not a quota; it lives in memory so a
 // restart clears it (and it never blocks the setup-created admin for long).

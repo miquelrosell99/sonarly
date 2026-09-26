@@ -43,10 +43,10 @@ func NewHandler(db *sql.DB, mw *auth.Middleware, sessionSecret, libraryPath stri
 }
 
 // Routes registers the /rest group. Unknown /rest/* paths answer an
-// enveloped error 0 "not implemented" instead of v1's bare Fastify 404, so
+// enveloped error 0 "not implemented" instead of the old bare Fastify 404, so
 // Subsonic clients get a parseable envelope during development (E5).
 //
-// The P9a inventory (v1 browsing.ts 17 + retrieval.ts 7 endpoints) is
+// The P9a inventory (retired browsing.ts 17 + retrieval.ts 7 endpoints) is
 // registered here; endpointRoutes is the table the inventory test walks so
 // P9b can extend it without re-listing handlers.
 func (h *Handler) Routes(r chi.Router) {
@@ -81,7 +81,7 @@ var endpointRoutes = []endpointRoute{
 	{"getOpenSubsonicExtensions", http.MethodGet, "/getOpenSubsonicExtensions.view", (*Handler).getOpenSubsonicExtensions},
 	{"getUser", http.MethodGet, "/getUser.view", (*Handler).getUser},
 
-	// Browsing group (P9a, v1 browsing.ts).
+	// Browsing group (P9a, the retired server browsing.ts).
 	{"getMusicFolders", http.MethodGet, "/getMusicFolders.view", (*Handler).getMusicFolders},
 	{"getIndexes", http.MethodGet, "/getIndexes.view", (*Handler).getIndexes},
 	{"getArtists", http.MethodGet, "/getArtists.view", (*Handler).getArtists},
@@ -100,8 +100,8 @@ var endpointRoutes = []endpointRoute{
 	{"getAlbumInfo", http.MethodGet, "/getAlbumInfo.view", (*Handler).getAlbumInfo},
 	{"getAlbumInfo2", http.MethodGet, "/getAlbumInfo2.view", (*Handler).getAlbumInfo2},
 
-	// Retrieval group (P9a, v1 retrieval.ts). stream/download also answer
-	// HEAD (v1's Fastify auto-HEAD; R4 relies on it).
+	// Retrieval group (P9a, the retired server retrieval.ts). stream/download also answer
+	// HEAD (the old Fastify auto-HEAD; R4 relies on it).
 	{"stream", http.MethodGet, "/stream.view", (*Handler).stream},
 	{"streamHEAD", http.MethodHead, "/stream.view", (*Handler).stream},
 	{"download", http.MethodGet, "/download.view", (*Handler).download},
@@ -113,7 +113,7 @@ var endpointRoutes = []endpointRoute{
 	{"getPodcasts", http.MethodGet, "/getPodcasts.view", (*Handler).getPodcasts},
 	{"getNewestPodcasts", http.MethodGet, "/getNewestPodcasts.view", (*Handler).getNewestPodcasts},
 
-	// Starring group (P9b, v1 starring.ts; scrobble rides along, T1-T4).
+	// Starring group (P9b, the retired server starring.ts; scrobble rides along, T1-T4).
 	{"star", http.MethodGet, "/star.view", (*Handler).star},
 	{"unstar", http.MethodGet, "/unstar.view", (*Handler).unstar},
 	{"setRating", http.MethodGet, "/setRating.view", (*Handler).setRating},
@@ -121,17 +121,17 @@ var endpointRoutes = []endpointRoute{
 	{"getStarred", http.MethodGet, "/getStarred.view", (*Handler).getStarred},
 	{"getStarred2", http.MethodGet, "/getStarred2.view", (*Handler).getStarred2},
 
-	// Activity group (P9b, v1 now-playing.ts; N1 — the P8 players tracker).
+	// Activity group (P9b, the retired server now-playing.ts; N1 — the P8 players tracker).
 	{"getNowPlaying", http.MethodGet, "/getNowPlaying.view", (*Handler).getNowPlaying},
 
-	// Playlist group (P9b, v1 playlists/opensubsonic-routes.ts; P1 — ONE policy).
+	// Playlist group (P9b, the retired server playlists/opensubsonic-routes.ts; P1 — ONE policy).
 	{"getPlaylists", http.MethodGet, "/getPlaylists.view", (*Handler).getPlaylists},
 	{"getPlaylist", http.MethodGet, "/getPlaylist.view", (*Handler).getPlaylist},
 	{"createPlaylist", http.MethodGet, "/createPlaylist.view", (*Handler).createPlaylist},
 	{"updatePlaylist", http.MethodGet, "/updatePlaylist.view", (*Handler).updatePlaylist},
 	{"deletePlaylist", http.MethodGet, "/deletePlaylist.view", (*Handler).deletePlaylist},
 
-	// Bookmark group (P9b, v1 bookmarks/routes.ts).
+	// Bookmark group (P9b, the retired server bookmarks/routes.ts).
 	{"getBookmarks", http.MethodGet, "/getBookmarks.view", (*Handler).getBookmarks},
 	{"createBookmark", http.MethodGet, "/createBookmark.view", (*Handler).createBookmark},
 	{"deleteBookmark", http.MethodGet, "/deleteBookmark.view", (*Handler).deleteBookmark},

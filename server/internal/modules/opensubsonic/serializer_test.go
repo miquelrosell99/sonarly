@@ -10,7 +10,7 @@ func strPtr(s string) *string     { return &s }
 func intPtr(i int) *int           { return &i }
 func floatPtr(f float64) *float64 { return &f }
 
-// TestMapSongWireShape exercises the mapping rules v1 clients depend on
+// TestMapSongWireShape exercises the mapping rules the retired server clients depend on
 // (quirks doc X1-X11) on one fully-populated source.
 func TestMapSongWireShape(t *testing.T) {
 	src := SongSource{
@@ -92,7 +92,7 @@ func TestMapSongWireShape(t *testing.T) {
 }
 
 // TestMapSongMinimalJSONShape deep-compares the JSON of an anonymous,
-// minimally-populated song against the exact key set v1 emitted — the
+// minimally-populated song against the exact key set the retired server emitted — the
 // always-present keys with their empty defaults, and no interaction keys.
 func TestMapSongMinimalJSONShape(t *testing.T) {
 	src := SongSource{
@@ -238,7 +238,7 @@ func TestJsParseInt(t *testing.T) {
 	}{
 		{nil, nil},
 		{strPtr("12"), intPtr(12)},
-		{strPtr("12 of 15"), intPtr(12)}, // v1 parseInt stops at non-digits
+		{strPtr("12 of 15"), intPtr(12)}, // old parseInt stops at non-digits
 		{strPtr("abc"), nil},
 		{strPtr("  7"), intPtr(7)},
 		{strPtr(""), nil},
@@ -269,7 +269,7 @@ func TestParseStringArrayGuarded(t *testing.T) {
 	}
 }
 
-// TestMapAlbumDefaults covers the v1 fallbacks: coverArt → album id,
+// TestMapAlbumDefaults covers the retired server fallbacks: coverArt → album id,
 // created → epoch, title/album duplicate name, songCount → len(songs),
 // parent/artistId → artist_id (quirks doc X13).
 func TestMapAlbumDefaults(t *testing.T) {

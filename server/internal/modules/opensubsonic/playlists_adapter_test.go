@@ -91,7 +91,7 @@ func TestGetPlaylistsScopeAndWireShape(t *testing.T) {
 	_ = ids
 	_ = c
 
-	// v1 wire shape: owner, public, songCount, duration, ISO created.
+	// the retired server wire shape: owner, public, songCount, duration, ISO created.
 	mix := got["Alice Mix"]
 	if mix["id"] != ids["alice-private"] {
 		t.Fatalf("id = %v", mix["id"])
@@ -123,14 +123,14 @@ func TestGetPlaylistsScopeAndWireShape(t *testing.T) {
 
 	// The admin sees every playlist they own (3) — alice's private one
 	// stays hidden: admins are not owners and the visibility set is the
-	// same v1 query (owner + public + shared).
+	// same the retired server query (owner + public + shared).
 	rec = app.get(t, authedURLAs("root", "adminpass", "/rest/getPlaylists.view", ""), nil)
 	env = assertOK(t, rec)
 	list = env["playlists"].(map[string]any)["playlist"].([]any)
 	if len(list) != 3 {
 		t.Fatalf("admin getPlaylists = %d, want 3", len(list))
 	}
-	// v1 ordered by name.
+	// the retired server ordered by name.
 	names := []string{}
 	for _, raw := range list {
 		names = append(names, raw.(map[string]any)["name"].(string))
@@ -165,7 +165,7 @@ func TestGetPlaylistDetailWireShape(t *testing.T) {
 	if !ok || len(entries) != 2 {
 		t.Fatalf("entry list = %v", p["entry"])
 	}
-	// v1's reduced child: display names, no ids, type/isDir/created.
+	// the old reduced child: display names, no ids, type/isDir/created.
 	first := entries[0].(map[string]any)
 	if first["id"] != c.SAbbey1 || first["title"] != "Come Together" ||
 		first["album"] != "Abbey Road" || first["artist"] != "The Beatles" {
@@ -178,7 +178,7 @@ func TestGetPlaylistDetailWireShape(t *testing.T) {
 		t.Fatalf("track = %v", first["track"])
 	}
 	if _, hasAlbumID := first["albumId"]; hasAlbumID {
-		t.Fatalf("v1's playlist child has no albumId: %v", first)
+		t.Fatalf("the old playlist child has no albumId: %v", first)
 	}
 	if first["genre"] != "Rock" {
 		t.Fatalf("genre = %v", first["genre"])
@@ -199,7 +199,7 @@ func TestGetPlaylistAccessAndMissing(t *testing.T) {
 	rec := app.get(t, authedURL("/rest/getPlaylist.view", "&id=pl-nope"), nil)
 	assertFailed(t, rec, CodeForbidden)
 
-	// Someone else's private playlist → 50 (v1's adapter code).
+	// Someone else's private playlist → 50 (the old adapter code).
 	rec = app.get(t, authedURL("/rest/getPlaylist.view", "&id="+ids["admin-private"]), nil)
 	env := assertFailed(t, rec, CodeDataNotFound)
 	if msg := env["error"].(map[string]any)["message"]; msg != "User is not authorized for this operation" {
@@ -235,7 +235,7 @@ func TestGetPlaylistAnonymousShareToken(t *testing.T) {
 	rec := app.get(t, "/rest/getPlaylist.view?id="+link.ID+"&shareToken="+link.ShareToken, nil)
 	env := assertOK(t, rec)
 	p := env["playlist"].(map[string]any)
-	if p["public"] != true { // link counts as public on the wire (v1)
+	if p["public"] != true { // link counts as public on the wire (old behavior)
 		t.Fatalf("public = %v", p["public"])
 	}
 	if len(p["entry"].([]any)) != 1 {
@@ -269,7 +269,7 @@ func TestCreatePlaylistCreates(t *testing.T) {
 		t.Fatalf("create answers the entries: %v", p)
 	}
 
-	// Default name (v1: "New Playlist").
+	// Default name (retired: "New Playlist").
 	rec = app.get(t, authedURL("/rest/createPlaylist.view", "&songId="+c.SAbbey2), nil)
 	env = assertOK(t, rec)
 	if env["playlist"].(map[string]any)["name"] != "New Playlist" {
@@ -298,7 +298,7 @@ func TestCreatePlaylistValidatesSongsThroughTheService(t *testing.T) {
 	app := newTestApp(t)
 	_, _ = setupPlaylistWorld(t, app)
 
-	// Unknown song id: v1 stored it silently; v2 delegates to the playlists
+	// Unknown song id: the retired server stored it silently; the Go server delegates to the playlists
 	// service (one validation path) and answers enveloped 10.
 	rec := app.get(t, authedURL("/rest/createPlaylist.view", "&name=X&songId=s-nope"), nil)
 	assertFailed(t, rec, CodeMissingParam)
@@ -394,7 +394,7 @@ func TestUpdatePlaylistSongOps(t *testing.T) {
 	assertIDs(c.SAbbey1, c.SAbbey2)
 
 	// songIndexToRemove splices; out-of-range and non-numeric are ignored
-	// (v1 semantics).
+	// (the old semantics).
 	rec = app.get(t, authedURL("/rest/updatePlaylist.view",
 		"&playlistId="+id+"&songIndexToRemove=0&songIndexToRemove=abc&songIndexToRemove=9"), nil)
 	assertOK(t, rec)
@@ -419,7 +419,7 @@ func TestUpdatePlaylistVisibilityTokenLifecycle(t *testing.T) {
 	_, ids := setupPlaylistWorld(t, app)
 	id := ids["alice-private"]
 
-	// v1 opensubsonic-routes.ts updatePlaylist: the token is re-derived
+	// the retired server opensubsonic-routes.ts updatePlaylist: the token is re-derived
 	// from the RESOLVED visibility on every adapter update — link keeps or
 	// mints a token, any other visibility clears it.
 	rec := app.get(t, authedURL("/rest/updatePlaylist.view",
@@ -496,7 +496,7 @@ func TestDeletePlaylistV1Semantics(t *testing.T) {
 	app := newTestApp(t)
 	_, ids := setupPlaylistWorld(t, app)
 
-	// Missing playlist: v1 answers a silent OK, NOT 70.
+	// Missing playlist: the retired server answers a silent OK, NOT 70.
 	rec := app.get(t, authedURL("/rest/deletePlaylist.view", "&id=pl-nope"), nil)
 	assertOK(t, rec)
 
@@ -508,7 +508,7 @@ func TestDeletePlaylistV1Semantics(t *testing.T) {
 	}
 
 	// bob holds an EDIT share on Root Secret: the Subsonic verb rule is
-	// editor-or-owner (v1 canEditOrOwnPlaylist), so the delete lands —
+	// editor-or-owner (old canEditOrOwnPlaylist), so the delete lands —
 	// unlike the native owner-only route.
 	rec = app.get(t, authedURLAs("bob", "bobpass", "/rest/deletePlaylist.view",
 		"&id="+ids["admin-private"]), nil)
@@ -519,7 +519,7 @@ func TestDeletePlaylistV1Semantics(t *testing.T) {
 		t.Fatal(err)
 	}
 	if n != 0 {
-		t.Fatal("editor share must delete via the Subsonic endpoint (v1 verb rule)")
+		t.Fatal("editor share must delete via the Subsonic endpoint (old verb rule)")
 	}
 
 	// Owner deletes their own.

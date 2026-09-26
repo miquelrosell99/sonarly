@@ -1,6 +1,6 @@
-// Tag writing (P9c): the v2 counterpart of v1's features/tags/
-// mutagen-writer.ts + atomic.ts. v1 shelled out to python3 + mutagen (the
-// only mature multi-format tag writer the fleet already ships); v2 ports
+// Tag writing (P9c): the Go counterpart of the retired server's features/tags/
+// mutagen-writer.ts + atomic.ts. It shelled out to python3 + mutagen (the
+// only mature multi-format tag writer the fleet already ships); this package ports
 // that approach verbatim behind a TagWriter interface so a pure-Go writer
 // (e.g. an extended tagfork) can replace it without touching call sites.
 //
@@ -25,9 +25,9 @@ import (
 	"time"
 )
 
-// SongTags is the tag-edit payload (v1 shared SongTags). A nil field means
-// "absent": the writer leaves that tag untouched, mirroring v1's
-// `tags.get(our_key)` skip. String-or-string[] v1 values are always
+// SongTags is the tag-edit payload (old shared SongTags). A nil field means
+// "absent": the writer leaves that tag untouched, mirroring the old
+// `tags.get(our_key)` skip. String-or-string[] old values are always
 // normalized to a list by the validation layer before they reach the writer.
 type SongTags struct {
 	Title        *string           `json:"title,omitempty"`
@@ -53,25 +53,25 @@ type TagWriter interface {
 }
 
 // ErrNoTagWriter is returned by WriteTags when no registered writer supports
-// the file's extension (v1's "No tag writer for ...").
+// the file's extension (old "No tag writer for ...").
 var ErrNoTagWriter = errors.New("no tag writer for file")
 
-// mutagenSupported mirrors v1 MutagenWriter.SUPPORTED.
+// mutagenSupported mirrors the old MutagenWriter.SUPPORTED.
 var mutagenSupported = map[string]bool{
 	".mp3": true, ".flac": true, ".ogg": true, ".m4a": true, ".mp4": true,
 }
 
 const mutagenTimeout = 60 * time.Second
 
-// MutagenWriter is the python3 + mutagen TagWriter (v1 MutagenWriter).
+// MutagenWriter is the python3 + mutagen TagWriter (old MutagenWriter).
 type MutagenWriter struct {
-	// python is the interpreter path ("python3" resolves via PATH, v1).
+	// python is the interpreter path ("python3" resolves via PATH, as before).
 	python string
 	// now is replaceable in tests.
 	now func() time.Time
 }
 
-// NewMutagenWriter constructs the writer with the v1 defaults.
+// NewMutagenWriter constructs the writer with the old defaults.
 func NewMutagenWriter() *MutagenWriter {
 	return &MutagenWriter{python: "python3", now: time.Now}
 }
@@ -80,7 +80,7 @@ func (w *MutagenWriter) Supports(path string) bool {
 	return mutagenSupported[filepath.Ext(path)]
 }
 
-// Write applies tags through an atomic temp-sibling rewrite (v1
+// Write applies tags through an atomic temp-sibling rewrite (old
 // atomicTagRewrite): copy, tag the copy, fsync, rename over the original.
 func (w *MutagenWriter) Write(ctx context.Context, path string, tags SongTags) error {
 	return atomicTagRewrite(path, w.now, func(tmpPath string) error {
@@ -89,7 +89,7 @@ func (w *MutagenWriter) Write(ctx context.Context, path string, tags SongTags) e
 }
 
 // run spawns python3 with the inline script, feeding {"path": ..., "tags":
-// ...} on stdin (v1 runMutagen). A hung interpreter is SIGKILLed after
+// ...} on stdin (old runMutagen). A hung interpreter is SIGKILLed after
 // mutagenTimeout; stderr is captured for the error message.
 func (w *MutagenWriter) run(ctx context.Context, path string, tags SongTags) error {
 	payload, err := json.Marshal(map[string]any{"path": path, "tags": tags})
@@ -115,7 +115,7 @@ func (w *MutagenWriter) run(ctx context.Context, path string, tags SongTags) err
 	return nil
 }
 
-// atomicTagRewrite ports v1's atomicTagRewrite: copy originalPath to a
+// atomicTagRewrite ports the old atomicTagRewrite: copy originalPath to a
 // hidden temp sibling, mutate the temp, fsync it, then rename over the
 // original. The temp is removed on any failure, leaving the original intact.
 func atomicTagRewrite(originalPath string, now func() time.Time, mutate func(tmpPath string) error) error {
@@ -171,7 +171,7 @@ func copyFilePreserveMode(src, dst string) error {
 
 // WriteTags writes tags with the first registered writer supporting path.
 // It is the package-level convenience for callers that do not inject a
-// writer (v1 writeTags).
+// writer (old writeTags).
 func WriteTags(ctx context.Context, path string, tags SongTags) error {
 	w := &MutagenWriter{python: "python3", now: time.Now}
 	if !w.Supports(path) {
@@ -181,7 +181,7 @@ func WriteTags(ctx context.Context, path string, tags SongTags) error {
 }
 
 // ---------------------------------------------------------------------------
-// Inline python script (v1 MUTAGEN_SCRIPT, verbatim port)
+// Inline python script (old MUTAGEN_SCRIPT, verbatim port)
 // ---------------------------------------------------------------------------
 
 const mutagenScript = `

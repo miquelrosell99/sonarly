@@ -1,13 +1,13 @@
 // Package catalog hosts the read-only catalog domain: songs, albums,
-// artists, genres, years, and cover art blobs. It is the v2 replacement for
-// v1's features/{songs,albums,artists,genres,years,cover-art} read paths.
+// artists, genres, years, and cover art blobs. It is the Go server replacement for
+// the old features/{songs,albums,artists,genres,years,cover-art} read paths.
 //
-// Layering follows the v2 convention (routes → service → repository): routes
+// Layering follows the Go server convention (routes → service → repository): routes
 // parse and validate HTTP, services resolve the caller's library scope and
 // enforce it on every read, repositories run raw parameterized SQL and map
 // rows to DTOs.
 //
-// Scope rules (features/libraries/policy.go in v1, internal/modules/libraries
+// Scope rules (features/libraries/policy.go in the retired server, internal/modules/libraries
 // here): admins are unrestricted; other users only reach songs in libraries
 // assigned via user_libraries; songs with a NULL library_id are admin-only.
 // List queries carry the scope as a WHERE condition; detail endpoints probe
@@ -18,10 +18,10 @@
 // synced_lyrics / catalog_numbers column omits that field instead of failing
 // the whole response.
 //
-// Song DTOs deliberately exclude filePath and checksum. v1 leaked the
-// absolute server path and content hash in every song response; the v1 web
+// Song DTOs deliberately exclude filePath and checksum. the retired server leaked the
+// absolute server path and content hash in every song response; the retired server web
 // client only ever displayed the path (cosmetic info popover in the edit
 // modal) and nothing consumes checksum outside test mocks. The admin
 // missing-files view is served by its own endpoint (/admin/missing), not the
-// catalog API, so nothing in the v2 web client needs either field.
+// catalog API, so nothing in the Go server web client needs either field.
 package catalog

@@ -14,10 +14,10 @@ import (
 )
 
 // maxScrobbleStringLen bounds the free-form client/source strings the history
-// row stores (v2 hardening on top of audit B13 — v1 bounded nothing).
+// row stores (Go-server hardening on top of audit B13 — the retired server bounded nothing).
 const maxScrobbleStringLen = 255
 
-// ScrobbleDetails is the parsed POST /api/songs/{id}/scrobble body (v1's
+// ScrobbleDetails is the parsed POST /api/songs/{id}/scrobble body (the old 
 // ScrobbleDetails). Nil fields were absent from the body.
 type ScrobbleDetails struct {
 	DurationListened *float64
@@ -29,7 +29,7 @@ type ScrobbleDetails struct {
 
 // scrobbleDateLayouts approximates the formats JavaScript's Date.parse
 // accepts (ISO 8601 dates and datetimes, RFC 1123/822, a few ctime-style
-// shapes). The original string is stored verbatim, exactly like v1.
+// shapes). The original string is stored verbatim, exactly like the retired server.
 var scrobbleDateLayouts = []string{
 	time.RFC3339Nano,
 	time.RFC3339,
@@ -56,11 +56,11 @@ func parseScrobbleDate(value string) bool {
 	return false
 }
 
-// parseScrobbleBody ports v1's parseScrobbleBody (main checkout, audit B13
+// parseScrobbleBody ports the old parseScrobbleBody (main checkout, audit B13
 // fix): type errors are 400s, completion is clamped to [0,100],
 // durationListened to >= 0, playedAt must parse as a date, and client/source
 // must be strings within maxScrobbleStringLen. An absent body is valid and
-// means "no details" (v1 parity).
+// means "no details" (wire parity).
 func parseScrobbleBody(body any) (*ScrobbleDetails, error) {
 	if body == nil {
 		return nil, nil
@@ -124,14 +124,14 @@ func parseScrobbleBody(body any) (*ScrobbleDetails, error) {
 	return details, nil
 }
 
-// decodeScrobbleBody decodes the request body the way v1's JSON parser saw
+// decodeScrobbleBody decodes the request body the way the old JSON parser saw
 // it: empty body → nil (no details), malformed or non-object JSON → error.
 func decodeScrobbleBody(r io.Reader) (any, error) {
 	var body any
 	dec := json.NewDecoder(r)
 	if err := dec.Decode(&body); err != nil {
 		if errors.Is(err, io.EOF) {
-			return nil, nil // no body: v1 treated it as "no details"
+			return nil, nil // no body: the retired server treated it as "no details"
 		}
 		return nil, err
 	}
@@ -142,16 +142,16 @@ func decodeScrobbleBody(r io.Reader) (any, error) {
 // collisions and prove the scrobble transaction is atomic.
 var newHistoryID = func() string { return uuid.NewString() }
 
-// nowISO renders t like v1's toISOString: UTC, millisecond precision.
+// nowISO renders t like the old toISOString: UTC, millisecond precision.
 func nowISO(t time.Time) string {
 	return t.UTC().Format("2006-01-02T15:04:05.000Z07:00")
 }
 
 // Scrobble records one play: upserts user_songs (play_count + 1, last_played)
 // and inserts the listening_history row in ONE transaction — either both land
-// or neither (v1 wrapped the same pair in db.transaction). The song must be
+// or neither (old wrapped the same pair in db.transaction). The song must be
 // active and in scope, else ErrNotFound. There is deliberately no idempotency
-// key: v1 has none, so a retried scrobble double-counts in v1 and does so
+// key: the retired server has none, so a retried scrobble double-counts in the retired server and does so
 // here too (see doc.go).
 func (s *Service) Scrobble(ctx context.Context, id auth.Identity, songID string, details *ScrobbleDetails) error {
 	if _, err := s.loadPlayableSong(ctx, id, songID, ""); err != nil {

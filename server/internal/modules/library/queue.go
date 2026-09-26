@@ -1,10 +1,10 @@
 // Package library hosts the library runtime: the scan job queue, the
 // background worker that executes scans, the filesystem watcher and the
-// interval scheduler that feed it — the Go counterpart of v1's
-// features/library/ (queue.ts, worker.ts, scanner.ts, watcher.ts,
-// scheduler.ts). It deliberately fixes the v1 defects called out in the
+// interval scheduler that feed it — the Go counterpart of the old
+// features/library/ tree (queue.ts, worker.ts, scanner.ts, watcher.ts,
+// scheduler.ts). It deliberately fixes the retired server defects called out in the
 // 2026-09-24 backend architecture audit: typed job payloads (no path
-// smuggling through stats), coalescing for every job type (v1 only coalesced
+// smuggling through stats), coalescing for every job type (old only coalesced
 // 'resync'), transactional per-song persistence, average_rating preservation,
 // and context-driven cancellation instead of process death.
 package library
@@ -19,7 +19,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// JobType enumerates the scan_jobs types v1 defined. Scan and resync are
+// JobType enumerates the scan_jobs types the retired server defined. Scan and resync are
 // handled by the worker itself; ingest, organize and cleanup_review have
 // their handlers in the ingest module, which registers them on the worker
 // (Worker.Register) so this package does not import downstream modules.
@@ -42,7 +42,7 @@ var ErrNotImplemented = errors.New("job type not implemented")
 
 // Payloads are the typed job arguments, one struct per job type, serialized
 // into scan_jobs.payload at enqueue time and decoded by the worker. This is
-// the audit fix for v1's stats-column smuggling: the payload has a schema,
+// the audit fix for the old stats-column smuggling: the payload has a schema,
 // and a producer physically cannot pass a bare library path where an ingest
 // source path belongs.
 
@@ -68,7 +68,7 @@ type OrganizePayload struct {
 // ArtistImagesPayload is the payload for artist_images jobs (handler: the
 // artistimages module). The periodic scheduler enqueues it with
 // RefetchExisting set; a plain enqueue syncs only artists missing a local
-// image (v1 syncMissingArtistImages' default).
+// image (old syncMissingArtistImages' default).
 type ArtistImagesPayload struct {
 	RefetchExisting bool `json:"refetchExisting,omitempty"`
 }
@@ -81,7 +81,7 @@ const (
 	StatusFailed    = "failed"
 )
 
-// maxTerminalJobs mirrors v1's pruneScanJobs: keep the 50 most recent
+// maxTerminalJobs mirrors the old pruneScanJobs: keep the 50 most recent
 // finished jobs for diagnostics, delete the rest.
 const maxTerminalJobs = 50
 
@@ -120,7 +120,7 @@ type Queue struct {
 func NewQueue(db *sql.DB) *Queue { return &Queue{db: db} }
 
 // Push enqueues a job, coalescing with any pending job of the same type and
-// the same target. v1 coalesced only 'resync'; here tagging a whole album
+// the same target. The retired server coalesced only 'resync'; here tagging a whole album
 // through the watcher cannot queue one full scan per track for any job type.
 // A matching pending job's id is returned and no new row is created. A job
 // that is already running never matches: its walk is in flight, and the new
@@ -159,7 +159,7 @@ func (q *Queue) Push(ctx context.Context, jobType JobType, payload any) (string,
 
 // PopNext returns the oldest pending job and claims it for execution by
 // stamping started_at. Ordering by created_at (never NULL for new rows)
-// keeps FIFO insertion order; v1 ordered by started_at, which is NULL for
+// keeps FIFO insertion order; the retired server ordered by started_at, which is NULL for
 // pending rows and therefore effectively rowid — same result, but the
 // ordering key is now honest about what it measures.
 func (q *Queue) PopNext(ctx context.Context) (*Job, error) {
@@ -195,8 +195,9 @@ func (q *Queue) MarkRunning(ctx context.Context, id string) error {
 	return requireAffected(res, id, "mark running")
 }
 
-// UpdateStats writes the progress JSON a long-running job reports (v1 stored
-// stats only at completion; the v2 worker streams counters between songs so
+// UpdateStats writes the progress JSON a long-running job reports (the old
+// worker stored
+// stats only at completion; the Go server worker streams counters between songs so
 // /api/scans/status shows live progress).
 func (q *Queue) UpdateStats(ctx context.Context, id string, stats any) error {
 	raw, err := json.Marshal(stats)
@@ -238,7 +239,7 @@ func (q *Queue) MarkFailed(ctx context.Context, id, message string) error {
 }
 
 // FailStaleRunning sweeps jobs left in 'running' by a previous process that
-// died mid-job (v1 parity: the worker sweeps at boot). Returns the swept
+// died mid-job (wire parity: the worker sweeps at boot). Returns the swept
 // count.
 func (q *Queue) FailStaleRunning(ctx context.Context) (int64, error) {
 	res, err := q.db.ExecContext(ctx,
@@ -271,7 +272,7 @@ func (q *Queue) PruneTerminal(ctx context.Context, keep int) error {
 
 // Latest returns the most recent job by COALESCE(started_at, created_at):
 // pending jobs surface immediately instead of hiding under NULL started_at
-// the way they did in v1's ORDER BY started_at status endpoint. Returns
+// the way they did in the old ORDER BY started_at status endpoint. Returns
 // nil when no job exists yet.
 func (q *Queue) Latest(ctx context.Context) (*Job, error) {
 	row := q.db.QueryRowContext(ctx,

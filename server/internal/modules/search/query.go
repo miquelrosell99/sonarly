@@ -1,25 +1,25 @@
 // Package search is the catalog search domain (P8): prefix full-text search
 // over songs, albums and artists through the FTS5 indexes maintained by
 // library.PersistSong, plus name-LIKE search over playlists. It replaces
-// v1's leading-wildcard LIKE scans (audit finding; plan/DR-2 prescribes
+// the old leading-wildcard LIKE scans (audit finding; plan/DR-2 prescribes
 // FTS5).
 //
-// Deviations from v1, deliberate and documented:
+// Deviations from the retired server, deliberate and documented:
 //
-//   - Songs match on title only. v1 also matched the song's artist and album
+//   - Songs match on title only. the retired server also matched the song's artist and album
 //     names inside the songs category; with per-category indexes those
 //     matches surface in their own categories instead, and the FTS table for
 //     songs indexes title only (migration 0003).
 //   - hideExplicit comes from the query string, not the stored user
-//     preference. v2 catalog endpoints follow the same convention; clients
+//     preference. The Go server catalog endpoints follow the same convention; clients
 //     that honor the preference pass it explicitly.
-//   - The untyped "limit+1" trick that fed v1's has-more indicators is gone:
+//   - The untyped "limit+1" trick that fed the old has-more indicators is gone:
 //     limits clamp to [1, maxCategoryResults] and the response carries no
 //     hasMore flags.
 //   - An FTS syntax error (a query string of specials that survives
 //     escaping) degrades to a LIKE prefix query instead of failing the
 //     request; a query with no usable tokens returns empty categories.
-//   - Playlist search matches v1's visibility rule (owner, public, or
+//   - Playlist search matches the old visibility rule (owner, public, or
 //     shared) — the same policy the playlists module enforces.
 package search
 
@@ -27,7 +27,7 @@ import (
 	"strings"
 )
 
-// maxCategoryResults caps every category the way v1's MAX_CATEGORY_RESULTS
+// maxCategoryResults caps every category the way the old MAX_CATEGORY_RESULTS
 // did; without an explicit type the per-category default is defaultPerType.
 const (
 	maxCategoryResults = 250
@@ -66,7 +66,7 @@ func likeEscape(s string) string {
 	return s
 }
 
-// likePrefixPattern is v1's likePattern with the wildcard anchored at the
+// likePrefixPattern is the old likePattern with the wildcard anchored at the
 // end only: prefix matching, no leading scan.
 func likePrefixPattern(query string) string {
 	return likeEscape(query) + `%`

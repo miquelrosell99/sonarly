@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """S1 spike corpus generator.
 
-Builds one tagged audio file per supported format with the full v1 tag schema
+Builds one tagged audio file per supported format with the full legacy tag schema
 (see packages/server/src/features/tags/reader.ts in the main checkout), plus
 one pathological ID3v1-only file with non-UTF8 bytes.
 
@@ -15,7 +15,7 @@ Outputs:
   corpus/pathological-id3v1.mp3 ID3v1 only, Latin-1 high bytes in title/artist
   manifest.json                 ground truth: every semantic -> expected value
 
-Re-run: python3 gen_corpus.py   (from v2/spikes/metadata/)
+Re-run: python3 gen_corpus.py   (from server/spikes/metadata/)
 """
 
 import base64

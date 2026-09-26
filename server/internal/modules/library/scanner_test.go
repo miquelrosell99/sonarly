@@ -136,7 +136,7 @@ func TestScanImportsLibrary(t *testing.T) {
 	}
 }
 
-// The v1 B4 fix: average_rating is never in the scanner's upsert columns, so
+// The the old B4 fix: average_rating is never in the scanner's upsert columns, so
 // a rescan (triggered here by an mtime change) must not touch a rating set
 // by users.
 func TestRescanPreservesAverageRating(t *testing.T) {
@@ -404,7 +404,7 @@ func TestScanScopedToLibrary(t *testing.T) {
 
 // Replaced-file detection: an inactive row with matching title/album/artist
 // is reused for a new file, preserving user data (the same mechanism that
-// keeps ratings attached across a re-rip). Like v1, the lookup matches
+// keeps ratings attached across a re-rip). Like the retired server, the lookup matches
 // inactive rows, so the reuse happens once the deletion has been scanned —
 // the usual re-rip sequence spans two rescans.
 func TestScanReusesInactiveRowForReplacedFile(t *testing.T) {
