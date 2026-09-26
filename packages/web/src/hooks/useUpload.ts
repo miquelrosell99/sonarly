@@ -1,11 +1,9 @@
 import { useCallback, useState } from 'react';
 import type { DuplicateStrategy } from '../types';
 import { api } from '../lib/api.js';
-import { useCapabilities } from '../contract/capabilities.js';
 
-// Chunk size stays 5 MiB client-side: v1 had no explicit cap beyond its
-// multipart config, and v2 caps one chunk at 10 MiB — 5 MiB is safely under
-// both.
+// Chunks are 5 MiB: the server caps one chunk at 10 MiB, so 5 MiB stays
+// safely under the limit while keeping per-request memory small.
 const CHUNK_SIZE = 5 * 1024 * 1024;
 
 export interface UploadFile {
@@ -32,10 +30,8 @@ function generateFileId(): string {
 }
 
 /**
- * Upload one chunk. The route shape is identical on v1 and v2; only the
- * framing differs (see .worktrees/go-rewrite/v2/internal/modules/uploads/routes.go):
- *   - v1: POST multipart/form-data with a single `file` part (current behavior)
- *   - v2: PUT application/octet-stream, the body is the chunk bytes exactly
+ * Upload one chunk: PUT application/octet-stream, the body is the chunk
+ * bytes exactly (see server/internal/modules/uploads/routes.go).
  * XHR (not fetch) because upload progress events have no fetch equivalent.
  */
 async function uploadChunk(
@@ -43,18 +39,15 @@ async function uploadChunk(
   fileId: string,
   index: number,
   chunk: Blob,
-  rawUpload: boolean,
   onProgress?: (loaded: number, total: number) => void,
 ): Promise<void> {
   const url = `/api/upload/sessions/${sessionId}/files/${fileId}/chunks/${index}`;
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open(rawUpload ? 'PUT' : 'POST', url);
+    xhr.open('PUT', url);
     xhr.withCredentials = true;
-    if (rawUpload) {
-      xhr.setRequestHeader('Content-Type', 'application/octet-stream');
-    }
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve();
@@ -68,13 +61,7 @@ async function uploadChunk(
         onProgress(e.loaded, e.total);
       }
     };
-    if (rawUpload) {
-      xhr.send(chunk);
-    } else {
-      const formData = new FormData();
-      formData.append('file', chunk, `${fileId}-${index}`);
-      xhr.send(formData);
-    }
+    xhr.send(chunk);
   });
 }
 
@@ -87,7 +74,6 @@ export function useUpload(): UseUploadReturn {
     currentFile: '',
     currentFileProgress: 0,
   });
-  const { rawUpload } = useCapabilities();
 
   const uploadFiles = useCallback(async (
     files: UploadFile[],
@@ -129,7 +115,7 @@ export function useUpload(): UseUploadReturn {
           const end = Math.min(file.size, start + CHUNK_SIZE);
           const chunk = file.slice(start, end);
 
-          await uploadChunk(sessionId, fileId, index, chunk, rawUpload, (loaded, total) => {
+          await uploadChunk(sessionId, fileId, index, chunk, (loaded, total) => {
             const chunkProgress = total > 0 ? loaded / total : 0;
             const overallFileProgress = (index + chunkProgress) / totalChunks;
             setProgress((prev) => ({ ...prev, currentFileProgress: overallFileProgress * 100 }));
@@ -156,7 +142,7 @@ export function useUpload(): UseUploadReturn {
     } finally {
       setIsUploading(false);
     }
-  }, [rawUpload]);
+  }, []);
 
   return { progress, isUploading, error, uploadFiles };
 }

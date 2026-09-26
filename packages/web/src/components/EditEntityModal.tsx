@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { SmartPlaylistRules, Song } from '../types';
 import { api } from '../lib/api.js';
@@ -17,7 +16,6 @@ import { Icon } from './ui/Icon.js';
 import { SmartPlaylistBlockEditor } from '../features/playlists/index.js';
 import { FetchMetadataModal } from './FetchMetadataModal.js';
 import { FetchLyricsModal } from './FetchLyricsModal.js';
-import { useCapabilities } from '../contract/capabilities.js';
 import { normalizeSyncedLyrics } from '../lib/syncedLyrics.js';
 import { buildSongTagsPatch } from '../lib/songEditPatch.js';
 
@@ -211,8 +209,6 @@ export function EditEntityModal({
   const [fetchLyricsOpen, setFetchLyricsOpen] = useState(false);
   const [syncedLyricsOverride, setSyncedLyricsOverride] = useState<unknown[] | undefined>(undefined);
   const queryClient = useQueryClient();
-  const capabilities = useCapabilities();
-  const { hasFilePath } = capabilities;
   const wasOpenRef = useRef(open);
 
   useEffect(() => {
@@ -289,14 +285,7 @@ export function EditEntityModal({
     } else if (entityType === 'artist') {
       patched.name = values.name;
     } else if (entityType === 'song') {
-      // Capability-aware builder: v1 and v2 accept the same SongTags body
-      // today (genre NAMES under `genre`, string|string[]); both reject
-      // `genreId` with 400. The builder is the one seam for a future wire
-      // divergence and hard-strips id-shaped keys from the payload.
-      const songPatch = buildSongTagsPatch(
-        { values, fields, isMulti, touchedFields, explicit },
-        capabilities,
-      );
+      const songPatch = buildSongTagsPatch({ values, fields, isMulti, touchedFields, explicit });
       if (isMulti) {
         onSaveMany?.(songPatch);
       } else {
@@ -348,10 +337,7 @@ export function EditEntityModal({
   const primaryFields = useMemo(() => fields.filter((f) => f.primary), [fields]);
   const secondaryFields = useMemo(() => fields.filter((f) => !f.primary), [fields]);
 
-  // v2 drops filePath from song DTOs; hide the popover instead of rendering
-  // an empty "No file path available".
-  const showFilePath = hasFilePath && !isMulti && entityType === 'song';
-  // v2 can deliver syncedLyrics as a raw string; count normalized lines.
+  // The server can deliver syncedLyrics as a raw string; count normalized lines.
   const syncedLinesCount = normalizeSyncedLyrics(
     syncedLyricsOverride ?? getCommonValue(activeEntities, 'syncedLyrics'),
   ).length;
@@ -407,12 +393,7 @@ export function EditEntityModal({
         open={open}
         onClose={onClose}
         title={
-          <span className="flex items-center gap-2">
-            {isMulti ? `Edit ${activeEntities.length} ${entityType}s` : `Edit ${entityType}`}
-            {showFilePath && (
-              <FilePathInfo filePath={String(activeEntities[0]?.filePath ?? '')} />
-            )}
-          </span>
+          isMulti ? `Edit ${activeEntities.length} ${entityType}s` : `Edit ${entityType}`
         }
         footer={footer}
         className="max-w-4xl"
@@ -779,62 +760,6 @@ function ReadOnlyValue({ children }: { children: React.ReactNode }) {
     <div className="flex h-10 items-center rounded-lg border border-rule bg-surface px-3 text-sm text-fg-primary">
       {children}
     </div>
-  );
-}
-
-function FilePathInfo({ filePath }: { filePath: string }) {
-  const [show, setShow] = useState(false);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const hasPath = filePath.trim() !== '';
-
-  const updatePos = () => {
-    if (!buttonRef.current) return;
-    const rect = buttonRef.current.getBoundingClientRect();
-    setPos({
-      top: rect.bottom + window.scrollY + 8,
-      left: rect.left + window.scrollX + rect.width / 2,
-    });
-  };
-
-  const handleEnter = () => {
-    updatePos();
-    setShow(true);
-  };
-
-  const handleLeave = () => {
-    setShow(false);
-  };
-
-  return (
-    <>
-      <button
-        ref={buttonRef}
-        type="button"
-        aria-label={hasPath ? 'Show file path' : 'No file path available'}
-        className="rounded p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-        onMouseEnter={handleEnter}
-        onMouseLeave={handleLeave}
-        onFocus={handleEnter}
-        onBlur={handleLeave}
-      >
-        <Icon name="mdi-information-outline" size={18} />
-      </button>
-      {show &&
-        pos &&
-        typeof document !== 'undefined' &&
-        createPortal(
-          <div
-            className="pointer-events-none fixed z-[60] w-max max-w-md -translate-x-1/2 rounded-lg border border-rule bg-surface px-3 py-2 text-xs text-fg-primary shadow-lg"
-            style={{ top: pos.top, left: pos.left }}
-          >
-            <span className="block max-w-md break-all font-mono">
-              {hasPath ? filePath : 'No file path available'}
-            </span>
-          </div>,
-          document.body,
-        )}
-    </>
   );
 }
 
