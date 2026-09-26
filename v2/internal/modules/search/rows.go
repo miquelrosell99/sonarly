@@ -68,20 +68,24 @@ func scanSongs(rows *sql.Rows) ([]Song, error) {
 	for rows.Next() {
 		var s Song
 		var artistName, albumName, genre, genreID, coverArt sql.NullString
-		var track, disc, year sql.NullInt64
-		// duration is a fractional REAL on v1-written legacy rows; scan it
-		// through the tolerant db.NullInt64 (see internal/db.Int64).
-		var duration db.NullInt64
+		// v1's scanner stored raw JS numbers, so legacy rows carry fractional
+		// REALs (mtimeMs, duration seconds, music-metadata format ints);
+		// scan every numeric through the tolerant db.NullInt64 (see
+		// internal/db.Int64) — a plain int64 scan of a REAL mtime fails and
+		// took down the whole songs category on v1-migrated databases.
+		var track, disc, duration, year db.NullInt64
+		var mtime db.Millis
 		var explicit, active, starred sql.NullInt64
 		var rating sql.NullFloat64
 		if err := rows.Scan(&s.ID, &s.Title, &track, &disc, &duration,
 			&s.ArtistID, &s.AlbumID, &artistName, &albumName, &genre, &genreID, &year,
-			&explicit, &coverArt, &s.Mtime, &active, &starred, &rating); err != nil {
+			&explicit, &coverArt, &mtime, &active, &starred, &rating); err != nil {
 			return nil, fmt.Errorf("scan song result: %w", err)
 		}
-		s.TrackNumber, s.DiscNumber, s.Duration = intPtr(track), intPtr(disc), dbIntPtr(duration)
+		s.TrackNumber, s.DiscNumber, s.Duration = dbIntPtr(track), dbIntPtr(disc), dbIntPtr(duration)
+		s.Mtime = int64(mtime)
 		s.ArtistName, s.AlbumName = strPtr(artistName), strPtr(albumName)
-		s.Genre, s.GenreID, s.Year = strPtr(genre), strPtr(genreID), intPtr(year)
+		s.Genre, s.GenreID, s.Year = strPtr(genre), strPtr(genreID), dbIntPtr(year)
 		s.CoverArt = strPtr(coverArt)
 		s.Explicit = explicit.Valid && explicit.Int64 == 1
 		s.Active = active.Valid && active.Int64 == 1
@@ -103,13 +107,15 @@ func scanAlbums(rows *sql.Rows) ([]Album, error) {
 	for rows.Next() {
 		var a Album
 		var artistName, genre, coverArt sql.NullString
-		var year, active, starred, explicit sql.NullInt64
+		// See scanSongs: v1 may have written any metadata number as REAL.
+		var year db.NullInt64
+		var active, starred, explicit sql.NullInt64
 		var rating sql.NullFloat64
 		if err := rows.Scan(&a.ID, &a.Name, &a.ArtistID, &artistName, &year, &genre,
 			&coverArt, &active, &starred, &rating, &explicit); err != nil {
 			return nil, fmt.Errorf("scan album result: %w", err)
 		}
-		a.ArtistName, a.Year = strPtr(artistName), intPtr(year)
+		a.ArtistName, a.Year = strPtr(artistName), dbIntPtr(year)
 		a.Genre, a.CoverArt = strPtr(genre), strPtr(coverArt)
 		a.Active = active.Valid && active.Int64 == 1
 		a.Starred = starred.Valid && starred.Int64 == 1
@@ -267,14 +273,6 @@ func attachAlbumRelations(ctx context.Context, q auth.Queries, albums []Album) e
 		}
 	}
 	return nil
-}
-
-func intPtr(v sql.NullInt64) *int {
-	if !v.Valid {
-		return nil
-	}
-	n := int(v.Int64)
-	return &n
 }
 
 func dbIntPtr(v db.NullInt64) *int {
