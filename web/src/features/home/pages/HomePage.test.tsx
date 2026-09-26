@@ -3,7 +3,7 @@ import { screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { Router } from 'wouter';
 import type { User } from '../../../types';
 import { HomePage } from './HomePage.js';
-import { renderWithQueryClient } from '../../../lib/testing.js';
+import { renderWithQueryClient, createTestQueryClient } from '../../../lib/testing.js';
 import { NotificationProvider } from '../../../contexts/NotificationContext.js';
 
 const mockApi = vi.hoisted(() => vi.fn());
@@ -145,5 +145,30 @@ describe('HomePage', () => {
     await waitFor(() => {
       expect(screen.getByText('No recently added songs.')).toBeTruthy();
     });
+  });
+
+  it('routes recent-song favorites through the shared invalidation map (adds search)', async () => {
+    const queryClient = createTestQueryClient();
+    const searchKey = ['search', 'results', { q: 'recent', type: 'songs', libraryId: null }] as const;
+    queryClient.setQueryData(searchKey, { songs: [], albums: [], artists: [], playlists: [] });
+
+    renderWithQueryClient(
+      <Router>
+        <NotificationProvider>
+          <HomePage user={user} />
+        </NotificationProvider>
+      </Router>,
+      queryClient,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Newest Song')).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Newest Song' }));
+
+    await waitFor(() => {
+      expect(queryClient.getQueryState(searchKey)?.isInvalidated).toBe(true);
+    });
+    expect(favoriteActions.setFavorite).toHaveBeenCalledWith('song', 'song-1', true);
   });
 });

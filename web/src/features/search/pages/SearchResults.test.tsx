@@ -297,4 +297,51 @@ describe('SearchResults', () => {
       expect(apiSpy).toHaveBeenCalledTimes(2);
     });
   });
+
+  it('invalidates the albums and artists caches from a song favorite (P5 map)', async () => {
+    vi.spyOn(apiModule, 'api').mockResolvedValue({
+      songs: [
+        {
+          id: 'song-1',
+          title: 'Alpha Song',
+          artistName: 'Alpha Artist',
+          albumName: 'Alpha Album',
+          starred: false,
+          filePath: '',
+          mtime: 0,
+          checksum: '',
+        },
+      ],
+      albums: [],
+      artists: [],
+      playlists: [],
+    });
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const albumsKey = ['albums', 'list', { libraryId: null }] as const;
+    const artistsKey = ['artists', 'list', { libraryId: null }] as const;
+    queryClient.setQueryData(albumsKey, { albums: [] });
+    queryClient.setQueryData(artistsKey, { artists: [] });
+
+    mockLocation('?q=alpha&type=songs');
+    render(
+      <Router>
+        <QueryClientProvider client={queryClient}>
+          <NotificationProvider>
+            <SearchResults user={mockUser} />
+          </NotificationProvider>
+        </QueryClientProvider>
+      </Router>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Alpha Song')).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add favorite' }));
+
+    await waitFor(() => {
+      expect(queryClient.getQueryState(albumsKey)?.isInvalidated).toBe(true);
+      expect(queryClient.getQueryState(artistsKey)?.isInvalidated).toBe(true);
+    });
+  });
 });

@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, cleanup, act } from '@testing-library/react';
+import { render, screen, cleanup, act, waitFor } from '@testing-library/react';
 import { Router, Route } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
+import { QueryClientProvider } from '@tanstack/react-query';
 import type { User } from '../../../types';
 import { NowPlayingRoute } from './NowPlayingRoute.js';
 import { usePlayer, resetPlayer, type PlayerSong } from '../../../stores/playerStore.js';
 import { useNowPlaying, resetNowPlaying } from '../stores/nowPlayingStore.js';
+import { createTestQueryClient } from '../../../lib/testing.js';
 
 // The underlay pages own their data fetching; we assert exactly what the
 // route itself requests, so stub them out.
@@ -34,13 +36,16 @@ function callsTo(fragment: string): unknown[][] {
 
 async function mountAt(path: string) {
   const location = memoryLocation({ path });
+  const queryClient = createTestQueryClient();
   await act(async () => {
     render(
-      <Router hook={location.hook}>
-        <Route path="/now-playing/:context/:contextId/:songId">{() => <NowPlayingRoute user={user} />}</Route>
-        <Route path="/now-playing/:songId">{() => <NowPlayingRoute user={user} />}</Route>
-        <Route path="/now-playing">{() => <NowPlayingRoute user={user} />}</Route>
-      </Router>,
+      <QueryClientProvider client={queryClient}>
+        <Router hook={location.hook}>
+          <Route path="/now-playing/:context/:contextId/:songId">{() => <NowPlayingRoute user={user} />}</Route>
+          <Route path="/now-playing/:songId">{() => <NowPlayingRoute user={user} />}</Route>
+          <Route path="/now-playing">{() => <NowPlayingRoute user={user} />}</Route>
+        </Router>
+      </QueryClientProvider>,
     );
   });
 }
@@ -53,6 +58,10 @@ describe('NowPlayingRoute (FF5: no context re-fetch when the store already holds
       const url = String(input);
       if (url.includes('/api/playlists/pl-1')) {
         return Response.json({ playlist: { entries: coldSongs } });
+      }
+      if (url.includes('/api/albums/al-9')) {
+        // The real v2 wire shape: songs ride the top level, not album.songs.
+        return Response.json({ album: { id: 'al-9', name: 'Album Nine' }, songs: coldSongs });
       }
       if (url.includes('/api/songs/song-9')) {
         return Response.json({ song: song('song-9') });
@@ -87,9 +96,18 @@ describe('NowPlayingRoute (FF5: no context re-fetch when the store already holds
     await mountAt('/now-playing/playlist/pl-1/song-4');
 
     expect(callsTo('/api/playlists/pl-1')).toHaveLength(1);
-    const state = usePlayer.getState();
-    expect(state.currentSong?.id).toBe('song-4');
-    expect(state.queue.map((s) => s.id)).toEqual(['song-3', 'song-4', 'song-5']);
+    await waitFor(() => expect(usePlayer.getState().currentSong?.id).toBe('song-4'));
+    expect(usePlayer.getState().queue.map((s) => s.id)).toEqual(['song-3', 'song-4', 'song-5']);
+  });
+
+  it('cold album deep link resolves the real {album, songs} shape without crashing (F4)', async () => {
+    await mountAt('/now-playing/album/al-9/song-4');
+
+    expect(callsTo('/api/albums/al-9')).toHaveLength(1);
+    await waitFor(() => expect(usePlayer.getState().currentSong?.id).toBe('song-4'));
+    expect(usePlayer.getState().queue.map((s) => s.id)).toEqual(['song-3', 'song-4', 'song-5']);
+    await waitFor(() => expect(useNowPlaying.getState().isOpen).toBe(true));
+    expect(screen.queryByRole('alert')).toBeFalsy();
   });
 
   it('lone-song URL served from the store queue makes zero requests', async () => {
@@ -106,7 +124,7 @@ describe('NowPlayingRoute (FF5: no context re-fetch when the store already holds
     await mountAt('/now-playing/song-9');
 
     expect(callsTo('/api/songs/song-9')).toHaveLength(1);
-    expect(usePlayer.getState().currentSong?.id).toBe('song-9');
+    await waitFor(() => expect(usePlayer.getState().currentSong?.id).toBe('song-9'));
   });
 
   it('preserves shuffle state on refresh instead of rebuilding the queue', async () => {
