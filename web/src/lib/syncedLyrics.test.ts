@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeSyncedLyrics, parseLrcString } from './syncedLyrics.js';
+import { normalizeSyncedLyrics, parseLrcString, serializeLrcLines } from './syncedLyrics.js';
 
 describe('normalizeSyncedLyrics', () => {
   it('passes through the v1 array shape unchanged', () => {
@@ -59,5 +59,29 @@ describe('parseLrcString', () => {
       { time: 1, text: 'earlier' },
       { time: 5, text: 'later' },
     ]);
+  });
+});
+
+describe('serializeLrcLines', () => {
+  it('formats centisecond stamps', () => {
+    expect(
+      serializeLrcLines([
+        { time: 0, text: 'start' },
+        { time: 1.5, text: 'half' },
+        { time: 61.25, text: 'over a minute' },
+      ]),
+    ).toBe('[00:00.00] start\n[00:01.50] half\n[01:01.25] over a minute');
+  });
+
+  it('round-trips through parseLrcString', () => {
+    const lines = [
+      { time: 0, text: 'a' },
+      { time: 2.5, text: 'b c' },
+    ];
+    expect(parseLrcString(serializeLrcLines(lines))).toEqual(lines);
+  });
+
+  it('returns an empty string for no lines (the PUT sends null then)', () => {
+    expect(serializeLrcLines([])).toBe('');
   });
 });

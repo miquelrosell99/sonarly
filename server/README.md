@@ -122,7 +122,7 @@ SESSION_SECRET=<32+ chars> SONARLY_LIBRARY_PATH=/path/to/music go run ./cmd/sona
 
 Optional: point `SONARLY_WEB_DIST` at a web build
 (`pnpm --filter @sonarly/web... build` at the repo root produces
-`packages/web/dist`) to serve the UI.
+`web/dist`) to serve the UI.
 
 Endpoints: `GET /health`, `GET /healthz` (container-probe alias), `GET /ready`.
 
@@ -143,7 +143,7 @@ ffmpeg, python3+mutagen, su-exec, wget; non-root via PUID/PGID; HEALTHCHECK
 on `/healthz`; EXPOSE 3000). Build context is the **repo root**:
 
 ```
-# from the repo root (the directory containing packages/ and server/)
+# from the repo root (the directory containing web/ and server/)
 docker build -f docker/Dockerfile \
   --build-arg SONARLY_VERSION=$(git describe --tags --always) \
   -t sonarly:local .

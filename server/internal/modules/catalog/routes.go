@@ -1,10 +1,12 @@
 package catalog
 
 import (
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/miquelrosell99/sonarly/server/internal/httpserver"
@@ -34,12 +36,15 @@ func NewHandler(svc *Service, mw *auth.Middleware) *Handler {
 }
 
 // Routes registers the catalog endpoints behind session auth, the same
-// composition the users module uses.
+// composition the users module uses. The catalog write surface (entity
+// deletes, genre create/rename) sits in its own admin-gated group, like the
+// tags module.
 func (h *Handler) Routes(r chi.Router) {
 	r.Group(func(r chi.Router) {
 		r.Use(h.mw.AuthMiddleware, auth.RequireAuth)
 		r.Get("/api/songs", h.listSongs)
 		r.Get("/api/songs/{id}", h.getSong)
+		r.Get("/api/songs/{id}/lyrics", h.getSongLyrics)
 		r.Get("/api/albums", h.listAlbums)
 		r.Get("/api/albums/{id}", h.getAlbum)
 		r.Get("/api/artists", h.listArtists)
@@ -51,6 +56,14 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Get("/api/years", h.listYears)
 		r.Get("/api/cover-art/{id}", h.getCoverArt)
 	})
+	r.Group(func(r chi.Router) {
+		r.Use(h.mw.AuthMiddleware, auth.RequireAuth, h.mw.RequireAdmin)
+		r.Delete("/api/songs/{id}", h.deleteSong)
+		r.Delete("/api/albums/{id}", h.deleteAlbum)
+		r.Delete("/api/artists/{id}", h.deleteArtist)
+		r.Post("/api/genres", h.createGenre)
+		r.Put("/api/genres/{id}", h.renameGenre)
+	})
 }
 
 func writeServiceError(w http.ResponseWriter, r *http.Request, err error) {
@@ -58,8 +71,19 @@ func writeServiceError(w http.ResponseWriter, r *http.Request, err error) {
 		httpserver.Error(w, http.StatusNotFound, "Not found")
 		return
 	}
+	if isConflict(err) {
+		httpserver.Error(w, http.StatusConflict, err.Error())
+		return
+	}
 	slog.ErrorContext(r.Context(), "catalog service error", "err", err)
 	httpserver.Error(w, http.StatusInternalServerError, "Internal Server Error")
+}
+
+// isConflict reports whether err is one of the admin-write conflict
+// sentinels (duplicate genre name, artist still carrying active songs) —
+// both answer 409 with their message.
+func isConflict(err error) bool {
+	return errors.Is(err, ErrGenreExists) || errors.Is(err, ErrArtistHasSongs)
 }
 
 func identity(r *http.Request) auth.Identity {
@@ -255,4 +279,112 @@ func (h *Handler) getCoverArt(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "private, max-age=86400")
 	w.WriteHeader(http.StatusOK)
 	w.Write(art.Data)
+}
+
+// getSongLyrics is GET /api/songs/{id}/lyrics (auth, library-scoped): the
+// plain and synced lyrics as nullable strings; out-of-scope ids answer 404
+// like every other song read.
+func (h *Handler) getSongLyrics(w http.ResponseWriter, r *http.Request) {
+	lyrics, err := h.svc.GetSongLyrics(r.Context(), identity(r), chi.URLParam(r, "id"))
+	if err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	httpserver.JSON(w, http.StatusOK, map[string]any{"lyrics": lyrics})
+}
+
+func (h *Handler) deleteSong(w http.ResponseWriter, r *http.Request) {
+	if err := h.svc.DeleteSong(r.Context(), chi.URLParam(r, "id")); err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	httpserver.JSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (h *Handler) deleteAlbum(w http.ResponseWriter, r *http.Request) {
+	if err := h.svc.DeleteAlbum(r.Context(), chi.URLParam(r, "id")); err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	httpserver.JSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func (h *Handler) deleteArtist(w http.ResponseWriter, r *http.Request) {
+	if err := h.svc.DeleteArtist(r.Context(), chi.URLParam(r, "id")); err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	httpserver.JSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// genreBody decodes a genre write body with the strict allowlist the tags
+// module uses for tag edits (Q8 mass-assignment discipline: unknown keys
+// are rejected, never silently dropped).
+func genreBody(w http.ResponseWriter, r *http.Request, allowParent bool) (name, parentID string, ok bool) {
+	var body map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		httpserver.Error(w, http.StatusBadRequest, "Invalid JSON body")
+		return "", "", false
+	}
+	allowed := map[string]bool{"name": true}
+	if allowParent {
+		allowed["parentId"] = true
+	}
+	for key := range body {
+		if !allowed[key] {
+			httpserver.Error(w, http.StatusBadRequest, "Unknown genre field: "+key)
+			return "", "", false
+		}
+	}
+	raw, present := body["name"]
+	if !present {
+		httpserver.Error(w, http.StatusBadRequest, "Genre name is required")
+		return "", "", false
+	}
+	s, isString := raw.(string)
+	if !isString || strings.TrimSpace(s) == "" {
+		httpserver.Error(w, http.StatusBadRequest, "Genre name is required")
+		return "", "", false
+	}
+	name = strings.TrimSpace(s)
+	if allowParent {
+		if raw, present := body["parentId"]; present {
+			s, isString := raw.(string)
+			if !isString {
+				httpserver.Error(w, http.StatusBadRequest, "parentId must be a string")
+				return "", "", false
+			}
+			parentID = s
+		}
+	}
+	return name, parentID, true
+}
+
+// createGenre is POST /api/genres (admin): {name, parentId?} -> 201 {genre}.
+func (h *Handler) createGenre(w http.ResponseWriter, r *http.Request) {
+	name, parentID, ok := genreBody(w, r, true)
+	if !ok {
+		return
+	}
+	genre, err := h.svc.CreateGenre(r.Context(), name, parentID)
+	if err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	httpserver.JSON(w, http.StatusCreated, map[string]any{"genre": genre})
+}
+
+// renameGenre is PUT /api/genres/{id} (admin): {name} -> {genre}. The
+// denormalized songs/albums genre-name cache follows the rename (service).
+func (h *Handler) renameGenre(w http.ResponseWriter, r *http.Request) {
+	name, _, ok := genreBody(w, r, false)
+	if !ok {
+		return
+	}
+	genre, err := h.svc.RenameGenre(r.Context(), chi.URLParam(r, "id"), name)
+	if err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	httpserver.JSON(w, http.StatusOK, map[string]any{"genre": genre})
 }

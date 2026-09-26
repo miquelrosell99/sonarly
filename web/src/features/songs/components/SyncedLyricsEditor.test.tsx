@@ -8,7 +8,7 @@ afterEach(() => cleanup());
 vi.mock('../../../lib/api.js', () => ({
   api: vi.fn((path: string, opts?: unknown) => {
     if (path === '/songs/1/lyrics' && !opts) {
-      return Promise.resolve({ lyrics: '', syncedLyrics: [{ time: 1, text: 'hello' }] });
+      return Promise.resolve({ lyrics: '', syncedLyrics: '[00:01.00] hello' });
     }
     if (path.startsWith('/lrclib/search')) {
       return Promise.resolve({
@@ -47,7 +47,7 @@ describe('SyncedLyricsEditor', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('saves lyrics and syncedLyrics via PUT', async () => {
+  it('saves lyrics and syncedLyrics via PUT (LRC text on the wire)', async () => {
     const onClose = vi.fn();
     renderEditor(onClose);
     await screen.findByRole('button', { name: /edit line: hello/i });
@@ -55,7 +55,7 @@ describe('SyncedLyricsEditor', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     expect(mockedApi).toHaveBeenCalledWith('/songs/1/lyrics', {
       method: 'PUT',
-      body: JSON.stringify({ lyrics: '', syncedLyrics: [{ time: 1, text: 'hello' }] }),
+      body: JSON.stringify({ lyrics: '', syncedLyrics: '[00:01.00] hello' }),
     });
   });
 

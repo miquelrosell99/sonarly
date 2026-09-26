@@ -19,6 +19,8 @@ const (
 	bcryptCost        = 12
 	minBitrateKbps    = 64
 	maxBitrateKbps    = 320
+	lookupLimit       = 10
+	maxLookupQueryLen = 100
 )
 
 var (
@@ -244,6 +246,32 @@ func (s *Service) ListPublic(ctx context.Context) ([]PublicUser, error) {
 	users := make([]PublicUser, 0, len(rows))
 	for i := range rows {
 		users = append(users, toPublic(&rows[i]))
+	}
+	return users, nil
+}
+
+// LookupUser is one /api/users/lookup hit: the share picker needs the id
+// and the display names, nothing more (no admin fields, no email).
+type LookupUser struct {
+	ID       string  `json:"id"`
+	Username string  `json:"username"`
+	Name     *string `json:"name"`
+}
+
+// Lookup answers GET /api/users/lookup: any signed-in user may search for
+// share recipients by username substring (LIKE-escaped), excluding
+// themselves, capped like the retired server.
+func (s *Service) Lookup(ctx context.Context, userID, query string) ([]LookupUser, error) {
+	q := strings.TrimSpace(query)
+	if len(q) > maxLookupQueryLen {
+		q = q[:maxLookupQueryLen]
+	}
+	users, err := LookupUsers(ctx, s.db, userID, q, lookupLimit)
+	if err != nil {
+		return nil, err
+	}
+	if users == nil {
+		users = []LookupUser{}
 	}
 	return users, nil
 }

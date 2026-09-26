@@ -7,6 +7,7 @@
 package audio
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -59,4 +60,26 @@ func parseLrc(text string) []SyncedLyricLine {
 // lyrics proxy parses provider responses with the same semantics).
 func ParseLRC(text string) []SyncedLyricLine {
 	return parseLrc(text)
+}
+
+// FormatLRC renders lines back to LRC text (the inverse of ParseLRC,
+// mirroring serialize_lrc in the mutagen writer script). Used by the lyrics
+// endpoints, which carry synced lyrics as LRC text on the wire. Rounding a
+// line's centisecond fraction up to the next second mirrors the python
+// f'{cs:02d}' carry (e.g. 59.995 -> "[01:00.00]"), keeping the round trip
+// stable for values the parser produced.
+func FormatLRC(lines []SyncedLyricLine) string {
+	var b strings.Builder
+	for i, line := range lines {
+		if i > 0 {
+			b.WriteByte('\n')
+		}
+		totalCentis := int64(line.Time*100 + 0.5)
+		minutes := totalCentis / 6000
+		rem := totalCentis % 6000
+		seconds := rem / 100
+		centis := rem % 100
+		fmt.Fprintf(&b, "[%02d:%02d.%02d] %s", minutes, seconds, centis, line.Text)
+	}
+	return b.String()
 }
