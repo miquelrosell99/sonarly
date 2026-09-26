@@ -10,6 +10,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 )
 
@@ -219,4 +220,58 @@ func TestBackfillRerunKeepsDeactivatedSongsOut(t *testing.T) {
 	if n := ftsSnapshot(t, database)["songs_fts"]; n != 1 {
 		t.Fatalf("songs_fts = %d, want 1 (only the active Green Lights)", n)
 	}
+}
+
+// 0005 normalizes retired-server numerics: fractional REAL mtimes/durations/
+// bitrates, string track totals, and fraction-era completion percentages.
+func TestMigrateNormalizesLegacyNumerics(t *testing.T) {
+	database := openLegacyShapedDB(t)
+	// 0001+0002 are already recorded by openLegacyShapedDB; record the rest
+	// so 0005 is the subject under test.
+	recordApplied(t, database,
+		"0003_search_fts.sql", "0004_search_fts_backfill_fix.sql")
+
+	exec := func(q string, args ...any) {
+		t.Helper()
+		if _, err := database.Exec(q, args...); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+	// Reuse the seeded catalog rows: push s1 into legacy shapes.
+	exec(`UPDATE songs SET mtime = 1785303721784.255, duration = 254.77, bit_rate = 924936.36,
+		total_tracks = '12', total_discs = '1' WHERE id = 's-1'`)
+	if _, err := database.Exec(`INSERT INTO users (id, username, password_hash, created_at) VALUES ('u-legacy', 'legacy', 'x', '2026-01-01T00:00:00.000Z')
+		ON CONFLICT(username) DO NOTHING`); err != nil {
+		t.Fatalf("seed user: %v", err)
+	}
+	exec(`INSERT INTO listening_history (id, user_id, song_id, played_at, duration_listened, completion)
+		VALUES ('h1', 'u-legacy', 's-1', '2026-09-20T10:00:00.000Z', 193.48, 0.93), ('h2', 'u-legacy', 's-1', '2026-09-21T10:00:00.000Z', 60.0, 1.0)`)
+
+	execMigrationFile(t, database, "0005_normalize_legacy_numerics.sql")
+
+	assertVal := func(q string, want any) {
+		t.Helper()
+		var got any
+		if err := database.QueryRow(q).Scan(&got); err != nil {
+			t.Fatalf("assert %s: %v", q, err)
+		}
+		if fmt.Sprint(got) != fmt.Sprint(want) {
+			t.Fatalf("%s: got %v (%T), want %v", q, got, got, want)
+		}
+	}
+	assertVal(`SELECT typeof(mtime) FROM songs WHERE id='s-1'`, "integer")
+	assertVal(`SELECT mtime FROM songs WHERE id='s-1'`, int64(1785303721784))
+	assertVal(`SELECT typeof(duration) FROM songs WHERE id='s-1'`, "integer")
+	assertVal(`SELECT duration FROM songs WHERE id='s-1'`, int64(254))
+	assertVal(`SELECT typeof(bit_rate) FROM songs WHERE id='s-1'`, "integer")
+	assertVal(`SELECT total_tracks FROM songs WHERE id='s-1'`, "12")
+	assertVal(`SELECT typeof(duration_listened) FROM listening_history WHERE id='h1'`, "integer")
+	assertVal(`SELECT duration_listened FROM listening_history WHERE id='h1'`, int64(193))
+	assertVal(`SELECT completion FROM listening_history WHERE id='h1'`, 93.0)
+	assertVal(`SELECT completion FROM listening_history WHERE id='h2'`, 100.0)
+
+	// Idempotent: a second application must be a no-op.
+	execMigrationFile(t, database, "0005_normalize_legacy_numerics.sql")
+	assertVal(`SELECT completion FROM listening_history WHERE id='h1'`, 93.0)
+	assertVal(`SELECT typeof(mtime) FROM songs WHERE id='s-1'`, "integer")
 }
