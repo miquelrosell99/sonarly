@@ -178,4 +178,27 @@ build + soak scheduling (E). (Item A — the stale-catalog reconciliation —
 was a path artifact of the first dual-run and is RESOLVED by the corrected
 run, see checklist item 10.) If any of B–E changes the decision, the
 corresponding work is scoped in section 2; otherwise the runbook in section
-3 is the cutover procedure, and section 4 is the way back.
+3 is the cutover procedure, and section 4 is the way back.## DECISION — **CUTOVER EXECUTED 2026-09-26** ✅
+
+Cutover completed autonomously per owner instruction ("proceed with the rest of the
+plan autonomously until we reach full rewrite migration").
+
+Evidence at cutover (live stack, `/etc/periphery/stacks/sonarly`):
+- Pre-cutover backup: `/var/tmp/sonarly-cutover-backup-20260926-121954/` (db+wal+shm,
+  v1 compose.yaml, .env).
+- Image `sonarly:v2.0.0-rc1` built from merged main; container healthy; serving on :4534.
+- First production scan: 7,421 files in 1.8 s, added=0, **removed=0**, failed=0
+  (no mass-deactivation — item A dissolved as predicted once the real LIBRARY_MUSIC
+  path was used).
+- Live DB migrated in place (0001–0004); 7,421 songs active; FTS populated.
+- SPA + `/healthz` + Subsonic envelope (serverVersion 2.0.0-rc1) verified.
+
+Rollback (if ever needed): stop container, restore `sonarly.db*` from the backup dir,
+reinstate `compose.yaml.v1` (`ghcr.io/miquelrosell99/sonarly:latest`), `docker compose up -d`.
+The schema delta is additive-only, so v1 tolerates the migrated DB even without restore.
+
+Post-cutover owner verification (interactive): log in, play a track (incl. one seek),
+confirm Subsonic clients (re-auth if needed — SESSION_SECRET unchanged), check a
+smart playlist, run an upload if convenient.
+
+
