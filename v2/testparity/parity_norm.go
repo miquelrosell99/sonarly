@@ -110,7 +110,9 @@ var ruleMusicFolderIDs = normRule{
 // (quirks doc R10 — deliberate fix). Only the status code is compared.
 var ruleGetAvatar404 = "R10-getAvatar-explicit-404: v1 had no getAvatar (Fastify default 404 JSON); v2 answers a plain-text 404 (quirks R10)"
 
-// ruleYearsShape canonicalizes the deliberate v2 /api/years contract change:
+// ruleYearsShape is RETIRED: v2 reverted to v1's bare-union years contract
+// (client parity, incident 2026-09-26). Kept unused for history.
+// Old text: ruleYearsShape canonicalized the deliberate v2 /api/years contract change:
 // v2's spec (api/openapi.yaml listYears) returns [{year, songCount}] scoped
 // to songs; v1 returned the bare sorted union of song and album years. Both
 // sides are reduced to the sorted bare year set, which stays meaningful for

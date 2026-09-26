@@ -336,3 +336,56 @@ func TestInteractionsRequireAuth(t *testing.T) {
 	}
 	_ = errorMessage
 }
+
+// v1 wire parity: the shipped web client posts {entityType, entityId}
+// (entityId casing) for all four entity types, playlists included.
+func TestV1EntityTypeShape(t *testing.T) {
+	s := newTestServer(t)
+	s.seedUser(t, userID, "alice")
+	s.seedEntities(t)
+	s.exec(t, `INSERT INTO playlists (id, name, owner_id, visibility) VALUES ('e-1', 'Playlist', ?, 'private')`, userID)
+	ck := s.cookie(t, userID, "alice")
+
+	cases := []struct {
+		entityType string
+		table      string
+		col        string
+	}{
+		{"song", "user_songs", "song_id"},
+		{"album", "user_albums", "album_id"},
+		{"artist", "user_artists", "artist_id"},
+		{"playlist", "user_playlists", "playlist_id"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.entityType, func(t *testing.T) {
+			rec := s.do(t, http.MethodPost, "/api/favorites", map[string]any{"entityType": tc.entityType, "entityId": "e-1", "starred": true}, ck)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("v1 favorite shape: %d %s", rec.Code, rec.Body.String())
+			}
+			var starred int
+			if err := s.db.QueryRow(`SELECT starred FROM `+tc.table+` WHERE user_id = ? AND `+tc.col+` = ?`, userID, "e-1").Scan(&starred); err != nil {
+				t.Fatal(err)
+			}
+			if starred != 1 {
+				t.Fatalf("starred = %d", starred)
+			}
+		})
+	}
+
+	rec := s.do(t, http.MethodPost, "/api/ratings", map[string]any{"entityType": "song", "entityId": "e-1", "rating": 4.5}, ck)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("v1 rating shape: %d %s", rec.Code, rec.Body.String())
+	}
+	var rating float64
+	if err := s.db.QueryRow(`SELECT rating FROM user_songs WHERE user_id = ? AND song_id = ?`, userID, "e-1").Scan(&rating); err != nil {
+		t.Fatal(err)
+	}
+	if rating != 4.5 {
+		t.Fatalf("rating = %v", rating)
+	}
+
+	rec = s.do(t, http.MethodPost, "/api/favorites", map[string]any{"entityType": "bogus", "entityId": "e-1"}, ck)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("bogus entityType: want 400, got %d", rec.Code)
+	}
+}

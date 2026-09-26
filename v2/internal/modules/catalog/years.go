@@ -8,25 +8,35 @@ import (
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/libraries"
 )
 
-// listYears returns the distinct years of active in-scope songs with their
-// song counts, newest first. (v1 unioned in album years and returned bare
-// values; the v2 spec scopes years to songs and asks for counts.)
-func listYears(ctx context.Context, q auth.Queries, scope libraries.Scope) ([]YearCount, error) {
+// listYears returns the distinct years of active in-scope songs AND albums
+// as bare values, newest first — v1's exact contract (the web client maps
+// the array directly).
+func listYears(ctx context.Context, q auth.Queries, scope libraries.Scope) ([]int, error) {
 	scopeCond := libraries.ScopeCondition(scope, "library_id")
+	songScopeCond := libraries.ScopeCondition(scope, "s.library_id")
+	albumScope := ""
+	albumArgs := []any{}
+	if !scope.All {
+		albumScope = ` AND EXISTS (SELECT 1 FROM songs s WHERE s.album_id = albums.id AND s.active = 1 ` + songScopeCond.SQL + `)`
+		albumArgs = append(albumArgs, songScopeCond.Params...)
+	}
+	args := append([]any{}, scopeCond.Params...)
+	args = append(args, albumArgs...)
+	args = append(args, scopeCond.Params...)
 	rows, err := q.QueryContext(ctx,
-		`SELECT year, COUNT(*) AS song_count
-		FROM songs
-		WHERE active = 1 AND year IS NOT NULL `+scopeCond.SQL+`
-		GROUP BY year
-		ORDER BY year DESC`, scopeCond.Params...)
+		`SELECT value FROM (
+			SELECT year AS value FROM songs WHERE active = 1 AND year IS NOT NULL `+scopeCond.SQL+`
+			UNION
+			SELECT year AS value FROM albums WHERE active = 1 AND year IS NOT NULL `+albumScope+`
+		) ORDER BY value DESC`, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list years: %w", err)
 	}
 	defer rows.Close()
-	var years []YearCount
+	var years []int
 	for rows.Next() {
-		var y YearCount
-		if err := rows.Scan(&y.Year, &y.SongCount); err != nil {
+		var y int
+		if err := rows.Scan(&y); err != nil {
 			return nil, fmt.Errorf("list years: %w", err)
 		}
 		years = append(years, y)

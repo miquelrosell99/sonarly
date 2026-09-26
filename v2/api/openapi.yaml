@@ -111,6 +111,34 @@ paths:
                 required: [status]
                 properties:
                   status: { type: string, enum: [ok] }
+  /api/client-errors:
+    post:
+      operationId: reportClientError
+      tags: [system]
+      summary: Client-side crash reporting (anonymous)
+      description: >
+        The web ErrorBoundary, window.onerror and unhandledrejection POST
+        here so production render crashes are diagnosable from server logs.
+        Fire-and-forget; the response is never user-visible.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string }
+                stack: { type: string }
+                route: { type: string }
+      responses:
+        '200':
+          description: Report logged.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ok' }
+        '400': { $ref: '#/components/responses/BadRequest' }
   /ready:
     get:
       operationId: readinessCheck
@@ -329,30 +357,36 @@ paths:
     post:
       operationId: setFavorite
       tags: [interactions]
-      summary: Star or unstar a song, album, or artist
+      summary: Star or unstar a song, album, artist, or playlist
       description: >
         Upserts the caller's starred flag in the user_songs / user_albums /
-        user_artists junction row — the same tables the OpenSubsonic
-        star.view/unstar.view endpoints write.
+        user_artists / user_playlists junction row — the same tables the
+        OpenSubsonic star.view/unstar.view endpoints write (playlists
+        excepted, which the Subsonic API does not star).
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              description: Exactly one of the three id keys is required.
+              description: >
+                Exactly one entity: a per-type id key (songId, albumId,
+                artistId, playlistId) OR the v1 shape {entityType,
+                entityId} with entityType song|album|artist|playlist.
               properties:
                 songId: { type: string }
                 albumId: { type: string }
                 artistId: { type: string }
+                playlistId: { type: string }
+                entityType:
+                  type: string
+                  enum: [song, album, artist, playlist]
+                entityId: { type: string }
+                entityID: { type: string }
                 starred:
                   type: boolean
                   default: true
                   description: Absent means favorite (true).
-              anyOf:
-                - required: [songId]
-                - required: [albumId]
-                - required: [artistId]
       responses:
         '200':
           description: Favorite stored.
@@ -365,7 +399,7 @@ paths:
     post:
       operationId: setRating
       tags: [interactions]
-      summary: Rate a song, album, or artist (0..5 in 0.5 steps)
+      summary: Rate a song, album, artist, or playlist (0..5 in 0.5 steps)
       description: >
         Upserts the caller's rating in the user_* junction row; song ratings
         recompute songs.average_rating. Passing null (or omitting the key)
@@ -376,20 +410,26 @@ paths:
           application/json:
             schema:
               type: object
+              description: >
+                Exactly one entity: a per-type id key (songId, albumId,
+                artistId, playlistId) OR the v1 shape {entityType,
+                entityId} with entityType song|album|artist|playlist.
               properties:
                 songId: { type: string }
                 albumId: { type: string }
                 artistId: { type: string }
+                playlistId: { type: string }
+                entityType:
+                  type: string
+                  enum: [song, album, artist, playlist]
+                entityId: { type: string }
+                entityID: { type: string }
                 rating:
                   type: [number, 'null']
                   minimum: 0
                   maximum: 5
                   multipleOf: 0.5
                   description: 0..5 in 0.5 increments; null clears.
-              anyOf:
-                - required: [songId]
-                - required: [albumId]
-                - required: [artistId]
       responses:
         '200':
           description: Rating stored.
@@ -755,10 +795,10 @@ paths:
     get:
       operationId: listYears
       tags: [catalog]
-      summary: Distinct song years with counts
+      summary: Distinct years (songs and albums union), newest first
       responses:
         '200':
-          description: Years of in-scope active songs and how many songs carry each.
+          description: Bare year values, newest first — the union of in-scope active song and album years (v1 contract).
           content:
             application/json:
               schema:
@@ -767,7 +807,7 @@ paths:
                 properties:
                   years:
                     type: array
-                    items: { $ref: '#/components/schemas/YearCount' }
+                    items: { type: integer }
         '401': { $ref: '#/components/responses/Unauthorized' }
   /api/cover-art/{id}:
     get:
@@ -3440,12 +3480,6 @@ components:
         children:
           type: array
           items: { $ref: '#/components/schemas/GenreNode' }
-    YearCount:
-      type: object
-      required: [year, songCount]
-      properties:
-        year: { type: integer }
-        songCount: { type: integer }
     # --- playlists -----------------------------------------------------------
     NameEntry:
       type: object
@@ -3930,30 +3964,6 @@ components:
           items: { type: string }
         starred: { type: boolean }
         rating: { type: number }
-    HomeSongCard:
-      type: object
-      required: [id, title, explicit, mtime, starred]
-      properties:
-        id: { type: string }
-        title: { type: string }
-        artistId: { type: string }
-        artistName: { type: string }
-        albumId: { type: string }
-        albumName: { type: string }
-        duration: { type: integer }
-        year: { type: integer }
-        genre: { type: string }
-        explicit: { type: boolean }
-        coverArt: { type: string }
-        mtime: { type: integer, format: int64 }
-        artists:
-          type: array
-          items: { type: string }
-        genres:
-          type: array
-          items: { type: string }
-        starred: { type: boolean }
-        rating: { type: number }
     HomeGenreCard:
       type: object
       description: One ranked genre — the name and its in-scope active song count.
@@ -3964,7 +3974,7 @@ components:
     HomeResponse:
       type: object
       description: All five sections are always present (possibly empty arrays).
-      required: [genres, mostPlayed, random, recentAdditions, recentlyPlayed]
+      required: [genres, mostPlayed, random, recentlyAdded, recentlyPlayed]
       properties:
         genres:
           type: array
@@ -3975,9 +3985,10 @@ components:
         random:
           type: array
           items: { $ref: '#/components/schemas/HomeAlbumCard' }
-        recentAdditions:
+        recentlyAdded:
           type: array
-          items: { $ref: '#/components/schemas/HomeSongCard' }
+          description: Albums whose newest song file is most recently touched, first (v1 semantics).
+          items: { $ref: '#/components/schemas/HomeAlbumCard' }
         recentlyPlayed:
           type: array
           items: { $ref: '#/components/schemas/HomeAlbumCard' }

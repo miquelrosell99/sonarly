@@ -24,35 +24,44 @@ func invalidf(format string, args ...any) error {
 }
 
 // entityJunction maps the body key to the junction table v1's favorites
-// repository used. Playlists are deliberately absent: the web client stars
-// playlists through the playlist endpoints.
+// repository used. Playlists join the set for v1 wire parity: the web
+// client sends entityType 'playlist' for playlist favorites/ratings.
 type entityJunction struct {
 	table    string
 	idColumn string
 }
 
 var (
-	songJunction   = entityJunction{"user_songs", "song_id"}
-	albumJunction  = entityJunction{"user_albums", "album_id"}
-	artistJunction = entityJunction{"user_artists", "artist_id"}
+	songJunction     = entityJunction{"user_songs", "song_id"}
+	albumJunction    = entityJunction{"user_albums", "album_id"}
+	artistJunction   = entityJunction{"user_artists", "artist_id"}
+	playlistJunction = entityJunction{"user_playlists", "playlist_id"}
 )
 
-// entityFor validates the discriminated id body ({songId|albumId|artistId},
-// exactly one) and returns its junction target. v1's native endpoints took
-// {entityType, entityId}; the v2 native body uses the id key as the
-// discriminator, matching the audit's request.
-func entityFor(songID, albumID, artistID string) (entityJunction, string, error) {
-	switch {
-	case songID != "" && albumID == "" && artistID == "":
+// entityFor validates the discriminated id body ({songId|albumId|artistId|
+// playlistId}, exactly one) and returns its junction target. v1's native
+// endpoints took {entityType, entityId} (routed here by the handlers); the
+// v2 native body may also use the id keys directly.
+func entityFor(songID, albumID, artistID, playlistID string) (entityJunction, string, error) {
+	ids := map[string]string{"song": songID, "album": albumID, "artist": artistID, "playlist": playlistID}
+	set := []string{}
+	for kind, id := range ids {
+		if id != "" {
+			set = append(set, kind)
+		}
+	}
+	if len(set) != 1 {
+		return entityJunction{}, "", invalidf("exactly one entity id is required")
+	}
+	switch set[0] {
+	case "song":
 		return songJunction, songID, nil
-	case albumID != "" && songID == "" && artistID == "":
+	case "album":
 		return albumJunction, albumID, nil
-	case artistID != "" && songID == "" && albumID == "":
+	case "artist":
 		return artistJunction, artistID, nil
-	case songID == "" && albumID == "" && artistID == "":
-		return entityJunction{}, "", invalidf("one of songId, albumId, artistId is required")
 	default:
-		return entityJunction{}, "", invalidf("exactly one of songId, albumId, artistId is allowed")
+		return playlistJunction, playlistID, nil
 	}
 }
 
@@ -66,8 +75,8 @@ func NewService(db *sql.DB) *Service { return &Service{db: db} }
 // SetFavorite stars or unstars the entity for the caller (v1 setFavorite:
 // upsert of the starred flag; absent entities are not probed — the junction
 // row is harmless and v1 did the same).
-func (s *Service) SetFavorite(ctx context.Context, id auth.Identity, songID, albumID, artistID string, starred bool) error {
-	junction, entityID, err := entityFor(songID, albumID, artistID)
+func (s *Service) SetFavorite(ctx context.Context, id auth.Identity, songID, albumID, artistID, playlistID string, starred bool) error {
+	junction, entityID, err := entityFor(songID, albumID, artistID, playlistID)
 	if err != nil {
 		return err
 	}
@@ -88,8 +97,8 @@ func (s *Service) SetFavorite(ctx context.Context, id auth.Identity, songID, alb
 // SetRating stores the caller's rating (0..5 in 0.5 steps, v1 half-ratings)
 // or clears it with nil. Song ratings recompute songs.average_rating exactly
 // like v1's setRating (albums/artists compute the average at read time).
-func (s *Service) SetRating(ctx context.Context, id auth.Identity, songID, albumID, artistID string, rating *float64) error {
-	junction, entityID, err := entityFor(songID, albumID, artistID)
+func (s *Service) SetRating(ctx context.Context, id auth.Identity, songID, albumID, artistID, playlistID string, rating *float64) error {
+	junction, entityID, err := entityFor(songID, albumID, artistID, playlistID)
 	if err != nil {
 		return err
 	}
