@@ -9,6 +9,7 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/audio"
 	"github.com/miquelrosell99/sonarly/server/internal/modules/auth"
 	"github.com/miquelrosell99/sonarly/server/internal/modules/libraries"
+	"github.com/miquelrosell99/sonarly/server/internal/modules/playlists"
 )
 
 // ErrNotFound is the single not-found sentinel: routes answer 404 both when
@@ -16,15 +17,31 @@ import (
 // out-of-scope ids cannot be probed (old behavior).
 var ErrNotFound = errors.New("catalog: not found")
 
+// ErrUnauthorized is the anonymous cover-art answer: no share token
+// presented (the stream endpoint answers unknown tokens with 401 too; the
+// cover-art route answers any non-granting token with 404, like an
+// out-of-scope id, so tokens cannot be probed against it).
+var ErrUnauthorized = errors.New("catalog: unauthorized")
+
 // Service is the catalog domain API. Every public method resolves the
 // caller's library scope first and enforces it — list queries carry it as a
 // WHERE condition, detail endpoints probe the policy one-shots and collapse
-// a false answer into ErrNotFound.
+// a false answer into ErrNotFound. The playlist policy authorizes the
+// anonymous share-token view of cover art (see GetCoverArt).
 type Service struct {
-	db *sql.DB
+	db     *sql.DB
+	policy *playlists.Policy
 }
 
-func NewService(db *sql.DB) *Service { return &Service{db: db} }
+// NewService builds the catalog service. A nil policy installs a fresh
+// playlists.Policy (the bounded grant cache); main passes the shared
+// instance so cache entries are reused across modules.
+func NewService(db *sql.DB, policy *playlists.Policy) *Service {
+	if policy == nil {
+		policy = playlists.NewPolicy()
+	}
+	return &Service{db: db, policy: policy}
+}
 
 // scope resolves the identity's library scope.
 func (s *Service) scope(ctx context.Context, id auth.Identity) (libraries.Scope, error) {
@@ -348,8 +365,30 @@ func linesFromAny(lines []any) []audio.SyncedLyricLine {
 }
 
 // GetCoverArt answers /api/cover-art/{id}: the blob when the cover belongs
-// to a reachable active song (or its album's art), 404 otherwise.
-func (s *Service) GetCoverArt(ctx context.Context, id auth.Identity, coverArtID string) (*CoverArt, error) {
+// to a reachable active song (or its album's art), 404 otherwise. Anonymous
+// callers (no session identity) are authorized ONLY by a playlist share
+// token, mirroring the playback stream's share hook: no token at all answers
+// ErrUnauthorized (the route maps it to 401); a token the playlist policy
+// does not grant the art through answers ErrNotFound (404) — a token for
+// playlist A never fetches art reachable only via playlist B. A valid grant
+// skips the library-scope check by design: the old share semantics, the
+// token authorizes the linked playlist's own content. A signed-in caller
+// always takes the scope path; the token is ignored.
+func (s *Service) GetCoverArt(ctx context.Context, id auth.Identity, coverArtID, shareToken string) (*CoverArt, error) {
+	if id.UserID == "" {
+		if shareToken == "" {
+			return nil, ErrUnauthorized
+		}
+		granted, err := s.policy.TokenGrantsCoverArt(ctx, s.db, shareToken, coverArtID)
+		if err != nil {
+			return nil, err
+		}
+		if !granted {
+			return nil, ErrNotFound
+		}
+		return getCoverArtByID(ctx, s.db, coverArtID)
+	}
+
 	scope, err := s.scope(ctx, id)
 	if err != nil {
 		return nil, err

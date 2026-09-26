@@ -1010,8 +1010,15 @@ paths:
       operationId: getCoverArt
       tags: [catalog]
       summary: Cover art blob
+      description: >
+        Anonymous callers may fetch art with a valid `share` token (art of
+        the linked playlist's songs or their albums', the same `share`
+        convention as /api/stream); anonymous without a token gets 401; a
+        token that grants nothing gets 404. A session identity wins; the
+        token is ignored for signed-in callers.
       parameters:
         - $ref: '#/components/parameters/CoverArtId'
+        - { name: share, in: query, schema: { type: string }, description: Playlist share token (anonymous access). }
       responses:
         '200':
           description: The image bytes, private-cacheable for a day.

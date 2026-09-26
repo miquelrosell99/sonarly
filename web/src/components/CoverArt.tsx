@@ -30,7 +30,7 @@ export function CoverArt({ coverArt, alt, iconSize = 32, className }: CoverArtPr
   return (
     <div className={cn('aspect-square overflow-hidden bg-surface-hover', className)}>
       <img
-        src={withShareToken(`/api/cover-art/${coverArt}`)}
+        src={withShareToken(`/api/cover-art/${coverArt}`, 'share')}
         alt={alt}
         loading="lazy"
         draggable={false}

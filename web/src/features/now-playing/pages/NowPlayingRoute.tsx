@@ -177,9 +177,7 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
       return;
     }
     if (ready && wasOpenRef.current) {
-      const fallback = hasContext
-        ? (shareToken ? `${contextPath}?shareToken=${shareToken}` : contextPath)
-        : '/home';
+      const fallback = hasContext ? withShareToken(contextPath) : '/home';
       setLocation(returnPath ?? fallback);
       useNowPlaying.getState().setReturnPath(null);
     }
