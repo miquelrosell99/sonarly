@@ -34,8 +34,13 @@ import (
 const (
 	// Live production state (READ-ONLY for this harness; copies are made
 	// before anything opens them).
-	liveDataDir     = "/etc/periphery/stacks/sonarly/config/sonarly/data"
-	liveLibraryPath = "/etc/periphery/stacks/sonarly/config/sonarly/library"
+	liveDataDir = "/etc/periphery/stacks/sonarly/config/sonarly/data"
+	// liveLibraryPath is the REAL production library per .env
+	// (LIBRARY_MUSIC) — 238 GB / 7,421 audio files. The 2026-09-25 run
+	// mistakenly used config/sonarly/library, the compose FALLBACK directory
+	// (20 files), which produced the bogus "stale catalog" finding. See the
+	// superseded CORRECTION header preserved at the top of the report.
+	liveLibraryPath = "/srv/dev-disk-by-uuid-2e9226ea-f5e9-454b-8851-0efb2e8ac1b2/resources/Música"
 	liveV1HealthURL = "http://127.0.0.1:4534/healthz" // compose.yaml maps ${SONARLY_PORT:-4533}; actual deployment uses 4534
 
 	adminUser = "p10badmin"

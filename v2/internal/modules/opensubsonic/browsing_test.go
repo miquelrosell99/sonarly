@@ -746,6 +746,43 @@ func TestSearch3EmptyQueryPagination(t *testing.T) {
 	}
 }
 
+// TestSearch3ToleratesLegacyFractionalSongNumerics is the regression for the
+// corrected P10b finding (2026-09-26): production v1-written rows carry
+// fractional REAL durations/bit_rates (Eminem catalog: duration 254.77,
+// bit_rate 924936.36). SUM(duration) returns REAL in SQLite whenever any
+// song is fractional, and albumStatsForMany's strict int scan failed the
+// whole mapAlbums pipeline — search3/getAlbumList answered code 20
+// "internal error" on real data. The tolerant db scan truncates instead.
+func TestSearch3ToleratesLegacyFractionalSongNumerics(t *testing.T) {
+	app := newTestApp(t)
+	app.seedUser(t, testUserID, testUser, testPass, true)
+	c := app.seedCatalog(t, "")
+	// Abbey Road: 259 + 182.9 = 441.9 -> truncated 441 (rounding would
+	// give 442, so the truncation is observable).
+	app.exec(t, `UPDATE songs SET duration = 182.9, bit_rate = 924936.3617333054 WHERE id = ?`, c.SAbbey2)
+
+	env := getOK(t, app, "/rest/search3.view", "&query=abbey")
+	sr := env["searchResult3"].(map[string]any)
+	albums, ok := sr["album"].([]any)
+	if !ok || len(albums) == 0 {
+		t.Fatalf("no albums in searchResult3: %v", sr)
+	}
+	al := albums[0].(map[string]any)
+	if d, _ := al["duration"].(float64); d != 441 {
+		t.Errorf("album duration = %v, want 441 (truncated 441.9)", al["duration"])
+	}
+
+	// getAlbumList flows through the same mapAlbums pipeline.
+	env = getOK(t, app, "/rest/getAlbumList.view", "&type=newest")
+	if lst, ok := env["albumList"].(map[string]any); ok {
+		if a, ok := lst["album"].([]any); !ok || len(a) == 0 {
+			t.Errorf("albumList empty: %v", lst)
+		}
+	} else {
+		t.Errorf("no albumList in %v", env)
+	}
+}
+
 func TestSearch3CountClamp(t *testing.T) {
 	app := newTestApp(t)
 	app.seedUser(t, testUserID, testUser, testPass, true)

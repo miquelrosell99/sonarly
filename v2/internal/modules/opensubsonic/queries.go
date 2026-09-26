@@ -176,9 +176,17 @@ func albumStatsForMany(ctx context.Context, q *sql.DB, albumIDs []string) (map[s
 		for rows.Next() {
 			var id string
 			var st albumSongStats
-			if err := rows.Scan(&id, &st.SongCount, &st.Duration); err != nil {
+			// SUM(duration) returns REAL when any song carries a v1-written
+			// fractional duration (production reality); the tolerant
+			// db.NullInt64 truncates instead of failing the whole listing —
+			// strict scanning 500'd search3/getAlbumList on real data.
+			var duration db.NullInt64
+			if err := rows.Scan(&id, &st.SongCount, &duration); err != nil {
 				rows.Close()
 				return nil, fmt.Errorf("batch-load album stats: %w", err)
+			}
+			if v, ok := duration.Value(); ok {
+				st.Duration = int(v)
 			}
 			out[id] = st
 		}

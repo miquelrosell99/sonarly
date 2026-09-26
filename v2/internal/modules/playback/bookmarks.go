@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/miquelrosell99/sonarly/v2/internal/db"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/libraries"
 )
@@ -63,7 +64,9 @@ func (s *Service) ListBookmarks(ctx context.Context, id auth.Identity) ([]Bookma
 	for rows.Next() {
 		var b Bookmark
 		var comment sql.NullString
-		var duration sql.NullInt64
+		// s.duration is a fractional REAL on v1-written legacy rows; the
+		// tolerant db.NullInt64 truncates instead of failing the list.
+		var duration db.NullInt64
 		var artistName, albumName sql.NullString
 		if err := rows.Scan(&b.SongID, &b.Position, &comment, &b.CreatedAt, &b.UpdatedAt,
 			&b.Song.ID, &b.Song.Title, &duration, &artistName, &albumName); err != nil {
@@ -72,8 +75,8 @@ func (s *Service) ListBookmarks(ctx context.Context, id auth.Identity) ([]Bookma
 		if comment.Valid {
 			b.Comment = &comment.String
 		}
-		if duration.Valid {
-			b.Song.Duration = int(duration.Int64)
+		if v, ok := duration.Value(); ok {
+			b.Song.Duration = int(v)
 		}
 		b.Song.ArtistName = artistName.String
 		b.Song.AlbumName = albumName.String

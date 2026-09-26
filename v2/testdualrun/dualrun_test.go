@@ -69,12 +69,15 @@ func TestScanReconciliation(t *testing.T) {
 			missing++
 		}
 	}
+	reconPresent, reconMissing = present, missing
 	reconFacts = append(reconFacts,
 		fmt.Sprintf("pre-scan active=%d; of those, files present on disk=%d, missing=%d", len(activePaths), present, missing),
 		fmt.Sprintf("scan stats: scanned=%d added=%d updated=%d removed=%d moved=%d failed=%d",
 			s.Stats.Scanned, s.Stats.Added, s.Stats.Updated, s.Stats.Removed, s.Stats.Moved, s.Stats.Failed),
-		fmt.Sprintf("scan wall clock (boot -> observed completed): %s (%.1f MB hashed on disk)",
-			s.WallClock.Round(time.Millisecond), float64(totalLibraryBytes())/1e6),
+		fmt.Sprintf("scan wall clock (boot -> observed completed): %s across a %s / %d-file library (stat-only expected: v1-parity mtime fast path hashes nothing)",
+			s.WallClock.Round(time.Millisecond), humanBytes(totalLibraryBytes()), len(env.onDisk)),
+		fmt.Sprintf("mtime fast path evidence: metadata re-reads (stats.updated)=%d of %d scanned; a large number here means mtimes/checksums diverged and must be investigated",
+			s.Stats.Updated, s.Stats.Scanned),
 		fmt.Sprintf("scan job window: started_at=%s finished_at=%s", s.JobStartedAt, s.JobFinishedAt),
 	)
 
@@ -126,6 +129,12 @@ func totalLibraryBytes() int64 {
 }
 
 var reconFacts []string
+
+// reconPresent/reconMissing feed the report's headline section: on the
+// corrected run (real library path) every pre-scan active file exists on
+// disk, so the boot scan must take the mtime fast path with zero
+// reconciliation of any kind.
+var reconPresent, reconMissing int
 
 // ---------------------------------------------------------------------------
 // Phase 2: catalog diff vs. the pristine snapshot copy.
@@ -741,10 +750,11 @@ var (
 	results []songResult
 )
 
-// pickSongs chooses five active songs maximizing coverage: formats first
-// (mp3/flac/ogg/m4a), then explicit + embedded art, then album diversity,
-// then duration spread. The production library on disk may not contain all
-// formats — coverage actually achieved is recorded in the report.
+// pickSongs chooses six active songs per the corrected run's format quota
+// (2 mp3, 2 flac, 1 ogg, 1 m4a), then fills remaining slots with explicit +
+// embedded art and duration extremes. The production library contains flac
+// and m4a only (no mp3/ogg), so absent-format slots degrade into the formats
+// that exist — requested vs. achieved coverage is recorded in the report.
 func pickSongs(t *testing.T) []songPick {
 	if picks != nil {
 		return picks
@@ -798,31 +808,46 @@ func pickSongs(t *testing.T) []songPick {
 		}
 		return nil
 	}
-	want := []string{"mp3", "flac", "ogg", "m4a"}
-	seenExt := map[string]bool{}
-	// Round 1: one per format, preferring explicit+art, then art.
-	for _, ext := range want {
-		if c := take(func(c cand) bool { return c.Ext == ext && c.Explicit && c.hasArt }); c != nil {
-			picks = append(picks, c.songPick)
-			seenExt[c.Ext] = true
+	const target = 6
+	quota := []struct {
+		ext string
+		n   int
+	}{{"mp3", 2}, {"flac", 2}, {"ogg", 1}, {"m4a", 1}}
+	extCount := map[string]int{}
+	for i := range cands {
+		extCount[cands[i].Ext]++
+	}
+	var absent []string
+	// Round 1: the format quota, preferring explicit+art, then art.
+	for _, q := range quota {
+		if extCount[q.ext] == 0 {
+			absent = append(absent, q.ext)
 			continue
 		}
-		if c := take(func(c cand) bool { return c.Ext == ext && c.hasArt }); c != nil {
-			picks = append(picks, c.songPick)
-			seenExt[c.Ext] = true
-			continue
-		}
-		if c := take(func(c cand) bool { return c.Ext == ext }); c != nil {
-			picks = append(picks, c.songPick)
-			seenExt[c.Ext] = true
+		for k := 0; k < q.n; k++ {
+			if c := take(func(c cand) bool { return c.Ext == q.ext && c.Explicit && c.hasArt }); c != nil {
+				picks = append(picks, c.songPick)
+				continue
+			}
+			if c := take(func(c cand) bool { return c.Ext == q.ext && c.hasArt }); c != nil {
+				picks = append(picks, c.songPick)
+				continue
+			}
+			if c := take(func(c cand) bool { return c.Ext == q.ext }); c != nil {
+				picks = append(picks, c.songPick)
+			}
 		}
 	}
 	// Round 2: explicit+art and art coverage in whatever format exists.
-	if c := take(func(c cand) bool { return c.Explicit && c.hasArt }); c != nil {
-		picks = append(picks, c.songPick)
+	if len(picks) < target {
+		if c := take(func(c cand) bool { return c.Explicit && c.hasArt }); c != nil {
+			picks = append(picks, c.songPick)
+		}
 	}
-	if c := take(func(c cand) bool { return c.hasArt }); c != nil {
-		picks = append(picks, c.songPick)
+	if len(picks) < target {
+		if c := take(func(c cand) bool { return c.hasArt }); c != nil {
+			picks = append(picks, c.songPick)
+		}
 	}
 	// Round 3: duration extremes.
 	best, worst := -1, -1
@@ -837,17 +862,17 @@ func pickSongs(t *testing.T) []songPick {
 			worst = i
 		}
 	}
-	if best >= 0 && len(picks) < 5 {
+	if best >= 0 && len(picks) < target {
 		taken[cands[best].ID] = true
 		picks = append(picks, cands[best].songPick)
 	}
-	if worst >= 0 && !taken[cands[worst].ID] && len(picks) < 5 {
+	if worst >= 0 && !taken[cands[worst].ID] && len(picks) < target {
 		taken[cands[worst].ID] = true
 		picks = append(picks, cands[worst].songPick)
 	}
-	// Fill up to five.
+	// Fill up to the target.
 	for i := range cands {
-		if len(picks) >= 5 {
+		if len(picks) >= target {
 			break
 		}
 		if !taken[cands[i].ID] {
@@ -855,16 +880,37 @@ func pickSongs(t *testing.T) []songPick {
 			picks = append(picks, cands[i].songPick)
 		}
 	}
-	if len(picks) > 5 {
-		picks = picks[:5]
+	if len(picks) > target {
+		picks = picks[:target]
 	}
 
 	var cov []string
 	for _, p := range picks {
 		cov = append(cov, fmt.Sprintf("%s[%s]cover=%v explicit=%v", p.Title, p.Ext, p.CoverID != "", p.Explicit))
 	}
+	gotParts := []string{}
+	for ext, n := range extCount {
+		gotParts = append(gotParts, fmt.Sprintf("%s=%d", ext, n))
+	}
+	sort.Strings(gotParts)
+	pickedByExt := map[string]int{}
+	for _, p := range picks {
+		pickedByExt[p.Ext]++
+	}
+	pickedParts := []string{}
+	for ext, n := range pickedByExt {
+		pickedParts = append(pickedParts, fmt.Sprintf("%s=%d", ext, n))
+	}
+	sort.Strings(pickedParts)
+	coverLine := fmt.Sprintf("picked %d songs; format quota requested mp3=2 flac=2 ogg=1 m4a=1, achieved %s",
+		len(picks), strings.Join(pickedParts, " "))
+	if len(absent) > 0 {
+		coverLine += fmt.Sprintf(" (library has no %s files; active-catalog formats: %s)",
+			strings.Join(absent, "/"), strings.Join(gotParts, " "))
+	}
 	servingFacts = append(servingFacts,
-		fmt.Sprintf("picked %d songs covering formats actually present on disk: %s", len(picks), strings.Join(cov, "; ")))
+		coverLine,
+		fmt.Sprintf("picked song coverage: %s", strings.Join(cov, "; ")))
 
 	for i := range picks {
 		data, err := os.ReadFile(picks[i].Path)
@@ -1076,6 +1122,48 @@ func TestServingSubsonic(t *testing.T) {
 			t.Errorf("getAlbum %s: picked song missing from track list", p0.AlbumID)
 		}
 	}
+
+	// search3 for a real artist taken from the library's top-level
+	// directory listing (the file layout on disk), complementing the
+	// picked-song title search above.
+	if artist := topLevelDir(p0.Path); artist != "" {
+		acap, err := apiClient.restGET("search3.view", map[string][]string{"query": {artist}}, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		aroot := subsonicRoot(t, acap)
+		var artists []any
+		if sr, ok := aroot["searchResult3"].(map[string]any); ok {
+			artists, _ = sr["artist"].([]any)
+		}
+		hit := false
+		for _, a := range artists {
+			if m, ok := a.(map[string]any); ok {
+				if name, _ := m["name"].(string); strings.EqualFold(name, artist) {
+					hit = true
+					break
+				}
+			}
+		}
+		songIDs := subsonicSongIDs(t, acap, "searchResult3")
+		if !hit || len(songIDs) == 0 {
+			t.Errorf("search3 %q (top-level library dir): artist-exact-match=%v, songs=%d", artist, hit, len(songIDs))
+		} else {
+			servingFacts = append(servingFacts,
+				fmt.Sprintf("search3 %q (top-level library dir) -> artist present, %d songs", artist, len(songIDs)))
+		}
+	}
+}
+
+// topLevelDir returns the first path element of the song's file path
+// relative to the library root — the artist directory as it appears in the
+// on-disk listing.
+func topLevelDir(p string) string {
+	rel, err := filepath.Rel(env.libDir, p)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+		return ""
+	}
+	return strings.Split(rel, string(os.PathSeparator))[0]
 }
 
 func firstSearchTerm(title string) string {
@@ -1150,7 +1238,15 @@ func subsonicAlbum(t *testing.T, cap *capture) (string, map[string]bool) {
 var transcodeFacts []string
 
 func TestTranscodeSmoke(t *testing.T) {
+	// Transcode a flac source specifically (corrected-run brief); flac is
+	// the library's dominant format so a pick always exists.
 	p := pickSongs(t)[0]
+	for _, c := range pickSongs(t) {
+		if c.Ext == "flac" {
+			p = c
+			break
+		}
+	}
 	t0 := time.Now()
 	cap, err := apiClient.do("GET", "/api/stream/"+p.ID+"?maxBitRate=128", nil, nil)
 	if err != nil {
@@ -1173,8 +1269,8 @@ func TestTranscodeSmoke(t *testing.T) {
 		t.Error("transcode output equals the source file bytes — transcoding did not happen")
 	}
 	transcodeFacts = append(transcodeFacts,
-		fmt.Sprintf("GET /api/stream/%s?maxBitRate=128 -> %d, %d bytes in %s (vs direct %d bytes), sha256 %s",
-			p.ID, cap.status, len(cap.body), d, p.Size, got))
+		fmt.Sprintf("GET /api/stream/%s?maxBitRate=128 [%s] -> %d, %d bytes in %s (vs direct %d bytes), sha256 %s",
+			p.ID, p.Ext, cap.status, len(cap.body), d, p.Size, got))
 }
 
 var libUntouched []string
