@@ -4,7 +4,13 @@ import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
-const BASE = 'http://127.0.0.1:4620';
+// Diagnostic end-to-end smoke: renders the full app against a real server
+// (127.0.0.1:4620). Skipped by default — run explicitly with:
+//   APPSMOKE=1 pnpm test -- src/appsmoke.diag.test.tsx
+// Gating reclaims ~29s of the default suite run.
+const ENABLED = process.env.APPSMOKE === '1';
+
+const BASE = process.env.APPSMOKE_URL ?? 'http://127.0.0.1:4620';
 let cookie = '';
 const rawFetch = globalThis.fetch.bind(globalThis);
 
@@ -42,7 +48,7 @@ const ROUTES = [
   '/playlists', '/search?q=a', '/statistics', '/settings', '/profile',
 ];
 
-describe('UI-vs-v2 repro against real server', () => {
+describe.skipIf(!ENABLED)('UI-vs-v2 repro against real server', () => {
   beforeAll(async () => {
     console.error = (...args: unknown[]) => {
       const s = args.map(String).join(' ');
