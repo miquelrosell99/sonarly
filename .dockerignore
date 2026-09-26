@@ -6,3 +6,5 @@ dist
 *.log
 *.md
 !README.md
+config/
+.env
