@@ -1,2 +1,0 @@
-ALTER TABLE songs ADD COLUMN lyrics TEXT;
-ALTER TABLE songs ADD COLUMN synced_lyrics TEXT;

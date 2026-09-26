@@ -1,1 +1,0 @@
-ALTER TABLE scan_jobs ADD COLUMN error TEXT;
