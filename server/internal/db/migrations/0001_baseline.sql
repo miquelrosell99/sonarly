@@ -1,4 +1,4 @@
--- Baseline schema distilled from the pre-rewrite migration chain 001–049 (see docs/audits/2026-09-24-backend-architecture-audit.md)
+-- Baseline schema distilled from the pre-rewrite migration chain 001–049 (see ../../../.audits/2026-09-24-backend-architecture-audit.md)
 -- plus audit schema fixes: FKs on user_libraries, UNIQUE genres.name, FK-child indexes.
 --
 -- Notes on distillation choices:

@@ -966,6 +966,38 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+  /api/playlists/{id}/albums:
+    get:
+      operationId: listPlaylistCoverAlbums
+      tags: [playlists]
+      summary: Distinct albums behind the playlist cover mosaic
+      description: >
+        Up to `limit` distinct albums from the playlist's songs, in playlist
+        order — the 2x2 cover grid the playlist cards and detail header
+        render. Access matches the playlist detail (a shareToken admits
+        anonymous viewers).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 4, minimum: 1, maximum: 20 }
+        - name: shareToken
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Albums for the cover grid (possibly empty).
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [albums]
+                properties:
+                  albums:
+                    type: array
+                    items: { $ref: '#/components/schemas/CoverAlbum' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /api/playlists/{id}/share:
     post:
       operationId: sharePlaylist
@@ -3486,6 +3518,13 @@ components:
       properties:
         year: { type: integer }
         songCount: { type: integer }
+    CoverAlbum:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        coverArt: { type: string }
     # --- playlists -----------------------------------------------------------
     NameEntry:
       type: object
