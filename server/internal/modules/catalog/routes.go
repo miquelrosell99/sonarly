@@ -37,8 +37,8 @@ func NewHandler(svc *Service, mw *auth.Middleware) *Handler {
 
 // Routes registers the catalog endpoints behind session auth, the same
 // composition the users module uses. The catalog write surface (entity
-// deletes, genre create/rename) sits in its own admin-gated group, like the
-// tags module.
+// deletes, genre create/rename/move/delete) sits in its own admin-gated
+// group, like the tags module.
 func (h *Handler) Routes(r chi.Router) {
 	r.Group(func(r chi.Router) {
 		r.Use(h.mw.AuthMiddleware, auth.RequireAuth)
@@ -62,7 +62,8 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Delete("/api/albums/{id}", h.deleteAlbum)
 		r.Delete("/api/artists/{id}", h.deleteArtist)
 		r.Post("/api/genres", h.createGenre)
-		r.Put("/api/genres/{id}", h.renameGenre)
+		r.Put("/api/genres/{id}", h.updateGenre)
+		r.Delete("/api/genres/{id}", h.deleteGenre)
 	})
 }
 
@@ -80,10 +81,11 @@ func writeServiceError(w http.ResponseWriter, r *http.Request, err error) {
 }
 
 // isConflict reports whether err is one of the admin-write conflict
-// sentinels (duplicate genre name, artist still carrying active songs) —
-// both answer 409 with their message.
+// sentinels (duplicate genre name, artist still carrying active songs,
+// genre still carrying active children) — all answer 409 with their
+// message.
 func isConflict(err error) bool {
-	return errors.Is(err, ErrGenreExists) || errors.Is(err, ErrArtistHasSongs)
+	return errors.Is(err, ErrGenreExists) || errors.Is(err, ErrArtistHasSongs) || errors.Is(err, ErrGenreHasChildren)
 }
 
 func identity(r *http.Request) auth.Identity {
@@ -319,50 +321,56 @@ func (h *Handler) deleteArtist(w http.ResponseWriter, r *http.Request) {
 
 // genreBody decodes a genre write body with the strict allowlist the tags
 // module uses for tag edits (Q8 mass-assignment discipline: unknown keys
-// are rejected, never silently dropped).
-func genreBody(w http.ResponseWriter, r *http.Request, allowParent bool) (name, parentID string, ok bool) {
+// are rejected, never silently dropped). Both writes accept `name` and
+// `parentId`; a JSON null parentId means "move to the root" (the shape the
+// admin move UI sends). POST requires a name; PUT (requireName false)
+// requires at least one of the two fields.
+func genreBody(w http.ResponseWriter, r *http.Request, requireName bool) (name string, hasName bool, parentID string, hasParent bool, ok bool) {
 	var body map[string]any
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		httpserver.Error(w, http.StatusBadRequest, "Invalid JSON body")
-		return "", "", false
+		return "", false, "", false, false
 	}
-	allowed := map[string]bool{"name": true}
-	if allowParent {
-		allowed["parentId"] = true
-	}
+	allowed := map[string]bool{"name": true, "parentId": true}
 	for key := range body {
 		if !allowed[key] {
 			httpserver.Error(w, http.StatusBadRequest, "Unknown genre field: "+key)
-			return "", "", false
+			return "", false, "", false, false
 		}
 	}
-	raw, present := body["name"]
-	if !present {
-		httpserver.Error(w, http.StatusBadRequest, "Genre name is required")
-		return "", "", false
+	if raw, present := body["name"]; present {
+		s, isString := raw.(string)
+		if !isString || strings.TrimSpace(s) == "" {
+			httpserver.Error(w, http.StatusBadRequest, "Genre name is required")
+			return "", false, "", false, false
+		}
+		name, hasName = strings.TrimSpace(s), true
 	}
-	s, isString := raw.(string)
-	if !isString || strings.TrimSpace(s) == "" {
-		httpserver.Error(w, http.StatusBadRequest, "Genre name is required")
-		return "", "", false
-	}
-	name = strings.TrimSpace(s)
-	if allowParent {
-		if raw, present := body["parentId"]; present {
+	if raw, present := body["parentId"]; present {
+		hasParent = true
+		if raw != nil {
 			s, isString := raw.(string)
 			if !isString {
-				httpserver.Error(w, http.StatusBadRequest, "parentId must be a string")
-				return "", "", false
+				httpserver.Error(w, http.StatusBadRequest, "parentId must be a string or null")
+				return "", false, "", false, false
 			}
 			parentID = s
 		}
 	}
-	return name, parentID, true
+	if requireName && !hasName {
+		httpserver.Error(w, http.StatusBadRequest, "Genre name is required")
+		return "", false, "", false, false
+	}
+	if !requireName && !hasName && !hasParent {
+		httpserver.Error(w, http.StatusBadRequest, "Genre name or parentId is required")
+		return "", false, "", false, false
+	}
+	return name, hasName, parentID, hasParent, true
 }
 
 // createGenre is POST /api/genres (admin): {name, parentId?} -> 201 {genre}.
 func (h *Handler) createGenre(w http.ResponseWriter, r *http.Request) {
-	name, parentID, ok := genreBody(w, r, true)
+	name, _, parentID, _, ok := genreBody(w, r, true)
 	if !ok {
 		return
 	}
@@ -374,17 +382,40 @@ func (h *Handler) createGenre(w http.ResponseWriter, r *http.Request) {
 	httpserver.JSON(w, http.StatusCreated, map[string]any{"genre": genre})
 }
 
-// renameGenre is PUT /api/genres/{id} (admin): {name} -> {genre}. The
-// denormalized songs/albums genre-name cache follows the rename (service).
-func (h *Handler) renameGenre(w http.ResponseWriter, r *http.Request) {
-	name, _, ok := genreBody(w, r, false)
+// updateGenre is PUT /api/genres/{id} (admin): {name?, parentId?} -> {genre}.
+// A name renames (the denormalized songs/albums genre-name cache follows,
+// service); a parentId moves — null or empty string makes the genre a root.
+// Both may ride one request, mirroring the retired server's updateGenre.
+func (h *Handler) updateGenre(w http.ResponseWriter, r *http.Request) {
+	name, hasName, parentID, hasParent, ok := genreBody(w, r, false)
 	if !ok {
 		return
 	}
-	genre, err := h.svc.RenameGenre(r.Context(), chi.URLParam(r, "id"), name)
+	id := chi.URLParam(r, "id")
+	var (
+		genre Genre
+		err   error
+	)
+	if hasName {
+		genre, err = h.svc.RenameGenre(r.Context(), id, name)
+	}
+	if err == nil && hasParent {
+		genre, err = h.svc.MoveGenre(r.Context(), id, parentID)
+	}
 	if err != nil {
 		writeServiceError(w, r, err)
 		return
 	}
 	httpserver.JSON(w, http.StatusOK, map[string]any{"genre": genre})
+}
+
+// deleteGenre is DELETE /api/genres/{id} (admin) -> {ok:true}. Genres with
+// active children answer 409; songs/albums carrying the genre survive with
+// their genre_id nulled (service).
+func (h *Handler) deleteGenre(w http.ResponseWriter, r *http.Request) {
+	if err := h.svc.DeleteGenre(r.Context(), chi.URLParam(r, "id")); err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	httpserver.JSON(w, http.StatusOK, map[string]any{"ok": true})
 }

@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// AES-256-GCM secret box for at-rest credentials, wire-compatible with the old 
+// AES-256-GCM secret box for at-rest credentials, wire-compatible with the old
 // features/auth/encryption.ts: key = SHA-256(secret), stored as
 // "base64(iv):base64(authTag):base64(ciphertext)". Subsonic passwords stored
 // by either implementation decrypt under the other.

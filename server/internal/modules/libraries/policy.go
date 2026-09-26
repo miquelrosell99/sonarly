@@ -1,5 +1,5 @@
 // Package libraries hosts the libraries domain: the per-user library
-// isolation policy — the security boundary ported from the old 
+// isolation policy — the security boundary ported from the old
 // features/libraries/policy.ts: non-admin users only reach content in
 // libraries assigned via user_libraries, admins see everything, and songs
 // with a NULL library_id are hidden from non-admins — plus the admin CRUD

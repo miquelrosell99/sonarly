@@ -19,7 +19,7 @@ import (
 // maxAvatarBytes mirrors the old 2 MiB cap.
 const maxAvatarBytes = 2 * 1024 * 1024
 
-// sniffAvatarFormat identifies jpeg/png/webp/gif by magic bytes (the old 
+// sniffAvatarFormat identifies jpeg/png/webp/gif by magic bytes (the old
 // ALLOWED_AVATAR_TYPES, content-verified).
 func sniffAvatarFormat(data []byte) (ext string, ok bool) {
 	switch {

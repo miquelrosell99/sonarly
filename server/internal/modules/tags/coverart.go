@@ -1,4 +1,4 @@
-// Cover-art upload and unlink (P9c): the Go server port of the old 
+// Cover-art upload and unlink (P9c): the Go server port of the old
 // POST/DELETE /api/songs/:id/cover-art and /api/albums/:id/cover-art.
 //
 // the retired server trusted the multipart mimetype; the Go server sniffs magic bytes (jpeg/png/webp)

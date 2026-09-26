@@ -43,7 +43,7 @@ func (h *Handler) writeError(w http.ResponseWriter, r *http.Request, err error) 
 
 // favoriteBody is POST /api/favorites: exactly one entity id, starred
 // optional (absent = favorite, the endpoint's purpose). Two wire shapes
-// are accepted: the Go server per-type keys (songId|albumId|artistId) and the old 
+// are accepted: the Go server per-type keys (songId|albumId|artistId) and the old
 // {entityType, entityId} — the web client shipped with the old shape and
 // wire compatibility outranks spec purity (parity doctrine).
 type favoriteBody struct {

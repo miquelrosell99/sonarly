@@ -10,7 +10,7 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/libraries"
 )
 
-// maxBookmarkCommentLen bounds the free-form bookmark comment (the old 
+// maxBookmarkCommentLen bounds the free-form bookmark comment (the old
 // createBookmark accepted an unbounded OpenSubsonic query parameter).
 const maxBookmarkCommentLen = 1000
 
@@ -153,7 +153,7 @@ func (s *Service) PutBookmark(ctx context.Context, id auth.Identity, songID stri
 	return err
 }
 
-// DeleteBookmark removes the caller's bookmark for the song. Like the old 
+// DeleteBookmark removes the caller's bookmark for the song. Like the old
 // deleteBookmark route, deleting a bookmark that does not exist is a no-op,
 // not an error; only an unplayable (missing/inactive/out-of-scope) song id
 // answers ErrNotFound.

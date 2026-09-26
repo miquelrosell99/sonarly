@@ -110,7 +110,7 @@ var preferenceAllowlist = map[string]preferenceValidator{
 		"orange", "teal", "purple", "yellow", "cyan", "blue"),
 	"playlistsCollapsed": boolValidator("playlistsCollapsed"),
 	// Structural documents (sidebar layout, theme, per-view options) are
-	// validated as JSON objects and stored verbatim — same contract as the old 
+	// validated as JSON objects and stored verbatim — same contract as the old
 	// repository, now behind the allowlist.
 	"sidebar":       objectValidator("sidebar"),
 	"theme":         objectValidator("theme"),

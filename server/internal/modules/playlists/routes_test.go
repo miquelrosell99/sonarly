@@ -650,8 +650,8 @@ func TestGetDetailIncludesRules(t *testing.T) {
 	}
 	var raw struct {
 		Playlist struct {
-			IsSmart bool            `json:"isSmart"`
-			Rules   *Rules          `json:"rules"`
+			IsSmart bool   `json:"isSmart"`
+			Rules   *Rules `json:"rules"`
 		} `json:"playlist"`
 	}
 	if err := json.Unmarshal(body, &raw); err != nil {

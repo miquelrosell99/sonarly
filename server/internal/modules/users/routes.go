@@ -106,7 +106,7 @@ func (h *Handler) currentSID(r *http.Request) string {
 	return sid
 }
 
-// startSession regenerates the session id (fixation protection, the old 
+// startSession regenerates the session id (fixation protection, the old
 // session.regenerate()): the old session row is destroyed, a fresh sid is
 // issued, and only then is the new cookie written.
 func (h *Handler) startSession(w http.ResponseWriter, r *http.Request, user auth.Session) error {

@@ -16,9 +16,9 @@ import (
 //
 //   - getPlaylists sorts by playlist NAME (old opensubsonic-routes.ts), not
 //     by updated_at like the native list view.
-//   - the list view carries no entries; songCount follows the old 
+//   - the list view carries no entries; songCount follows the old
 //     resolvePlaylistSongCount (smart → limit-aware compiled count, static →
-//     raw member count) and duration follows the old 
+//     raw member count) and duration follows the old
 //     resolvePlaylistSongDuration (SUM over the resolved ids, no liveness
 //     filter — the old sumSongDurations did not check active).
 

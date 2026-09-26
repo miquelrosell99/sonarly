@@ -93,7 +93,7 @@ func entriesForMany(ctx context.Context, q auth.Queries, ownerCol, joinSQL strin
 	return out, nil
 }
 
-// namesForMany loads entry name lists grouped by an owner id — the old 
+// namesForMany loads entry name lists grouped by an owner id — the old
 // getSongGenreNamesForMany pattern. joinSQL matches entriesForMany.
 func namesForMany(ctx context.Context, q auth.Queries, ownerCol, joinSQL string, ids []string) (map[string][]string, error) {
 	out := make(map[string][]string)

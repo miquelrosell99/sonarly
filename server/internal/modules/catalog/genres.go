@@ -71,7 +71,7 @@ func getGenreByID(ctx context.Context, q auth.Queries, id string) (*GenreRecord,
 }
 
 // genreIDsForLibraries returns the genres touched by active songs in the
-// given libraries, via both song-level and album-level genre junctions (the old 
+// given libraries, via both song-level and album-level genre junctions (the old
 // getGenreIdsForLibraries). An empty library list matches nothing.
 func genreIDsForLibraries(ctx context.Context, q auth.Queries, libraryIDs []string) (map[string]bool, error) {
 	out := make(map[string]bool)
@@ -107,13 +107,13 @@ func genreIDsForLibraries(ctx context.Context, q auth.Queries, libraryIDs []stri
 	return out, nil
 }
 
-// genreIDsForLibrary is genreIDsForLibraries for one library (the old 
+// genreIDsForLibrary is genreIDsForLibraries for one library (the old
 // getGenreIdsForLibrary), used by the libraryId query filter.
 func genreIDsForLibrary(ctx context.Context, q auth.Queries, libraryID string) (map[string]bool, error) {
 	return genreIDsForLibraries(ctx, q, []string{libraryID})
 }
 
-// buildGenrePaths resolves "Root > ... > Leaf" paths with a cycle guard (the old 
+// buildGenrePaths resolves "Root > ... > Leaf" paths with a cycle guard (the old
 // buildGenrePaths).
 func buildGenrePaths(genres []GenreRecord) map[string]string {
 	byID := make(map[string]GenreRecord, len(genres))
@@ -213,7 +213,7 @@ func buildGenreTree(genres []GenreRecord, allowed map[string]bool) []*GenreNode 
 }
 
 // genreAlbums returns up to limit random active albums carrying the genre,
-// restricted to in-scope (and optionally one-library) active songs (the old 
+// restricted to in-scope (and optionally one-library) active songs (the old
 // getRandomAlbumsByGenre). Albums that would show no songs once explicit
 // ones are hidden are dropped.
 func genreAlbums(ctx context.Context, q auth.Queries, genreID string, limit int, hideExplicit bool, libraryID string, scope libraries.Scope) ([]Album, error) {

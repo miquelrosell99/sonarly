@@ -131,7 +131,7 @@ func scanSongs(rows *sql.Rows) ([]Song, error) {
 	return songs, nil
 }
 
-// attachSongCredits batch-attaches artist and composer entries (the old 
+// attachSongCredits batch-attaches artist and composer entries (the old
 // attachSongArtistEntries + attachSongComposerEntries): one chunked IN
 // query per relation, never one per song.
 func attachSongCredits(ctx context.Context, q auth.Queries, songs []Song) error {
@@ -284,7 +284,7 @@ func listSongsByAlbum(ctx context.Context, q auth.Queries, userID, albumID strin
 	return songs, nil
 }
 
-// listSongsByArtist loads an artist's active in-scope songs (the old 
+// listSongsByArtist loads an artist's active in-scope songs (the old
 // listSongsByArtist: year, album, disc, track, title).
 func listSongsByArtist(ctx context.Context, q auth.Queries, userID, artistID string, scope libraries.Scope) ([]Song, error) {
 	scopeCond := libraries.ScopeCondition(scope, "s.library_id")

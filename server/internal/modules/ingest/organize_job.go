@@ -234,7 +234,7 @@ func (s *Service) organizeSongFile(ctx context.Context, filePath string) (string
 }
 
 // syncSongCoverWithAlbum reconciles the song's cover link with its album's
-// cover after a move (the database-side equivalent of the old 
+// cover after a move (the database-side equivalent of the old
 // syncSongCoverWithAlbum, which rewrote tags).
 func (s *Service) syncSongCoverWithAlbum(ctx context.Context, songID string) error {
 	var albumID *string

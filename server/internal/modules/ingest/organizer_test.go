@@ -1,5 +1,5 @@
 // Pattern rendering, sanitize, and move-collision tests: the organizer is
-// pure given (pattern, tags, paths), so these are table-driven against the old 
+// pure given (pattern, tags, paths), so these are table-driven against the old
 // documented behavior including its sharpest edges.
 package ingest_test
 

@@ -1,6 +1,6 @@
 // Package playback hosts the playback domain: streaming (direct serving and
 // ffmpeg transcoding behind one decision function), scrobbling, and
-// bookmarks. It is the Go server replacement for the old 
+// bookmarks. It is the Go server replacement for the old
 // features/{transcode,opensubsonic/routes/retrieval,songs scrobble,bookmarks}
 // paths and implements the architecture the S2 spike signed off
 // (../../../.audits/s2-streaming-findings.md §8): one StreamingService-shaped service

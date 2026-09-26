@@ -17,7 +17,7 @@ import (
 // row stores (Go-server hardening on top of audit B13 — the retired server bounded nothing).
 const maxScrobbleStringLen = 255
 
-// ScrobbleDetails is the parsed POST /api/songs/{id}/scrobble body (the old 
+// ScrobbleDetails is the parsed POST /api/songs/{id}/scrobble body (the old
 // ScrobbleDetails). Nil fields were absent from the body.
 type ScrobbleDetails struct {
 	DurationListened *float64
