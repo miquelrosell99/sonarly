@@ -1,6 +1,6 @@
 import { Router, Route, Switch, useLocation } from 'wouter';
 import { Suspense, lazy, useEffect, useState, type ComponentType, type ReactNode } from 'react';
-import type { User } from '@sonarly/shared';
+import type { User } from './types';
 import type { StatisticsMode } from './features/statistics/index.js';
 import { Layout } from './components/Layout.js';
 import { Login } from './features/auth/index.js';
@@ -13,7 +13,7 @@ import {
 } from './components/Skeletons.js';
 import { AdminRefreshProvider } from './features/admin/contexts/AdminRefreshContext.js';
 import { useServerEvents } from './hooks/useServerEvents.js';
-import { ErrorBoundary } from './components/ErrorBoundary.js';
+import { ErrorBoundary, reportClientError } from './components/ErrorBoundary.js';
 import { api } from './lib/api.js';
 import { getShareToken } from './lib/shareToken.js';
 
@@ -227,11 +227,22 @@ export default function App() {
   useEffect(() => {
     // Log unhandled promise rejections (e.g. fire-and-forget fetches) without
     // surfacing noisy UI for them; render crashes are handled by ErrorBoundary.
-    const handler = (event: PromiseRejectionEvent) => {
+    // Both are reported to the server so production-only crashes are visible
+    // in the container logs.
+    const rejectionHandler = (event: PromiseRejectionEvent) => {
       console.error('Unhandled promise rejection', event.reason);
+      const reason = event.reason instanceof Error ? event.reason : new Error(String(event.reason));
+      reportClientError(`unhandledrejection: ${reason.message}`, reason.stack);
     };
-    window.addEventListener('unhandledrejection', handler);
-    return () => window.removeEventListener('unhandledrejection', handler);
+    const errorHandler = (event: ErrorEvent) => {
+      reportClientError(`onerror: ${event.message}`, `${event.filename}:${event.lineno}:${event.colno}`);
+    };
+    window.addEventListener('unhandledrejection', rejectionHandler);
+    window.addEventListener('error', errorHandler);
+    return () => {
+      window.removeEventListener('unhandledrejection', rejectionHandler);
+      window.removeEventListener('error', errorHandler);
+    };
   }, []);
 
   useEffect(() => {

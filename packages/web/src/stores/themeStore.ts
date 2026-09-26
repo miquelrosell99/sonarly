@@ -38,7 +38,9 @@ const accentClasses = [
 
 function resolveAccent(accentColor: AccentColor, resolvedMode: 'light' | 'dark' | 'oled'): string {
   if (accentColor !== 'auto') return accentColor;
-  return resolvedMode === 'light' ? 'blue' : 'cyan';
+  // Default accent is monochrome: black on light mode, white on dark/OLED
+  // (--accent follows --fg-primary). Owner decision 2026-09-26.
+  return 'monochrome';
 }
 
 export const useTheme = create<ThemeState>((set, get) => ({
