@@ -34,6 +34,7 @@ export function AudioController() {
   const shuffle = usePlayer((state) => state.shuffle);
   const repeat = usePlayer((state) => state.repeat);
   const shuffledIndices = usePlayer((state) => state.shuffledIndices);
+  const playSession = usePlayer((state) => state.playSession);
 
   const play = usePlayer((state) => state.play);
   const setStatus = usePlayer((state) => state.setStatus);
@@ -82,6 +83,13 @@ export function AudioController() {
     }
   }, [currentSong?.id]);
 
+  // A new play session (user restarted playback, possibly the same song)
+  // re-arms scrobbling; the song-change reset above only fires when the id
+  // changes, so same-song replays would otherwise never scrobble again.
+  useEffect(() => {
+    lastScrobbledRef.current = null;
+  }, [playSession]);
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -89,6 +97,9 @@ export function AudioController() {
     if (status === 'playing') {
       audio.play().catch(handlePlayError);
     } else if (status === 'paused') {
+      // Pausing cancels a stall in progress; a buffering pause must not
+      // surface "Playback stalled" 15s later.
+      clearStalledTimer();
       audio.pause();
     }
   }, [status]);
@@ -244,6 +255,16 @@ export function AudioController() {
     play();
   };
 
+  // Element-initiated pauses (OS audio interruptions, some headphone
+  // disconnects) never go through the store; sync the store and Media
+  // Session back to 'paused' when they happen mid-playback.
+  const handlePause = () => {
+    clearStalledTimer();
+    if (usePlayer.getState().status === 'playing' && audioRef.current?.paused) {
+      usePlayer.getState().pause();
+    }
+  };
+
   const handleWaiting = () => {
     const currentStatus = usePlayer.getState().status;
     if (currentStatus === 'playing') {
@@ -330,6 +351,7 @@ export function AudioController() {
         onEnded={handleEnded}
         onPlay={handlePlay}
         onPlaying={handlePlaying}
+        onPause={handlePause}
         onWaiting={handleWaiting}
         onStalled={handleWaiting}
         onError={handleError}

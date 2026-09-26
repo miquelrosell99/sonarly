@@ -18,6 +18,10 @@ interface PlayerState {
   queueIndex: number;
   queueContext: QueueContext | null;
   status: PlayerStatus;
+  // Monotonic counter bumped whenever a user action starts a new play-through
+  // of a track (even the same track again). AudioController subscribes to it
+  // to re-arm its per-track scrobbles; deliberately not persisted.
+  playSession: number;
   currentTime: number;
   duration: number;
   volume: number;
@@ -64,6 +68,7 @@ const initialState: PlayerState = {
   queueIndex: 0,
   queueContext: null,
   status: 'idle',
+  playSession: 0,
   currentTime: 0,
   duration: 0,
   volume: 1,
@@ -130,6 +135,7 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
           duration: song.duration ?? 0,
           shuffledIndices,
           queueContext: null,
+          playSession: get().playSession + 1,
         });
       },
 
@@ -157,6 +163,7 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
           shuffle: nextShuffle,
           shuffledIndices,
           queueContext: context ?? null,
+          playSession: get().playSession + 1,
         });
       },
 
@@ -171,6 +178,7 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
           status: 'playing',
           currentTime: 0,
           duration: song?.duration ?? 0,
+          playSession: get().playSession + 1,
         });
       },
 
@@ -270,9 +278,17 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
       },
 
       play: () => {
-        const { currentSong } = get();
+        const { currentSong, status, playSession } = get();
         if (currentSong) {
-          set({ status: 'playing' });
+          // Playing from idle restarts the current track from 0 (the element
+          // rewound after `ended`), so it is a new play-through and scrobbling
+          // must re-arm. Paused→playing resumes mid-track and element-driven
+          // 'play' events fire mid-stream; neither may start a new session.
+          set(
+            status === 'idle'
+              ? { status: 'playing', playSession: playSession + 1 }
+              : { status: 'playing' },
+          );
         }
       },
 

@@ -375,6 +375,51 @@ describe('playerStore queue actions', () => {
   });
 });
 
+describe('playSession', () => {
+  beforeEach(() => resetPlayer());
+
+  it('starts at 0 and bumps on playQueue, playAtIndex, and playNow', () => {
+    const store = usePlayer.getState();
+    expect(usePlayer.getState().playSession).toBe(0);
+
+    store.playQueue([songA, songB], 0);
+    expect(usePlayer.getState().playSession).toBe(1);
+
+    usePlayer.getState().playAtIndex(1);
+    expect(usePlayer.getState().playSession).toBe(2);
+
+    usePlayer.getState().playNow(songA);
+    expect(usePlayer.getState().playSession).toBe(3);
+
+    // Replaying the same song is still a new play-through.
+    usePlayer.getState().playNow(usePlayer.getState().currentSong!);
+    expect(usePlayer.getState().playSession).toBe(4);
+  });
+
+  it('bumps when play() restarts from idle but not on paused→playing resumes', () => {
+    usePlayer.getState().playQueue([songA], 0);
+    const session = usePlayer.getState().playSession;
+
+    usePlayer.getState().pause();
+    usePlayer.getState().play();
+    expect(usePlayer.getState().playSession).toBe(session);
+
+    // Queue-end idle: pressing play replays the track from 0.
+    usePlayer.getState().setStatus('idle');
+    usePlayer.getState().play();
+    expect(usePlayer.getState().playSession).toBe(session + 1);
+  });
+
+  it('is not persisted to storage (a stale counter must not survive reloads)', () => {
+    usePlayer.getState().playQueue([songA], 0);
+
+    const raw = window.localStorage.getItem('sonarly-player');
+    expect(raw).toBeTruthy();
+    const persisted = JSON.parse(raw!);
+    expect(persisted.state).not.toHaveProperty('playSession');
+  });
+});
+
 describe('updateCurrentSong', () => {
   beforeEach(() => resetPlayer());
 
