@@ -1,15 +1,13 @@
-import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import type { Song, User } from '@sonarly/shared';
-import { api } from '../../../lib/api.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
 import { usePlayer } from '../../../stores/playerStore.js';
-import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
-import { useCacheEpoch } from '../../../stores/cacheEpoch.js';
+import { useLibraryStore } from '../../../stores/libraryStore.js';
+import { useSongsList } from '../../../hooks/useLibraryLists.js';
 import { formatDuration } from '../../../lib/format.js';
 
 interface TracksProps {
@@ -23,28 +21,14 @@ interface Track extends Song {
 
 export function Tracks({ user }: TracksProps) {
   const blurExplicitTitles = user.blurExplicitTitles === true;
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [, setLocation] = useLocation();
   const { playSong, playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
   const { get } = useFilterParams();
   const playingId = usePlayer((state) => state.currentSong?.id);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-  const epoch = useCacheEpoch();
-
-  const load = () => {
-    setLoading(true);
-    api<{ songs: Track[] }>(`/songs${buildLibraryQuery(selectedLibraryId)}`)
-      .then((res) => setTracks(res.songs))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load tracks'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-  }, [selectedLibraryId, epoch]);
+  const { data, isLoading, error, refetch, patchItem } = useSongsList({ libraryId: selectedLibraryId });
+  const tracks: Track[] = data?.songs ?? [];
 
   const artist = get('artist');
   const album = get('album');
@@ -84,22 +68,18 @@ export function Tracks({ user }: TracksProps) {
   const handleFavorite = async (track: Track, starred: boolean) => {
     try {
       await setFavorite('song', track.id, starred);
-      setTracks((prev) =>
-        prev.map((t) => (t.id === track.id ? { ...t, starred } : t)),
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+      patchItem(track.id, { starred });
+    } catch {
+      // Favorite toggle failed server-side; keep the previous state.
     }
   };
 
   const handleRate = async (track: Track, rating?: number) => {
     try {
       await setRating('song', track.id, rating);
-      setTracks((prev) =>
-        prev.map((t) => (t.id === track.id ? { ...t, rating } : t)),
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update rating');
+      patchItem(track.id, { rating });
+    } catch {
+      // Rating change failed server-side; keep the previous state.
     }
   };
 
@@ -154,8 +134,8 @@ export function Tracks({ user }: TracksProps) {
     <LibraryView
       title="Tracks"
       data={filteredTracks}
-      isLoading={loading}
-      error={error}
+      isLoading={isLoading}
+      error={error?.message ?? null}
       columns={columns}
       cardFields={cardFields}
       getId={(track) => track.id}
@@ -176,7 +156,7 @@ export function Tracks({ user }: TracksProps) {
       }
       emptyDescription={!hasActiveFilters && tracks.length === 0 && user.isAdmin ? 'Upload music from the top bar to get started.' : undefined}
       emptyAction={hasActiveFilters ? { label: 'Clear filters', onClick: () => setLocation('/tracks') } : undefined}
-      onRetry={load}
+      onRetry={() => void refetch()}
     />
   );
 }

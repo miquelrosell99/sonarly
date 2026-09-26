@@ -9,6 +9,7 @@ import { Modal } from '../../../components/ui/Modal.js';
 import { PageState } from '../../../components/PageState.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { cn } from '../../../lib/cn.js';
+import { normalizeSyncedLyrics } from '../../../lib/syncedLyrics.js';
 
 const PX_PER_SECOND = 40;
 const WHEEL_STEP_SECONDS = 0.5;
@@ -145,10 +146,11 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
   useEffect(() => {
     setLoading(true);
     setLoadError(null);
-    api<{ lyrics?: string; syncedLyrics?: SyncedLyricLine[] }>(`/songs/${songId}/lyrics`)
+    api<{ lyrics?: string; syncedLyrics?: unknown }>(`/songs/${songId}/lyrics`)
       .then((res) => {
         setLyrics(res.lyrics ?? '');
-        const loaded = toEditLines(res.syncedLyrics ?? []);
+        // v2 can deliver syncedLyrics as a raw string; normalize before edit.
+        const loaded = toEditLines(normalizeSyncedLyrics(res.syncedLyrics));
         setLines(loaded);
         // Start the tape just before the first line so existing lyrics are
         // visible on open instead of an empty viewport at 0:00.

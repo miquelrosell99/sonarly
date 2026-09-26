@@ -18,6 +18,16 @@ Typed client for the v2 API contract, generated from `.worktrees/go-rewrite/v2/a
 
 `lib/api.ts` remains the live v1 gateway; call sites migrate to `contract/` one domain at a time.
 
+### v1 ⇄ v2 protocol deltas handled client-side (FF4)
+
+Selected at runtime via `useCapabilities()`; production today is v1, the cutover target is v2:
+
+- **Uploads** (`hooks/useUpload.ts`): chunk route shape is identical, the framing differs — v1 POSTs multipart FormData per chunk, v2 PUTs the raw `application/octet-stream` chunk body (10 MiB server cap; the client keeps 5 MiB chunks so both are satisfied).
+- **syncedLyrics** (`lib/syncedLyrics.ts`): v1 always sends `SyncedLyricLine[]`; v2 passes the raw JSON column through, so a string (raw LRC text) can arrive. `normalizeSyncedLyrics` is the single funnel on every read path (lyrics panel, edit modal, synced-lyrics editor) and parses LRC strings into timed lines.
+- **Song tag edits** (`lib/songEditPatch.ts`): both servers accept the exact same `SongTags` body — `genre` as string|string[] of **names** (v2 resolves by path-or-name server-side). `genreId` is a read-model/query-filter field on v2, never a writable tag key: both validators reject it with 400, and the builder hard-strips id-shaped keys from the payload.
+- **Scrobbles** (`components/AudioController.tsx`): `completion` is a 0–100 percentage on both servers (clamped server-side); the client sends the percentage, clamped to [0,100] (a legacy 0–1 fraction was sent before FF4).
+- **filePath**: absent from v2 song DTOs — `EditEntityModal` gates its FilePathInfo popover on `capabilities.hasFilePath`. `/api/admin/missing` exists on both servers (v2's MissingSong still carries `lastKnownPath`), so `MissingModal` needed no change.
+
 ### Code splitting & bundle budget (FF2)
 
 The production build is code-split (audit FF2 fix, 2026-09-26):
