@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/miquelrosell99/sonarly/v2/internal/db"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/libraries"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/playlists"
@@ -155,7 +156,11 @@ func (s *Service) loadPlayableSong(ctx context.Context, id auth.Identity, songID
 // have already authorized the id.
 func (s *Service) loadActiveSong(ctx context.Context, songID string) (*playSong, error) {
 	var song playSong
-	var bitRate, duration sql.NullInt64
+	// bit_rate/duration are fractional REALs on v1-written legacy rows
+	// (observed in production: bit_rate 924936.36, duration 254.77); the
+	// tolerant db.NullInt64 truncates instead of erroring — the strict
+	// sql.NullInt64 500'd /api/stream for those rows.
+	var bitRate, duration db.NullInt64
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, file_path, bit_rate, title, artist_id, album_id, duration
 		FROM songs WHERE id = ? AND active = 1`, songID).
@@ -166,11 +171,11 @@ func (s *Service) loadActiveSong(ctx context.Context, songID string) (*playSong,
 	if err != nil {
 		return nil, err
 	}
-	if bitRate.Valid {
-		song.bitRate = int(bitRate.Int64)
+	if v, ok := bitRate.Value(); ok {
+		song.bitRate = int(v)
 	}
-	if duration.Valid {
-		d := int(duration.Int64)
+	if v, ok := duration.Value(); ok {
+		d := int(v)
 		song.duration = &d
 	}
 	return &song, nil

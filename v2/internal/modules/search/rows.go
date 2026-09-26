@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/miquelrosell99/sonarly/v2/internal/db"
 	"github.com/miquelrosell99/sonarly/v2/internal/modules/auth"
 )
 
@@ -67,7 +68,10 @@ func scanSongs(rows *sql.Rows) ([]Song, error) {
 	for rows.Next() {
 		var s Song
 		var artistName, albumName, genre, genreID, coverArt sql.NullString
-		var track, disc, duration, year sql.NullInt64
+		var track, disc, year sql.NullInt64
+		// duration is a fractional REAL on v1-written legacy rows; scan it
+		// through the tolerant db.NullInt64 (see internal/db.Int64).
+		var duration db.NullInt64
 		var explicit, active, starred sql.NullInt64
 		var rating sql.NullFloat64
 		if err := rows.Scan(&s.ID, &s.Title, &track, &disc, &duration,
@@ -75,7 +79,7 @@ func scanSongs(rows *sql.Rows) ([]Song, error) {
 			&explicit, &coverArt, &s.Mtime, &active, &starred, &rating); err != nil {
 			return nil, fmt.Errorf("scan song result: %w", err)
 		}
-		s.TrackNumber, s.DiscNumber, s.Duration = intPtr(track), intPtr(disc), intPtr(duration)
+		s.TrackNumber, s.DiscNumber, s.Duration = intPtr(track), intPtr(disc), dbIntPtr(duration)
 		s.ArtistName, s.AlbumName = strPtr(artistName), strPtr(albumName)
 		s.Genre, s.GenreID, s.Year = strPtr(genre), strPtr(genreID), intPtr(year)
 		s.CoverArt = strPtr(coverArt)
@@ -271,6 +275,15 @@ func intPtr(v sql.NullInt64) *int {
 	}
 	n := int(v.Int64)
 	return &n
+}
+
+func dbIntPtr(v db.NullInt64) *int {
+	n, ok := v.Value()
+	if !ok {
+		return nil
+	}
+	i := int(n)
+	return &i
 }
 
 func strPtr(v sql.NullString) *string {
