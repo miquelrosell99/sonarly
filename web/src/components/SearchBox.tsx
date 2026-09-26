@@ -1,29 +1,11 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useLocation } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
-import type { Song, Album, Artist, Playlist } from '../types';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
-import { api } from '../lib/api.js';
 import { useDebounce } from '../hooks/useDebounce.js';
-import { useLibraryStore, buildLibraryQuery } from '../stores/libraryStore.js';
+import { useLibraryStore } from '../stores/libraryStore.js';
+import { useSearchPreview } from '../hooks/useLibraryLists.js';
 import { FilterPanel, type FilterDefinition } from './FilterPanel.js';
-
-interface SearchResponse {
-  songs: Song[];
-  albums: Album[];
-  artists: Artist[];
-  playlists: Playlist[];
-}
-
-function useSearch(query: string, libraryId: string | null) {
-  return useQuery<SearchResponse, Error>({
-    queryKey: ['search', query, libraryId],
-    queryFn: () => api(`/search?q=${encodeURIComponent(query)}&limit=5${libraryId ? `&libraryId=${encodeURIComponent(libraryId)}` : ''}`),
-    enabled: query.length > 0,
-    staleTime: 60_000,
-  });
-}
 
 interface ResultItem {
   id: string;
@@ -51,7 +33,9 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
   const containerRef = useRef<HTMLDivElement>(null);
   const debouncedQuery = useDebounce(inputValue, 200);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-  const { data } = useSearch(debouncedQuery, selectedLibraryId);
+  // F12b: one shared ['search','preview',…] family; the /search results page
+  // adopts the same entry as its initial data instead of re-downloading.
+  const { data } = useSearchPreview(debouncedQuery, selectedLibraryId);
 
   const items = useMemo<ResultItem[]>(() => {
     if (!data) return [];

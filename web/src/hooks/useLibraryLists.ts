@@ -9,8 +9,11 @@
 //   ['artists', 'list', params]   /artists
 //   ['genres',  'list', params]   /genres
 //   ['years',   'list', params]   /years
-//   ['search',  'results', ...]   /search
+//   ['search',  'preview', …]     /search?q=…&limit=5 (SearchBox dropdown)
+//   ['search',  'results', …]     /search?q=…&type=…  (/search page; adopts a
+//                                 matching preview entry as initialData)
 //
+// Playlists live in usePlaylists/usePlaylist ('playlists' / ['playlist', id]).
 // `params` holds only what the server sees (library scope plus the server
 // filters genre/composer/label); client-side-only filters stay derived state
 // in the page and never enter the key. Filter/scope changes refetch under a
@@ -160,11 +163,39 @@ export interface SearchResultsResponse {
 export type SearchType = 'songs' | 'albums' | 'artists' | 'playlists';
 
 /**
+ * Top-5 preview for the SearchBox dropdown, keyed ['search','preview',…] —
+ * the same /search envelope as the results page, one family under the 'search'
+ * prefix so SSE invalidation covers both and the results query can adopt it
+ * without re-downloading (see useSearchResults).
+ */
+export function useSearchPreview(query: string, libraryId: string | null) {
+  return useQuery<SearchResultsResponse, Error>({
+    queryKey: ['search', 'preview', { q: query, libraryId }],
+    queryFn: () =>
+      api<SearchResultsResponse>(
+        `/search?q=${encodeURIComponent(query)}&limit=5${libraryId ? `&libraryId=${encodeURIComponent(libraryId)}` : ''}`,
+      ),
+    enabled: query.trim().length > 0,
+    staleTime: LIBRARY_LIST_STALE_TIME,
+  });
+}
+
+/**
  * Full search results for the /search page. The debounce lives upstream in
  * SearchBox (200ms before the `?q=` param even changes); once the param
  * changes the fetch is immediate, matching the old hand-rolled effect.
+ *
+ * When the dropdown preview for the same q + library scope is already cached,
+ * it seeds this query (initialData, with the preview's own dataUpdatedAt so a
+ * stale preview still refetches): pressing Enter after a preview shows the
+ * results instantly and does not re-download them. `keepPreviousData` still
+ * applies to every later key change.
  */
 export function useSearchResults(query: string, type: SearchType, libraryId: string | null) {
+  const queryClient = useQueryClient();
+  const previewState = queryClient.getQueryState(['search', 'preview', { q: query, libraryId }]);
+  const preview = previewState?.data as SearchResultsResponse | undefined;
+
   return useQuery<SearchResultsResponse, Error>({
     queryKey: ['search', 'results', { q: query, type, libraryId }],
     queryFn: () =>
@@ -173,6 +204,8 @@ export function useSearchResults(query: string, type: SearchType, libraryId: str
       ),
     enabled: query.trim().length > 0,
     staleTime: LIBRARY_LIST_STALE_TIME,
+    initialData: preview,
+    initialDataUpdatedAt: previewState?.dataUpdatedAt,
     placeholderData: keepPreviousData,
   });
 }
