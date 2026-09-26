@@ -1,5 +1,5 @@
 // Package staticfs serves the built web client (web-dist) with SPA
-// fallback, closing the last functional gap to v1 (packages/server app.ts
+// fallback (the last functional gap closed before cutover — packages/server app.ts
 // serves web-dist through fastify-static with a NotFoundHandler that
 // answers extensionless GET routes with index.html).
 //
@@ -84,8 +84,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// SPA fallback: only URLs a file could never own. A missing path with
-	// an extension is a genuine miss and keeps the 404 (v1 served index.html
-	// for those too; v2 is stricter so a broken asset URL cannot silently
+	// an extension is a genuine miss and keeps the 404 (the old server served
+	// index.html for those too; the Go server is stricter so a broken asset URL cannot silently
 	// return HTML).
 	if path.Ext(r.URL.Path) == "" {
 		h.serveFile(w, r, h.index, time.Time{})

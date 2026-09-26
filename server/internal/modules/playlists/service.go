@@ -15,7 +15,7 @@ import (
 
 // Service is the playlists domain API: CRUD, shares, link lifecycle,
 // resolution (static ordering + smart compilation), and the viewer-scoped
-// song lists. Layering follows the v2 convention (routes → service →
+// song lists. Layering follows the Go server convention (routes → service →
 // repository); the single access decision lives in Resolve, consulted here.
 type Service struct {
 	db     *sql.DB
@@ -49,16 +49,16 @@ type UpdateInput struct {
 	Rules       *Rules
 	ResolveMode *string
 	// ReconcileShareToken selects the Subsonic adapter's token semantics
-	// (v1 opensubsonic-routes.ts updatePlaylist): on every adapter update
+	// (old opensubsonic-routes.ts updatePlaylist): on every adapter update
 	// the token is re-derived from the RESOLVED visibility — link keeps or
 	// mints a token, any other visibility clears it. The native route
-	// leaves this false: v1's management PUT never clears the token and
+	// leaves this false: the old management PUT never clears the token and
 	// only auto-mints when visibility becomes 'link' with none set.
 	ReconcileShareToken bool
 }
 
 // rulesUserID picks the user the user-scoped rule fields resolve against
-// (v1 migration 048 semantics): 'query' mode resolves live against the
+// (old migration 048 semantics): 'query' mode resolves live against the
 // viewer's own data; 'tracks' (default) resolves against the owner's data
 // so every viewer receives the same curated list. Anonymous viewers fall
 // back to the owner.
@@ -70,7 +70,7 @@ func rulesUserID(p *Playlist, viewerUserID string) string {
 }
 
 // List answers GET /api/playlists: own + public + shared-with-me.
-// ShareToken rides only the owner's items (v1 B10 fix); smart playlists
+// ShareToken rides only the owner's items (the old B10 fix); smart playlists
 // report their resolved count, static playlists their raw member count
 // (list-view counts are not library-scope filtered — the detail view is;
 // see Get).
@@ -127,9 +127,9 @@ func (s *Service) Get(ctx context.Context, id auth.Identity, playlistID, shareTo
 		return nil, err
 	}
 	if access == AccessNone && shareToken != "" && p.ShareToken != "" && shareToken == p.ShareToken {
-		// v1 management canViewPlaylist (P10 decision): a matching share
+		// the retired server management canViewPlaylist (P10 decision): a matching share
 		// token grants VIEW regardless of the playlist's visibility — the
-		// native metadata view intentionally preserves this v1 divergence;
+		// native metadata view intentionally preserves this the retired server divergence;
 		// the streaming/content grants and the Subsonic adapter's
 		// getPlaylist keep the stricter visibility='link' + token check
 		// (see doc.go). Unified cleanup is a post-cutover candidate.
@@ -148,7 +148,7 @@ func (s *Service) Get(ctx context.Context, id auth.Identity, playlistID, shareTo
 	// unfiltered (rewriting it scoped would silently drop members), and
 	// anonymous share-token viewers are authorized against the linked
 	// playlist's own content — library scope applies to signed-in users
-	// only (v1 /api/stream parity).
+	// only (old /api/stream parity).
 	if id.UserID != "" && access == AccessView {
 		scope, err := libraries.GetScope(ctx, s.db, id.UserID, id.IsAdmin)
 		if err != nil {
@@ -189,7 +189,7 @@ func (s *Service) Get(ctx context.Context, id auth.Identity, playlistID, shareTo
 		if err != nil {
 			return nil, err
 		}
-		// v1 emits the shares key for the owner even when empty ([]) —
+		// the retired server emits the shares key for the owner even when empty ([]) —
 		// never omit it (P10 parity finding).
 		if shares == nil {
 			shares = []ShareEntry{}
@@ -261,8 +261,8 @@ func (s *Service) Create(ctx context.Context, id auth.Identity, in Input) (*Deta
 }
 
 // Update answers PUT /api/playlists/{id}: edit access required, member
-// rewrites run in ONE transaction (v1 B3 fix), and smart/static conversion
-// follows v1 semantics (converting to smart drops the manual members;
+// rewrites run in ONE transaction (the old B3 fix), and smart/static conversion
+// follows the old semantics (converting to smart drops the manual members;
 // converting to static materializes the current resolution).
 func (s *Service) Update(ctx context.Context, id auth.Identity, playlistID string, in UpdateInput) (*Detail, error) {
 	existing, err := GetByID(ctx, s.db, playlistID)
@@ -346,12 +346,12 @@ func (s *Service) Update(ctx context.Context, id auth.Identity, playlistID strin
 		}
 		updated.Visibility = *in.Visibility
 	}
-	// v1 parity (P10 decision): the token lifecycle is independent of
-	// visibility. Native PUT (v1 management-routes.ts) never clears the
+	// wire parity (P10 decision): the token lifecycle is independent of
+	// visibility. Native PUT (old management-routes.ts) never clears the
 	// token and only auto-mints when visibility becomes 'link' with none
 	// set. The Subsonic adapter instead re-derives the token from the
 	// resolved visibility on every update (link keeps/mints, anything
-	// else clears) — v1 opensubsonic-routes.ts updatePlaylist.
+	// else clears) — the retired server opensubsonic-routes.ts updatePlaylist.
 	if updated.Visibility == "link" && updated.ShareToken == "" {
 		token, err := MintShareToken()
 		if err != nil {
@@ -432,7 +432,7 @@ func (s *Service) Unshare(ctx context.Context, id auth.Identity, playlistID, tar
 
 // CreateShareLink answers POST /api/playlists/{id}/share-link: owner only.
 // Always mints a FRESH token — this doubles as "regenerate", killing any
-// previously shared link. v1 parity: the playlist's visibility is NOT
+// previously shared link. wire parity: the playlist's visibility is NOT
 // changed here; the token works independently of visibility.
 func (s *Service) CreateShareLink(ctx context.Context, id auth.Identity, playlistID string) (string, error) {
 	existing, err := GetByID(ctx, s.db, playlistID)
@@ -460,7 +460,7 @@ func (s *Service) CreateShareLink(ctx context.Context, id auth.Identity, playlis
 }
 
 // DeleteShareLink answers DELETE /api/playlists/{id}/share-link: owner
-// only. Clears the token ONLY — visibility is left exactly as it was (v1
+// only. Clears the token ONLY — visibility is left exactly as it was (old
 // management-routes.ts: share_token = NULL, no visibility write).
 func (s *Service) DeleteShareLink(ctx context.Context, id auth.Identity, playlistID string) error {
 	existing, err := GetByID(ctx, s.db, playlistID)
@@ -512,7 +512,7 @@ func (s *Service) resolveSongIDs(ctx context.Context, p *Playlist, viewerUserID 
 }
 
 // resolveCount reports the smart playlist's resolved size for the list
-// view (limit-aware, per v1 resolvePlaylistSongCount).
+// view (limit-aware, per the old resolvePlaylistSongCount).
 func (s *Service) resolveCount(ctx context.Context, p *Playlist, viewerUserID string) (int, error) {
 	compiled, err := Compile(ctx, s.db, p.Rules, rulesUserID(p, viewerUserID))
 	if err != nil {
@@ -527,7 +527,7 @@ func (s *Service) resolveCount(ctx context.Context, p *Playlist, viewerUserID st
 
 // validateSongIDs checks that every id exists, is active, and sits inside
 // the caller's library scope; the returned list is deduplicated in first-
-// occurrence order. The error lists every offending id (v2 contract: one
+// occurrence order. The error lists every offending id (Go-server contract: one
 // bad id means nothing is inserted).
 func (s *Service) validateSongIDs(ctx context.Context, id auth.Identity, songIDs []string) ([]string, error) {
 	seen := make(map[string]bool, len(songIDs))
@@ -633,10 +633,10 @@ func filterIDsByScope(ctx context.Context, q auth.Queries, scope libraries.Scope
 	return out, nil
 }
 
-// fetchEntries loads the display rows for ids in playlist order (v1's
+// fetchEntries loads the display rows for ids in playlist order (the old 
 // fetchPlaylistSongs shape), chunked to stay under SQLite's variable limit,
 // with song artists batch-attached. Songs that are inactive or explicitly
-// hidden drop out; created is the mtime as an ISO timestamp (v1 parity).
+// hidden drop out; created is the mtime as an ISO timestamp (wire parity).
 func (s *Service) fetchEntries(ctx context.Context, ids []string, hideExplicit bool) ([]Entry, error) {
 	byID := make(map[string]*Entry, len(ids))
 	const chunk = 500
@@ -662,7 +662,7 @@ func (s *Service) fetchEntries(ctx context.Context, ids []string, hideExplicit b
 		for rows.Next() {
 			var e Entry
 			var track, disc, year, explicit sql.NullInt64
-			var duration db.NullInt64 // v1 may have stored fractional REAL seconds
+			var duration db.NullInt64 // the retired server may have stored fractional REAL seconds
 			var mtime db.NullInt64
 			var genre, coverArt, albumID, albumName, albumCoverArt, artistID, artistName sql.NullString
 			if err := rows.Scan(&e.ID, &e.Title, &track, &disc, &duration, &genre, &year,
@@ -728,7 +728,7 @@ func (s *Service) fetchEntries(ctx context.Context, ids []string, hideExplicit b
 	return entries, nil
 }
 
-// attachArtists batch-attaches song_artists entries (v1's
+// attachArtists batch-attaches song_artists entries (the old 
 // attachSongArtistEntries): one chunked junction query for the whole list,
 // never one per song.
 func (s *Service) attachArtists(ctx context.Context, byID map[string]*Entry) error {

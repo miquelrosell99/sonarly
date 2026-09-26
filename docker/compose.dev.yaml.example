@@ -1,7 +1,6 @@
-# The v1 (TypeScript server) dev compose example was removed with the v1
-# codebase. Sonarly v2 (Go) is the only server.
-#
-# Production-shaped deployment: see docker/compose.v2.yaml.example.
+# Sonarly (Go) is the only server. This dev compose example was retired when
+# the TypeScript server was removed; production-shaped deployment lives in
+# docker/compose.yaml.example.
 # Local development: see docs/development.md — run the Go server with
-# `go run ./cmd/sonarly` from v2/ and the web client with `pnpm dev` from
+# `go run ./cmd/sonarly` from server/ and the web client with `pnpm dev` from
 # packages/web/ (vite proxies /api and /rest to localhost:3000).

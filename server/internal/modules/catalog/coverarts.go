@@ -33,7 +33,7 @@ func getCoverArtByID(ctx context.Context, q auth.Queries, id string) (*CoverArt,
 }
 
 // coverArtContentType maps the stored format to a response Content-Type.
-// Production rows store MIME types (v1's scanner wrote meta.coverArt.format
+// Production rows store MIME types (the old scanner wrote meta.coverArt.format
 // verbatim); the extension fallback keeps hand-seeded or legacy rows
 // ('jpg', 'png', 'webp', 'gif') serving correctly too.
 func coverArtContentType(format string) string {

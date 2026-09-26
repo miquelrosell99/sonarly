@@ -1,4 +1,4 @@
-// Worker executes scan_jobs one at a time on a single goroutine. v1 needed
+// Worker executes scan_jobs one at a time on a single goroutine. the retired server needed
 // an OS thread (worker_threads) for CPU-heavy scans; Go runs the loop on a
 // plain goroutine. The loop is context-driven: shutting the server down
 // (signal.NotifyContext in main) cancels the scan between songs, rolls back
@@ -19,7 +19,7 @@ import (
 const defaultPollInterval = time.Second
 
 // Event is published on the worker's events channel every time a job reaches
-// a terminal state. It exists for the future SSE feed (v1's job:completed
+// a terminal state. It exists for the future SSE feed (the old job:completed
 // worker message that app.ts rebroadcast as library:changed).
 type Event struct {
 	JobID string
@@ -84,7 +84,7 @@ func (w *Worker) emit(ev Event) {
 }
 
 // Start runs the loop until ctx is cancelled. It first sweeps jobs a
-// previous process left 'running' (crash mid-job), like v1's worker boot.
+// previous process left 'running' (crash mid-job), like the old worker boot.
 func (w *Worker) Start(ctx context.Context) {
 	if n, err := w.queue.FailStaleRunning(ctx); err != nil {
 		w.log.ErrorContext(ctx, "stale job sweep failed", "err", err)
@@ -127,7 +127,7 @@ func (w *Worker) runJob(ctx context.Context, job *Job) {
 
 	// Terminal-state writes run on a context the shutdown cancellation does
 	// not kill: the job row must record its outcome even when the scan was
-	// aborted by shutdown (v1 could write synchronously; the Go worker must
+	// aborted by shutdown (old could write synchronously; the Go worker must
 	// explicitly detach from the cancelled ctx).
 	record := context.WithoutCancel(ctx)
 
@@ -151,7 +151,7 @@ func (w *Worker) runJob(ctx context.Context, job *Job) {
 	case errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded):
 		// Shutdown mid-scan: the scanner aborted between songs and its
 		// in-flight tx rolled back. Mark the job failed unless it raced to
-		// a terminal state (v1's shutdown check).
+		// a terminal state (the old shutdown check).
 		w.failIfStillRunning(record, job.ID, "cancelled: server shutting down")
 		w.log.InfoContext(ctx, "job cancelled by shutdown", "job_id", job.ID, "type", job.Type,
 			"duration_ms", duration.Milliseconds())
@@ -197,7 +197,7 @@ func (w *Worker) execute(ctx context.Context, job *Job) (any, error) {
 	}
 }
 
-// failIfStillRunning mirrors v1's shutdown handling: only clobber the job
+// failIfStillRunning mirrors the old shutdown handling: only clobber the job
 // when it never reached a terminal state.
 func (w *Worker) failIfStillRunning(ctx context.Context, id, message string) {
 	current, err := w.queue.JobByID(ctx, id)

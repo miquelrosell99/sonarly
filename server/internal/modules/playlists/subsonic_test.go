@@ -8,7 +8,7 @@ import (
 )
 
 // TestSubsonicListProjection pins the OpenSubsonic getPlaylists projection:
-// the ONE-policy visibility set, name ordering, and v1's count/duration
+// the ONE-policy visibility set, name ordering, and the old count/duration
 // semantics (smart resolved count, duration = SUM over resolved ids without
 // a liveness filter).
 func TestSubsonicListProjection(t *testing.T) {
@@ -34,7 +34,7 @@ func TestSubsonicListProjection(t *testing.T) {
 		t.Fatal("foreign private playlist leaked into the owner's list")
 	}
 
-	// v1 count semantics: static → raw member count; duration → summed
+	// the retired server count semantics: static → raw member count; duration → summed
 	// seconds of the resolved ids.
 	priv := byID["pl-private"]
 	if priv.SongCount != 2 {
@@ -54,7 +54,7 @@ func TestSubsonicListProjection(t *testing.T) {
 		t.Fatal("smart playlist resolved count must be positive")
 	}
 
-	// Name ordering (v1 getPlaylists ordered by name, not updated_at).
+	// Name ordering (old getPlaylists ordered by name, not updated_at).
 	for i := 1; i < len(items); i++ {
 		if items[i-1].Name > items[i].Name {
 			t.Fatalf("not ordered by name: %q then %q", items[i-1].Name, items[i].Name)
@@ -92,7 +92,7 @@ func TestSubsonicListProjection(t *testing.T) {
 }
 
 // TestSubsonicListSmartDuration: the smart playlist's duration resolves
-// through the compiled ids like v1's resolvePlaylistSongDuration.
+// through the compiled ids like the old resolvePlaylistSongDuration.
 func TestSubsonicListSmartDuration(t *testing.T) {
 	env := newEnv(t)
 	ctx := context.Background()

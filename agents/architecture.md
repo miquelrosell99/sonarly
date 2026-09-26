@@ -1,14 +1,14 @@
 ## Architecture
 
-Sonarly is a self-hosted music server. A single Go process (`v2/cmd/sonarly`) serves:
+Sonarly is a self-hosted music server. A single Go process (`server/cmd/sonarly`) serves:
 
 1. **OpenSubsonic API** (`/rest/`) — compatible with Subsonic clients; an adapter over the same services the native API uses (one policy, one data path).
-2. **Management REST API** (`/api/`) — used by the React web UI for library management. Contract: `v2/api/openapi.yaml`.
+2. **Management REST API** (`/api/`) — used by the React web UI for library management. Contract: `server/api/openapi.yaml`.
 3. **Static web UI** (`/*`) — the built React app, served by `internal/staticfs` with an index.html fallback.
 
 Background work runs on a DB-backed job queue (`scan_jobs` with typed JSON payloads): a single-goroutine worker executes scans/ingest/organize/artist-image jobs; a pure-Go polling watcher detects library changes and queues coalesced resyncs; interval schedulers trigger periodic work. All of it is context-driven for clean shutdown.
 
-### Module map (`v2/internal/modules/`)
+### Module map (`server/internal/modules/`)
 
 | Module | Responsibility |
 |---|---|
@@ -45,7 +45,7 @@ The `/rest/` endpoints must always return a `subsonic-response` envelope, even o
 
 Symphonium syncs by calling `search3.view` with an empty query and paginating through artists, albums, and songs. `albumCount` on artist objects and `songCount`/`duration` on album objects must reflect the real database counts; returning `0` for entities that do contain tracks causes the client to skip them or report an empty library.
 
-Error codes with v1 semantics:
+Error codes (Subsonic wire semantics):
 
 | Code | Meaning | Use when |
 |---|---|---|
@@ -55,7 +55,7 @@ Error codes with v1 semantics:
 
 For example, `/rest/getCoverArt.view` returns a Subsonic `status: failed` response with `error.code: 70` when the requested cover art ID does not exist, rather than a plain HTTP 404.
 
-The full behavioral contract is `docs/v2-opensubsonic-quirks.md` (62 v1-observed quirks) — implement against its decisions, not the spec text alone.
+The full behavioral contract is `docs/opensubsonic-quirks.md` (62 production-observed quirks) — implement against its decisions, not the spec text alone.
 
 ### Data flow
 

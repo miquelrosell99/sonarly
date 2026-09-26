@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// p9Routes is the phase inventory: v1's 17 browsing + 7 retrieval
+// p9Routes is the phase inventory: the old 17 browsing + 7 retrieval
 // endpoints (P9a) plus the 15 starring/activity/playlist/bookmark
 // endpoints of P9b.
 var p9aRoutes = []struct {
@@ -17,7 +17,7 @@ var p9aRoutes = []struct {
 	method string
 	path   string
 }{
-	// Browsing (v1 browsing.ts).
+	// Browsing (old browsing.ts).
 	{"getMusicFolders", http.MethodGet, "/rest/getMusicFolders.view"},
 	{"getIndexes", http.MethodGet, "/rest/getIndexes.view"},
 	{"getArtists", http.MethodGet, "/rest/getArtists.view"},
@@ -35,7 +35,7 @@ var p9aRoutes = []struct {
 	{"getArtistInfo2", http.MethodGet, "/rest/getArtistInfo2.view"},
 	{"getAlbumInfo", http.MethodGet, "/rest/getAlbumInfo.view"},
 	{"getAlbumInfo2", http.MethodGet, "/rest/getAlbumInfo2.view"},
-	// Retrieval (v1 retrieval.ts).
+	// Retrieval (old retrieval.ts).
 	{"stream", http.MethodGet, "/rest/stream.view"},
 	{"download", http.MethodGet, "/rest/download.view"},
 	{"getCoverArt", http.MethodGet, "/rest/getCoverArt.view"},
@@ -43,22 +43,22 @@ var p9aRoutes = []struct {
 	{"getInternetRadioStations", http.MethodGet, "/rest/getInternetRadioStations.view"},
 	{"getPodcasts", http.MethodGet, "/rest/getPodcasts.view"},
 	{"getNewestPodcasts", http.MethodGet, "/rest/getNewestPodcasts.view"},
-	// Starring + scrobble (v1 starring.ts, P9b).
+	// Starring + scrobble (old starring.ts, P9b).
 	{"star", http.MethodGet, "/rest/star.view"},
 	{"unstar", http.MethodGet, "/rest/unstar.view"},
 	{"setRating", http.MethodGet, "/rest/setRating.view"},
 	{"scrobble", http.MethodGet, "/rest/scrobble.view"},
 	{"getStarred", http.MethodGet, "/rest/getStarred.view"},
 	{"getStarred2", http.MethodGet, "/rest/getStarred2.view"},
-	// Activity (v1 now-playing.ts, P9b).
+	// Activity (old now-playing.ts, P9b).
 	{"getNowPlaying", http.MethodGet, "/rest/getNowPlaying.view"},
-	// Playlists (v1 playlists/opensubsonic-routes.ts, P9b).
+	// Playlists (old playlists/opensubsonic-routes.ts, P9b).
 	{"getPlaylists", http.MethodGet, "/rest/getPlaylists.view"},
 	{"getPlaylist", http.MethodGet, "/rest/getPlaylist.view"},
 	{"createPlaylist", http.MethodGet, "/rest/createPlaylist.view"},
 	{"updatePlaylist", http.MethodGet, "/rest/updatePlaylist.view"},
 	{"deletePlaylist", http.MethodGet, "/rest/deletePlaylist.view"},
-	// Bookmarks (v1 bookmarks/routes.ts, P9b).
+	// Bookmarks (old bookmarks/routes.ts, P9b).
 	{"getBookmarks", http.MethodGet, "/rest/getBookmarks.view"},
 	{"createBookmark", http.MethodGet, "/rest/createBookmark.view"},
 	{"deleteBookmark", http.MethodGet, "/rest/deleteBookmark.view"},
@@ -99,7 +99,7 @@ func TestEndpointInventory(t *testing.T) {
 }
 
 // TestStreamHeadInventory: the HEAD companions of stream/download are
-// registered too (v1 answered HEAD via Fastify's automatic handling; R4).
+// registered too (old answered HEAD via Fastify's automatic handling; R4).
 func TestStreamHeadInventory(t *testing.T) {
 	app := newTestApp(t)
 	app.seedUser(t, testUserID, testUser, testPass, true)
@@ -142,7 +142,7 @@ func TestRouteTableMatchesInventory(t *testing.T) {
 		}
 	}
 	// The only multi-row paths are the HEAD companions of the two binary
-	// endpoints (stream/download); getAvatar is a v2 stub beyond v1's set.
+	// endpoints (stream/download); getAvatar is a the Go server stub beyond the old set.
 	if len(endpointRoutes) != len(p9aRoutes)+4+2+1 {
 		t.Fatalf("endpointRoutes drifted: %d rows (want %d adapter endpoints + 4 system + 2 HEAD + 1 getAvatar)",
 			len(endpointRoutes), len(p9aRoutes))

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 )
 
-// JSON column parsing is defensive per audit Q6: v1's row mappers called
+// JSON column parsing is defensive per audit Q6: the old row mappers called
 // JSON.parse directly, so one malformed column 500'd the whole list. Here a
 // malformed JSON column yields the zero value and false — the caller omits
 // the field from the DTO and the row still serializes.

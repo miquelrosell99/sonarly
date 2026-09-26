@@ -1,19 +1,19 @@
-# Sonarly v2 — Go rewrite
+# Sonarly — Go server
 
-Greenfield Go implementation of the Sonarly server, started on `feat/go-rewrite`
+Go implementation of the Sonarly server, started
 per Decision Record DR-1 in `docs/audits/2026-09-24-backend-architecture-audit.md`.
 
 ## Status
 
-**Parity-complete (P10/P10b, 2026-09-25).** Request-level parity with v1 is
-proven — 94/94 testparity cases, 0 blockers (`docs/v2-p10-parity-report.md`)
-— and a production dual-run against the live DB snapshot passed with 0 stream
-mismatches and byte-identical user state (`docs/v2-p10b-dualrun-report.md`).
-The last functional gap, static SPA serving, closed in P11. Deployment
-artifacts live in `docker/` (Dockerfile.v2, entrypoint.v2.sh,
-compose.v2.yaml.example). Cutover is **READY — owner decision required**;
-the evidence, go/no-go checklist, runbook and rollback are in
-`docs/v2-cutover-readiness.md`.
+**Parity-complete (P10/P10b, 2026-09-25).** Request-level parity with the
+retired TypeScript server is proven — 94/94 parity cases, 0 blockers
+(`docs/p10-parity-report.md`) — and a production dual-run against the live
+DB snapshot passed with 0 stream mismatches and byte-identical user state
+(`docs/p10b-dualrun-report.md`). The last functional gap, static SPA
+serving, closed in P11. Deployment artifacts live in `docker/`
+(Dockerfile, entrypoint.sh, compose.yaml.example). Cutover executed
+2026-09-26; the evidence, go/no-go checklist, runbook and rollback are in
+`docs/cutover-readiness.md`.
 
 ## Stack
 
@@ -21,7 +21,7 @@ the evidence, go/no-go checklist, runbook and rollback are in
 - SQLite via `modernc.org/sqlite` (pure Go, no CGO) — WAL, foreign keys,
   busy_timeout, synchronous=NORMAL, single connection (one writer)
 - Migrations: embedded SQL files, ledger table, per-file transactions
-  (same semantics as v1's `db/migrate.ts`)
+  (same semantics as the retired TypeScript migrator)
 - Graceful shutdown via `signal.NotifyContext`
 - Library runtime (P4b): DB-backed job queue with typed payloads and
   coalescing, a single-goroutine worker executing scans with transactional
@@ -35,7 +35,7 @@ the evidence, go/no-go checklist, runbook and rollback are in
   share-token hook — see `internal/modules/playlists/`
 - Uploads (P7a): chunked upload sessions (raw-body chunks, streaming
   reassembly with an incremental 1 GiB cap, typed missing-chunk 4xx) plus a
-  stale-session sweeper v1 lacked — see `internal/modules/uploads/`. Ingest
+  stale-session sweeper the old server lacked — see `internal/modules/uploads/`. Ingest
   job execution itself is P7b; the queue accepts the typed payload now.
 - Search + statistics + home + auto-dj + events + players (P8): FTS5
   prefix search maintained inside PersistSong's transaction (regular, not
@@ -44,14 +44,14 @@ the evidence, go/no-go checklist, runbook and rollback are in
   consolidated statistics (six statements per request; the global rating
   average is computed once per request in a MATERIALIZED CTE), the home
   aggregator, the auto-dj scoring port (generation failures answer 502,
-  never v1's silent empty 200), a session-only SSE feed fanning the
+  never a silent empty 200), a session-only SSE feed fanning the
   worker's job events out with a 30s heartbeat, and a now-playing tracker
-  hooked into the playback service so EVERY stream is counted (v1 only saw
-  Subsonic clients) — see `internal/modules/{search,statistics,home,autodj,events,players}/`
+  hooked into the playback service so EVERY stream is counted (previously
+  only Subsonic clients were counted) — see `internal/modules/{search,statistics,home,autodj,events,players}/`
 - OpenSubsonic adapter (P6.5/P9a/P9b): the full `/rest` surface over the
   same services — envelope + auth hook (P6.5), 24 browsing/retrieval
   endpoints (P9a), and the starring/now-playing/playlist/bookmark endpoints
-  (P9b) against `docs/v2-opensubsonic-quirks.md`; playlist and bookmark
+  (P9b) against `docs/opensubsonic-quirks.md`; playlist and bookmark
   endpoints delegate to the playlists/playback modules so there is ONE
   policy and ONE data path — see `internal/modules/opensubsonic/`
 - Interactions (P9c start): native favorites/ratings (POST /api/favorites,
@@ -78,18 +78,16 @@ the evidence, go/no-go checklist, runbook and rollback are in
   (path overridable with `SONARLY_FFMPEG_PATH`). Without it, transcode
   requests fail; direct streams, catalog, and search are unaffected.
 - **python3 + mutagen** — tag editing shells out to `python3` with
-  `mutagen` (the v1 approach, behind the `audio.TagWriter` interface).
+  `mutagen` (shelling out, behind the `audio.TagWriter` interface).
   Without them, tag-edit endpoints answer 500 "Failed to write tags";
   everything else is unaffected (metadata reads are pure Go).
 
-The runtime image (`docker/Dockerfile.v2`) installs both — same requirement
-as the v1 image.
+The runtime image (`docker/Dockerfile`) installs both.
 
 ## Web client serving
 
-v2 serves the built web client (Vite output) from the directory named by
-`SONARLY_WEB_DIST` (default `./web-dist`), closing the gap to v1's
-fastify-static setup:
+The server serves the built web client (Vite output) from the directory
+named by `SONARLY_WEB_DIST` (default `./web-dist`):
 
 - Existing files are served with an embedded extension→mime map and cache
   headers (`no-cache` for `.html`, `max-age=3600` for everything else).
@@ -118,7 +116,7 @@ internal/modules/   one package per domain module
 ## Run (dev)
 
 ```
-cd v2
+cd server
 SESSION_SECRET=<32+ chars> SONARLY_LIBRARY_PATH=/path/to/music go run ./cmd/sonarly
 ```
 
@@ -131,8 +129,8 @@ Endpoints: `GET /health`, `GET /healthz` (container-probe alias), `GET /ready`.
 ## Build
 
 ```
-cd v2
-go build -ldflags "-X github.com/miquelrosell99/sonarly/v2/internal/buildinfo.Version=$(git -C .. describe --tags --always)" -o sonarly ./cmd/sonarly
+cd server
+go build -ldflags "-X github.com/miquelrosell99/sonarly/server/internal/buildinfo.Version=$(git -C .. describe --tags --always)" -o sonarly ./cmd/sonarly
 ```
 
 A dev build without `-ldflags` reports version `0.0.0-dev` (surfaced as the
@@ -145,12 +143,11 @@ ffmpeg, python3+mutagen, su-exec, wget; non-root via PUID/PGID; HEALTHCHECK
 on `/healthz`; EXPOSE 3000). Build context is the **repo root**:
 
 ```
-# from the repo root (the directory containing packages/ and v2/)
-docker build -f docker/Dockerfile.v2 \
+# from the repo root (the directory containing packages/ and server/)
+docker build -f docker/Dockerfile \
   --build-arg SONARLY_VERSION=$(git describe --tags --always) \
-  -t sonarly:v2 .
+  -t sonarly:local .
 ```
 
-Compose shape: `docker/compose.v2.yaml.example` (same host paths and port
-mapping as v1, v2 env names). The cutover runbook, go/no-go checklist and
-rollback are in `docs/v2-cutover-readiness.md`.
+Compose shape: `docker/compose.yaml.example`. The cutover runbook,
+go/no-go checklist and rollback are in `docs/cutover-readiness.md`.

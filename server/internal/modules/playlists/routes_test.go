@@ -109,7 +109,7 @@ func TestGetDetailAccess(t *testing.T) {
 		t.Errorf("owner shares = %+v", d.Shares)
 	}
 
-	// v1 parity (P10): the owner's detail emits shares even when empty.
+	// wire parity (P10): the owner's detail emits shares even when empty.
 	res, body = env.do(t, "GET", "/api/playlists/pl-private", owner, nil)
 	if res.StatusCode != 200 {
 		t.Fatalf("owner detail of private playlist: %d", res.StatusCode)
@@ -170,13 +170,13 @@ func TestGetDetailAccess(t *testing.T) {
 	if res.StatusCode != 404 {
 		t.Errorf("private detail by outsider: want 404, got %d", res.StatusCode)
 	}
-	// Anonymous without a token → 401 (mirrors v1's session gate; only
+	// Anonymous without a token → 401 (mirrors the old session gate; only
 	// shareToken requests are exempt).
 	res, _ = env.do(t, "GET", "/api/playlists/pl-public", nil, nil)
 	if res.StatusCode != 401 {
 		t.Errorf("anonymous detail: want 401, got %d", res.StatusCode)
 	}
-	// Anonymous WITH the playlist's token → 200 (v1's public exemption).
+	// Anonymous WITH the playlist's token → 200 (the old public exemption).
 	res, _ = env.do(t, "GET", "/api/playlists/pl-link?shareToken=tok-link", nil, nil)
 	if res.StatusCode != 200 {
 		t.Errorf("anonymous detail with share token: want 200, got %d", res.StatusCode)
@@ -354,7 +354,7 @@ func TestUpdateRewrite(t *testing.T) {
 	}
 }
 
-// TestUpdateVisibilityTokenLifecycle: v1 native PUT semantics (P10
+// TestUpdateVisibilityTokenLifecycle: the retired server native PUT semantics (P10
 // decision) — visibility changes NEVER clear the token; visibility='link'
 // auto-mints a token only when none is set.
 func TestUpdateVisibilityTokenLifecycle(t *testing.T) {
@@ -381,7 +381,7 @@ func TestUpdateVisibilityTokenLifecycle(t *testing.T) {
 		t.Errorf("token rotated on no-op visibility PUT: %q → %q", token, d.ShareToken)
 	}
 
-	// link → public KEEPS the token (v1 management-routes: visibility
+	// link → public KEEPS the token (old management-routes: visibility
 	// changes never touch the share token).
 	res, body = env.do(t, "PUT", "/api/playlists/pl-private", owner, `{"visibility": "public"}`)
 	if res.StatusCode != 200 {
@@ -505,10 +505,10 @@ func TestShareGrantRevoke(t *testing.T) {
 	}
 }
 
-// TestShareLinkEndpoints: v1 semantics (P10 decision) — create mints a
+// TestShareLinkEndpoints: the old semantics (P10 decision) — create mints a
 // token WITHOUT touching visibility; regenerate kills the old token;
 // delete clears the token only. The native anonymous metadata view grants
-// access on a matching token regardless of visibility (v1 canViewPlaylist).
+// access on a matching token regardless of visibility (old canViewPlaylist).
 func TestShareLinkEndpoints(t *testing.T) {
 	env := newEnv(t)
 	owner := env.cookie(t, "u-owner", "owner", false)
@@ -536,7 +536,7 @@ func TestShareLinkEndpoints(t *testing.T) {
 		t.Errorf("after share-link: %s %q, want private with the token", detail.Visibility, detail.ShareToken)
 	}
 	// The token authorizes a no-library user even though visibility stayed
-	// private (v1 canViewPlaylist — the documented native divergence).
+	// private (old canViewPlaylist — the documented native divergence).
 	res, _ = env.do(t, "GET", fmt.Sprintf("/api/playlists/pl-private?shareToken=%s", tok.ShareToken), nolib, nil)
 	if res.StatusCode != 200 {
 		t.Errorf("token detail: want 200, got %d", res.StatusCode)

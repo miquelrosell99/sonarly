@@ -7,7 +7,7 @@ type Entry struct {
 	Name string `json:"name"`
 }
 
-// Song is the API-facing song shape (v1's Song minus filePath and checksum —
+// Song is the API-facing song shape (the old Song minus filePath and checksum —
 // see package doc).
 type Song struct {
 	ID                  string   `json:"id"`
@@ -68,14 +68,14 @@ type Song struct {
 	ComposerEntries []Entry  `json:"composerEntries,omitempty"`
 	Genres          []string `json:"genres,omitempty"`
 
-	// Per-user interaction state (v1 parity).
+	// Per-user interaction state (wire parity).
 	Starred bool     `json:"starred"`
 	Rating  *float64 `json:"rating,omitempty"`
 }
 
 // Album is the API-facing album shape. Song counts ride the songs join:
 // Total counts every in-scope active song, Shown excludes explicit songs
-// when the caller asked to hide them, Explicit mirrors v1 (any in-scope
+// when the caller asked to hide them, Explicit mirrors the retired server (any in-scope
 // active song is explicit).
 type Album struct {
 	ID                        string   `json:"id"`
@@ -127,7 +127,7 @@ type Artist struct {
 }
 
 // ArtistAlbum is the trimmed album shape embedded in the artist detail
-// response (v1 parity).
+// response (wire parity).
 type ArtistAlbum struct {
 	ID             string   `json:"id"`
 	Name           string   `json:"name"`
@@ -149,7 +149,7 @@ type Genre struct {
 	Active   bool   `json:"active"`
 }
 
-// GenreNode is a node of the genre tree (v1's GenreNode shape: children is
+// GenreNode is a node of the genre tree (the old GenreNode shape: children is
 // always present, possibly empty).
 type GenreNode struct {
 	ID       string       `json:"id"`
@@ -161,8 +161,8 @@ type GenreNode struct {
 }
 
 // YearCount is one entry of the years list: a distinct year of in-scope
-// active songs and how many songs carry it. (v1 returned bare year values
-// without counts; the v2 spec asks for counts.)
+// active songs and how many songs carry it. (old returned bare year values
+// without counts; the Go server spec asks for counts.)
 type YearCount struct {
 	Year      int `json:"year"`
 	SongCount int `json:"songCount"`

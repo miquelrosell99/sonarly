@@ -1,8 +1,8 @@
 // Package uploads hosts the chunked-upload domain: upload_sessions CRUD, the
-// chunk store and streaming reassembly (v1 features/uploads + ingest
-// trigger), and the stale-session sweeper v1 never had. It deliberately
+// chunk store and streaming reassembly (old features/uploads + ingest
+// trigger), and the stale-session sweeper the retired server never had. It deliberately
 // fixes the defects the 2026-09-24 backend architecture audit called out
-// (§6 F10, B11): v1 buffered up to 1 GiB of chunks in the main-process heap
+// (§6 F10, B11): the retired server buffered up to 1 GiB of chunks in the main-process heap
 // during reassembly, answered a missing chunk at complete with a 500, and
 // never GC'd abandoned upload_sessions rows or their chunk dirs.
 package uploads
@@ -17,8 +17,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// DuplicateStrategies is the v1 shared-package enum. An explicit but unknown
-// strategy is a client bug (v1 silently dropped it), so the route rejects
+// DuplicateStrategies is the retired server shared-package enum. An explicit but unknown
+// strategy is a client bug (old silently dropped it), so the route rejects
 // it with 400 instead of guessing.
 var DuplicateStrategies = []string{
 	"replace_file_and_metadata",
@@ -48,7 +48,7 @@ type Session struct {
 }
 
 // Repository persists upload_sessions. Session ids are server-minted UUIDs
-// (v1 rule: the id in the chunk route is validated against this table before
+// (old rule: the id in the chunk route is validated against this table before
 // any disk write, so an arbitrary id can never create directories).
 type Repository struct {
 	db *sql.DB

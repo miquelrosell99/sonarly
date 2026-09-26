@@ -1,5 +1,5 @@
 // Media settings and organize route tests: the GET/PATCH settings surface,
-// the organize enqueue endpoints, the unauthenticated preview (v1 parity),
+// the organize enqueue endpoints, the unauthenticated preview (wire parity),
 // and the per-job status route.
 package ingest_test
 
@@ -150,7 +150,7 @@ func TestMediaSettingsGetPatch(t *testing.T) {
 		out["reviewRetentionDays"] != float64(7) {
 		t.Fatalf("patched = %v", out)
 	}
-	// PATCH answers without templates (v1 shape).
+	// PATCH answers without templates (old shape).
 	if _, present := out["templates"]; present {
 		t.Fatal("PATCH response must not carry templates")
 	}
@@ -185,7 +185,7 @@ func TestOrganizeRoutes(t *testing.T) {
 	s := newSettingsServer(t)
 	admin := s.session(t, "u-admin", "admin", true)
 
-	// The preview is public (v1 parity).
+	// The preview is public (wire parity).
 	rec := s.do(t, http.MethodGet, "/api/organize/preview", nil, nil)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("preview: want 200, got %d", rec.Code)
@@ -233,7 +233,7 @@ func TestOrganizeRoutes(t *testing.T) {
 	if job["id"] != jobID || job["type"] != "organize" || job["status"] != "pending" {
 		t.Fatalf("job = %v", job)
 	}
-	// A non-organize job id answers 404 (v1's type filter).
+	// A non-organize job id answers 404 (the old type filter).
 	scanID, err := s.queue.Push(context.Background(), library.JobTypeScan, library.ScanPayload{})
 	if err != nil {
 		t.Fatal(err)

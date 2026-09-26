@@ -12,7 +12,7 @@ Sonarly has been developed with assistance from AI coding agents. Human review, 
 - Node.js 22 + pnpm 9
 - Python 3 + Mutagen (`pip3 install mutagen`) — used by the tag writer
 - `ffmpeg` — used by transcoding
-- Docker and Docker Compose v2 (optional, for image work)
+- Docker and Docker Compose (optional, for image work)
 
 ### Local install
 
@@ -20,13 +20,13 @@ Sonarly has been developed with assistance from AI coding agents. Human review, 
 pnpm install   # web client dependencies
 ```
 
-The Go server has no install step beyond the toolchain (`go build ./...` in `v2/` downloads modules).
+The Go server has no install step beyond the toolchain (`go build ./...` in `server/` downloads modules).
 
 ### Run in development mode
 
 ```bash
 # Terminal 1 — Go server (from the repo root)
-cd v2
+cd server
 SESSION_SECRET=$(openssl rand -hex 32) SONARLY_LIBRARY_PATH=/path/to/music go run ./cmd/sonarly
 
 # Terminal 2 — web client
@@ -37,9 +37,9 @@ The web UI is at http://localhost:5173 (the Vite dev server proxies `/api` and `
 
 ## Project structure
 
-- `v2/` — Go server (the only server): modules, SQLite migrations, OpenSubsonic adapter, native REST API.
+- `server/` — Go server (the only server): modules, SQLite migrations, OpenSubsonic adapter, native REST API.
 - `packages/web/` — React + Vite management UI.
-- `docker/` — all-in-one image (Dockerfile.v2), entrypoint, compose example.
+- `docker/` — all-in-one image (Dockerfile), entrypoint, compose example.
 - `docs/` — Public documentation.
 
 ## Testing
@@ -48,10 +48,10 @@ Run the full test suite (web client + Go server):
 
 ```bash
 pnpm test            # web client (Vitest)
-cd v2 && go test ./... -count=1   # Go server
+cd server && go test ./... -count=1   # Go server
 ```
 
-The `v2/testparity` suite (v1↔v2 request parity) requires a pre-removal v1 checkout via `P10_V1_CHECKOUT` and skips cleanly otherwise.
+The server test suite covers the OpenSubsonic adapter against the documented wire contract.
 
 ## Commit conventions
 
@@ -80,7 +80,7 @@ Examples:
 
 ## Code style
 
-- Go: standard `gofmt`/`go vet`; follow the module layout in `v2/internal/modules/`.
+- Go: standard `gofmt`/`go vet`; follow the module layout in `server/internal/modules/`.
 - TypeScript strict mode; prefer explicit types over `any`.
 - Keep components small and focused; co-locate related hooks and helpers.
 - Use the project's CSS design tokens and Tailwind utilities rather than ad-hoc values.

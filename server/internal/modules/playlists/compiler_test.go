@@ -127,12 +127,12 @@ func TestCompilerNumberOperators(t *testing.T) {
 		"s-a2", "s-b1", "s-b2")
 	assertIDs(t, compileIDs(t, env, all("duration", "is", 300), owner), "s-a1")
 	assertIDs(t, compileIDs(t, env, all("bitDepth", "gt", 16), owner), "s-b1", "s-b2")
-	// String numbers coerce like v1's Number(value).
+	// String numbers coerce like the old Number(value).
 	assertIDs(t, compileIDs(t, env, all("year", "is", "2001"), owner), "s-a2")
 }
 
 // TestCompilerUserFields: loved/rating/playcount/lastplayed resolve against
-// the compiling user's rows, with v1's NULL semantics.
+// the compiling user's rows, with the old NULL semantics.
 func TestCompilerUserFields(t *testing.T) {
 	env := newEnv(t)
 	owner := "u-owner"
@@ -156,7 +156,7 @@ func TestCompilerUserFields(t *testing.T) {
 }
 
 // TestCompilerInPlaylist: membership rules verify ownership of the
-// referenced playlist (v1 accepted any id) and bind the id.
+// referenced playlist (old accepted any id) and bind the id.
 func TestCompilerInPlaylist(t *testing.T) {
 	env := newEnv(t)
 	owner := "u-owner"
@@ -216,7 +216,7 @@ func TestCompilerGroupsAndSort(t *testing.T) {
 }
 
 // TestCompilerValidation: unknown fields and operators, wrong-kind
-// operators, and malformed values are 400s (v1 silently compiled them
+// operators, and malformed values are 400s (old silently compiled them
 // against s.title).
 func TestCompilerValidation(t *testing.T) {
 	env := newEnv(t)

@@ -2,7 +2,7 @@
 // native-parity gap from the frontend audit). The OpenSubsonic adapter's
 // star/unstar/setRating and these endpoints write the SAME user_songs /
 // user_albums / user_artists junction rows — one data path — and the song
-// average_rating recompute is shared semantics with v1's setRating.
+// average_rating recompute is shared semantics with the old setRating.
 package interactions
 
 import (
@@ -23,8 +23,8 @@ func invalidf(format string, args ...any) error {
 	return fmt.Errorf("%w: %s", ErrInvalidInput, fmt.Sprintf(format, args...))
 }
 
-// entityJunction maps the body key to the junction table v1's favorites
-// repository used. Playlists join the set for v1 wire parity: the web
+// entityJunction maps the body key to the junction table the old favorites
+// repository used. Playlists join the set for the retired server wire parity: the web
 // client sends entityType 'playlist' for playlist favorites/ratings.
 type entityJunction struct {
 	table    string
@@ -39,9 +39,9 @@ var (
 )
 
 // entityFor validates the discriminated id body ({songId|albumId|artistId|
-// playlistId}, exactly one) and returns its junction target. v1's native
+// playlistId}, exactly one) and returns its junction target. the old native
 // endpoints took {entityType, entityId} (routed here by the handlers); the
-// v2 native body may also use the id keys directly.
+// the Go server native body may also use the id keys directly.
 func entityFor(songID, albumID, artistID, playlistID string) (entityJunction, string, error) {
 	ids := map[string]string{"song": songID, "album": albumID, "artist": artistID, "playlist": playlistID}
 	set := []string{}
@@ -72,9 +72,9 @@ type Service struct {
 
 func NewService(db *sql.DB) *Service { return &Service{db: db} }
 
-// SetFavorite stars or unstars the entity for the caller (v1 setFavorite:
+// SetFavorite stars or unstars the entity for the caller (old setFavorite:
 // upsert of the starred flag; absent entities are not probed — the junction
-// row is harmless and v1 did the same).
+// row is harmless and the retired server did the same).
 func (s *Service) SetFavorite(ctx context.Context, id auth.Identity, songID, albumID, artistID, playlistID string, starred bool) error {
 	junction, entityID, err := entityFor(songID, albumID, artistID, playlistID)
 	if err != nil {
@@ -94,9 +94,9 @@ func (s *Service) SetFavorite(ctx context.Context, id auth.Identity, songID, alb
 	return nil
 }
 
-// SetRating stores the caller's rating (0..5 in 0.5 steps, v1 half-ratings)
+// SetRating stores the caller's rating (0..5 in 0.5 steps, the retired server half-ratings)
 // or clears it with nil. Song ratings recompute songs.average_rating exactly
-// like v1's setRating (albums/artists compute the average at read time).
+// like the old setRating (albums/artists compute the average at read time).
 func (s *Service) SetRating(ctx context.Context, id auth.Identity, songID, albumID, artistID, playlistID string, rating *float64) error {
 	junction, entityID, err := entityFor(songID, albumID, artistID, playlistID)
 	if err != nil {

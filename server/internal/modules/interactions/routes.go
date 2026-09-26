@@ -43,9 +43,9 @@ func (h *Handler) writeError(w http.ResponseWriter, r *http.Request, err error) 
 
 // favoriteBody is POST /api/favorites: exactly one entity id, starred
 // optional (absent = favorite, the endpoint's purpose). Two wire shapes
-// are accepted: the v2 per-type keys (songId|albumId|artistId) and v1's
-// {entityType, entityId} — the web client shipped with v1's shape and v1
-// compatibility outranks spec purity (parity doctrine).
+// are accepted: the Go server per-type keys (songId|albumId|artistId) and the old 
+// {entityType, entityId} — the web client shipped with the old shape and
+// wire compatibility outranks spec purity (parity doctrine).
 type favoriteBody struct {
 	SongID     string `json:"songId"`
 	AlbumID    string `json:"albumId"`
@@ -57,7 +57,7 @@ type favoriteBody struct {
 	Starred    *bool  `json:"starred"`
 }
 
-// resolveEntityID maps a v1 {entityType, entityId} body onto the per-type
+// resolveEntityID maps a retired server {entityType, entityId} body onto the per-type
 // id fields. Returns false when the shape is unrecognized or inconsistent.
 func (b *favoriteBody) resolveEntityID() bool {
 	if b.EntityType == "" {

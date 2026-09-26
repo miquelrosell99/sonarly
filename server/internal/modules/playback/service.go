@@ -15,13 +15,13 @@ import (
 )
 
 // ErrNotFound is the single not-found sentinel for the playback domain: a
-// missing song, an inactive song (S2 sign-off S5 — v1 silently streamed
+// missing song, an inactive song (S2 sign-off S5 — the retired server silently streamed
 // those), an out-of-scope song, and a vanished file are indistinguishable,
 // so ids cannot be probed (same contract as the catalog module).
 var ErrNotFound = errors.New("playback: not found")
 
 // ErrUnauthorized is the anonymous-stream answer: no share token presented,
-// or a token no link-shared playlist answers to (v1 answered 403; v2 uses
+// or a token no link-shared playlist answers to (old answered 403; the Go server uses
 // 401, the same status an anonymous request without credentials gets).
 var ErrUnauthorized = errors.New("playback: unauthorized")
 
@@ -47,8 +47,8 @@ type StreamEvent struct {
 	Duration *int
 }
 
-// Recorder observes every stream the service serves (v2's deviation from
-// v1, whose tracker only saw OpenSubsonic clients — v2 records ALL
+// Recorder observes every stream the service serves (the Go server's deviation from
+// the retired server, whose tracker only saw OpenSubsonic clients — the Go server records ALL
 // streams). Implementations must be cheap and non-blocking: the hook runs
 // on the streaming path.
 type Recorder interface {
@@ -56,7 +56,7 @@ type Recorder interface {
 }
 
 // Service is the playback domain API: streaming (direct + transcode),
-// scrobbling, and bookmarks. Layering follows the v2 convention
+// scrobbling, and bookmarks. Layering follows the Go server convention
 // (routes → service → repository): routes parse and validate HTTP, the
 // service enforces liveness + library scope and orchestrates, the
 // streamers own the wire behavior.
@@ -112,7 +112,7 @@ type playSong struct {
 // playlist (ErrUnauthorized otherwise — the token itself is bogus) and must
 // grant the song through the playlist policy (ErrNotFound otherwise — a
 // valid token never authorizes another playlist's content). A valid token
-// skips the library-scope check by design: v1 share semantics — the token
+// skips the library-scope check by design: the old share semantics — the token
 // authorizes the linked playlist's own content, scope applies to signed-in
 // users only. A signed-in caller always wins: the share token is consulted
 // only for anonymous requests.
@@ -156,7 +156,7 @@ func (s *Service) loadPlayableSong(ctx context.Context, id auth.Identity, songID
 // have already authorized the id.
 func (s *Service) loadActiveSong(ctx context.Context, songID string) (*playSong, error) {
 	var song playSong
-	// bit_rate/duration are fractional REALs on v1-written legacy rows
+	// bit_rate/duration are fractional REALs on written by the retired server legacy rows
 	// (observed in production: bit_rate 924936.36, duration 254.77); the
 	// tolerant db.NullInt64 truncates instead of erroring — the strict
 	// sql.NullInt64 500'd /api/stream for those rows.
@@ -182,8 +182,8 @@ func (s *Service) loadActiveSong(ctx context.Context, songID string) (*playSong,
 }
 
 // transcodePrefs loads the caller's transcode preferences. A format the
-// codec table doesn't know is dropped (v1 would hand ffmpeg an empty codec;
-// v2 treats it as unset instead).
+// codec table doesn't know is dropped (old would hand ffmpeg an empty codec;
+// the Go server treats it as unset instead).
 func (s *Service) transcodePrefs(ctx context.Context, userID string) *UserTranscodePrefs {
 	var prefs UserTranscodePrefs
 	var maxBR sql.NullInt64
@@ -207,7 +207,7 @@ func (s *Service) transcodePrefs(ctx context.Context, userID string) *UserTransc
 
 // Stream answers w with the song's audio. requested/hasRequested carry the
 // parsed maxBitRate query preference; download forces the direct,
-// Content-Disposition-tagged variant (v1 download.view never transcodes).
+// Content-Disposition-tagged variant (old download.view never transcodes).
 // shareToken carries the P6 share-token hook: consulted ONLY when the
 // request is anonymous (a session identity wins), authorizing the song when
 // it belongs to the token's link-shared playlist — see loadPlayableSong.
@@ -216,7 +216,7 @@ func (s *Service) transcodePrefs(ctx context.Context, userID string) *UserTransc
 // onto the error contract; once bytes are flowing the response is committed
 // and failures are logged instead.
 //
-// Decision order (v1 retrieval.ts parity, productionized per S2 §8):
+// Decision order (old retrieval.ts parity, productionized per S2 §8):
 // liveness + scope (or token grant) → decide → HEAD shortcut → transcode
 // with fallback, or direct. Transcode saturation answers 503 + Retry-After
 // and direct streams are never capped.
@@ -226,7 +226,7 @@ func (s *Service) Stream(w http.ResponseWriter, r *http.Request, id auth.Identit
 		return err
 	}
 
-	// The recorder hook sees every authorized GET stream (v2 counts ALL
+	// The recorder hook sees every authorized GET stream (Go-server counts ALL
 	// clients, not just Subsonic ones — the players module documents the
 	// deviation). HEAD probes never reach here.
 	if s.recorder != nil && r.Method != http.MethodHead {
@@ -247,7 +247,7 @@ func (s *Service) Stream(w http.ResponseWriter, r *http.Request, id auth.Identit
 
 	if decision.ShouldTranscode {
 		if r.Method == http.MethodHead {
-			// v1 parity: headers only, no ffmpeg spawned.
+			// wire parity: headers only, no ffmpeg spawned.
 			HeadHeaders(w, decision.Format)
 			return nil
 		}
@@ -263,7 +263,7 @@ func (s *Service) Stream(w http.ResponseWriter, r *http.Request, id auth.Identit
 			// Client disconnected before/at spawn; nothing more to do.
 		default:
 			// Spawn/pipe failure BEFORE any body byte (Go surfaces spawn
-			// errors synchronously — no v1-B12 race): fall back to direct
+			// errors synchronously — no the old B12 race): fall back to direct
 			// serving, the client gets the full original file.
 			s.log.ErrorContext(r.Context(), "transcode spawn failed, falling back to direct",
 				"req", middleware.GetReqID(r.Context()), "file", song.filePath, "err", err.Error())

@@ -1,5 +1,7 @@
 # S3 — OpenAPI contract pipeline: findings
 
+> Historical transition-era artifact (2026-09): documents the TypeScript→Go rewrite and cutover. Version names inside refer to the pre- and post-rewrite codebases; preserved as project history.
+
 Date: 2026-09-25. Scope: Sonarly v2 native REST API (Go), branch `feat/go-rewrite`.
 Deliverables: `v2/api/openapi.yaml`, the chi-walk coverage test, the codegen
 proof under `v2/api/client/`. Nothing committed; all work in the worktree.

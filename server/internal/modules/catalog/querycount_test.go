@@ -60,7 +60,7 @@ func seedBigCatalog(t *testing.T, s *server, albumSongs, standaloneSongs int) {
 
 // TestQueryCountsAlbumDetail is the N+1 guard for the album detail page:
 // an album with 25 songs must answer in a bounded number of statements,
-// independent of the song count (v1's batch pattern, kept flat in v2).
+// independent of the song count (the old batch pattern, kept flat here).
 func TestQueryCountsAlbumDetail(t *testing.T) {
 	database, count := openCountingDB(t)
 	s := newServer(t, database)

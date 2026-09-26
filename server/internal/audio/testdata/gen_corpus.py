@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""P4a testdata corpus generator (ported from v2/spikes/metadata/gen_corpus.py).
+"""P4a testdata corpus generator (ported from server/spikes/metadata/gen_corpus.py).
 
-Builds one tagged audio file per supported format with the full v1 tag schema
+Builds one tagged audio file per supported format with the full legacy tag schema
 (see packages/server/src/features/tags/reader.ts in the main checkout), plus
 one pathological ID3v1-only file with non-UTF8 bytes.
 

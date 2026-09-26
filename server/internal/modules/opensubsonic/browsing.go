@@ -18,11 +18,11 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/libraries"
 )
 
-// Browsing group payloads (v1 routes/browsing.ts). The wire shapes mirror
-// the v1 response objects field for field; the quirks doc (B/X groups)
-// records where v2 deliberately deviates.
+// Browsing group payloads (old routes/browsing.ts). The wire shapes mirror
+// the retired server response objects field for field; the quirks doc (B/X groups)
+// records where the Go server deliberately deviates.
 
-// MusicFolder is one getMusicFolders entry. v2 uses the real library id
+// MusicFolder is one getMusicFolders entry. The Go server uses the real library id
 // (quirks doc B1 fix); the name fallback for the admin-empty case comes from
 // the library path basename.
 type MusicFolder struct {
@@ -71,7 +71,7 @@ type artistsPayload struct {
 }
 
 // ArtistWithAlbums is the getArtist shape: the Artist fields flattened plus
-// the album children (v1's {artist: {..., album: [...]}}).
+// the album children (the old {artist: {..., album: [...]}}).
 type ArtistWithAlbums struct {
 	Artist
 	Album []Album `xml:"album" json:"album"`
@@ -161,7 +161,7 @@ type similarSongs2Payload struct {
 	SimilarSongs2 songsBody `xml:"similarSongs2" json:"similarSongs2"`
 }
 
-// SimilarArtist is the getArtistInfo2 similar-artist entry (v1 maps only
+// SimilarArtist is the getArtistInfo2 similar-artist entry (the old adapter maps only
 // id/name/coverArt/artistImageUrl — no albumCount or musicBrainzIds).
 type SimilarArtist struct {
 	ID             string `xml:"id,attr" json:"id"`
@@ -175,7 +175,7 @@ type artistInfo2Body struct {
 	SmallImageURL string `xml:"smallImageUrl,attr,omitempty" json:"smallImageUrl,omitempty"`
 	LargeImageURL string `xml:"largeImageUrl,attr,omitempty" json:"largeImageUrl,omitempty"`
 	MusicBrainzID string `xml:"musicBrainzId,attr,omitempty" json:"musicBrainzId,omitempty"`
-	// v1 always emits similarArtists — [] when no similar artists exist.
+	// the retired server always emits similarArtists — [] when no similar artists exist.
 	SimilarArtists []SimilarArtist `xml:"similarArtist" json:"similarArtists"`
 }
 
@@ -199,9 +199,9 @@ type albumInfoPayload struct {
 	AlbumInfo albumInfoBody `xml:"albumInfo" json:"albumInfo"`
 }
 
-// getMusicFolders lists the caller's libraries (v1 browsing.ts:117-138,
-// quirks doc B1). v2 emits the real library ids instead of v1's positional
-// indexes; the admin-with-empty-table fallback keeps v1's
+// getMusicFolders lists the caller's libraries (retired browsing.ts:117-138,
+// quirks doc B1). The Go server emits the real library ids instead of the old positional
+// indexes; the admin-with-empty-table fallback keeps the old
 // basename(LIBRARY_PATH) behavior.
 func (h *Handler) getMusicFolders(w http.ResponseWriter, r *http.Request) {
 	id, _ := auth.IdentityFrom(r.Context())
@@ -269,9 +269,9 @@ func (h *Handler) getMusicFolders(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// getIndexes answers the letter-bucketed artist index (v1:140-165, B2/B3).
-// v2's deliberate fix: lastModified is the newest in-scope song mtime (0 when
-// the scope is empty), not v1's Date.now() per request.
+// getIndexes answers the letter-bucketed artist index (old lines 140-165, B2/B3).
+// the Go server's deliberate fix: lastModified is the newest in-scope song mtime (0 when
+// the scope is empty), not the old Date.now() per request.
 func (h *Handler) getIndexes(w http.ResponseWriter, r *http.Request) {
 	id, _ := auth.IdentityFrom(r.Context())
 	ctx := r.Context()
@@ -336,8 +336,8 @@ func (h *Handler) lastModified(ctx context.Context, scope libraries.Scope) int64
 }
 
 // groupArtistsByInitial buckets artists by uppercased first character with
-// the '#' fallback (v1 groupArtistsByInitial, B3). Bucket order is
-// codepoint order — for the single-letter ASCII buckets v1's localeCompare
+// the '#' fallback (old groupArtistsByInitial, B3). Bucket order is
+// codepoint order — for the single-letter ASCII buckets the old localeCompare
 // produced, that is identical.
 func groupArtistsByInitial(artists []Artist) []Index {
 	groups := make(map[string][]Artist)
@@ -361,7 +361,7 @@ func groupArtistsByInitial(artists []Artist) []Index {
 }
 
 // getArtists answers the letter-bucketed index including per-user
-// interactions (v1:167-192).
+// interactions (old lines 167-192).
 func (h *Handler) getArtists(w http.ResponseWriter, r *http.Request) {
 	id, _ := auth.IdentityFrom(r.Context())
 	ctx := r.Context()
@@ -411,8 +411,8 @@ func (h *Handler) getArtists(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// getArtist answers one artist with its scoped albums (v1:267-319, B4/X15).
-// albumCount is the length of the scoped album list, exactly like v1.
+// getArtist answers one artist with its scoped albums (old lines 267-319, B4/X15).
+// albumCount is the length of the scoped album list, exactly like the old adapter.
 func (h *Handler) getArtist(w http.ResponseWriter, r *http.Request) {
 	id, _ := auth.IdentityFrom(r.Context())
 	ctx := r.Context()
@@ -493,7 +493,7 @@ func (h *Handler) getArtist(w http.ResponseWriter, r *http.Request) {
 	respond(w, r, artistPayload{Envelope: okEnvelope(), Artist: &artist})
 }
 
-// getAlbum answers one album with its scoped songs (v1:194-238, B4/X13).
+// getAlbum answers one album with its scoped songs (old lines 194-238, B4/X13).
 func (h *Handler) getAlbum(w http.ResponseWriter, r *http.Request) {
 	id, _ := auth.IdentityFrom(r.Context())
 	ctx := r.Context()
@@ -567,9 +567,9 @@ func (h *Handler) getAlbum(w http.ResponseWriter, r *http.Request) {
 		s := millisToISO(maxMtime)
 		createdAt = &s
 	}
-	// v1's getAlbum loads the album's genre names and labels from the
+	// the old getAlbum loads the album's genre names and labels from the
 	// junctions (artistEntries stay undefined — the artists fallback to the
-	// album's primary artist columns, exactly like v1).
+	// album's primary artist columns, exactly like the old adapter).
 	genreNames, err := namesForMany(ctx, h.db, albumGenreJoin, []string{albumID})
 	if err != nil {
 		Error(w, r, CodeGeneric, "internal error")
@@ -585,7 +585,7 @@ func (h *Handler) getAlbum(w http.ResponseWriter, r *http.Request) {
 	respond(w, r, albumPayload{Envelope: okEnvelope(), Album: &mapped})
 }
 
-// getSong answers one scoped song (v1:240-265, B4).
+// getSong answers one scoped song (old lines 240-265, B4).
 func (h *Handler) getSong(w http.ResponseWriter, r *http.Request) {
 	id, _ := auth.IdentityFrom(r.Context())
 	ctx := r.Context()
@@ -621,7 +621,7 @@ func (h *Handler) getSong(w http.ResponseWriter, r *http.Request) {
 	respond(w, r, songPayload{Envelope: okEnvelope(), Song: &songs[0]})
 }
 
-// getAlbumList/getAlbumList2 share v1's fetchAlbumList (B8).
+// getAlbumList/getAlbumList2 share the old fetchAlbumList (B8).
 func (h *Handler) getAlbumList(w http.ResponseWriter, r *http.Request) {
 	h.albumList(w, r, false)
 }
@@ -648,7 +648,7 @@ func (h *Handler) albumList(w http.ResponseWriter, r *http.Request, id3 bool) {
 	respond(w, r, albumListPayload{Envelope: okEnvelope(), AlbumList: body})
 }
 
-// fetchAlbumList ports v1's fetchAlbumList (browsing.ts:1054-1157, B8):
+// fetchAlbumList ports the old fetchAlbumList (browsing.ts:1054-1157, B8):
 // size clamped to 500, offset unclamped, unknown type falls back to
 // alphabeticalByName, fromYear>toYear swapped, newest = per-album max song
 // mtime, recent/frequent = per-user aggregates, random = RANDOM().
@@ -748,7 +748,7 @@ func (h *Handler) fetchAlbumList(r *http.Request, id auth.Identity, listType str
 	return h.mapAlbums(ctx, albumRows, id.UserID != "")
 }
 
-// getGenres answers the global genre list (v1:336-362, B10): counts from
+// getGenres answers the global genre list (old lines 336-362, B10): counts from
 // distinct active album/song joins, deliberately NOT library-scoped.
 func (h *Handler) getGenres(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.db.QueryContext(r.Context(), `
@@ -788,9 +788,9 @@ func (h *Handler) getGenres(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// search3 ports v1's search3 (browsing.ts:364-460, B6/B7): the
+// search3 ports the old search3 (browsing.ts:364-460, B6/B7): the
 // empty/whitespace query is an unfiltered paginated browse; LIKE metachars
-// escaped; count params default 20 and are clamped to 500 in v2 (B6 fix);
+// escaped; count params default 20 and are clamped to 500 in the Go server (B6 fix);
 // artist hits carry the full Artist DTO incl. musicBrainzIds (B7 fix);
 // result keys with no hits are omitted.
 func (h *Handler) search3(w http.ResponseWriter, r *http.Request) {
@@ -949,7 +949,7 @@ func (h *Handler) search3(w http.ResponseWriter, r *http.Request) {
 	respond(w, r, searchResult3Payload{Envelope: okEnvelope(), SearchResult3: result})
 }
 
-// getSongsByGenre ports v1:476-492 (B9): missing genre → 10, size default
+// getSongsByGenre ports the old implementation, retired lines 476-492 (B9): missing genre → 10, size default
 // 10 clamped to 500.
 func (h *Handler) getSongsByGenre(w http.ResponseWriter, r *http.Request) {
 	id, _ := auth.IdentityFrom(r.Context())
@@ -1009,7 +1009,7 @@ func (h *Handler) fetchSongsByGenre(r *http.Request, id auth.Identity, genre str
 	return h.mapSongs(ctx, songRows, id.UserID != "")
 }
 
-// getRandomSongs ports v1:494-505: size default 10 clamped to 500, optional
+// getRandomSongs ports the old implementation, retired lines 494-505: size default 10 clamped to 500, optional
 // genre and year window filters, ORDER BY RANDOM().
 func (h *Handler) getRandomSongs(w http.ResponseWriter, r *http.Request) {
 	id, _ := auth.IdentityFrom(r.Context())
@@ -1082,7 +1082,7 @@ func (h *Handler) fetchRandomSongs(r *http.Request, id auth.Identity, size int, 
 	return h.mapSongs(ctx, songRows, id.UserID != "")
 }
 
-// getTopSongs ports v1:599-614 (B9): missing artist → 10, count default 50
+// getTopSongs ports the old implementation, retired lines 599-614 (B9): missing artist → 10, count default 50
 // clamped to 500, artist matched NOCASE across primary/junction/album-artist
 // rows, most-played first (per-user play counts).
 func (h *Handler) getTopSongs(w http.ResponseWriter, r *http.Request) {
@@ -1155,7 +1155,7 @@ func (h *Handler) fetchTopSongs(r *http.Request, id auth.Identity, artistName st
 	return h.mapSongs(ctx, songRows, id.UserID != "")
 }
 
-// getSimilarSongs2 ports v1:580-597: the seed song must be active (B4);
+// getSimilarSongs2 ports the old implementation, retired lines 580-597: the seed song must be active (B4);
 // candidates come from the same artist (primary or junction) or, without an
 // artist, the same album; scoped; RANDOM() order.
 func (h *Handler) getSimilarSongs2(w http.ResponseWriter, r *http.Request) {
@@ -1239,10 +1239,10 @@ func (h *Handler) fetchSimilarSongs(r *http.Request, id auth.Identity, excludeID
 	return h.mapSongs(ctx, songRows, id.UserID != "")
 }
 
-// getArtistInfo2 ports v1:507-555: metadata only — empty biography, the
+// getArtistInfo2 ports the old implementation, retired lines 507-555: metadata only — empty biography, the
 // stored artist image URLs, the first stored musicBrainz id, and up to
-// `count` (default 5, clamped 100) genre-sharing similar artists. v2 adds
-// the library-scope check v1 omitted on this endpoint (P9 scope mandate;
+// `count` (default 5, clamped 100) genre-sharing similar artists. The Go server adds
+// the library-scope check the retired server omitted on this endpoint (P9 scope mandate;
 // recorded under B4 in the quirks doc).
 func (h *Handler) getArtistInfo2(w http.ResponseWriter, r *http.Request) {
 	id, _ := auth.IdentityFrom(r.Context())
@@ -1327,8 +1327,8 @@ func (h *Handler) getArtistInfo2(w http.ResponseWriter, r *http.Request) {
 	respond(w, r, artistInfo2Payload{Envelope: okEnvelope(), ArtistInfo2: info})
 }
 
-// getAlbumInfo/getAlbumInfo2 both answer the albumInfo element (v1:557-578,
-// B5). v2 adds the library-scope check v1 omitted (P9 scope mandate; B4).
+// getAlbumInfo/getAlbumInfo2 both answer the albumInfo element (old lines 557-578,
+// B5). The Go server adds the library-scope check the retired server omitted (P9 scope mandate; B4).
 func (h *Handler) getAlbumInfo(w http.ResponseWriter, r *http.Request) {
 	h.albumInfo(w, r)
 }
@@ -1379,16 +1379,16 @@ func (h *Handler) albumInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 // ---------------------------------------------------------------------------
-// Query-param parsing helpers (v1 Number/parseInt semantics)
+// Query-param parsing helpers (the old Number/parseInt semantics)
 // ---------------------------------------------------------------------------
 
-// sqlLikeEscape is the LIKE escape clause v1 used (backslash escapes
+// sqlLikeEscape is the LIKE escape clause the retired server used (backslash escapes
 // % and _, quirks doc B6).
 const sqlLikeEscape = " ESCAPE '\\'"
 
-// queryInt parses an integer query param with v1's Number.parseInt(value, 10)
+// queryInt parses an integer query param with the old Number.parseInt(value, 10)
 // semantics: invalid or absent → the default. (parseInt(”) is NaN → the ||
-// default in v1; ParseInt errors land on def here.)
+// default in the old adapter; ParseInt errors land on def here.)
 func queryInt(raw string, def int) int {
 	if raw == "" {
 		return def

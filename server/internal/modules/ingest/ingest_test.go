@@ -186,7 +186,7 @@ func deref(s *string) string {
 
 // TestRunIngestSkipsReviewSubfolder guards the sweep's one carve-out: files
 // parked in the top-level review/ directory are never re-ingested, while a
-// folder NESTED deeper named review is legitimate user content (v1 parity).
+// folder NESTED deeper named review is legitimate user content (wire parity).
 func TestRunIngestSkipsReviewSubfolder(t *testing.T) {
 	e := newEnv(t, true)
 	ctx := context.Background()

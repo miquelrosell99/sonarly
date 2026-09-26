@@ -3,7 +3,7 @@
 Sonarly is a self-hosted music server. A single Go process serves three things:
 
 1. **OpenSubsonic API** (`/rest/`) — compatible with Subsonic/OpenSubsonic clients (Feishin, Symphonium, DSub, Ultrasonic, …), implemented as an adapter over the same services the native API uses.
-2. **Native management REST API** (`/api/`) — used by the React web UI for library management. Contract: [`v2/api/openapi.yaml`](../v2/api/openapi.yaml).
+2. **Native management REST API** (`/api/`) — used by the React web UI for library management. Contract: [`server/api/openapi.yaml`](../server/api/openapi.yaml).
 3. **Static web UI** (`/*`) — the built React app, served by `internal/staticfs` with an SPA fallback (production).
 
 The server runs a DB-backed job queue with a single worker for scanning, ingest, organize, and artist-image jobs. A pure-Go polling watcher detects library changes and queues coalesced resyncs; interval schedulers trigger periodic work.
@@ -11,7 +11,7 @@ The server runs a DB-backed job queue with a single worker for scanning, ingest,
 ## Repository layout
 
 ```
-v2/                     # Go server (the only server)
+server/                 # Go server (the only server)
 ├── cmd/sonarly/        # entrypoint: config → db → modules → http server
 ├── internal/
 │   ├── config/         # env config (SESSION_SECRET, SONARLY_*); validated at boot
@@ -32,20 +32,20 @@ packages/web/           # React web client
     ├── stores/         # Zustand client-state stores (player, library)
     └── lib/            # api client, utilities
 
-docker/                 # Dockerfile.v2 (all-in-one image), entrypoint.sh, compose example
+docker/                 # Dockerfile (all-in-one image), entrypoint.sh, compose example
 docs/                   # this documentation
 ```
 
 ## Server
 
-### Modules (`v2/internal/modules/`)
+### Modules (`server/internal/modules/`)
 
 The server is a modular monolith: each domain owns its package, its repository functions (parameterized SQL), and its HTTP handlers. Cross-module imports go through the owning module, never its internal files.
 
 | Module | Responsibility |
 |---|---|
 | `system` | health probes (`/health`, `/healthz`, `/ready`) |
-| `auth` | sessions (SQLite store, v1-wire-compatible signed cookie), login throttle, API keys, secret box for Subsonic passwords |
+| `auth` | sessions (SQLite store, signed cookie wire-compatible with the pre-cutover format), login throttle, API keys, secret box for Subsonic passwords |
 | `users` | user CRUD, admin gates, profiles, preferences (allowlisted keys), avatars |
 | `libraries` | admin-managed library folders, user↔library assignment |
 | `catalog` | songs/albums/artists/genres/years read APIs, scoped by `user_libraries` |
@@ -74,7 +74,7 @@ The server is a modular monolith: each domain owns its package, its repository f
 ### Database
 
 - SQLite via `modernc.org/sqlite` (pure Go, no CGO): WAL, foreign keys, `busy_timeout`, `synchronous=NORMAL`, a single connection (one writer).
-- Migrations: embedded numbered SQL files in `v2/internal/db/migrations/`, each in its own transaction, recorded in the `schema_migrations` ledger. Idempotent DDL (`CREATE … IF NOT EXISTS`) so re-running is safe.
+- Migrations: embedded numbered SQL files in `server/internal/db/migrations/`, each in its own transaction, recorded in the `schema_migrations` ledger. Idempotent DDL (`CREATE … IF NOT EXISTS`) so re-running is safe.
 - See [db-schema.md](db-schema.md) for the schema and [db-schema conventions](#data-flow).
 
 ### Background work
@@ -109,6 +109,6 @@ In Docker, the library bind mount is configured with `LIBRARY_MUSIC` (mounted at
 
 ## OpenSubsonic compatibility notes
 
-The `/rest/` endpoints must always return a `subsonic-response` envelope, even on errors — many Subsonic clients abort sync on plain HTTP 4xx/5xx bodies. Errors are enveloped (`status:"failed"` + `error{code,message}`) with HTTP 200. Use standard Subsonic error codes with v1 semantics (10 missing auth/param, 40 bad credentials, 70 data not found). Symphonium syncs via `search3.view` with an empty query and paginates; `albumCount` on artist objects and `songCount`/`duration` on album objects must reflect real database counts.
+The `/rest/` endpoints must always return a `subsonic-response` envelope, even on errors — many Subsonic clients abort sync on plain HTTP 4xx/5xx bodies. Errors are enveloped (`status:"failed"` + `error{code,message}`) with HTTP 200. Use standard Subsonic error codes (10 missing auth/param, 40 bad credentials, 70 data not found). Symphonium syncs via `search3.view` with an empty query and paginates; `albumCount` on artist objects and `songCount`/`duration` on album objects must reflect real database counts.
 
-The full behavioral contract (auth precedence, format negotiation, XML mapping, per-endpoint quirks) is written down in [v2-opensubsonic-quirks.md](v2-opensubsonic-quirks.md) — implement against its decisions, not against the spec text alone.
+The full behavioral contract (auth precedence, format negotiation, XML mapping, per-endpoint quirks) is written down in [opensubsonic-quirks.md](opensubsonic-quirks.md) — implement against its decisions, not against the spec text alone.

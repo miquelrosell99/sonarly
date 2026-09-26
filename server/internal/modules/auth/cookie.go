@@ -9,10 +9,10 @@ import (
 	"time"
 )
 
-// CookieName matches v1's @fastify/session default cookie name.
+// CookieName matches the old @fastify/session default cookie name.
 const CookieName = "sessionId"
 
-// Signed-cookie format, byte-compatible with v1's @fastify/cookie signing:
+// Signed-cookie format, byte-compatible with the old @fastify/cookie signing:
 // "<sid>.<base64url(HMAC-SHA256(sid, secret))>".
 func signCookieValue(secret, value string) string {
 	mac := hmac.New(sha256.New, []byte(secret))

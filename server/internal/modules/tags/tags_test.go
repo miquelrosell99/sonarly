@@ -1,7 +1,7 @@
 // Tag-edit and cover-art route tests. The writer is faked for the route
 // matrices (file mutation is the audio writer's own test); one end-to-end
 // test runs the real mutagen writer against a corpus copy, guarded like
-// v1's suite.
+// the old suite.
 package tags_test
 
 import (

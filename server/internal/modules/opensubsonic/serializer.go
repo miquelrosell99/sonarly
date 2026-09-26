@@ -11,16 +11,16 @@ import (
 	"time"
 )
 
-// epochStarred is the fabricated star timestamp v1 emitted for starred
+// epochStarred is the fabricated star timestamp the retired server emitted for starred
 // entities (toStarredDate; quirks doc X6) — no real star time is stored.
 const epochStarred = "1970-01-01T00:00:00.000Z"
 
 // createdLayout renders mtimes the way JS Date.toISOString() does
-// (milliseconds, Z), which is what v1 put in `created` fields.
+// (milliseconds, Z), which is what the retired server put in `created` fields.
 const createdLayout = "2006-01-02T15:04:05.000Z"
 
 // SongSource is the songs-table row shape the Subsonic song serializer
-// needs (v1 SongRow plus its joined display names, library path and
+// needs (retired SongRow plus its joined display names, library path and
 // per-user interactions). P9 endpoint queries fill it; the mapper itself
 // is pure and unit-testable.
 type SongSource struct {
@@ -81,7 +81,7 @@ type SongSource struct {
 	PlayCount *int
 }
 
-// AlbumSource is the albums-table row shape for the album serializer (v1
+// AlbumSource is the albums-table row shape for the album serializer (old
 // AlbumRow plus interactions). CatalogNumbersJSON and
 // MusicBrainzAlbumArtistIDsJSON are JSON array columns.
 type AlbumSource struct {
@@ -119,7 +119,7 @@ type ArtistSource struct {
 	Rating             *float64
 }
 
-// MapSong ports v1's toOpenSubsonicSong (quirks doc X1-X11). artistEntries
+// MapSong ports the old toOpenSubsonicSong (quirks doc X1-X11). artistEntries
 // are the song_artists junction entries; when empty the mapper falls back
 // to the song's primary artist. forUser gates the interaction fields.
 func MapSong(src SongSource, artistEntries, composerEntries []Entry, genreNames []string, forUser bool) Song {
@@ -247,10 +247,10 @@ func MapSong(src SongSource, artistEntries, composerEntries []Entry, genreNames 
 	return song
 }
 
-// MapAlbum ports v1's toOpenSubsonicAlbum (quirks doc X13). songs are the
+// MapAlbum ports the old toOpenSubsonicAlbum (quirks doc X13). songs are the
 // album's song children (empty for list views); songCount nil falls back
 // to len(songs). createdAt is the caller-computed newest-song-mtime ISO
-// string; nil renders the epoch fallback exactly like v1.
+// string; nil renders the epoch fallback exactly like the old adapter.
 func MapAlbum(src AlbumSource, songs []Song, duration int, forUser bool, artistEntries []Entry, genreNames []string, labelNames []string, songCount *int, createdAt *string) Album {
 	artists := artistEntries
 	if len(artists) == 0 && src.ArtistID != nil {
@@ -273,7 +273,7 @@ func MapAlbum(src AlbumSource, songs []Song, duration int, forUser bool, artistE
 	} else {
 		count = len(songs)
 	}
-	created := epochStarred // same epoch string shape v1 used for missing mtimes
+	created := epochStarred // same epoch string shape the retired server used for missing mtimes
 	if createdAt != nil && *createdAt != "" {
 		created = *createdAt
 	}
@@ -336,7 +336,7 @@ func MapAlbum(src AlbumSource, songs []Song, duration int, forUser bool, artistE
 	return album
 }
 
-// MapArtist ports v1's toOpenSubsonicArtist (quirks doc X15).
+// MapArtist ports the old toOpenSubsonicArtist (quirks doc X15).
 func MapArtist(src ArtistSource, forUser bool) Artist {
 	artist := Artist{
 		ID:             src.ID,
@@ -376,7 +376,7 @@ func fileSuffix(filePath string) string {
 	return strings.ToLower(strings.TrimPrefix(filepath.Ext(filePath), "."))
 }
 
-// contentType mirrors v1: stored media type wins, then mime-by-extension,
+// contentType mirrors retired: stored media type wins, then mime-by-extension,
 // then audio/mpeg.
 func contentType(mediaType *string, filePath string) string {
 	if mediaType != nil && *mediaType != "" {
@@ -389,7 +389,7 @@ func contentType(mediaType *string, filePath string) string {
 }
 
 // fileSize stats the file at serialize time, returning 0 when it vanished
-// (v1 statSync-in-try/catch parity, quirks doc X9).
+// (retired statSync-in-try/catch parity, quirks doc X9).
 func fileSize(filePath string) int64 {
 	info, err := os.Stat(filePath)
 	if err != nil {
@@ -398,7 +398,7 @@ func fileSize(filePath string) int64 {
 	return info.Size()
 }
 
-// maxDuration implements v1's Math.max(1, round(duration ?? 0)): missing
+// maxDuration implements the old Math.max(1, round(duration ?? 0)): missing
 // or zero durations surface as 1 (quirks doc X3).
 func maxDuration(d *int) int {
 	if d == nil || *d <= 0 {
@@ -407,7 +407,7 @@ func maxDuration(d *int) int {
 	return *d
 }
 
-// validDateString ports v1's isValidDateString guard (quirks doc X11):
+// validDateString ports the old isValidDateString guard (quirks doc X11):
 // denylist of zero-dates plus a parseability check. The parse accepts the
 // ISO-shaped strings taggers actually store; JS Date's full grammar is not
 // reproduced (documented approximation).
@@ -434,9 +434,9 @@ func validDateString(s *string) bool {
 	return false
 }
 
-// parseStringArray is v1's guarded JSON-array parse (quirks doc X10/X12):
-// malformed JSON or non-string items are dropped, never fatal — v2 applies
-// this guard to every JSON column, fixing v1's unguarded 500s.
+// parseStringArray is the old guarded JSON-array parse (quirks doc X10/X12):
+// malformed JSON or non-string items are dropped, never fatal — the Go server applies
+// this guard to every JSON column, fixing the old unguarded 500s.
 func parseStringArray(value *string) []string {
 	if value == nil || *value == "" {
 		return nil
@@ -454,7 +454,7 @@ func parseStringArray(value *string) []string {
 	return out
 }
 
-// jsParseInt reproduces v1's parseInt(String(x), 10) for the total_tracks /
+// jsParseInt reproduces the old parseInt(String(x), 10) for the total_tracks /
 // total_discs string columns: leading whitespace, optional sign, digits up
 // to the first non-digit; anything else is NaN → omitted (quirks doc X13).
 func jsParseInt(value *string) *int {
@@ -480,7 +480,7 @@ func jsParseInt(value *string) *int {
 	return &n
 }
 
-// albumArtistName implements v1's `(join(entries) || album.artist_name) ?? ”`.
+// albumArtistName implements the old `(join(entries) || album.artist_name) ?? ”`.
 func albumArtistName(joined string, primary *string) string {
 	if joined != "" {
 		return joined
@@ -549,7 +549,7 @@ func nonNilEntries(entries []Entry) []Entry {
 }
 
 // firstID returns the first entry's id, falling back to the primary artist
-// column, then "" (v1's artists[0]?.id ?? artist_id ?? ”).
+// column, then "" (the old artists[0]?.id ?? artist_id ?? ”).
 func firstID(entries []Entry, primary *string) string {
 	if len(entries) > 0 {
 		return entries[0].ID
@@ -557,7 +557,7 @@ func firstID(entries []Entry, primary *string) string {
 	return stringOr(primary)
 }
 
-// coverArtOr mirrors v1's coverArt fallbacks: song prefers its own art then
+// coverArtOr mirrors the old coverArt fallbacks: song prefers its own art then
 // the album id; album prefers its own art then the album id.
 func coverArtOr(own *string, fallback *string) string {
 	if own != nil && *own != "" {

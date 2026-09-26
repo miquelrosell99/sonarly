@@ -2,17 +2,17 @@
 // client, fed by the library worker's job-completion channel through a
 // fan-out broker, with a 30-second heartbeat and library:changed broadcasts.
 //
-// Deviations from v1, deliberate and documented:
+// Deviations from the retired server, deliberate and documented:
 //
 //   - Session auth only: API keys are rejected here even though the rest of
-//     of the native API accepts them (v1 was session-only too). A long-
+//     of the native API accepts them (old was session-only too). A long-
 //     lived stream is a bigger exposure than a round trip, and EventSource
 //     cannot set headers anyway.
-//   - No replay (v1 had none either): events are dropped for clients that
+//   - No replay (old had none either): events are dropped for clients that
 //     fall behind, and there is no buffer to reconnect to. The client
 //     refetches on reconnect (the web app's useServerEvents hook already
 //     does). The queue table stays the durable record.
-//   - Failed jobs broadcast nothing (v1's job:completed was success-only):
+//   - Failed jobs broadcast nothing (the old job:completed was success-only):
 //     a failed scan does not mark the library changed.
 package events
 
@@ -26,7 +26,7 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/library"
 )
 
-// heartbeatInterval is the SSE comment keepalive (v1 parity).
+// heartbeatInterval is the SSE comment keepalive (wire parity).
 const heartbeatInterval = 30 * time.Second
 
 // subscriberBuffer bounds each client's queue; a slow consumer drops events
@@ -42,7 +42,7 @@ type Event struct {
 	Stats  map[string]any `json:"stats,omitempty"`
 }
 
-// shouldBroadcast applies v1's changed-decision: content-changing job types
+// shouldBroadcast applies the old changed-decision: content-changing job types
 // with a non-zero change counter broadcast library:changed; everything else
 // stays quiet.
 func shouldBroadcast(jobType library.JobType, stats json.RawMessage) bool {

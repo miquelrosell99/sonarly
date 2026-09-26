@@ -14,14 +14,14 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/library"
 )
 
-// Strategy is v1's DuplicateStrategy (packages/shared duplicate.ts).
+// Strategy is the old DuplicateStrategy (packages/shared duplicate.ts).
 type Strategy string
 
 const (
 	// StrategyReplaceFileAndMetadata swaps in the new file and replaces the
 	// metadata outright.
 	StrategyReplaceFileAndMetadata Strategy = "replace_file_and_metadata"
-	// StrategyKeepFileReplaceMetadata (v1 DEFAULT) keeps the existing file
+	// StrategyKeepFileReplaceMetadata (the old DEFAULT) keeps the existing file
 	// (its mtime/checksum stay on the row) and replaces the metadata.
 	StrategyKeepFileReplaceMetadata Strategy = "keep_file_replace_metadata"
 	// StrategyReplaceFileAggregateMetadata swaps in the new file and merges
@@ -34,7 +34,7 @@ const (
 	StrategySkip Strategy = "skip"
 )
 
-// IsStrategy reports whether value is one of the five v1 strategies.
+// IsStrategy reports whether value is one of the five the retired server strategies.
 func IsStrategy(value string) bool {
 	switch Strategy(value) {
 	case StrategyReplaceFileAndMetadata, StrategyKeepFileReplaceMetadata,
@@ -45,7 +45,7 @@ func IsStrategy(value string) bool {
 	return false
 }
 
-// Resolution is v1's DuplicateResolution: what the duplicate handler did.
+// Resolution is the old DuplicateResolution: what the duplicate handler did.
 type Resolution struct {
 	ExistingID string
 	FinalPath  string
@@ -53,7 +53,7 @@ type Resolution struct {
 	Updated    bool
 }
 
-// identity is v1's SongIdentity.
+// identity is the old SongIdentity.
 type identity struct {
 	title       string
 	albumID     *string
@@ -62,7 +62,7 @@ type identity struct {
 	discNumber  int
 }
 
-// existingSong is the matched row subset v1 carried through its handlers.
+// existingSong is the matched row subset the retired server carried through its handlers.
 type existingSong struct {
 	id       string
 	filePath string
@@ -72,7 +72,7 @@ type existingSong struct {
 	discNo   *int
 }
 
-// HandleDuplicate ports v1's handleDuplicateSong: resolve the incoming
+// HandleDuplicate ports the old handleDuplicateSong: resolve the incoming
 // file's identity (title + album + artist set), find an active song with
 // the same identity in the target library, and apply the strategy. It
 // returns (nil, nil) when the file is not a duplicate — the caller proceeds
@@ -109,8 +109,8 @@ func HandleDuplicate(ctx context.Context, db *sql.DB, sourcePath, targetPath str
 	}
 }
 
-// resolveSongIdentity ports v1's resolveSongIdentity: trim the title, ensure
-// the song and album artists exist (v1's ensureArtist side effect — the
+// resolveSongIdentity ports the old resolveSongIdentity: trim the title, ensure
+// the song and album artists exist (the old ensureArtist side effect — the
 // rows are shared with the persist that follows), then resolve the album by
 // (name, primary album artist) so compilations whose track artist differs
 // still land on the correct album. Returns nil when the tags can't form an
@@ -172,7 +172,7 @@ func resolveSongIdentity(ctx context.Context, db *sql.DB, meta *audio.Metadata) 
 	}, nil
 }
 
-// findAlbumByNameAndArtist ports v1's getAlbumByNameAndArtist: case-
+// findAlbumByNameAndArtist ports the old getAlbumByNameAndArtist: case-
 // insensitive name match with the primary album artist (or no artist).
 func findAlbumByNameAndArtist(ctx context.Context, db *sql.DB, name, artistID string) (*string, error) {
 	row := db.QueryRowContext(ctx,
@@ -189,7 +189,7 @@ func findAlbumByNameAndArtist(ctx context.Context, db *sql.DB, name, artistID st
 	return &id, nil
 }
 
-// findExistingSongByIdentity ports v1's findExistingSongByIdentity: active
+// findExistingSongByIdentity ports the old findExistingSongByIdentity: active
 // songs in the target library with a case-insensitive title match on the
 // same album; the row with the identical artist SET wins, else the first
 // track/disc fallback match.
@@ -225,7 +225,7 @@ func findExistingSongByIdentity(ctx context.Context, db *sql.DB, ident *identity
 	for rows.Next() {
 		var row existingSong
 		var mtime dbpkg.Millis
-		var trackNo, discNo dbpkg.NullInt64 // v1 may have stored fractional REALs
+		var trackNo, discNo dbpkg.NullInt64 // the retired server may have stored fractional REALs
 		if err := rows.Scan(&row.id, &row.filePath, &mtime, &row.checksum, &trackNo, &discNo); err != nil {
 			return nil, fmt.Errorf("find duplicate candidates: %w", err)
 		}
@@ -299,18 +299,18 @@ func sameArtistSet(existing []string, target map[string]bool) bool {
 	return true
 }
 
-// skipDuplicate ports v1's skipDuplicate: drop the incoming file, change
+// skipDuplicate ports the old skipDuplicate: drop the incoming file, change
 // nothing (cleanup failure is ignored — the sweep will see it again).
 func skipDuplicate(sourcePath string, existing *existingSong) *Resolution {
 	_ = os.Remove(sourcePath)
 	return &Resolution{ExistingID: existing.id, Skipped: true}
 }
 
-// replaceFileAndMetadata ports v1's replaceFileAndMetadata (aggregate
+// replaceFileAndMetadata ports the old replaceFileAndMetadata (aggregate
 // selects the metadata merge mode). rename() silently overwrites an existing
 // destination, so when the pattern target differs from the matched file's
 // path and is already taken, a unique " (n)" target is chosen instead of
-// destroying whatever occupies it (v1's careful bit).
+// destroying whatever occupies it (the old careful bit).
 func replaceFileAndMetadata(ctx context.Context, db *sql.DB, sourcePath, targetPath string, existing *existingSong, meta *audio.Metadata, mtime int64, checksum string, libraryID *string, aggregate bool) (*Resolution, error) {
 	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 		return nil, err
@@ -349,11 +349,11 @@ func replaceFileAndMetadata(ctx context.Context, db *sql.DB, sourcePath, targetP
 	return &Resolution{ExistingID: existing.id, FinalPath: finalPath, Updated: true}, nil
 }
 
-// keepFileReplaceMetadata ports v1's keepFileReplaceMetadata: the existing
+// keepFileReplaceMetadata ports the old keepFileReplaceMetadata: the existing
 // file stays on disk and its mtime/checksum stay on the row; only the
 // metadata is rewritten (merge mode selects aggregate vs replace-present-
 // only). The incoming file is deleted afterwards (cleanup failure is
-// ignored, as v1).
+// ignored, as the retired server).
 func keepFileReplaceMetadata(ctx context.Context, db *sql.DB, sourcePath string, existing *existingSong, meta *audio.Metadata, libraryID *string, aggregate bool) (*Resolution, error) {
 	if _, err := library.PersistSong(ctx, db, library.PersistInput{
 		ExistingID: &existing.id,

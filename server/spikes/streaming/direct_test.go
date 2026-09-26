@@ -21,7 +21,7 @@ func newDirectServer(t *testing.T) (*httptest.Server, string, []byte) {
 	mux.HandleFunc("/sc/", func(w http.ResponseWriter, r *http.Request) { // ServeContent
 		directServeContent(w, r, "media/"+strings.TrimPrefix(r.URL.Path, "/sc/"))
 	})
-	mux.HandleFunc("/v1/", func(w http.ResponseWriter, r *http.Request) { // v1-parity custom
+	mux.HandleFunc("/v1/", func(w http.ResponseWriter, r *http.Request) { // wire-parity custom
 		directCustomV1(w, r, "media/"+strings.TrimPrefix(r.URL.Path, "/v1/"))
 	})
 	srv := httptest.NewServer(mux)
@@ -105,7 +105,7 @@ func TestDirectRangeParityMatrix(t *testing.T) {
 					}
 				case 206:
 					// Go 1.21+ answers multi-range with 206 multipart/byteranges
-					// (v1 answers 416). Verify it is well-formed and skip the
+					// (the old server answers 416). Verify it is well-formed and skip the
 					// single-range Content-Range checks.
 					if strings.HasPrefix(res.Header.Get("Content-Type"), "multipart/byteranges") {
 						parts := strings.Count(string(body), "Content-Range: bytes")
@@ -140,7 +140,7 @@ func TestDirectRangeParityMatrix(t *testing.T) {
 	}
 }
 
-// Captures behavioral deltas between ServeContent and the v1-parity handler.
+// Captures behavioral deltas between ServeContent and the wire-parity handler.
 func TestDirectGoVsV1Deltas(t *testing.T) {
 	srv, _, data := newDirectServer(t)
 	size := int64(len(data))
@@ -150,7 +150,7 @@ func TestDirectGoVsV1Deltas(t *testing.T) {
 	}
 
 	// 1. Multi-range: Go 1.23 DOES multipart/byteranges 206 (added in Go 1.21);
-	//    v1 answers 416. Biggest client-visible delta found.
+	//    the retired server answers 416. Biggest client-visible delta found.
 	res := get("sc", map[string]string{"Range": "bytes=0-99,200-299"})
 	ct := res.Header.Get("Content-Type")
 	t.Logf("SC multi-range:  status=%d CT=%q", res.StatusCode, ct)
@@ -165,7 +165,7 @@ func TestDirectGoVsV1Deltas(t *testing.T) {
 	}
 	res.Body.Close()
 
-	// 2. 416 responses: Go adds "Content-Range: bytes */size"; v1 doesn't.
+	// 2. 416 responses: Go adds "Content-Range: bytes */size"; the retired server doesn't.
 	res = get("sc", map[string]string{"Range": "bytes=999999999-"})
 	t.Logf("SC 416 headers:  CR=%q", res.Header.Get("Content-Range"))
 	if res.Header.Get("Content-Range") != fmt.Sprintf("bytes */%d", size) {
@@ -179,7 +179,7 @@ func TestDirectGoVsV1Deltas(t *testing.T) {
 	}
 	res.Body.Close()
 
-	// 3. HEAD + Range: v1 ignores Range on HEAD (200 + full CL); Go's
+	// 3. HEAD + Range: the retired server ignores Range on HEAD (200 + full CL); Go's
 	//    ServeContent runs the range logic → 206 headers.
 	res = do(t, "HEAD", srv.URL+"/sc/spike_128k.mp3", map[string]string{"Range": "bytes=0-99"})
 	t.Logf("SC HEAD+Range:   status=%d CL=%q CR=%q", res.StatusCode, res.Header.Get("Content-Length"), res.Header.Get("Content-Range"))
@@ -192,7 +192,7 @@ func TestDirectGoVsV1Deltas(t *testing.T) {
 	res.Body.Close()
 
 	// 4. Last-Modified / conditional requests: Go sets Last-Modified and
-	//    honors If-Modified-Since (304); v1 does neither.
+	//    honors If-Modified-Since (304); the retired server does neither.
 	res = get("sc", nil)
 	lm := res.Header.Get("Last-Modified")
 	res.Body.Close()
@@ -240,7 +240,7 @@ func mustLen(res *http.Response) int {
 	return len(b)
 }
 
-// Content-Type parity: pinned map (v1 mime-types values) vs Go host lookup.
+// Content-Type parity: pinned map (old mime-types values) vs Go host lookup.
 func TestContentTypeMapVsV1(t *testing.T) {
 	srv, _, _ := newDirectServer(t)
 	res := do(t, "GET", srv.URL+"/sc/spike_128k.mp3", nil)
@@ -250,6 +250,6 @@ func TestContentTypeMapVsV1(t *testing.T) {
 		t.Errorf("mp3 CT")
 	}
 	// Measured separately in the findings doc:
-	//   v1 mime-types:  flac→audio/x-flac  wav→audio/wav   opus→audio/ogg
+	//   the retired server mime-types:  flac→audio/x-flac  wav→audio/wav   opus→audio/ogg
 	//   Go host lookup: flac→audio/flac    wav→audio/x-wav opus→audio/ogg
 }

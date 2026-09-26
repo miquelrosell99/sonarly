@@ -20,7 +20,7 @@ func newScheduler(t *testing.T, database *sql.DB, options library.SchedulerOptio
 
 var schedulerStart = time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC)
 
-// v1 priming semantics: the first tick records the timestamp without firing;
+// the retired server priming semantics: the first tick records the timestamp without firing;
 // the job fires once the interval elapses; firing re-arms the timer.
 func TestScanSchedulerPrimingAndFire(t *testing.T) {
 	database := openDB(t)
@@ -73,7 +73,7 @@ func TestScanSchedulerPrimingAndFire(t *testing.T) {
 	}
 }
 
-// v1 no-overlap guard: a pending or running scan/resync blocks the periodic
+// the retired server no-overlap guard: a pending or running scan/resync blocks the periodic
 // scan (a resync IS a scan; stacking them would double-walk the library).
 func TestScanSchedulerNoOverlapGuard(t *testing.T) {
 	database := openDB(t)
@@ -160,7 +160,7 @@ func TestSchedulerPlaceholderTriggersCarryPayloads(t *testing.T) {
 		t.Fatalf("decode: %v", err)
 	}
 	if !artistImages.RefetchExisting {
-		t.Fatalf("artist_images payload must set refetchExisting (v1 parity): %s", payload)
+		t.Fatalf("artist_images payload must set refetchExisting (wire parity): %s", payload)
 	}
 
 	if err := database.QueryRow(`SELECT payload FROM scan_jobs WHERE type = 'ingest'`).Scan(&payload); err != nil {
@@ -175,9 +175,9 @@ func TestSchedulerPlaceholderTriggersCarryPayloads(t *testing.T) {
 	}
 }
 
-// Review cleanup ports v1's worker.scheduleReviewCleanupIfNeeded, whose
+// Review cleanup ports the old worker.scheduleReviewCleanupIfNeeded, whose
 // due-semantics DIFFER from the priming schedulers: a missing last-run
-// pushes immediately (v1 treats it as 0), and the success mark is written
+// pushes immediately (old treats it as 0), and the success mark is written
 // by the cleanup handler, not the scheduler — so a pushed job must not be
 // re-pushed while pending, and the setting stays untouched here.
 func TestReviewCleanupSchedulerDueSemantics(t *testing.T) {
@@ -185,7 +185,7 @@ func TestReviewCleanupSchedulerDueSemantics(t *testing.T) {
 	scheduler := newScheduler(t, database, library.SchedulerOptions{ReviewCleanupInterval: 24 * time.Hour})
 	ctx := context.Background()
 
-	// No last_review_cleanup: v1 fires immediately rather than priming.
+	// No last_review_cleanup: the retired server fires immediately rather than priming.
 	if err := scheduler.Tick(ctx, schedulerStart); err != nil {
 		t.Fatalf("tick: %v", err)
 	}
@@ -195,7 +195,7 @@ func TestReviewCleanupSchedulerDueSemantics(t *testing.T) {
 
 	// Pending job: no stacking. The scheduler does not mark the last run
 	// (the handler does on success), so the pending guard is what prevents
-	// duplicates — exactly v1's hasPendingOrRunningReviewCleanup.
+	// duplicates — exactly the old hasPendingOrRunningReviewCleanup.
 	if err := scheduler.Tick(ctx, schedulerStart.Add(time.Hour)); err != nil {
 		t.Fatalf("tick: %v", err)
 	}

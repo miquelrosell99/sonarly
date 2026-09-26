@@ -300,7 +300,7 @@ func TestAdminStatus(t *testing.T) {
 	}
 	status := decode(t, rec)
 	counts := status["counts"].(map[string]any)
-	// v1 counts every row (active and inactive); the missingCounts carry the
+	// the retired server counts every row (active and inactive); the missingCounts carry the
 	// inactive breakdown.
 	if counts["users"] != float64(1) || counts["songs"] != float64(2) ||
 		counts["albums"] != float64(2) || counts["artists"] != float64(2) {
@@ -405,7 +405,7 @@ func TestIngestRuns(t *testing.T) {
 	runID := runs[0].(map[string]any)["id"].(string)
 
 	// Detail: the per-file job from the seed has no run_id but falls inside
-	// the run window (v1's created_at fallback).
+	// the run window (the old created_at fallback).
 	rec = s.do(t, http.MethodGet, "/api/admin/ingest-runs/"+runID, admin)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("detail: got %d", rec.Code)

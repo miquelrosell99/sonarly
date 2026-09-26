@@ -156,7 +156,7 @@ func TestMusicBrainzSearchMapsRecording(t *testing.T) {
 	}
 
 	// The Lucene query: quoted title (contains a space), first-artist split
-	// on the comma. & is NOT in v1's Lucene escape set, so X&Y stays bare.
+	// on the comma. & is NOT in the old Lucene escape set, so X&Y stays bare.
 	want := `recording:"Fix You" AND artist:Coldplay AND release:X&Y`
 	if gotQuery != want {
 		t.Fatalf("query = %q, want %q", gotQuery, want)

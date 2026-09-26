@@ -1,7 +1,7 @@
-// Package admin is the v1 admin surface (P9c): system-tasks (definitions,
+// Package admin is the retired server admin surface (P9c): system-tasks (definitions,
 // manual run, paginated history), the admin status dashboard, the
 // missing-file management endpoints, and the ingest-runs views — ported
-// from v1's features/users/admin-routes.ts.
+// from the old features/users/admin-routes.ts.
 package admin
 
 import (
@@ -20,11 +20,11 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/library"
 )
 
-// systemTaskStatus is the v1 SystemTaskStatus union.
+// systemTaskStatus is the retired server SystemTaskStatus union.
 type systemTaskStatus string
 
 // TaskIntervals carries the configured scheduler intervals; a
-// non-positive interval surfaces as null (task disabled, v1 semantics).
+// non-positive interval surfaces as null (task disabled, the old semantics).
 type TaskIntervals struct {
 	ScanInterval          time.Duration
 	ArtistImageInterval   time.Duration
@@ -45,7 +45,7 @@ func NewService(db *sql.DB, queue *library.Queue, intervals TaskIntervals) *Serv
 	return &Service{db: db, queue: queue, intervals: intervals}
 }
 
-// taskStatus is one task's status row (v1 getLatestJobStatus).
+// taskStatus is one task's status row (old getLatestJobStatus).
 type taskStatus struct {
 	Status    *systemTaskStatus `json:"status"`
 	LastRunAt *string           `json:"lastRunAt"`
@@ -99,7 +99,7 @@ func (s *Service) getSetting(ctx context.Context, key string) (string, error) {
 	return value, nil
 }
 
-// taskDefinition is v1's SystemTaskDefinition, resolved against config.
+// taskDefinition is the old SystemTaskDefinition, resolved against config.
 type taskDefinition struct {
 	id              string
 	name            string
@@ -118,7 +118,7 @@ func minutesPtr(d time.Duration) *int {
 	return &m
 }
 
-// definitions is v1's getSystemTasks(config).
+// definitions is the old getSystemTasks(config).
 func (s *Service) definitions() []taskDefinition {
 	return []taskDefinition{
 		{
@@ -166,7 +166,7 @@ func (s *Service) definitions() []taskDefinition {
 	}
 }
 
-// SystemTask is the v1 SystemTask response DTO.
+// SystemTask is the retired server SystemTask response DTO.
 type SystemTask struct {
 	ID              string            `json:"id"`
 	Name            string            `json:"name"`
@@ -176,7 +176,7 @@ type SystemTask struct {
 	Status          *systemTaskStatus `json:"status"`
 }
 
-// ListSystemTasks ports v1's GET /api/admin/system-tasks.
+// ListSystemTasks ports the old GET /api/admin/system-tasks.
 func (s *Service) ListSystemTasks(ctx context.Context) ([]SystemTask, error) {
 	tasks := []SystemTask{}
 	for _, def := range s.definitions() {
@@ -200,7 +200,7 @@ func (s *Service) ListSystemTasks(ctx context.Context) ([]SystemTask, error) {
 	return tasks, nil
 }
 
-// RunSystemTask ports v1's POST /api/admin/system-tasks/:taskId/run.
+// RunSystemTask ports the old POST /api/admin/system-tasks/:taskId/run.
 func (s *Service) RunSystemTask(ctx context.Context, taskID string) error {
 	for _, def := range s.definitions() {
 		if def.id == taskID {
@@ -212,13 +212,13 @@ func (s *Service) RunSystemTask(ctx context.Context, taskID string) error {
 
 var errTaskNotFound = errors.New("task not found")
 
-// validTaskIDs is v1's z.enum([...]) — the run route validates against it
-// before the lookup so a bad id answers 400 like v1.
+// validTaskIDs is the old z.enum([...]) — the run route validates against it
+// before the lookup so a bad id answers 400 like the retired server.
 var validTaskIDs = map[string]bool{
 	"periodic_scan": true, "review_cleanup": true, "artist_images": true, "ingest": true,
 }
 
-// HistoryEntry is one row of the system-tasks history (v1 shape).
+// HistoryEntry is one row of the system-tasks history (old shape).
 type HistoryEntry struct {
 	ID         string          `json:"id"`
 	Task       string          `json:"task"`
@@ -229,7 +229,7 @@ type HistoryEntry struct {
 	Stats      json.RawMessage `json:"stats,omitempty"`
 }
 
-// HistoryPage is v1's paginated history response — the only paginated v1
+// HistoryPage is the old paginated history response — the only paginated old
 // endpoint, shape preserved.
 type HistoryPage struct {
 	History    []HistoryEntry `json:"history"`
@@ -239,13 +239,13 @@ type HistoryPage struct {
 	TotalPages int            `json:"totalPages"`
 }
 
-// systemTaskTypes is v1's history filter list.
+// systemTaskTypes is the old history filter list.
 var systemTaskTypes = []library.JobType{
 	library.JobTypeScan, library.JobTypeResync, library.JobTypeCleanupReview,
 	library.JobTypeArtistImages, library.JobTypeIngest,
 }
 
-// taskNameByType is v1's display-name map.
+// taskNameByType is the old display-name map.
 var taskNameByType = map[string]string{
 	"scan":           "Periodic library scan",
 	"resync":         "Periodic library scan",
@@ -254,7 +254,7 @@ var taskNameByType = map[string]string{
 	"ingest":         "Ingest",
 }
 
-// SystemTaskHistory ports v1's GET /api/admin/system-tasks/history.
+// SystemTaskHistory ports the old GET /api/admin/system-tasks/history.
 func (s *Service) SystemTaskHistory(ctx context.Context, page, limit int) (*HistoryPage, error) {
 	placeholders := ""
 	args := make([]any, 0, len(systemTaskTypes))
@@ -315,7 +315,7 @@ func (s *Service) SystemTaskHistory(ctx context.Context, page, limit int) (*Hist
 // HTTP wiring
 // ---------------------------------------------------------------------------
 
-// Handler wires the admin endpoints to HTTP (admin-gated, v1 parity).
+// Handler wires the admin endpoints to HTTP (admin-gated, wire parity).
 type Handler struct {
 	svc *Service
 	mw  *auth.Middleware
@@ -398,7 +398,7 @@ func (h *Handler) taskHistory(w http.ResponseWriter, r *http.Request) {
 	httpserver.JSON(w, http.StatusOK, history)
 }
 
-// parsePositiveInt ports v1's Math.max(1, parseInt(...) || default).
+// parsePositiveInt ports the old Math.max(1, parseInt(...) || default).
 func parsePositiveInt(raw string, fallback int) int {
 	if raw == "" {
 		return fallback

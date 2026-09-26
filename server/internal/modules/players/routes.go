@@ -21,7 +21,7 @@ func NewHandler(tracker *Tracker, db *sql.DB, mw *auth.Middleware) *Handler {
 	return &Handler{tracker: tracker, db: db, mw: mw}
 }
 
-// Routes registers GET /api/players behind session auth. Like v1, any
+// Routes registers GET /api/players behind session auth. Like the retired server, any
 // signed-in user sees the whole live set (it is a household dashboard, not
 // a per-user view).
 func (h *Handler) Routes(r chi.Router) {

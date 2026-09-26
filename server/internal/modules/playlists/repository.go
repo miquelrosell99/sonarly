@@ -13,7 +13,7 @@ import (
 
 // ErrNotFound is the single not-found sentinel: routes answer 404 both when
 // a playlist is missing and when the caller has no access, so inaccessible
-// ids cannot be probed (v2 contract: 404, not 403).
+// ids cannot be probed (Go-server contract: 404, not 403).
 var ErrNotFound = errors.New("playlists: not found")
 
 // ErrForbidden marks an authenticated caller who can view but not edit, or
@@ -66,7 +66,7 @@ func GetByID(ctx context.Context, q auth.Queries, id string) (*Playlist, error) 
 }
 
 // ListVisible loads the playlists a user may see in the list view: owned,
-// public, and shared-with-me (v1 parity, ORDER BY updated_at DESC).
+// public, and shared-with-me (wire parity, ORDER BY updated_at DESC).
 func ListVisible(ctx context.Context, q auth.Queries, userID string) ([]listRow, error) {
 	rows, err := q.QueryContext(ctx, `
 		SELECT p.id, p.name, p.description, p.owner_id, u.username, p.visibility,
@@ -147,7 +147,7 @@ func SongIDs(ctx context.Context, q auth.Queries, playlistID string) ([]string, 
 }
 
 // Create inserts a playlist and, for static playlists, its members — in ONE
-// transaction (v1 B3 fix: the row insert and member rewrites must not be
+// transaction (the old B3 fix: the row insert and member rewrites must not be
 // observable separately).
 func Create(ctx context.Context, db *sql.DB, p *Playlist, songIDs []string) error {
 	tx, err := db.BeginTx(ctx, nil)
@@ -169,7 +169,7 @@ func Create(ctx context.Context, db *sql.DB, p *Playlist, songIDs []string) erro
 // Update rewrites the playlist row and, when rewriteMembers is set, replaces
 // the member list with exactly songIDs — in ONE transaction. Smart playlists
 // always carry an empty member list; rewriteMembers clears any stale rows
-// (v1 parity for smart/static conversions).
+// (wire parity for smart/static conversions).
 func Update(ctx context.Context, db *sql.DB, p *Playlist, songIDs []string, rewriteMembers bool) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -343,9 +343,9 @@ func ShareEntries(ctx context.Context, q auth.Queries, playlistID string) ([]Sha
 }
 
 // SetShareLink stores exactly token as the playlist's share token. Called
-// with a freshly minted token (create + regenerate share-link). v1 parity
+// with a freshly minted token (create + regenerate share-link). wire parity
 // (P10 decision): the token lifecycle is INDEPENDENT of visibility — this
-// never touches the visibility column (v1 management-routes.ts POST
+// never touches the visibility column (old management-routes.ts POST
 // /api/playlists/:id/share-link only updates share_token).
 func EnableShareLink(ctx context.Context, q auth.Queries, playlistID, token string) error {
 	_, err := q.ExecContext(ctx, `
@@ -358,7 +358,7 @@ func EnableShareLink(ctx context.Context, q auth.Queries, playlistID, token stri
 }
 
 // ClearShareLink drops the share token and leaves visibility untouched
-// (v1 management-routes.ts DELETE /api/playlists/:id/share-link: token = NULL
+// (old management-routes.ts DELETE /api/playlists/:id/share-link: token = NULL
 // only). A playlist can therefore carry a token at any visibility; only the
 // streaming/content grant SQL and the Subsonic adapter's updatePlaylist
 // re-derivation couple them (see Policy.TokenGrantsSong and the adapter).
@@ -386,7 +386,7 @@ func UserExists(ctx context.Context, q auth.Queries, userID string) (bool, error
 }
 
 // HideExplicit reports the viewer's explicit-content preference; anonymous
-// viewers get false (v1 parity: no preference, no filtering).
+// viewers get false (wire parity: no preference, no filtering).
 func HideExplicit(ctx context.Context, q auth.Queries, userID string) (bool, error) {
 	if userID == "" {
 		return false, nil

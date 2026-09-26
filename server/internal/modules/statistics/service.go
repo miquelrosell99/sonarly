@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-// v1's statistics constants, ported unchanged.
+// the old statistics constants, ported unchanged.
 const (
 	topLimit           = 10
 	genreLimit         = 10
@@ -21,12 +21,12 @@ const (
 
 // ErrUserNotFound is the only typed failure the service surfaces: routes
 // answer 404 for it and a generic 500 for everything else — raw driver
-// messages never reach the client (v1 leaked err.message).
+// messages never reach the client (old leaked err.message).
 var ErrUserNotFound = errors.New("statistics: user not found")
 
 // Service loads listening statistics. Every method issues a fixed,
 // request-independent number of statements (see the package doc): the
-// consolidation is the point — v1 ran ~20 per request.
+// consolidation is the point — the retired server ran ~20 per request.
 type Service struct {
 	db *sql.DB
 }
@@ -34,7 +34,7 @@ type Service struct {
 func NewService(db *sql.DB) *Service { return &Service{db: db} }
 
 // rangeModifiers maps the whitelisted range to a sqlite datetime modifier.
-// Values are hardcoded, never user input (v1's whitelist pattern).
+// Values are hardcoded, never user input (the old whitelist pattern).
 var rangeModifiers = map[TimeRange]string{
 	Range7d:  "-7 days",
 	Range30d: "-30 days",
@@ -44,7 +44,7 @@ var rangeModifiers = map[TimeRange]string{
 
 // historyConds builds the listening_history conditions: user filter plus
 // the range threshold compared AGAINST the indexed played_at column as an
-// ISO string (v1's index-preserving pattern — no date()/strftime wrapping
+// ISO string (the old index-preserving pattern — no date()/strftime wrapping
 // of the column itself).
 func historyConds(userID string, r TimeRange) ([]string, []any) {
 	conds := []string{}
@@ -75,7 +75,7 @@ func repeatArgs(args []any, n int) []any {
 	return out
 }
 
-// UserStatistics assembles one user's statistics in six statements (v1: ~20):
+// UserStatistics assembles one user's statistics in six statements (old: ~20):
 // user row, totals+favorites, top lists, rated lists, rating distribution,
 // monthly plays.
 func (s *Service) UserStatistics(ctx context.Context, userID string, r TimeRange) (*UserStatistics, error) {
@@ -224,7 +224,7 @@ func (s *Service) totals(ctx context.Context, userID string, r TimeRange) (*Tota
 
 // topLists folds the five top-N lists into one UNION ALL statement; each arm
 // keeps its own ORDER BY + LIMIT inside a subselect. Genre rows carry the
-// listening-time sum like v1's getTopGenres.
+// listening-time sum like the old getTopGenres.
 func (s *Service) topLists(ctx context.Context, userID string, r TimeRange) (*TopLists, error) {
 	conds, args := historyConds(userID, r)
 	historyWhere := where(conds)
@@ -334,7 +334,7 @@ func (s *Service) topLists(ctx context.Context, userID string, r TimeRange) (*To
 
 // ratedLists folds the three Bayesian-rated lists into one UNION ALL. The
 // global rating average is computed ONCE per request by the MATERIALIZED
-// prior CTE and shared by all three arms (v1 scanned it three times).
+// prior CTE and shared by all three arms (old scanned it three times).
 func (s *Service) ratedLists(ctx context.Context, userID string) (*RatedLists, error) {
 	priorAvg := `SELECT AVG(rating) FROM user_songs WHERE rating IS NOT NULL`
 	conds := []string{"us.rating IS NOT NULL"}
@@ -438,7 +438,7 @@ func (s *Service) ratedLists(ctx context.Context, userID string) (*RatedLists, e
 }
 
 // ratingDistribution folds the six per-table histogram scans into one UNION
-// ALL (v1 ran six statements). v1 merged rated counts across songs, albums
+// ALL (old ran six statements). the retired server merged rated counts across songs, albums
 // and artists into a single histogram; unrated is the sum of the three
 // unrated counts.
 func (s *Service) ratingDistribution(ctx context.Context, userID string) (*RatingDistribution, error) {
@@ -642,7 +642,7 @@ type groupedRow struct {
 	plays      int
 }
 
-// aggregateGroupedPlays ports v1's in-memory rollup: per month, rank groups
+// aggregateGroupedPlays ports the old in-memory rollup: per month, rank groups
 // by plays, keep the top groupByLimit and fold the rest into "Other".
 func aggregateGroupedPlays(raw []groupedRow) []MonthlyGroupedItem {
 	byMonth := map[string]map[string]int{}

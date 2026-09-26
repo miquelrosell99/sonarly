@@ -1,4 +1,4 @@
-// LRCLIB lyrics search client: v1's features/lrclib/search.ts port — the
+// LRCLIB lyrics search client: the old features/lrclib/search.ts port — the
 // query builder, the one-retry-on-429/503 backoff, the record mapping with
 // LRC synced-lyric parsing, and the non-array error shape.
 package providers
@@ -16,13 +16,13 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/audio"
 )
 
-// lrclibBaseURL is v1's LRCLIB_BASE_URL. Tests override it via the client.
+// lrclibBaseURL is the old LRCLIB_BASE_URL. Tests override it via the client.
 const lrclibBaseURL = "https://lrclib.net/api"
 
-// retryDelay is v1's RETRY_DELAY_MS.
+// retryDelay is the old RETRY_DELAY_MS.
 const retryDelay = time.Second
 
-// LrcLibMatch is v1's LrcLibMatch DTO.
+// LrcLibMatch is the old LrcLibMatch DTO.
 type LrcLibMatch struct {
 	ID           int                     `json:"id"`
 	Title        string                  `json:"title"`
@@ -34,7 +34,7 @@ type LrcLibMatch struct {
 	SyncedLyrics []audio.SyncedLyricLine `json:"syncedLyrics,omitempty"`
 }
 
-// LrcLibQuery is v1's searchLrcLib argument.
+// LrcLibQuery is the old searchLrcLib argument.
 type LrcLibQuery struct {
 	Title    string
 	Artist   string
@@ -46,7 +46,7 @@ type LrcLibQuery struct {
 type LrcLibClient struct {
 	baseURL string
 	client  *http.Client
-	// sleep is replaceable in tests (the v1 1s backoff).
+	// sleep is replaceable in tests (the retired server 1s backoff).
 	sleep func(time.Duration)
 }
 
@@ -145,7 +145,7 @@ func (c *LrcLibClient) get(ctx context.Context, url string) (*http.Response, err
 	return c.client.Do(req)
 }
 
-// Search is v1's searchLrcLib: one retry with backoff on 429/503.
+// Search is the old searchLrcLib: one retry with backoff on 429/503.
 func (c *LrcLibClient) Search(ctx context.Context, query LrcLibQuery) ([]LrcLibMatch, error) {
 	url := buildLrcLibSearchURL(c.baseURL, query)
 	resp, err := c.get(ctx, url)
@@ -170,7 +170,7 @@ func (c *LrcLibClient) Search(ctx context.Context, query LrcLibQuery) ([]LrcLibM
 	}
 	var records []lrcLibApiRecord
 	if err := json.Unmarshal(raw, &records); err != nil {
-		// v1: a non-array body is an error document {"error": ...}.
+		// old: a non-array body is an error document {"error": ...}.
 		var errDoc struct {
 			Error string `json:"error"`
 		}

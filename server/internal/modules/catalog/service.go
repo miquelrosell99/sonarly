@@ -11,7 +11,7 @@ import (
 
 // ErrNotFound is the single not-found sentinel: routes answer 404 both when
 // a row is missing and when it exists outside the caller's library scope, so
-// out-of-scope ids cannot be probed (v1 behavior).
+// out-of-scope ids cannot be probed (old behavior).
 var ErrNotFound = errors.New("catalog: not found")
 
 // Service is the catalog domain API. Every public method resolves the
@@ -73,7 +73,7 @@ func (s *Service) ListAlbums(ctx context.Context, id auth.Identity, f AlbumFilte
 
 // GetAlbum answers /api/albums/{id}: the album plus its in-scope songs in
 // playing order. With hideExplicit the songs array and the shown count drop
-// explicit tracks (v1 parity); the album itself is never hidden by an
+// explicit tracks (wire parity); the album itself is never hidden by an
 // explicit flag — only by scope.
 func (s *Service) GetAlbum(ctx context.Context, id auth.Identity, albumID string, hideExplicit bool) (*Album, []Song, error) {
 	scope, err := s.scope(ctx, id)
@@ -137,7 +137,7 @@ func (s *Service) ListArtists(ctx context.Context, id auth.Identity, libraryID s
 }
 
 // GetArtist answers /api/artists/{id}: the artist with its album cards and
-// (v2 addition over v1) its in-scope songs, so the artist page gets
+// (Go-server addition over the retired server) its in-scope songs, so the artist page gets
 // everything in one round trip. Songs are filtered like the album path.
 func (s *Service) GetArtist(ctx context.Context, id auth.Identity, artistID, libraryID string, hideExplicit bool) (*Artist, []Song, error) {
 	scope, err := s.scope(ctx, id)
@@ -298,7 +298,7 @@ func (s *Service) GetCoverArt(ctx context.Context, id auth.Identity, coverArtID 
 	return art, nil
 }
 
-// allowedGenreIDs mirrors v1's resolveAllowedGenreIds: scope-restricted
+// allowedGenreIDs mirrors the old resolveAllowedGenreIds: scope-restricted
 // callers keep only genres touched by in-scope songs; the libraryId filter
 // intersects with the genres of that one library. nil means unrestricted.
 func (s *Service) allowedGenreIDs(ctx context.Context, scope libraries.Scope, libraryID string) (map[string]bool, error) {

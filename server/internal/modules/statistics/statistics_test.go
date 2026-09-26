@@ -271,7 +271,7 @@ func TestUserStatisticsRange(t *testing.T) {
 	if len(stats.Top.TopSongs) == 0 || stats.Top.TopSongs[0].SongID != "s2" {
 		t.Fatalf("30d topSongs: %+v", stats.Top.TopSongs)
 	}
-	// Invalid ranges fall back to all, like v1.
+	// Invalid ranges fall back to all, like the retired server.
 	rec = s.do(t, http.MethodGet, "/api/statistics/me?range=bogus", alice)
 	if stats := decodeStats(t, rec); stats.Range != statistics.RangeAll || stats.Totals.TotalPlays != 10 {
 		t.Fatalf("invalid range fallback: %+v", stats)
@@ -328,7 +328,7 @@ func TestMonthlyGroupedGoldenNumbers(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	// Rating keys are the ratings cast to text (v1 parity: REAL columns cast
+	// Rating keys are the ratings cast to text (wire parity: REAL columns cast
 	// as '5.0', half-ratings as '4.5').
 	want = []statistics.MonthlyGroupedItem{
 		{Month: "2026-08", Groups: []statistics.GroupItem{{Key: "5.0", Plays: 3}}},
@@ -454,7 +454,7 @@ func TestStatisticsErrorContractNeverLeaksDriverMessages(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Query-count guard: v1 ran ~20 statements per statistics request; v2 must
+// Query-count guard: the retired server ran ~20 statements per statistics request; the Go server must
 // stay flat at six (user row, totals+favorites, top lists, rated lists,
 // distribution, monthly plays) no matter how much history exists.
 // ---------------------------------------------------------------------------
@@ -537,7 +537,7 @@ func TestQueryCountBudget(t *testing.T) {
 		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 	queries := countingCounter.Load()
-	t.Logf("/api/statistics/me ran %d statements (v1: ~20)", queries)
+	t.Logf("/api/statistics/me ran %d statements (old: ~20)", queries)
 	if queries > 6 {
 		t.Fatalf("statistics/me must run at most 6 statements, ran %d", queries)
 	}
@@ -553,7 +553,7 @@ func TestQueryCountBudget(t *testing.T) {
 	queries = countingCounter.Load()
 	// Six service statements plus RequireAdmin's one admin-flag re-read —
 	// the database-backed admin gate is part of the route, not the service.
-	t.Logf("/api/statistics/overall ran %d statements (v1: ~20)", queries)
+	t.Logf("/api/statistics/overall ran %d statements (old: ~20)", queries)
 	if queries > 7 {
 		t.Fatalf("statistics/overall must run at most 7 statements, ran %d", queries)
 	}

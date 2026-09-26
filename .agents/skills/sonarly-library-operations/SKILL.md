@@ -9,18 +9,18 @@ whenToUse: When working on library scanning, file ingestion, the ingest/review p
 
 ## Map of the subsystem
 
-- `v2/internal/modules/library/` — `scanner.go` (filesystem→DB reconciliation), `queue.go` (DB-backed `scan_jobs` queue with typed payloads), `worker.go` (single-goroutine worker, context-cancelled), `watcher.go` (pure-Go polling watcher → coalesced `resync`), `scheduler.go` (interval triggers), `persist.go` (the ONE song-persistence path shared by scanner/ingest/tags: upsert + unconditional junction rewrites + FTS sync, all in one transaction), `fts.go` (search-index maintenance), `routes.go` (`POST /api/scans`, `GET /api/scans/status`).
-- `v2/internal/modules/ingest/` — `ingest.go` (drop-folder processing), `validator.go` (extension allowlist, requires title+artist+album), `organizer.go` (pattern → target path, per-segment sanitize), `organize_job.go`, `duplicates.go` (identity = title + album + artist-set; five strategies, `keep_file_replace_metadata` default), `review_cleanup.go` (quarantine retention), `routes.go` (`/api/ingest`, `/api/ingest/trigger`), `settings.go`.
-- `v2/internal/modules/uploads/` — chunked upload protocol (`chunked.go`: streaming reassembly, incremental 1 GiB cap, double-guarded path validation), `gc.go` (stale-session + orphan-dir sweeper), `routes.go`. Web client sends 5 MiB chunks.
+- `server/internal/modules/library/` — `scanner.go` (filesystem→DB reconciliation), `queue.go` (DB-backed `scan_jobs` queue with typed payloads), `worker.go` (single-goroutine worker, context-cancelled), `watcher.go` (pure-Go polling watcher → coalesced `resync`), `scheduler.go` (interval triggers), `persist.go` (the ONE song-persistence path shared by scanner/ingest/tags: upsert + unconditional junction rewrites + FTS sync, all in one transaction), `fts.go` (search-index maintenance), `routes.go` (`POST /api/scans`, `GET /api/scans/status`).
+- `server/internal/modules/ingest/` — `ingest.go` (drop-folder processing), `validator.go` (extension allowlist, requires title+artist+album), `organizer.go` (pattern → target path, per-segment sanitize), `organize_job.go`, `duplicates.go` (identity = title + album + artist-set; five strategies, `keep_file_replace_metadata` default), `review_cleanup.go` (quarantine retention), `routes.go` (`/api/ingest`, `/api/ingest/trigger`), `settings.go`.
+- `server/internal/modules/uploads/` — chunked upload protocol (`chunked.go`: streaming reassembly, incremental 1 GiB cap, double-guarded path validation), `gc.go` (stale-session + orphan-dir sweeper), `routes.go`. Web client sends 5 MiB chunks.
 - Conflicts: collision files (` (n)` suffixes) produced by the organizer are surfaced via `/api/conflicts` (admin).
 
 ## Job system facts
 
-- Job types (`library/queue.go`): `scan`, `resync`, `ingest`, `organize`, `artist_images`, `cleanup_review`. Each has a typed JSON payload struct (`ScanPayload`, `IngestPayload`, `OrganizePayload`, `ArtistImagesPayload`) decoded by its handler — the typed `payload` column (migration 0002) replaced v1's stats-column smuggling; never add a bare-string payload.
-- `Queue.Push` coalesces pending jobs of the same type **and target** (v1 only coalesced `resync`); it returns the coalesced job id.
+- Job types (`library/queue.go`): `scan`, `resync`, `ingest`, `organize`, `artist_images`, `cleanup_review`. Each has a typed JSON payload struct (`ScanPayload`, `IngestPayload`, `OrganizePayload`, `ArtistImagesPayload`) decoded by its handler — the typed `payload` column (migration 0002) replaced the old stats-column smuggling; never add a bare-string payload.
+- `Queue.Push` coalesces pending jobs of the same type **and target** (previously only `resync` coalesced); it returns the coalesced job id.
 - Jobs survive restarts; stale `running` rows are failed at worker boot (`FailStaleRunning`). Terminal rows are pruned (`PruneTerminal`, keeps N) — `ingest_jobs` remains the per-file audit table (pending/imported/skipped/needs_review/failed) and is never pruned.
 - Scan behavior: checksum-based move detection (`songs.checksum`), deactivate-instead-of-delete, probe-before-deactivate (an unmounted drive must not mass-deactivate the catalog; failed roots are excluded from the deactivation pass), per-file failure cap (`maxScanFailures = 20`), FTS rows removed for deactivated songs, activity (`active`) recompute at the end of every scan.
-- **v2 scans are read-only for user files** — a deliberate deviation from v1 (v1 wrote the album cover back into song files, bumping mtimes and triggering an extra watcher pass). Do not reintroduce file mutation into the scan path; tag writes go through the `tags` module explicitly.
+- **Scans are read-only for user files** — the scanner never writes the album cover back into song files (doing so bumped mtimes and triggered an extra watcher pass). Do not reintroduce file mutation into the scan path; tag writes go through the `tags` module explicitly.
 
 ## Operational commands
 
@@ -36,4 +36,4 @@ whenToUse: When working on library scanning, file ingestion, the ingest/review p
 - `average_rating` is denormalized on `songs` — preserve it explicitly when touching PersistSong (scanner-built rows don't set it).
 - The FTS tables (`songs_fts`, `albums_fts`, `artists_fts`) must mirror the active corpus at transaction commit — syncs happen inside PersistSong and the deactivation pass; a future writer that bypasses them breaks `/api/search` (migration 0004 re-asserts the invariant only at migrate time).
 - `user_libraries` scoping applies to every content read; `songs.library_id IS NULL` rows are admin-only.
-- Tests: `*_test.go` next to source in `library/`, `ingest/`, `uploads/` — real file-backed SQLite, temp dirs, queue/worker end-to-end tests (including mid-scan cancellation). Run `go test ./... -count=1` from `v2/`.
+- Tests: `*_test.go` next to source in `library/`, `ingest/`, `uploads/` — real file-backed SQLite, temp dirs, queue/worker end-to-end tests (including mid-scan cancellation). Run `go test ./... -count=1` from `server/`.

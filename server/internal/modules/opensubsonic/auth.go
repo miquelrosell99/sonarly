@@ -13,14 +13,14 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/auth"
 )
 
-// Auth is the /rest/* authentication hook (port of v1 opensubsonic/auth.ts
+// Auth is the /rest/* authentication hook (port of the retired server opensubsonic/auth.ts
 // + auth/token.ts; quirks doc A1-A8). It runs after the session middleware,
 // which already attached an identity for a valid session cookie or a valid
 // X-API-Key header — this hook consumes that as its fallback and adds the
 // Subsonic-specific methods on top.
 type Auth struct {
 	db     *sql.DB
-	secret string // session secret, opens the v1-wire-compatible secret box
+	secret string // session secret, opens the wire-compatible with the retired server secret box
 }
 
 func NewAuth(db *sql.DB, sessionSecret string) *Auth {
@@ -29,9 +29,9 @@ func NewAuth(db *sql.DB, sessionSecret string) *Auth {
 
 // Hook authenticates /rest/* requests. On success the identity is attached
 // to the context for handlers; on failure an enveloped error is written and
-// the chain stops. Precedence (v1 parity): apiKey query param → X-API-Key
+// the chain stops. Precedence (wire parity): apiKey query param → X-API-Key
 // header → u/t/s token → session cookie. Plaintext p= auth is deliberately
-// not implemented (v1 parity, quirks doc A7).
+// not implemented (wire parity, quirks doc A7).
 func (a *Auth) Hook(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -58,7 +58,7 @@ func (a *Auth) Hook(next http.Handler) http.Handler {
 
 		// A1/A2: X-API-Key header. The session middleware already tried it: an
 		// attached identity means the key was valid (authenticate and stop, as
-		// v1 does for apiKey); a header without an identity was rejected — 40.
+		// the retired server did for apiKey); a header without an identity was rejected — 40.
 		if r.Header.Get(auth.APIKeyHeader) != "" {
 			if _, ok := auth.IdentityFrom(ctx); ok {
 				next.ServeHTTP(w, r)
@@ -69,7 +69,7 @@ func (a *Auth) Hook(next http.Handler) http.Handler {
 		}
 
 		// A3-A5: u/t/s token. Wrong token falls through to the session
-		// identity below (v1 parity), it does not reject on its own.
+		// identity below (wire parity), it does not reject on its own.
 		u, t, s := q.Get("u"), q.Get("t"), q.Get("s")
 		if u != "" && t != "" && s != "" {
 			if id, ok := a.tokenIdentity(ctx, u, t, s); ok {
@@ -86,7 +86,7 @@ func (a *Auth) Hook(next http.Handler) http.Handler {
 		}
 
 		// A6/A7: nothing authenticated. No u/t/s at all (fully anonymous, or
-		// a p= password attempt which v1 never implemented) → 10; u/t/s
+		// a p= password attempt which the retired server never implemented) → 10; u/t/s
 		// presented but wrong → 40.
 		if u == "" || t == "" || s == "" {
 			Error(w, r, CodeMissingParam, "Missing authentication")
@@ -97,9 +97,9 @@ func (a *Auth) Hook(next http.Handler) http.Handler {
 }
 
 // apiKeyIdentity verifies a plaintext API key against the SHA-256 digest
-// table (v1 api-keys.ts parity via auth.VerifyAPIKey) and loads the user's
-// flags. A key whose user row vanished is rejected, mirroring v1's
-// getUserById null check.
+// table (old api-keys.ts parity via auth.VerifyAPIKey) and loads the user's
+// flags. A key whose user row vanished is rejected, mirroring the old
+// server's getUserById null check.
 func (a *Auth) apiKeyIdentity(ctx context.Context, key string) (auth.Identity, bool) {
 	userID, err := auth.VerifyAPIKey(ctx, a.db, key)
 	if err != nil {
@@ -121,12 +121,12 @@ func (a *Auth) apiKeyIdentity(ctx context.Context, key string) (auth.Identity, b
 	return auth.Identity{UserID: userID, Username: username, IsAdmin: isAdmin}, true
 }
 
-// tokenIdentity implements the Subsonic token check (port of v1
+// tokenIdentity implements the Subsonic token check (port of the old
 // auth/token.ts): the presented t must equal the hex of
 // md5(subsonicPassword + salt), where the password comes from decrypting
 // the users.subsonic_password_encrypted column with the session secret.
-// The P2 secret box is wire-compatible with v1's encryption.ts, so tokens
-// minted against a v1 database verify here unchanged. The comparison is
+// The P2 secret box is wire-compatible with the old encryption.ts, so tokens
+// minted against a retired-server database verify here unchanged. The comparison is
 // timing-safe and length-mismatch-safe (crypto/subtle, quirks doc A3).
 func (a *Auth) tokenIdentity(ctx context.Context, username, token, salt string) (auth.Identity, bool) {
 	var (

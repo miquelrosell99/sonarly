@@ -1,13 +1,13 @@
-// Package statistics ports v1's listening-statistics endpoints with
-// consolidated SQL. v1 assembled one response from ~20 statements, including
-// three redundant global-rating-AVG scans (one per rated list). v2 computes
+// Package statistics ports the old listening-statistics endpoints with
+// consolidated SQL. the retired server assembled one response from ~20 statements, including
+// three redundant global-rating-AVG scans (one per rated list). The Go server computes
 // the Bayesian prior once per request inside a MATERIALIZED CTE shared by
 // all three rated-list arms, folds the five top lists into one UNION ALL
 // statement, the six favorite/rating-distribution counts into one, and keeps
 // the range filters on the indexed played_at column (no date() wrapping).
-// Statistics stay server-wide per user, like v1: they are not library
+// Statistics stay server-wide per user, like old: they are not library
 // scoped (a user's listening history spans libraries). Errors are typed —
-// the route contract never surfaces raw driver messages (v1 lesson).
+// the route contract never surfaces raw driver messages (old lesson).
 package statistics
 
 // TimeRange is the statistics window; the zero value "" means all time.
@@ -32,7 +32,7 @@ const (
 	GroupByFavorite GroupBy = "favorite"
 )
 
-// Totals is the headline counters block (v1 StatisticsTotals).
+// Totals is the headline counters block (old StatisticsTotals).
 type Totals struct {
 	TotalPlays            int `json:"totalPlays"`
 	TotalDurationListened int `json:"totalDurationListened"`
@@ -41,7 +41,7 @@ type Totals struct {
 	FavoriteArtists       int `json:"favoriteArtists"`
 }
 
-// TopSongItem is one row of topSongs (v1 TopSongItem).
+// TopSongItem is one row of topSongs (old TopSongItem).
 type TopSongItem struct {
 	SongID        string  `json:"songId"`
 	Title         string  `json:"title"`
@@ -80,7 +80,7 @@ type TopYearItem struct {
 	TotalDurationListened int `json:"totalDurationListened"`
 }
 
-// TopLists is the five top-N blocks (v1 StatisticsTopLists).
+// TopLists is the five top-N blocks (old StatisticsTopLists).
 type TopLists struct {
 	TopSongs   []TopSongItem           `json:"topSongs"`
 	TopArtists []TopArtistItem         `json:"topArtists"`
@@ -114,7 +114,7 @@ type TopRatedYearItem struct {
 	RatedSongs      int     `json:"ratedSongs"`
 }
 
-// RatedLists is the three Bayesian-rated blocks (v1 StatisticsRatedLists).
+// RatedLists is the three Bayesian-rated blocks (old StatisticsRatedLists).
 type RatedLists struct {
 	TopRatedArtists []RatedArtistItem   `json:"topRatedArtists"`
 	TopRatedGenres  []TopRatedGenreItem `json:"topRatedGenres"`
@@ -128,13 +128,13 @@ type RatingDistributionItem struct {
 }
 
 // RatingDistribution is the combined histogram across songs, albums and
-// artists, plus the unrated total (v1 RatingDistributionWithUnrated).
+// artists, plus the unrated total (old RatingDistributionWithUnrated).
 type RatingDistribution struct {
 	Unrated int                      `json:"unrated"`
 	Ratings []RatingDistributionItem `json:"ratings"`
 }
 
-// Charts is the charts block (v1 StatisticsCharts).
+// Charts is the charts block (old StatisticsCharts).
 type Charts struct {
 	RatingDistribution RatingDistribution `json:"ratingDistribution"`
 }
@@ -152,13 +152,13 @@ type GroupItem struct {
 }
 
 // MonthlyGroupedItem is one month of a grouped breakdown (top 6 groups plus
-// an "Other" rollup, v1 parity).
+// an "Other" rollup, wire parity).
 type MonthlyGroupedItem struct {
 	Month  string      `json:"month"`
 	Groups []GroupItem `json:"groups"`
 }
 
-// UserStatistics is the /api/statistics/me payload (v1 UserStatistics).
+// UserStatistics is the /api/statistics/me payload (old UserStatistics).
 type UserStatistics struct {
 	UserID       string             `json:"userId"`
 	Username     string             `json:"username"`
@@ -181,7 +181,7 @@ type UserSummary struct {
 	UniqueSongs           int     `json:"uniqueSongs"`
 }
 
-// OverallStatistics is the /api/statistics/overall payload (v1
+// OverallStatistics is the /api/statistics/overall payload (old
 // OverallStatistics).
 type OverallStatistics struct {
 	Range         TimeRange          `json:"range"`

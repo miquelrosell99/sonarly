@@ -1,9 +1,9 @@
 // Package libraries hosts the libraries domain: the per-user library
-// isolation policy — the security boundary ported from v1's
+// isolation policy — the security boundary ported from the old 
 // features/libraries/policy.ts: non-admin users only reach content in
 // libraries assigned via user_libraries, admins see everything, and songs
 // with a NULL library_id are hidden from non-admins — plus the admin CRUD
-// and the user_libraries assignment endpoints (P9c, v1
+// and the user_libraries assignment endpoints (P9c, old
 // features/libraries/admin-routes.ts). Content endpoints translate a false
 // Is*InScope into 404, not 403, so out-of-scope ids cannot be probed.
 package libraries
@@ -85,7 +85,7 @@ func ScopeCondition(scope Scope, column string) Condition {
 }
 
 // IsSongInScope reports whether the song is reachable under the scope. Like
-// v1, it does not require the song to be active — inactive songs stay
+// the retired server, it does not require the song to be active — inactive songs stay
 // visible to whoever can reach the library (missing-file management).
 func IsSongInScope(ctx context.Context, q auth.Queries, scope Scope, songID string) (bool, error) {
 	if scope.All {

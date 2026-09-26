@@ -1,6 +1,6 @@
-// Library rows: the admin CRUD v1's features/libraries/repository.ts
+// Library rows: the admin CRUD the old features/libraries/repository.ts
 // provided, with the is_default invariant enforced inside transactions.
-// v1 ran clearDefaultExcept as a separate autocommit statement (a crash
+// the retired server ran clearDefaultExcept as a separate autocommit statement (a crash
 // between the UPDATE and the clear could flip two defaults); here every
 // write that can change the default flag is one transaction.
 package libraries
@@ -18,13 +18,13 @@ import (
 	"modernc.org/sqlite"
 )
 
-// DefaultOrganizePattern is v1's DEFAULT_ORGANIZE_PATTERN, used when a
+// DefaultOrganizePattern is the old DEFAULT_ORGANIZE_PATTERN, used when a
 // create omits the pattern (the global settings key is the ingest module's
-// domain; v1's createLibrary read the settings table — v2 keeps that read
+// domain; the old createLibrary read the settings table — the Go server keeps that read
 // in the handler, which owns both dependencies).
 const DefaultOrganizePattern = "{albumArtist}/({year}) {album}/{disc:00}{track:00} - {title}"
 
-// Library is one libraries row, v1's Library DTO shape.
+// Library is one libraries row, the old Library DTO shape.
 type Library struct {
 	ID              string `json:"id"`
 	Name            string `json:"name"`
@@ -35,7 +35,7 @@ type Library struct {
 	UpdatedAt       string `json:"updatedAt"`
 }
 
-// LibraryPicker is the trimmed DTO v1's GET /api/libraries returns — what
+// LibraryPicker is the trimmed DTO the old GET /api/libraries returns — what
 // library pickers need, never host paths or organize patterns.
 type LibraryPicker struct {
 	ID        string `json:"id"`
@@ -56,7 +56,7 @@ func scanLibrary(row interface{ Scan(...any) error }) (*Library, error) {
 	return &lib, nil
 }
 
-// List returns every library ordered by name (v1 listLibraries).
+// List returns every library ordered by name (old listLibraries).
 func List(ctx context.Context, q auth.Queries) ([]Library, error) {
 	rows, err := q.QueryContext(ctx, `SELECT `+libraryColumns+` FROM libraries ORDER BY name`)
 	if err != nil {
@@ -77,7 +77,7 @@ func List(ctx context.Context, q auth.Queries) ([]Library, error) {
 	return libs, nil
 }
 
-// GetByID loads one library (v1 getLibraryById).
+// GetByID loads one library (old getLibraryById).
 func GetByID(ctx context.Context, q auth.Queries, id string) (*Library, error) {
 	lib, err := scanLibrary(q.QueryRowContext(ctx,
 		`SELECT `+libraryColumns+` FROM libraries WHERE id = ?`, id))
@@ -90,7 +90,7 @@ func GetByID(ctx context.Context, q auth.Queries, id string) (*Library, error) {
 	return lib, nil
 }
 
-// CreateInput is v1's CreateLibraryInput.
+// CreateInput is the old CreateLibraryInput.
 type CreateInput struct {
 	Name            string
 	Path            string
@@ -98,7 +98,7 @@ type CreateInput struct {
 	IsDefault       bool
 }
 
-// Create inserts a library (v1 createLibrary): the first library ever
+// Create inserts a library (old createLibrary): the first library ever
 // created is forced default, and setting the default clears every other
 // flag in the same transaction.
 func Create(ctx context.Context, db *sql.DB, in CreateInput) (*Library, error) {
@@ -145,7 +145,7 @@ func Create(ctx context.Context, db *sql.DB, in CreateInput) (*Library, error) {
 	return lib, nil
 }
 
-// UpdateInput is v1's UpdateLibraryInput: every field optional, absent
+// UpdateInput is the old UpdateLibraryInput: every field optional, absent
 // fields keep their value.
 type UpdateInput struct {
 	Name            *string
@@ -154,7 +154,7 @@ type UpdateInput struct {
 	IsDefault       *bool
 }
 
-// Update applies a partial update (v1 updateLibrary). A resulting default
+// Update applies a partial update (old updateLibrary). A resulting default
 // clears the other flags in the same transaction.
 func Update(ctx context.Context, db *sql.DB, id string, in UpdateInput) (*Library, error) {
 	tx, err := db.BeginTx(ctx, nil)
@@ -206,7 +206,7 @@ func Update(ctx context.Context, db *sql.DB, id string, in UpdateInput) (*Librar
 }
 
 // Delete removes a library; when the deleted row was the default, the first
-// remaining library (by name, v1's listLibraries()[0]) is promoted — in the
+// remaining library (by name, the old listLibraries()[0]) is promoted — in the
 // same transaction so the invariant cannot be observed half-applied.
 func Delete(ctx context.Context, db *sql.DB, id string) (bool, error) {
 	tx, err := db.BeginTx(ctx, nil)
@@ -252,14 +252,14 @@ func Delete(ctx context.Context, db *sql.DB, id string) (bool, error) {
 	return true, nil
 }
 
-// clearDefaultExcept unsets every is_default flag but keep's (v1
+// clearDefaultExcept unsets every is_default flag but keep's (old
 // clearDefaultExclude).
 func clearDefaultExcept(ctx context.Context, ex auth.Queries, keep string) error {
 	_, err := ex.ExecContext(ctx, `UPDATE libraries SET is_default = 0 WHERE id != ?`, keep)
 	return err
 }
 
-// AssignedUserIDs lists a library's assigned user ids (v1 getLibraryUsers).
+// AssignedUserIDs lists a library's assigned user ids (old getLibraryUsers).
 func AssignedUserIDs(ctx context.Context, q auth.Queries, libraryID string) ([]string, error) {
 	rows, err := q.QueryContext(ctx,
 		`SELECT user_id FROM user_libraries WHERE library_id = ? ORDER BY user_id`, libraryID)
@@ -281,7 +281,7 @@ func AssignedUserIDs(ctx context.Context, q auth.Queries, libraryID string) ([]s
 	return ids, nil
 }
 
-// AssignUsers adds user assignments, ignoring duplicates (v1
+// AssignUsers adds user assignments, ignoring duplicates (old
 // assignUsersToLibrary, INSERT OR IGNORE).
 func AssignUsers(ctx context.Context, q auth.Queries, libraryID string, userIDs []string) error {
 	stmt := `INSERT OR IGNORE INTO user_libraries (user_id, library_id) VALUES (?, ?)`
@@ -293,14 +293,14 @@ func AssignUsers(ctx context.Context, q auth.Queries, libraryID string, userIDs 
 	return nil
 }
 
-// RemoveUser drops one assignment (v1 removeUserFromLibrary).
+// RemoveUser drops one assignment (old removeUserFromLibrary).
 func RemoveUser(ctx context.Context, q auth.Queries, libraryID, userID string) error {
 	_, err := q.ExecContext(ctx,
 		`DELETE FROM user_libraries WHERE library_id = ? AND user_id = ?`, libraryID, userID)
 	return err
 }
 
-// UserLibraryIDs lists a user's assigned library ids (v1 getUserLibraries).
+// UserLibraryIDs lists a user's assigned library ids (old getUserLibraries).
 func UserLibraryIDs(ctx context.Context, q auth.Queries, userID string) ([]string, error) {
 	rows, err := q.QueryContext(ctx,
 		`SELECT library_id FROM user_libraries WHERE user_id = ? ORDER BY library_id`, userID)
@@ -323,7 +323,7 @@ func UserLibraryIDs(ctx context.Context, q auth.Queries, userID string) ([]strin
 }
 
 // AssignToUser adds library assignments for a user, ignoring duplicates
-// (v1 assignLibrariesToUser).
+// (old assignLibrariesToUser).
 func AssignToUser(ctx context.Context, q auth.Queries, userID string, libraryIDs []string) error {
 	stmt := `INSERT OR IGNORE INTO user_libraries (user_id, library_id) VALUES (?, ?)`
 	for _, libraryID := range libraryIDs {
@@ -334,7 +334,7 @@ func AssignToUser(ctx context.Context, q auth.Queries, userID string, libraryIDs
 	return nil
 }
 
-// RemoveFromUser drops one of a user's assignments (v1
+// RemoveFromUser drops one of a user's assignments (old
 // removeLibraryFromUser).
 func RemoveFromUser(ctx context.Context, q auth.Queries, userID, libraryID string) error {
 	_, err := q.ExecContext(ctx,

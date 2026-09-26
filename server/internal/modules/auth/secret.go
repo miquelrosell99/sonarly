@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// AES-256-GCM secret box for at-rest credentials, wire-compatible with v1's
+// AES-256-GCM secret box for at-rest credentials, wire-compatible with the old 
 // features/auth/encryption.ts: key = SHA-256(secret), stored as
 // "base64(iv):base64(authTag):base64(ciphertext)". Subsonic passwords stored
 // by either implementation decrypt under the other.
@@ -32,8 +32,8 @@ func EncryptSecret(plaintext, secret string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("encrypt: %w", err)
 	}
-	// v1 (Node crypto) used a 16-byte IV; Go's default GCM nonce is 12 bytes,
-	// so pin the nonce size to stay wire-compatible with v1's stored values.
+	// the retired server (Node crypto) used a 16-byte IV; Go's default GCM nonce is 12 bytes,
+	// so pin the nonce size to stay wire-compatible with the old stored values.
 	gcm, err := cipher.NewGCMWithNonceSize(block, 16)
 	if err != nil {
 		return "", fmt.Errorf("encrypt: %w", err)
@@ -44,7 +44,7 @@ func EncryptSecret(plaintext, secret string) (string, error) {
 	}
 	ciphertext := gcm.Seal(nil, iv, []byte(plaintext), nil)
 	// gcm.Seal appends the auth tag to the ciphertext; split it back out so
-	// the layout matches v1's iv:tag:ciphertext.
+	// the layout matches the old iv:tag:ciphertext.
 	tagStart := len(ciphertext) - gcm.Overhead()
 	return strings.Join([]string{
 		base64.StdEncoding.EncodeToString(iv),
@@ -53,7 +53,7 @@ func EncryptSecret(plaintext, secret string) (string, error) {
 	}, ":"), nil
 }
 
-// DecryptSecret opens a value produced by EncryptSecret (or by v1's encrypt).
+// DecryptSecret opens a value produced by EncryptSecret (or by the old encrypt).
 func DecryptSecret(box, secret string) (string, error) {
 	parts := strings.Split(box, ":")
 	if len(parts) != 3 {

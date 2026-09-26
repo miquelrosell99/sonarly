@@ -10,7 +10,7 @@ pnpm test
 # Build the web client (tsc + vite build + bundle budget)
 pnpm -r build
 
-# Go server (from v2/)
+# Go server (from server/)
 go build ./...        # compile
 go vet ./...          # static analysis
 go test ./... -count=1  # full test suite
@@ -25,13 +25,13 @@ cp .env.example .env
 docker compose -f compose.yaml up -d
 
 # Production image build (deploy current checkout without a release tag)
-docker build -f docker/Dockerfile.v2 \
+docker build -f docker/Dockerfile \
   --build-arg SONARLY_VERSION=$(git describe --tags --always) \
   -t ghcr.io/miquelrosell99/sonarly:v2.0.0-rc1 .
 docker compose -f compose.yaml up -d
 ```
 
-Local full-stack dev: run the Go server from `v2/` (`go run ./cmd/sonarly` with `SESSION_SECRET`, `SONARLY_LIBRARY_PATH`, …) and `pnpm dev` from `packages/web/` — the Vite dev server proxies `/api` and `/rest` to `localhost:3000`. See docs/development.md.
+Local full-stack dev: run the Go server from `server/` (`go run ./cmd/sonarly` with `SESSION_SECRET`, `SONARLY_LIBRARY_PATH`, …) and `pnpm dev` from `packages/web/` — the Vite dev server proxies `/api` and `/rest` to `localhost:3000`. See docs/development.md.
 
 ## Determining the current deployment type
 
@@ -54,7 +54,7 @@ For production Docker, ensure `.env` exists and contains `SESSION_SECRET`. Compo
 
 ## Database migrations (server)
 
-1. Add the next numbered file in `v2/internal/db/migrations/` (e.g. `0005_something.sql`). Plain SQL, one transaction per file.
+1. Add the next numbered file in `server/internal/db/migrations/` (e.g. `0005_something.sql`). Plain SQL, one transaction per file.
 2. Files are embedded into the binary — `go build` picks them up; there is no copy step.
 3. Applied migrations are recorded in `schema_migrations`; never edit a shipped migration — fix forward.
 4. Update `docs/db-schema.md` when the schema reference changes.
@@ -66,7 +66,7 @@ The live `compose.yaml` runs the pre-built image `ghcr.io/miquelrosell99/sonarly
 **Deploy the current checkout (no release):** build the image locally and recreate the container:
 
 ```bash
-docker build -f docker/Dockerfile.v2 \
+docker build -f docker/Dockerfile \
   --build-arg SONARLY_VERSION=$(git describe --tags --always) \
   -t ghcr.io/miquelrosell99/sonarly:v2.0.0-rc1 .
 docker compose -f compose.yaml up -d

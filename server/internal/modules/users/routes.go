@@ -49,12 +49,12 @@ func (h *Handler) Routes(r chi.Router) {
 	})
 
 	// Avatars are publicly reachable: an avatar is rendered by <img> tags,
-	// which carry no API-key header and may lack the session cookie (v1
+	// which carry no API-key header and may lack the session cookie (wire
 	// parity — GET serves the file when one exists, 404 otherwise).
 	r.Get("/api/avatars/{id}", h.avatar)
 }
 
-// errStatus maps service sentinel errors to the v1 HTTP contract.
+// errStatus maps service sentinel errors to the retired server HTTP contract.
 func errStatus(err error) int {
 	switch {
 	case errors.Is(err, ErrInvalidCredentials):
@@ -105,7 +105,7 @@ func (h *Handler) currentSID(r *http.Request) string {
 	return sid
 }
 
-// startSession regenerates the session id (fixation protection, v1's
+// startSession regenerates the session id (fixation protection, the old 
 // session.regenerate()): the old session row is destroyed, a fresh sid is
 // issued, and only then is the new cookie written.
 func (h *Handler) startSession(w http.ResponseWriter, r *http.Request, user auth.Session) error {
@@ -153,7 +153,7 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
-	// v1 exempted logout from auth: it always answers {ok:true} and destroys
+	// the retired server exempted logout from auth: it always answers {ok:true} and destroys
 	// whatever session the client presented, if any.
 	if sid := h.currentSID(r); sid != "" {
 		if err := h.store.Delete(r.Context(), sid); err != nil {
@@ -169,7 +169,7 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 	user, err := h.svc.GetPublicByID(r.Context(), id.UserID)
 	if err != nil {
 		// Session outlived the user (deleted account): same answer as no
-		// session, per v1.
+		// session, per the retired server.
 		if errors.Is(err, ErrNotFound) {
 			httpserver.Error(w, http.StatusUnauthorized, "Unauthorized")
 			return
@@ -181,7 +181,7 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 }
 
 // getPreferences is GET /api/me/preferences: the merged defaults+stored
-// document (v1 parity — absent row and corrupt blobs both yield defaults).
+// document (wire parity — absent row and corrupt blobs both yield defaults).
 func (h *Handler) getPreferences(w http.ResponseWriter, r *http.Request) {
 	id, _ := auth.IdentityFrom(r.Context())
 	preferences, err := h.svc.GetPreferences(r.Context(), id.UserID)
@@ -211,8 +211,8 @@ func (h *Handler) patchPreferences(w http.ResponseWriter, r *http.Request) {
 }
 
 // avatar is GET /api/avatars/{id}: serves the user's avatar file when one
-// exists, else 404. Publicly reachable like v1 (avatars render in <img>
-// tags); a day of public caching matches v1.
+// exists, else 404. Publicly reachable like the retired server (avatars render in <img>
+// tags); a day of public caching matches the retired server.
 func (h *Handler) avatar(w http.ResponseWriter, r *http.Request) {
 	data, contentType, err := h.svc.LoadAvatar(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
@@ -231,8 +231,8 @@ func (h *Handler) avatar(w http.ResponseWriter, r *http.Request) {
 }
 
 // uploadAvatar is POST /api/me/avatar: magic-byte-validated, size-capped,
-// stored under DATA_DIR/avatars and recorded on the user row (v1
-// profile-routes.ts). Answers the refreshed public user, like v1.
+// stored under DATA_DIR/avatars and recorded on the user row (old
+// profile-routes.ts). Answers the refreshed public user, like the retired server.
 func (h *Handler) uploadAvatar(w http.ResponseWriter, r *http.Request) {
 	id, _ := auth.IdentityFrom(r.Context())
 	user, err := h.svc.SaveAvatar(r.Context(), id.UserID, r)

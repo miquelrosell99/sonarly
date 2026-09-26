@@ -131,7 +131,7 @@ func TestEnqueueScanCoalescesForAdmin(t *testing.T) {
 		t.Fatalf("want 1 pending job, got %d", got)
 	}
 
-	// A second POST while the first is pending coalesces (v2 fix: no
+	// A second POST while the first is pending coalesces (Go-server fix: no
 	// duplicate full scans from repeated admin clicks).
 	rec = s.do(t, http.MethodPost, "/api/scans", admin)
 	body = decodeBody(t, rec)
@@ -143,9 +143,9 @@ func TestEnqueueScanCoalescesForAdmin(t *testing.T) {
 	}
 }
 
-// The v1 status bug: pending jobs (NULL started_at) sorted last, so the
+// The the retired server status bug: pending jobs (NULL started_at) sorted last, so the
 // endpoint reported the previous finished job (or nothing) while a scan sat
-// queued. The v2 shape surfaces the queued job immediately.
+// queued. The the Go server shape surfaces the queued job immediately.
 func TestStatusShowsPendingJob(t *testing.T) {
 	database := openDB(t)
 	s := newScanServer(t, database)
@@ -155,8 +155,8 @@ func TestStatusShowsPendingJob(t *testing.T) {
 	rec := s.do(t, http.MethodPost, "/api/scans", admin)
 	jobID := decodeBody(t, rec)["jobId"].(string)
 
-	// Any authenticated user (not just admins) can read status — the v1
-	// web player polls it while streaming.
+	// Any authenticated user (not just admins) can read status — the old
+	// web player polled it while streaming.
 	rec = s.do(t, http.MethodGet, "/api/scans/status", alice)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())

@@ -212,7 +212,7 @@ func TestSmartModeBackfillsWhenPoolIsShort(t *testing.T) {
 			t.Fatalf("excluded/out-of-scope song %s in result", id)
 		}
 	}
-	// v1 parity: the random backfill applies the us.last_played window, not
+	// wire parity: the random backfill applies the us.last_played window, not
 	// the listening_history window, so s-genre may legitimately return.
 }
 
@@ -401,7 +401,7 @@ func TestAutoDjGenerationFailureSurfaces502(t *testing.T) {
 	alice := s.session(t, "user-alice", "alice", false)
 	rec := s.do(t, http.MethodGet, "/api/playback/auto-dj?mode=random&count=5", "", alice)
 	if rec.Code != http.StatusBadGateway {
-		t.Fatalf("v2 deviation: generation failures answer 502, got %d", rec.Code)
+		t.Fatalf("expected deviation: generation failures answer 502, got %d", rec.Code)
 	}
 	var body map[string]string
 	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {

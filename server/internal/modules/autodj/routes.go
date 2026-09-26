@@ -16,7 +16,7 @@ import (
 
 // Handler wires the auto-dj service to HTTP. Both the legacy GET variant
 // (exclusions as a comma-separated query string) and the POST variant
-// (exclusions in the body) answer /api/playback/auto-dj, like v1.
+// (exclusions in the body) answer /api/playback/auto-dj, like the retired server.
 type Handler struct {
 	svc *Service
 	mw  *auth.Middleware
@@ -43,7 +43,7 @@ type request struct {
 }
 
 // get parses the legacy query-string variant: excludeIds arrives as a
-// comma-separated list (v1 parity, capped).
+// comma-separated list (wire parity, capped).
 func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	mode, ok := parseMode(q.Get("mode"))
@@ -75,8 +75,8 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// post parses the body variant: exclusions arrive as a JSON array (v1 caps
-// the array at MAX_EXCLUDE_IDS; an over-long array is a 400, like v1's zod
+// post parses the body variant: exclusions arrive as a JSON array (old caps
+// the array at MAX_EXCLUDE_IDS; an over-long array is a 400, like the old zod
 // validation).
 func (h *Handler) post(w http.ResponseWriter, r *http.Request) {
 	var body struct {
@@ -127,8 +127,8 @@ func (h *Handler) respond(w http.ResponseWriter, r *http.Request, req request) {
 	songs, err := h.svc.Candidates(r.Context(), identity(r), req.CurrentSongID, req.Mode, req.Count, req.ExcludeIDs)
 	if err != nil {
 		if errors.Is(err, ErrGeneration) {
-			// Typed generation failure: 502 with a generic message (v2's
-			// deviation from v1's silent empty 200, documented in the
+			// Typed generation failure: 502 with a generic message (the Go server's
+			// deviation from the old silent empty 200, documented in the
 			// package doc). The underlying error is logged server-side.
 			slog.ErrorContext(r.Context(), "auto-dj generation failed", "err", err)
 			httpserver.Error(w, http.StatusBadGateway, "Auto-DJ generation failed")
@@ -150,7 +150,7 @@ func parseMode(raw string) (Mode, bool) {
 	}
 }
 
-// parseCount mirrors v1's zod schema: default 10, integer in [1, 50];
+// parseCount mirrors the old zod schema: default 10, integer in [1, 50];
 // anything else is a 400.
 func parseCount(raw string) (int, bool) {
 	if raw == "" {

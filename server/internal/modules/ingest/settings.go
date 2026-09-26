@@ -1,4 +1,4 @@
-// Settings readers for the ingest pipeline: the v1 settings table keys with
+// Settings readers for the ingest pipeline: the retired server settings table keys with
 // their defaults (settings/repository.ts).
 package ingest
 
@@ -27,7 +27,7 @@ func (s *Service) getSetting(ctx context.Context, key string) string {
 	return value
 }
 
-// setSetting upserts one settings row (v1 setSetting).
+// setSetting upserts one settings row (old setSetting).
 func (s *Service) setSetting(ctx context.Context, key, value string) error {
 	_, err := s.db.ExecContext(ctx,
 		`INSERT INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))
@@ -40,7 +40,7 @@ func (s *Service) setSetting(ctx context.Context, key, value string) error {
 }
 
 // globalOrganizePattern is the fallback pattern for libraries without their
-// own (v1 getOrganizePattern).
+// own (old getOrganizePattern).
 func (s *Service) globalOrganizePattern(ctx context.Context) string {
 	if pattern := s.getSetting(ctx, settingOrganizePattern); pattern != "" {
 		return pattern
@@ -49,8 +49,8 @@ func (s *Service) globalOrganizePattern(ctx context.Context) string {
 }
 
 // settingsDuplicateStrategy returns the configured strategy, or "" when the
-// setting is absent or invalid (the caller then falls back to the v1
-// default). v1 stored an invalid value read as the default; treating it as
+// setting is absent or invalid (the caller then falls back to the old
+// default). The retired server stored an invalid value and read it as the default; treating it as
 // unset keeps the payload override decision in one place.
 func (s *Service) settingsDuplicateStrategy(ctx context.Context) Strategy {
 	if raw := s.getSetting(ctx, settingDuplicateStrategy); IsStrategy(raw) {
@@ -59,9 +59,9 @@ func (s *Service) settingsDuplicateStrategy(ctx context.Context) Strategy {
 	return ""
 }
 
-// reviewRetentionDays ports v1's getReviewRetentionDays: the settings value
+// reviewRetentionDays ports the old getReviewRetentionDays: the settings value
 // wins when it parses inside 1–365; anything else falls back to the
-// configured default (itself clamped, like v1's zod bounds).
+// configured default (itself clamped, like the old zod bounds).
 func (s *Service) reviewRetentionDays(ctx context.Context) int {
 	if raw := s.getSetting(ctx, settingReviewRetention); raw != "" {
 		if parsed, err := strconv.Atoi(raw); err == nil && parsed >= reviewRetentionMin && parsed <= reviewRetentionMax {

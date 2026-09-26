@@ -11,7 +11,7 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/httpserver"
 )
 
-// APIKeyHeader carries API keys on the native API, mirroring the header v1's
+// APIKeyHeader carries API keys on the native API, mirroring the header the old 
 // OpenSubsonic adapter accepted.
 const APIKeyHeader = "X-API-Key"
 
@@ -122,7 +122,7 @@ func RequireAuth(next http.Handler) http.Handler {
 
 // RequireAdmin gates on the is_admin flag re-read from the database on every
 // request, so demoted or deleted users lose access immediately even while
-// their session cookie is still valid (v1 admin-routes.ts requireAdmin).
+// their session cookie is still valid (old admin-routes.ts requireAdmin).
 // It must be composed after AuthMiddleware/RequireAuth.
 func (m *Middleware) RequireAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -144,7 +144,7 @@ func (m *Middleware) RequireAdmin(next http.Handler) http.Handler {
 
 // RunSweeper purges expired sessions once and then on the given interval
 // until ctx is cancelled. Failures are logged, never fatal — a stuck sweep
-// must not take the server down (v1: startup sweep + hourly interval).
+// must not take the server down (old: startup sweep + hourly interval).
 func RunSweeper(ctx context.Context, store *Store, log *slog.Logger, interval time.Duration) {
 	sweep := func() {
 		n, err := store.SweepExpired(ctx)

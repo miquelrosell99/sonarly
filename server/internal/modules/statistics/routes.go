@@ -12,9 +12,9 @@ import (
 
 // Handler wires the statistics service to HTTP. Route handlers parse and
 // validate; admin routes sit behind RequireAdmin (the flag re-read from the
-// database, like the rest of v2). Service errors map onto the typed
+// database, like the rest of the Go server). Service errors map onto the typed
 // contract: ErrUserNotFound is a 404, everything else a logged 500 with a
-// generic message — never a raw driver error (v1 lesson).
+// generic message — never a raw driver error (old lesson).
 type Handler struct {
 	svc *Service
 	mw  *auth.Middleware
@@ -39,7 +39,7 @@ func (h *Handler) Routes(r chi.Router) {
 	})
 }
 
-// parseRange mirrors v1: an absent or unrecognized range falls back to
+// parseRange mirrors old: an absent or unrecognized range falls back to
 // "all" rather than failing the request.
 func parseRange(raw string) TimeRange {
 	switch TimeRange(raw) {
@@ -50,7 +50,7 @@ func parseRange(raw string) TimeRange {
 	}
 }
 
-// parseGroupBy mirrors v1's zod enum: an unrecognized groupBy is a 400.
+// parseGroupBy mirrors the old zod enum: an unrecognized groupBy is a 400.
 func parseGroupBy(raw string) (GroupBy, bool) {
 	switch GroupBy(raw) {
 	case GroupByArtist, GroupByGenre, GroupByYear, GroupByRating, GroupByFavorite:
