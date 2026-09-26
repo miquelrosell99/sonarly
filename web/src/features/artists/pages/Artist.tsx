@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { useParams, Link } from 'wouter';
 import type { Song, User } from '../../../types';
 import { api } from '../../../lib/api.js';
@@ -11,129 +10,88 @@ import { PlayButton } from '../../../components/PlayButton.js';
 import { ScrollRow } from '../../../components/ScrollRow.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
+import { useNotification } from '../../../contexts/NotificationContext.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { useLibraryMutation } from '../../../hooks/useLibraryMutation.js';
+import { useArtistDetail, type ArtistAlbum } from '../../../hooks/useEntityDetails.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { formatDuration } from '../../../lib/format.js';
 import type { SongWithNames } from '../../../lib/types.js';
 
-interface Album {
-  id: string;
-  name: string;
-  year?: number;
-  genre?: string;
-  coverArt?: string;
-  starred?: boolean;
-  rating?: number;
-}
-
-interface ArtistDetail {
-  id: string;
-  name: string;
-  artistImageUrl?: string;
-  albums: Album[];
-  starred?: boolean;
-  rating?: number;
-}
-
 export function Artist({ user }: { user: User }) {
   const { id } = useParams<{ id: string }>();
-  const [artist, setArtist] = useState<ArtistDetail | null>(null);
-  const [topTracks, setTopTracks] = useState<SongWithNames[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: detail, isLoading, error, refetch, patchDetail } = useArtistDetail(id);
+  const artist = detail?.artist;
+  // The /artists/:id response embeds the artist's songs server-side — this
+  // replaces the old parallel full-library /songs fetch and its 500-row
+  // client filter (audit F16/F24).
+  const topTracks: SongWithNames[] = detail?.songs ?? [];
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
+  const { notify } = useNotification();
+  const songMutation = useLibraryMutation('song');
+  const albumMutation = useLibraryMutation('album');
+  const artistMutation = useLibraryMutation('artist');
   const currentAlbumId = usePlayer((state) => state.currentSong?.albumId);
   const playingId = usePlayer((state) => state.currentSong?.id);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
   const blurExplicitTitles = user.blurExplicitTitles === true;
 
-  useEffect(() => {
-    if (!id) return;
-    setLoading(true);
-    Promise.all([
-      api<{ artist: ArtistDetail }>(`/artists/${id}${buildLibraryQuery(selectedLibraryId)}`),
-      api<{ songs: SongWithNames[] }>(`/songs${buildLibraryQuery(selectedLibraryId)}`).catch(() => ({ songs: [] })),
-    ])
-      .then(([artistRes, songsRes]) => {
-        setArtist(artistRes.artist);
-        setTopTracks(songsRes.songs.filter((s) => s.artistId === id));
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load artist'))
-      .finally(() => setLoading(false));
-  }, [id, selectedLibraryId]);
-
   const handleFavorite = async (starred: boolean) => {
     if (!artist) return;
-    try {
-      await setFavorite('artist', artist.id, starred);
-      setArtist((prev) => (prev ? { ...prev, starred } : prev));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+    if (await artistMutation.run(() => setFavorite('artist', artist.id, starred))) {
+      patchDetail({ artist: { ...artist, starred } });
     }
   };
 
   const handleRate = async (rating?: number) => {
     if (!artist) return;
-    try {
-      await setRating('artist', artist.id, rating);
-      setArtist((prev) => (prev ? { ...prev, rating } : prev));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update rating');
+    if (await artistMutation.run(() => setRating('artist', artist.id, rating))) {
+      patchDetail({ artist: { ...artist, rating } });
     }
   };
 
-  const handleAlbumFavorite = async (album: Album, starred: boolean) => {
+  const handleAlbumFavorite = async (album: ArtistAlbum, starred: boolean) => {
     if (!artist) return;
-    try {
-      await setFavorite('album', album.id, starred);
-      setArtist((prev) =>
-        prev
-          ? {
-              ...prev,
-              albums: prev.albums.map((a) => (a.id === album.id ? { ...a, starred } : a)),
-            }
-          : prev,
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+    if (await albumMutation.run(() => setFavorite('album', album.id, starred))) {
+      patchDetail({
+        artist: {
+          ...artist,
+          albums: artist.albums.map((a) => (a.id === album.id ? { ...a, starred } : a)),
+        },
+      });
     }
   };
 
-  const handleAlbumRate = async (album: Album, rating?: number) => {
+  const handleAlbumRate = async (album: ArtistAlbum, rating?: number) => {
     if (!artist) return;
-    try {
-      await setRating('album', album.id, rating);
-      setArtist((prev) =>
-        prev
-          ? {
-              ...prev,
-              albums: prev.albums.map((a) => (a.id === album.id ? { ...a, rating } : a)),
-            }
-          : prev,
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update rating');
+    if (await albumMutation.run(() => setRating('album', album.id, rating))) {
+      patchDetail({
+        artist: {
+          ...artist,
+          albums: artist.albums.map((a) => (a.id === album.id ? { ...a, rating } : a)),
+        },
+      });
     }
   };
 
-  const playAlbum = async (album: Album) => {
+  const playAlbum = async (album: ArtistAlbum) => {
     try {
       const detail = await api<{ songs: Song[] }>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
       playSongs(detail.songs);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to play album');
+      notify(err instanceof Error ? err.message : 'Failed to play album', 'error');
     }
   };
 
-  const shufflePlayAlbum = async (album: Album) => {
+  const shufflePlayAlbum = async (album: ArtistAlbum) => {
     try {
       const detail = await api<{ songs: Song[] }>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
       shufflePlay(detail.songs);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to shuffle play album');
+      notify(err instanceof Error ? err.message : 'Failed to shuffle play album', 'error');
     }
   };
 
@@ -150,20 +108,14 @@ export function Artist({ user }: { user: User }) {
   };
 
   const handleTrackFavorite = async (track: SongWithNames, starred: boolean) => {
-    try {
-      await setFavorite('song', track.id, starred);
-      setTopTracks((prev) => prev.map((t) => (t.id === track.id ? { ...t, starred } : t)));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+    if (await songMutation.run(() => setFavorite('song', track.id, starred))) {
+      patchDetail({ songs: topTracks.map((t) => (t.id === track.id ? { ...t, starred } : t)) });
     }
   };
 
   const handleTrackRate = async (track: SongWithNames, rating?: number) => {
-    try {
-      await setRating('song', track.id, rating);
-      setTopTracks((prev) => prev.map((t) => (t.id === track.id ? { ...t, rating } : t)));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update rating');
+    if (await songMutation.run(() => setRating('song', track.id, rating))) {
+      patchDetail({ songs: topTracks.map((t) => (t.id === track.id ? { ...t, rating } : t)) });
     }
   };
 
@@ -225,8 +177,9 @@ export function Artist({ user }: { user: User }) {
 
   return (
     <EntityDetail
-      isLoading={loading}
-      error={error}
+      isLoading={isLoading}
+      error={error?.message ?? null}
+      onRetry={() => void refetch()}
       notFound={!artist}
       notFoundMessage="Artist not found."
       documentTitle={artist?.name}

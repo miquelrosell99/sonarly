@@ -1,16 +1,16 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { Link } from 'wouter';
-import { useQueryClient } from '@tanstack/react-query';
 import type { Album, Song, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { PageState } from '../../../components/PageState.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
+import { useLibraryMutation, invalidateLibraryEntity } from '../../../hooks/useLibraryMutation.js';
 import { useDominantColor } from '../../../hooks/useDominantColor.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { usePlayer } from '../../../stores/playerStore.js';
-import { useNotification } from '../../../contexts/NotificationContext.js';
+import { useQueryClient } from '@tanstack/react-query';
 import { ScrollRow } from '../../../components/ScrollRow.js';
 import { Card } from '../../../components/Card.js';
 import { CoverArt } from '../../../components/CoverArt.js';
@@ -49,13 +49,11 @@ interface AlbumDetail {
 function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) {
   const { playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
-  const { notify } = useNotification();
+  const albumMutation = useLibraryMutation('album');
   const currentAlbumId = usePlayer((state) => state.currentSong?.albumId);
   const [album, setAlbum] = useState(initialAlbum);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [coverArtBusy, setCoverArtBusy] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
@@ -85,32 +83,26 @@ function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) 
   };
 
   const handleFavorite = async (starred: boolean) => {
-    setError(null);
-    try {
-      await setFavorite('album', album.id, starred);
+    if (await albumMutation.run(() => setFavorite('album', album.id, starred))) {
       setAlbum((prev) => ({ ...prev, starred }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update favorite');
     }
   };
 
   const handleRate = async (rating: number) => {
-    setError(null);
-    try {
-      await setRating('album', album.id, rating || undefined);
+    if (await albumMutation.run(() => setRating('album', album.id, rating || undefined))) {
       setAlbum((prev) => ({ ...prev, rating: rating || undefined }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update rating');
     }
   };
 
   const handleSave = async (patched: Record<string, unknown>) => {
-    setSaving(true);
-    try {
-      await api(`/albums/${album.id}/tags`, {
-        method: 'PUT',
-        body: JSON.stringify(patched),
-      });
+    if (
+      await albumMutation.run(() =>
+        api(`/albums/${album.id}/tags`, {
+          method: 'PUT',
+          body: JSON.stringify(patched),
+        }),
+      )
+    ) {
       setEditing(false);
       setAlbum((prev) => ({
         ...prev,
@@ -118,22 +110,12 @@ function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) 
         artistName: typeof patched.albumArtist === 'string' ? patched.albumArtist : prev.artistName,
         year: typeof patched.year === 'number' ? patched.year : prev.year,
       }));
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to save album', 'error');
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      await api(`/albums/${album.id}`, { method: 'DELETE' });
+    if (await albumMutation.run(() => api(`/albums/${album.id}`, { method: 'DELETE' }))) {
       setEditing(false);
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to delete album', 'error');
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -148,13 +130,16 @@ function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) 
     try {
       const formData = new FormData();
       formData.append('file', file);
-      await api(`/albums/${album.id}/cover-art`, {
-        method: 'POST',
-        body: formData,
-      });
-      setAlbum((prev) => ({ ...prev, coverArt: `${Date.now()}` }));
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to update cover art', 'error');
+      if (
+        await albumMutation.run(() =>
+          api(`/albums/${album.id}/cover-art`, {
+            method: 'POST',
+            body: formData,
+          }),
+        )
+      ) {
+        setAlbum((prev) => ({ ...prev, coverArt: `${Date.now()}` }));
+      }
     } finally {
       setCoverArtBusy(false);
       if (coverInputRef.current) coverInputRef.current.value = '';
@@ -164,10 +149,9 @@ function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) 
   const handleDeleteCoverArt = async () => {
     setCoverArtBusy(true);
     try {
-      await api(`/albums/${album.id}/cover-art`, { method: 'DELETE' });
-      setAlbum((prev) => ({ ...prev, coverArt: undefined }));
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to remove cover art', 'error');
+      if (await albumMutation.run(() => api(`/albums/${album.id}/cover-art`, { method: 'DELETE' }))) {
+        setAlbum((prev) => ({ ...prev, coverArt: undefined }));
+      }
     } finally {
       setCoverArtBusy(false);
     }
@@ -245,8 +229,8 @@ function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) 
           onDelete={handleDelete}
           onEditCoverArt={handleEditCoverArt}
           onDeleteCoverArt={handleDeleteCoverArt}
-          saving={saving}
-          deleting={deleting}
+          saving={albumMutation.isPending}
+          deleting={albumMutation.isPending}
           coverArtBusy={coverArtBusy}
         />
       )}
@@ -280,50 +264,37 @@ function RecentSongCard({
 }) {
   const { playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
-  const { notify } = useNotification();
   const queryClient = useQueryClient();
+  const songMutation = useLibraryMutation('song');
   const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
   const currentSongId = usePlayer((state) => state.currentSong?.id);
   const [song, setSong] = useState(initialSong);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [syncEditing, setSyncEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const sections = useSongContextMenu(song, () => setEditing(true), user.isAdmin);
 
-  const invalidateLibrary = () => {
-    void queryClient.invalidateQueries({ queryKey: ['songs'] });
-    void queryClient.invalidateQueries({ queryKey: ['albums'] });
-  };
-
   const handleFavorite = async (starred: boolean) => {
-    setError(null);
-    try {
-      await setFavorite('song', song.id, starred);
+    if (await songMutation.run(() => setFavorite('song', song.id, starred))) {
       setSong((prev) => ({ ...prev, starred }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update favorite');
     }
   };
 
   const handleRate = async (rating: number) => {
-    setError(null);
-    try {
-      await setRating('song', song.id, rating || undefined);
+    if (await songMutation.run(() => setRating('song', song.id, rating || undefined))) {
       setSong((prev) => ({ ...prev, rating: rating || undefined }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update rating');
     }
   };
 
   const handleSave = async (patched: Record<string, unknown>) => {
-    setSaving(true);
-    try {
-      await api(`/songs/${song.id}/tags`, {
-        method: 'PUT',
-        body: JSON.stringify(patched),
-      });
+    if (
+      await songMutation.run(() =>
+        api(`/songs/${song.id}/tags`, {
+          method: 'PUT',
+          body: JSON.stringify(patched),
+        }),
+      )
+    ) {
       if (song.id === usePlayer.getState().currentSong?.id) {
         updateCurrentSong(patchToPlayerSong(patched));
       }
@@ -339,24 +310,12 @@ function RecentSongCard({
         albumName: typeof patched.album === 'string' ? patched.album : prev.albumName,
         year: typeof patched.year === 'number' ? patched.year : prev.year,
       }));
-      invalidateLibrary();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to save song', 'error');
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      await api(`/songs/${song.id}`, { method: 'DELETE' });
+    if (await songMutation.run(() => api(`/songs/${song.id}`, { method: 'DELETE' }))) {
       setEditing(false);
-      invalidateLibrary();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to delete song', 'error');
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -424,8 +383,8 @@ function RecentSongCard({
           onSave={handleSave}
           onDelete={handleDelete}
           onEditSyncedLyrics={() => setSyncEditing(true)}
-          saving={saving}
-          deleting={deleting}
+          saving={songMutation.isPending}
+          deleting={songMutation.isPending}
         />
       )}
       {syncEditing && (
@@ -437,7 +396,7 @@ function RecentSongCard({
           onClose={() => setSyncEditing(false)}
           onSaved={() => {
             setSyncEditing(false);
-            invalidateLibrary();
+            void invalidateLibraryEntity(queryClient, 'song');
           }}
         />
       )}
