@@ -5,7 +5,9 @@
 
 ## Tracks
 
-### Track 1 — v2 Go rewrite (branch `feat/go-rewrite`, worktree `.worktrees/go-rewrite`, code in `v2/`)
+### Track 1 — v2 Go rewrite ✅ **MIGRATED TO PRODUCTION 2026-09-26**
+
+All phases P0–P11 complete; branch merged to main; tagged v2.0.0-rc1. Cutover executed: container healthy on :4534, first scan 7,421 files / 1.8 s / 0 removals, DB migrated in place (0001–0004), backup + rollback runbook in `docs/v2-cutover-readiness.md`. v1 remains available via rollback only.
 
 Greenfield backend per DR-1 status change. **Quality bar: no hacky solutions or shortcuts in stack choice, coding, schema, or testing — with explicitly accepted trade-offs (see below), so ambition can't silently inflate later phases.**
 
