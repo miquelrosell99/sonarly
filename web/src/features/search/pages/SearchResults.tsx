@@ -15,6 +15,7 @@ import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { useSearchResults, type SearchResultsResponse, type SearchType } from '../../../hooks/useLibraryLists.js';
+import { useLibraryMutation, invalidateLibraryEntity } from '../../../hooks/useLibraryMutation.js';
 import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
 import { patchToPlayerSong } from '../../../lib/songPatch.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
@@ -86,8 +87,6 @@ export function SearchResults({ user }: SearchResultsProps) {
   const type: SearchType = isValidType(rawType) ? rawType : 'songs';
   const [songEditing, setSongEditing] = useState<Song[] | null>(null);
   const [syncEditing, setSyncEditing] = useState<Song | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const { playSong, playSongs, shufflePlay } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
   const { notify } = useNotification();
@@ -98,6 +97,7 @@ export function SearchResults({ user }: SearchResultsProps) {
   const currentArtistId = currentSong?.artistId;
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
   const queryClient = useQueryClient();
+  const songMutation = useLibraryMutation('song');
   // The debounce lives in SearchBox (200ms before the ?q= param changes);
   // once the param lands here the fetch is immediate, as before.
   const { data, isLoading, error, refetch } = useSearchResults(query, type, selectedLibraryId);
@@ -111,21 +111,22 @@ export function SearchResults({ user }: SearchResultsProps) {
     });
   };
 
-  // Song edits (tags, delete, synced lyrics) also affect the cached library
-  // lists; drop both domains like a library:changed would.
-  const invalidateSearch = () => {
-    void queryClient.invalidateQueries({ queryKey: ['search'] });
-    void queryClient.invalidateQueries({ queryKey: ['songs'] });
-  };
-
+  // Favorite/rate span every searchable entity at runtime, so they share the
+  // invalidation map through invalidateLibraryEntity rather than one hook
+  // instance (the hook variant is used for the song-only edits below).
   const handleFavorite = async <T extends { id: string; starred?: boolean }>(
     entityType: FavoriteEntityType,
     key: SearchType,
     id: string,
     starred: boolean,
   ) => {
-    await setFavorite(entityType, id, starred);
-    patchResult(key, id, { starred } as Partial<T>);
+    try {
+      await setFavorite(entityType, id, starred);
+      patchResult(key, id, { starred } as Partial<T>);
+      await invalidateLibraryEntity(queryClient, entityType);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to update favorite', 'error');
+    }
   };
 
   const handleRate = async <T extends { id: string; rating?: number }>(
@@ -134,8 +135,13 @@ export function SearchResults({ user }: SearchResultsProps) {
     id: string,
     rating: number | undefined,
   ) => {
-    await setRating(entityType, id, rating);
-    patchResult(key, id, { rating } as Partial<T>);
+    try {
+      await setRating(entityType, id, rating);
+      patchResult(key, id, { rating } as Partial<T>);
+      await invalidateLibraryEntity(queryClient, entityType);
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to update rating', 'error');
+    }
   };
 
   const playAlbum = async (album: Album) => {
@@ -165,59 +171,46 @@ export function SearchResults({ user }: SearchResultsProps) {
 
   const handleSongSave = async (patched: Record<string, unknown>) => {
     if (!songEditing || songEditing.length !== 1) return;
-    setSaving(true);
-    try {
-      await api(`/songs/${songEditing[0].id}/tags`, {
-        method: 'PUT',
-        body: JSON.stringify(patched),
-      });
+    if (
+      await songMutation.run(() =>
+        api(`/songs/${songEditing[0].id}/tags`, {
+          method: 'PUT',
+          body: JSON.stringify(patched),
+        }),
+      )
+    ) {
       if (songEditing[0].id === usePlayer.getState().currentSong?.id) {
         updateCurrentSong(patchToPlayerSong(patched));
       }
       setSongEditing(null);
-      invalidateSearch();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to save song', 'error');
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleSongSaveMany = async (patched: Record<string, unknown>) => {
     if (!songEditing || songEditing.length < 2) return;
-    setSaving(true);
-    try {
-      await api('/songs/tags', {
-        method: 'PUT',
-        body: JSON.stringify({
-          ids: songEditing.map((s) => s.id),
-          tags: patched,
+    if (
+      await songMutation.run(() =>
+        api('/songs/tags', {
+          method: 'PUT',
+          body: JSON.stringify({
+            ids: songEditing.map((s) => s.id),
+            tags: patched,
+          }),
         }),
-      });
+      )
+    ) {
       const currentId = usePlayer.getState().currentSong?.id;
       if (currentId && songEditing.some((s) => s.id === currentId)) {
         updateCurrentSong(patchToPlayerSong(patched));
       }
       setSongEditing(null);
-      invalidateSearch();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to save songs', 'error');
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleSongDelete = async () => {
     if (!songEditing || songEditing.length !== 1) return;
-    setDeleting(true);
-    try {
-      await api(`/songs/${songEditing[0].id}`, { method: 'DELETE' });
+    if (await songMutation.run(() => api(`/songs/${songEditing[0].id}`, { method: 'DELETE' }))) {
       setSongEditing(null);
-      invalidateSearch();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to delete song', 'error');
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -482,8 +475,8 @@ export function SearchResults({ user }: SearchResultsProps) {
               ? () => songEditing && setSyncEditing(songEditing[0])
               : undefined
           }
-          saving={saving}
-          deleting={deleting}
+          saving={songMutation.isPending}
+          deleting={songMutation.isPending}
         />
       )}
       {syncEditing && (
@@ -495,7 +488,7 @@ export function SearchResults({ user }: SearchResultsProps) {
           onClose={() => setSyncEditing(null)}
           onSaved={() => {
             setSyncEditing(null);
-            invalidateSearch();
+            void invalidateLibraryEntity(queryClient, 'song');
           }}
         />
       )}

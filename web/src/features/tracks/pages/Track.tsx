@@ -1,19 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useLocation } from 'wouter';
-import type { Song } from '../../../types';
-import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { CoverArt } from '../../../components/CoverArt.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { formatDuration } from '../../../lib/format.js';
+import { api } from '../../../lib/api.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
-import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
+import { useLibraryMutation } from '../../../hooks/useLibraryMutation.js';
+import { useSongDetail } from '../../../hooks/useEntityDetails.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
-import { useNotification } from '../../../contexts/NotificationContext.js';
 import type { SongWithNames } from '../../../lib/types.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { patchToPlayerSong } from '../../../lib/songPatch.js';
@@ -23,81 +22,50 @@ type TrackDetail = SongWithNames;
 export function Track() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
-  const [track, setTrack] = useState<TrackDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, isLoading, error, refetch, patchDetail } = useSongDetail(id);
+  const track: TrackDetail | undefined = data?.song;
   const [editing, setEditing] = useState(false);
   const [syncEditing, setSyncEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const { playSong } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
-  const { notify } = useNotification();
+  const songMutation = useLibraryMutation('song');
   const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
-  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-
-  const load = () => {
-    if (!id) return;
-    setLoading(true);
-    api<{ song: TrackDetail }>(`/songs/${id}${buildLibraryQuery(selectedLibraryId)}`)
-      .then((res) => setTrack(res.song))
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load track'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-  }, [id, selectedLibraryId]);
 
   const handleFavorite = async (starred: boolean) => {
     if (!track) return;
-    try {
-      await setFavorite('song', track.id, starred);
-      setTrack((prev) => (prev ? { ...prev, starred } : prev));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+    if (await songMutation.run(() => setFavorite('song', track.id, starred))) {
+      patchDetail({ song: { ...track, starred } });
     }
   };
 
   const handleRate = async (rating?: number) => {
     if (!track) return;
-    try {
-      await setRating('song', track.id, rating);
-      setTrack((prev) => (prev ? { ...prev, rating } : prev));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update rating');
+    if (await songMutation.run(() => setRating('song', track.id, rating))) {
+      patchDetail({ song: { ...track, rating } });
     }
   };
 
   const handleSave = async (patched: Record<string, unknown>) => {
     if (!track) return;
-    setSaving(true);
-    try {
-      await api(`/songs/${track.id}/tags`, {
-        method: 'PUT',
-        body: JSON.stringify(patched),
-      });
+    if (
+      await songMutation.run(() =>
+        api(`/songs/${track.id}/tags`, {
+          method: 'PUT',
+          body: JSON.stringify(patched),
+        }),
+      )
+    ) {
       if (track.id === usePlayer.getState().currentSong?.id) {
         updateCurrentSong(patchToPlayerSong(patched));
       }
       setEditing(false);
-      load();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to save song', 'error');
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleDelete = async () => {
     if (!track) return;
-    setDeleting(true);
-    try {
-      await api(`/songs/${track.id}`, { method: 'DELETE' });
+    if (await songMutation.run(() => api(`/songs/${track.id}`, { method: 'DELETE' }))) {
       navigate('/tracks');
-    } catch (err) {
-      setDeleting(false);
-      notify(err instanceof Error ? err.message : 'Failed to delete song', 'error');
     }
   };
 
@@ -123,8 +91,9 @@ export function Track() {
   return (
     <>
       <EntityDetail
-        isLoading={loading}
-        error={error}
+        isLoading={isLoading}
+        error={error?.message ?? null}
+        onRetry={() => void refetch()}
         notFound={!track}
         notFoundMessage="Track not found."
         documentTitle={track?.title}
@@ -162,8 +131,8 @@ export function Track() {
           onSave={handleSave}
           onDelete={handleDelete}
           onEditSyncedLyrics={() => setSyncEditing(true)}
-          saving={saving}
-          deleting={deleting}
+          saving={songMutation.isPending}
+          deleting={songMutation.isPending}
         />
       )}
       {track && syncEditing && (
@@ -175,7 +144,7 @@ export function Track() {
           onClose={() => setSyncEditing(false)}
           onSaved={() => {
             setSyncEditing(false);
-            load();
+            void refetch();
           }}
         />
       )}

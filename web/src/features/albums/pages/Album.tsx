@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'wouter';
-import type { Song as SharedSong, User } from '../../../types';
+import type { Album as AlbumSummary, Song as SharedSong, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { cn } from '../../../lib/cn.js';
 import { Button } from '../../../components/ui/Button.js';
@@ -15,35 +15,14 @@ import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
-import { useNotification } from '../../../contexts/NotificationContext.js';
+import { useLibraryMutation } from '../../../hooks/useLibraryMutation.js';
+import { useAlbumDetail } from '../../../hooks/useEntityDetails.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { patchToPlayerSong } from '../../../lib/songPatch.js';
-import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 import { SongTable } from '../../songs/index.js';
 import type { SongListItem } from '../../songs/components/SongTable.js';
 import type { SongWithNames } from '../../../lib/types.js';
-
-interface Album {
-  id: string;
-  name: string;
-  artistId?: string;
-  artistName?: string;
-  releaseType?: string;
-  year?: number;
-  genre?: string;
-  coverArt?: string;
-  totalSongCount?: number;
-  shownSongCount?: number;
-  explicit?: boolean;
-  starred?: boolean;
-  rating?: number;
-}
-
-interface AlbumDetail {
-  album: Album;
-  songs: SongWithNames[];
-}
 
 function SongContextMenu({
   songs,
@@ -66,37 +45,18 @@ function formatReleaseType(value: string): string {
 
 export function Album({ user }: { user: User }) {
   const { id } = useParams<{ id: string }>();
-  const [detail, setDetail] = useState<AlbumDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: detail, isLoading, error, refetch, patchDetail } = useAlbumDetail(id);
   const [songEditing, setSongEditing] = useState<SongWithNames[] | null>(null);
-  const [albumEditing, setAlbumEditing] = useState<Album | null>(null);
+  const [albumEditing, setAlbumEditing] = useState<AlbumSummary | null>(null);
   const [syncEditing, setSyncEditing] = useState<SongWithNames | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [coverArtBusy, setCoverArtBusy] = useState(false);
-  const { notify } = useNotification();
   const albumCoverInputRef = useRef<HTMLInputElement>(null);
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
+  const songMutation = useLibraryMutation('song');
+  const albumMutation = useLibraryMutation('album');
   const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
   const playingId = usePlayer((state) => state.currentSong?.id);
-  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-
-  const load = () => {
-    if (!id) return;
-    setLoading(true);
-    api<AlbumDetail>(`/albums/${id}${buildLibraryQuery(selectedLibraryId)}`)
-      .then((detailRes) => {
-        setDetail(detailRes);
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load album'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-  }, [id, selectedLibraryId]);
 
   const blurExplicitTitles = user.blurExplicitTitles === true;
   const blurExplicitCovers = user.blurExplicitCovers === true;
@@ -125,114 +85,81 @@ export function Album({ user }: { user: User }) {
 
   const handleFavorite = async (starred: boolean) => {
     if (!detail) return;
-    try {
-      await setFavorite('album', detail.album.id, starred);
-      setDetail((prev) =>
-        prev ? { ...prev, album: { ...prev.album, starred } } : prev,
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update favorite');
+    if (await albumMutation.run(() => setFavorite('album', detail.album.id, starred))) {
+      patchDetail({ album: { ...detail.album, starred } });
     }
   };
 
   const handleRate = async (rating?: number) => {
     if (!detail) return;
-    try {
-      await setRating('album', detail.album.id, rating);
-      setDetail((prev) =>
-        prev ? { ...prev, album: { ...prev.album, rating } } : prev,
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update rating');
+    if (await albumMutation.run(() => setRating('album', detail.album.id, rating))) {
+      patchDetail({ album: { ...detail.album, rating } });
     }
   };
 
   const handleSongSave = async (patched: Record<string, unknown>) => {
     if (!songEditing || songEditing.length !== 1) return;
-    setSaving(true);
-    try {
-      await api(`/songs/${songEditing[0].id}/tags`, {
-        method: 'PUT',
-        body: JSON.stringify(patched),
-      });
+    if (
+      await songMutation.run(() =>
+        api(`/songs/${songEditing[0].id}/tags`, {
+          method: 'PUT',
+          body: JSON.stringify(patched),
+        }),
+      )
+    ) {
       if (songEditing[0].id === usePlayer.getState().currentSong?.id) {
         updateCurrentSong(patchToPlayerSong(patched));
       }
       setSongEditing(null);
-      load();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to save song', 'error');
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleSongSaveMany = async (patched: Record<string, unknown>) => {
     if (!songEditing || songEditing.length < 2) return;
-    setSaving(true);
-    try {
-      await api('/songs/tags', {
-        method: 'PUT',
-        body: JSON.stringify({
-          ids: songEditing.map((s) => s.id),
-          tags: patched,
+    if (
+      await songMutation.run(() =>
+        api('/songs/tags', {
+          method: 'PUT',
+          body: JSON.stringify({
+            ids: songEditing.map((s) => s.id),
+            tags: patched,
+          }),
         }),
-      });
+      )
+    ) {
       const currentId = usePlayer.getState().currentSong?.id;
       if (currentId && songEditing.some((s) => s.id === currentId)) {
         updateCurrentSong(patchToPlayerSong(patched));
       }
       setSongEditing(null);
-      load();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to save songs', 'error');
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleSongDelete = async () => {
     if (!songEditing || songEditing.length !== 1) return;
-    setDeleting(true);
-    try {
-      await api(`/songs/${songEditing[0].id}`, { method: 'DELETE' });
+    if (await songMutation.run(() => api(`/songs/${songEditing[0].id}`, { method: 'DELETE' }))) {
       setSongEditing(null);
-      load();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to delete song', 'error');
-    } finally {
-      setDeleting(false);
     }
   };
 
   const handleAlbumSave = async (patched: Record<string, unknown>) => {
     if (!albumEditing) return;
-    setSaving(true);
-    try {
-      await api(`/albums/${albumEditing.id}/tags`, {
-        method: 'PUT',
-        body: JSON.stringify(patched),
-      });
+    if (
+      await albumMutation.run(() =>
+        api(`/albums/${albumEditing.id}/tags`, {
+          method: 'PUT',
+          body: JSON.stringify(patched),
+        }),
+      )
+    ) {
       setAlbumEditing(null);
-      load();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to save album', 'error');
-    } finally {
-      setSaving(false);
     }
   };
 
   const handleAlbumDelete = async () => {
     if (!albumEditing) return;
-    setDeleting(true);
-    try {
-      await api(`/albums/${albumEditing.id}`, { method: 'DELETE' });
+    if (await albumMutation.run(() => api(`/albums/${albumEditing.id}`, { method: 'DELETE' }))) {
       setAlbumEditing(null);
-      load();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to delete album', 'error');
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -247,13 +174,12 @@ export function Album({ user }: { user: User }) {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      await api(`/albums/${albumEditing.id}/cover-art`, {
-        method: 'POST',
-        body: formData,
-      });
-      load();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to update cover art', 'error');
+      await albumMutation.run(() =>
+        api(`/albums/${albumEditing.id}/cover-art`, {
+          method: 'POST',
+          body: formData,
+        }),
+      );
     } finally {
       setCoverArtBusy(false);
       if (albumCoverInputRef.current) albumCoverInputRef.current.value = '';
@@ -264,17 +190,14 @@ export function Album({ user }: { user: User }) {
     if (!albumEditing) return;
     setCoverArtBusy(true);
     try {
-      await api(`/albums/${albumEditing.id}/cover-art`, { method: 'DELETE' });
-      load();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to remove cover art', 'error');
+      await albumMutation.run(() => api(`/albums/${albumEditing.id}/cover-art`, { method: 'DELETE' }));
     } finally {
       setCoverArtBusy(false);
     }
   };
 
   const hasFilteredSongs =
-    detail !== null &&
+    detail !== undefined &&
     detail.album.totalSongCount !== undefined &&
     detail.album.shownSongCount !== undefined &&
     detail.album.totalSongCount > detail.album.shownSongCount;
@@ -317,8 +240,9 @@ export function Album({ user }: { user: User }) {
 
   return (
     <EntityDetail
-      isLoading={loading}
-      error={error}
+      isLoading={isLoading}
+      error={error?.message ?? null}
+      onRetry={() => void refetch()}
       notFound={!detail}
       notFoundMessage="Album not found."
       documentTitle={detail?.album.name}
@@ -403,8 +327,8 @@ export function Album({ user }: { user: User }) {
               ? () => songEditing && setSyncEditing(songEditing[0])
               : undefined
           }
-          saving={saving}
-          deleting={deleting}
+          saving={songMutation.isPending}
+          deleting={songMutation.isPending}
           coverArtBusy={coverArtBusy}
         />
       )}
@@ -419,8 +343,8 @@ export function Album({ user }: { user: User }) {
           onDelete={handleAlbumDelete}
           onEditCoverArt={handleAlbumEditCoverArt}
           onDeleteCoverArt={handleAlbumDeleteCoverArt}
-          saving={saving}
-          deleting={deleting}
+          saving={albumMutation.isPending}
+          deleting={albumMutation.isPending}
           coverArtBusy={coverArtBusy}
         />
       )}
@@ -441,7 +365,7 @@ export function Album({ user }: { user: User }) {
           onClose={() => setSyncEditing(null)}
           onSaved={() => {
             setSyncEditing(null);
-            load();
+            void refetch();
           }}
         />
       )}

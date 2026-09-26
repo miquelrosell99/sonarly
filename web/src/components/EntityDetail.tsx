@@ -20,6 +20,8 @@ export interface EntityDetailProps {
   renderHeader?: (header: React.ReactElement) => React.ReactElement;
   children?: ReactNode;
   className?: string;
+  /** Retry action for the error state, rendered by PageState when provided. */
+  onRetry?: () => void;
 }
 
 export function EntityDetail({
@@ -37,6 +39,7 @@ export function EntityDetail({
   renderHeader,
   children,
   className,
+  onRetry,
 }: EntityDetailProps) {
   useDocumentTitle(documentTitle);
 
@@ -45,7 +48,7 @@ export function EntityDetail({
   }
 
   if (error) {
-    return <PageState error={error}>{null}</PageState>;
+    return <PageState error={error} onRetry={onRetry}>{null}</PageState>;
   }
 
   if (notFound || !title) {
