@@ -20,4 +20,4 @@ This project is developed with assistance from AI coding agents. Human review an
 - [Security Considerations](agents/security.md)
 - [Skill References](agents/skills.md)
 - [Project Skills](.agents/skills/) — Sonarly-scoped skills: library operations, user management, playlists, server conventions
-- [Project Documentation](docs/README.md) — user-facing docs index: philosophy, installation, usage, ux, configuration, deployment, troubleshooting, faq, smart playlists, API, DB schema, design language. Internal engineering records (audits, cutover reports, spike findings, quirks contract) live in `.audits/`, not in `docs/`.
+- [Project Documentation](docs/README.md) — user-facing docs index: philosophy, installation, usage, ux, configuration, deployment, troubleshooting, faq, smart playlists, API, DB schema, design language. `.audits/` (empty by design) is the designated drop zone for future internal audit reports — user docs never live there; transition-era records are in git history at the 2.0.0 tag. The OpenSubsonic behavioral contract lives with the adapter at `server/internal/modules/opensubsonic/QUIRKS.md`.
