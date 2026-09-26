@@ -16,7 +16,7 @@ whenToUse: When adding or modifying API endpoints, repositories, database migrat
 ## Endpoints
 
 - Native routes are mounted in `internal/httpserver` and implemented in the owning module. The contract is `server/api/openapi.yaml`; `server/cmd/sonarly/spec_test.go` fails the build if the router and spec drift in either direction. Change both together, then regenerate the web types (`pnpm --filter @sonarly/web contract:gen`).
-- `/rest` (OpenSubsonic) changes: implement against the decisions in `docs/opensubsonic-quirks.md`, not the spec text. Errors are enveloped with HTTP 200; code 70 = data not found / out of scope.
+- `/rest` (OpenSubsonic) changes: implement against the decisions in `.audits/opensubsonic-quirks.md`, not the spec text. Errors are enveloped with HTTP 200; code 70 = data not found / out of scope.
 - Native API error shape is JSON `{"error": "..."}` with a proper status code. Bad client input is a 4xx, never a leaked 500.
 - SQL is parameterized everywhere; dynamic fragments may only interpolate fixed whitelists; LIKE patterns are escaped (`ESCAPE '\'`).
 
