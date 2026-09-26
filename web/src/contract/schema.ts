@@ -2230,6 +2230,7 @@ export interface components {
             shareToken?: string;
             isSmart: boolean;
             resolveMode: components["schemas"]["ResolveMode"];
+            rules?: components["schemas"]["SmartPlaylistRules"] | null;
             songCount: number;
             entries: components["schemas"]["PlaylistEntry"][];
             shares?: components["schemas"]["ShareEntry"][];
@@ -2530,8 +2531,8 @@ export interface components {
             genres: components["schemas"]["HomeGenreCard"][];
             mostPlayed: components["schemas"]["HomeAlbumCard"][];
             random: components["schemas"]["HomeAlbumCard"][];
-            /** @description Albums whose newest song file is most recently touched, first. */
-            recentlyAdded?: components["schemas"]["HomeAlbumCard"][];
+            /** @description Songs in import order (the songs rowid is the import order). */
+            recentAdditions: components["schemas"]["HomeSongCard"][];
             recentlyPlayed: components["schemas"]["HomeAlbumCard"][];
         };
         /** @description Display subset of the catalog song DTO plus the caller's interaction state. */
