@@ -52,6 +52,7 @@ export function SettingsAppearance() {
                 key={mode.value}
                 type="button"
                 onClick={() => handleThemeMode(mode.value)}
+                aria-pressed={themeMode === mode.value}
                 className={cn(
                   'rounded-md border px-4 py-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                   themeMode === mode.value
@@ -74,6 +75,7 @@ export function SettingsAppearance() {
                 type="button"
                 onClick={() => handleAccentColor(color.value)}
                 aria-label={color.label}
+                aria-pressed={accentColor === color.value}
                 title={color.label}
                 className={cn(
                   'h-11 w-11 rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
