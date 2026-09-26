@@ -4,7 +4,7 @@ Smart playlists are playlists defined by a set of rules instead of a manual trac
 
 ## Data model
 
-A smart playlist is a row in `playlists` with `is_smart = 1`. The rules are stored as JSON in `rules_json` (migration `012_smart_playlists.sql`) and typed in `@sonarly/shared` as `SmartPlaylistRules`:
+A smart playlist is a row in `playlists` with `is_smart = 1`. The rules are stored as JSON in `rules_json` (schema distilled into the v2 `0001_baseline.sql` migration) and typed in the web client as `SmartPlaylistRules` (`packages/web/src/types/smart-playlist.ts`):
 
 ```ts
 interface SmartPlaylistRules {
@@ -28,7 +28,7 @@ interface SmartPlaylistRule {
 
 ## Fields
 
-The canonical field list is `SMART_PLAYLIST_FIELDS` in `packages/shared/src/smart-playlist.ts` — the UI rule editor and the API both derive from it, so adding a field there is enough to surface it in the editor.
+The canonical field list is `SMART_PLAYLIST_FIELDS` in `packages/web/src/types/smart-playlist.ts` — the UI rule editor and the API both derive from it, so adding a field there is enough to surface it in the editor.
 
 | Field | Type | SQL source | User-scoped | Notes |
 |---|---|---|---|---|
@@ -52,7 +52,7 @@ String comparisons are case-insensitive (`COLLATE NOCASE`).
 
 ## Operators
 
-The editor offers operators per field type (`SmartPlaylistBlockEditor.tsx`); the compiler (`features/smart-playlists/compiler.ts`) implements the semantics:
+The editor offers operators per field type (`SmartPlaylistBlockEditor.tsx`); the compiler (`v2/internal/modules/playlists/compiler.go`) implements the semantics:
 
 | Type | Operators |
 |---|---|
@@ -77,7 +77,7 @@ Semantics worth knowing:
 
 ## Resolve modes
 
-User-scoped rule fields need a "whose data?" answer when someone else views the playlist. `resolve_mode` on the playlist (migration `048_playlist_resolve_mode.sql`, `PlaylistResolveMode` in shared) controls this:
+User-scoped rule fields need a "whose data?" answer when someone else views the playlist. `resolve_mode` on the playlist (`PlaylistResolveMode` in `packages/web/src/types/playlist.ts`) controls this:
 
 | Mode | UI label | Behavior |
 |---|---|---|
@@ -88,7 +88,7 @@ Without this, a rating-based playlist shared with another user would resolve aga
 
 ## Compiler internals
 
-`packages/server/src/features/smart-playlists/compiler.ts` turns `SmartPlaylistRules` into parameterized SQL:
+`v2/internal/modules/playlists/compiler.go` turns `SmartPlaylistRules` into parameterized SQL:
 
 - `fieldColumn()` maps each field to its SQL expression and declares required joins (`albums`, `artist`, `albumArtist`, `genre`, `userSongs`); joins are collected in a set and emitted once. The `albumArtist` join implies the `albums` join.
 - `buildJoins()` renders the `LEFT JOIN` clauses; the `userSongs` join binds the resolving user id, which must precede WHERE parameters in the bind order (joins appear before WHERE).
@@ -96,7 +96,7 @@ Without this, a rating-based playlist shared with another user would resolve aga
 - The final query is `SELECT DISTINCT s.id FROM songs s … WHERE s.active = 1 AND <rules> <order> <limit>`; a parallel `songCountSql` powers counts and `limitPercent`.
 - The compiled result (`CompiledSmartPlaylist`) carries `{ sql, params, songCountSql, songCountParams }`.
 
-Resolution results are cached briefly in `features/playlists/repository.ts`, keyed by playlist id + `rules_json`, so rule edits invalidate immediately.
+Resolution results are cached briefly in `v2/internal/modules/playlists/cache.go`, keyed by playlist id + `rules_json`, so rule edits invalidate immediately.
 
 ## API surface
 
@@ -118,14 +118,14 @@ Smart playlists use the normal playlist endpoints with `isSmart: true` and a `ru
 
 | Piece | Location |
 |---|---|
-| Rule types + field list | `packages/shared/src/smart-playlist.ts` |
-| SQL compiler | `packages/server/src/features/smart-playlists/compiler.ts` |
-| Resolution + caching | `packages/server/src/features/playlists/repository.ts` |
-| API validation/routes | `packages/server/src/features/playlists/management-routes.ts` |
+| Rule types + field list | `packages/web/src/types/smart-playlist.ts` |
+| SQL compiler | `v2/internal/modules/playlists/compiler.go` |
+| Resolution + caching | `v2/internal/modules/playlists/repository.go`, `cache.go` |
+| API validation/routes | `v2/internal/modules/playlists/routes.go`, `rules.go` |
 | Rule editor UI | `packages/web/src/features/playlists/components/SmartPlaylistBlockEditor.tsx` |
-| Autocomplete | `packages/web/src/components/ui/AutocompleteInput.tsx`, `packages/server/src/features/suggestions/routes.ts` |
-| Compiler tests | `packages/server/tests/features/smart-playlists/compiler.test.ts` |
+| Autocomplete | `packages/web/src/components/ui/AutocompleteInput.tsx`, `v2/internal/modules/suggestions/` |
+| Compiler tests | `v2/internal/modules/playlists/compiler_test.go` |
 
 ## Renaming note: `albumType` → `releaseType`
 
-The album-type rule field was renamed to `releaseType` (matching the `albums.release_type` column, migration `049_rename_album_type.sql`). Because rules are persisted as JSON with the field name inline, the same migration rewrites stored `rules_json` (`"field":"albumType"` → `"field":"releaseType"`), so existing smart playlists keep working. If you rename a rule field in the future, update `SMART_PLAYLIST_FIELDS`, the compiler's `fieldColumn()`, and ship a data migration for stored rules.
+The album-type rule field was renamed to `releaseType` (matching the `albums.release_type` column). Because rules are persisted as JSON with the field name inline, the original v1 migration rewrote stored `rules_json` (`"field":"albumType"` → `"field":"releaseType"`), so existing smart playlists kept working; that data rewrite is baked into the v2 `0001_baseline.sql` distillation. If you rename a rule field in the future, update `SMART_PLAYLIST_FIELDS`, the compiler's `fieldColumn()`, and ship a data migration for stored rules.

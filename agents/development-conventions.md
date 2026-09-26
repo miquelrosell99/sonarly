@@ -4,15 +4,21 @@
 > Generic security practices — see `security-hardening`.
 > Generic self-hosting/deployment patterns — see `selfhost-release`.
 
-- Prefer **workspace-relative imports** between packages (`@sonarly/shared`).
-- Code is organized **feature-first**: each domain lives under `src/features/<name>/` and exposes a small public API through `index.ts`.
-- Server routes, repositories, and domain logic are co-located by feature under `packages/server/src/features/`.
-- Web pages and domain components are co-located by feature under `packages/web/src/features/`.
-- Shared UI primitives live in `packages/web/src/components/ui/`; the app shell is `components/Layout.tsx`.
-- Cross-feature imports go through a feature's `index.ts` barrel, never its internal files.
-- Configuration is validated with Zod in `src/config.ts`.
-- Migrations are plain SQL files executed in order from `src/db/migrations/`.
-- Server tests are centralized in `packages/server/tests/` (mirrors `src/` structure); web tests live next to source in `packages/web/src`.
+### Go server (`v2/`)
+
+- **Modular monolith**: one package per domain under `v2/internal/modules/<name>/` with a small exported surface. Cross-module imports go through the owning module, never its internal files.
+- SQL is always parameterized; repositories live in the owning module.
+- Server configuration is env-based, loaded and validated once in `internal/config` at boot (fail fast on invalid config).
+- Migrations are numbered SQL files in `v2/internal/db/migrations/`, one transaction each, ledger-tracked in `schema_migrations`. Never edit a shipped migration — fix forward.
+- The native API contract is `v2/api/openapi.yaml`; a chi.Walk coverage test fails the build on spec drift. Changing a route means changing the spec, then regenerating the web types (`pnpm --filter @sonarly/web contract:gen`).
+- Go tests live next to the source (`*_test.go`); `go test ./... -count=1` is the bar.
+
+### Web client (`packages/web/`)
+
+- Code is organized **feature-first**: each domain lives under `src/features/<name>/`; cross-feature imports go through the feature's public entry points, never deep internal files.
+- Shared UI primitives live in `packages/web/src/components/` (and `components/ui/`); the app shell is `components/Layout.tsx`.
+- Domain/entity types live in `packages/web/src/types/` (migrated from the retired `@sonarly/shared` package); the generated API contract lives in `src/contract/`.
+- Web tests live next to source (`*.test.ts(x)`); page tests render through `packages/web/src/lib/testing.tsx`.
 
 ## Server state (react-query)
 

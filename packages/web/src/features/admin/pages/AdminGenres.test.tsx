@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { Router } from 'wouter';
-import type { User } from '@sonarly/shared';
+import type { User } from '../../../types';
 import { AdminGenres } from './AdminGenres.js';
 import { NotificationProvider } from '../../../contexts/NotificationContext.js';
 

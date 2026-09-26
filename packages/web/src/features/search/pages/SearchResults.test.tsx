@@ -3,7 +3,7 @@ import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/re
 import { Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { User } from '@sonarly/shared';
+import type { User } from '../../../types';
 import { SearchResults } from './SearchResults.js';
 import { NotificationProvider } from '../../../contexts/NotificationContext.js';
 import * as apiModule from '../../../lib/api.js';

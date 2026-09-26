@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import type { Song } from '@sonarly/shared';
+import type { Song } from '../../../types';
 import { formatDuration } from '../../../lib/format.js';
 import type { SongWithNames } from '../../../lib/types.js';
 

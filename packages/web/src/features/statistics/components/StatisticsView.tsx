@@ -9,7 +9,7 @@ import type {
   StatisticsTopLists,
   TopYearItem,
   UserStatistics,
-} from '@sonarly/shared';
+} from '../../../types';
 import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { CoverArt } from '../../../components/CoverArt.js';

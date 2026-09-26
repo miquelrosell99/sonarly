@@ -1,4 +1,4 @@
-import type { User } from '@sonarly/shared';
+import type { User } from '../../../types';
 import { Modal } from '../../../components/ui/Modal.js';
 import { ProfileForm } from './ProfileForm.js';
 

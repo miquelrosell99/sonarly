@@ -1,4 +1,4 @@
-import type { User } from '@sonarly/shared';
+import type { User } from '../../../types';
 import { Settings } from '../components/Settings.js';
 import { ProfileForm } from '../../profile/index.js';
 

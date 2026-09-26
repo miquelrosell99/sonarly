@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Song, Album, Artist } from '@sonarly/shared';
+import type { Song, Album, Artist } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Modal } from '../../../components/ui/Modal.js';

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import type { User } from '@sonarly/shared';
+import type { User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';

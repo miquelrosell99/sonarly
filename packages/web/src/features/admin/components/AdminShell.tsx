@@ -1,4 +1,4 @@
-import type { User } from '@sonarly/shared';
+import type { User } from '../../../types';
 import { TabNav } from '../../settings/index.js';
 
 const tabs = [

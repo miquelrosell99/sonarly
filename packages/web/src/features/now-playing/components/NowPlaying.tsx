@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
-import type { User } from '@sonarly/shared';
+import type { User } from '../../../types';
 import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';

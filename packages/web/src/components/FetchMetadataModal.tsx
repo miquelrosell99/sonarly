@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { MusicBrainzMatch, MusicBrainzSearchResult, SongTags } from '@sonarly/shared';
+import type { MusicBrainzMatch, MusicBrainzSearchResult, SongTags } from '../types';
 import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
 import { Button } from './ui/Button.js';

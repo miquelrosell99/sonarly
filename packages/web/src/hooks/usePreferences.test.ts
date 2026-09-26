@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, cleanup, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { UserPreferences } from '@sonarly/shared';
+import type { UserPreferences } from '../types';
 import { useUpdatePreferences } from './usePreferences.js';
 import { useTheme } from '../stores/themeStore.js';
 import { api } from '../lib/api.js';

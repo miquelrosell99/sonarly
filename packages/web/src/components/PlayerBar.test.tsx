@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
-import type { User } from '@sonarly/shared';
+import type { User } from '../types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PlayerBar } from './PlayerBar.js';
 import { usePlayer, resetPlayer } from '../stores/playerStore.js';

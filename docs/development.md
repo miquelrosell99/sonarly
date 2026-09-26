@@ -1,21 +1,31 @@
 # Development
 
-This guide covers setting up a development environment, the available scripts, testing, and how to make common kinds of changes.
+This guide covers setting up a development environment, the available commands, testing, and how to make common kinds of changes.
 
 ## Prerequisites
 
-- Node.js 20
-- pnpm 9 (the repo pins `packageManager: pnpm@9.0.0`)
+- Go 1.23 (`go version`; the binary is not in PATH on some hosts — e.g. `/usr/local/go/bin/go`)
+- Node.js 22 + pnpm 9 (the repo pins `packageManager: pnpm@9.0.0`)
+- `ffmpeg` — transcoding/waveform features
 - Python 3 + Mutagen (`pip3 install mutagen`) — used by the tag writer
-- `ffmpeg` — used by transcoding/waveform features
-- Docker + Docker Compose v2 — only if you develop inside containers
 
 ## Setup
 
+The repository has two parts: the Go server (`v2/`) and the React web client (`packages/web/`). For full-stack work run both: the server on port 3000 and the Vite dev server on 5173 (which proxies `/api` and `/rest` to the server).
+
 ```bash
 pnpm install
-cp .env.example .env   # set SESSION_SECRET (≥ 32 chars)
-pnpm dev               # runs server (tsx watch) and web UI (Vite) in parallel
+
+# Terminal 1 — Go server
+cd v2
+SESSION_SECRET=$(openssl rand -hex 32) \
+SONARLY_LIBRARY_PATH=/path/to/music \
+SONARLY_INGEST_PATH=/path/to/ingest \
+go run ./cmd/sonarly
+
+# Terminal 2 — web client (proxies /api + /rest to localhost:3000)
+cd packages/web
+pnpm dev
 ```
 
 Local URLs:
@@ -23,94 +33,79 @@ Local URLs:
 | Service | URL |
 |---|---|
 | Web UI (Vite dev server) | http://localhost:5173 |
-| Backend API | http://localhost:3000 |
+| Server API | http://localhost:3000 |
 
-The Vite dev server proxies `/api` and `/rest` to the backend.
+Point `SONARLY_WEB_DIST` at a web build (`pnpm -r build` produces `packages/web/dist`) to have the Go server serve the UI itself — the production-shaped setup.
 
-## Scripts
+## Commands
 
-Root `package.json` scripts (run with `pnpm <script>`):
+Server (run from `v2/`):
 
-| Script | What it does |
+| Command | What it does |
 |---|---|
-| `dev` | Runs all packages' `dev` scripts in parallel (server with `tsx watch`, web with Vite) |
-| `build` | Builds all packages: `shared` → `server` (tsc + copy migrations) → `web` (tsc + vite build) |
-| `test` | Runs all package test suites (Vitest), no-bail |
-| `lint` | Currently a no-op — linting is not configured |
+| `go build ./...` | Compile all packages |
+| `go vet ./...` | Static analysis |
+| `go test ./... -count=1` | Full Go test suite |
+| `go run ./cmd/sonarly` | Run the server (env config required) |
+| `go build -ldflags "-X github.com/miquelrosell99/sonarly/v2/internal/buildinfo.Version=$(git -C .. describe --tags --always)" -o sonarly ./cmd/sonarly` | Release build with version injection (surfaced as the OpenSubsonic `serverVersion`) |
 
-Package-level scripts worth knowing:
+Web (run from the repo root or `packages/web/`):
 
-- `packages/server`: `trigger-scan` — queues a full library scan from the CLI (useful inside a dev container).
-- `packages/web`: `scripts/generate-mdi-sprite.js` regenerates the MDI icon sprite at build time when icons are added to the build command.
-
-## Docker-based development
-
-For active development, use the dev compose file — it bind-mounts the package sources and runs `pnpm -r --parallel dev` inside the container, so TypeScript/React changes hot-reload:
-
-```bash
-cp .env.example .env
-cp docker/compose.dev.yaml.example compose.dev.yaml
-# edit .env and set SESSION_SECRET
-docker compose -f compose.dev.yaml up -d --build
-```
-
-Exposed ports:
-
-| Host port (env var, default) | Maps to | Purpose |
-|---|---|---|
-| `SONARLY_DEV_WEB_PORT` (4534) | 5173 | Vite dev server — use this for normal work; it proxies `/api` and `/rest` |
-| `SONARLY_DEV_API_PORT` (3001) | 3000 | Fastify backend directly |
-
-### Restart vs recreate vs rebuild
-
-These are not interchangeable:
-
-| Change | Action |
+| Command | What it does |
 |---|---|
-| TypeScript/React source in `packages/*/src/` | Nothing — `tsx watch` and Vite HMR pick it up |
-| Environment variables in `.env` | `docker compose -f compose.dev.yaml up -d` (recreates the container) |
-| `package.json`, `pnpm-lock.yaml`, `vite.config.ts`, `tsconfig.json`, new dependencies | `docker compose -f compose.dev.yaml up -d --build` |
-| `docker/Dockerfile.dev`, `docker/entrypoint.sh`, runtime tooling | `docker compose -f compose.dev.yaml up -d --build` |
-| Database reset | `docker compose -f compose.dev.yaml down`, then delete `./config/sonarly/data/sonarly.db` |
-
-After adding a dependency with `pnpm add`, rebuild with `--build`; running `pnpm install` inside the running container only lasts until the next recreate.
-
-Trigger a scan from the host without opening the UI:
-
-```bash
-docker exec sonarly-dev sh -c "cd /app/packages/server && pnpm trigger-scan"
-```
+| `pnpm install` | Install workspace dependencies |
+| `pnpm dev` | Vite dev server |
+| `pnpm -r build` | Type-check and build the web client |
+| `pnpm test` | Vitest suite |
+| `pnpm --filter @sonarly/web contract:gen` | Regenerate `src/contract/schema.ts` from `v2/api/openapi.yaml` |
 
 ## Testing
 
-Tests use Vitest and live in `packages/server/tests/` (mirroring `src/`) and `packages/web` test locations. Run everything:
+### Go
+
+```bash
+cd v2 && go test ./... -count=1
+```
+
+Two suites have special harnesses:
+
+- **testparity** (`v2/testparity/`) — the v1↔v2 request-level parity harness. It boots the *removed* TypeScript server as its baseline, so it **skips cleanly** unless `P10_V1_CHECKOUT` points at a pre-removal checkout (e.g. a git worktree of the last v1 commit). Kept as evidence and for regression archaeology.
+- **testdualrun** (`v2/testdualrun/`) — the production dual-run harness. It seeds a library, snapshots a database, boots the v2 binary, and diffs scan/stream/state behavior. It reads paths under the deployment host layout; run it only in an environment where those exist.
+
+### Web
+
+Tests use Vitest and live next to the source. Run everything:
 
 ```bash
 pnpm test
 ```
 
-Server tests spin up real SQLite databases via `better-sqlite3` and exercise routes and the smart-playlist compiler end to end. When you change SQL or schema, run the server suite at minimum; the full suite is the pre-merge bar.
-
 ## Making changes
 
 ### Conventions
 
-- Code is **feature-first**: domains live under `src/features/<name>/` with a public `index.ts` barrel; cross-feature imports go through barrels.
-- Workspace packages import each other as `@sonarly/shared`.
-- Shared types/contracts go in `packages/shared/src/` so server and web stay in sync at compile time.
-- Server configuration is validated with Zod in `packages/server/src/config.ts`.
+- Server code is a Go **modular monolith**: one package per domain under `v2/internal/modules/<name>/`, with small exported surfaces. Cross-module imports go through the owning module, never its internal files.
+- Web code is **feature-first**: domains live under `packages/web/src/features/<name>/`; shared primitives under `packages/web/src/components/`. Server-state types live in `packages/web/src/types/` (migrated from the retired `@sonarly/shared` package).
+- The native API contract is `v2/api/openapi.yaml`; it is coverage-tested against the Go router in both directions. Changing a route means changing the spec, then regenerating the web types (`pnpm --filter @sonarly/web contract:gen`).
 - UI conventions and the reusable component inventory are documented in the [agents/](../agents/) folder (see `agents/ui-components.md`, `agents/development-conventions.md`).
 
 ### Adding a database migration
 
-1. Create the next numbered file in `packages/server/src/db/migrations/` (e.g. `049_something.sql`). Plain SQL runs via `db.exec`; `.js`/`.cjs` files export an `up(db)` function for data migrations.
-2. Migrations run in filename order on server start; applied filenames are tracked in the `migrations` table, so never edit an already-shipped migration.
-3. Rebuild the server (`pnpm build`) so `scripts/copy-migrations.js` copies the new file into the build output — the dev/prod images run migrations from the compiled output.
+1. Create the next numbered file in `v2/internal/db/migrations/` (e.g. `0005_something.sql`). Migrations are plain SQL, executed in filename order inside a per-file transaction.
+2. Applied filenames are recorded in the `schema_migrations` ledger table; **never edit an already-shipped migration** — fix forward.
+3. The files are embedded into the binary; a rebuild picks them up automatically (no copy step).
 4. Update [db-schema.md](db-schema.md) if the schema reference changes.
 
-### Renaming a persisted field (case study: `albumType` → `releaseType`)
+### Changing the native API
 
-A field name can live in several places at once — TypeScript types, API payloads, SQL columns, and JSON stored in the database. The `releaseType` rename touched: `packages/shared/src/album.ts` + `smart-playlist.ts`, the albums repository/routes, scanner, tag reader, suggestions, the smart-playlist compiler, the web edit modal/album page/rule editor, plus migration `049_rename_album_type.sql`, which renames the `albums.album_type` column **and** rewrites stored smart-playlist rules JSON (`"field":"albumType"` → `"field":"releaseType"`). If you rename anything persisted as JSON, ship a data migration like that one.
+1. Implement the handler in the owning `v2/internal/modules/<domain>/` package and mount it in `v2/internal/httpserver/`.
+2. Document the route in `v2/api/openapi.yaml` — the coverage test fails the build on spec drift in either direction.
+3. Regenerate the web contract: `pnpm --filter @sonarly/web contract:gen`.
+4. If the OpenSubsonic surface changed, check the decisions in [v2-opensubsonic-quirks.md](v2-opensubsonic-quirks.md).
+
+### OpenSubsonic adapter changes
+
+The adapter preserves v1-observed client behavior by design. Read [v2-opensubsonic-quirks.md](v2-opensubsonic-quirks.md) before changing anything under `v2/internal/modules/opensubsonic/` — many seemingly-buggy behaviors are load-bearing for real clients.
 
 ## Where things are documented
 

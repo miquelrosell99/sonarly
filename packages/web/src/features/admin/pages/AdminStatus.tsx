@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { User } from '@sonarly/shared';
+import type { User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { AdminShell } from '../components/AdminShell.js';
 import { IngestStatusCard } from '../components/IngestStatusCard.js';

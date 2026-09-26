@@ -5,7 +5,7 @@ import type {
   OverallStatistics,
   StatisticsTimeRange,
   UserStatistics,
-} from '@sonarly/shared';
+} from '../../../types';
 import { api } from '../../../lib/api.js';
 
 export type StatisticsMode = 'me' | 'overall' | 'user';

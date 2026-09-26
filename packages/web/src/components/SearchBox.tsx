@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import type { Song, Album, Artist, Playlist } from '@sonarly/shared';
+import type { Song, Album, Artist, Playlist } from '../types';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { api } from '../lib/api.js';

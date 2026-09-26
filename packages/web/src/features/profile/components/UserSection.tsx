@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import type { User } from '@sonarly/shared';
+import type { User } from '../../../types';
 import { Avatar } from '../../../components/Avatar.js';
 
 interface UserSectionProps {

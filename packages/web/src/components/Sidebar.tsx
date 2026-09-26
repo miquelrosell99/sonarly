@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
-import type { Playlist, User, UserPreferences, SidebarItem } from '@sonarly/shared';
+import type { Playlist, User, UserPreferences, SidebarItem } from '../types';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
 import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';

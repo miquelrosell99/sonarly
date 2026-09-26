@@ -4,8 +4,8 @@ import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferen
 import { Input } from '../../../components/ui/Input.js';
 import { Checkbox } from '../../../components/ui/Checkbox.js';
 import { Icon } from '../../../components/ui/Icon.js';
-import { AUTO_DJ_EXCLUDE_WINDOWS } from '@sonarly/shared';
-import type { AutoDjMode, AutoDjExcludeWindow } from '@sonarly/shared';
+import { AUTO_DJ_EXCLUDE_WINDOWS } from '../../../types';
+import type { AutoDjMode, AutoDjExcludeWindow } from '../../../types';
 
 const modeOptions: {
   value: AutoDjMode;

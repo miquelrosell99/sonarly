@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'wouter';
-import type { Song as SharedSong, User } from '@sonarly/shared';
+import type { Song as SharedSong, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { cn } from '../../../lib/cn.js';
 import { Button } from '../../../components/ui/Button.js';

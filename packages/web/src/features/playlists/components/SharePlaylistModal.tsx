@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { PlaylistShareEntry, PlaylistVisibility, User } from '@sonarly/shared';
+import type { PlaylistShareEntry, PlaylistVisibility, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { cn } from '../../../lib/cn.js';
 import { Modal } from '../../../components/ui/Modal.js';

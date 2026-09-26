@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Library } from '@sonarly/shared';
+import type { Library } from '../types';
 import { api } from '../lib/api.js';
 
 interface LibraryState {

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import * as React from 'react';
-import type { Song } from '@sonarly/shared';
+import type { Song } from '../types';
 import { useSongsContextMenu } from './useSongsContextMenu.js';
 
 const playActions = vi.hoisted(() => ({

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { LrcLibMatch, LrcLibSearchResult, SyncedLyricLine } from '@sonarly/shared';
+import type { LrcLibMatch, LrcLibSearchResult, SyncedLyricLine } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';

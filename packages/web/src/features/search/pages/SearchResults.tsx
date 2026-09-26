@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useSearch, Link, useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Song, Album, Artist, Playlist, FavoriteEntityType, User } from '@sonarly/shared';
+import type { Song, Album, Artist, Playlist, FavoriteEntityType, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { PageState } from '../../../components/PageState.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';

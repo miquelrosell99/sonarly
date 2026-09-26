@@ -1,4 +1,4 @@
-import type { Song } from '@sonarly/shared';
+import type { Song } from '../types';
 import { usePlayer, type PlayerSong, type QueueContext } from '../stores/playerStore.js';
 
 export interface UsePlayActionsResult {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'wouter';
-import type { Song, User } from '@sonarly/shared';
+import type { Song, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Card } from '../../../components/Card.js';
 import { CoverArt } from '../../../components/CoverArt.js';

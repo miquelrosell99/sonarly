@@ -1,20 +1,27 @@
 # Sonarly Database Schema
 
-Sonarly uses **SQLite** (via `better-sqlite3`). The database file is created at `${DATA_DIR}/sonarly.db` (default `/data/sonarly.db`). Migrations run automatically on startup from `packages/server/src/db/migrations/`.
+Sonarly uses **SQLite** via `modernc.org/sqlite` (pure Go). The database file defaults to `${SONARLY_DATA_DIR}/sonarly.db` (`/data/db/sonarly.db` in the image). Migrations run automatically on startup from the embedded files in `v2/internal/db/migrations/`.
 
-This document reflects the schema produced by migrations `001` through `046`.
+This document reflects the schema produced by migrations **0001–0004**:
+
+| Migration | What it does |
+|---|---|
+| `0001_baseline.sql` | Complete schema distilled from the v1 migration chain (001–049), with audit fixes (real FKs on `user_libraries`, unique `genres.name`, FK-child indexes) |
+| `0002_job_payload.sql` | `scan_jobs.payload` (typed JSON job payloads) + `scan_jobs.created_at` (pending-visible job ordering) |
+| `0003_search_fts.sql` | FTS5 virtual tables (`songs_fts`, `albums_fts`, `artists_fts`) + initial backfill |
+| `0004_search_fts_backfill_fix.sql` | Idempotent full-corpus FTS re-backfill (re-asserts index↔corpus invariant on every database) |
 
 ## Conventions
 
 - Primary keys are UUIDs stored as `TEXT` unless noted.
 - Boolean flags are stored as `INTEGER` (`0` = false, `1` = true).
-- Timestamps are stored as ISO-8601 `TEXT` (e.g., `datetime('now')`).
+- Timestamps are stored as ISO-8601 `TEXT` (default `datetime('now')`).
 - File modification times (`mtime`) are Unix milliseconds stored as `INTEGER`.
-- Soft deletion / "missing" detection uses the `active` flag on `songs`, `albums`, `artists`, and `genres`.
+- Ratings are `REAL` (half-ratings supported).
+- Soft deletion / "missing" detection uses the `active` flag on `songs`, `albums`, `artists`, `genres`, and `labels`.
+- Applied migrations are recorded in the `schema_migrations` ledger (`filename`, `applied_at`); migrations are forward-only and never edited after shipping.
 
----
-
-## Core entities
+## Identity and settings
 
 ### `users`
 
@@ -23,434 +30,114 @@ Authenticated accounts.
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | `TEXT` | Primary key (UUID) |
-| `username` | `TEXT` | Unique, case-sensitive |
+| `username` | `TEXT` | Unique |
 | `password_hash` | `TEXT` | Bcrypt hash for web UI sessions |
-| `subsonic_password_encrypted` | `TEXT` | Encrypted password used for Subsonic token derivation |
 | `is_admin` | `INTEGER` | Default `0` |
-| `name` | `TEXT` | Optional display name |
-| `surname` | `TEXT` | Optional display surname |
-| `email` | `TEXT` | Optional email |
-| `avatar_path` | `TEXT` | Filename of the avatar stored in `${DATA_DIR}/avatars/` |
 | `created_at` | `TEXT` | Default `datetime('now')` |
+| `subsonic_password_encrypted` | `TEXT` | AES-GCM-sealed password used for Subsonic token derivation (key derived from `SESSION_SECRET`) |
+| `name` / `surname` / `email` | `TEXT` | Optional profile fields |
+| `avatar_path` | `TEXT` | Filename of the avatar stored under `SONARLY_DATA_DIR/avatars/` |
+| `max_bitrate_kbps` / `transcode_format` | `TEXT`/`INTEGER` | Per-user playback preferences |
+| `hide_explicit` / `blur_explicit_titles` / `blur_explicit_covers` | `INTEGER` | Explicit-content preferences |
 
-### `artists`
+### `sessions` / `api_keys`
 
-Music artists.
+Session store (`sid`, `sess`, `expire`; index on `expire` for the periodic sweep) and API keys (`key_hash`, never the raw key; cascade on user delete).
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | `TEXT` | Primary key (UUID) |
-| `name` | `TEXT` | `COLLATE NOCASE`, unique (case-insensitive) |
-| `active` | `INTEGER` | Default `1`; set to `0` when no active songs reference the artist |
-| `artist_image_url` | `TEXT` | Optional external artist image URL |
-| `artist_image_local_path` | `TEXT` | Optional local cached artist image path |
+### `settings` / `user_preferences`
 
-**Indexes:**
-- `idx_artists_name` on `name`
-- `idx_artists_name_unique` unique on `name COLLATE NOCASE`
-- `idx_artists_active` on `active`
+Key-value server settings (`key`, `value`, `updated_at`) and per-user preference blobs (`preferences` JSON, PATCH allowlisted keys; one row per user).
 
-### `song_artists`
+## Catalog
 
-Multi-value track artist links. Track artists are stored in the shared `artists` table.
+### `artists`, `labels`
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `song_id` | `TEXT` | FK → `songs(id)` `ON DELETE CASCADE` |
-| `artist_id` | `TEXT` | FK → `artists(id)` `ON DELETE CASCADE` |
-| `position` | `INTEGER` | Order within the song |
-
-**Primary key:** (`song_id`, `artist_id`)
-
-**Indexes:**
-- `idx_song_artists_song` on `song_id`
-- `idx_song_artists_artist` on `artist_id`
-
-### `album_artists`
-
-Multi-value album artist links. Album artists are stored in the shared `artists` table.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `album_id` | `TEXT` | FK → `albums(id)` `ON DELETE CASCADE` |
-| `artist_id` | `TEXT` | FK → `artists(id)` `ON DELETE CASCADE` |
-| `position` | `INTEGER` | Order within the album |
-
-**Primary key:** (`album_id`, `artist_id`)
-
-**Indexes:**
-- `idx_album_artists_album` on `album_id`
-- `idx_album_artists_artist` on `artist_id`
-
-### `albums`
-
-Music albums.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | `TEXT` | Primary key (UUID) |
-| `name` | `TEXT` | `COLLATE NOCASE` |
-| `artist_id` | `TEXT` | FK → `artists(id)` `ON DELETE SET NULL` |
-| `artist_name` | `TEXT` | Denormalized album artist name |
-| `year` | `INTEGER` | Release year |
-| `genre` | `TEXT` | Legacy text genre (kept for compatibility) |
-| `genre_id` | `TEXT` | FK → `genres(id)` `ON DELETE SET NULL` |
-| `release_type` | `TEXT` | Release type (album, ep, single, compilation, …); from the `RELEASETYPE` tag or the metadata editor |
-| `cover_art_id` | `TEXT` | FK → `cover_arts(id)` |
-| `active` | `INTEGER` | Default `1`; set to `0` when all songs become inactive |
-
-**Indexes:**
-- `idx_albums_artist` on `artist_id`
-- `idx_albums_active` on `active`
-- `idx_albums_genre_id` on `genre_id`
-- `idx_albums_name` on `name`
-
-### `labels`
-
-Record labels. Uses the same schema shape as `artists` but lives in its own table because labels are organizations, not creators.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | `TEXT` | Primary key (UUID) |
-| `name` | `TEXT` | `COLLATE NOCASE`, unique (case-insensitive) |
-| `active` | `INTEGER` | Default `1`; set to `0` when no active albums reference the label |
-| `label_image_url` | `TEXT` | Optional external label image URL |
-| `label_image_local_path` | `TEXT` | Optional local cached label image path |
-| `musicbrainz_label_ids` | `TEXT` | JSON array of MusicBrainz label IDs |
-| `bio` | `TEXT` | Biography / description |
-| `external_urls` | `TEXT` | JSON object of external links |
-
-**Indexes:**
-- `idx_labels_name` on `name`
-- `idx_labels_name_unique` unique on `name COLLATE NOCASE`
-- `idx_labels_active` on `active`
-
-### `album_labels`
-
-Multi-value label links for albums.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `album_id` | `TEXT` | FK → `albums(id)` `ON DELETE CASCADE` |
-| `label_id` | `TEXT` | FK → `labels(id)` `ON DELETE CASCADE` |
-| `position` | `INTEGER` | Order within the album |
-
-**Primary key:** (`album_id`, `label_id`)
-
-**Indexes:**
-- `idx_album_labels_album` on `album_id`
-- `idx_album_labels_label` on `label_id`
-
-### `songs`
-
-Individual audio tracks.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | `TEXT` | Primary key (UUID) |
-| `file_path` | `TEXT` | Unique absolute path to the audio file |
-| `title` | `TEXT` | `COLLATE NOCASE` |
-| `track_number` | `INTEGER` | Track number within the album |
-| `disc_number` | `INTEGER` | Disc number |
-| `duration` | `INTEGER` | Duration in seconds |
-| `artist_id` | `TEXT` | FK → `artists(id)` `ON DELETE SET NULL` |
-| `album_id` | `TEXT` | FK → `albums(id)` `ON DELETE SET NULL` |
-| `genre` | `TEXT` | Legacy text genre (kept for compatibility) |
-| `genre_id` | `TEXT` | FK → `genres(id)` `ON DELETE SET NULL` |
-| `year` | `INTEGER` | Release year |
-| `explicit` | `INTEGER` | Default `0`; explicit content flag |
-| `cover_art_id` | `TEXT` | FK → `cover_arts(id)` |
-| `cover_art_missing` | `INTEGER` | Default `0`; set to `1` when no embedded cover is found |
-| `mtime` | `INTEGER` | File modification time (Unix ms) |
-| `checksum` | `TEXT` | File checksum used for change detection |
-| `active` | `INTEGER` | Default `1`; set to `0` when the file is missing during scan |
-| `library_id` | `TEXT` | FK → `libraries(id)`; owning library for per-library scoping |
-| `bit_rate` | `INTEGER` | Audio bitrate in bits per second (divide by 1000 for kbps) |
-| `bits_per_sample` | `INTEGER` | Bit depth |
-| `sample_rate` | `INTEGER` | Sample rate in Hz |
-| `channels` | `INTEGER` | Channel count |
-| `bpm` | `INTEGER` | Beats per minute |
-| `music_brainz_id` | `TEXT` | MusicBrainz recording ID |
-| `replay_gain` | `REAL` | ReplayGain value |
-| `average_rating` | `REAL` | Average of all `user_songs.rating` entries |
-| `comment` | `TEXT` | Comment tag |
-| `sort_name` | `TEXT` | Sort title |
-| `mood` | `TEXT` | Mood tag |
-| `media_type` | `TEXT` | MIME type override |
-| `original_release_date` | `TEXT` | Original release date |
-| `release_date` | `TEXT` | Release date |
-| `remix_of` | `TEXT` | Original track reference |
-| `display_artist` | `TEXT` | Display artist override |
-| `display_album_artist` | `TEXT` | Display album artist override |
-| `lyrics` | `TEXT` | Plain lyrics |
-| `synced_lyrics` | `TEXT` | LRC-format synced lyrics (stored as text/JSON) |
-
-**Indexes:**
-- `idx_songs_album` on `album_id`
-- `idx_songs_artist` on `artist_id`
-- `idx_songs_active` on `active`
-- `idx_songs_genre_id` on `genre_id`
-- `idx_songs_checksum` on `checksum`
-- `idx_songs_library_id` on `library_id`
-
-### `song_composers`
-
-Multi-value composer links for songs. Composers are stored in the shared `artists` table.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `song_id` | `TEXT` | FK → `songs(id)` `ON DELETE CASCADE` |
-| `artist_id` | `TEXT` | FK → `artists(id)` `ON DELETE CASCADE` |
-| `position` | `INTEGER` | Order within the song |
-
-**Primary key:** (`song_id`, `artist_id`)
-
-**Indexes:**
-- `idx_song_composers_song` on `song_id`
-- `idx_song_composers_artist` on `artist_id`
-
-### `genres`
-
-Hierarchical genre taxonomy.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | `TEXT` | Primary key (UUID) |
-| `name` | `TEXT` | `COLLATE NOCASE` |
-| `parent_id` | `TEXT` | FK → `genres(id)` `ON DELETE SET NULL` |
-| `active` | `INTEGER` | Default `1` |
-
-**Indexes:**
-- `idx_genres_name` on `name`
-- `idx_genres_parent` on `parent_id`
+`id`, `name` (`COLLATE NOCASE`, unique case-insensitively), `active`, image URL/local path, `musicbrainz_*` ids, `bio`, `external_urls`. `genres` is the same minus images, plus `parent_id` (self-reference, `ON DELETE SET NULL`) for the genre tree.
 
 ### `cover_arts`
 
-Cached cover art images extracted from audio files or uploaded via the UI.
+Embedded/cached artwork: `id`, `format`, `data` (BLOB), `hash` (indexed — dedupe), `created_at`.
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | `TEXT` | Primary key (UUID) |
-| `format` | `TEXT` | Image MIME type (e.g., `image/jpeg`) |
-| `data` | `BLOB` | Raw image bytes |
-| `hash` | `TEXT` | Content hash for deduplication |
-| `created_at` | `TEXT` | Default `datetime('now')` |
+### `albums`
 
-**Indexes:**
-- `idx_cover_arts_hash` on `hash`
+| Column | Notes |
+|--------|-------|
+| `id`, `name` (`COLLATE NOCASE`) | |
+| `artist_id` → `artists`, `artist_name` | Cached display name |
+| `year`, `original_year` | |
+| `genre`, `genre_id` → `genres` | Cached name + FK |
+| `cover_art_id` → `cover_arts` | `ON DELETE NO ACTION` (same as v1) |
+| `active` | Missing-file detection |
+| `catalog_numbers`, `barcode`, `asin` | Identifiers |
+| `musicbrainz_album_id`, `musicbrainz_release_group_id`, `musicbrainz_album_artist_ids` | MusicBrainz linkage |
+| `compilation`, `release_type` | |
+| `total_tracks`, `total_discs` | `TEXT` (preserves "12/14"-style tags) |
 
----
+Album-level metadata fields are only filled when empty, so user edits survive rescans.
 
-## User content interactions
+### `songs`
 
-### `user_songs`
+The central table. Highlights:
 
-Per-user song interactions (favorite, rating, play count).
+- **Files**: `file_path` (UNIQUE), `mtime` (Unix ms), `checksum` (indexed), `library_id` → `libraries` (indexed).
+- **Identity**: `title` (`COLLATE NOCASE`), `track_number`, `disc_number`, `artist_id` → `artists`, `album_id` → `albums`, `genre`/`genre_id`, `year`.
+- **Technical**: `duration`, `bit_rate`, `bits_per_sample`, `sample_rate`, `channels`, `bpm`, `replay_gain` (REAL), `media_type`, `gapless`.
+- **Display**: `display_artist`, `display_album_artist`, `sort_name`, `comment`, `mood`, `explicit`, `cover_art_missing`.
+- **MusicBrainz**: `music_brainz_id`, `musicbrainz_track_id`, `musicbrainz_work_id`, `musicbrainz_disc_id`.
+- **Dates**: `original_release_date`, `release_date`, `original_year`.
+- **Relations**: `remix_of`, `original_artist`, `producers`, `isrcs`, `total_tracks`, `total_discs`.
+- **Lyrics**: `lyrics`, `synced_lyrics`.
+- **Aggregates**: `average_rating` (denormalized across users).
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `user_id` | `TEXT` | FK → `users(id)` `ON DELETE CASCADE` |
-| `song_id` | `TEXT` | FK → `songs(id)` `ON DELETE CASCADE` |
-| `starred` | `INTEGER` | Default `0` |
-| `rating` | `INTEGER` | 0–5, nullable |
-| `play_count` | `INTEGER` | Default `0` |
-| `last_played` | `TEXT` | ISO timestamp |
+### Junction tables
 
-**Primary key:** (`user_id`, `song_id`)
+Multi-value relations, all `(owner_id, value_id, position)` with composite PKs, cascading deletes, and both directions indexed:
 
-### `user_albums`
+`song_artists`, `album_artists`, `song_genres`, `album_genres`, `song_composers`, `album_labels`.
 
-Per-user album favorites and ratings.
+## Libraries
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `user_id` | `TEXT` | FK → `users(id)` `ON DELETE CASCADE` |
-| `album_id` | `TEXT` | FK → `albums(id)` `ON DELETE CASCADE` |
-| `starred` | `INTEGER` | Default `0` |
-| `rating` | `INTEGER` | 0–5, nullable |
+### `libraries`
 
-**Primary key:** (`user_id`, `album_id`)
+Admin-managed folders: `id`, `name`, `path` (UNIQUE), `organize_pattern` (default `{albumArtist}/({year}) {album}/{disc:00}{track:00} - {title}`), `is_default`, timestamps. A default library is seeded from `SONARLY_LIBRARY_PATH` on first start.
 
-### `user_artists`
+### `user_libraries`
 
-Per-user artist favorites and ratings.
+Per-user library assignment — **a security boundary**, enforced on every content query and stream/download path. Composite PK `(user_id, library_id)` with real cascading FKs (audit fix; v1 had none).
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `user_id` | `TEXT` | FK → `users(id)` `ON DELETE CASCADE` |
-| `artist_id` | `TEXT` | FK → `artists(id)` `ON DELETE CASCADE` |
-| `starred` | `INTEGER` | Default `0` |
-| `rating` | `INTEGER` | 0–5, nullable |
+## Per-user interaction state
 
-**Primary key:** (`user_id`, `artist_id`)
-
-### `user_playlists`
-
-Per-user playlist favorites and ratings.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `user_id` | `TEXT` | FK → `users(id)` `ON DELETE CASCADE` |
-| `playlist_id` | `TEXT` | FK → `playlists(id)` `ON DELETE CASCADE` |
-| `starred` | `INTEGER` | Default `0` |
-| `rating` | `INTEGER` | 0–5, nullable |
-
-**Primary key:** (`user_id`, `playlist_id`)
-
----
+`user_songs`, `user_albums`, `user_artists`, `user_playlists` — star/rating rows per entity (ratings are `REAL`; `user_songs` also carries `play_count`/`last_played`). Composite PKs, cascading FKs, child-column indexes.
 
 ## Playlists
 
 ### `playlists`
 
-User-created playlists (manual or smart).
+`id`, `name`, `owner_id` → `users` (cascade), `visibility` (`private`/`shared`/`public`/`link`), `share_token` (UNIQUE, minted iff visibility=link), `is_smart`, `rules_json` (smart-playlist rules), `resolve_mode` (`tracks` = owner's data / `query` = live per-viewer), `description`, timestamps.
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | `TEXT` | Primary key (UUID) |
-| `name` | `TEXT` | Playlist name |
-| `description` | `TEXT` | Optional playlist description |
-| `owner_id` | `TEXT` | FK → `users(id)` `ON DELETE CASCADE` |
-| `visibility` | `TEXT` | `private` (default), `shared`, `public`, or `link` |
-| `share_token` | `TEXT` | Unique token for `link` visibility |
-| `is_smart` | `INTEGER` | Default `0`; `1` for smart playlists |
-| `rules_json` | `TEXT` | JSON smart-playlist rules |
-| `created_at` | `TEXT` | Default `datetime('now')` |
-| `updated_at` | `TEXT` | Default `datetime('now')` |
+### `playlist_songs` / `playlist_shares`
 
-### `playlist_songs`
+Members (`position` ordered) and per-user shares with `can_edit`. Both cascade on delete, both directions indexed.
 
-Manual playlist entries (position-based). Smart playlists do not populate this table.
+## Listening history and bookmarks
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `playlist_id` | `TEXT` | FK → `playlists(id)` `ON DELETE CASCADE` |
-| `song_id` | `TEXT` | FK → `songs(id)` `ON DELETE CASCADE` |
-| `position` | `INTEGER` | Zero-based position |
+- `listening_history`: `id`, `user_id`, `song_id`, `played_at`, `duration_listened` (seconds), `completion` (REAL), `client`, `source`; indexed on `(user_id, played_at)` and `song_id`.
+- `bookmarks`: PK `(user_id, song_id)`, `position`, `comment`, timestamps.
 
-**Primary key:** (`playlist_id`, `song_id`)
+## Background jobs and uploads
 
-### `playlist_shares`
+- `scan_jobs`: `id`, `type`, `status` (`pending`/`running`/`done`/`error`), `started_at`, `finished_at`, `stats`, `error`, plus from 0002: `payload` (typed JSON) and `created_at` (status orders by `COALESCE(started_at, created_at)` so queued work is visible).
+- `ingest_jobs`: `id`, `run_id` (batch), `source_path` (NOT NULL, deliberately not UNIQUE), `status`, `target_path`, `error`, duplicate flags, timestamps.
+- `upload_sessions`: `id`, `library_id` → `libraries` (cascade), `created_at`, `duplicate_strategy`. Chunks are staged on disk, not in the DB.
 
-Shares between users for collaborative playlists.
+## Full-text search (0003 + 0004)
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `playlist_id` | `TEXT` | FK → `playlists(id)` `ON DELETE CASCADE` |
-| `user_id` | `TEXT` | FK → `users(id)` `ON DELETE CASCADE` |
-| `can_edit` | `INTEGER` | Default `0`; `1` grants edit permission |
+Three **regular** (self-contained) FTS5 virtual tables, keyed by the content row's rowid:
 
-**Primary key:** (`playlist_id`, `user_id`)
+- `songs_fts(title)` — tokenized `unicode61`
+- `albums_fts(name, artist_name)`
+- `artists_fts(name)`
 
----
+Regular tables were chosen deliberately: on this FTS5 build, external-content tables misbehave (DELETE of an absent rowid reports `SQLITE_CORRUPT`; INSERT OR REPLACE duplicates). The cost is a second copy of the indexed text — trivial at music-library scale.
 
-## Preferences and settings
-
-### `user_preferences`
-
-Per-user UI preferences stored as a JSON blob.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `user_id` | `TEXT` | PK, FK → `users(id)` `ON DELETE CASCADE` |
-| `preferences` | `TEXT` | JSON object (default `'{}'`) |
-| `updated_at` | `TEXT` | Default `datetime('now')` |
-
-Common preference keys include `hideExplicit`, `themeMode`, `accentColor`, `sidebarConfig`, and `viewOptions`.
-
-### `settings`
-
-Server-wide admin settings as key-value pairs.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `key` | `TEXT` | Primary key |
-| `value` | `TEXT` | Setting value |
-| `updated_at` | `TEXT` | Default `datetime('now')` |
-
-Currently used keys:
-- `organize_pattern` — file organization pattern template
-- `review_retention_days` — days to keep files in the ingest review folder
-- `last_review_cleanup` / `last_artist_image_sync` — last-run timestamps for background tasks
-
----
-
-## Jobs and processing
-
-### `scan_jobs`
-
-Background worker jobs for scanning, resyncing, organizing, cleanup, and artist image sync.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | `TEXT` | Primary key (UUID) |
-| `type` | `TEXT` | `scan`, `resync`, `ingest`, `organize`, `cleanup_review`, or `artist_images` |
-| `status` | `TEXT` | `pending`, `running`, `completed`, or `failed` (default `pending`) |
-| `started_at` | `TEXT` | ISO timestamp |
-| `finished_at` | `TEXT` | ISO timestamp |
-| `stats` | `TEXT` | JSON stats blob |
-
-### `ingest_jobs`
-
-Tracks files dropped into the ingest folder awaiting review / import.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | `TEXT` | Primary key (UUID) |
-| `source_path` | `TEXT` | Unique source path |
-| `status` | `TEXT` | Default `pending` |
-| `target_path` | `TEXT` | Organized destination path |
-| `error` | `TEXT` | Error message on failure |
-| `created_at` | `TEXT` | Default `datetime('now')` |
-| `updated_at` | `TEXT` | Default `datetime('now')` |
-
----
-
-## Listening history
-
-### `listening_history`
-
-Per-user play events.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | `TEXT` | Primary key (UUID) |
-| `user_id` | `TEXT` | FK → `users(id)` `ON DELETE CASCADE` |
-| `song_id` | `TEXT` | FK → `songs(id)` `ON DELETE CASCADE` |
-| `played_at` | `TEXT` | Default `datetime('now')` |
-| `duration_listened` | `INTEGER` | Seconds listened |
-| `completion` | `REAL` | Completion ratio (0–1) |
-| `client` | `TEXT` | Client identifier |
-| `source` | `TEXT` | Playback source |
-
-**Indexes:**
-- `idx_listening_history_user_played_at` on (`user_id`, `played_at`)
-- `idx_listening_history_song` on `song_id`
-
----
-
-## Sessions and keys
-
-### `sessions`
-
-Server-side cookie sessions.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `sid` | `TEXT` | Primary key (session ID) |
-| `sess` | `TEXT` | JSON session data |
-| `expire` | `TEXT` | Expiration timestamp |
-
-**Indexes:**
-- `idx_sessions_expire` on `expire`
-
-### `api_keys`
-
-API keys for external clients (e.g., Subsonic apps).
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | `TEXT` | Primary key (UUID) |
-| `user_id` | `TEXT` | FK → `users(id)` `ON DELETE CASCADE` |
-| `key_hash` | `TEXT` | Hashed API key |
-| `created_at` | `TEXT` | Default `datetime('now')` |
+The indexes are maintained by explicit statements **inside the transactions that write the content rows** (`library.PersistSong` syncs the rows it touches; the scanner's deactivation pass removes songs leaving the catalog). Migration 0004 re-backfills all three tables so the invariant "indexes mirror the active corpus" holds on every database.

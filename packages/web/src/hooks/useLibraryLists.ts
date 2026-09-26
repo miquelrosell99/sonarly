@@ -23,7 +23,7 @@
 // hand-rolled setState did.
 import { useCallback } from 'react';
 import { keepPreviousData, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
-import type { Album, Artist, Playlist, Song } from '@sonarly/shared';
+import type { Album, Artist, Playlist, Song } from '../types';
 import { api } from '../lib/api.js';
 
 export const LIBRARY_LIST_STALE_TIME = 30_000;

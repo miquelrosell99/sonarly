@@ -5,7 +5,7 @@
 // `any`, so a string can reach the client on DTOs that did not validate the
 // column — notably raw LRC text. Every read path funnels through
 // normalizeSyncedLyrics so the render code only ever sees SyncedLyricLine[].
-import type { SyncedLyricLine } from '@sonarly/shared';
+import type { SyncedLyricLine } from '../types';
 
 const LRC_TIMESTAMP = /\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\]/g;
 const LRC_META = /^\[[a-zA-Z]+:/;

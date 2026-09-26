@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import type { Artist } from '@sonarly/shared';
+import type { Artist } from '../../../types';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { ArtistImage } from '../../../components/ArtistImage.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';

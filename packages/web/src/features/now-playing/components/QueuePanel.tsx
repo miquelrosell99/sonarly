@@ -1,4 +1,4 @@
-import type { User } from '@sonarly/shared';
+import type { User } from '../../../types';
 import { QueueList } from './QueueList.js';
 
 interface QueuePanelProps {

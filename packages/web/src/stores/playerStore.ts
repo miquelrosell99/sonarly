@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Song } from '@sonarly/shared';
+import type { Song } from '../types';
 
 export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 export type RepeatMode = 'off' | 'all' | 'one';

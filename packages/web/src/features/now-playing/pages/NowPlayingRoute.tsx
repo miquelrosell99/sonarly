@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useParams } from 'wouter';
-import type { Song, User } from '@sonarly/shared';
+import type { Song, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { getShareToken, withShareToken } from '../../../lib/shareToken.js';
 import { PageState } from '../../../components/PageState.js';

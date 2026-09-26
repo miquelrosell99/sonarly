@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import type { SmartPlaylistRules, Song } from '@sonarly/shared';
+import type { SmartPlaylistRules, Song } from '../types';
 import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
 import { Button } from './ui/Button.js';

@@ -1,4 +1,4 @@
-import type { Album } from '@sonarly/shared';
+import type { Album } from '../types';
 
 export function fillCoverAlbums(albums: Album[], count = 4): Album[] {
   const seen = new Set<string>();
