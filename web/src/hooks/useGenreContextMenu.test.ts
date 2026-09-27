@@ -27,11 +27,21 @@ vi.mock('../lib/api.js', () => ({
   api: vi.fn(),
 }));
 
+const mockDownload = vi.hoisted(() => ({
+  downloadTrackUrl: vi.fn((id: string) => `/api/stream/${id}?download=1`),
+  saveUrl: vi.fn(),
+  downloadSongs: vi.fn(),
+}));
+
+vi.mock('../lib/download.js', () => mockDownload);
+
 const mockedApi = vi.mocked(api);
+const mockedDownloadSongs = vi.mocked(mockDownload.downloadSongs);
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  window.history.pushState({}, '', '/');
 });
 
 function createHarness(genre: string, tracks?: Song[]) {
@@ -154,5 +164,36 @@ describe('useGenreContextMenu', () => {
       expect(mockNotify.notify).toHaveBeenCalledWith('Network error', 'error'),
     );
     expect(playActions.playSongs).not.toHaveBeenCalled();
+  });
+
+  it('packs the provided tracks when Download is clicked without a refetch', () => {
+    const Harness = createHarness('Rock', genreSongs);
+    render(React.createElement(Harness));
+
+    fireEvent.click(screen.getByTestId('download'));
+
+    expect(mockedDownloadSongs).toHaveBeenCalledWith(genreSongs.map((song) => song.id));
+    expect(mockedApi).not.toHaveBeenCalled();
+  });
+
+  it('resolves the genre song list before packing when tracks are not provided', async () => {
+    mockedApi.mockResolvedValueOnce({ songs: genreSongs });
+
+    const Harness = createHarness('Rock');
+    render(React.createElement(Harness));
+
+    fireEvent.click(screen.getByTestId('download'));
+
+    await waitFor(() =>
+      expect(mockedApi).toHaveBeenCalledWith(`/songs?genre=${encodeURIComponent('Rock')}`),
+    );
+    expect(mockedDownloadSongs).toHaveBeenCalledWith(genreSongs.map((song) => song.id));
+  });
+
+  it('disables Download when provided tracks are empty', () => {
+    const Harness = createHarness('Rock', []);
+    render(React.createElement(Harness));
+
+    expect((screen.getByTestId('download') as HTMLButtonElement).disabled).toBe(true);
   });
 });

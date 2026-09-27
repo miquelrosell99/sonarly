@@ -2,7 +2,9 @@ package playlists
 
 // Playlist is the domain model: one row of playlists plus the owner's
 // username when loaded for display. ShareToken is "" when the playlist has
-// no link token (token exists iff visibility == "link").
+// no link token (token exists iff visibility == "link"). ShareDownload is
+// the link-share download permission (migration 0006): when false the share
+// token streams only — ZIP packs and ?download=1 answer 404.
 type Playlist struct {
 	ID            string
 	Name          string
@@ -11,6 +13,7 @@ type Playlist struct {
 	OwnerUsername string
 	Visibility    string // private | shared | public | link
 	ShareToken    string
+	ShareDownload bool
 	IsSmart       bool
 	Rules         *Rules
 	ResolveMode   string // tracks | query
@@ -122,13 +125,18 @@ type CoverAlbum struct {
 }
 
 type Detail struct {
-	ID            string  `json:"id"`
-	Name          string  `json:"name"`
-	Description   string  `json:"description,omitempty"`
-	OwnerID       string  `json:"ownerId"`
-	OwnerUsername string  `json:"ownerUsername"`
-	Visibility    string  `json:"visibility"`
-	ShareToken    string  `json:"shareToken,omitempty"`
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	Description   string `json:"description,omitempty"`
+	OwnerID       string `json:"ownerId"`
+	OwnerUsername string `json:"ownerUsername"`
+	Visibility    string `json:"visibility"`
+	ShareToken    string `json:"shareToken,omitempty"`
+	// ShareDownload rides the detail only for the owner and token-resolved
+	// viewers (the only audiences who can act on it); it is false for every
+	// other viewer regardless of the stored flag, so the capability never
+	// leaks to plain viewers of a public playlist.
+	ShareDownload bool    `json:"shareDownload"`
 	IsSmart       bool    `json:"isSmart"`
 	ResolveMode   string  `json:"resolveMode"`
 	Rules         *Rules  `json:"rules,omitempty"`

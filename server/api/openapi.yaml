@@ -11,8 +11,8 @@
 #   - Auth: signed `sessionId` cookie (HttpOnly, SameSite=Strict) OR the
 #     `X-API-Key` header on ordinary /api routes. /api/events is
 #     session-cookie-only (EventSource cannot set headers).
-#   - /api/stream/{id} and /api/events are exempt from the global 60s API
-#     timeout (long-lived by design).
+#   - /api/stream/{id}, /api/download and /api/events are exempt from the
+#     global 60s API timeout (long-lived by design).
 openapi: 3.1.0
 info:
   title: Sonarly API
@@ -1094,8 +1094,10 @@ paths:
       tags: [playlists]
       summary: Playlist detail with resolved entries
       description: >
-        `shares` and `shareToken` are owner-only. The `shareToken` query
-        parameter authorizes non-owner access to link-shared playlists.
+        `shares` and `shareToken` are owner-only. `shareDownload` rides the
+        detail for the owner and token-resolved viewers so both can render
+        the download affordance. The `shareToken` query parameter
+        authorizes non-owner access to link-shared playlists.
       parameters:
         - $ref: '#/components/parameters/PlaylistId'
         - { name: shareToken, in: query, schema: { type: string }, description: 'Link-share token (for viewers, not the owner).' }
@@ -1250,18 +1252,68 @@ paths:
       operationId: createPlaylistShareLink
       tags: [playlists]
       summary: Create (or return) the link-share token (owner)
+      description: >
+        Always mints a FRESH token (re-posting regenerates, killing the
+        previously shared link). `allowDownload` sets the link's download
+        permission (default false): when on, the token may fetch ZIP packs
+        (POST /api/download) and single-track `?download=1` streams; when
+        off, those endpoints answer 404 for token viewers while plain
+        streaming is unaffected.
       parameters:
         - $ref: '#/components/parameters/PlaylistId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                allowDownload: { type: boolean, default: false }
       responses:
         '200':
-          description: The share token.
+          description: The share token and the link's download permission.
           content:
             application/json:
               schema:
                 type: object
-                required: [shareToken]
+                required: [shareToken, shareDownload]
                 properties:
                   shareToken: { type: string }
+                  shareDownload: { type: boolean }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      operationId: updatePlaylistShareLink
+      tags: [playlists]
+      summary: Update the link's download permission (owner; no token rotation)
+      description: >
+        Sets `shareDownload` WITHOUT rotating the token — links already
+        shared keep working, and the new permission applies to the next
+        request. The playlist detail DTO carries the flag for the owner and
+        for token-resolved viewers.
+      parameters:
+        - $ref: '#/components/parameters/PlaylistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                allowDownload: { type: boolean, default: false }
+      responses:
+        '200':
+          description: The updated download permission.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [shareDownload]
+                properties:
+                  shareDownload: { type: boolean }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -1288,10 +1340,12 @@ paths:
       description: >
         Anonymous callers may stream with a valid `share` token (the linked
         playlist's songs); anonymous without a token gets 401; a known token
-        whose playlist does not contain the song gets 404. Direct streams
-        honor Range requests; transcodes (when `maxBitRate` forces one, and
-        never with `download`) are plain 200s. The route is exempt from the
-        global API timeout.
+        whose playlist does not contain the song gets 404. A token whose
+        playlist has not enabled downloads (shareDownload) additionally gets
+        404 on `download=1` — binaries require the link's opt-in; plain
+        streaming never checks it. Direct streams honor Range requests;
+        transcodes (when `maxBitRate` forces one, and never with `download`)
+        are plain 200s. The route is exempt from the global API timeout.
       parameters:
         - $ref: '#/components/parameters/SongId'
         - { name: maxBitRate, in: query, schema: { type: integer }, description: 'Requested transcode bitrate, clamped against the user''s cap.' }
@@ -1318,6 +1372,50 @@ paths:
       responses:
         '200':
           description: Headers the GET would answer (Content-Length for direct streams).
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/download:
+    post:
+      operationId: downloadSongsZip
+      tags: [playback]
+      summary: Download songs as a streaming ZIP archive
+      description: >
+        Packs the active, in-scope, on-disk songs named by `songIds` into a
+        ZIP streamed over the response (`Content-Disposition: attachment;
+        filename="sonarly-YYYYMMDD-HHMMSS.zip"`). Archive entry paths are
+        `{artist} - {album}/{track:02d} - {title}.{ext}` (Unknown-*
+        fallbacks, per-segment organizer sanitization, collision-safe
+        " (n)" suffixes). At most 1000 ids per request; unknown,
+        out-of-scope, inactive, or vanished songs are silently skipped —
+        when nothing remains packable the answer is 400. Anonymous callers
+        must carry `shareToken`: the linked playlist's shareDownload flag
+        must be on (404 otherwise) and only the token's granted songs are
+        packed; zero granted ids answer 404. Signed-in callers authorize by
+        library scope and ignore the flag. The route is exempt from the
+        global API timeout (large packs stream).
+      parameters:
+        - name: shareToken
+          in: query
+          schema: { type: string }
+          description: 'Playlist share token (anonymous access; requires the link''s shareDownload flag).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [songIds]
+              properties:
+                songIds:
+                  type: array
+                  items: { type: string }
+                  maxItems: 1000
+      responses:
+        '200':
+          description: ZIP archive stream.
+          content:
+            application/zip: {}
+        '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
   /api/songs/{id}/scrobble:
@@ -3888,8 +3986,12 @@ components:
         canEdit: { type: boolean }
     PlaylistDetail:
       type: object
-      description: '`shares` and `shareToken` are owner-only.'
-      required: [id, name, ownerId, ownerUsername, visibility, isSmart, resolveMode, songCount, entries, starred, createdAt, updatedAt]
+      description: >
+        `shares` and `shareToken` are owner-only. `shareDownload` is the
+        link's download permission, exposed to the owner and to
+        token-resolved viewers (false for every other viewer regardless of
+        the stored flag).
+      required: [id, name, ownerId, ownerUsername, visibility, shareDownload, isSmart, resolveMode, songCount, entries, starred, createdAt, updatedAt]
       properties:
         id: { type: string }
         name: { type: string }
@@ -3898,6 +4000,7 @@ components:
         ownerUsername: { type: string }
         visibility: { $ref: '#/components/schemas/PlaylistVisibility' }
         shareToken: { type: string }
+        shareDownload: { type: boolean }
         isSmart: { type: boolean }
         resolveMode: { $ref: '#/components/schemas/ResolveMode' }
         rules:

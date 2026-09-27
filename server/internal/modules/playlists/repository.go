@@ -34,14 +34,14 @@ type listRow struct {
 func GetByID(ctx context.Context, q auth.Queries, id string) (*Playlist, error) {
 	var p Playlist
 	var description, shareToken, rulesJSON sql.NullString
-	var isSmart int
+	var isSmart, shareDownload int
 	err := q.QueryRowContext(ctx, `
 		SELECT p.id, p.name, p.description, p.owner_id, u.username, p.visibility,
-		       p.share_token, p.is_smart, p.rules_json, p.resolve_mode, p.created_at, p.updated_at
+		       p.share_token, p.share_download, p.is_smart, p.rules_json, p.resolve_mode, p.created_at, p.updated_at
 		FROM playlists p JOIN users u ON u.id = p.owner_id
 		WHERE p.id = ?`, id).
 		Scan(&p.ID, &p.Name, &description, &p.OwnerID, &p.OwnerUsername,
-			&p.Visibility, &shareToken, &isSmart, &rulesJSON, &p.ResolveMode,
+			&p.Visibility, &shareToken, &shareDownload, &isSmart, &rulesJSON, &p.ResolveMode,
 			&p.CreatedAt, &p.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -55,6 +55,7 @@ func GetByID(ctx context.Context, q auth.Queries, id string) (*Playlist, error) 
 	if shareToken.Valid {
 		p.ShareToken = shareToken.String
 	}
+	p.ShareDownload = shareDownload == 1
 	p.IsSmart = isSmart == 1
 	p.ResolveMode = NormalizeResolveMode(p.ResolveMode)
 	if rulesJSON.Valid && rulesJSON.String != "" {
@@ -342,17 +343,40 @@ func ShareEntries(ctx context.Context, q auth.Queries, playlistID string) ([]Sha
 	return out, nil
 }
 
-// SetShareLink stores exactly token as the playlist's share token. Called
-// with a freshly minted token (create + regenerate share-link). wire parity
-// (P10 decision): the token lifecycle is INDEPENDENT of visibility — this
-// never touches the visibility column (old management-routes.ts POST
+// SetShareLink stores exactly token as the playlist's share token, along
+// with the download permission the owner chose for the link (migration
+// 0006; false when the body omits allowDownload). Called with a freshly
+// minted token (create + regenerate share-link). wire parity (P10 decision):
+// the token lifecycle is INDEPENDENT of visibility — this never touches the
+// visibility column (old management-routes.ts POST
 // /api/playlists/:id/share-link only updates share_token).
-func EnableShareLink(ctx context.Context, q auth.Queries, playlistID, token string) error {
+func EnableShareLink(ctx context.Context, q auth.Queries, playlistID, token string, allowDownload bool) error {
+	download := 0
+	if allowDownload {
+		download = 1
+	}
 	_, err := q.ExecContext(ctx, `
-		UPDATE playlists SET share_token = ?, updated_at = datetime('now')
-		WHERE id = ?`, token, playlistID)
+		UPDATE playlists SET share_token = ?, share_download = ?, updated_at = datetime('now')
+		WHERE id = ?`, token, download, playlistID)
 	if err != nil {
 		return fmt.Errorf("enable share link: %w", err)
+	}
+	return nil
+}
+
+// SetShareDownload updates the link's download permission WITHOUT touching
+// the token (PATCH /api/playlists/:id/share-link). The flag may be set while
+// no token exists yet (it takes effect on the next create/regenerate).
+func SetShareDownload(ctx context.Context, q auth.Queries, playlistID string, allowDownload bool) error {
+	download := 0
+	if allowDownload {
+		download = 1
+	}
+	_, err := q.ExecContext(ctx, `
+		UPDATE playlists SET share_download = ?, updated_at = datetime('now')
+		WHERE id = ?`, download, playlistID)
+	if err != nil {
+		return fmt.Errorf("set share download: %w", err)
 	}
 	return nil
 }

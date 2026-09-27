@@ -1,12 +1,20 @@
 import type { Song } from '../types';
 import { useLocation } from 'wouter';
 import type { ContextMenuSection } from '../components/ItemContextMenu.js';
+import { downloadTrackUrl, saveUrl } from '../lib/download.js';
+import { getShareToken } from '../lib/shareToken.js';
 import { usePlayActions } from './usePlayActions.js';
 import { useAdminContextMenu } from './useAdminContextMenu.js';
 
 export interface SongContextMenuOptions {
   /** Destructive action (the view owns the confirm + invalidate flow). */
   onDelete?: () => void;
+  /**
+   * Whether the Download entry shows. Session surfaces default to true;
+   * share-link guests default to false — the shared playlist's shareDownload
+   * flag (the detail DTO carries it) must be passed in explicitly.
+   */
+  allowDownload?: boolean;
 }
 
 export function useSongContextMenu(
@@ -17,6 +25,7 @@ export function useSongContextMenu(
 ): ContextMenuSection[] {
   const { playSong, playNext, addToQueue } = usePlayActions();
   const [, navigate] = useLocation();
+  const allowDownload = options?.allowDownload ?? getShareToken() === undefined;
 
   const sections: ContextMenuSection[] = [
     {
@@ -38,6 +47,14 @@ export function useSongContextMenu(
       ],
     },
   ];
+
+  if (allowDownload) {
+    sections.push({
+      items: [
+        { id: 'download', label: 'Download', icon: 'mdi-download', onClick: () => saveUrl(downloadTrackUrl(song.id)) },
+      ],
+    });
+  }
 
   if (options?.onDelete && (isAdmin ?? true)) {
     sections.push({

@@ -73,6 +73,7 @@ var inventory = []endpointRef{
 			{"playlist.entries", "PlaylistDetail.tsx:89 (displayEntries); NowPlayingRoute.tsx:100"},
 			{"playlist.starred", "PlaylistDetail.tsx:239-240 (FavoriteRatingGroup)"},
 			{"playlist.shareToken", "SharePlaylistModal.tsx:245-246,353 (share URL, hadLink)"},
+			{"playlist.shareDownload", "SharePlaylistModal.tsx allow-download switch (PATCH round-trip); PlaylistDetail.tsx (guest download gating via row menus)"},
 			{"playlist.shares", "SharePlaylistModal.tsx:244 (members tab)"},
 			{"playlist.entries.id", "PlaylistDetail.tsx:98 (startIndex find)"},
 			{"playlist.entries.title", "hooks/usePlaylist.ts PlaylistDetailEntry (SongTable rows)"},

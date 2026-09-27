@@ -3,6 +3,7 @@ package playlists
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -43,6 +44,7 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Post("/api/playlists/{id}/share", h.share)
 		r.Delete("/api/playlists/{id}/share/{userId}", h.unshare)
 		r.Post("/api/playlists/{id}/share-link", h.createShareLink)
+		r.Patch("/api/playlists/{id}/share-link", h.patchShareLink)
 		r.Delete("/api/playlists/{id}/share-link", h.deleteShareLink)
 	})
 	r.With(h.shareTokenOrAuth).Get("/api/playlists/{id}", h.get)
@@ -220,6 +222,12 @@ type shareBody struct {
 	CanEdit bool   `json:"canEdit"`
 }
 
+// shareLinkBody is the POST/PATCH /share-link body; every field is optional
+// and an omitted allowDownload defaults to false (stream-only link).
+type shareLinkBody struct {
+	AllowDownload bool `json:"allowDownload"`
+}
+
 func (h *Handler) share(w http.ResponseWriter, r *http.Request) {
 	var body shareBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -247,12 +255,35 @@ func (h *Handler) unshare(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) createShareLink(w http.ResponseWriter, r *http.Request) {
-	token, err := h.svc.CreateShareLink(r.Context(), identity(r), chi.URLParam(r, "id"))
+	// The body is optional — an absent body (or an empty object) means
+	// allowDownload=false, so existing callers keep their stream-only links.
+	var body shareLinkBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil && !errors.Is(err, io.EOF) {
+		httpserver.Error(w, http.StatusBadRequest, "Invalid JSON body")
+		return
+	}
+	token, allowDownload, err := h.svc.CreateShareLink(r.Context(), identity(r), chi.URLParam(r, "id"), body.AllowDownload)
 	if err != nil {
 		writeServiceError(w, r, err)
 		return
 	}
-	httpserver.JSON(w, http.StatusOK, map[string]any{"shareToken": token})
+	httpserver.JSON(w, http.StatusOK, map[string]any{"shareToken": token, "shareDownload": allowDownload})
+}
+
+// patchShareLink updates the link's download permission without rotating the
+// token.
+func (h *Handler) patchShareLink(w http.ResponseWriter, r *http.Request) {
+	var body shareLinkBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		httpserver.Error(w, http.StatusBadRequest, "Invalid JSON body")
+		return
+	}
+	allowDownload, err := h.svc.UpdateShareLink(r.Context(), identity(r), chi.URLParam(r, "id"), body.AllowDownload)
+	if err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	httpserver.JSON(w, http.StatusOK, map[string]any{"shareDownload": allowDownload})
 }
 
 func (h *Handler) deleteShareLink(w http.ResponseWriter, r *http.Request) {
