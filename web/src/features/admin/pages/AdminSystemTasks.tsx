@@ -10,6 +10,7 @@ import { StatusPill } from '../components/StatusPill.js';
 import { AdminShell } from '../components/AdminShell.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { useAdminRefresh } from '../contexts/AdminRefreshContext.js';
+import { formatDateTime } from '../../../lib/formatDate.js';
 
 type SystemTaskStatus = 'pending' | 'running' | 'completed' | 'failed';
 
@@ -34,9 +35,7 @@ interface SystemTaskHistoryItem {
 
 function formatLastRun(value: string | null): string {
   if (!value) return 'Never';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Invalid date';
-  return date.toLocaleString();
+  return formatDateTime(value);
 }
 
 function formatInterval(minutes: number | null): string {

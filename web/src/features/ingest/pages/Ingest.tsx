@@ -6,6 +6,7 @@ import { Table, TableColumn } from '../../../components/ui/Table.js';
 import { PageState } from '../../../components/PageState.js';
 import { ProgressBar } from '../../../components/ui/ProgressBar.js';
 import { StatusPill } from '../../admin/components/StatusPill.js';
+import { formatDateTime } from '../../../lib/formatDate.js';
 
 const ACTIVE_STATUSES = new Set(['pending', 'running']);
 const POLL_INTERVAL_MS = 2000;
@@ -112,7 +113,7 @@ export function Ingest() {
       key: 'created',
       header: 'Created',
       className: 'w-40',
-      render: (j) => new Date(j.created_at).toLocaleString(),
+      render: (j) => formatDateTime(j.created_at),
     },
   ];
 

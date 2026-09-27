@@ -3,6 +3,7 @@ import { api } from '../../../lib/api.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { StatusPill } from './StatusPill.js';
 import { Icon } from '../../../components/ui/Icon.js';
+import { formatDateTime } from '../../../lib/formatDate.js';
 
 interface IngestJob {
   id: string;
@@ -35,9 +36,9 @@ interface IngestReportModalProps {
   onClose: () => void;
 }
 
-function formatDateTime(value: string | null): string {
+function formatDateTimeOrDash(value: string | null): string {
   if (!value) return '-';
-  return new Date(value).toLocaleString();
+  return formatDateTime(value);
 }
 
 function formatDurationMs(ms: number): string {
@@ -108,7 +109,7 @@ export function IngestReportModal({ runId, open, onClose }: IngestReportModalPro
             <div className="flex flex-wrap items-center gap-3">
               <StatusPill status={run.status} />
               <span className="text-sm text-muted">
-                {formatDateTime(run.startedAt)} — {run.finishedAt ? formatDateTime(run.finishedAt) : 'running'}
+                {formatDateTimeOrDash(run.startedAt)} — {run.finishedAt ? formatDateTime(run.finishedAt) : 'running'}
               </span>
               {run.finishedAt && (
                 <span className="text-sm text-muted">({getDuration(run)})</span>

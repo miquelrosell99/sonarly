@@ -5,6 +5,7 @@ import { Modal } from '../../../components/ui/Modal.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
+import { formatDateShortMonth } from '../../../lib/formatDate.js';
 
 interface SaveQueueAsPlaylistModalProps {
   open: boolean;
@@ -14,11 +15,7 @@ interface SaveQueueAsPlaylistModalProps {
 }
 
 function defaultName(): string {
-  const date = new Date().toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  const date = formatDateShortMonth(new Date());
   return `Queue — ${date}`;
 }
 

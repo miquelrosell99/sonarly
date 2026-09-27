@@ -10,7 +10,6 @@ import { useNowPlaying, type NowPlayingTab } from '../stores/nowPlayingStore.js'
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useDominantColor } from '../../../hooks/useDominantColor.js';
 import { useSongInteraction } from '../../../hooks/useSongInteraction.js';
-import { useNotification } from '../../../contexts/NotificationContext.js';
 import { NowPlayingCover } from './NowPlayingCover.js';
 import { TransportControls } from './TransportControls.js';
 import { LyricsPanel } from './LyricsPanel.js';
@@ -84,10 +83,8 @@ export function NowPlaying({ user }: NowPlayingProps) {
   const activeTab = useNowPlaying((state) => state.activeTab);
   const close = useNowPlaying((state) => state.close);
   const setActiveTab = useNowPlaying((state) => state.setActiveTab);
-  const { notify } = useNotification();
 
   const currentSong = usePlayer((state) => state.currentSong);
-  const queueContext = usePlayer((state) => state.queueContext);
   const coverArtUrl = currentSong?.coverArt ? `/api/cover-art/${currentSong.coverArt}` : undefined;
   const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
 
@@ -235,27 +232,6 @@ export function NowPlaying({ user }: NowPlayingProps) {
       >
         <Icon name="mdi-chevron-down" size={24} />
       </button>
-
-      {/* Copy deep link (/now-playing/<context>/<contextId>/<songId>) when the queue came from a playlist or album */}
-      {queueContext && currentSong && (
-        <button
-          type="button"
-          onClick={async () => {
-            const url = `${window.location.origin}/now-playing/${queueContext.type}/${encodeURIComponent(queueContext.id)}/${currentSong.id}`;
-            try {
-              await navigator.clipboard.writeText(url);
-              notify('Link copied', 'success');
-            } catch {
-              notify('Could not copy link', 'error');
-            }
-          }}
-          aria-label="Copy link to this track in context"
-          title="Copy link to this track in context"
-          className="absolute right-6 top-6 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-        >
-          <Icon name="mdi-link-variant" size={20} />
-        </button>
-      )}
 
       {/* Content: stacked and scrollable on narrow screens, two-column hero on wide */}
       <div
