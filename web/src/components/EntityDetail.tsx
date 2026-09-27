@@ -16,6 +16,8 @@ export interface EntityDetailProps {
   cover?: ReactNode;
   metadata?: MetadataItem[];
   actions?: ReactNode;
+  /** Favorite/rating-style row; see EntityHeader.secondaryActions. */
+  secondaryActions?: ReactNode;
   headerChildren?: ReactNode;
   /**
    * Right-click menu for the header: receives the cover / title target and
@@ -40,6 +42,7 @@ export function EntityDetail({
   cover,
   metadata,
   actions,
+  secondaryActions,
   headerChildren,
   renderHeaderContextMenu,
   children,
@@ -67,6 +70,7 @@ export function EntityDetail({
       cover={cover}
       metadata={metadata}
       actions={actions}
+      secondaryActions={secondaryActions}
       wrapContextTarget={renderHeaderContextMenu}
     >
       {headerChildren}

@@ -133,6 +133,16 @@ export function Track({ user }: { user: User }) {
         }
         cover={track ? <CoverArt coverArt={track.albumCoverArt ?? track.coverArt} alt={`Cover art for ${track.title}`} className="h-48 w-48 sm:h-56 sm:w-56" iconSize={64} /> : undefined}
         metadata={metadata}
+        secondaryActions={
+          track && (
+            <FavoriteRatingGroup
+              starred={track.starred}
+              onToggleFavorite={() => handleFavorite(!track.starred)}
+              rating={track.rating}
+              onRate={handleRate}
+            />
+          )
+        }
         actions={
           track && (
             <>
@@ -140,12 +150,6 @@ export function Track({ user }: { user: User }) {
                 <Icon name="mdi-play" size={18} />
                 Play
               </Button>
-              <FavoriteRatingGroup
-                starred={track.starred}
-                onToggleFavorite={() => handleFavorite(!track.starred)}
-                rating={track.rating}
-                onRate={handleRate}
-              />
               <Button variant="ghost" onClick={() => setEditing(true)} className="gap-2">
                 <Icon name="mdi-pencil" size={18} />
                 Edit
