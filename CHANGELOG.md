@@ -5,6 +5,17 @@ All notable changes to Sonarly are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Years panel**: list/grid view switch like the other library views. Grid cards show a 2×2 collage of album covers from that year (library-scoped); the list view shows the year only.
+- **Settings → Library** (new tab): choose the default list/grid view per library page (Tracks, Albums, Artists, Genres, Years, Playlists). An explicit pick with a page's view toggle still overrides its default.
+
+### Changed
+
+- **Settings and admin settings are staged, not auto-saved**: changes collect as a draft and a **Save changes** button appears next to the Settings/Admin title (with Discard, an unsaved-changes hint, and Ctrl/Cmd+S). Saving sends one PATCH; a failed save keeps the edits for retry, and reverting a parameter to its saved value clears the dirty state without a request. Settings sections are grouped into icon-headed cards, the tabs are reordered (Profile / Appearance / Library / Playback / Sidebar; Status / Users / Libraries / Media / Genres / System Tasks), and the admin media page's duplicate-strategy and retention saves merged into the same save bar.
+
 ## [2.2.2] - 2026-09-27
 
 ### Changed
