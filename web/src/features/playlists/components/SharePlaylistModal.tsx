@@ -377,6 +377,26 @@ export function SharePlaylistModal({
     }
   };
 
+  // Allow download: PATCHes the link's permission without rotating the
+  // token; the checkbox reflects the detail DTO's shareDownload flag, so a
+  // failed PATCH simply never changes the checked state (no local revert).
+  const handleToggleDownload = async (next: boolean) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await api(`/playlists/${playlist.id}/share-link`, {
+        method: 'PATCH',
+        body: JSON.stringify({ allowDownload: next }),
+      });
+      notify(next ? 'Downloads enabled for this link' : 'Downloads disabled for this link', 'success');
+      refresh();
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to update download permission', 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Modal open={open} onClose={onClose} title={`Share "${playlist.name}"`} className="max-w-xl">
       <div
@@ -523,6 +543,16 @@ export function SharePlaylistModal({
                     <Icon name={copied ? 'mdi-check' : 'mdi-content-copy'} size={16} className="mr-1.5" />
                     {copied ? 'Copied' : 'Copy'}
                   </Button>
+                </div>
+                <div className="rounded-lg border border-rule bg-surface px-3 py-1">
+                  <Checkbox
+                    id="share-playlist-allow-download"
+                    label="Allow download"
+                    description="Anyone with the link can download the playlist's tracks (ZIP packs and single files)."
+                    checked={playlist.shareDownload === true}
+                    disabled={busy}
+                    onChange={(e) => void handleToggleDownload(e.target.checked)}
+                  />
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
                   <Button variant="ghost" onClick={handleGenerateLink} disabled={busy} className="min-h-[44px]">

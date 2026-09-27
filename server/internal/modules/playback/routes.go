@@ -35,6 +35,10 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Use(h.mw.AuthMiddleware)
 		r.Get("/api/stream/{id}", h.stream)
 		r.Head("/api/stream/{id}", h.stream) // wire parity: HEAD is answered explicitly
+		// The ZIP pack shares the stream route's auth shape: AuthMiddleware
+		// without RequireAuth so anonymous share-token viewers can download
+		// when the link opted in; the service enforces the grant.
+		r.Post("/api/download", h.download)
 	})
 	r.Group(func(r chi.Router) {
 		r.Use(h.mw.AuthMiddleware, auth.RequireAuth)
@@ -93,6 +97,32 @@ func (h *Handler) stream(w http.ResponseWriter, r *http.Request) {
 	download, _ := strconv.ParseBool(q.Get("download"))
 
 	if err := h.svc.Stream(w, r, identity(r), chi.URLParam(r, "id"), requested, hasRequested, download, q.Get("share")); err != nil {
+		writeServiceError(w, r, err)
+	}
+}
+
+type downloadBody struct {
+	SongIDs []string `json:"songIds"`
+}
+
+// download is POST /api/download: pack {songIds} into a streaming ZIP.
+// Anonymous callers carry ?shareToken= (the playlist link's download
+// permission applies); signed-in callers get their library scope. The
+// response streams (Content-Disposition attachment, timestamped filename),
+// so errors are only meaningful before the first byte — the service
+// resolves the whole packable set up front and maps failures onto the
+// standard error contract.
+func (h *Handler) download(w http.ResponseWriter, r *http.Request) {
+	var body downloadBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeServiceError(w, r, invalidBody("request body must be a JSON object with a songIds array"))
+		return
+	}
+	if body.SongIDs == nil {
+		writeServiceError(w, r, invalidBody("songIds is required"))
+		return
+	}
+	if err := h.svc.DownloadZip(w, r, identity(r), body.SongIDs, r.URL.Query().Get("shareToken")); err != nil {
 		writeServiceError(w, r, err)
 	}
 }

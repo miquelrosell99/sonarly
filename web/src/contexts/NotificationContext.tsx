@@ -13,6 +13,16 @@ interface NotificationContextValue {
   notify: (message: string, type?: NotificationType) => void;
 }
 
+// Imperative outlet for callers outside React's tree (lib/download.ts runs
+// from menu clicks and handles its own errors): the provider registers its
+// notify here, so module-level helpers can surface a toast through the same
+// pipeline without a hook context. No-op until a provider mounts.
+let imperativeNotify: ((message: string, type?: NotificationType) => void) | null = null;
+
+export function notify(message: string, type: NotificationType = 'info'): void {
+  imperativeNotify?.(message, type);
+}
+
 const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
 
 const DISMISS_MS = 4000;
@@ -142,6 +152,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const remove = (id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
+
+  useEffect(() => {
+    imperativeNotify = notify;
+    return () => {
+      imperativeNotify = null;
+    };
+  }, [notify]);
 
   return (
     <NotificationContext.Provider value={{ notify }}>

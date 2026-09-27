@@ -29,11 +29,21 @@ vi.mock('../lib/api.js', () => ({
   api: vi.fn(),
 }));
 
+const mockDownload = vi.hoisted(() => ({
+  downloadTrackUrl: vi.fn((id: string) => `/api/stream/${id}?download=1`),
+  saveUrl: vi.fn(),
+  downloadSongs: vi.fn(),
+}));
+
+vi.mock('../lib/download.js', () => mockDownload);
+
 const mockedApi = vi.mocked(api);
+const mockedDownloadSongs = vi.mocked(mockDownload.downloadSongs);
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  window.history.pushState({}, '', '/');
 });
 
 type PlaylistEntry = components['schemas']['PlaylistEntry'];
@@ -46,7 +56,7 @@ function createHarness(
   playlist: Playlist,
   onEdit: () => void,
   onConvert: () => void,
-  options?: { onShare?: () => void; onDelete?: () => void },
+  options?: { onShare?: () => void; onDelete?: () => void; allowDownload?: boolean },
 ) {
   return function PlaylistMenuHarness() {
     const sections = usePlaylistContextMenu(playlist, onEdit, onConvert, options);
@@ -289,5 +299,38 @@ describe('usePlaylistContextMenu', () => {
       expect(mockNotify.notify).toHaveBeenCalledWith('Save failed', 'error'),
     );
     expect(onConvert).not.toHaveBeenCalled();
+  });
+
+  it('fetches playlist entries and packs a ZIP download when Download is clicked', async () => {
+    mockedApi.mockResolvedValueOnce(makeDetail(basePlaylist));
+
+    const Harness = createHarness(basePlaylist, vi.fn(), vi.fn());
+    render(React.createElement(Harness));
+
+    fireEvent.click(screen.getByTestId('download'));
+
+    await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/playlists/playlist-1'));
+    expect(mockedDownloadSongs).toHaveBeenCalledTimes(1);
+    expect(mockedDownloadSongs).toHaveBeenCalledWith(playlistSongs.map((entry) => entry.id));
+  });
+
+  it('hides Download when allowDownload is false', () => {
+    const Harness = createHarness(basePlaylist, vi.fn(), vi.fn(), { allowDownload: false });
+    render(React.createElement(Harness));
+
+    expect(screen.queryByTestId('download')).toBeNull();
+  });
+
+  it('hides Download from share-token guests unless the playlist flag is passed', () => {
+    window.history.pushState({}, '', '/playlists/playlist-1?shareToken=tok');
+
+    const HarnessNoFlag = createHarness(basePlaylist, vi.fn(), vi.fn());
+    const { unmount } = render(React.createElement(HarnessNoFlag));
+    expect(screen.queryByTestId('download')).toBeNull();
+    unmount();
+
+    const HarnessFlagged = createHarness(basePlaylist, vi.fn(), vi.fn(), { allowDownload: true });
+    render(React.createElement(HarnessFlagged));
+    expect(screen.getByTestId('download')).toBeTruthy();
   });
 });

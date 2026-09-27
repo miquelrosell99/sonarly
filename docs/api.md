@@ -26,8 +26,8 @@ npx @redocly/cli preview-docs server/api/openapi.yaml  # local preview server
 | Health | `GET /health`, `GET /healthz`, `GET /ready` |
 | Auth & profile | `POST /api/login`, `POST /api/logout`, `POST /api/setup`, `GET/PATCH /api/me`, `GET/PATCH /api/me/preferences`, `POST /api/me/avatar`, `GET /api/avatars/{id}` |
 | Catalog | `/api/songs`, `/api/albums`, `/api/artists`, `/api/genres` (+ tree), `/api/years`, `/api/search` (full-text), `/api/cover-art/{id}`, `/api/home`, `/api/suggestions` |
-| Playback | `GET /api/stream/{id}`, `POST /api/songs/{id}/scrobble`, `/api/playback/auto-dj`, `/api/players`, bookmarks |
-| Playlists | `/api/playlists` (static + smart), share members, share links, share-token guest access |
+| Playback | `GET /api/stream/{id}` (+ `?download=1` single-track download), `POST /api/download` (multi-track ZIP pack), `POST /api/songs/{id}/scrobble`, `/api/playback/auto-dj`, `/api/players`, bookmarks |
+| Playlists | `/api/playlists` (static + smart), share members, share links (`POST` mint/regenerate with `allowDownload`, `PATCH` toggles download permission without rotating the token), share-token guest access |
 | User data | `/api/favorites`, `/api/ratings` (0–5, half steps), listening statistics |
 | Library ops | `POST /api/scans`, `GET /api/scans/status`, `/api/ingest` (+ trigger), `/api/conflicts`, `/api/upload/sessions`, `/api/libraries` |
 | Admin | users CRUD, user↔library assignment, libraries CRUD, genres, media settings, system tasks (+ history, run), status, missing-files management, ingest runs |
@@ -37,7 +37,7 @@ npx @redocly/cli preview-docs server/api/openapi.yaml  # local preview server
 ### Authentication (`/api/*`)
 
 - Login via `POST /api/login` sets a signed session cookie (`HttpOnly`, `SameSite=Strict`, 7-day lifetime).
-- All `/api/*` routes require the session cookie, except: `POST /api/login`, `POST /api/logout`, `GET/POST /api/setup`, `GET /api/me`, and `GET /api/playlists/{id}` with a valid `shareToken`.
+- All `/api/*` routes require the session cookie, except: `POST /api/login`, `POST /api/logout`, `GET/POST /api/setup`, `GET /api/me`, and `GET /api/playlists/{id}` with a valid `shareToken`. Anonymous share-token viewers may also stream (`GET /api/stream/{id}?share=`) the linked playlist's songs, and download them once the link enables it (`?download=1` / `POST /api/download?shareToken=` — both require the playlist's `shareDownload` flag, else 404).
 - User API keys are an alternative credential on ordinary routes (`X-API-Key` header). `/api/events` accepts the session cookie only (EventSource cannot set headers).
 - Admin routes additionally require `is_admin`; content routes are scoped by library assignment (`user_libraries`).
 

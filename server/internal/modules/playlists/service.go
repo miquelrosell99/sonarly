@@ -186,6 +186,7 @@ func (s *Service) Get(ctx context.Context, id auth.Identity, playlistID, shareTo
 	}
 	if access == AccessOwner {
 		detail.ShareToken = p.ShareToken
+		detail.ShareDownload = p.ShareDownload
 		shares, err := ShareEntries(ctx, s.db, p.ID)
 		if err != nil {
 			return nil, err
@@ -196,6 +197,12 @@ func (s *Service) Get(ctx context.Context, id auth.Identity, playlistID, shareTo
 			shares = []ShareEntry{}
 		}
 		detail.Shares = &shares
+	} else if shareToken != "" && shareToken == p.ShareToken {
+		// Token-resolved viewers see the flag: it gates the download menu
+		// entries they may act on (ZIP pack + ?download=1). The looser native
+		// metadata grant (a matching token at any visibility) still exposes
+		// only the flag — the download endpoints couple flag+token in SQL.
+		detail.ShareDownload = p.ShareDownload
 	}
 	if id.UserID != "" {
 		starred, rating, err := s.interaction(ctx, id.UserID, p.ID)
@@ -433,31 +440,58 @@ func (s *Service) Unshare(ctx context.Context, id auth.Identity, playlistID, tar
 
 // CreateShareLink answers POST /api/playlists/{id}/share-link: owner only.
 // Always mints a FRESH token — this doubles as "regenerate", killing any
-// previously shared link. wire parity: the playlist's visibility is NOT
-// changed here; the token works independently of visibility.
-func (s *Service) CreateShareLink(ctx context.Context, id auth.Identity, playlistID string) (string, error) {
+// previously shared link — and stores the owner's download permission for
+// the new link (allowDownload defaults to false). wire parity: the
+// playlist's visibility is NOT changed here; the token works independently
+// of visibility.
+func (s *Service) CreateShareLink(ctx context.Context, id auth.Identity, playlistID string, allowDownload bool) (string, bool, error) {
 	existing, err := GetByID(ctx, s.db, playlistID)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	access, err := Resolve(ctx, s.db, existing, id, "")
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	if access == AccessNone {
-		return "", ErrNotFound
+		return "", false, ErrNotFound
 	}
 	if access != AccessOwner {
-		return "", ErrForbidden
+		return "", false, ErrForbidden
 	}
 	token, err := MintShareToken()
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
-	if err := EnableShareLink(ctx, s.db, playlistID, token); err != nil {
-		return "", err
+	if err := EnableShareLink(ctx, s.db, playlistID, token, allowDownload); err != nil {
+		return "", false, err
 	}
-	return token, nil
+	return token, allowDownload, nil
+}
+
+// UpdateShareLink answers PATCH /api/playlists/{id}/share-link: owner only.
+// Updates the download permission WITHOUT rotating the token (the token in
+// already-shared URLs stays valid); the flag round-trips on the detail DTO
+// for the owner and token-resolved viewers.
+func (s *Service) UpdateShareLink(ctx context.Context, id auth.Identity, playlistID string, allowDownload bool) (bool, error) {
+	existing, err := GetByID(ctx, s.db, playlistID)
+	if err != nil {
+		return false, err
+	}
+	access, err := Resolve(ctx, s.db, existing, id, "")
+	if err != nil {
+		return false, err
+	}
+	if access == AccessNone {
+		return false, ErrNotFound
+	}
+	if access != AccessOwner {
+		return false, ErrForbidden
+	}
+	if err := SetShareDownload(ctx, s.db, playlistID, allowDownload); err != nil {
+		return false, err
+	}
+	return allowDownload, nil
 }
 
 // DeleteShareLink answers DELETE /api/playlists/{id}/share-link: owner

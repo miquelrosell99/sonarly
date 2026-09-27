@@ -160,6 +160,26 @@ func (pol *Policy) TokenGrantsSong(ctx context.Context, q auth.Queries, token, s
 	return granted, nil
 }
 
+// TokenAllowsDownload reports whether the link-shared playlist answering to
+// token permits downloads (migration 0006, playlists.share_download). This
+// is the download-path gate for the ZIP pack endpoint and
+// ?download=1 streams: unlike TokenGrantsSong (plain streaming, unchanged),
+// a missing flag answers 404 through the callers' not-found mapping.
+func (pol *Policy) TokenAllowsDownload(ctx context.Context, q auth.Queries, token string) (bool, error) {
+	var one int
+	err := q.QueryRowContext(ctx, `
+		SELECT 1 FROM playlists
+		WHERE visibility = 'link' AND share_token = ? AND share_download = 1
+		LIMIT 1`, token).Scan(&one)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("share token download grant: %w", err)
+	}
+	return true, nil
+}
+
 // TokenGrantsCoverArt mirrors TokenGrantsSong for cover art: the art must
 // belong to a granted active song — either its own art or its album's.
 // (Kept for the P9 OpenSubsonic adapter; the old shareTokenGrantsCoverArt.)

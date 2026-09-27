@@ -2,7 +2,7 @@
 
 Sonarly uses **SQLite** via `modernc.org/sqlite` (pure Go). The database file defaults to `${SONARLY_DATA_DIR}/sonarly.db` (`/data/db/sonarly.db` in the image). Migrations run automatically on startup from the embedded files in `server/internal/db/migrations/`.
 
-This document reflects the schema produced by migrations **0001–0004**:
+This document reflects the schema produced by migrations **0001–0006**:
 
 | Migration | What it does |
 |---|---|
@@ -10,6 +10,8 @@ This document reflects the schema produced by migrations **0001–0004**:
 | `0002_job_payload.sql` | `scan_jobs.payload` (typed JSON job payloads) + `scan_jobs.created_at` (pending-visible job ordering) |
 | `0003_search_fts.sql` | FTS5 virtual tables (`songs_fts`, `albums_fts`, `artists_fts`) + initial backfill |
 | `0004_search_fts_backfill_fix.sql` | Idempotent full-corpus FTS re-backfill (re-asserts index↔corpus invariant on every database) |
+| `0005_normalize_legacy_numerics.sql` | Truncates fractional REAL numerics written by the retired server (mtimes, durations, bitrates, listening-history completion) to the integer semantics the Go server writes; typeof() guards make it a no-op on fresh databases |
+| `0006_share_download.sql` | `playlists.share_download` (link-share download permission, NOT NULL DEFAULT 0 — existing links stay stream-only) |
 
 ## Conventions
 
@@ -113,7 +115,7 @@ Per-user library assignment — **a security boundary**, enforced on every conte
 
 ### `playlists`
 
-`id`, `name`, `owner_id` → `users` (cascade), `visibility` (`private`/`shared`/`public`/`link`), `share_token` (UNIQUE, minted iff visibility=link), `is_smart`, `rules_json` (smart-playlist rules), `resolve_mode` (`tracks` = owner's data / `query` = live per-viewer), `description`, timestamps.
+`id`, `name`, `owner_id` → `users` (cascade), `visibility` (`private`/`shared`/`public`/`link`), `share_token` (UNIQUE, minted iff visibility=link), `share_download` (link-share download permission: gates ZIP packs and `?download=1` for token viewers), `is_smart`, `rules_json` (smart-playlist rules), `resolve_mode` (`tracks` = owner's data / `query` = live per-viewer), `description`, timestamps.
 
 ### `playlist_songs` / `playlist_shares`
 

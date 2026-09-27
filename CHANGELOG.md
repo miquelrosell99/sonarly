@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Multi-track download**: `POST /api/download` packs up to 1000 song ids into a streaming ZIP (`application/zip`, `Content-Disposition: sonarly-YYYYMMDD-HHMMSS.zip`). Archive paths follow `{artist} - {album}/{track:02d} - {title}.{ext}` with Unknown-* fallbacks, organizer-grade per-segment sanitization, and collision-safe ` (n)` suffixes; inactive, out-of-scope, or vanished files are silently skipped (zero packable → 400). Context menus offer Download on songs (single file), multi-selections (ZIP), and albums/artists/playlists/genres/composers/labels/years (ZIP of the resolved songs); multi-selection admin menus also gained the missing Delete flow (confirm with count → per-id DELETE → one invalidation → toast).
+- **Link-share download permission**: playlists gain `share_download` (migration `0006_share_download.sql`, default off — existing links keep stream-only access). `POST /api/playlists/{id}/share-link` accepts `allowDownload`; the new `PATCH` on the same path toggles it without rotating the token; the playlist detail DTO carries `shareDownload` for the owner and token-resolved viewers. Token viewers can download (ZIP packs and `GET /api/stream/{id}?download=1`) only when the flag is on, and only the token's granted songs are packable; plain streaming is unchanged.
+
 ## [2.0.0-rc1] - 2026-09-26
 
 Complete server rewrite in Go and production cutover. The TypeScript server (`packages/server`) has been **removed from the codebase**; the Go server in `server/` is the only server.

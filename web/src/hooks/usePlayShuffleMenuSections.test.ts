@@ -16,9 +16,18 @@ vi.mock('./usePlayActions.js', () => ({
   usePlayActions: () => playActions,
 }));
 
+const mockDownload = vi.hoisted(() => ({
+  downloadTrackUrl: vi.fn((id: string) => `/api/stream/${id}?download=1`),
+  saveUrl: vi.fn(),
+  downloadSongs: vi.fn(),
+}));
+
+vi.mock('../lib/download.js', () => mockDownload);
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  window.history.pushState({}, '', '/');
 });
 
 const songs: Song[] = [
@@ -82,5 +91,30 @@ describe('usePlayShuffleMenuSections', () => {
 
     expect((screen.getByTestId('play') as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByTestId('shuffle-play') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('packs a ZIP download of the track list when Download is clicked', () => {
+    const Harness = createHarness(songs);
+    render(React.createElement(Harness));
+
+    const download = screen.getByTestId('download') as HTMLButtonElement;
+    expect(download.disabled).toBe(false);
+    fireEvent.click(download);
+    expect(mockDownload.downloadSongs).toHaveBeenCalledWith(['song-1']);
+  });
+
+  it('disables Download for an empty track list', () => {
+    const Harness = createHarness([]);
+    render(React.createElement(Harness));
+
+    expect((screen.getByTestId('download') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('hides Download from share-token guests by default', () => {
+    window.history.pushState({}, '', '/playlists/playlist-1?shareToken=tok');
+    const Harness = createHarness(songs);
+    render(React.createElement(Harness));
+
+    expect(screen.queryByTestId('download')).toBeNull();
   });
 });

@@ -575,7 +575,7 @@ export interface paths {
         };
         /**
          * Playlist detail with resolved entries
-         * @description `shares` and `shareToken` are owner-only. The `shareToken` query parameter authorizes non-owner access to link-shared playlists.
+         * @description `shares` and `shareToken` are owner-only. `shareDownload` rides the detail for the owner and token-resolved viewers so both can render the download affordance. The `shareToken` query parameter authorizes non-owner access to link-shared playlists.
          */
         get: operations["getPlaylist"];
         /**
@@ -654,13 +654,20 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create (or return) the link-share token (owner) */
+        /**
+         * Create (or return) the link-share token (owner)
+         * @description Always mints a FRESH token (re-posting regenerates, killing the previously shared link). `allowDownload` sets the link's download permission (default false): when on, the token may fetch ZIP packs (POST /api/download) and single-track `?download=1` streams; when off, those endpoints answer 404 for token viewers while plain streaming is unaffected.
+         */
         post: operations["createPlaylistShareLink"];
         /** Revoke the link-share token (owner) */
         delete: operations["deletePlaylistShareLink"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Update the link's download permission (owner; no token rotation)
+         * @description Sets `shareDownload` WITHOUT rotating the token — links already shared keep working, and the new permission applies to the next request. The playlist detail DTO carries the flag for the owner and for token-resolved viewers.
+         */
+        patch: operations["updatePlaylistShareLink"];
         trace?: never;
     };
     "/api/stream/{id}": {
@@ -672,7 +679,7 @@ export interface paths {
         };
         /**
          * Stream a song (direct or transcoded)
-         * @description Anonymous callers may stream with a valid `share` token (the linked playlist's songs); anonymous without a token gets 401; a known token whose playlist does not contain the song gets 404. Direct streams honor Range requests; transcodes (when `maxBitRate` forces one, and never with `download`) are plain 200s. The route is exempt from the global API timeout.
+         * @description Anonymous callers may stream with a valid `share` token (the linked playlist's songs); anonymous without a token gets 401; a known token whose playlist does not contain the song gets 404. A token whose playlist has not enabled downloads (shareDownload) additionally gets 404 on `download=1` — binaries require the link's opt-in; plain streaming never checks it. Direct streams honor Range requests; transcodes (when `maxBitRate` forces one, and never with `download`) are plain 200s. The route is exempt from the global API timeout.
          */
         get: operations["streamSong"];
         put?: never;
@@ -681,6 +688,26 @@ export interface paths {
         options?: never;
         /** Stream headers only (wire parity; answered explicitly) */
         head: operations["streamSongHeaders"];
+        patch?: never;
+        trace?: never;
+    };
+    "/api/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Download songs as a streaming ZIP archive
+         * @description Packs the active, in-scope, on-disk songs named by `songIds` into a ZIP streamed over the response (`Content-Disposition: attachment; filename="sonarly-YYYYMMDD-HHMMSS.zip"`). Archive entry paths are `{artist} - {album}/{track:02d} - {title}.{ext}` (Unknown-* fallbacks, per-segment organizer sanitization, collision-safe " (n)" suffixes). At most 1000 ids per request; unknown, out-of-scope, inactive, or vanished songs are silently skipped — when nothing remains packable the answer is 400. Anonymous callers must carry `shareToken`: the linked playlist's shareDownload flag must be on (404 otherwise) and only the token's granted songs are packed; zero granted ids answer 404. Signed-in callers authorize by library scope and ignore the flag. The route is exempt from the global API timeout (large packs stream).
+         */
+        post: operations["downloadSongsZip"];
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -2337,7 +2364,7 @@ export interface components {
             username: string;
             canEdit: boolean;
         };
-        /** @description `shares` and `shareToken` are owner-only. */
+        /** @description `shares` and `shareToken` are owner-only. `shareDownload` is the link's download permission, exposed to the owner and to token-resolved viewers (false for every other viewer regardless of the stored flag). */
         PlaylistDetail: {
             id: string;
             name: string;
@@ -2346,6 +2373,7 @@ export interface components {
             ownerUsername: string;
             visibility: components["schemas"]["PlaylistVisibility"];
             shareToken?: string;
+            shareDownload: boolean;
             isSmart: boolean;
             resolveMode: components["schemas"]["ResolveMode"];
             rules?: components["schemas"]["SmartPlaylistRules"] | null;
@@ -4267,9 +4295,16 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @default false */
+                    allowDownload?: boolean;
+                };
+            };
+        };
         responses: {
-            /** @description The share token. */
+            /** @description The share token and the link's download permission. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -4277,9 +4312,11 @@ export interface operations {
                 content: {
                     "application/json": {
                         shareToken: string;
+                        shareDownload: boolean;
                     };
                 };
             };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
@@ -4306,6 +4343,42 @@ export interface operations {
                     "application/json": components["schemas"]["Ok"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updatePlaylistShareLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Playlist id (UUID). */
+                id: components["parameters"]["PlaylistId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @default false */
+                    allowDownload?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description The updated download permission. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        shareDownload: boolean;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
@@ -4368,6 +4441,38 @@ export interface operations {
                 };
                 content?: never;
             };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    downloadSongsZip: {
+        parameters: {
+            query?: {
+                /** @description Playlist share token (anonymous access; requires the link's shareDownload flag). */
+                shareToken?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    songIds: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description ZIP archive stream. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": unknown;
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
         };

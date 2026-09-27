@@ -39,7 +39,7 @@ function PlaylistHeaderContextMenu({
   onConvert: () => void;
   children: React.ReactNode;
 }) {
-  const sections = usePlaylistContextMenu(playlist, onEdit, onConvert);
+  const sections = usePlaylistContextMenu(playlist, onEdit, onConvert, { allowDownload: true });
   return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
 
@@ -47,14 +47,16 @@ function PlaylistSongContextMenu({
   songs,
   onEdit,
   isAdmin,
+  allowDownload,
   children,
 }: {
   songs: Song[];
   onEdit: () => void;
   isAdmin: boolean;
+  allowDownload: boolean;
   children: React.ReactNode;
 }) {
-  const sections = useSongsContextMenu(songs, onEdit, isAdmin);
+  const sections = useSongsContextMenu(songs, onEdit, isAdmin, { allowDownload });
   return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
 
@@ -317,15 +319,19 @@ export function PlaylistDetail({ user, underlay }: PlaylistDetailProps) {
         onPlay={handlePlay}
         onShufflePlay={handleShufflePlay}
         onPlaySelection={handlePlaySelection}
-        renderRow={
-          user
-            ? (_song, row, selectedRows) => (
-              <PlaylistSongContextMenu songs={selectedRows} onEdit={() => setSongEditing(selectedRows)} isAdmin={user.isAdmin}>
-                {row}
-              </PlaylistSongContextMenu>
-            )
-            : undefined
-        }
+        renderRow={(_song, row, selectedRows) => (
+          // Session users always get Download (scope-based); share-link
+          // guests get it only when the link opted in (shareDownload on the
+          // detail DTO). Guests see no Edit/Delete (isAdmin=false).
+          <PlaylistSongContextMenu
+            songs={selectedRows}
+            onEdit={() => setSongEditing(selectedRows)}
+            isAdmin={user?.isAdmin ?? false}
+            allowDownload={user !== null || playlist?.shareDownload === true}
+          >
+            {row}
+          </PlaylistSongContextMenu>
+        )}
         empty={
           <EmptyState
             className="py-2"

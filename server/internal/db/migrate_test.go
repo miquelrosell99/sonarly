@@ -275,3 +275,70 @@ func TestMigrateNormalizesLegacyNumerics(t *testing.T) {
 	assertVal(`SELECT completion FROM listening_history WHERE id='h1'`, 93.0)
 	assertVal(`SELECT typeof(mtime) FROM songs WHERE id='s-1'`, "integer")
 }
+
+// TestMigrateAddsShareDownload: 0006 adds playlists.share_download with
+// NOT NULL DEFAULT 0 — existing rows (including link-shared ones) keep
+// stream-only access, and the ledger records the file exactly once so a
+// re-run never re-applies the ALTER.
+func TestMigrateAddsShareDownload(t *testing.T) {
+	database := openLegacyShapedDB(t)
+	// A link-shared playlist pre-dating 0006: the backfill must default it
+	// to download-denied.
+	exec := func(q string, args ...any) {
+		t.Helper()
+		if _, err := database.Exec(q, args...); err != nil {
+			t.Fatalf("seed: %v", err)
+		}
+	}
+	exec(`INSERT INTO users (id, username, password_hash) VALUES ('u-1', 'owner', 'x')`)
+	exec(`INSERT INTO playlists (id, name, owner_id, visibility, share_token) VALUES
+		('pl-link', 'Linked', 'u-1', 'link', 'tok-1'),
+		('pl-priv', 'Private', 'u-1', 'private', NULL)`)
+
+	if err := Migrate(context.Background(), database); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+
+	var flagged, def, linkVal int
+	if err := database.QueryRow(
+		`SELECT COUNT(1) FROM pragma_table_info('playlists') WHERE name = 'share_download'`).Scan(&flagged); err != nil {
+		t.Fatal(err)
+	}
+	if flagged != 1 {
+		t.Fatalf("share_download column missing (pragma found %d)", flagged)
+	}
+	if err := database.QueryRow(
+		`SELECT COUNT(1) FROM pragma_table_info('playlists') WHERE name = 'share_download' AND "notnull" = 1 AND dflt_value = '0'`).Scan(&def); err != nil {
+		t.Fatal(err)
+	}
+	if def != 1 {
+		t.Fatal("share_download must be NOT NULL DEFAULT 0")
+	}
+	if err := database.QueryRow(
+		`SELECT share_download FROM playlists WHERE id = 'pl-link'`).Scan(&linkVal); err != nil {
+		t.Fatal(err)
+	}
+	if linkVal != 0 {
+		t.Fatalf("existing link playlist: share_download = %d, want 0 (stream-only preserved)", linkVal)
+	}
+	var ledger int
+	if err := database.QueryRow(
+		`SELECT COUNT(1) FROM schema_migrations WHERE filename = '0006_share_download.sql'`).Scan(&ledger); err != nil {
+		t.Fatal(err)
+	}
+	if ledger != 1 {
+		t.Fatalf("ledger rows for 0006 = %d, want 1", ledger)
+	}
+
+	// Opt-in persists through ordinary playlist writes (repository Update
+	// must not clobber the flag).
+	exec(`UPDATE playlists SET share_download = 1 WHERE id = 'pl-link'`)
+	exec(`UPDATE playlists SET name = 'Renamed' WHERE id = 'pl-link'`)
+	if err := database.QueryRow(
+		`SELECT share_download FROM playlists WHERE id = 'pl-link'`).Scan(&linkVal); err != nil {
+		t.Fatal(err)
+	}
+	if linkVal != 1 {
+		t.Fatalf("share_download after plain UPDATE = %d, want 1", linkVal)
+	}
+}

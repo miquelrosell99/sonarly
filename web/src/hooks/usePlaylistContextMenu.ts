@@ -3,17 +3,25 @@ import type { Playlist, Song } from '../types';
 import type { components } from '../contract/schema.js';
 import type { ContextMenuSection } from '../components/ItemContextMenu.js';
 import { api } from '../lib/api.js';
+import { downloadSongs } from '../lib/download.js';
 import { songFromPlaylistEntry } from '../lib/entityMappers.js';
+import { getShareToken } from '../lib/shareToken.js';
 import { useNotification } from '../contexts/NotificationContext.js';
 import { usePlayActions } from './usePlayActions.js';
 
 type PlaylistDetailResponse = components['schemas']['PlaylistDetail'];
 
-type LoadingId = 'play' | 'shuffle-play' | 'play-next' | 'add-to-queue' | 'convert' | null;
+type LoadingId = 'play' | 'shuffle-play' | 'play-next' | 'add-to-queue' | 'download' | 'convert' | null;
 
 interface PlaylistContextMenuOptions {
   onShare?: () => void;
   onDelete?: () => void;
+  /**
+   * Whether the Download entry shows. Session surfaces default to true;
+   * share-link guests default to false — pass the shared playlist's
+   * shareDownload flag explicitly for guest surfaces.
+   */
+  allowDownload?: boolean;
 }
 
 export function usePlaylistContextMenu(
@@ -25,6 +33,7 @@ export function usePlaylistContextMenu(
   const { playSongs, shufflePlay, playNext, addToQueue } = usePlayActions();
   const { notify } = useNotification();
   const [loadingId, setLoadingId] = useState<LoadingId>(null);
+  const allowDownload = options?.allowDownload ?? getShareToken() === undefined;
 
   const withEntries = useCallback(
     async (id: Exclude<LoadingId, 'convert'>, action: (songs: Song[]) => void | Promise<void>) => {
@@ -41,7 +50,6 @@ export function usePlaylistContextMenu(
     },
     [playlist.id, notify],
   );
-
   const handlePlay = useCallback(async () => {
     await withEntries('play', (songs) => {
       playSongs(songs);
@@ -65,6 +73,12 @@ export function usePlaylistContextMenu(
       addToQueue(songs);
     });
   }, [withEntries, addToQueue]);
+
+  // One resolution: the detail fetch carries the entries; their ids drive a
+  // single ZIP pack request (the share token rides the URL when present).
+  const handleDownload = useCallback(async () => {
+    await withEntries('download', (songs) => downloadSongs(songs.map((song) => song.id)));
+  }, [withEntries]);
 
   const handleConvert = useCallback(async () => {
     setLoadingId('convert');
@@ -100,6 +114,20 @@ export function usePlaylistContextMenu(
       ],
     },
   ];
+
+  if (allowDownload) {
+    sections.push({
+      items: [
+        {
+          id: 'download',
+          label: 'Download',
+          icon: 'mdi-download',
+          loading: loadingId === 'download',
+          onClick: handleDownload,
+        },
+      ],
+    });
+  }
 
   if (playlist.isSmart) {
     sections.push({

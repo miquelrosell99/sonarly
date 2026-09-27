@@ -120,7 +120,7 @@ func TestShareLinkLifecycle(t *testing.T) {
 	env := newEnv(t)
 	ctx := context.Background()
 
-	if err := EnableShareLink(ctx, env.db, "pl-private", "tok-1"); err != nil {
+	if err := EnableShareLink(ctx, env.db, "pl-private", "tok-1", false); err != nil {
 		t.Fatal(err)
 	}
 	p := mustLoad(t, env, "pl-private")
@@ -137,7 +137,7 @@ func TestShareLinkLifecycle(t *testing.T) {
 
 	// A token survives on a link playlist and is cleared there too —
 	// visibility stays whatever it was.
-	if err := EnableShareLink(ctx, env.db, "pl-link", "tok-2"); err != nil {
+	if err := EnableShareLink(ctx, env.db, "pl-link", "tok-2", false); err != nil {
 		t.Fatal(err)
 	}
 	if err := DisableShareLink(ctx, env.db, "pl-link"); err != nil {

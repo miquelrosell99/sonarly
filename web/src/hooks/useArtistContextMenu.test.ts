@@ -27,11 +27,21 @@ vi.mock('../lib/api.js', () => ({
   api: vi.fn(),
 }));
 
+const mockDownload = vi.hoisted(() => ({
+  downloadTrackUrl: vi.fn((id: string) => `/api/stream/${id}?download=1`),
+  saveUrl: vi.fn(),
+  downloadSongs: vi.fn(),
+}));
+
+vi.mock('../lib/download.js', () => mockDownload);
+
 const mockedApi = vi.mocked(api);
+const mockedDownloadSongs = vi.mocked(mockDownload.downloadSongs);
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  window.history.pushState({}, '', '/');
 });
 
 function createHarness(artist: Artist, onEdit: () => void) {
@@ -172,5 +182,25 @@ describe('useArtistContextMenu', () => {
       expect(mockNotify.notify).toHaveBeenCalledWith('Network error', 'error'),
     );
     expect(playActions.playSongs).not.toHaveBeenCalled();
+  });
+
+  it('fetches artist songs and packs a ZIP download when Download is clicked', async () => {
+    mockedApi.mockResolvedValueOnce({ songs: artistSongs });
+
+    const Harness = createHarness(artist, vi.fn());
+    render(React.createElement(Harness));
+
+    fireEvent.click(screen.getByTestId('download'));
+
+    await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/artists/artist-1/songs'));
+    expect(mockedDownloadSongs).toHaveBeenCalledWith(['song-1', 'song-2']);
+  });
+
+  it('hides Download from share-token guests by default', () => {
+    window.history.pushState({}, '', '/playlists/pl-1?shareToken=tok');
+    const Harness = createHarness(artist, vi.fn());
+    render(React.createElement(Harness));
+
+    expect(screen.queryByTestId('download')).toBeNull();
   });
 });

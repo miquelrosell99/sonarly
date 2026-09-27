@@ -2,16 +2,19 @@ import { useCallback, useState } from 'react';
 import type { Song } from '../types';
 import type { ContextMenuSection } from '../components/ItemContextMenu.js';
 import { api } from '../lib/api.js';
+import { downloadSongs } from '../lib/download.js';
+import { getShareToken } from '../lib/shareToken.js';
 import { useNotification } from '../contexts/NotificationContext.js';
 import { usePlayActions } from './usePlayActions.js';
 
-type LoadingId = 'play' | 'play-next' | 'add-to-queue' | null;
+type LoadingId = 'play' | 'play-next' | 'add-to-queue' | 'download' | null;
 
 export function useGenreContextMenu(genre: string, tracks?: Song[]): ContextMenuSection[] {
   const { playSongs, playNext, addToQueue } = usePlayActions();
   const { notify } = useNotification();
   const [loadingId, setLoadingId] = useState<LoadingId>(null);
   const disabled = tracks !== undefined && tracks.length === 0;
+  const allowDownload = getShareToken() === undefined;
 
   const withTracks = useCallback(
     async (id: LoadingId, action: (songs: Song[]) => void | Promise<void>) => {
@@ -46,7 +49,11 @@ export function useGenreContextMenu(genre: string, tracks?: Song[]): ContextMenu
     });
   }, [withTracks, addToQueue]);
 
-  return [
+  const handleDownload = useCallback(async () => {
+    await withTracks('download', (songs) => downloadSongs(songs.map((song) => song.id)));
+  }, [withTracks]);
+
+  const sections: ContextMenuSection[] = [
     {
       title: 'Playback',
       items: [
@@ -56,4 +63,21 @@ export function useGenreContextMenu(genre: string, tracks?: Song[]): ContextMenu
       ],
     },
   ];
+
+  if (allowDownload) {
+    sections.push({
+      items: [
+        {
+          id: 'download',
+          label: 'Download',
+          icon: 'mdi-download',
+          disabled,
+          loading: loadingId === 'download',
+          onClick: handleDownload,
+        },
+      ],
+    });
+  }
+
+  return sections;
 }
