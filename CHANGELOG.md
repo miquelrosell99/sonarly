@@ -5,6 +5,19 @@ All notable changes to Sonarly are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.1] - 2026-09-27
+
+### Fixed
+
+- **Sidebar settings apply again**: the sidebar now honors `visible: false` (hidden sections stay hidden), renders the playlists section only when its config item is visible, and reads the playlists collapsed state from the sidebar config. Changes apply live on save.
+- **Conflicting files card**: the admin status count used a looser SQL filter than the conflicts list, so the card could show thousands (any parenthetical title) while the list returned none — and an empty list encoded as JSON `null`, crashing the modal. The count and the list now share one strict collision-suffix definition, and an empty result returns `[]`.
+- **Dates render day-first (DD/MM/YYYY, 24h) everywhere** — latest ingest, ingest history/report, system tasks, and queue-saved playlist names — via a shared `formatDate` helper, instead of the browser-locale US ordering.
+- **Settings/Admin tabs**: the active tab no longer shows a hover background that made its label unreadable.
+
+### Removed
+
+- **Now Playing**: the "Copy link to this track in context" button is gone.
+
 ## [2.3.0] - 2026-09-27
 
 ### Added
@@ -176,7 +189,8 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.3.1...HEAD
+[2.3.1]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.1
 [2.3.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.0
 [2.2.2]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.2.2
 [2.2.1]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.2.1
