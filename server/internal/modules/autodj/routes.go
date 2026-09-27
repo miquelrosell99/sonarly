@@ -40,6 +40,7 @@ type request struct {
 	Mode          Mode
 	Count         int
 	ExcludeIDs    []string
+	QueueIDs      []string
 }
 
 // get parses the legacy query-string variant: excludeIds arrives as a
@@ -77,13 +78,16 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 
 // post parses the body variant: exclusions arrive as a JSON array (old caps
 // the array at MAX_EXCLUDE_IDS; an over-long array is a 400, like the old zod
-// validation).
+// validation). queueIds is the caller's current queue: a hard duplicate
+// guarantee (nothing returned is ever in it), and the tail doubles as the
+// similarity seed fallback. Over 1000 entries is a 400.
 func (h *Handler) post(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		CurrentSongID *string  `json:"currentSongId"`
 		Mode          string   `json:"mode"`
 		Count         *int     `json:"count"`
 		ExcludeIDs    []string `json:"excludeIds"`
+		QueueIDs      []string `json:"queueIds"`
 	}
 	dec := json.NewDecoder(r.Body)
 	if err := dec.Decode(&body); err != nil {
@@ -111,6 +115,10 @@ func (h *Handler) post(w http.ResponseWriter, r *http.Request) {
 		httpserver.Error(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
+	if len(body.QueueIDs) > maxQueueIDs {
+		httpserver.Error(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
 	currentSongID := ""
 	if body.CurrentSongID != nil {
 		currentSongID = *body.CurrentSongID
@@ -120,11 +128,12 @@ func (h *Handler) post(w http.ResponseWriter, r *http.Request) {
 		Mode:          mode,
 		Count:         count,
 		ExcludeIDs:    body.ExcludeIDs,
+		QueueIDs:      body.QueueIDs,
 	})
 }
 
 func (h *Handler) respond(w http.ResponseWriter, r *http.Request, req request) {
-	songs, err := h.svc.Candidates(r.Context(), identity(r), req.CurrentSongID, req.Mode, req.Count, req.ExcludeIDs)
+	songs, err := h.svc.Candidates(r.Context(), identity(r), req.CurrentSongID, req.Mode, req.Count, req.ExcludeIDs, req.QueueIDs)
 	if err != nil {
 		if errors.Is(err, ErrGeneration) {
 			// Typed generation failure: 502 with a generic message (the Go server's

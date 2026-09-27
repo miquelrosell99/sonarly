@@ -207,7 +207,12 @@ describe('PlayerBar', () => {
 
     const menu = screen.getByRole('menu');
     fireEvent.keyDown(menu, { key: 'End' });
-    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Smart' }));
+    // The mode items now sit above the "Tune Auto DJ…" action, so End lands
+    // on the tune entry (menu roving is unchanged).
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Tune Auto DJ…' }));
+
+    fireEvent.keyDown(menu, { key: 'Home' });
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Similar' }));
 
     fireEvent.keyDown(menu, { key: 'Tab' });
     expect(screen.queryByRole('menu')).toBeFalsy();
@@ -223,6 +228,23 @@ describe('PlayerBar', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Random' }));
 
     expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjMode: 'random' });
+  });
+
+  it('opens the tuning popover from the DJ menu and applies changes immediately', () => {
+    renderPlayerBar();
+    const djButton = screen.getByRole('button', { name: /auto dj/i });
+
+    fireEvent.contextMenu(djButton);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Tune Auto DJ…' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Auto DJ settings' });
+    expect(dialog).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: /similar/i }));
+    expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjMode: 'similar' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close Auto DJ settings' }));
+    expect(screen.queryByRole('dialog', { name: 'Auto DJ settings' })).toBeFalsy();
   });
 
   it('navigates to the now-playing URL when the cover art is clicked', () => {

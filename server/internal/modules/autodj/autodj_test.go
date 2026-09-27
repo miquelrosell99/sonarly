@@ -440,3 +440,272 @@ func TestAutoDjEmptyPoolIsEmptyListNotError(t *testing.T) {
 		t.Fatalf("empty pool must be an empty list: %+v", songs)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Seed awareness: the similarity anchor follows the session — queue tail,
+// then listening history — when the current song carries no signal.
+// ---------------------------------------------------------------------------
+
+// seedSeeds builds a fixture with a signal-less song (no artist, album, or
+// genres), a jazz-flavored queue tail, and a rock-history entry.
+func (s *server) seedSeeds(t *testing.T) {
+	t.Helper()
+	exec := s.mustExec
+	exec(t, `INSERT INTO users (id, username, password_hash, is_admin) VALUES ('user-alice', 'alice', 'x', 0)`)
+	exec(t, `INSERT INTO libraries (id, name, path, created_at, updated_at) VALUES ('lib-a', 'Library A', '/music/a', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')`)
+	exec(t, `INSERT INTO user_libraries (user_id, library_id) VALUES ('user-alice', 'lib-a')`)
+	exec(t, `INSERT INTO artists (id, name, active) VALUES ('ar-jazz', 'Jazz Artist', 1), ('ar-rock', 'Rock Artist', 1)`)
+	exec(t, `INSERT INTO genres (id, name, active) VALUES ('g-jazz', 'Jazz', 1), ('g-rock', 'Rock', 1)`)
+	exec(t, `INSERT INTO albums (id, name, artist_id, artist_name, active) VALUES
+		('al-j1', 'Jazz One', 'ar-jazz', 'Jazz Artist', 1),
+		('al-j2', 'Jazz Two', 'ar-jazz', 'Jazz Artist', 1),
+		('al-r1', 'Rock One', 'ar-rock', 'Rock Artist', 1),
+		('al-r2', 'Rock Two', 'ar-rock', 'Rock Artist', 1)`)
+	exec(t, `INSERT INTO songs (id, file_path, title, artist_id, album_id, genre, genre_id, year, mtime, checksum, explicit, active, library_id) VALUES
+		('s-plain', '/a/plain.flac', 'Plain', NULL, NULL, NULL, NULL, NULL, 1, 'kp', 0, 1, 'lib-a'),
+		('s-jazzcur', '/a/jazzcur.flac', 'Jazz Current', 'ar-jazz', 'al-j1', 'Jazz', 'g-jazz', 1970, 2, 'kq', 0, 1, 'lib-a'),
+		('s-j1a', '/a/j1a.flac', 'Jazz 1a', 'ar-jazz', 'al-j1', 'Jazz', 'g-jazz', 1965, 3, 'kr', 0, 1, 'lib-a'),
+		('s-j1b', '/a/j1b.flac', 'Jazz 1b', 'ar-jazz', 'al-j1', 'Jazz', 'g-jazz', 1966, 4, 'ks', 0, 1, 'lib-a'),
+		('s-j2', '/a/j2.flac', 'Jazz 2', 'ar-jazz', 'al-j2', 'Jazz', 'g-jazz', 1975, 5, 'kt', 0, 1, 'lib-a'),
+		('s-r1', '/a/r1.flac', 'Rock 1', 'ar-rock', 'al-r1', 'Rock', 'g-rock', 1995, 6, 'ku', 0, 1, 'lib-a'),
+		('s-r2', '/a/r2.flac', 'Rock 2', 'ar-rock', 'al-r2', 'Rock', 'g-rock', 1996, 7, 'kv', 0, 1, 'lib-a')`)
+	exec(t, `INSERT INTO song_genres (song_id, genre_id, position) VALUES
+		('s-jazzcur', 'g-jazz', 0), ('s-j1a', 'g-jazz', 0), ('s-j1b', 'g-jazz', 0),
+		('s-j2', 'g-jazz', 0), ('s-r1', 'g-rock', 0), ('s-r2', 'g-rock', 0)`)
+	// Relative to the real clock like the main fixture: s-r1 played 25 hours
+	// ago — outside the 24h smart/similar recency window, still the latest
+	// history row for the seed fallback.
+	dayAgo := time.Now().UTC().Add(-25 * time.Hour).Format(time.RFC3339)
+	exec(t, `INSERT INTO listening_history (id, user_id, song_id, played_at, duration_listened) VALUES
+		('h1', 'user-alice', 's-r1', ?, 100)`, dayAgo)
+}
+
+func newSeededSeedsServer(t *testing.T) *server {
+	t.Helper()
+	database, err := db.OpenInMemory(context.Background())
+	if err != nil {
+		t.Fatalf("open test db: %v", err)
+	}
+	t.Cleanup(func() { database.Close() })
+	s := newServer(t, database)
+	s.seedSeeds(t)
+	return s
+}
+
+func TestSeedFallsBackToQueueTail(t *testing.T) {
+	s := newSeededSeedsServer(t)
+	alice := s.session(t, "user-alice", "alice", false)
+	// s-plain has no similarity signal; the posted queue tail (s-jazzcur)
+	// must anchor the session — the batch stays Jazz-y and never contains
+	// the tail itself.
+	rec := s.do(t, http.MethodPost, "/api/playback/auto-dj",
+		`{"mode":"smart","count":3,"currentSongId":"s-plain","queueIds":["s-plain","s-jazzcur"]}`, alice)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	songs := decodeSongs(t, rec)
+	ids := []string{}
+	for _, song := range songs {
+		ids = append(ids, song.ID)
+	}
+	// Scores vs the s-jazzcur seed: s-j2 leads (+3 artist, +2 genre, no album
+	// clash); the diversity caps then alternate out of the artist run before
+	// pass 2 backfills one same-album-as-seed jazz cut.
+	if strings.Join(ids, ",") != "s-j2,s-r1,s-j1a" {
+		t.Fatalf("queue-tail seeding must stay in-family: %v", ids)
+	}
+	if songs[0].Reason != "More like Jazz Artist" {
+		t.Fatalf("seed reason: %q", songs[0].Reason)
+	}
+}
+
+func TestSeedFallsBackToListeningHistory(t *testing.T) {
+	s := newSeededSeedsServer(t)
+	alice := s.session(t, "user-alice", "alice", false)
+	// No current song, no queue: the most recently played track (s-r1, rock)
+	// anchors the batch.
+	rec := s.do(t, http.MethodPost, "/api/playback/auto-dj",
+		`{"mode":"smart","count":2,"queueIds":[]}`, alice)
+	songs := decodeSongs(t, rec)
+	if len(songs) != 2 || songs[0].ID != "s-r2" || songs[1].ID != "s-j1a" {
+		t.Fatalf("history seeding: %+v", songs)
+	}
+	if songs[0].Reason != "More like Rock Artist" {
+		t.Fatalf("history seed reason: %q", songs[0].Reason)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Hard queue-duplicate rule + idempotent refresh.
+// ---------------------------------------------------------------------------
+
+func TestPostedQueueIdsAreHardExcluded(t *testing.T) {
+	s := newSeededServer(t)
+	alice := s.session(t, "user-alice", "alice", false)
+	// s-twogenre and s-artist are the top-scoring picks; the posted queue
+	// must remove them even though excludeIds stays empty.
+	rec := s.do(t, http.MethodPost, "/api/playback/auto-dj",
+		`{"mode":"smart","count":3,"currentSongId":"s-anchor","queueIds":["s-twogenre","s-artist"]}`, alice)
+	songs := decodeSongs(t, rec)
+	set := songIDSet(songs)
+	if set["s-twogenre"] || set["s-artist"] || set["s-anchor"] {
+		t.Fatalf("queue/seed duplicates leaked: %v", set)
+	}
+	if len(songs) != 3 {
+		t.Fatalf("want a full batch from the remainder, got %+v", songs)
+	}
+	for _, song := range songs {
+		if song.Reason == "" {
+			t.Fatalf("every suggestion carries a reason: %+v", song)
+		}
+	}
+}
+
+func TestRefreshIsIdempotentAndDisjoint(t *testing.T) {
+	s := newSeededServer(t)
+	alice := s.session(t, "user-alice", "alice", false)
+	body := func(exclude []string) string {
+		quoted := make([]string, len(exclude))
+		for i, id := range exclude {
+			quoted[i] = `"` + id + `"`
+		}
+		return `{"mode":"smart","count":2,"currentSongId":"s-anchor","excludeIds":[` +
+			strings.Join(quoted, ",") + `],"queueIds":[` + strings.Join(quoted, ",") + `]}`
+	}
+
+	first := decodeSongs(t, s.do(t, http.MethodPost, "/api/playback/auto-dj", body(nil), alice))
+	if len(first) != 2 {
+		t.Fatalf("first batch: %+v", first)
+	}
+	firstIDs := []string{first[0].ID, first[1].ID}
+
+	second := decodeSongs(t, s.do(t, http.MethodPost, "/api/playback/auto-dj", body(firstIDs), alice))
+	if len(second) != 2 {
+		t.Fatalf("second batch: %+v", second)
+	}
+	secondSet := songIDSet(second)
+	for _, id := range firstIDs {
+		if secondSet[id] {
+			t.Fatalf("refresh repeated %s: %v", id, secondSet)
+		}
+	}
+
+	all := append(append([]string{}, firstIDs...), second[0].ID, second[1].ID)
+	third := decodeSongs(t, s.do(t, http.MethodPost, "/api/playback/auto-dj", body(all), alice))
+	seen := songIDSet(third)
+	for _, id := range all {
+		if seen[id] {
+			t.Fatalf("third refresh repeated %s: %v", id, seen)
+		}
+	}
+	// Stateless: replaying the first request reproduces the first batch.
+	replay := decodeSongs(t, s.do(t, http.MethodPost, "/api/playback/auto-dj", body(nil), alice))
+	if len(replay) != 2 || replay[0].ID != firstIDs[0] || replay[1].ID != firstIDs[1] {
+		t.Fatalf("generation must be a pure function of its inputs: %+v", replay)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Reasons per mode.
+// ---------------------------------------------------------------------------
+
+func TestReasonsInSmartMode(t *testing.T) {
+	s := newSeededServer(t)
+	alice := s.session(t, "user-alice", "alice", false)
+	rec := s.do(t, http.MethodGet, "/api/playback/auto-dj?mode=smart&count=3&currentSongId=s-anchor", "", alice)
+	songs := decodeSongs(t, rec)
+	want := map[string]string{
+		"s-twogenre": "Because you love Rock",
+		"s-artist":   "More like Anchor Artist",
+		"s-far":      "Hidden gem — you haven't played this",
+	}
+	for _, song := range songs {
+		if want[song.ID] != "" && song.Reason != want[song.ID] {
+			t.Fatalf("reason for %s: want %q, got %q", song.ID, want[song.ID], song.Reason)
+		}
+		if song.Reason == "" {
+			t.Fatalf("missing reason on %+v", song)
+		}
+	}
+}
+
+func TestReasonsInSimilarMode(t *testing.T) {
+	s := newSeededServer(t)
+	alice := s.session(t, "user-alice", "alice", false)
+	rec := s.do(t, http.MethodGet, "/api/playback/auto-dj?mode=similar&count=3&currentSongId=s-anchor", "", alice)
+	songs := decodeSongs(t, rec)
+	want := map[string]string{
+		"s-artist":   "More like Anchor Artist",
+		"s-album":    "From the same album",
+		"s-twogenre": "Because you love Rock",
+	}
+	seen := map[string]bool{}
+	for _, song := range songs {
+		seen[song.ID] = true
+		if want[song.ID] != "" && song.Reason != want[song.ID] {
+			t.Fatalf("reason for %s: want %q, got %q", song.ID, want[song.ID], song.Reason)
+		}
+	}
+	for id := range want {
+		if !seen[id] {
+			t.Fatalf("similar batch missing %s: %v", id, seen)
+		}
+	}
+}
+
+func TestReasonsInRandomMode(t *testing.T) {
+	s := newSeededServer(t)
+	alice := s.session(t, "user-alice", "alice", false)
+	rec := s.do(t, http.MethodGet, "/api/playback/auto-dj?mode=random&count=4", "", alice)
+	songs := decodeSongs(t, rec)
+	if len(songs) != 4 {
+		t.Fatalf("want 4, got %+v", songs)
+	}
+	want := map[string]string{
+		"s-twogenre": "One of your favorites",
+		"s-album":    "From your highly rated",
+		"s-far":      "Hidden gem — you haven't played this",
+		"s-exp":      "Hidden gem — you haven't played this",
+		"s-genre":    "Fresh pick from your library",
+	}
+	for _, song := range songs {
+		if want[song.ID] != "" && song.Reason != want[song.ID] {
+			t.Fatalf("reason for %s: want %q, got %q", song.ID, want[song.ID], song.Reason)
+		}
+		if song.Reason == "" {
+			t.Fatalf("missing reason on %+v", song)
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Exclude windows through the POST variant + queueIds validation.
+// ---------------------------------------------------------------------------
+
+func TestPostRespectsExcludeWindowAndCaps(t *testing.T) {
+	s := newSeededServer(t)
+	s.mustExec(t, `INSERT INTO user_preferences (user_id, preferences) VALUES ('user-alice', ?)`,
+		`{"autoDjExcludeWindow": "7d"}`)
+	alice := s.session(t, "user-alice", "alice", false)
+	// count 4 leaves the windowed pool (5 songs minus the history seed) big
+	// enough to fill the batch, so the no-window fallback pass never runs.
+	rec := s.do(t, http.MethodPost, "/api/playback/auto-dj",
+		`{"mode":"random","count":4,"queueIds":[]}`, alice)
+	songs := decodeSongs(t, rec)
+	set := songIDSet(songs)
+	// s-artist and s-anchor were played within the 7d user_songs window.
+	for _, id := range []string{"s-artist", "s-anchor"} {
+		if set[id] {
+			t.Fatalf("7d window leaked %s: %v", id, set)
+		}
+	}
+
+	tooMany := make([]string, maxQueueIDs+1)
+	for i := range tooMany {
+		tooMany[i] = fmt.Sprintf("id-%d", i)
+	}
+	body := `{"mode":"random","count":5,"queueIds":` + jsonArray(tooMany) + `}`
+	if rec := s.do(t, http.MethodPost, "/api/playback/auto-dj", body, alice); rec.Code != http.StatusBadRequest {
+		t.Fatalf("over-long queueIds: want 400, got %d", rec.Code)
+	}
+}

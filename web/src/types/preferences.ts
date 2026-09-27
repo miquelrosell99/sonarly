@@ -70,3 +70,6 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
 };
 
 export const MAX_EXCLUDE_IDS = 500;
+
+/** Server-side cap for the POSTed queue id list (hard duplicate guarantee). */
+export const MAX_QUEUE_IDS = 1000;

@@ -32,11 +32,17 @@ func NewService(db *sql.DB) *Service {
 	return &Service{db: db, now: time.Now}
 }
 
-// Candidates returns count songs for the mode. The context song is optional
-// for every mode (a missing id, or an id outside the catalog, just means
-// "no context"); excludeIDs are never repeated in the result; the options
-// come from the caller's stored preferences (the retired server).
-func (s *Service) Candidates(ctx context.Context, id auth.Identity, currentSongID string, mode Mode, count int, excludeIDs []string) ([]Song, error) {
+// Candidates returns count songs for the mode. The seed is the caller's
+// current song when it carries similarity signal, else the last queued track
+// with signal (the posted queue tail), else the user's most recently played
+// song — so a session that starts from Jazz keeps scoring against Jazz.
+// excludeIDs are never repeated; queueIDs are the caller's current queue and
+// are a hard guarantee: no returned song duplicates one of them, whatever the
+// SQL exclusion caps. Generation is stateless and idempotent: the same
+// (currentSongId, mode, count, excludeIds, queueIds, preferences) always
+// yields an equivalent batch, and a refresh just re-posts with the previous
+// suggestions added to the exclusion lists.
+func (s *Service) Candidates(ctx context.Context, id auth.Identity, currentSongID string, mode Mode, count int, excludeIDs, queueIDs []string) ([]Song, error) {
 	scope, err := libraries.GetScope(ctx, s.db, id.UserID, id.IsAdmin)
 	if err != nil {
 		return nil, err
@@ -45,7 +51,7 @@ func (s *Service) Candidates(ctx context.Context, id auth.Identity, currentSongI
 	if err != nil {
 		return nil, err
 	}
-	songs, err := s.candidates(ctx, id.UserID, currentSongID, mode, count, excludeIDs, opts, scope)
+	songs, err := s.candidates(ctx, id.UserID, currentSongID, mode, count, excludeIDs, queueIDs, opts, scope)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrGeneration, err)
 	}
@@ -55,27 +61,102 @@ func (s *Service) Candidates(ctx context.Context, id auth.Identity, currentSongI
 	return songs, nil
 }
 
-func (s *Service) candidates(ctx context.Context, userID, currentSongID string, mode Mode, count int, excludeIDs []string, opts Options, scope libraries.Scope) ([]Song, error) {
-	var c *SongContext
-	if currentSongID != "" {
-		loaded, err := s.songContext(ctx, userID, currentSongID)
-		if err != nil {
-			return nil, err
-		}
-		// A current song outside the catalog (or out of scope) simply
-		// degrades to context-free generation, like the old undefined context.
-		c = loaded
+func (s *Service) candidates(ctx context.Context, userID, currentSongID string, mode Mode, count int, excludeIDs, queueIDs []string, opts Options, scope libraries.Scope) ([]Song, error) {
+	seed, err := s.resolveSeed(ctx, userID, currentSongID, queueIDs)
+	if err != nil {
+		return nil, err
 	}
+	// The SQL-level exclusion sees the capped union of caller exclusions and
+	// the queue; the hard post-filter below sees the uncapped queue set.
+	excludeSet := append(append([]string{}, excludeIDs...), queueIDs...)
+	if seed != nil {
+		excludeSet = append(excludeSet, seed.ID)
+	}
+	blocked := idSet(queueIDs)
+	if seed != nil {
+		blocked[seed.ID] = true
+	}
+
+	var picked []Song
 	switch mode {
 	case ModeSimilar:
-		return s.similarCandidates(ctx, userID, c, count, excludeIDs, opts, scope)
+		picked, err = s.similarCandidates(ctx, userID, seed, count, excludeSet, opts, scope)
 	case ModeRandom:
-		return s.randomCandidates(ctx, userID, count, excludeIDs, opts, scope)
+		picked, err = s.randomCandidates(ctx, userID, count, excludeSet, opts, scope)
 	case ModeSmart:
-		return s.smartCandidates(ctx, userID, c, count, excludeIDs, opts, scope)
+		picked, err = s.smartCandidates(ctx, userID, seed, count, excludeSet, opts, scope)
 	default:
 		return nil, fmt.Errorf("unknown mode %q", mode)
 	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Hard rule: a suggestion never duplicates the posted queue (or the
+	// seed), even past the SQL exclusion cap.
+	picked = dropQueuedSongs(picked, blocked)
+	if len(picked) < count {
+		extra := append(append([]string{}, excludeSet...), songIDsOf(picked)...)
+		more, err := s.randomCandidates(ctx, userID, count-len(picked), extra, opts, scope)
+		if err != nil {
+			return nil, err
+		}
+		picked = append(picked, dropQueuedSongs(more, blocked)...)
+	}
+	return picked, nil
+}
+
+// resolveSeed picks the similarity anchor: the current song when it has
+// signal, else the newest queued track with signal, else the most recently
+// played song. A song "has signal" when it can steer scoring at all (artist,
+// album, or genres); a context-free request degrades to nil, like the old
+// undefined context.
+func (s *Service) resolveSeed(ctx context.Context, userID, currentSongID string, queueIDs []string) (*SongContext, error) {
+	if currentSongID != "" {
+		c, err := s.songContext(ctx, userID, currentSongID)
+		if err != nil {
+			return nil, err
+		}
+		if hasSignal(c) {
+			return c, nil
+		}
+	}
+	for i := len(queueIDs) - 1; i >= 0; i-- {
+		c, err := s.songContext(ctx, userID, queueIDs[i])
+		if err != nil {
+			return nil, err
+		}
+		if hasSignal(c) {
+			return c, nil
+		}
+	}
+	latest, err := s.latestPlayedSong(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if latest == "" {
+		return nil, nil
+	}
+	c, err := s.songContext(ctx, userID, latest)
+	if err != nil {
+		return nil, err
+	}
+	if hasSignal(c) {
+		return c, nil
+	}
+	return nil, nil
+}
+
+func hasSignal(c *SongContext) bool {
+	return c != nil && (c.ArtistID != nil || c.AlbumID != nil || len(c.GenreIDs) > 0)
+}
+
+func songIDsOf(songs []Song) []string {
+	ids := make([]string, len(songs))
+	for i := range songs {
+		ids[i] = songs[i].ID
+	}
+	return ids
 }
 
 // resolveOptions loads the dj configuration from the user's stored
@@ -115,10 +196,11 @@ func (s *Service) resolveOptions(ctx context.Context, userID string) (Options, e
 }
 
 // smartCandidates ports the old getSmartCandidates: score the bounded random
-// pool against the context, then pick the top count with a deterministic
-// tiebreak, backfilling from random mode when the pool comes up short.
-func (s *Service) smartCandidates(ctx context.Context, userID string, c *SongContext, count int, excludeIDs []string, opts Options, scope libraries.Scope) ([]Song, error) {
-	candidates, err := s.smartCandidateRows(ctx, userID, c, excludeIDs, opts, scope)
+// pool against the seed, then pick through the diversity caps with a
+// deterministic tiebreak, backfilling from random mode when the pool comes up
+// short.
+func (s *Service) smartCandidates(ctx context.Context, userID string, seed *SongContext, count int, excludeIDs []string, opts Options, scope libraries.Scope) ([]Song, error) {
+	candidates, err := s.smartCandidateRows(ctx, userID, seed, excludeIDs, opts, scope)
 	if err != nil {
 		return nil, err
 	}
@@ -131,30 +213,26 @@ func (s *Service) smartCandidates(ctx context.Context, userID string, c *SongCon
 	// +1 = fully familiar, -1 = fully adventurous.
 	familiarityBias := (50.0 - float64(discovery)) / 50.0
 
-	type scored struct {
-		candidate candidateRow
-		score     float64
-	}
-	scoredCandidates := make([]scored, len(candidates))
+	scoredCandidates := make([]scoredCandidate, len(candidates))
 	for i, candidate := range candidates {
 		score := 0.0
 		song := candidate.song
 
-		if c != nil {
-			if song.ArtistID != nil && c.ArtistID != nil && *song.ArtistID == *c.ArtistID {
+		if seed != nil {
+			if song.ArtistID != nil && seed.ArtistID != nil && *song.ArtistID == *seed.ArtistID {
 				score += 3
 			}
 			score += float64(candidate.genreOverlap) * 2
-			if c.Mood != nil && candidate.mood != nil && strings.EqualFold(*candidate.mood, *c.Mood) {
+			if seed.Mood != nil && candidate.mood != nil && strings.EqualFold(*candidate.mood, *seed.Mood) {
 				score += 2
 			}
-			if c.BPM != nil && candidate.bpm != nil && *c.BPM != 0 {
-				diff := absFloat(float64(*candidate.bpm-*c.BPM)) / float64(*c.BPM)
+			if seed.BPM != nil && candidate.bpm != nil && *seed.BPM != 0 {
+				diff := absFloat(float64(*candidate.bpm-*seed.BPM)) / float64(*seed.BPM)
 				if diff <= 0.05 {
 					score += 1
 				}
 			}
-			if c.AlbumID != nil && song.AlbumID != nil && *song.AlbumID == *c.AlbumID {
+			if seed.AlbumID != nil && song.AlbumID != nil && *song.AlbumID == *seed.AlbumID {
 				score -= 5
 			}
 		}
@@ -188,7 +266,7 @@ func (s *Service) smartCandidates(ctx context.Context, userID string, c *SongCon
 			score += 3
 		}
 
-		scoredCandidates[i] = scored{candidate: candidate, score: score}
+		scoredCandidates[i] = scoredCandidate{row: candidate, score: score}
 	}
 
 	sort.SliceStable(scoredCandidates, func(i, j int) bool {
@@ -196,12 +274,14 @@ func (s *Service) smartCandidates(ctx context.Context, userID string, c *SongCon
 			return scoredCandidates[i].score > scoredCandidates[j].score
 		}
 		// Deterministic tiebreak by id (the old localeCompare).
-		return scoredCandidates[i].candidate.song.ID < scoredCandidates[j].candidate.song.ID
+		return scoredCandidates[i].row.song.ID < scoredCandidates[j].row.song.ID
 	})
 
 	picked := []Song{}
-	for i := 0; i < len(scoredCandidates) && len(picked) < count; i++ {
-		picked = append(picked, scoredCandidates[i].candidate.song)
+	for _, sc := range diversePick(scoredCandidates, count) {
+		song := sc.row.song
+		song.Reason = reasonFor(sc.row, seed)
+		picked = append(picked, song)
 	}
 
 	if len(picked) < count {
@@ -209,8 +289,8 @@ func (s *Service) smartCandidates(ctx context.Context, userID string, c *SongCon
 		for _, song := range picked {
 			extra = append(extra, song.ID)
 		}
-		if c != nil {
-			extra = append(extra, c.ID)
+		if seed != nil {
+			extra = append(extra, seed.ID)
 		}
 		more, err := s.randomCandidates(ctx, userID, count-len(picked), extra, opts, scope)
 		if err != nil {

@@ -1,4 +1,4 @@
-import { lazy, memo, Suspense } from 'react';
+import { lazy, memo, Suspense, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import type { AutoDjMode, User } from '../types';
 import { Icon } from './ui/Icon.js';
@@ -14,6 +14,7 @@ import { useSongInteraction } from '../hooks/useSongInteraction.js';
 import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
 import { useNowPlaying } from '../features/now-playing/stores/nowPlayingStore.js';
 import { getShareToken } from '../lib/shareToken.js';
+import { AutoDjTunePopover } from '../features/now-playing/components/AutoDjTunePopover.js';
 
 // Audit F19 (plan P8): importing QueueModal through the now-playing barrel
 // drags QueueList → LibraryView → @dnd-kit into the entry chunk (first paint,
@@ -259,6 +260,9 @@ export function PlayerBar({ user }: PlayerBarProps) {
     { id: 'smart', label: 'Smart', icon: 'mdi-brain' },
   ];
 
+  const [autoDjTuneOpen, setAutoDjTuneOpen] = useState(false);
+  const autoDjAnchorRef = useRef<HTMLButtonElement>(null);
+
   return (
     <footer className="relative shrink-0 select-none overflow-hidden border-t border-rule/50 bg-surface">
       {/* Ambient wash from the currently playing cover art */}
@@ -319,11 +323,22 @@ export function PlayerBar({ user }: PlayerBarProps) {
                     onClick: () => updatePreferences.mutate({ autoDjMode: mode.id }),
                   })),
                 },
+                {
+                  items: [
+                    {
+                      id: 'tune',
+                      label: 'Tune Auto DJ…',
+                      icon: 'mdi-cog',
+                      onClick: () => setAutoDjTuneOpen(true),
+                    },
+                  ],
+                },
               ]}
               anchorToTrigger
               placement="top-end"
             >
               <ControlButton
+                ref={autoDjAnchorRef}
                 onClick={handleToggleAutoDj}
                 label={`Auto DJ: ${autoDjEnabled ? 'on' : 'off'}`}
                 active={autoDjEnabled}
@@ -331,6 +346,11 @@ export function PlayerBar({ user }: PlayerBarProps) {
                 <Icon name="mdi-record-player" size={18} />
               </ControlButton>
             </ItemContextMenu>
+            <AutoDjTunePopover
+              anchorRef={autoDjAnchorRef}
+              open={autoDjTuneOpen}
+              onClose={() => setAutoDjTuneOpen(false)}
+            />
             {user && (
               <Suspense fallback={null}>
                 <QueueModal user={user} />

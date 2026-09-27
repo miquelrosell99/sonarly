@@ -1,7 +1,7 @@
 // Package autodj ports the old auto-dj: similar / random / smart candidate
 // generation for playback continuity. The selection SQL, the JS scoring
 // port, the exclude windows, the 500-id cap and the user-preference-driven
-// options all follow the old server; two deliberate deviations:
+// options all follow the old server; deliberate deviations:
 //
 //   - Errors surface as a typed 502 instead of the old silent "200 with an
 //     empty songs array" — the audit called that swallow a bug: a client
@@ -11,6 +11,15 @@
 //   - ORDER BY RANDOM() stays (wire parity): at SQLite scale — one library,
 //     one writer, candidate sets capped at 500 — the sort is milliseconds.
 //     The smart pool is additionally bounded (500 rows) like the retired server.
+//   - The similarity seed resolves beyond the current song: a signal-less
+//     current song falls back to the posted queue tail, then to the user's
+//     most recently played track, so a session keeps scoring against what
+//     actually started it.
+//   - Batches pass the diversity caps (no consecutive same-artist picks, one
+//     song per album, era spread where years exist) and never duplicate a
+//     song from the caller's posted queue — that last rule is absolute.
+//   - Every suggestion carries a server-computed `reason` string explaining
+//     which scoring signals fired.
 //
 // Explicit-content filtering stays OFF (wire parity): auto-dj follows the
 // user's own listening context, and the client can post-filter.
@@ -28,6 +37,11 @@ import (
 
 // maxExcludeIDs caps the exclusion id list (the old MAX_EXCLUDE_IDS).
 const maxExcludeIDs = 500
+
+// maxQueueIDs caps the caller's queue id list (POST body). The queue-length
+// contract is a hard guarantee, so the final duplicate filter always runs
+// against the full posted list — the SQL exclusion only sees the capped head.
+const maxQueueIDs = 1000
 
 // idChunkSize bounds the genre batch loader's IN lists.
 const idChunkSize = 400
@@ -78,6 +92,9 @@ const (
 
 // Song is one auto-dj candidate (the display subset of the catalog song
 // DTO, plus the caller's interaction state — the old rowToSong shape).
+// Reason is the server-computed explanation for the pick ("More like X",
+// "Hidden gem — you haven't played this", …) derived from the scoring
+// signals that fired; additive field, empty when no explanation exists.
 type Song struct {
 	ID          string   `json:"id"`
 	Title       string   `json:"title"`
@@ -96,16 +113,20 @@ type Song struct {
 	Mtime       int64    `json:"mtime"`
 	Starred     bool     `json:"starred"`
 	Rating      *float64 `json:"rating,omitempty"`
+	Reason      string   `json:"reason,omitempty"`
 }
 
-// SongContext is the current song's similarity inputs (the old SongContext).
+// SongContext is the seed song's similarity inputs (the old SongContext,
+// extended with the display names the reason strings quote).
 type SongContext struct {
 	ID         string
 	ArtistID   *string
+	ArtistName *string
 	AlbumID    *string
 	BPM        *int
 	Mood       *string
 	GenreIDs   []string
+	GenreNames []string
 	Rating     *float64
 	PlayCount  *int
 	LastPlayed *string
@@ -260,19 +281,22 @@ func favoritesFirst(preferFavorites bool) string {
 }
 
 // songContext loads the similarity inputs for one song (the old getSongContext:
-// a missing song yields nil, which the modes treat as "no context").
+// a missing song yields nil, which the modes treat as "no context"). The
+// artist and genre display names ride along because the reason strings quote
+// them ("More like {artist}", "Because you love {genre}").
 func (s *Service) songContext(ctx context.Context, userID, songID string) (*SongContext, error) {
 	var c SongContext
-	var artistID, albumID, mood sql.NullString
+	var artistID, artistName, albumID, mood sql.NullString
 	var bpm, playCount sql.NullInt64
 	var rating sql.NullFloat64
 	var lastPlayed sql.NullString
 	err := s.db.QueryRowContext(ctx,
-		`SELECT s.artist_id, s.album_id, s.bpm, s.mood, us.rating, us.play_count, us.last_played
+		`SELECT s.artist_id, ar.name, s.album_id, s.bpm, s.mood, us.rating, us.play_count, us.last_played
 		FROM songs s
+		LEFT JOIN artists ar ON ar.id = s.artist_id
 		LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
 		WHERE s.id = ? AND s.active = 1`, userID, songID).
-		Scan(&artistID, &albumID, &bpm, &mood, &rating, &playCount, &lastPlayed)
+		Scan(&artistID, &artistName, &albumID, &bpm, &mood, &rating, &playCount, &lastPlayed)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -280,7 +304,8 @@ func (s *Service) songContext(ctx context.Context, userID, songID string) (*Song
 		return nil, fmt.Errorf("load song context: %w", err)
 	}
 	c.ID = songID
-	c.ArtistID, c.AlbumID, c.Mood = strPtr(artistID), strPtr(albumID), strPtr(mood)
+	c.ArtistID, c.ArtistName = strPtr(artistID), strPtr(artistName)
+	c.AlbumID, c.Mood = strPtr(albumID), strPtr(mood)
 	c.BPM = intPtr(bpm)
 	if rating.Valid {
 		c.Rating = &rating.Float64
@@ -293,22 +318,42 @@ func (s *Service) songContext(ctx context.Context, userID, songID string) (*Song
 		c.LastPlayed = &lastPlayed.String
 	}
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT genre_id FROM song_genres WHERE song_id = ?`, songID)
+		`SELECT g.id, g.name FROM song_genres sg
+		JOIN genres g ON g.id = sg.genre_id
+		WHERE sg.song_id = ? ORDER BY sg.position`, songID)
 	if err != nil {
 		return nil, fmt.Errorf("load song context genres: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
+		var id, name string
+		if err := rows.Scan(&id, &name); err != nil {
 			return nil, fmt.Errorf("load song context genres: %w", err)
 		}
 		c.GenreIDs = append(c.GenreIDs, id)
+		c.GenreNames = append(c.GenreNames, name)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("load song context genres: %w", err)
 	}
 	return &c, nil
+}
+
+// latestPlayedSong is the session-anchor fallback for seed resolution: the
+// song id of the caller's most recent listening_history row, or "" when the
+// history is empty.
+func (s *Service) latestPlayedSong(ctx context.Context, userID string) (string, error) {
+	var id string
+	err := s.db.QueryRowContext(ctx,
+		`SELECT song_id FROM listening_history
+		WHERE user_id = ? ORDER BY played_at DESC LIMIT 1`, userID).Scan(&id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", nil
+		}
+		return "", fmt.Errorf("load latest played song: %w", err)
+	}
+	return id, nil
 }
 
 // loadGenreIDs batch-loads the genre id lists for candidates (the old
@@ -359,18 +404,19 @@ func (s *Service) loadGenreIDs(ctx context.Context, candidates []candidateRow) e
 }
 
 // similarCandidates ports the old getSimilarCandidates: artist/album/genre
-// overlap first, then random backfill so the request still returns count
-// songs when the overlap pool runs dry.
-func (s *Service) similarCandidates(ctx context.Context, userID string, c *SongContext, count int, excludeIDs []string, opts Options, scope libraries.Scope) ([]Song, error) {
+// overlap with the seed first, trimmed by the diversity caps, then random
+// backfill so the request still returns count songs when the overlap pool
+// runs dry.
+func (s *Service) similarCandidates(ctx context.Context, userID string, seed *SongContext, count int, excludeIDs []string, opts Options, scope libraries.Scope) ([]Song, error) {
 	exclude, excludeArgs := buildExcludeClause(excludeIDs)
 	recent, recentArgs := recentHistoryClause(userID, opts.ExcludeWindow)
 	scopeCond := libraries.ScopeCondition(scope, "s.library_id")
 	candidates := []candidateRow{}
-	if c != nil && (c.ArtistID != nil || c.AlbumID != nil || len(c.GenreIDs) > 0) {
+	if seed != nil && (seed.ArtistID != nil || seed.AlbumID != nil || len(seed.GenreIDs) > 0) {
 		genrePlaceholders := ""
 		genreArgs := []any{}
-		if len(c.GenreIDs) > 0 {
-			for i, id := range c.GenreIDs {
+		if len(seed.GenreIDs) > 0 {
+			for i, id := range seed.GenreIDs {
 				if i > 0 {
 					genrePlaceholders += ", "
 				}
@@ -381,13 +427,13 @@ func (s *Service) similarCandidates(ctx context.Context, userID string, c *SongC
 		overlap := ` s.artist_id IS ?
 			OR s.album_id IS ?
 			` + genreExistsClause(genrePlaceholders)
-		args := []any{userID, c.ID}
+		args := []any{userID, seed.ID}
 		args = append(args, scopeCond.Params...)
 		args = append(args, excludeArgs...)
 		args = append(args, recentArgs...)
-		args = append(args, nilOr(c.ArtistID), nilOr(c.AlbumID))
+		args = append(args, nilOr(seed.ArtistID), nilOr(seed.AlbumID))
 		args = append(args, genreArgs...)
-		args = append(args, count)
+		args = append(args, poolWindowLimit(count))
 		rows, err := s.db.QueryContext(ctx,
 			`SELECT `+songColumns+` `+songJoins+`
 			WHERE s.active = 1
@@ -409,15 +455,38 @@ func (s *Service) similarCandidates(ctx context.Context, userID string, c *SongC
 	if err := s.loadGenreIDs(ctx, candidates); err != nil {
 		return nil, err
 	}
-	songs := candidateSongs(candidates)
+	// The overlap query filters by genre EXISTS without counting hits; the
+	// reason strings ("Because you love {genre}") need the count.
+	if seed != nil && len(seed.GenreIDs) > 0 {
+		seedGenres := idSet(seed.GenreIDs)
+		for i := range candidates {
+			overlap := 0
+			for _, gid := range candidates[i].genreIDs {
+				if seedGenres[gid] {
+					overlap++
+				}
+			}
+			candidates[i].genreOverlap = overlap
+		}
+	}
+	ordered := make([]scoredCandidate, len(candidates))
+	for i, row := range candidates {
+		ordered[i] = scoredCandidate{row: row}
+	}
+	songs := []Song{}
+	for _, sc := range diversePick(ordered, count) {
+		song := sc.row.song
+		song.Reason = reasonFor(sc.row, seed)
+		songs = append(songs, song)
+	}
 	if len(songs) < count {
 		extra := []string{}
 		extra = append(extra, excludeIDs...)
 		for _, song := range songs {
 			extra = append(extra, song.ID)
 		}
-		if c != nil {
-			extra = append(extra, c.ID)
+		if seed != nil {
+			extra = append(extra, seed.ID)
 		}
 		more, err := s.randomCandidates(ctx, userID, count-len(songs), extra, opts, scope)
 		if err != nil {
@@ -446,64 +515,90 @@ func nilOr(p *string) any {
 
 // randomCandidates ports the old getRandomCandidates: the recent-play window
 // applies through user_songs.last_played (old behavior — similar/smart use
-// listening_history instead), with a no-window fallback pass when the
-// window drains the pool.
+// listening_history instead), with a no-window fallback pass when the window
+// drains the pool. The pool fetches overscanned so the diversity caps can
+// spread the batch before it falls back.
 func (s *Service) randomCandidates(ctx context.Context, userID string, count int, excludeIDs []string, opts Options, scope libraries.Scope) ([]Song, error) {
+	windowLimit := poolWindowLimit(count)
 	exclude, excludeArgs := buildExcludeClause(excludeIDs)
 	scopeCond := libraries.ScopeCondition(scope, "s.library_id")
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT `+songColumns+` `+songJoins+`
-		WHERE s.active = 1
-			`+scopeCond.SQL+`
-			`+exclude+`
-			AND (us.last_played IS NULL OR us.last_played < datetime('now', ?))
-		`+favoritesFirst(opts.PreferFavorites)+`
-		LIMIT ?`,
-		append(append(append([]any{userID}, scopeCond.Params...), excludeArgs...),
-			windowModifier(opts.ExcludeWindow), count)...)
-	if err != nil {
-		return nil, fmt.Errorf("random candidates: %w", err)
-	}
-	candidates, err := scanCandidate(rows, false)
-	if err != nil {
-		return nil, err
-	}
-	if len(candidates) < count {
-		fallbackExclude := append(append([]string{}, excludeIDs...), candidateIDs(candidates)...)
-		exc, excArgs := buildExcludeClause(fallbackExclude)
+	query := func(limit int, whereFragment string, windowArg any, args []any) ([]candidateRow, error) {
+		windowClause := ""
+		if windowArg != nil {
+			windowClause = ` AND (us.last_played IS NULL OR us.last_played < datetime('now', ?))`
+		}
 		rows, err := s.db.QueryContext(ctx,
 			`SELECT `+songColumns+` `+songJoins+`
 			WHERE s.active = 1
 				`+scopeCond.SQL+`
-				`+exc+`
+				`+whereFragment+`
+				`+windowClause+`
 			`+favoritesFirst(opts.PreferFavorites)+`
-			LIMIT ?`,
-			append(append(append([]any{userID}, scopeCond.Params...), excArgs...), count-len(candidates))...)
-		if err != nil {
-			return nil, fmt.Errorf("random candidates fallback: %w", err)
-		}
-		more, err := scanCandidate(rows, false)
+			LIMIT ?`, args...)
 		if err != nil {
 			return nil, err
 		}
+		return scanCandidate(rows, false)
+	}
+
+	fullArgs := func(fragment string, fragmentArgs []any, limit int, windowArg any) []any {
+		args := append([]any{userID}, scopeCond.Params...)
+		args = append(args, fragmentArgs...)
+		if windowArg != nil {
+			args = append(args, windowArg)
+		}
+		return append(args, limit)
+	}
+
+	candidates, err := query(windowLimit, exclude, windowModifier(opts.ExcludeWindow), fullArgs(exclude, excludeArgs, windowLimit, windowModifier(opts.ExcludeWindow)))
+	if err != nil {
+		return nil, fmt.Errorf("random candidates: %w", err)
+	}
+
+	// The no-window fallback (old behavior) runs only when the windowed pool
+	// cannot fill the batch — either raw rows or diversity-capped picks.
+	picked := diversePick(asOrdered(candidates), count)
+	if len(picked) < count && len(candidates) < windowLimit {
+		fallbackExclude := append(append([]string{}, excludeIDs...), candidateIDs(candidates)...)
+		exc, excArgs := buildExcludeClause(fallbackExclude)
+		more, err := query(windowLimit-len(candidates), exc, nil, fullArgs(exc, excArgs, windowLimit-len(candidates), nil))
+		if err != nil {
+			return nil, fmt.Errorf("random candidates fallback: %w", err)
+		}
 		candidates = append(candidates, more...)
+		picked = diversePick(asOrdered(candidates), count)
 	}
 	if err := s.loadGenreIDs(ctx, candidates); err != nil {
 		return nil, err
 	}
-	return candidateSongs(candidates), nil
+	songs := make([]Song, 0, len(picked))
+	for _, sc := range picked {
+		song := sc.row.song
+		song.Reason = reasonFor(sc.row, nil)
+		songs = append(songs, song)
+	}
+	return songs, nil
+}
+
+// asOrdered wraps pool rows in fetch order for the diversity picker.
+func asOrdered(candidates []candidateRow) []scoredCandidate {
+	ordered := make([]scoredCandidate, len(candidates))
+	for i, row := range candidates {
+		ordered[i] = scoredCandidate{row: row}
+	}
+	return ordered
 }
 
 // smartCandidateRows draws the bounded random pool with per-candidate genre
-// overlap against the context (the old getSmartCandidateRows).
-func (s *Service) smartCandidateRows(ctx context.Context, userID string, c *SongContext, excludeIDs []string, opts Options, scope libraries.Scope) ([]candidateRow, error) {
+// overlap against the seed (the old getSmartCandidateRows).
+func (s *Service) smartCandidateRows(ctx context.Context, userID string, seed *SongContext, excludeIDs []string, opts Options, scope libraries.Scope) ([]candidateRow, error) {
 	exclude, excludeArgs := buildExcludeClause(excludeIDs)
 	recent, recentArgs := recentHistoryClause(userID, opts.ExcludeWindow)
 	scopeCond := libraries.ScopeCondition(scope, "s.library_id")
 	genrePlaceholders := ""
 	genreArgs := []any{}
-	if c != nil && len(c.GenreIDs) > 0 {
-		for i, id := range c.GenreIDs {
+	if seed != nil && len(seed.GenreIDs) > 0 {
+		for i, id := range seed.GenreIDs {
 			if i > 0 {
 				genrePlaceholders += ", "
 			}
@@ -564,15 +659,6 @@ func candidateIDs(candidates []candidateRow) []string {
 		ids[i] = candidates[i].song.ID
 	}
 	return ids
-}
-
-// candidateSongs projects candidates to the API shape.
-func candidateSongs(candidates []candidateRow) []Song {
-	songs := make([]Song, len(candidates))
-	for i, c := range candidates {
-		songs[i] = c.song
-	}
-	return songs
 }
 
 func chunkIDs(ids []string) [][]string {

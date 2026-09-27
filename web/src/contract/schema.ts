@@ -911,7 +911,10 @@ export interface paths {
         /** Auto-DJ candidates (legacy query-string variant) */
         get: operations["getAutoDjCandidates"];
         put?: never;
-        /** Auto-DJ candidates (body variant) */
+        /**
+         * Auto-DJ candidates (body variant)
+         * @description Stateless and idempotent: the same (currentSongId, mode, count, excludeIds, queueIds, stored preferences) always yields an equivalent batch — there is no server-side session. The similarity seed is the current song when it carries artist/album/genre signal, else the last posted queue id with signal, else the caller's most recently played song. A refresh asks for a fresh batch by re-posting with the previous suggestions added to excludeIds/queueIds. Suggestions never duplicate a posted queueIds entry, no two consecutive picks share an artist, one song per album per batch, and eras spread where year data exists. Every song carries a `reason` string naming the scoring signals that fired.
+         */
         post: operations["generateAutoDjCandidates"];
         delete?: never;
         options?: never;
@@ -2651,7 +2654,7 @@ export interface components {
             /** @description The caller's most recently played songs (user_songs.last_played DESC, title breaks ties); empty for viewers without plays of their own. */
             recentlyPlayed: components["schemas"]["HomeSongCard"][];
         };
-        /** @description Display subset of the catalog song DTO plus the caller's interaction state. */
+        /** @description Display subset of the catalog song DTO plus the caller's interaction state. `reason` is the server-computed explanation for the pick ("More like {artist}", "Because you love {genre}", "From your highly rated", "Hidden gem — you haven't played this", "One of your favorites", "From the same album", or the library-wide "Fresh pick" fallback), derived from the scoring signals that fired. */
         AutoDjSong: {
             id: string;
             title: string;
@@ -2671,6 +2674,7 @@ export interface components {
             mtime: number;
             starred: boolean;
             rating?: number;
+            reason?: string;
         };
         /** @description One live player entry (user + device). `userId` is absent for anonymous share-token streams. Entries expire 5 minutes after their last stream heartbeat; a restart clears the registry. */
         PlayerInfo: {
@@ -4780,6 +4784,8 @@ export interface operations {
                     currentSongId?: string;
                     /** @description Over 500 entries is a 400 (the old zod cap). */
                     excludeIds?: string[];
+                    /** @description The caller's current queue song ids. Hard guarantee: no returned song duplicates one of them. The tail doubles as the similarity-seed fallback. Over 1000 entries is a 400. */
+                    queueIds?: string[];
                 };
             };
         };

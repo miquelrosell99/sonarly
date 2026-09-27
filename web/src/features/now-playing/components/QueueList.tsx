@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import type { AutoDjMode, User } from '../../../types';
 import { LibraryView, type LibraryViewColumn } from '../../../components/LibraryView.js';
@@ -6,9 +6,11 @@ import { Icon } from '../../../components/ui/Icon.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { cn } from '../../../lib/cn.js';
 import { usePlayer, type PlayerSong } from '../../../stores/playerStore.js';
+import { useAutoDjUi } from '../../../stores/autoDjStore.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferences.js';
 import { SaveQueueAsPlaylistModal } from './SaveQueueAsPlaylistModal.js';
+import { AutoDjTunePopover } from './AutoDjTunePopover.js';
 
 interface QueueListProps {
   user: User;
@@ -25,6 +27,8 @@ interface QueueDisplayItem {
   originalIndex: number;
   status: QueueItemStatus;
 }
+
+const AUTO_DJ_GROUP_KEY = 'auto-dj';
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
@@ -60,6 +64,17 @@ function buildDisplayItems(
   return queue.map((_, originalIndex) => withStatus(originalIndex, originalIndex));
 }
 
+// Pulsing live indicator for the active Auto-DJ; the ping is suppressed under
+// reduced motion (the solid dot stays).
+function AutoDjLiveDot() {
+  return (
+    <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60 motion-reduce:hidden" />
+      <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+    </span>
+  );
+}
+
 export function QueueList({ title, showHeader = true, className }: QueueListProps) {
   const [, setLocation] = useLocation();
   const queue = usePlayer((state) => state.queue);
@@ -73,6 +88,8 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
   const updatePreferences = useUpdatePreferences();
   const autoDjEnabled = preferences?.autoDjEnabled ?? false;
   const autoDjMode = preferences?.autoDjMode ?? 'smart';
+  const isFetching = useAutoDjUi((state) => state.isFetching);
+  const requestRefresh = useAutoDjUi((state) => state.requestRefresh);
   const djModeItems: { id: AutoDjMode; label: string; icon: string }[] = [
     { id: 'similar', label: 'Similar', icon: 'mdi-account-music' },
     { id: 'random', label: 'Random', icon: 'mdi-shuffle' },
@@ -85,10 +102,28 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
     [queue, queueIndex, shuffle, shuffledIndices],
   );
 
+  // While Auto DJ is active, upcoming DJ picks render as their own section.
+  // Items stay in the single player queue (drag/reorder semantics unchanged);
+  // grouping only labels the contiguous run — usually the queue tail.
+  const djSectionIds = useMemo(() => {
+    if (!autoDjEnabled) return new Set<string>();
+    return new Set(
+      displayItems
+        .filter((item) => item.status === 'future' && item.song.addedByAutoDj)
+        .map((item) => item.id),
+    );
+  }, [autoDjEnabled, displayItems]);
+  const futureCount = useMemo(
+    () => displayItems.filter((item) => item.status === 'future').length,
+    [displayItems],
+  );
+
   const [items, setItems] = useState(displayItems);
   useEffect(() => setItems(displayItems), [displayItems]);
 
   const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [tuneOpen, setTuneOpen] = useState(false);
+  const tuneAnchorRef = useRef<HTMLButtonElement>(null);
 
   const columns: LibraryViewColumn<QueueDisplayItem>[] = [
     {
@@ -96,13 +131,20 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
       header: 'Title',
       render: (item) => (
         <span className="flex min-w-0 items-center gap-2">
-          <span
-            className={cn('truncate', item.status === 'current' && 'font-medium text-accent')}
-            title={item.song.title}
-          >
-            {item.song.title}
+          <span className="min-w-0">
+            <span
+              className={cn('block truncate', item.status === 'current' && 'font-medium text-accent')}
+              title={item.song.title}
+            >
+              {item.song.title}
+            </span>
+            {item.song.addedByAutoDj && item.song.autoDjReason && (
+              <span className="block truncate text-xs text-muted" title={item.song.autoDjReason}>
+                {item.song.autoDjReason}
+              </span>
+            )}
           </span>
-          {item.song.addedByAutoDj && (
+          {item.song.addedByAutoDj && !djSectionIds.has(item.id) && (
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent/70">
               <Icon name="mdi-robot" size={12} />
               Auto DJ
@@ -260,6 +302,38 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
     );
   };
 
+  const renderDjGroupHeader = (_key: string, groupItems: QueueDisplayItem[]) => (
+    <span className="flex items-center justify-between gap-2 py-1">
+      <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent">
+        <AutoDjLiveDot />
+        Up next — Auto-DJ
+        <span className="text-muted">· {groupItems.length}</span>
+      </span>
+      <span className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={requestRefresh}
+          disabled={isFetching}
+          aria-label="Refresh Auto-DJ suggestions"
+          title="Fresh suggestions"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+        >
+          <Icon name="mdi-refresh" size={14} className={cn(isFetching && 'animate-spin')} />
+        </button>
+        <button
+          type="button"
+          ref={tuneAnchorRef}
+          onClick={() => setTuneOpen((v) => !v)}
+          aria-label="Auto DJ settings"
+          title="Tune Auto DJ"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <Icon name="mdi-cog" size={14} />
+        </button>
+      </span>
+    </span>
+  );
+
   if (queue.length === 0) {
     return (
       <div className={`flex h-full flex-col items-center justify-center gap-2 text-fg-secondary ${className ?? ''}`}>
@@ -343,8 +417,30 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
           sortable
           onReorder={handleReorder}
           getRowClassName={getRowClassName}
+          groupBy={autoDjEnabled ? (item) => (djSectionIds.has(item.id) ? AUTO_DJ_GROUP_KEY : '') : undefined}
+          renderGroupHeader={autoDjEnabled ? renderDjGroupHeader : undefined}
         />
       </div>
+      {futureCount === 0 && autoDjEnabled && (
+        <div className="flex shrink-0 items-center gap-2 rounded-lg border border-rule/50 bg-surface px-3 py-2 text-xs text-fg-secondary">
+          <AutoDjLiveDot />
+          <span className="flex-1">Queue's end — Auto-DJ will keep it going</span>
+          {isFetching && <span className="text-muted">Fetching…</span>}
+        </div>
+      )}
+      {futureCount === 0 && !autoDjEnabled && (
+        <div className="flex shrink-0 items-center gap-2 rounded-lg border border-rule/50 bg-surface px-3 py-2 text-xs text-fg-secondary">
+          <Icon name="mdi-record-player" size={14} className="text-muted" />
+          <span className="flex-1">Queue's end — turn on Auto DJ to keep listening</span>
+          <button
+            type="button"
+            onClick={() => updatePreferences.mutate({ autoDjEnabled: true })}
+            className="rounded-full bg-accent/15 px-2.5 py-1 font-medium text-accent transition hover:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            Turn on Auto DJ
+          </button>
+        </div>
+      )}
       {saveModalOpen && (
         <SaveQueueAsPlaylistModal
           open={saveModalOpen}
@@ -352,6 +448,7 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
           songIds={queue.map((song) => song.id)}
         />
       )}
+      <AutoDjTunePopover anchorRef={tuneAnchorRef} open={tuneOpen} onClose={() => setTuneOpen(false)} />
     </div>
   );
 }

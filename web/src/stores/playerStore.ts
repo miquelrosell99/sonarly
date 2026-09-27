@@ -10,7 +10,13 @@ export type SleepTimerState =
   | { mode: 'minutes'; endsAt: number }
   | { mode: 'endOfTrack' };
 
-export type PlayerSong = Song & { artistName?: string; albumName?: string; addedByAutoDj?: boolean };
+export type PlayerSong = Song & {
+  artistName?: string;
+  albumName?: string;
+  addedByAutoDj?: boolean;
+  /** Server-computed explanation for an Auto-DJ pick ("More like X", …). */
+  autoDjReason?: string;
+};
 
 interface PlayerState {
   currentSong: PlayerSong | null;
