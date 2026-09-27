@@ -58,6 +58,8 @@ docker run -d --name sonarly \
 
 On first visit the app redirects to `/setup`:
 
+![The first-boot setup wizard](img/screenshots/dark/setup-wizard.jpg)
+
 1. Choose the admin username and password. This is the first user account; more users are added later from the admin panel.
 2. Log in. The server seeds the default library from `SONARLY_LIBRARY_PATH` and enqueues the first scan automatically.
 3. Music appearing in the UI means the library path is mounted correctly; if the library is empty, check the mount (see [troubleshooting.md](troubleshooting.md)).

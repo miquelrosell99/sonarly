@@ -114,6 +114,8 @@ Smart playlists use the normal playlist endpoints with `isSmart: true` and a `ru
 - Rules with `artist`, `album`, `albumArtist`, `genre`, or `releaseType` get an autocomplete input backed by `GET /api/suggestions?field=…` (admin-only endpoint; release type merges a canonical seed list — Album, EP, Single, Compilation, Live, Soundtrack, Remix — with values already in the library).
 - Sort rows, `limit` / `limitPercent`, and the resolve-mode selector ("Shared track list" / "Live query") round out the editor.
 
+![The smart playlist editor in the create-playlist modal](img/screenshots/dark/smart-playlist.jpg)
+
 ## Where things live
 
 | Piece | Location |
