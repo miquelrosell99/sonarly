@@ -9,6 +9,8 @@ This guide covers the day-to-day: getting set up, adding music, browsing, playin
 3. Log in. The library folder you mounted (`LIBRARY_MUSIC`) is already registered as the default library, and the first scan starts automatically.
 4. (Optional) Open Settings (Profile / Appearance / Playback / Sidebar) to adjust the theme, accent color, and player defaults.
 
+![The first-boot setup wizard](img/screenshots/dark/setup-wizard.jpg)
+
 ## Adding music
 
 There are three ways to get files into the library:
@@ -42,6 +44,12 @@ The sidebar is the front door:
 
 Everything you see is scoped to the libraries assigned to you (see [admin: users](#users-and-library-assignment)). If the library has more than one folder, the library selector at the top of the sidebar switches your view.
 
+The catalog as cards and as a sortable list:
+
+| Albums | Tracks |
+|---|---|
+| ![Albums grid](img/screenshots/dark/albums.jpg) | ![Tracks list](img/screenshots/dark/tracks.jpg) |
+
 ## Search
 
 The search box in the top bar searches titles, albums, and artists (full-text, prefix matching). Results are grouped (songs, albums, artists) and scoped to your libraries.
@@ -57,12 +65,16 @@ The search box in the top bar searches titles, albums, and artists (full-text, p
 - **Bookmarks and resume.** The API stores playback-position bookmarks (`/api/bookmarks`); the OpenSubsonic bookmark endpoints are not surfaced to Subsonic clients yet (`getBookmarks` returns an empty list). The web player currently starts tracks from the beginning.
 - **Auto DJ.** From the queue panel (or the player-bar Auto DJ menu → "Tune Auto DJ…"), Auto DJ refills the queue before it runs out, with modes (Similar / Random / Smart) and settings: exclude recently played (24 h / 7 d / 30 d), prefer favorites, and a familiar↔adventurous dial. While it is on, upcoming suggestions render as an "Up next — Auto-DJ" section in the queue — each pick carries a server-computed reason ("More like {artist}", "Because you love {genre}", "Hidden gem — you haven't played this", …) and the section header can fetch a fresh batch (Refresh) or open the tuning panel. Generation is stateless: candidates score against the current song (falling back to the queue tail, then your most recently played track), batches stay diverse (no consecutive same-artist picks, one song per album per batch, eras spread where years exist), and a suggestion never duplicates a song already in the queue.
 
+![Now Playing — artwork, transport, and the queue](img/screenshots/dark/now-playing.jpg)
+
 ## Playlists
 
 - **Static playlists** are manual track lists: create from the sidebar or save the current queue.
 - **Smart playlists** are rules that resolve to tracks at request time — the list updates as the library changes. Rules cover library facts (title, album, artist, genre, release type, year, duration, bit depth) and your personal data (loved, rating, play count, last played), with sorts, limits, and randomization. See [smart-playlists.md](smart-playlists.md) for the rule model.
 - **Resolve modes** matter for shared smart playlists: *Shared track list* resolves your rules against your data (every viewer gets the same list); *Live query* re-resolves against each viewer's own data.
 - **Sharing.** A playlist can be private, shared with specific users (view or edit role), public to all users on the server, or shared by link. Share links carry a token and open a guest view — cover grid, track list, and playback — without an account. See [smart-playlists.md](smart-playlists.md#resolve-modes) and [api.md](api.md).
+
+![The Playlists page](img/screenshots/dark/playlists.jpg)
 
 ## Favorites and ratings
 
@@ -71,6 +83,8 @@ Star (favorite) and rate songs, albums, artists, and playlists from their cards,
 ## Statistics
 
 The Statistics page (user menu) shows your listening time, play counts over time, top tracks/albums/artists/genres, and animated breakdowns by genre and year. Admins can view per-user statistics from the admin dashboard.
+
+![Statistics — listening time, activity, and top lists](img/screenshots/dark/statistics.jpg)
 
 ## Admin
 
@@ -83,6 +97,8 @@ Admins create and manage accounts. Each user is assigned one or more libraries, 
 ### Libraries
 
 The default library is seeded from `SONARLY_LIBRARY_PATH` on first boot. Additional libraries are folders added in the admin panel (mount more host folders under `/media/...` and register them); each has its own organize pattern and its own ingest subfolder.
+
+![Admin — libraries](img/screenshots/dark/admin-libraries.jpg)
 
 ### Settings (media)
 

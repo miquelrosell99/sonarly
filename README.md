@@ -13,7 +13,13 @@ Your files stay on your disk in your folder structure — Sonarly indexes, never
 [![OpenSubsonic](https://img.shields.io/badge/OpenSubsonic-1.16.1-FF6B6B)]()
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 
-<!-- Screenshot placeholder: add a representative UI screenshot here when available. -->
+![Sonarly — Now Playing view (dark theme)](docs/img/screenshots/dark/now-playing.jpg)
+
+| Home | Albums | Playlists |
+|---|---|---|
+| ![Home — featured albums and most played](docs/img/screenshots/dark/home.jpg) | ![Albums — the catalog as cards](docs/img/screenshots/dark/albums.jpg) | ![Playlists — static and smart](docs/img/screenshots/dark/playlists.jpg) |
+
+Screenshots show the dark theme. Light-theme variants and the rest of the screens (tracks, album detail, statistics, admin, smart playlist editor, setup wizard) live in [docs/img/screenshots/](docs/img/screenshots/) and are re-captured automatically by [`scripts/screenshots/`](scripts/screenshots/).
 
 ## Features
 
