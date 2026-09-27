@@ -18,6 +18,12 @@ The app is a full-height shell with four regions:
 - **Typography.** Space Grotesk for display type (page titles, the player track title), Inter for UI text, JetBrains Mono for durations, counters, and timestamps.
 - **Surfaces.** Rounded cards with soft shadows for artwork; muted text for navigation; a thin accent indicator on the active sidebar item. Components use the design tokens (`--bg-primary`, `--surface`, `--accent`, …), not raw colors.
 
+| Home (dark) | Now Playing (dark) |
+|---|---|
+| ![Home in dark mode](img/screenshots/dark/home.jpg) | ![Now Playing in dark mode](img/screenshots/dark/now-playing.jpg) |
+
+Light-mode variants: [img/screenshots/light/](img/screenshots/light/).
+
 ## Keyboard access
 
 - **Media keys.** The player integrates with the browser Media Session API: play, pause, previous/next track, seek, and ±10 s skip work from OS media keys, headphones, and lock-screen controls.
