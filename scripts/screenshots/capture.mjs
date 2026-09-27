@@ -41,6 +41,29 @@ function firstArray(data) {
   return [];
 }
 
+// --- browser ---------------------------------------------------------------
+const browser = await chromium.launch({
+  headless: true,
+  args: ['--autoplay-policy=no-user-gesture-required', '--disable-dev-shm-usage'],
+});
+
+// --- pre-auth: first-boot setup wizard (must run before /api/setup) --------
+for (const scheme of SCHEMES) {
+  const dir = path.join(OUT, scheme);
+  mkdirSync(dir, { recursive: true });
+  const context = await browser.newContext({
+    viewport: { width: 1600, height: 1000 },
+    deviceScaleFactor: 2,
+    colorScheme: scheme,
+  });
+  const page = await context.newPage();
+  await page.goto(BASE + '/setup', { waitUntil: 'load' });
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: path.join(dir, 'setup-wizard.jpg'), type: 'jpeg', quality: 90 });
+  console.log(`captured ${scheme}/setup-wizard.jpg`);
+  await context.close();
+}
+
 // --- auth: run the setup wizard (or log in) -------------------------------
 const setup = await api('/api/setup');
 if (setup.data?.needsSetup) {
@@ -78,12 +101,7 @@ if (songIds.length) {
 }
 console.log(`enriched: ${Math.min(10, songIds.length)} scrobbles, 2 playlists`);
 
-// --- browser: one pass per color scheme ------------------------------------
-const browser = await chromium.launch({
-  headless: true,
-  args: ['--autoplay-policy=no-user-gesture-required', '--disable-dev-shm-usage'],
-});
-
+// --- authenticated screens: one pass per color scheme ----------------------
 for (const scheme of SCHEMES) {
   const dir = path.join(OUT, scheme);
   mkdirSync(dir, { recursive: true });
@@ -117,6 +135,7 @@ for (const scheme of SCHEMES) {
 
   await shot('/home', 'home.jpg');
   await shot('/albums', 'albums.jpg');
+  await shot('/tracks', 'tracks.jpg');
 
   // album detail; start playback via the header Play button so the player bar
   // is live (and /now-playing renders the queue instead of redirecting).
@@ -134,6 +153,23 @@ for (const scheme of SCHEMES) {
 
   await shot('/now-playing', 'now-playing.jpg');
   await shot('/playlists', 'playlists.jpg');
+
+  // smart playlist editor: open Create, flip the type toggle to Smart
+  await page.locator('button:has-text("Create")').first().click({ timeout: 3000 });
+  await page.waitForTimeout(600);
+  try {
+    const typeGroup = page.getByRole('group', { name: 'Playlist type' });
+    await typeGroup.getByRole('button').nth(1).click();
+    await page.waitForTimeout(600);
+    // toggling to smart asks for confirmation before swapping the editor
+    await page.locator('button:has-text("Convert to smart")').click({ timeout: 2000 });
+    await page.waitForTimeout(600);
+  } catch {
+    console.warn(`warn [${scheme}]: could not switch to smart playlist editor`);
+  }
+  await page.screenshot({ path: path.join(dir, 'smart-playlist.jpg'), type: 'jpeg', quality: 90 });
+  console.log(`captured ${scheme}/smart-playlist.jpg (${kb('smart-playlist.jpg')})`);
+
   await shot('/statistics', 'statistics.jpg');
   await shot('/admin/libraries', 'admin-libraries.jpg');
 
