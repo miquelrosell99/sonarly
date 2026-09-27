@@ -81,6 +81,7 @@ function validatePattern(pattern: string): string | undefined {
 
 export function AdminLibraries({ user }: AdminLibrariesProps) {
   const { notify } = useNotification();
+  const queryClient = useQueryClient();
   const [libraries, setLibraries] = useState<Library[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState<CreateForm>({ name: '', path: '', isDefault: false });
@@ -137,6 +138,9 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
       setCreateOpen(false);
       setForm({ name: '', path: '', isDefault: false });
       notify('Library created.', 'success');
+      // The sidebar/TopBar selector reads the ['libraries'] query — drop it so
+      // the new library shows up without a reload.
+      queryClient.invalidateQueries({ queryKey: ['libraries'] });
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create library');
@@ -183,6 +187,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
       });
       notify('Library updated.', 'success');
       setEditingLibrary(null);
+      queryClient.invalidateQueries({ queryKey: ['libraries'] });
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update library');
@@ -198,6 +203,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
       await api(`/admin/libraries/${id}`, { method: 'DELETE' });
       setLibraryToDelete(null);
       notify('Library deleted.', 'success');
+      queryClient.invalidateQueries({ queryKey: ['libraries'] });
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete library');
