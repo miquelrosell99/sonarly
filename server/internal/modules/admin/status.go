@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/miquelrosell99/sonarly/server/internal/httpserver"
+	"github.com/miquelrosell99/sonarly/server/internal/modules/ingest"
 )
 
 // countOf runs one SELECT COUNT(*) with optional WHERE.
@@ -55,8 +56,7 @@ func (s *Service) Status(ctx context.Context) (*AdminStatus, error) {
 	if out.Counts.Artists, err = countOf(ctx, s.db, `SELECT COUNT(*) FROM artists`); err != nil {
 		return nil, err
 	}
-	if out.ConflictsCount, err = countOf(ctx, s.db,
-		`SELECT COUNT(*) FROM songs WHERE active = 1 AND file_path LIKE '% (%)%'`); err != nil {
+	if out.ConflictsCount, err = ingest.CountConflicts(ctx, s.db); err != nil {
 		return nil, err
 	}
 	if out.MissingCounts.Songs, err = countOf(ctx, s.db, `SELECT COUNT(*) FROM songs WHERE active = 0`); err != nil {
