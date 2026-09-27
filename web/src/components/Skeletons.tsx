@@ -100,3 +100,23 @@ export function PageSkeleton({ sections = 3 }: { sections?: number }) {
     </div>
   );
 }
+
+// Now-playing queue tab (audit F19): mirrors QueueList's "Up next" header +
+// row rhythm so the lazy panel swap doesn't jump.
+export function QueuePanelSkeleton({ rows = 7 }: { rows?: number }) {
+  return (
+    <div role="status" aria-label="Loading">
+      <div className="mb-3 flex items-center justify-between">
+        <Skeleton className="h-5 w-20" />
+        <Skeleton className="h-8 w-28" />
+      </div>
+      {Array.from({ length: rows }, (_, i) => (
+        <div key={i} className="flex h-12 items-center gap-3 border-b border-rule px-2">
+          <Skeleton className="h-8 w-8 shrink-0 rounded" />
+          <Skeleton className="h-4 w-1/3 min-w-32" />
+          <Skeleton className="h-4 ml-auto w-16" />
+        </div>
+      ))}
+    </div>
+  );
+}
