@@ -5,7 +5,13 @@ All notable changes to Sonarly are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.2.1] - 2026-09-27
+
+### Fixed
+
+- **Entity headers**: the favorite and rating controls now sit on their own dedicated row between the title/metadata and the action buttons on the album, artist, song, and playlist detail pages, instead of being inlined with Play/Edit/Delete.
+
+## [2.2.0] - 2026-09-27
 
 ### Added
 

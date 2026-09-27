@@ -7,6 +7,11 @@ interface EntityHeaderProps {
   cover?: React.ReactNode;
   metadata?: MetadataItem[];
   actions?: React.ReactNode;
+  /**
+   * Row rendered between the metadata breadcrumb and the action buttons
+   * (e.g. favorite + rating controls, which get their own line).
+   */
+  secondaryActions?: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
   blurCover?: boolean;
@@ -23,6 +28,7 @@ export function EntityHeader({
   cover,
   metadata,
   actions,
+  secondaryActions,
   children,
   className,
   blurCover,
@@ -47,6 +53,7 @@ export function EntityHeader({
         <span className="text-xs font-medium uppercase tracking-wider text-fg-secondary">{type}</span>
         {wrapContextTarget ? wrapContextTarget(titleElement) : titleElement}
         {metadata && metadata.length > 0 && <MetadataBreadcrumb items={metadata} />}
+        {secondaryActions && <div className="flex flex-wrap items-center gap-3">{secondaryActions}</div>}
         {actions && <div className="mt-1 flex flex-wrap items-center gap-3">{actions}</div>}
         {children}
       </div>

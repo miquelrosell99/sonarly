@@ -217,24 +217,26 @@ export function Artist({ user }: { user: User }) {
           />
         )
       }
+      secondaryActions={
+        artist && (
+          <FavoriteRatingGroup
+            starred={artist.starred}
+            onToggleFavorite={() => handleFavorite(!artist.starred)}
+            rating={artist.rating}
+            onRate={handleRate}
+          />
+        )
+      }
       actions={
         artist && (
-          <>
-            <PlayButton
-              variant="default"
-              onPlay={() => playSongs(topTracks)}
-              onShufflePlay={() => shufflePlay(topTracks)}
-              disabled={topTracks.length === 0}
-            >
-              Play
-            </PlayButton>
-            <FavoriteRatingGroup
-              starred={artist.starred}
-              onToggleFavorite={() => handleFavorite(!artist.starred)}
-              rating={artist.rating}
-              onRate={handleRate}
-            />
-          </>
+          <PlayButton
+            variant="default"
+            onPlay={() => playSongs(topTracks)}
+            onShufflePlay={() => shufflePlay(topTracks)}
+            disabled={topTracks.length === 0}
+          >
+            Play
+          </PlayButton>
         )
       }
       renderHeaderContextMenu={(target) =>
