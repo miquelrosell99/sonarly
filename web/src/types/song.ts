@@ -1,80 +1,10 @@
-export interface SyncedLyricLine {
-  time: number;
-  text: string;
-}
+// Domain types re-derived from the generated OpenAPI schema (audit F17, plan
+// 10d): the generated shape is the single source of truth for the wire, so
+// hand-maintained duplicates were deleted. Where a screen needs a narrower
+// row type (SongListItem) or a client-only projection (SongWithNames), those
+// live at the component / lib layer — not here.
+import type { components } from '../contract/schema.js';
 
-export interface Song {
-  id: string;
-  // v1-era bookkeeping fields; the server's Song DTO no longer sends them,
-  // so they stay optional for code that still handles legacy-shaped rows.
-  filePath?: string;
-  title: string;
-  trackNumber?: number;
-  discNumber?: number;
-  duration?: number;
-  artistId?: string;
-  albumId?: string;
-  artistName?: string;
-  albumName?: string;
-  genre?: string;
-  genreId?: string;
-  libraryId?: string;
-  genres?: string[];
-  genreIds?: string[];
-  year?: number;
-  explicit?: boolean;
-  coverArt?: string;
-  albumCoverArt?: string;
-  coverArtMissing?: boolean;
-  mtime?: number;
-  checksum?: string;
-  active?: boolean;
-  starred?: boolean;
-  rating?: number;
-  bitRate?: number;
-  bitsPerSample?: number;
-  sampleRate?: number;
-  channels?: number;
-  bpm?: number;
-  musicBrainzId?: string;
-  musicBrainzTrackId?: string;
-  musicBrainzWorkId?: string;
-  musicBrainzDiscId?: string;
-  replayGain?: number;
-  averageRating?: number;
-  comment?: string;
-  sortName?: string;
-  mood?: string;
-  mediaType?: string;
-  originalReleaseDate?: string;
-  releaseDate?: string;
-  remixOf?: string;
-  displayArtist?: string;
-  displayAlbumArtist?: string;
-  lyrics?: string;
-  syncedLyrics?: SyncedLyricLine[];
-  artists?: string[];
-  artistEntries?: { id: string; name: string }[];
-  composerEntries?: { id: string; name: string }[];
-  producers?: string[];
-  isrcs?: string[];
-  originalYear?: number;
-  originalArtist?: string;
-  gapless?: boolean;
-  totalTracks?: string;
-  totalDiscs?: string;
-}
-
-export interface SongTags {
-  title: string;
-  artist?: string | string[];
-  album?: string;
-  albumArtist?: string | string[];
-  trackNumber?: number;
-  discNumber?: number;
-  genre?: string | string[];
-  year?: number;
-  explicit?: boolean;
-  lyrics?: string;
-  syncedLyrics?: SyncedLyricLine[];
-}
+export type Song = components['schemas']['Song'];
+export type SyncedLyricLine = components['schemas']['SyncedLyricLine'];
+export type SongTags = components['schemas']['SongTags'];

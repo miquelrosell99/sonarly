@@ -55,11 +55,14 @@ function createHarness(song: Song, onEdit: () => void, isAdmin = true) {
 
 const song: Song = {
   id: 'song-1',
-  filePath: '/music/track.mp3',
   title: 'Track One',
   duration: 180,
   mtime: 1,
-  checksum: 'abc',
+  explicit: false,
+  active: true,
+  starred: false,
+  coverArtMissing: false,
+  gapless: false,
 };
 
 describe('useSongContextMenu', () => {

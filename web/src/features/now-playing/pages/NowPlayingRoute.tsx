@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useLocation, useParams } from 'wouter';
 import type { User } from '../../../types';
 import { getShareToken, withShareToken } from '../../../lib/shareToken.js';
+import { songFromPlaylistEntry } from '../../../lib/entityMappers.js';
 import { PageState } from '../../../components/PageState.js';
 import { usePlaylist } from '../../../hooks/usePlaylist.js';
 import { useSongsList } from '../../../hooks/useLibraryLists.js';
@@ -109,20 +110,18 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
     if (context === 'playlist') {
       const playlist = playlistQuery.data;
       if (!playlist) return null;
-      return playlist.entries.map((entry) => ({
-        ...entry,
-        artistName: entry.artist as string | undefined,
-        albumName: entry.album as string | undefined,
-      })) as unknown as PlayerSong[];
+      // Row-level entries widen to full Songs via the shared mapper; Song is
+      // directly assignable to PlayerSong (audit F17 — no more casts).
+      return playlist.entries.map(songFromPlaylistEntry);
     }
     if (context === 'album') {
       // F4: the wire shape is {album, songs}; the songs ride the top level.
-      return albumQuery.data ? (albumQuery.data.songs as unknown as PlayerSong[]) : null;
+      return albumQuery.data ? albumQuery.data.songs : null;
     }
     // keepPreviousData would hand us the previous context's songs while the
     // new key loads — never build a queue from placeholder data.
     if (filterSongsQuery.isPlaceholderData) return null;
-    return filterSongsQuery.data ? (filterSongsQuery.data.songs as unknown as PlayerSong[]) : null;
+    return filterSongsQuery.data ? filterSongsQuery.data.songs : null;
   }, [needsResolution, context, playlistQuery.data, albumQuery.data, filterSongsQuery.data, filterSongsQuery.isPlaceholderData]);
 
   const resolutionError = needsResolution
@@ -165,7 +164,7 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
       if (loneSongStoreIndex >= 0) {
         playQueue(queue, loneSongStoreIndex, false, undefined);
       } else if (songQuery.data) {
-        playQueue([songQuery.data.song as unknown as PlayerSong], 0, false, undefined);
+        playQueue([songQuery.data.song], 0, false, undefined);
       } else {
         return;
       }

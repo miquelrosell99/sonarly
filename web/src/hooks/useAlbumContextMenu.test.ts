@@ -63,27 +63,36 @@ function createHarness(album: Album) {
 const albumSongs: Song[] = [
   {
     id: 'song-1',
-    filePath: '/music/album/01.mp3',
     title: 'First Track',
     duration: 200,
     mtime: 1,
-    checksum: 'a',
+    explicit: false,
+    active: true,
+    starred: false,
+    coverArtMissing: false,
+    gapless: false,
   },
   {
     id: 'song-2',
-    filePath: '/music/album/02.mp3',
     title: 'Second Track',
     duration: 220,
     mtime: 2,
-    checksum: 'b',
+    explicit: false,
+    active: true,
+    starred: false,
+    coverArtMissing: false,
+    gapless: false,
   },
   {
     id: 'song-3',
-    filePath: '/music/album/03.mp3',
     title: 'Third Track',
     duration: 240,
     mtime: 3,
-    checksum: 'c',
+    explicit: false,
+    active: true,
+    starred: false,
+    coverArtMissing: false,
+    gapless: false,
   },
 ];
 
@@ -91,6 +100,10 @@ const album: Album = {
   id: 'album-1',
   name: 'Test Album',
   shownSongCount: 3,
+  active: true,
+  totalSongCount: 3,
+  explicit: false,
+  starred: false,
 };
 
 describe('useAlbumContextMenu', () => {
@@ -161,7 +174,15 @@ describe('useAlbumContextMenu', () => {
   });
 
   it('disables playback items when shownSongCount is 0', () => {
-    const emptyAlbum: Album = { id: 'album-2', name: 'Empty Album', shownSongCount: 0 };
+    const emptyAlbum: Album = {
+      id: 'album-2',
+      name: 'Empty Album',
+      shownSongCount: 0,
+      active: true,
+      totalSongCount: 0,
+      explicit: false,
+      starred: false,
+    };
     const Harness = createHarness(emptyAlbum);
     render(React.createElement(Harness));
 

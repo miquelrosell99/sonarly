@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import * as React from 'react';
-import type { Playlist, Song } from '../types';
+import type { components } from '../contract/schema.js';
+import type { Playlist } from '../types';
 import { api } from '../lib/api.js';
+import { songFromPlaylistEntry } from '../lib/entityMappers.js';
 import { usePlaylistContextMenu } from './usePlaylistContextMenu.js';
 
 const playActions = vi.hoisted(() => ({
@@ -34,9 +36,11 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-interface PlaylistDetail {
-  playlist: Playlist & { songCount: number; entries: Song[] };
-}
+type PlaylistEntry = components['schemas']['PlaylistEntry'];
+
+// The hook widens wire entries to Songs through songFromPlaylistEntry; the
+// play-action assertions expect that mapped output.
+const mappedSongs = (entries: PlaylistEntry[]) => entries.map(songFromPlaylistEntry);
 
 function createHarness(
   playlist: Playlist,
@@ -65,22 +69,40 @@ function createHarness(
   };
 }
 
-const playlistSongs: Song[] = [
+const playlistSongs: PlaylistEntry[] = [
   {
     id: 'song-1',
-    filePath: '/music/playlist/01.mp3',
     title: 'First Track',
+    album: 'Test Album',
+    albumId: 'album-1',
+    artist: 'Test Artist',
+    artistId: 'artist-1',
+    track: 1,
+    discNumber: 1,
     duration: 200,
-    mtime: 1,
-    checksum: 'a',
+    explicit: false,
+    coverArt: 'cover-1',
+    albumCoverArt: 'cover-1',
+    type: 'music',
+    isDir: false,
+    created: '2024-01-01T00:00:00.000Z',
   },
   {
     id: 'song-2',
-    filePath: '/music/playlist/02.mp3',
     title: 'Second Track',
+    album: 'Test Album',
+    albumId: 'album-1',
+    artist: 'Test Artist',
+    artistId: 'artist-1',
+    track: 2,
+    discNumber: 1,
     duration: 220,
-    mtime: 2,
-    checksum: 'b',
+    explicit: false,
+    coverArt: 'cover-1',
+    albumCoverArt: 'cover-1',
+    type: 'music',
+    isDir: false,
+    created: '2024-01-01T00:00:00.000Z',
   },
 ];
 
@@ -89,13 +111,16 @@ const basePlaylist: Playlist = {
   name: 'Test Playlist',
   ownerId: 'user-1',
   visibility: 'private',
-  songIds: playlistSongs.map((s) => s.id),
+  resolveMode: 'tracks',
+  songCount: playlistSongs.length,
+  starred: false,
   isSmart: false,
+  ownerUsername: 'user-1',
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
 };
 
-function makeDetail(playlist: Playlist): PlaylistDetail {
+function makeDetail(playlist: Playlist) {
   return {
     playlist: {
       ...playlist,
@@ -139,7 +164,7 @@ describe('usePlaylistContextMenu', () => {
 
     await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/playlists/playlist-1'));
     expect(playActions.playSongs).toHaveBeenCalledTimes(1);
-    expect(playActions.playSongs).toHaveBeenCalledWith(playlistSongs);
+    expect(playActions.playSongs).toHaveBeenCalledWith(mappedSongs(playlistSongs));
   });
 
   it('fetches playlist entries and calls playNext with all songs when Play next is clicked', async () => {
@@ -152,7 +177,7 @@ describe('usePlaylistContextMenu', () => {
 
     await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/playlists/playlist-1'));
     expect(playActions.playNext).toHaveBeenCalledTimes(1);
-    expect(playActions.playNext).toHaveBeenCalledWith(playlistSongs);
+    expect(playActions.playNext).toHaveBeenCalledWith(mappedSongs(playlistSongs));
   });
 
   it('fetches playlist entries and calls addToQueue with the songs when Add to queue is clicked', async () => {
@@ -165,7 +190,7 @@ describe('usePlaylistContextMenu', () => {
 
     await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/playlists/playlist-1'));
     expect(playActions.addToQueue).toHaveBeenCalledTimes(1);
-    expect(playActions.addToQueue).toHaveBeenCalledWith(playlistSongs);
+    expect(playActions.addToQueue).toHaveBeenCalledWith(mappedSongs(playlistSongs));
   });
 
   it('fetches playlist entries and calls shufflePlay when Shuffle play is clicked', async () => {
@@ -178,7 +203,7 @@ describe('usePlaylistContextMenu', () => {
 
     await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/playlists/playlist-1'));
     expect(playActions.shufflePlay).toHaveBeenCalledTimes(1);
-    expect(playActions.shufflePlay).toHaveBeenCalledWith(playlistSongs);
+    expect(playActions.shufflePlay).toHaveBeenCalledWith(mappedSongs(playlistSongs));
   });
 
   it('shows Share only when onShare is provided and calls it when clicked', () => {

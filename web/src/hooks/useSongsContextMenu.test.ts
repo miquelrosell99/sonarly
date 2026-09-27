@@ -44,22 +44,28 @@ function createHarness(songs: Song[], onEdit: () => void, isAdmin?: boolean) {
 
 const song: Song = {
   id: 'song-1',
-  filePath: '/music/track.mp3',
   title: 'Track One',
   duration: 180,
   albumId: 'album-1',
   artistId: 'artist-1',
   mtime: 1,
-  checksum: 'abc',
+  explicit: false,
+  active: true,
+  starred: false,
+  coverArtMissing: false,
+  gapless: false,
 };
 
 const otherSong: Song = {
   id: 'song-2',
-  filePath: '/music/other.mp3',
   title: 'Track Two',
   duration: 200,
   mtime: 2,
-  checksum: 'def',
+  explicit: false,
+  active: true,
+  starred: false,
+  coverArtMissing: false,
+  gapless: false,
 };
 
 describe('useSongsContextMenu', () => {

@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useSearch, Link, useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
+import type { components } from '../../../contract/schema.js';
 import type { Song, Album, Artist, Playlist, FavoriteEntityType, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { PageState } from '../../../components/PageState.js';
@@ -8,7 +9,7 @@ import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
-import { useAlbumContextMenu } from '../../../hooks/useAlbumContextMenu.js';
+import { useAlbumContextMenu, type AlbumMenuTarget } from '../../../hooks/useAlbumContextMenu.js';
 import { useArtistContextMenu } from '../../../hooks/useArtistContextMenu.js';
 import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
@@ -18,6 +19,7 @@ import { useSearchResults, type SearchResultsResponse, type SearchType } from '.
 import { useLibraryMutation, invalidateLibraryEntity } from '../../../hooks/useLibraryMutation.js';
 import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
 import { patchToPlayerSong } from '../../../lib/songPatch.js';
+import { songFromPlaylistEntry, songFromSearchSong, playlistFromSearchPlaylist } from '../../../lib/entityMappers.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
@@ -28,14 +30,19 @@ interface SearchResultsProps {
 
 const validTypes: SearchType[] = ['songs', 'albums', 'artists', 'playlists'];
 
+// The /search envelope carries display-subset DTOs (SearchSong/SearchAlbum/
+// SearchArtist/SearchPlaylist), not full domain objects — the search page
+// renders the subsets as-is and only widens at play/edit boundaries through
+// the shared mappers (audit F17).
+type SearchSongItem = components['schemas']['SearchSong'];
+type SearchAlbumItem = components['schemas']['SearchAlbum'];
+
 interface AlbumDetail {
   album: Album;
   songs: Song[];
 }
 
-interface PlaylistDetail {
-  playlist: Playlist & { entries: Song[] };
-}
+type PlaylistDetail = components['schemas']['PlaylistDetail'];
 
 function isValidType(value: string | null): value is SearchType {
   return !!value && (validTypes as string[]).includes(value);
@@ -47,7 +54,7 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-function AlbumContextMenu({ album, children }: { album: Album; children: ReactNode }) {
+function AlbumContextMenu({ album, children }: { album: AlbumMenuTarget; children: ReactNode }) {
   const sections = useAlbumContextMenu(album);
   return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
@@ -144,12 +151,12 @@ export function SearchResults({ user }: SearchResultsProps) {
     }
   };
 
-  const playAlbum = async (album: Album) => {
+  const playAlbum = async (album: Pick<Album, 'id'>) => {
     const detail = await api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`);
     playSongs(detail.songs);
   };
 
-  const shuffleAlbums = async (albums: Album[]) => {
+  const shuffleAlbums = async (albums: Pick<Album, 'id'>[]) => {
     const details = await Promise.all(albums.map((a) => api<AlbumDetail>(`/albums/${a.id}${buildLibraryQuery(selectedLibraryId)}`)));
     shufflePlay(details.flatMap((d) => d.songs));
   };
@@ -159,14 +166,14 @@ export function SearchResults({ user }: SearchResultsProps) {
     playSongs(songs);
   };
 
-  const playPlaylist = async (playlist: Playlist) => {
-    const detail = await api<PlaylistDetail>(`/playlists/${playlist.id}`);
-    playSongs(detail.playlist.entries);
+  const playPlaylist = async (playlist: Pick<Playlist, 'id'>) => {
+    const detail = await api<{ playlist: PlaylistDetail }>(`/playlists/${playlist.id}`);
+    playSongs(detail.playlist.entries.map(songFromPlaylistEntry));
   };
 
-  const shufflePlaylists = async (playlists: Playlist[]) => {
-    const details = await Promise.all(playlists.map((p) => api<PlaylistDetail>(`/playlists/${p.id}`)));
-    shufflePlay(details.flatMap((d) => d.playlist.entries));
+  const shufflePlaylists = async (playlists: Pick<Playlist, 'id'>[]) => {
+    const details = await Promise.all(playlists.map((p) => api<{ playlist: PlaylistDetail }>(`/playlists/${p.id}`)));
+    shufflePlay(details.flatMap((d) => d.playlist.entries.map(songFromPlaylistEntry)));
   };
 
   const handleSongSave = async (patched: Record<string, unknown>) => {
@@ -282,8 +289,8 @@ export function SearchResults({ user }: SearchResultsProps) {
     );
   };
 
-  const renderAlbums = (albums: Album[]) => {
-    const columns: LibraryViewColumn<Album>[] = [
+  const renderAlbums = (albums: SearchAlbumItem[]) => {
+    const columns: LibraryViewColumn<SearchAlbumItem>[] = [
       {
         key: 'title',
         header: 'Title',
@@ -299,7 +306,7 @@ export function SearchResults({ user }: SearchResultsProps) {
       { key: 'year', header: 'Year', className: 'w-20', render: (album) => album.year ?? '-' },
       { key: 'genre', header: 'Genre', render: (album) => album.genre ?? '-' },
     ];
-    const cardFields: LibraryViewCardField<Album>[] = [
+    const cardFields: LibraryViewCardField<SearchAlbumItem>[] = [
       { key: 'title', render: (album) => <ExplicitTitle title={album.name} explicit={album.explicit} blur={blurExplicitTitles} /> },
       {
         key: 'artist',
@@ -320,8 +327,8 @@ export function SearchResults({ user }: SearchResultsProps) {
         getHref={(album) => `/albums/${album.id}`}
         onPlay={playAlbum}
         onShufflePlay={shuffleAlbums}
-        onFavorite={(album, starred) => void handleFavorite<Album>('album', 'albums', album.id, starred)}
-        onRate={(album, rating) => void handleRate<Album>('album', 'albums', album.id, rating)}
+        onFavorite={(album, starred) => void handleFavorite<SearchAlbumItem>('album', 'albums', album.id, starred)}
+        onRate={(album, rating) => void handleRate<SearchAlbumItem>('album', 'albums', album.id, rating)}
         getFavorite={(album) => album.starred}
         getRating={(album) => album.rating}
         getCover={(album) => album.coverArt}
@@ -449,15 +456,17 @@ export function SearchResults({ user }: SearchResultsProps) {
   const result = (() => {
     switch (type) {
       case 'songs':
-        return renderSongs(data.songs);
+        // Search hits are display subsets; widen to full Songs through the
+        // shared mapper before they reach the player/editors (audit F17).
+        return renderSongs(data.songs.map(songFromSearchSong));
       case 'albums':
         return renderAlbums(data.albums);
       case 'artists':
         return renderArtists(data.artists);
       case 'playlists':
-        return renderPlaylists(data.playlists);
+        return renderPlaylists(data.playlists.map(playlistFromSearchPlaylist));
       default:
-        return renderSongs(data.songs);
+        return renderSongs(data.songs.map(songFromSearchSong));
     }
   })();
 

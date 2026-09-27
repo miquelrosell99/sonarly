@@ -28,6 +28,9 @@ export function Artist({ user }: { user: User }) {
   // replaces the old parallel full-library /songs fetch and its 500-row
   // client filter (audit F16/F24).
   const topTracks: SongWithNames[] = detail?.songs ?? [];
+  // The detail endpoint embeds the album cards (schema: "populated on the
+  // detail endpoint only") — default to none when absent.
+  const artistAlbums: ArtistAlbum[] = artist?.albums ?? [];
   const { setFavorite, setRating } = useFavoriteActions();
   const { playSongs, shufflePlay } = usePlayActions();
   const { notify } = useNotification();
@@ -59,7 +62,7 @@ export function Artist({ user }: { user: User }) {
       patchDetail({
         artist: {
           ...artist,
-          albums: artist.albums.map((a) => (a.id === album.id ? { ...a, starred } : a)),
+          albums: artistAlbums.map((a) => (a.id === album.id ? { ...a, starred } : a)),
         },
       });
     }
@@ -71,7 +74,7 @@ export function Artist({ user }: { user: User }) {
       patchDetail({
         artist: {
           ...artist,
-          albums: artist.albums.map((a) => (a.id === album.id ? { ...a, rating } : a)),
+          albums: artistAlbums.map((a) => (a.id === album.id ? { ...a, rating } : a)),
         },
       });
     }
@@ -96,15 +99,15 @@ export function Artist({ user }: { user: User }) {
   };
 
   const handlePlay = (track: SongWithNames) => {
-    playSongs([track as Song], 0);
+    playSongs([track], 0);
   };
 
   const handlePlaySelection = (tracks: SongWithNames[], startIndex: number) => {
-    playSongs(tracks as Song[], startIndex);
+    playSongs(tracks, startIndex);
   };
 
   const handleShuffleTracks = (tracks: SongWithNames[]) => {
-    shufflePlay(tracks as Song[]);
+    shufflePlay(tracks);
   };
 
   const handleTrackFavorite = async (track: SongWithNames, starred: boolean) => {
@@ -201,8 +204,8 @@ export function Artist({ user }: { user: User }) {
           <>
             <PlayButton
               variant="default"
-              onPlay={() => playSongs(topTracks as Song[])}
-              onShufflePlay={() => shufflePlay(topTracks as Song[])}
+              onPlay={() => playSongs(topTracks)}
+              onShufflePlay={() => shufflePlay(topTracks)}
               disabled={topTracks.length === 0}
             >
               Play
@@ -217,9 +220,9 @@ export function Artist({ user }: { user: User }) {
         )
       }
     >
-      {artist && artist.albums.length > 0 ? (
+      {artist && artistAlbums.length > 0 ? (
         <ScrollRow title="Albums">
-          {artist.albums.map((album) => (
+          {artistAlbums.map((album) => (
             <div key={album.id} className="w-40 flex-none sm:w-44">
               <Card
                 href={`/albums/${album.id}`}

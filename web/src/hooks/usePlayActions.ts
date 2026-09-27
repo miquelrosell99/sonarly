@@ -1,6 +1,9 @@
 import type { Song } from '../types';
-import { usePlayer, type PlayerSong, type QueueContext } from '../stores/playerStore.js';
+import { usePlayer, type QueueContext } from '../stores/playerStore.js';
 
+// Song is directly assignable to PlayerSong — the generated schema Song
+// already carries the optional artistName/albumName fields PlayerSong adds,
+// so no casts are needed at this boundary anymore (audit F17).
 export interface UsePlayActionsResult {
   playSong: (song: Song) => void;
   playSongs: (songs: Song[], startIndex?: number, shuffle?: boolean, context?: QueueContext) => void;
@@ -16,11 +19,11 @@ export function usePlayActions(): UsePlayActionsResult {
   const appendToQueue = usePlayer((state) => state.addToQueue);
 
   const playSong = (song: Song) => {
-    playNow(song as PlayerSong);
+    playNow(song);
   };
 
   const playSongs = (songs: Song[], startIndex?: number, shuffle?: boolean, context?: QueueContext) => {
-    playQueue(songs as PlayerSong[], startIndex, shuffle, context);
+    playQueue(songs, startIndex, shuffle, context);
   };
 
   const shufflePlay = (songs: Song[], context?: QueueContext) => {
@@ -28,11 +31,11 @@ export function usePlayActions(): UsePlayActionsResult {
   };
 
   const playNext = (song: Song | Song[]) => {
-    playNextSong(song as PlayerSong | PlayerSong[]);
+    playNextSong(song);
   };
 
   const addToQueue = (songs: Song[]) => {
-    appendToQueue(songs as PlayerSong[]);
+    appendToQueue(songs);
   };
 
   return { playSong, playSongs, shufflePlay, playNext, addToQueue };

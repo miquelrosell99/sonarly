@@ -58,19 +58,25 @@ function createHarness(genre: string, tracks?: Song[]) {
 const genreSongs: Song[] = [
   {
     id: 'song-1',
-    filePath: '/music/genre/01.mp3',
     title: 'First Track',
     duration: 200,
     mtime: 1,
-    checksum: 'a',
+    explicit: false,
+    active: true,
+    starred: false,
+    coverArtMissing: false,
+    gapless: false,
   },
   {
     id: 'song-2',
-    filePath: '/music/genre/02.mp3',
     title: 'Second Track',
     duration: 220,
     mtime: 2,
-    checksum: 'b',
+    explicit: false,
+    active: true,
+    starred: false,
+    coverArtMissing: false,
+    gapless: false,
   },
 ];
 

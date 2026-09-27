@@ -22,8 +22,25 @@ afterEach(() => {
 });
 
 const previewData: SearchResultsResponse = {
-  songs: [{ id: 'song-1', title: 'Alpha Song' }],
-  albums: [{ id: 'album-1', name: 'Alpha Album' }],
+  songs: [
+    {
+      id: 'song-1',
+      title: 'Alpha Song',
+      explicit: false,
+      mtime: 0,
+      active: true,
+      starred: false,
+    },
+  ],
+  albums: [
+    {
+      id: 'album-1',
+      name: 'Alpha Album',
+      active: true,
+      starred: false,
+      explicit: false,
+    },
+  ],
   artists: [],
   playlists: [],
 };

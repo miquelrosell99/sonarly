@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Song, User } from '../../../types';
+import type { Playlist, Song, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import type { UnderlayParams } from '../../../lib/types.js';
+import { songFromPlaylistEntry } from '../../../lib/entityMappers.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
@@ -20,17 +21,12 @@ import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
-import { usePlaylist, type PlaylistDetailEntry } from '../../../hooks/usePlaylist.js';
+import { usePlaylist } from '../../../hooks/usePlaylist.js';
 import { useCreatePlaylistModal } from '../../../hooks/useCreatePlaylistModal.js';
-import { SongTable, type SongListItem } from '../../songs/components/SongTable.js';
+import { SongTable } from '../../songs/components/SongTable.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { SharePlaylistModal } from '../components/SharePlaylistModal.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
-
-type DisplaySong = PlaylistDetailEntry & {
-  artistName?: string;
-  albumName?: string;
-};
 
 function PlaylistHeaderContextMenu({
   playlist,
@@ -38,16 +34,12 @@ function PlaylistHeaderContextMenu({
   onConvert,
   children,
 }: {
-  playlist: { id: string; name: string; visibility: string; isSmart?: boolean };
+  playlist: Playlist;
   onEdit: () => void;
   onConvert: () => void;
   children: React.ReactNode;
 }) {
-  const sections = usePlaylistContextMenu(
-    playlist as unknown as import('../../../types').Playlist,
-    onEdit,
-    onConvert,
-  );
+  const sections = usePlaylistContextMenu(playlist, onEdit, onConvert);
   return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
 
@@ -57,12 +49,12 @@ function PlaylistSongContextMenu({
   isAdmin,
   children,
 }: {
-  songs: SongListItem[];
+  songs: Song[];
   onEdit: () => void;
   isAdmin: boolean;
   children: React.ReactNode;
 }) {
-  const sections = useSongsContextMenu(songs as unknown as Song[], onEdit, isAdmin);
+  const sections = useSongsContextMenu(songs, onEdit, isAdmin);
   return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
 
@@ -92,8 +84,8 @@ export function PlaylistDetail({ user, underlay }: PlaylistDetailProps) {
   const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
   const playingId = usePlayer((state) => state.currentSong?.id);
 
-  const [songEditing, setSongEditing] = useState<SongListItem[] | null>(null);
-  const [syncEditing, setSyncEditing] = useState<SongListItem | null>(null);
+  const [songEditing, setSongEditing] = useState<Song[] | null>(null);
+  const [syncEditing, setSyncEditing] = useState<Song | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -102,25 +94,23 @@ export function PlaylistDetail({ user, underlay }: PlaylistDetailProps) {
   const blurExplicitTitles = user?.blurExplicitTitles === true;
   const isOwner = user !== null && playlist?.ownerId === user.id;
 
-  const displayEntries: DisplaySong[] = playlist?.entries.map((entry) => ({
-    ...entry,
-    artistName: entry.artist,
-    albumName: entry.album,
-  })) ?? [];
+  // Playlist entries ride the wire as row-level PlaylistEntry shapes; widen
+  // them to full Songs through the shared mapper (audit F17 — no more casts).
+  const displayEntries: Song[] = playlist?.entries.map(songFromPlaylistEntry) ?? [];
 
   const queueContext = id ? { type: 'playlist' as const, id } : undefined;
 
-  const handlePlay = (song: SongListItem) => {
+  const handlePlay = (song: Song) => {
     const startIndex = displayEntries.findIndex((entry) => entry.id === song.id);
-    playSongs(displayEntries as unknown as Song[], Math.max(0, startIndex), undefined, queueContext);
+    playSongs(displayEntries, Math.max(0, startIndex), undefined, queueContext);
   };
 
-  const handlePlaySelection = (songs: SongListItem[], startIndex: number) => {
-    playSongs(songs as unknown as Song[], startIndex, undefined, queueContext);
+  const handlePlaySelection = (songs: Song[], startIndex: number) => {
+    playSongs(songs, startIndex, undefined, queueContext);
   };
 
-  const handleShufflePlay = (_song: SongListItem) => {
-    shufflePlay(displayEntries as unknown as Song[], queueContext);
+  const handleShufflePlay = (_song: Song) => {
+    shufflePlay(displayEntries, queueContext);
   };
 
   const handleFavorite = async (starred: boolean) => {
@@ -254,8 +244,8 @@ export function PlaylistDetail({ user, underlay }: PlaylistDetailProps) {
         playlist && (
           <>
             <PlayButton
-              onPlay={() => playSongs(displayEntries as unknown as Song[], 0, undefined, queueContext)}
-              onShufflePlay={() => shufflePlay(displayEntries as unknown as Song[], queueContext)}
+              onPlay={() => playSongs(displayEntries, 0, undefined, queueContext)}
+              onShufflePlay={() => shufflePlay(displayEntries, queueContext)}
             >
               Play
             </PlayButton>

@@ -17,44 +17,30 @@
 // the domain prefixes through useLibraryMutation.
 import { useCallback } from 'react';
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
-import type { Album } from '../types';
+import type { components } from '../contract/schema.js';
+import type { Album, Song } from '../types';
 import { api } from '../lib/api.js';
-import type { SongWithNames } from '../lib/types.js';
 import { buildLibraryQuery, useLibraryStore } from '../stores/libraryStore.js';
 import { LIBRARY_LIST_STALE_TIME } from './useLibraryLists.js';
 
+// Response envelopes straight from the generated schema (plan 10d) — GET
+// /songs/:id returns the Song DTO, GET /albums/:id the Album plus its full
+// Songs, GET /artists/:id the Artist (with its album cards) plus Songs.
 export interface SongDetailResponse {
-  song: SongWithNames;
+  song: Song;
 }
 
 export interface AlbumDetailResponse {
   album: Album;
-  songs: SongWithNames[];
+  songs: Song[];
 }
 
-/** One album card on the artist detail page (the server's embedded subset). */
-export interface ArtistAlbum {
-  id: string;
-  name: string;
-  year?: number;
-  genre?: string;
-  coverArt?: string;
-  starred?: boolean;
-  rating?: number;
-}
-
-export interface ArtistDetail {
-  id: string;
-  name: string;
-  artistImageUrl?: string;
-  albums: ArtistAlbum[];
-  starred?: boolean;
-  rating?: number;
-}
+/** Trimmed album card embedded in the artist detail response. */
+export type ArtistAlbum = components['schemas']['ArtistAlbum'];
 
 export interface ArtistDetailResponse {
-  artist: ArtistDetail;
-  songs: SongWithNames[];
+  artist: components['schemas']['Artist'];
+  songs: Song[];
 }
 
 export type DetailQueryResult<TResponse> = UseQueryResult<TResponse, Error> & {
