@@ -21,11 +21,11 @@
 │       └── src/
 │           ├── features/   # domain-first pages and components
 │           ├── components/ # shared UI primitives (PlayerBar, Sidebar, ui/*)
-│           ├── contract/   # generated OpenAPI types + typed wrapper
+│           ├── contract/   # generated OpenAPI types (schema.ts, types-only)
 │           ├── types/      # domain/entity types (migrated from @sonarly/shared)
 │           ├── hooks/      # react-query hooks and interaction logic
 │           ├── stores/     # Zustand client-state stores
-│           └── lib/        # utilities and the legacy API client (api.ts)
+│           └── lib/        # utilities and the canonical API client (api.ts)
 ├── compose.yaml            # production deployment (gitignored; copy from docker/compose.yaml.example)
 ├── .env.example            # required env vars
 └── AGENTS.md               # agent instructions entry point
