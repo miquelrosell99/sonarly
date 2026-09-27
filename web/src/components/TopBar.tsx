@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import type { User } from '../types';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
+import { usePopoverMenu } from './ui/usePopoverMenu.js';
 import { api } from '../lib/api.js';
 import { Avatar } from './Avatar.js';
 import { SearchBox } from './SearchBox.js';
@@ -45,26 +46,7 @@ export function usePlayers(userId: string) {
 
 function PlayersDropdown({ user }: { user: User }) {
   const { data: players = [] } = usePlayers(user.id);
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handle = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', handle);
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handle);
-      document.removeEventListener('keydown', handleKey);
-    };
-  }, [open]);
+  const menu = usePopoverMenu<HTMLButtonElement>({ portal: false });
 
   const otherPlayers = useMemo(
     () => players.filter((player) => player.userId !== user.id),
@@ -74,16 +56,14 @@ function PlayersDropdown({ user }: { user: User }) {
   if (otherPlayers.length === 0) return null;
 
   return (
-    <div ref={ref} className="relative">
+    <div className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="menu"
-        aria-expanded={open}
+        {...menu.triggerProps}
         title={`Connected devices (${otherPlayers.length})`}
         className={cn(
           'relative flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-          open ? 'bg-surface-hover text-fg-primary' : 'hover:bg-surface-hover hover:text-fg-primary',
+          menu.open ? 'bg-surface-hover text-fg-primary' : 'hover:bg-surface-hover hover:text-fg-primary',
         )}
       >
         <Icon name="mdi-cast-audio" size={20} />
@@ -92,9 +72,10 @@ function PlayersDropdown({ user }: { user: User }) {
         </span>
       </button>
 
-      {open && (
+      {menu.open && (
         <div
-          role="menu"
+          ref={menu.menuRef}
+          {...menu.menuProps}
           className="absolute right-0 top-full z-40 mt-2 w-64 rounded-xl border border-rule bg-surface p-1 shadow-xl"
         >
           {otherPlayers.map((player) => (
@@ -110,81 +91,22 @@ function PlayersDropdown({ user }: { user: User }) {
 }
 
 function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
-  const [open, setOpen] = useState(false);
+  const menu = usePopoverMenu<HTMLButtonElement>({ portal: false });
   const [, setLocation] = useLocation();
-  const ref = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const closeMenu = (restoreFocus = false) => {
-    setOpen(false);
-    if (restoreFocus) triggerRef.current?.focus();
-  };
-
-  useEffect(() => {
-    if (!open) return;
-    // Move focus to the first menu item when the menu opens
-    menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
-    const handle = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeMenu(true);
-    };
-    document.addEventListener('mousedown', handle);
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handle);
-      document.removeEventListener('keydown', handleKey);
-    };
-  }, [open]);
-
-  const handleMenuKeyDown = (e: React.KeyboardEvent) => {
-    const items = Array.from(
-      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
-    );
-    if (items.length === 0) return;
-    const index = items.indexOf(document.activeElement as HTMLElement);
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      items[(index + 1) % items.length].focus();
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      items[(index - 1 + items.length) % items.length].focus();
-    } else if (e.key === 'Home') {
-      e.preventDefault();
-      items[0].focus();
-    } else if (e.key === 'End') {
-      e.preventDefault();
-      items[items.length - 1].focus();
-    } else if (e.key === 'Tab') {
-      setOpen(false);
-    }
-  };
 
   const displayName = [user.name, user.surname].filter(Boolean).join(' ') || user.username;
 
   const navigate = (to: string) => {
-    setOpen(false);
+    menu.closeMenu();
     setLocation(to);
   };
 
   return (
-    <div ref={ref} className="relative">
+    <div className="relative">
       <button
-        ref={triggerRef}
+        ref={menu.triggerRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        onKeyDown={(e) => {
-          if ((e.key === 'ArrowDown' || e.key === 'Enter') && !open) {
-            e.preventDefault();
-            setOpen(true);
-          }
-        }}
-        aria-haspopup="menu"
-        aria-expanded={open}
+        {...menu.triggerProps}
         className="flex items-center gap-2 rounded-full p-1 pr-3 text-left transition hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
         <Avatar user={user} className="h-8 w-8" />
@@ -194,15 +116,14 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
         <Icon
           name="mdi-chevron-down"
           size={16}
-          className={cn('hidden text-fg-secondary transition-transform md:block', open && 'rotate-180')}
+          className={cn('hidden text-fg-secondary transition-transform md:block', menu.open && 'rotate-180')}
         />
       </button>
 
-      {open && (
+      {menu.open && (
         <div
-          ref={menuRef}
-          role="menu"
-          onKeyDown={handleMenuKeyDown}
+          ref={menu.menuRef}
+          {...menu.menuProps}
           className="absolute right-0 top-full z-40 mt-2 w-52 rounded-xl border border-rule bg-surface p-1 shadow-xl"
         >
           <button
@@ -218,7 +139,7 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
             <button
               type="button"
               role="menuitem"
-              onClick={() => { setOpen(false); onUpload(); }}
+              onClick={() => { menu.closeMenu(); onUpload(); }}
               className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
             >
               <Icon name="mdi-upload" size={18} className="text-fg-secondary" />
@@ -249,7 +170,7 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
           <button
             type="button"
             role="menuitem"
-            onClick={() => { setOpen(false); onLogout(); }}
+            onClick={() => { menu.closeMenu(); onLogout(); }}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
           >
             <Icon name="mdi-logout" size={18} className="text-fg-secondary" />

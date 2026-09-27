@@ -8,6 +8,19 @@ export interface Size {
   height: number;
 }
 
+/** Structural subset of DOMRect returned by getBoundingClientRect. */
+export interface Rect {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
+/** Where a trigger-anchored menu opens relative to its trigger. */
+export type MenuPlacement = 'top-end' | 'bottom-start';
+
 export const MENU_VIEWPORT_MARGIN = 8;
 
 function clamp(value: number, min: number, max: number) {
@@ -41,4 +54,39 @@ export function computePointerMenuPosition(
   left = clamp(left, margin, Math.max(margin, viewport.width - menu.width - margin));
   top = clamp(top, margin, Math.max(margin, viewport.height - menu.height - margin));
   return { x: Math.round(left), y: Math.round(top) };
+}
+
+/**
+ * Propose a viewport-safe position for a trigger-anchored popover menu.
+ *
+ * `top-end` places the menu's bottom-right corner above the trigger (the
+ * player-bar popovers: the bar sits at the screen bottom, so the menu opens
+ * upward, right-aligned); `bottom-start` drops the menu below the trigger's
+ * left edge (keyboard opens of a context menu, which have no pointer). The
+ * proposed corner is clamped inside the viewport with `margin` px of room;
+ * when the menu is larger than the viewport on an axis, the near edge stays
+ * at the margin so the menu's start remains reachable.
+ */
+export function computeAnchoredMenuPosition(
+  trigger: Rect,
+  menu: Size,
+  viewport: Size,
+  placement: MenuPlacement,
+  margin = MENU_VIEWPORT_MARGIN,
+): Point {
+  let top: number;
+  let left: number;
+
+  if (placement === 'top-end') {
+    top = trigger.top - menu.height - margin;
+    left = trigger.right - menu.width;
+  } else {
+    top = trigger.bottom + margin;
+    left = trigger.left;
+  }
+
+  left = clamp(left, margin, Math.max(margin, viewport.width - menu.width - margin));
+  top = clamp(top, margin, Math.max(margin, viewport.height - menu.height - margin));
+
+  return { x: left, y: top };
 }
