@@ -51,7 +51,7 @@ func TestPatchPreferencesMergesAndValidates(t *testing.T) {
 		"autoDjBatchSize":      0,  // clamped to 1
 		"themeMode":            "oled",
 		"accentColor":          "purple",
-		"hideSponsorButton":    true,
+		"supportHidden":        true,
 	}, admin)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("patch: %d %s", rec.Code, rec.Body.String())
@@ -74,6 +74,9 @@ func TestPatchPreferencesMergesAndValidates(t *testing.T) {
 	}
 	if prefs["themeMode"] != "oled" || prefs["accentColor"] != "purple" {
 		t.Fatalf("theme patch: %v", prefs)
+	}
+	if prefs["supportHidden"] != true {
+		t.Fatalf("supportHidden patch: %v", prefs)
 	}
 	if prefs["autoDjDiscovery"] != float64(50) {
 		t.Fatalf("untouched defaults must survive: %v", prefs)
@@ -154,6 +157,7 @@ func TestPatchPreferencesValueValidation(t *testing.T) {
 		{"bad accent", map[string]any{"accentColor": "magenta"}},
 		{"sidebar not an object", map[string]any{"sidebar": "left"}},
 		{"viewOptions not an object", map[string]any{"viewOptions": []any{}}},
+		{"supportHidden not a boolean", map[string]any{"supportHidden": "yes"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -169,6 +173,37 @@ func TestPatchPreferencesValueValidation(t *testing.T) {
 		map[string]any{"sidebar": map[string]any{"collapsedSections": []any{"playlists"}}}, admin)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("object patch: %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+// TestPatchPreferencesSupportHidden pins the sponsorship CTA dismissal key:
+// booleans both ways are accepted, non-booleans are rejected, and the old
+// hideSponsorButton spelling no longer patches (renamed key).
+func TestPatchPreferencesSupportHidden(t *testing.T) {
+	s := newTestServer(t)
+	admin := s.setup(t, "admin", adminPass)
+
+	for _, v := range []bool{true, false} {
+		rec := s.do(t, http.MethodPatch, "/api/me/preferences",
+			map[string]any{"supportHidden": v}, admin)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("supportHidden=%v: %d %s", v, rec.Code, rec.Body.String())
+		}
+		if prefs := s.getPreferences(t, admin); prefs["supportHidden"] != v {
+			t.Fatalf("supportHidden=%v did not persist: %v", v, prefs)
+		}
+	}
+
+	rec := s.do(t, http.MethodPatch, "/api/me/preferences",
+		map[string]any{"supportHidden": "yes"}, admin)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("non-boolean supportHidden: want 400, got %d", rec.Code)
+	}
+
+	rec = s.do(t, http.MethodPatch, "/api/me/preferences",
+		map[string]any{"hideSponsorButton": true}, admin)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("retired hideSponsorButton key: want 400, got %d", rec.Code)
 	}
 }
 

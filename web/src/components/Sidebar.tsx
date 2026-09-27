@@ -126,7 +126,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
           error={librariesError?.message ?? null}
         />
       </div>
-      <nav className="space-y-0.5 overflow-y-auto">
+      <nav className="shrink-0 space-y-0.5">
         {orderedLibraryLinks.map((link) => (
           <SidebarNavLink
             key={link.id}
@@ -190,7 +190,12 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
         </div>
 
         {!collapsed && (
-          <nav className="space-y-0.5 min-h-0 flex-1 overflow-y-auto">
+          // Atomic scroll: this nav is the sidebar's only wheel-capture
+          // region (flex-1 + min-h-0 + overscroll-contain); the section
+          // header above is a shrink-0 flex sibling, so it stays pinned
+          // while the list scrolls. Short lists collapse the section
+          // naturally — no layout shift.
+          <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain">
             {playlists?.map((playlist) => {
               const href = `/playlists/${playlist.id}`;
               const active = isActive(location, href);

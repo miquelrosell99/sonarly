@@ -56,7 +56,8 @@ export interface UserPreferences {
   autoDjPreferFavorites?: boolean;
   /** 0 = familiar (known, well-played tracks), 100 = adventurous (deep cuts). */
   autoDjDiscovery?: number;
-  hideSponsorButton?: boolean;
+  /** Sponsorship CTA dismissed ("Don't show again"); guests mirror the key in localStorage. */
+  supportHidden?: boolean;
 }
 
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {

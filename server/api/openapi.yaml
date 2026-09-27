@@ -331,7 +331,7 @@ paths:
       summary: Update current user's preferences (allowlisted keys)
       description: >
         Partial update: every key in the body must be in the explicit
-        allowlist (auto-dj knobs, appearance, hideSponsorButton, and the
+        allowlist (auto-dj knobs, appearance, supportHidden, and the
         structural sidebar/theme documents) or the whole patch is rejected
         with 400 — unknown keys are never silently dropped or stored
         (mass-assignment fix). Values are validated per key; out-of-range
@@ -3509,7 +3509,7 @@ components:
         autoDjExcludeWindow: { $ref: '#/components/schemas/AutoDjExcludeWindow' }
         autoDjPreferFavorites: { type: boolean }
         autoDjDiscovery: { type: number, minimum: 0, maximum: 100 }
-        hideSponsorButton: { type: boolean }
+        supportHidden: { type: boolean }
         themeMode: { type: string, enum: [light, dark, oled, auto] }
         accentColor:
           type: string
@@ -3534,7 +3534,7 @@ components:
         autoDjExcludeWindow: { $ref: '#/components/schemas/AutoDjExcludeWindow' }
         autoDjPreferFavorites: { type: boolean }
         autoDjDiscovery: { type: number, minimum: 0, maximum: 100 }
-        hideSponsorButton: { type: boolean }
+        supportHidden: { type: boolean }
         themeMode: { type: string, enum: [light, dark, oled, auto] }
         accentColor:
           type: string

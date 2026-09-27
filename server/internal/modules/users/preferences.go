@@ -104,11 +104,14 @@ var preferenceAllowlist = map[string]preferenceValidator{
 	"autoDjExcludeWindow":   enumValidator("autoDjExcludeWindow", "24h", "7d", "30d"),
 	"autoDjPreferFavorites": boolValidator("autoDjPreferFavorites"),
 	"autoDjDiscovery":       clampedNumberValidator("autoDjDiscovery", 0, 100),
-	"hideSponsorButton":     boolValidator("hideSponsorButton"),
 	"themeMode":             enumValidator("themeMode", "light", "dark", "oled", "auto"),
 	"accentColor": enumValidator("accentColor", "auto", "monochrome", "brown", "green",
 		"orange", "teal", "purple", "yellow", "cyan", "blue"),
 	"playlistsCollapsed": boolValidator("playlistsCollapsed"),
+	// supportHidden backs the sponsorship CTA dismissal (TopBar heart ->
+	// support modal "Don't show again"). Boolean; guests mirror the same key
+	// in localStorage on the client.
+	"supportHidden": boolValidator("supportHidden"),
 	// Structural documents (sidebar layout, theme, per-view options) are
 	// validated as JSON objects and stored verbatim — same contract as the old
 	// repository, now behind the allowlist.
