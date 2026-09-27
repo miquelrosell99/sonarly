@@ -34,7 +34,7 @@ for ((ai = 0; ai < NA; ai++)); do
 
   ntracks=$((6 + ai % 4))
   for ((ti = 0; ti < ntracks; ti++)); do
-    title="${WORDS_A[$(( (ai * 3 + ti) % 20 ))]} ${WORDS_B[$(( (ai * 7 + ti * 3) % 20 ))]}"
+    title="${WORDS_A[$(( (ai * 3 + ti * 7) % 20 ))]} ${WORDS_B[$(( (ai * 7 + ti * 11) % 20 ))]}"
     freq=$((180 + (ai * 13 + ti * 29) % 420))
     num=$(printf '%02d' $((ti + 1)))
     ffmpeg -y -loglevel error \
