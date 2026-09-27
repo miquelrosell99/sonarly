@@ -132,7 +132,7 @@ export function Tracks({ user }: TracksProps) {
 
   return (
     <LibraryView
-      title="Tracks"
+      viewModeKey="tracks"
       data={filteredTracks}
       isLoading={isLoading}
       error={error?.message ?? null}

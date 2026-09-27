@@ -8,6 +8,12 @@ interface NowPlayingState {
   activeTab: NowPlayingTab;
   // Where to navigate when the overlay closes after a URL-driven open.
   returnPath: string | null;
+  // One-shot flag for the scroll-restoration hook (audit F8): the overlay's
+  // open/close navigations swap the URL while the page underneath keeps its
+  // scroll position, so the next location change must restore the remembered
+  // offset instead of resetting to the top. Set right before the overlay's
+  // navigations, consumed by useScrollRestoration on the next location change.
+  suppressNextReset: boolean;
 }
 
 interface NowPlayingActions {
@@ -16,12 +22,14 @@ interface NowPlayingActions {
   toggle: () => void;
   setActiveTab: (tab: NowPlayingTab) => void;
   setReturnPath: (path: string | null) => void;
+  setSuppressNextReset: (suppress: boolean) => void;
 }
 
 const initialState: NowPlayingState = {
   isOpen: false,
   activeTab: 'queue',
   returnPath: null,
+  suppressNextReset: false,
 };
 
 export const useNowPlaying = create<NowPlayingState & NowPlayingActions>()(
@@ -33,6 +41,7 @@ export const useNowPlaying = create<NowPlayingState & NowPlayingActions>()(
       toggle: () => set((state) => ({ isOpen: !state.isOpen })),
       setActiveTab: (tab) => set({ activeTab: tab }),
       setReturnPath: (path) => set({ returnPath: path }),
+      setSuppressNextReset: (suppress) => set({ suppressNextReset: suppress }),
     }),
     {
       name: 'sonarly-now-playing',

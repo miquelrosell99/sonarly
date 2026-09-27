@@ -92,6 +92,7 @@ export function Artists() {
   return (
     <>
       <LibraryView
+        viewModeKey="artists"
         title="Artists"
         data={filteredArtists}
         isLoading={isLoading}

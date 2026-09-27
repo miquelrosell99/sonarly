@@ -69,6 +69,11 @@ export function PlayerBar({ user }: PlayerBarProps) {
   const handleOpenNowPlaying = () => {
     // Remember where the user is so closing the overlay can return there.
     useNowPlaying.getState().setReturnPath(location);
+    // The overlay covers the page without unmounting it: the URL swap must
+    // not reset the underlying page's scroll position (audit F8) — the
+    // one-shot flag makes the scroll-restoration hook treat this push like
+    // a pop.
+    useNowPlaying.getState().setSuppressNextReset(true);
     if (queueContext && currentSong) {
       setLocation(`/now-playing/${queueContext.type}/${encodeURIComponent(queueContext.id)}/${currentSong.id}${shareSuffix}`);
     } else if (currentSong) {

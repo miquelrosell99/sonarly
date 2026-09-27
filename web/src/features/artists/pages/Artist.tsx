@@ -261,6 +261,7 @@ export function Artist({ user }: { user: User }) {
       )}
 
       <LibraryView
+        viewModeKey="artist-tracks"
         title="Tracks"
         data={topTracks}
         columns={columns}

@@ -7,18 +7,21 @@ import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useLibraryStore } from '../../../stores/libraryStore.js';
 import { useSongsList } from '../../../hooks/useLibraryLists.js';
 import { TrackList } from '../../songs/index.js';
-import type { SongWithNames } from '../../../lib/types.js';
+import type { SongWithNames, UnderlayParams } from '../../../lib/types.js';
 
-export function Composer() {
-  const { name: encodedName } = useParams<{ name: string }>();
+export function Composer({ underlay }: { underlay?: UnderlayParams }) {
+  const { name: paramName } = useParams<{ name: string }>();
+  const encodedName = underlay?.id ?? paramName;
   const composer = encodedName ? decodeURIComponent(encodedName) : '';
+  const covered = underlay !== undefined && !underlay.fetchEnabled;
 
   const { playSongs, shufflePlay } = usePlayActions();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-  const { data, isLoading, error } = useSongsList(
+  const { data, isLoading: songsLoading, error } = useSongsList(
     { libraryId: selectedLibraryId, composer: composer || undefined },
-    Boolean(composer),
+    Boolean(composer) && !covered,
   );
+  const isLoading = songsLoading || covered;
   const tracks: SongWithNames[] = data?.songs ?? [];
 
   const actions = tracks.length > 0 && (

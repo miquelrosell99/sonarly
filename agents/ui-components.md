@@ -9,7 +9,7 @@ Shared components live in `web/src/components/`. Use them for consistent layout,
 | `Card` | `components/Card.tsx` | Content card with link, optional cover art, favorite, rating, and play actions. Use for grid views. |
 | `CoverArt` | `components/CoverArt.tsx` | Cover art image with placeholder fallback. |
 | `ArtistImage` | `components/ArtistImage.tsx` | Artist image from local disk with placeholder fallback. |
-| `LibraryView` | `components/LibraryView.tsx` | Toggleable list/grid view for library entities (artists, albums, etc.). |
+| `LibraryView` | `components/LibraryView.tsx` | Toggleable list/grid view for library entities (artists, albums, etc.). Pass a stable `viewModeKey` ('tracks', 'search-albums', …) to persist the user's choice per page in localStorage (`usePersistentViewMode`); omit it for ephemeral views (queue editor). |
 | `ListRow` | `components/ListRow.tsx` | Clickable table row with play, favorite, and rating actions. |
 | `ItemContextMenu` | `components/ItemContextMenu.tsx` | Right-click/long-press/keyboard context menu wrapper. Keyboard path: the wrapped trigger opens the menu with Shift+F10 or the Menu key (menu anchors below the trigger); ArrowUp/Down cycle items, Home/End jump to the edges, Tab closes and returns focus to the trigger, Escape closes and returns focus to the trigger. Popover-style triggers (`anchorToTrigger`) automatically get `aria-haspopup="menu"` and a live `aria-expanded`. |
 | `FilterPanel` | `components/FilterPanel.tsx` | Filter controls for library pages. |

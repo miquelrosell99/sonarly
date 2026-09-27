@@ -1,5 +1,4 @@
-import { Fragment, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
-import {
+import { Fragment, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';import {
   DndContext,
   KeyboardSensor,
   PointerSensor,
@@ -24,6 +23,7 @@ import { PageState } from './PageState.js';
 import { VirtualGrid } from './ui/VirtualGrid.js';
 import { VirtualList } from './ui/VirtualList.js';
 import { useScrollParent } from './ui/useScrollParent.js';
+import { usePersistentViewMode, type ViewMode } from '../hooks/usePersistentViewMode.js';
 
 export interface LibraryViewColumn<T> {
   key: string;
@@ -67,6 +67,12 @@ interface LibraryViewProps<T> {
   onRetry?: () => void;
   defaultView?: 'list' | 'grid';
   availableViews?: ViewMode[];
+  /**
+   * Stable per-page key ('tracks', 'albums', 'search-songs', …) persisting
+   * the user's list/grid choice in localStorage so it survives navigation
+   * and reloads (audit F28). Omit for ephemeral views (queue editor).
+   */
+  viewModeKey?: string;
   getCover?: (item: T) => string | undefined;
   getCoverAlt?: (item: T) => string;
   renderCover?: (item: T) => ReactNode;
@@ -86,8 +92,6 @@ interface LibraryViewProps<T> {
    */
   virtualizeThreshold?: number;
 }
-
-type ViewMode = 'list' | 'grid';
 
 function SortableLibraryRow<T>({
   item,
@@ -195,6 +199,7 @@ export function LibraryView<T>({
   onRetry,
   defaultView = 'list',
   availableViews = ['list', 'grid'],
+  viewModeKey,
   getCover,
   getCoverAlt,
   renderCover,
@@ -208,7 +213,7 @@ export function LibraryView<T>({
   virtualizeThreshold = 150,
 }: LibraryViewProps<T>) {
   const effectiveDefaultView = availableViews.includes(defaultView) ? defaultView : availableViews[0];
-  const [viewMode, setViewMode] = useState<ViewMode>(effectiveDefaultView);
+  const [viewMode, setViewMode] = usePersistentViewMode(viewModeKey, effectiveDefaultView, availableViews);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
   const { ref: scrollAnchorRef, scrollParent } = useScrollParent<HTMLDivElement>();

@@ -32,6 +32,7 @@ export function Labels() {
 
   return (
     <LibraryView
+      viewModeKey="labels"
       title="Labels"
       data={labels}
       isLoading={isLoading}
