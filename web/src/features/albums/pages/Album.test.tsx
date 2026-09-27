@@ -30,9 +30,10 @@ const makeSong = (id: string): Song =>
     duration: 200,
     starred: false,
     explicit: false,
-    filePath: `/music/${id}.mp3`,
     mtime: 0,
-    checksum: '',
+    active: true,
+    coverArtMissing: false,
+    gapless: false,
   }) as Song;
 
 const albumPayload = () => ({

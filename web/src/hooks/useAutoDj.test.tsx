@@ -93,10 +93,12 @@ function song(id: string): PlayerSong {
   return {
     id,
     title: `Song ${id}`,
-    filePath: `/music/${id}.mp3`,
     mtime: Date.now(),
-    checksum: id,
     active: true,
+    explicit: false,
+    starred: false,
+    coverArtMissing: false,
+    gapless: false,
   };
 }
 

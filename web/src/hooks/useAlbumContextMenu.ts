@@ -11,9 +11,17 @@ interface AlbumDetail {
   songs: Song[];
 }
 
+/**
+ * The subset of the album shape the context menu actually reads. Full Albums
+ * (album lists/cards) carry `shownSongCount` for the empty-album disable
+ * check; search hits don't, and the menu stays enabled for them — matching
+ * the long-standing runtime behavior for subset DTOs.
+ */
+export type AlbumMenuTarget = Pick<Album, 'id'> & Partial<Pick<Album, 'artistId' | 'shownSongCount'>>;
+
 type LoadingId = 'play' | 'shuffle-play' | 'play-next' | 'add-to-queue' | null;
 
-export function useAlbumContextMenu(album: Album): ContextMenuSection[] {
+export function useAlbumContextMenu(album: AlbumMenuTarget): ContextMenuSection[] {
   const { playSongs, shufflePlay, playNext, addToQueue } = usePlayActions();
   const { notify } = useNotification();
   const [, navigate] = useLocation();

@@ -29,6 +29,7 @@
 // hand-rolled setState did.
 import { useCallback, useEffect } from 'react';
 import { keepPreviousData, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
+import type { components } from '../contract/schema.js';
 import type { Album, Artist, Library, Playlist, Song } from '../types';
 import { api } from '../lib/api.js';
 
@@ -190,12 +191,7 @@ export function useYearsList(params: LibraryListParams = {}) {
   });
 }
 
-export interface SearchResultsResponse {
-  songs: Song[];
-  albums: Album[];
-  artists: Artist[];
-  playlists: Playlist[];
-}
+export type SearchResultsResponse = components['schemas']['SearchResults'];
 
 export type SearchType = 'songs' | 'albums' | 'artists' | 'playlists';
 

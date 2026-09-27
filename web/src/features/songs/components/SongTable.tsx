@@ -1,9 +1,16 @@
 import type { ReactNode } from 'react';
 import { Link } from 'wouter';
+import type { SyncedLyricLine } from '../../../types';
 import { Table, type TableColumn } from '../../../components/ui/Table.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { formatDuration } from '../../../lib/format.js';
 
+/**
+ * Row-specific song shape for the table. Hand-maintained on purpose (plan
+ * 10d): the table only needs a subset, and the schema-derived Song stays
+ * assignable to it. `syncedLyrics` keeps the wire union — rows can carry a
+ * raw LRC string, same as the full DTO.
+ */
 export interface SongListItem {
   id: string;
   title: string;
@@ -16,31 +23,31 @@ export interface SongListItem {
   explicit?: boolean;
   trackNumber?: number;
   discNumber?: number;
-  syncedLyrics?: { time: number; text: string }[];
+  syncedLyrics?: SyncedLyricLine[] | string;
   coverArt?: string;
   albumCoverArt?: string;
 }
 
-interface SongTableProps {
-  songs: SongListItem[];
+interface SongTableProps<T extends SongListItem> {
+  songs: T[];
   playingId?: string;
   blurExplicit?: boolean;
   showArtist?: boolean;
   showAlbum?: boolean;
-  onPlay?: (song: SongListItem) => void;
-  onShufflePlay?: (song: SongListItem) => void;
-  onPlaySelection?: (songs: SongListItem[], startIndex: number) => void;
-  renderRow?: (song: SongListItem, row: React.ReactNode, selectedRows: SongListItem[]) => React.ReactNode;
+  onPlay?: (song: T) => void;
+  onShufflePlay?: (song: T) => void;
+  onPlaySelection?: (songs: T[], startIndex: number) => void;
+  renderRow?: (song: T, row: React.ReactNode, selectedRows: T[]) => React.ReactNode;
   empty?: React.ReactNode;
   /** Override the # column label for a song. Returning undefined falls back to the 1-based row index. */
-  getIndexLabel?: (song: SongListItem, index: number) => ReactNode;
+  getIndexLabel?: (song: T, index: number) => ReactNode;
   /** Group songs into sections by a shared key. Only contiguous songs with the same key are grouped together. */
-  groupBy?: (song: SongListItem) => string | undefined;
+  groupBy?: (song: T) => string | undefined;
   /** Render a custom header for a group. Receives the group key and the songs in the group. */
-  renderGroupHeader?: (key: string, songs: SongListItem[]) => ReactNode;
+  renderGroupHeader?: (key: string, songs: T[]) => ReactNode;
 }
 
-export function SongTable({
+export function SongTable<T extends SongListItem>({
   songs,
   playingId,
   blurExplicit,
@@ -54,8 +61,8 @@ export function SongTable({
   getIndexLabel,
   groupBy,
   renderGroupHeader,
-}: SongTableProps) {
-  const columns: TableColumn<SongListItem>[] = [
+}: SongTableProps<T>) {
+  const columns: TableColumn<T>[] = [
     {
       key: 'title',
       header: 'Title',

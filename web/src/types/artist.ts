@@ -1,11 +1,3 @@
-export interface Artist {
-  id: string;
-  name: string;
-  active?: boolean;
-  starred?: boolean;
-  rating?: number;
-  artistImageUrl?: string;
-  musicBrainzArtistIds?: string[];
-  bio?: string;
-  externalUrls?: Record<string, string>;
-}
+import type { components } from '../contract/schema.js';
+
+export type Artist = components['schemas']['Artist'];

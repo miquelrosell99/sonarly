@@ -18,7 +18,7 @@
 
 - Code is organized **feature-first**: each domain lives under `src/features/<name>/`; cross-feature imports go through the feature's public entry points, never deep internal files.
 - Shared UI primitives live in `web/src/components/` (and `components/ui/`); the app shell is `components/Layout.tsx`.
-- Domain/entity types live in `web/src/types/` (migrated from the retired `@sonarly/shared` package); generated API types live in `src/contract/schema.ts` (types-only — runtime HTTP goes through `src/lib/api.ts`, the canonical client).
+- Domain/entity types live in `web/src/types/` (migrated from the retired `@sonarly/shared` package) and are re-derived from the generated schema where a component exists (`Song`, `Album`, `Artist`, `Playlist`, smart-playlist rule shapes) — the generated type wins on drift. Hand-written types remain only for runtime constants (`SMART_PLAYLIST_FIELDS`, `DUPLICATE_STRATEGY_LABELS`, `AUTO_DJ_EXCLUDE_WINDOWS`) and client-only shapes (`SongWithNames` in `lib/types.ts`, `SongListItem` in the SongTable component); known-partial wire shapes widen to full entities through the mappers in `src/lib/entityMappers.ts`, never `as` casts. Generated API types live in `src/contract/schema.ts` (types-only — runtime HTTP goes through `src/lib/api.ts`, the canonical client).
 - Web tests live next to source (`*.test.ts(x)`); page tests render through `web/src/lib/testing.tsx`.
 
 ## Server state (react-query)
