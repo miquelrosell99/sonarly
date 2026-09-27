@@ -20,6 +20,7 @@ mkdir -p "$DB" "$OUT"
 
 if [ ! -d "$LIB" ] || [ -z "$(ls -A "$LIB" 2>/dev/null)" ]; then
   echo ">> seeding synthetic library..."
+  python3 -c "import PIL" 2>/dev/null || python3 -m pip install --quiet pillow
   bash "$DIR/seed-library.sh" "$LIB"
 fi
 
