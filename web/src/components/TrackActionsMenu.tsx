@@ -1,11 +1,11 @@
-import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
+import { createPortal } from 'react-dom';
 import { Icon } from './ui/Icon.js';
 import { api } from '../lib/api.js';
 import { usePlayer, type PlayerSong } from '../stores/playerStore.js';
 import { useNotification } from '../contexts/NotificationContext.js';
+import { usePopoverMenu } from './ui/usePopoverMenu.js';
 
 interface TrackActionsMenuProps {
   song: PlayerSong | null;
@@ -18,91 +18,14 @@ interface MenuItem {
   onSelect: () => void;
 }
 
-const Trigger = forwardRef<
-  HTMLButtonElement,
-  { open: boolean; disabled: boolean; onToggle: () => void }
->(function Trigger({ open, disabled, onToggle }, ref) {
-  return (
-    <button
-      ref={ref}
-      type="button"
-      onClick={onToggle}
-      aria-label="More actions"
-      aria-haspopup="menu"
-      aria-expanded={open}
-      title="More actions"
-      disabled={disabled}
-      className="-m-1 inline-flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <Icon name="mdi-dots-horizontal" size={18} />
-    </button>
-  );
-});
-
 // "More actions" popover for the currently playing track in the player bar.
-// Modeled on SleepTimerButton: click-to-open portal menu anchored above the
-// trigger, with Escape/click-outside close and arrow-key navigation.
+// Anchored above the trigger, right-aligned (the player bar sits at the
+// bottom of the screen), portaled with viewport clamping via usePopoverMenu.
 export function TrackActionsMenu({ song }: TrackActionsMenuProps) {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { notify } = useNotification();
-
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ x: 0, y: 0 });
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleMouse = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (!buttonRef.current?.contains(target) && !menuRef.current?.contains(target)) {
-        setOpen(false);
-      }
-    };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        setOpen(false);
-        buttonRef.current?.focus();
-      }
-    };
-    document.addEventListener('mousedown', handleMouse);
-    document.addEventListener('keydown', handleKey, true);
-    return () => {
-      document.removeEventListener('mousedown', handleMouse);
-      document.removeEventListener('keydown', handleKey, true);
-    };
-  }, [open]);
-
-  useLayoutEffect(() => {
-    if (!open) return;
-    const trigger = buttonRef.current;
-    const menu = menuRef.current;
-    if (!trigger || !menu) return;
-    const triggerRect = trigger.getBoundingClientRect();
-    const menuRect = menu.getBoundingClientRect();
-    const margin = 8;
-    const left = Math.min(
-      Math.max(triggerRect.right - menuRect.width, margin),
-      window.innerWidth - menuRect.width - margin,
-    );
-    const top = Math.max(triggerRect.top - menuRect.height - margin, margin);
-    setPos({ x: left, y: top });
-    menu.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
-  }, [open]);
-
-  const handleMenuKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-    e.preventDefault();
-    const items = Array.from(
-      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [],
-    );
-    if (items.length === 0) return;
-    const index = items.indexOf(document.activeElement as HTMLElement);
-    const direction = e.key === 'ArrowDown' ? 1 : -1;
-    items[(index + direction + items.length) % items.length].focus();
-  };
+  const menu = usePopoverMenu<HTMLButtonElement>();
 
   const saveQueueAsPlaylist = async () => {
     const { queue } = usePlayer.getState();
@@ -143,13 +66,11 @@ export function TrackActionsMenu({ song }: TrackActionsMenuProps) {
     { id: 'save-queue', label: 'Save queue as playlist', icon: 'mdi-playlist-plus', onSelect: () => { void saveQueueAsPlaylist(); } },
   ];
 
-  const menu = open && items.length > 0 ? (
+  const menuEl = menu.open && items.length > 0 ? (
     <div
-      ref={menuRef}
-      role="menu"
+      ref={menu.menuRef}
+      {...menu.menuProps}
       aria-label="Track actions"
-      style={{ top: pos.y, left: pos.x }}
-      onKeyDown={handleMenuKeyDown}
       className="fixed z-50 min-w-[12rem] rounded-md border border-rule bg-surface py-1 shadow-lg"
     >
       {items.map((item) => (
@@ -159,8 +80,7 @@ export function TrackActionsMenu({ song }: TrackActionsMenuProps) {
           role="menuitem"
           onClick={() => {
             item.onSelect();
-            setOpen(false);
-            buttonRef.current?.focus();
+            menu.closeMenu(true);
           }}
           className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
         >
@@ -173,8 +93,18 @@ export function TrackActionsMenu({ song }: TrackActionsMenuProps) {
 
   return (
     <>
-      <Trigger ref={buttonRef} open={open} disabled={!song} onToggle={() => setOpen((value) => !value)} />
-      {menu && createPortal(menu, document.body)}
+      <button
+        ref={menu.triggerRef}
+        type="button"
+        {...menu.triggerProps}
+        aria-label="More actions"
+        title="More actions"
+        disabled={!song}
+        className="-m-1 inline-flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <Icon name="mdi-dots-horizontal" size={18} />
+      </button>
+      {menuEl && createPortal(menuEl, document.body)}
     </>
   );
 }

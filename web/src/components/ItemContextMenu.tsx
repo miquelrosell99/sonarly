@@ -1,7 +1,7 @@
 import { Children, cloneElement, isValidElement, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../lib/cn.js';
-import { computePointerMenuPosition, type Point } from '../lib/menuPosition.js';
+import { computeAnchoredMenuPosition, computePointerMenuPosition, type MenuPlacement, type Point } from '../lib/menuPosition.js';
 import { Icon } from './ui/Icon.js';
 
 export interface ContextMenuItem {
@@ -24,38 +24,9 @@ interface ItemContextMenuProps {
   sections: ContextMenuSection[];
   children: ReactNode;
   anchorToTrigger?: boolean;
-  placement?: 'top-end' | 'bottom-start';
+  placement?: MenuPlacement;
   /** Also open the menu after a ~500ms touch/pen press on the trigger. */
   openOnLongPress?: boolean;
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(value, max));
-}
-
-function computeAnchorPosition(
-  trigger: HTMLElement,
-  menu: HTMLElement,
-  placement: 'top-end' | 'bottom-start',
-) {
-  const triggerRect = trigger.getBoundingClientRect();
-  const menuRect = menu.getBoundingClientRect();
-  const margin = 8;
-  let top: number;
-  let left: number;
-
-  if (placement === 'top-end') {
-    top = triggerRect.top - menuRect.height - margin;
-    left = triggerRect.right - menuRect.width;
-  } else {
-    top = triggerRect.bottom + margin;
-    left = triggerRect.left;
-  }
-
-  left = clamp(left, margin, window.innerWidth - menuRect.width - margin);
-  top = clamp(top, margin, window.innerHeight - menuRect.height - margin);
-
-  return { top, left };
 }
 
 export function ItemContextMenu({ sections, children, anchorToTrigger = false, placement = 'top-end', openOnLongPress = false }: ItemContextMenuProps) {
@@ -116,12 +87,12 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
     const menuSize = { width: menuRect.width, height: menuRect.height };
     const viewport = { width: window.innerWidth, height: window.innerHeight };
     if (anchorToTrigger && trigger) {
-      const { top, left } = computeAnchorPosition(trigger, menu, placement);
-      setPos({ x: left, y: top });
+      const { x, y } = computeAnchoredMenuPosition(trigger.getBoundingClientRect(), menuSize, viewport, placement);
+      setPos({ x, y });
     } else if (openedFromKeyboardRef.current && trigger) {
       // Keyboard opens have no pointer position; anchor below the trigger.
-      const { top, left } = computeAnchorPosition(trigger, menu, 'bottom-start');
-      setPos({ x: left, y: top });
+      const { x, y } = computeAnchoredMenuPosition(trigger.getBoundingClientRect(), menuSize, viewport, 'bottom-start');
+      setPos({ x, y });
     } else if (pointerPosRef.current) {
       const { x, y } = computePointerMenuPosition(pointerPosRef.current, menuSize, viewport);
       setPos({ x, y });

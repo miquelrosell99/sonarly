@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from './ui/Icon.js';
 import { cn } from '../lib/cn.js';
 import { usePlayer } from '../stores/playerStore.js';
+import { usePopoverMenu } from './ui/usePopoverMenu.js';
 
 const MINUTE_OPTIONS = [5, 10, 15, 30, 45, 60];
 
@@ -23,12 +24,9 @@ export function SleepTimerButton() {
   const sleepTimer = usePlayer((state) => state.sleepTimer);
   const setSleepTimer = usePlayer((state) => state.setSleepTimer);
   const clearSleepTimer = usePlayer((state) => state.clearSleepTimer);
+  const menu = usePopoverMenu<HTMLButtonElement>();
 
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ x: 0, y: 0 });
   const [now, setNow] = useState(() => Date.now());
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const active = sleepTimer.mode !== 'off';
 
@@ -39,80 +37,6 @@ export function SleepTimerButton() {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, [sleepTimer.mode]);
-
-  // Close on click-outside and Escape, following the app's menu conventions.
-  useEffect(() => {
-    if (!open) return;
-    const handleMouse = (e: MouseEvent) => {
-      const target = e.target as Node;
-      const insideButton = buttonRef.current?.contains(target) ?? false;
-      const insideMenu = menuRef.current?.contains(target) ?? false;
-      if (!insideButton && !insideMenu) {
-        setOpen(false);
-      }
-    };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        setOpen(false);
-        buttonRef.current?.focus();
-      }
-    };
-    document.addEventListener('mousedown', handleMouse);
-    document.addEventListener('keydown', handleKey, true);
-    return () => {
-      document.removeEventListener('mousedown', handleMouse);
-      document.removeEventListener('keydown', handleKey, true);
-    };
-  }, [open]);
-
-  // The player bar sits at the bottom of the screen, so the menu opens
-  // above the trigger, right-aligned with it.
-  useLayoutEffect(() => {
-    if (!open) return;
-    const trigger = buttonRef.current;
-    const menu = menuRef.current;
-    if (!trigger || !menu) return;
-    const triggerRect = trigger.getBoundingClientRect();
-    const menuRect = menu.getBoundingClientRect();
-    const margin = 8;
-    const left = Math.min(
-      Math.max(triggerRect.right - menuRect.width, margin),
-      window.innerWidth - menuRect.width - margin,
-    );
-    const top = Math.max(triggerRect.top - menuRect.height - margin, margin);
-    setPos({ x: left, y: top });
-  }, [open]);
-
-  useLayoutEffect(() => {
-    if (!open) return;
-    const menu = menuRef.current;
-    if (!menu) return;
-    const firstItem = menu.querySelector<HTMLElement>('[role="menuitem"]:not([disabled])');
-    firstItem?.focus();
-  }, [open]);
-
-  const focusMenuItem = (direction: 1 | -1) => {
-    const menu = menuRef.current;
-    if (!menu) return;
-    const items = Array.from(
-      menu.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])'),
-    );
-    if (items.length === 0) return;
-    const currentIndex = items.indexOf(document.activeElement as HTMLElement);
-    const nextIndex = (currentIndex + direction + items.length) % items.length;
-    items[nextIndex].focus();
-  };
-
-  const handleMenuKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      focusMenuItem(1);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      focusMenuItem(-1);
-    }
-  };
 
   const remainingSeconds = sleepTimer.mode === 'minutes'
     ? Math.max(0, Math.ceil((sleepTimer.endsAt - now) / 1000))
@@ -126,8 +50,7 @@ export function SleepTimerButton() {
 
   const select = (item: SleepTimerItem) => {
     item.onSelect();
-    setOpen(false);
-    buttonRef.current?.focus();
+    menu.closeMenu(true);
   };
 
   const items: SleepTimerItem[] = [
@@ -146,13 +69,11 @@ export function SleepTimerButton() {
     },
   ];
 
-  const menu = open ? (
+  const menuEl = menu.open ? (
     <div
-      ref={menuRef}
-      role="menu"
+      ref={menu.menuRef}
+      {...menu.menuProps}
       aria-label="Sleep timer"
-      style={{ top: pos.y, left: pos.x }}
-      onKeyDown={handleMenuKeyDown}
       className="fixed z-50 min-w-[10rem] rounded-md border border-rule bg-surface py-1 shadow-lg"
     >
       {items.map((item) => (
@@ -176,12 +97,10 @@ export function SleepTimerButton() {
   return (
     <>
       <button
-        ref={buttonRef}
+        ref={menu.triggerRef}
         type="button"
-        onClick={() => setOpen((value) => !value)}
+        {...menu.triggerProps}
         aria-label={label}
-        aria-haspopup="menu"
-        aria-expanded={open}
         title={label}
         className={cn(
           '-m-1 inline-flex h-11 min-w-[2.75rem] items-center justify-center gap-1 rounded-full px-1 transition',
@@ -199,7 +118,7 @@ export function SleepTimerButton() {
           <span className="font-mono text-xs">{formatRemaining(remainingSeconds)}</span>
         )}
       </button>
-      {menu && createPortal(menu, document.body)}
+      {menuEl && createPortal(menuEl, document.body)}
     </>
   );
 }
