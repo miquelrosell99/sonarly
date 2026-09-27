@@ -9,6 +9,9 @@
 //   ['artists', 'list', params]   /artists
 //   ['genres',  'list', params]   /genres
 //   ['years',   'list', params]   /years
+//   ['libraries']                 /libraries (sidebar/TopBar selector;
+//                                 refreshed via the sonarly:library-changed
+//                                 DOM bridge, see useLibraries below)
 //   ['search',  'preview', …]     /search?q=…&limit=5 (SearchBox dropdown)
 //   ['search',  'results', …]     /search?q=…&type=…  (/search page; adopts a
 //                                 matching preview entry as initialData)
@@ -24,12 +27,46 @@
 // background. Favorite/rate/tag edits patch the cached item in place via
 // `patchItem` so the UI updates without a refetch, exactly like the old
 // hand-rolled setState did.
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { keepPreviousData, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
-import type { Album, Artist, Playlist, Song } from '../types';
+import type { Album, Artist, Library, Playlist, Song } from '../types';
 import { api } from '../lib/api.js';
 
 export const LIBRARY_LIST_STALE_TIME = 30_000;
+
+export interface LibrariesResponse {
+  libraries: Library[];
+}
+
+/**
+ * The libraries list backing the sidebar/TopBar selector — server state that
+ * lived in libraryStore until Phase 10e retired that copy. Keyed ['libraries']
+ * so admin CRUD (`AdminLibraries`) can target it by exact key.
+ *
+ * The P4-era TopBar refresh is consolidated here: the sonarly:library-changed
+ * DOM bridge (dispatched by useServerEvents on SSE library:changed and on
+ * EventSource reconnect) invalidates the key, so every mounted selector
+ * refetches and admin CRUD shows up without a reload. Guests never mount a
+ * consumer of this hook (Layout requires a user), so share-link flows never
+ * fetch /libraries.
+ */
+export function useLibraries(enabled = true) {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const refresh = () => {
+      queryClient.invalidateQueries({ queryKey: ['libraries'] });
+    };
+    window.addEventListener('sonarly:library-changed', refresh);
+    return () => window.removeEventListener('sonarly:library-changed', refresh);
+  }, [queryClient]);
+
+  return useQuery<LibrariesResponse, Error>({
+    queryKey: ['libraries'],
+    queryFn: () => api<LibrariesResponse>('/libraries'),
+    staleTime: LIBRARY_LIST_STALE_TIME,
+    enabled,
+  });
+}
 
 export interface LibraryListParams {
   libraryId?: string | null;
