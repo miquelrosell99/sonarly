@@ -21,6 +21,19 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       rollupOptions: {
+        treeshake: {
+          // Audit F19 (plan P8): the @dnd-kit packages declare no
+          // `sideEffects` flag, so Rollup treats them as potentially
+          // side-effectful and emits evaluation-order guards
+          // (`import"./dnd-kit-*.js"`) into the entry chunk for the
+          // entry ↔ LibraryView chunk cycle — dragging drag-and-drop back
+          // onto first paint. They only export components/helpers consumed
+          // via named imports, so marking them side-effect-free preserves
+          // behavior and lets the lazy QueueModal/QueuePanel boundary hold.
+          moduleSideEffects(id: string) {
+            return !id.includes('@dnd-kit');
+          },
+        },
         output: {
           // Cache-friendly vendor chunks, split by independent release
           // cadence so a deploy only invalidates the chunks it touches:

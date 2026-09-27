@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import type { User } from '../../../types';
 import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
+import { QueuePanelSkeleton } from '../../../components/Skeletons.js';
 import { useNowPlaying, type NowPlayingTab } from '../stores/nowPlayingStore.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useDominantColor } from '../../../hooks/useDominantColor.js';
@@ -12,8 +13,15 @@ import { useSongInteraction } from '../../../hooks/useSongInteraction.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { NowPlayingCover } from './NowPlayingCover.js';
 import { TransportControls } from './TransportControls.js';
-import { QueuePanel } from './QueuePanel.js';
 import { LyricsPanel } from './LyricsPanel.js';
+
+// Audit F19 (plan P8): QueuePanel → QueueList → LibraryView → @dnd-kit, and
+// this overlay is always mounted — so the static import put drag-and-drop in
+// the entry chunk. Lazy-loading the panel keeps dnd-kit (and the whole queue
+// list) out of first paint; it only loads when the queue tab is shown.
+const QueuePanel = lazy(() =>
+  import('./QueuePanel.js').then((m) => ({ default: m.QueuePanel })),
+);
 
 interface NowPlayingProps {
   user: User;
@@ -371,7 +379,9 @@ export function NowPlaying({ user }: NowPlayingProps) {
               className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4"
             >
               {activeTab === 'queue' ? (
-                <QueuePanel user={user} />
+                <Suspense fallback={<QueuePanelSkeleton />}>
+                  <QueuePanel user={user} />
+                </Suspense>
               ) : (
                 <LyricsPanel user={user} activeTab={activeTab} />
               )}

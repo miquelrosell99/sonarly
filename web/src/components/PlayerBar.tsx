@@ -1,3 +1,4 @@
+import { lazy, memo, Suspense } from 'react';
 import { Link, useLocation } from 'wouter';
 import type { AutoDjMode, User } from '../types';
 import { Icon } from './ui/Icon.js';
@@ -8,17 +9,203 @@ import { ControlButton, PlayButton, Slider } from './PlayerControls.js';
 import { ExplicitTitle } from './ExplicitTitle.js';
 import { SleepTimerButton } from './SleepTimerButton.js';
 import { TrackActionsMenu } from './TrackActionsMenu.js';
-import { usePlayer } from '../stores/playerStore.js';
+import { usePlayer, type PlayerSong } from '../stores/playerStore.js';
 import { useSongInteraction } from '../hooks/useSongInteraction.js';
 import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
-import { useNowPlaying, QueueModal } from '../features/now-playing/index.js';
+import { useNowPlaying } from '../features/now-playing/stores/nowPlayingStore.js';
 import { getShareToken } from '../lib/shareToken.js';
+
+// Audit F19 (plan P8): importing QueueModal through the now-playing barrel
+// drags QueueList → LibraryView → @dnd-kit into the entry chunk (first paint,
+// /login included). The lazy import keeps dnd-kit behind a dynamic import
+// that only fires when the footer renders for a signed-in user; the
+// chunk-graph check in scripts/bundle-budget.mjs fails the build if the
+// eager edge ever comes back.
+const QueueModal = lazy(() =>
+  import('../features/now-playing/components/QueueModal.js').then((m) => ({ default: m.QueueModal })),
+);
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Opens the Now Playing overlay through the /now-playing/... route so the URL
+// carries the queue context (back-button/refresh/share friendly).
+function useOpenNowPlaying(song: PlayerSong | null) {
+  const queueContext = usePlayer((state) => state.queueContext);
+  const [location, setLocation] = useLocation();
+
+  return () => {
+    // Share-link guests carry ?shareToken= in the URL; every in-app
+    // navigation must preserve it or the guest route gate bounces to /login.
+    const token = getShareToken();
+    const shareSuffix = token ? `?shareToken=${encodeURIComponent(token)}` : '';
+    // Remember where the user is so closing the overlay can return there.
+    useNowPlaying.getState().setReturnPath(location);
+    // The overlay covers the page without unmounting it: the URL swap must
+    // not reset the underlying page's scroll position (audit F8) — the
+    // one-shot flag makes the scroll-restoration hook treat this push like
+    // a pop.
+    useNowPlaying.getState().setSuppressNextReset(true);
+    if (queueContext && song) {
+      setLocation(`/now-playing/${queueContext.type}/${encodeURIComponent(queueContext.id)}/${song.id}${shareSuffix}`);
+    } else if (song) {
+      setLocation(`/now-playing/${song.id}${shareSuffix}`);
+    } else {
+      setLocation(`/now-playing${shareSuffix}`);
+    }
+  };
+}
+
+interface TrackInfoProps {
+  song: PlayerSong | null;
+  blur: boolean;
+}
+
+// Audit F20 (plan P8): memoized cover/metadata leaf. Its props only change
+// when the track (or the explicit-title blur preference) changes, so the
+// per-tick progress reconcile and every other PlayerBar re-render skip it.
+const TrackInfo = memo(function TrackInfo({ song, blur }: TrackInfoProps) {
+  const handleOpenNowPlaying = useOpenNowPlaying(song);
+
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      {song ? (
+        <>
+          <button
+            type="button"
+            onClick={handleOpenNowPlaying}
+            aria-label="Open Now Playing"
+            className="h-14 w-14 shrink-0 overflow-hidden rounded-md shadow-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <CoverArt
+              coverArt={song.albumCoverArt ?? song.coverArt}
+              alt={`Cover art for ${song.title}`}
+              iconSize={20}
+            />
+          </button>
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-fg-primary">
+              <ExplicitTitle
+                explicit={song.explicit}
+                blur={blur}
+                className="truncate"
+              >
+                {song.title}
+              </ExplicitTitle>
+              {song.addedByAutoDj && (
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent/70">
+                  <Icon name="mdi-robot" size={12} />
+                  Auto DJ
+                </span>
+              )}
+            </div>
+            {(song.albumName || song.year) && (
+              <div className="truncate text-xs text-fg-secondary">
+                {song.albumName && (
+                  song.albumId ? (
+                    <Link
+                      href={`/albums/${song.albumId}`}
+                      className="transition hover:opacity-70"
+                    >
+                      {song.albumName}
+                    </Link>
+                  ) : (
+                    <span>{song.albumName}</span>
+                  )
+                )}
+                {song.albumName && song.year && (
+                  <span aria-hidden="true" className="mx-1">
+                    ·
+                  </span>
+                )}
+                {song.year && (
+                  <Link
+                    href={`/years/${song.year}`}
+                    className="transition hover:opacity-70"
+                  >
+                    {song.year}
+                  </Link>
+                )}
+              </div>
+            )}
+            <div className="truncate text-xs text-fg-secondary">
+              {song.artistEntries && song.artistEntries.length > 0 ? (
+                song.artistEntries.map((artist, index) => (
+                  <span key={artist.id}>
+                    <Link
+                      href={`/artists/${artist.id}`}
+                      className="transition hover:opacity-70"
+                    >
+                      {artist.name}
+                    </Link>
+                    {index < song.artistEntries!.length - 1 && ', '}
+                  </span>
+                ))
+              ) : song.artistId ? (
+                <Link
+                  href={`/artists/${song.artistId}`}
+                  className="transition hover:opacity-70"
+                >
+                  {song.artistName || 'Unknown artist'}
+                </Link>
+              ) : (
+                song.artistName || 'Unknown artist'
+              )}
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-surface-hover">
+            <Icon name="mdi-music" size={20} className="text-fg-secondary" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-fg-primary">Not playing</div>
+            <div className="text-xs text-fg-secondary">Select a track to start</div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+});
+
+// Audit F20 (plan P8): <audio> timeupdate fires ~4×/s during playback.
+// Subscribing in this leaf row confines each per-tick reconcile to the
+// progress subtree instead of the whole footer.
+function SeekProgress({ disabled }: { disabled: boolean }) {
+  const currentTime = usePlayer((state) => state.currentTime);
+  const duration = usePlayer((state) => state.duration);
+  const currentSong = usePlayer((state) => state.currentSong);
+  const seek = usePlayer((state) => state.seek);
+
+  const displayDuration = duration || currentSong?.duration || 0;
+  const displayTime = Math.min(currentTime, displayDuration);
+
+  return (
+    <div className="flex w-full max-w-md items-center gap-2">
+      <span className="w-9 text-right font-mono text-xs text-fg-secondary">
+        {formatTime(displayTime)}
+      </span>
+      <Slider
+        min={0}
+        max={displayDuration || 1}
+        step={0.1}
+        value={displayTime}
+        onChange={seek}
+        disabled={disabled}
+        variant="progress"
+        ariaLabel="Seek"
+        ariaValueText={`${formatTime(displayTime)} of ${formatTime(displayDuration)}`}
+      />
+      <span className="w-9 font-mono text-xs text-fg-secondary">
+        {formatTime(displayDuration)}
+      </span>
+    </div>
+  );
 }
 
 interface PlayerBarProps {
@@ -28,8 +215,6 @@ interface PlayerBarProps {
 export function PlayerBar({ user }: PlayerBarProps) {
   const currentSong = usePlayer((state) => state.currentSong);
   const status = usePlayer((state) => state.status);
-  const currentTime = usePlayer((state) => state.currentTime);
-  const duration = usePlayer((state) => state.duration);
   const volume = usePlayer((state) => state.volume);
   const shuffle = usePlayer((state) => state.shuffle);
   const repeat = usePlayer((state) => state.repeat);
@@ -38,7 +223,6 @@ export function PlayerBar({ user }: PlayerBarProps) {
   const togglePlay = usePlayer((state) => state.togglePlay);
   const previous = usePlayer((state) => state.previous);
   const next = usePlayer((state) => state.next);
-  const seek = usePlayer((state) => state.seek);
   const setVolume = usePlayer((state) => state.setVolume);
   const toggleShuffle = usePlayer((state) => state.toggleShuffle);
   const cycleRepeat = usePlayer((state) => state.cycleRepeat);
@@ -53,40 +237,8 @@ export function PlayerBar({ user }: PlayerBarProps) {
   const autoDjMode = preferences?.autoDjMode ?? 'smart';
   const updatePreferences = useUpdatePreferences();
 
-  const queueContext = usePlayer((state) => state.queueContext);
-  const [location, setLocation] = useLocation();
-
-  // Share-link guests carry ?shareToken= in the URL; every in-app navigation
-  // must preserve it or the guest route gate bounces to /login.
-  const shareSuffix = (() => {
-    const token = getShareToken();
-    return token ? `?shareToken=${encodeURIComponent(token)}` : '';
-  })();
-
-  // When the queue has a known origin, opening Now Playing goes through the
-  // /now-playing/<context>/<id>/<song> route so the URL carries the context
-  // (and the overlay becomes back-button/refresh/share friendly).
-  const handleOpenNowPlaying = () => {
-    // Remember where the user is so closing the overlay can return there.
-    useNowPlaying.getState().setReturnPath(location);
-    // The overlay covers the page without unmounting it: the URL swap must
-    // not reset the underlying page's scroll position (audit F8) — the
-    // one-shot flag makes the scroll-restoration hook treat this push like
-    // a pop.
-    useNowPlaying.getState().setSuppressNextReset(true);
-    if (queueContext && currentSong) {
-      setLocation(`/now-playing/${queueContext.type}/${encodeURIComponent(queueContext.id)}/${currentSong.id}${shareSuffix}`);
-    } else if (currentSong) {
-      setLocation(`/now-playing/${currentSong.id}${shareSuffix}`);
-    } else {
-      setLocation(`/now-playing${shareSuffix}`);
-    }
-  };
-
   const isPlaying = status === 'playing';
   const hasTrack = currentSong !== null;
-  const displayDuration = duration || currentSong?.duration || 0;
-  const displayTime = Math.min(currentTime, displayDuration);
 
   const handleFavorite = async (nextStarred: boolean) => {
     await setFavorite(nextStarred);
@@ -121,104 +273,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
 
       <div className="relative z-10 grid h-24 grid-cols-3 items-center gap-4 px-4">
         {/* Left: cover + metadata */}
-        <div className="flex min-w-0 items-center gap-3">
-          {hasTrack ? (
-            <>
-              <button
-                type="button"
-                onClick={handleOpenNowPlaying}
-                aria-label="Open Now Playing"
-                className="h-14 w-14 shrink-0 overflow-hidden rounded-md shadow-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              >
-                <CoverArt
-                  coverArt={currentSong.albumCoverArt ?? currentSong.coverArt}
-                  alt={`Cover art for ${currentSong.title}`}
-                  iconSize={20}
-                />
-              </button>
-              <div className="min-w-0">
-                <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-fg-primary">
-                  <ExplicitTitle
-                    explicit={currentSong.explicit}
-                    blur={user?.blurExplicitTitles === true}
-                    className="truncate"
-                  >
-                    {currentSong.title}
-                  </ExplicitTitle>
-                  {currentSong.addedByAutoDj && (
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent/70">
-                      <Icon name="mdi-robot" size={12} />
-                      Auto DJ
-                    </span>
-                  )}
-                </div>
-                {(currentSong.albumName || currentSong.year) && (
-                  <div className="truncate text-xs text-fg-secondary">
-                    {currentSong.albumName && (
-                      currentSong.albumId ? (
-                        <Link
-                          href={`/albums/${currentSong.albumId}`}
-                          className="transition hover:opacity-70"
-                        >
-                          {currentSong.albumName}
-                        </Link>
-                      ) : (
-                        <span>{currentSong.albumName}</span>
-                      )
-                    )}
-                    {currentSong.albumName && currentSong.year && (
-                      <span aria-hidden="true" className="mx-1">
-                        ·
-                      </span>
-                    )}
-                    {currentSong.year && (
-                      <Link
-                        href={`/years/${currentSong.year}`}
-                        className="transition hover:opacity-70"
-                      >
-                        {currentSong.year}
-                      </Link>
-                    )}
-                  </div>
-                )}
-                <div className="truncate text-xs text-fg-secondary">
-                  {currentSong.artistEntries && currentSong.artistEntries.length > 0 ? (
-                    currentSong.artistEntries.map((artist, index) => (
-                      <span key={artist.id}>
-                        <Link
-                          href={`/artists/${artist.id}`}
-                          className="transition hover:opacity-70"
-                        >
-                          {artist.name}
-                        </Link>
-                        {index < currentSong.artistEntries!.length - 1 && ', '}
-                      </span>
-                    ))
-                  ) : currentSong.artistId ? (
-                    <Link
-                      href={`/artists/${currentSong.artistId}`}
-                      className="transition hover:opacity-70"
-                    >
-                      {currentSong.artistName || 'Unknown artist'}
-                    </Link>
-                  ) : (
-                    currentSong.artistName || 'Unknown artist'
-                  )}
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-surface-hover">
-                <Icon name="mdi-music" size={20} className="text-fg-secondary" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-fg-primary">Not playing</div>
-                <div className="text-xs text-fg-secondary">Select a track to start</div>
-              </div>
-            </>
-          )}
-        </div>
+        <TrackInfo song={currentSong} blur={user?.blurExplicitTitles === true} />
 
         {/* Center: transport controls + progress */}
         <div className="flex min-w-0 flex-col items-center gap-1">
@@ -242,25 +297,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
             </ControlButton>
           </div>
 
-          <div className="flex w-full max-w-md items-center gap-2">
-            <span className="w-9 text-right font-mono text-xs text-fg-secondary">
-              {formatTime(displayTime)}
-            </span>
-            <Slider
-              min={0}
-              max={displayDuration || 1}
-              step={0.1}
-              value={displayTime}
-              onChange={seek}
-              disabled={!hasTrack}
-              variant="progress"
-              ariaLabel="Seek"
-              ariaValueText={`${formatTime(displayTime)} of ${formatTime(displayDuration)}`}
-            />
-            <span className="w-9 font-mono text-xs text-fg-secondary">
-              {formatTime(displayDuration)}
-            </span>
-          </div>
+          <SeekProgress disabled={!hasTrack} />
         </div>
 
         {/* Right: rating + DJ + favorite + volume */}
@@ -295,7 +332,11 @@ export function PlayerBar({ user }: PlayerBarProps) {
                 <Icon name="mdi-record-player" size={18} />
               </ControlButton>
             </ItemContextMenu>
-            {user && <QueueModal user={user} />}
+            {user && (
+              <Suspense fallback={null}>
+                <QueueModal user={user} />
+              </Suspense>
+            )}
             <div className="hidden lg:block">
               <SleepTimerButton />
             </div>

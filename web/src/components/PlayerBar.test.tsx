@@ -265,9 +265,10 @@ describe('PlayerBar', () => {
     expect(screen.getByAltText('Cover art for Now Playing').getAttribute('src')).toBe('/api/cover-art/song-cover');
   });
 
-  it('renders the queue button when a user is provided', () => {
+  it('renders the queue button when a user is provided', async () => {
     renderPlayerBar({ user: mockUser });
-    expect(screen.getByRole('button', { name: /queue/i })).toBeTruthy();
+    // QueueModal is lazy (audit F19): the button appears once its chunk lands.
+    expect(await screen.findByRole('button', { name: /queue/i })).toBeTruthy();
   });
 
   it('renders an explicit badge for explicit tracks', () => {
@@ -300,7 +301,7 @@ describe('PlayerBar', () => {
     expect((title as HTMLElement).className.includes('blur-sm')).toBe(true);
   });
 
-  it('opens a floating queue modal and plays a queued track when double-clicked', () => {
+  it('opens a floating queue modal and plays a queued track when double-clicked', async () => {
     usePlayer.getState().playQueue([
       { id: 's1', title: 'Now Playing', artistName: 'Artist' } as any,
       { id: 's2', title: 'Up Next', artistName: 'Artist' } as any,
@@ -309,8 +310,9 @@ describe('PlayerBar', () => {
     renderPlayerBar({ user: mockUser });
     fireEvent.click(screen.getByRole('button', { name: /queue/i }));
 
-    expect(screen.getByRole('dialog', { name: /queue/i })).toBeTruthy();
-    fireEvent.doubleClick(screen.getByText('Up Next'));
+    // QueueModal is lazy (audit F19): its chunk resolves a tick after open.
+    expect(await screen.findByRole('dialog', { name: /queue/i })).toBeTruthy();
+    fireEvent.doubleClick(await screen.findByText('Up Next'));
     expect(usePlayer.getState().currentSong?.id).toBe('s2');
   });
 
@@ -322,7 +324,7 @@ describe('PlayerBar', () => {
 
     renderPlayerBar({ user: mockUser });
     fireEvent.click(screen.getByRole('button', { name: /queue/i }));
-    expect(screen.getByRole('dialog', { name: /queue/i })).toBeTruthy();
+    expect(await screen.findByRole('dialog', { name: /queue/i })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: /close queue/i }));
     await waitFor(() => {

@@ -88,6 +88,54 @@ describe('bundle-budget', () => {
     expect(result.offenders.some((o) => o.note === 'not found in index.html')).toBe(true);
   });
 
+  it('fails when the entry chunk statically imports the dnd-kit vendor chunk (audit F19)', () => {
+    writeHtml('index-AAAA.js');
+    writeAsset('react-BBBB.js', 140 * 1024);
+    writeAsset('dnd-kit-CCCC.js', 40 * 1024);
+    // Simulate a built entry with the eager dnd-kit edge (pre-P8 shape).
+    writeFileSync(
+      join(assetsDir, 'index-AAAA.js'),
+      `import{D as t}from"./dnd-kit-CCCC.js";${'x'.repeat(100 * 1024)}`,
+    );
+
+    const result = checkBudget(assetsDir);
+    expect(result.ok).toBe(false);
+    expect(result.forbiddenImports).toEqual(['dnd-kit-CCCC.js']);
+    const report = formatReport(result);
+    expect(report).toContain('Chunk-graph violation');
+    expect(report).toContain('dnd-kit-CCCC.js');
+  });
+
+  it('allows the dnd-kit chunk when the entry only references it dynamically', () => {
+    writeHtml('index-AAAA.js');
+    writeAsset('dnd-kit-CCCC.js', 40 * 1024);
+    writeAsset('QueueModal-DDDD.js', 30 * 1024);
+    // Lazy consumers load through dynamic import — no `from` specifier.
+    writeFileSync(
+      join(assetsDir, 'index-AAAA.js'),
+      `const c=()=>import("./QueueModal-DDDD.js");${'x'.repeat(100 * 1024)}`,
+    );
+
+    const result = checkBudget(assetsDir);
+    expect(result.ok).toBe(true);
+    expect(result.forbiddenImports).toHaveLength(0);
+  });
+
+  it('ignores non-dnd static imports when checking the entry chunk graph', () => {
+    writeHtml('index-AAAA.js');
+    writeAsset('react-BBBB.js', 140 * 1024);
+    writeAsset('zustand-EEEE.js', 6 * 1024);
+    writeFileSync(
+      join(assetsDir, 'index-AAAA.js'),
+      `import{a}from"./react-BBBB.js";import"./zustand-EEEE.js";${'x'.repeat(100 * 1024)}`,
+    );
+
+    const result = checkBudget(assetsDir);
+    expect(result.ok).toBe(true);
+    expect(result.entryImports.sort()).toEqual(['react-BBBB.js', 'zustand-EEEE.js']);
+    expect(result.forbiddenImports).toHaveLength(0);
+  });
+
   it('throws when the assets dir has no JS', () => {
     expect(() => checkBudget(assetsDir)).toThrow(/no JS assets/);
   });
