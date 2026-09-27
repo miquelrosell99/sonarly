@@ -345,6 +345,23 @@ var inventory = []endpointRef{
 		},
 	},
 
+	// --- POST /api/playback/auto-dj -----------------------------------------
+	// Consumers: web/src/hooks/useAutoDj.ts:78-90 (posts the batch request,
+	// reads data.songs, appends them to the player queue); web/src/features/
+	// now-playing/components/QueueList.tsx (renders each suggestion's id/reason
+	// in the "Up next — Auto-DJ" section). The `reason` field is the per-item
+	// explanation line; `id` keeps the queue rows keyed.
+	{
+		method: "post",
+		path:   "/api/playback/auto-dj",
+		status: "200",
+		fields: []fieldRef{
+			{"songs", "useAutoDj.ts:83 ({ songs } response envelope)"},
+			{"songs.id", "useAutoDj.ts:86-87 (addToQueue row identity); QueueList.tsx (row key)"},
+			{"songs.reason", "QueueList.tsx (Auto-DJ section per-item reason line)"},
+		},
+	},
+
 	// --- GET /api/bookmarks --------------------------------------------------
 	// No live web/src dereference found (grep): only web/src/contract/wrapper.test.ts:101
 	// exercises the DELETE bookmark route. The envelope key is pinned so a

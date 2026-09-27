@@ -1617,6 +1617,18 @@ paths:
       operationId: generateAutoDjCandidates
       tags: [auto-dj]
       summary: Auto-DJ candidates (body variant)
+      description: >
+        Stateless and idempotent: the same (currentSongId, mode, count,
+        excludeIds, queueIds, stored preferences) always yields an equivalent
+        batch — there is no server-side session. The similarity seed is the
+        current song when it carries artist/album/genre signal, else the last
+        posted queue id with signal, else the caller's most recently played
+        song. A refresh asks for a fresh batch by re-posting with the previous
+        suggestions added to excludeIds/queueIds. Suggestions never duplicate
+        a posted queueIds entry, no two consecutive picks share an artist, one
+        song per album per batch, and eras spread where year data exists.
+        Every song carries a `reason` string naming the scoring signals that
+        fired.
       requestBody:
         required: true
         content:
@@ -1632,6 +1644,13 @@ paths:
                   type: array
                   items: { type: string }
                   description: Over 500 entries is a 400 (the old zod cap).
+                queueIds:
+                  type: array
+                  items: { type: string }
+                  description: >
+                    The caller's current queue song ids. Hard guarantee:
+                    no returned song duplicates one of them. The tail doubles
+                    as the similarity-seed fallback. Over 1000 entries is a 400.
       responses:
         '200':
           description: Candidate songs (empty array when the pool is honestly empty).
@@ -4344,7 +4363,13 @@ components:
     # --- auto-dj / players ---------------------------------------------------
     AutoDjSong:
       type: object
-      description: Display subset of the catalog song DTO plus the caller's interaction state.
+      description: >
+        Display subset of the catalog song DTO plus the caller's interaction
+        state. `reason` is the server-computed explanation for the pick
+        ("More like {artist}", "Because you love {genre}", "From your highly
+        rated", "Hidden gem — you haven't played this", "One of your
+        favorites", "From the same album", or the library-wide "Fresh pick"
+        fallback), derived from the scoring signals that fired.
       required: [id, title, explicit, mtime, starred]
       properties:
         id: { type: string }
@@ -4364,6 +4389,7 @@ components:
         mtime: { type: integer, format: int64 }
         starred: { type: boolean }
         rating: { type: number }
+        reason: { type: string }
     PlayerInfo:
       type: object
       description: >
