@@ -51,6 +51,7 @@ export function Composers() {
 
   return (
     <LibraryView
+      viewModeKey="composers"
       title="Composers"
       data={composers}
       isLoading={isLoading}

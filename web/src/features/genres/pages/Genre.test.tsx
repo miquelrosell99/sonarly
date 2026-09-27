@@ -17,7 +17,7 @@ function renderGenre(path: string) {
     loc,
     ...renderWithQueryClient(
       <Router hook={loc.hook}>
-        <Route path="/genres/:genre" component={Genre} />
+        <Route path="/genres/:genre">{() => <Genre />}</Route>
       </Router>,
     ),
   };

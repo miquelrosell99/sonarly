@@ -331,3 +331,52 @@ describe('LibraryView', () => {
     expect(rows[3].textContent).toContain('03');
   });
 });
+
+describe('LibraryView view-mode persistence (audit F28)', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('persists the toggle per page key across remounts', () => {
+    const first = renderView({ viewModeKey: 'tracks' });
+    fireEvent.click(screen.getAllByRole('button', { name: /grid view/i })[0]);
+    expect(first.container.querySelector('.library-view-grid')).toBeTruthy();
+    expect(window.localStorage.getItem('sonarly-view-mode')).toBe('{"tracks":"grid"}');
+    first.unmount();
+
+    const second = renderView({ viewModeKey: 'tracks' });
+    expect(second.container.querySelector('.library-view-grid')).toBeTruthy();
+    expect(second.container.querySelector('table')).toBeFalsy();
+  });
+
+  it('keeps page keys independent', () => {
+    window.localStorage.setItem('sonarly-view-mode', JSON.stringify({ albums: 'grid' }));
+
+    const tracks = renderView({ viewModeKey: 'tracks' });
+    expect(tracks.container.querySelector('table')).toBeTruthy();
+
+    const albums = renderView({ viewModeKey: 'albums' });
+    expect(albums.container.querySelector('.library-view-grid')).toBeTruthy();
+  });
+
+  it('falls back to the default when the stored mode is not renderable here', () => {
+    window.localStorage.setItem('sonarly-view-mode', JSON.stringify({ queue: 'grid' }));
+
+    const { container } = renderView({ viewModeKey: 'queue', availableViews: ['list'], defaultView: 'list' });
+    expect(container.querySelector('table')).toBeTruthy();
+  });
+
+  it('falls back to the default when the stored value is malformed', () => {
+    window.localStorage.setItem('sonarly-view-mode', '{not json');
+
+    const { container } = renderView({ viewModeKey: 'tracks' });
+    expect(container.querySelector('table')).toBeTruthy();
+  });
+
+  it('stays ephemeral when no page key is passed', () => {
+    const { container } = renderView();
+    fireEvent.click(screen.getAllByRole('button', { name: /grid view/i })[0]);
+    expect(container.querySelector('.library-view-grid')).toBeTruthy();
+    expect(window.localStorage.getItem('sonarly-view-mode')).toBeNull();
+  });
+});

@@ -22,7 +22,7 @@ import { patchToPlayerSong } from '../../../lib/songPatch.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 import { SongTable } from '../../songs/index.js';
 import type { SongListItem } from '../../songs/components/SongTable.js';
-import type { SongWithNames } from '../../../lib/types.js';
+import type { SongWithNames, UnderlayParams } from '../../../lib/types.js';
 
 function SongContextMenu({
   songs,
@@ -43,9 +43,11 @@ function formatReleaseType(value: string): string {
   return value.length <= 3 ? value.toUpperCase() : value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-export function Album({ user }: { user: User }) {
-  const { id } = useParams<{ id: string }>();
-  const { data: detail, isLoading, error, refetch, patchDetail } = useAlbumDetail(id);
+export function Album({ user, underlay }: { user: User; underlay?: UnderlayParams }) {
+  const { id: paramId } = useParams<{ id: string }>();
+  const id = underlay?.id ?? paramId;
+  const covered = underlay !== undefined && !underlay.fetchEnabled;
+  const { data: detail, isLoading, error, refetch, patchDetail } = useAlbumDetail(id, !covered);
   const [songEditing, setSongEditing] = useState<SongWithNames[] | null>(null);
   const [albumEditing, setAlbumEditing] = useState<AlbumSummary | null>(null);
   const [syncEditing, setSyncEditing] = useState<SongWithNames | null>(null);
@@ -240,7 +242,7 @@ export function Album({ user }: { user: User }) {
 
   return (
     <EntityDetail
-      isLoading={isLoading}
+      isLoading={isLoading || covered}
       error={error?.message ?? null}
       onRetry={() => void refetch()}
       notFound={!detail}

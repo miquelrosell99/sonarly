@@ -8,29 +8,31 @@ import { useLibraryStore } from '../../../stores/libraryStore.js';
 import { useAlbumsList, useSongsList } from '../../../hooks/useLibraryLists.js';
 import { TrackList } from '../../songs/index.js';
 import { AlbumList } from '../../albums/index.js';
-import type { SongWithNames } from '../../../lib/types.js';
+import type { SongWithNames, UnderlayParams } from '../../../lib/types.js';
 
 interface AlbumWithArtist extends Album {
   artistName?: string;
 }
 
-export function Label() {
-  const { name: encodedName } = useParams<{ name: string }>();
+export function Label({ underlay }: { underlay?: UnderlayParams }) {
+  const { name: paramName } = useParams<{ name: string }>();
+  const encodedName = underlay?.id ?? paramName;
   const label = encodedName ? decodeURIComponent(encodedName) : '';
+  const covered = underlay !== undefined && !underlay.fetchEnabled;
 
   const { playSongs, shufflePlay } = usePlayActions();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
   const songsQuery = useSongsList(
     { libraryId: selectedLibraryId, label: label || undefined },
-    Boolean(label),
+    Boolean(label) && !covered,
   );
   const albumsQuery = useAlbumsList(
     { libraryId: selectedLibraryId, label: label || undefined },
-    Boolean(label),
+    Boolean(label) && !covered,
   );
   const tracks: SongWithNames[] = songsQuery.data?.songs ?? [];
   const albums: AlbumWithArtist[] = albumsQuery.data?.albums ?? [];
-  const isLoading = songsQuery.isLoading || albumsQuery.isLoading;
+  const isLoading = songsQuery.isLoading || albumsQuery.isLoading || covered;
   const error = songsQuery.error ?? albumsQuery.error;
 
   const actions = tracks.length > 0 && (

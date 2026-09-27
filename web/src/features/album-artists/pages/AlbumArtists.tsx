@@ -42,6 +42,7 @@ export function AlbumArtists() {
 
   return (
     <LibraryView
+      viewModeKey="album-artists"
       title="Album Artists"
       data={artists}
       isLoading={isLoading}
