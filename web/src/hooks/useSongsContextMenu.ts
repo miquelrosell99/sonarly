@@ -1,21 +1,42 @@
 import type { Song } from '../types';
 import { useLocation } from 'wouter';
 import type { ContextMenuSection } from '../components/ItemContextMenu.js';
+import { api } from '../lib/api.js';
+import { downloadSongs } from '../lib/download.js';
+import { getShareToken } from '../lib/shareToken.js';
+import { useNotification } from '../contexts/NotificationContext.js';
 import { usePlayActions } from './usePlayActions.js';
+import { useLibraryMutation } from './useLibraryMutation.js';
+
+export interface SongsContextMenuOptions {
+  /**
+   * Whether the Download entry shows. Session surfaces default to true;
+   * share-link guests default to false — the shared playlist's shareDownload
+   * flag (the detail DTO carries it) must be passed in explicitly.
+   */
+  allowDownload?: boolean;
+}
 
 export function useSongsContextMenu(
   songs: Song[],
   onEdit: () => void,
   isAdmin?: boolean,
+  options?: SongsContextMenuOptions,
 ): ContextMenuSection[] {
   const { playSong, playSongs, playNext, addToQueue } = usePlayActions();
+  const { notify } = useNotification();
+  const songMutation = useLibraryMutation('song');
   const [, navigate] = useLocation();
+  const allowDownload = options?.allowDownload ?? getShareToken() === undefined;
 
   if (songs.length === 0) return [];
 
+  const count = songs.length;
+  const trackLabel = count === 1 ? 'track' : 'tracks';
+
   const sections: ContextMenuSection[] = [];
 
-  if (songs.length === 1) {
+  if (count === 1) {
     const song = songs[0];
     sections.push({
       title: 'Playback',
@@ -47,10 +68,47 @@ export function useSongsContextMenu(
     });
   }
 
+  if (allowDownload) {
+    sections.push({
+      items: [
+        {
+          id: 'download',
+          label: count === 1 ? 'Download' : `Download ${count} tracks`,
+          icon: 'mdi-download',
+          onClick: () => void downloadSongs(songs.map((song) => song.id)),
+        },
+      ],
+    });
+  }
+
   if (isAdmin ?? true) {
-    const label = songs.length === 1 ? 'Edit' : `Edit ${songs.length} songs`;
+    const label = count === 1 ? 'Edit' : `Edit ${count} songs`;
     sections.push({
       items: [{ id: 'edit', label, icon: 'mdi-pencil', onClick: onEdit }],
+    });
+
+    // The album-view gap: row selections had no delete. The hook owns the
+    // whole flow — count-aware confirm, per-id DELETE inside ONE mutation
+    // (one shared invalidation), success toast.
+    const handleDelete = async () => {
+      if (!window.confirm(`Delete ${count} ${trackLabel}? This cannot be undone.`)) return;
+      const ok = await songMutation.run(async () => {
+        for (const song of songs) {
+          await api(`/songs/${song.id}`, { method: 'DELETE' });
+        }
+      });
+      if (ok) notify(`Deleted ${count} ${trackLabel}`, 'success');
+    };
+    sections.push({
+      items: [
+        {
+          id: 'delete',
+          label: `Delete ${count} ${trackLabel}`,
+          icon: 'mdi-delete',
+          variant: 'danger',
+          onClick: handleDelete,
+        },
+      ],
     });
   }
 

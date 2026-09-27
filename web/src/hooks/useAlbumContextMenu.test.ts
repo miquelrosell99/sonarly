@@ -27,11 +27,21 @@ vi.mock('../lib/api.js', () => ({
   api: vi.fn(),
 }));
 
+const mockDownload = vi.hoisted(() => ({
+  downloadTrackUrl: vi.fn((id: string) => `/api/stream/${id}?download=1`),
+  saveUrl: vi.fn(),
+  downloadSongs: vi.fn(),
+}));
+
+vi.mock('../lib/download.js', () => mockDownload);
+
 const mockedApi = vi.mocked(api);
+const mockedDownloadSongs = vi.mocked(mockDownload.downloadSongs);
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  window.history.pushState({}, '', '/');
 });
 
 interface AlbumDetail {
@@ -39,7 +49,7 @@ interface AlbumDetail {
   songs: Song[];
 }
 
-function createHarness(album: Album, options?: { onDelete?: () => void; isAdmin?: boolean }) {
+function createHarness(album: Album, options?: { onDelete?: () => void; isAdmin?: boolean; allowDownload?: boolean }) {
   return function AlbumMenuHarness() {
     const sections = useAlbumContextMenu(album, options);
     return React.createElement(
@@ -228,5 +238,33 @@ describe('useAlbumContextMenu', () => {
     render(React.createElement(Harness));
 
     expect(screen.queryByTestId('delete')).toBeNull();
+  });
+
+  it('fetches album details and packs a ZIP download when Download is clicked', async () => {
+    mockedApi.mockResolvedValueOnce({ album, songs: albumSongs } as AlbumDetail);
+
+    const Harness = createHarness(album);
+    render(React.createElement(Harness));
+
+    fireEvent.click(screen.getByTestId('download'));
+
+    await waitFor(() => expect(mockedApi).toHaveBeenCalledWith('/albums/album-1'));
+    expect(mockedDownloadSongs).toHaveBeenCalledTimes(1);
+    expect(mockedDownloadSongs).toHaveBeenCalledWith(['song-1', 'song-2', 'song-3']);
+  });
+
+  it('hides Download when allowDownload is false', () => {
+    const Harness = createHarness(album, { allowDownload: false });
+    render(React.createElement(Harness));
+
+    expect(screen.queryByTestId('download')).toBeNull();
+  });
+
+  it('hides Download from share-token guests by default', () => {
+    window.history.pushState({}, '', '/playlists/pl-1?shareToken=tok');
+    const Harness = createHarness(album);
+    render(React.createElement(Harness));
+
+    expect(screen.queryByTestId('download')).toBeNull();
   });
 });

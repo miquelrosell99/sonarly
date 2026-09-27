@@ -115,8 +115,10 @@ type playSong struct {
 // skips the library-scope check by design: the old share semantics — the token
 // authorizes the linked playlist's own content, scope applies to signed-in
 // users only. A signed-in caller always wins: the share token is consulted
-// only for anonymous requests.
-func (s *Service) loadPlayableSong(ctx context.Context, id auth.Identity, songID, shareToken string) (*playSong, error) {
+// only for anonymous requests. When download is true the anonymous path
+// additionally requires the link's share_download flag (ErrNotFound) —
+// binaries are never granted by stream rights alone.
+func (s *Service) loadPlayableSong(ctx context.Context, id auth.Identity, songID, shareToken string, download bool) (*playSong, error) {
 	if id.UserID == "" {
 		if shareToken == "" {
 			return nil, ErrUnauthorized
@@ -134,6 +136,11 @@ func (s *Service) loadPlayableSong(ctx context.Context, id auth.Identity, songID
 		}
 		if !granted {
 			return nil, ErrNotFound
+		}
+		if download {
+			if err := s.streamDownloadGate(ctx, shareToken); err != nil {
+				return nil, err
+			}
 		}
 		return s.loadActiveSong(ctx, songID)
 	}
@@ -221,7 +228,7 @@ func (s *Service) transcodePrefs(ctx context.Context, userID string) *UserTransc
 // with fallback, or direct. Transcode saturation answers 503 + Retry-After
 // and direct streams are never capped.
 func (s *Service) Stream(w http.ResponseWriter, r *http.Request, id auth.Identity, songID string, requested int, hasRequested bool, download bool, shareToken string) error {
-	song, err := s.loadPlayableSong(r.Context(), id, songID, shareToken)
+	song, err := s.loadPlayableSong(r.Context(), id, songID, shareToken, download)
 	if err != nil {
 		return err
 	}

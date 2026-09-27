@@ -2,15 +2,18 @@ import { useCallback, useState } from 'react';
 import type { Artist, Song } from '../types';
 import type { ContextMenuSection } from '../components/ItemContextMenu.js';
 import { api } from '../lib/api.js';
+import { downloadSongs } from '../lib/download.js';
+import { getShareToken } from '../lib/shareToken.js';
 import { useNotification } from '../contexts/NotificationContext.js';
 import { usePlayActions } from './usePlayActions.js';
 
-type LoadingId = 'play' | 'shuffle-play' | 'play-next' | 'add-to-queue' | null;
+type LoadingId = 'play' | 'shuffle-play' | 'play-next' | 'add-to-queue' | 'download' | null;
 
 export function useArtistContextMenu(artist: Artist, onEdit: () => void): ContextMenuSection[] {
   const { playSongs, shufflePlay, playNext, addToQueue } = usePlayActions();
   const { notify } = useNotification();
   const [loadingId, setLoadingId] = useState<LoadingId>(null);
+  const allowDownload = getShareToken() === undefined;
 
   const withSongs = useCallback(
     async (id: LoadingId, action: (songs: Song[]) => void | Promise<void>) => {
@@ -51,7 +54,11 @@ export function useArtistContextMenu(artist: Artist, onEdit: () => void): Contex
     });
   }, [withSongs, addToQueue]);
 
-  return [
+  const handleDownload = useCallback(async () => {
+    await withSongs('download', (songs) => downloadSongs(songs.map((song) => song.id)));
+  }, [withSongs]);
+
+  const sections: ContextMenuSection[] = [
     {
       title: 'Playback',
       items: [
@@ -61,8 +68,25 @@ export function useArtistContextMenu(artist: Artist, onEdit: () => void): Contex
         { id: 'add-to-queue', label: 'Add to queue', icon: 'mdi-playlist-play', loading: loadingId === 'add-to-queue', onClick: handleAddToQueue },
       ],
     },
-    {
-      items: [{ id: 'edit', label: 'Edit', icon: 'mdi-pencil', onClick: onEdit }],
-    },
   ];
+
+  if (allowDownload) {
+    sections.push({
+      items: [
+        {
+          id: 'download',
+          label: 'Download',
+          icon: 'mdi-download',
+          loading: loadingId === 'download',
+          onClick: handleDownload,
+        },
+      ],
+    });
+  }
+
+  sections.push({
+    items: [{ id: 'edit', label: 'Edit', icon: 'mdi-pencil', onClick: onEdit }],
+  });
+
+  return sections;
 }

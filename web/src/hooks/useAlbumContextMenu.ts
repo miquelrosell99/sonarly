@@ -3,6 +3,8 @@ import { useLocation } from 'wouter';
 import type { Album, Song } from '../types';
 import type { ContextMenuSection } from '../components/ItemContextMenu.js';
 import { api } from '../lib/api.js';
+import { downloadSongs } from '../lib/download.js';
+import { getShareToken } from '../lib/shareToken.js';
 import { useNotification } from '../contexts/NotificationContext.js';
 import { usePlayActions } from './usePlayActions.js';
 
@@ -23,9 +25,15 @@ export interface AlbumContextMenuOptions {
   /** Destructive action (the view owns the confirm + invalidate flow). */
   onDelete?: () => void;
   isAdmin?: boolean;
+  /**
+   * Whether the Download entry shows. Session surfaces default to true;
+   * share-link guests default to false — pass the shared playlist's
+   * shareDownload flag explicitly for guest surfaces.
+   */
+  allowDownload?: boolean;
 }
 
-type LoadingId = 'play' | 'shuffle-play' | 'play-next' | 'add-to-queue' | null;
+type LoadingId = 'play' | 'shuffle-play' | 'play-next' | 'add-to-queue' | 'download' | null;
 
 export function useAlbumContextMenu(album: AlbumMenuTarget, options?: AlbumContextMenuOptions): ContextMenuSection[] {
   const { playSongs, shufflePlay, playNext, addToQueue } = usePlayActions();
@@ -33,6 +41,7 @@ export function useAlbumContextMenu(album: AlbumMenuTarget, options?: AlbumConte
   const [, navigate] = useLocation();
   const [loadingId, setLoadingId] = useState<LoadingId>(null);
   const disabled = album.shownSongCount === 0;
+  const allowDownload = options?.allowDownload ?? getShareToken() === undefined;
 
   const withAlbumSongs = useCallback(
     async (id: LoadingId, action: (songs: Song[]) => void | Promise<void>) => {
@@ -73,6 +82,12 @@ export function useAlbumContextMenu(album: AlbumMenuTarget, options?: AlbumConte
     });
   }, [withAlbumSongs, addToQueue]);
 
+  // One resolution: the detail fetch embeds the songs; the ids then drive a
+  // single ZIP pack request.
+  const handleDownload = useCallback(async () => {
+    await withAlbumSongs('download', (songs) => downloadSongs(songs.map((song) => song.id)));
+  }, [withAlbumSongs]);
+
   const sections: ContextMenuSection[] = [
     {
       title: 'Playback',
@@ -84,6 +99,21 @@ export function useAlbumContextMenu(album: AlbumMenuTarget, options?: AlbumConte
       ],
     },
   ];
+
+  if (allowDownload) {
+    sections.push({
+      items: [
+        {
+          id: 'download',
+          label: 'Download',
+          icon: 'mdi-download',
+          disabled,
+          loading: loadingId === 'download',
+          onClick: handleDownload,
+        },
+      ],
+    });
+  }
 
   if (album.artistId) {
     sections.push({

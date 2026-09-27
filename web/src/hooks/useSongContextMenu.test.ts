@@ -22,12 +22,26 @@ vi.mock('../contexts/NotificationContext.js', () => ({
   useNotification: () => mockNotify,
 }));
 
+const mockDownload = vi.hoisted(() => ({
+  downloadTrackUrl: vi.fn((id: string) => `/api/stream/${id}?download=1`),
+  saveUrl: vi.fn(),
+  downloadSongs: vi.fn(),
+}));
+
+vi.mock('../lib/download.js', () => mockDownload);
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  window.history.pushState({}, '', '/');
 });
 
-function createHarness(song: Song, onEdit: () => void, isAdmin = true, options?: { onDelete?: () => void }) {
+function createHarness(
+  song: Song,
+  onEdit: () => void,
+  isAdmin = true,
+  options?: { onDelete?: () => void; allowDownload?: boolean },
+) {
   return function SongMenuHarness() {
     const sections = useSongContextMenu(song, onEdit, isAdmin, options);
     return React.createElement(
@@ -164,5 +178,36 @@ describe('useSongContextMenu', () => {
     render(React.createElement(Harness));
 
     expect(screen.queryByTestId('delete')).toBeNull();
+  });
+
+  it('shows Download for session viewers and saves the download URL', () => {
+    const Harness = createHarness(song, vi.fn());
+    render(React.createElement(Harness));
+
+    const download = screen.getByTestId('download');
+    expect(download.textContent).toBe('Download');
+    fireEvent.click(download);
+    expect(mockDownload.downloadTrackUrl).toHaveBeenCalledWith('song-1');
+    expect(mockDownload.saveUrl).toHaveBeenCalledWith('/api/stream/song-1?download=1');
+  });
+
+  it('hides Download when allowDownload is false', () => {
+    const Harness = createHarness(song, vi.fn(), true, { allowDownload: false });
+    render(React.createElement(Harness));
+
+    expect(screen.queryByTestId('download')).toBeNull();
+  });
+
+  it('hides Download from share-token guests unless the playlist flag is passed', () => {
+    window.history.pushState({}, '', '/playlists/pl-1?shareToken=tok');
+
+    const HarnessNoFlag = createHarness(song, vi.fn());
+    const { unmount } = render(React.createElement(HarnessNoFlag));
+    expect(screen.queryByTestId('download')).toBeNull();
+    unmount();
+
+    const HarnessFlagged = createHarness(song, vi.fn(), true, { allowDownload: true });
+    render(React.createElement(HarnessFlagged));
+    expect(screen.getByTestId('download')).toBeTruthy();
   });
 });

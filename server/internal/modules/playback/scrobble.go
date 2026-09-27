@@ -154,7 +154,7 @@ func nowISO(t time.Time) string {
 // key: the retired server has none, so a retried scrobble double-counts in the retired server and does so
 // here too (see doc.go).
 func (s *Service) Scrobble(ctx context.Context, id auth.Identity, songID string, details *ScrobbleDetails) error {
-	if _, err := s.loadPlayableSong(ctx, id, songID, ""); err != nil {
+	if _, err := s.loadPlayableSong(ctx, id, songID, "", false); err != nil {
 		return err
 	}
 
