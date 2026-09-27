@@ -35,7 +35,6 @@ describe('Slider', () => {
         step={0.1}
         value={50}
         onChange={() => {}}
-        variant="progress"
         ariaLabel="Seek"
         ariaValueText="0:50 of 3:20"
       />,

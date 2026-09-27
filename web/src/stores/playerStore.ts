@@ -474,6 +474,11 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
         repeat: state.repeat,
         shuffledIndices: state.shuffledIndices,
       }),
+      // v1 is the current persisted shape; the version + identity migrate are
+      // future-proofing only (plan P11) — a later shape change bumps the
+      // version and adds a real migration here instead of ad-hoc keying.
+      version: 1,
+      migrate: (persisted) => persisted,
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         const persisted = state as PlayerState & PlayerActions;

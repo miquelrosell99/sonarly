@@ -10,7 +10,6 @@ import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
 import { useAlbumContextMenu } from '../../../hooks/useAlbumContextMenu.js';
-import { useAdminContextMenu } from '../../../hooks/useAdminContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';

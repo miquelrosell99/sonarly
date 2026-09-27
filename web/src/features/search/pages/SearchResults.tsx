@@ -34,7 +34,6 @@ const validTypes: SearchType[] = ['songs', 'albums', 'artists', 'playlists'];
 // SearchArtist/SearchPlaylist), not full domain objects — the search page
 // renders the subsets as-is and only widens at play/edit boundaries through
 // the shared mappers (audit F17).
-type SearchSongItem = components['schemas']['SearchSong'];
 type SearchAlbumItem = components['schemas']['SearchAlbum'];
 
 interface AlbumDetail {
@@ -278,7 +277,7 @@ export function SearchResults({ user }: SearchResultsProps) {
         getFavorite={(song) => song.starred}
         getRating={(song) => song.rating}
         playingId={playingId}
-        renderContextMenu={(song, children, selectedItems) => (
+        renderContextMenu={(_song, children, selectedItems) => (
           <SongContextMenu songs={selectedItems} onEdit={() => setSongEditing(selectedItems)} isAdmin={user.isAdmin}>
             {children}
           </SongContextMenu>

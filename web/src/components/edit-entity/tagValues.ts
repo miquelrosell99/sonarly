@@ -41,20 +41,6 @@ function arraysEqual(a: string[], b: string[]): boolean {
   return a.every((value, index) => value === b[index]);
 }
 
-function initialTagValues(entity: Record<string, unknown>, fields: TagField[]): Record<string, string | string[]> {
-  const next: Record<string, string | string[]> = {};
-  for (const { key, multi } of fields) {
-    if (multi) {
-      next[key] = getMultiValue(entity, key);
-    } else {
-      const value = entity[key];
-      next[key] = value === undefined || value === null ? '' : String(value);
-    }
-  }
-  next.lyrics = entity.lyrics === undefined || entity.lyrics === null ? '' : String(entity.lyrics);
-  return next;
-}
-
 function getCommonValue(entities: Record<string, unknown>[], key: string): unknown {
   if (entities.length === 0) return undefined;
   const first = entities[0][key];

@@ -1,13 +1,13 @@
 package statistics_test
 
 import (
-	"strings"
 	"context"
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"

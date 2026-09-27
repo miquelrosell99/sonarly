@@ -33,7 +33,6 @@ const statLabels: Record<string, string> = {
   deleted: 'Deleted',
 };
 
-const songStatKeys = new Set(['scanned', 'added', 'updated', 'moved', 'imported']);
 const ingestStatKeys = new Set(['processed', 'done', 'total', 'skipped', 'failed']);
 const conflictsStatKeys = new Set(['needsReview']);
 const missingStatKeys = new Set(['removed', 'deleted']);

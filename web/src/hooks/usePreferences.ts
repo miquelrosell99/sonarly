@@ -9,6 +9,10 @@ export function usePreferences() {
     queryKey: ['me', 'preferences'],
     queryFn: () => api('/me/preferences'),
     select: (data) => data.preferences,
+    // Same 30s freshness convention as the library lists (audit F29); the
+    // mutation writer (useUpdatePreferences) seeds the cache from its
+    // response, so a remount-style refetch can never overwrite local writes.
+    staleTime: 30_000,
   });
 }
 

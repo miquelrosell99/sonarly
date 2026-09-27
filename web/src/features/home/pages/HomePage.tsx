@@ -269,7 +269,7 @@ function RecentSongCard({
   const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
   const currentSongId = usePlayer((state) => state.currentSong?.id);
   const [song, setSong] = useState(initialSong);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [syncEditing, setSyncEditing] = useState(false);
   const sections = useSongContextMenu(song, () => setEditing(true), user.isAdmin);

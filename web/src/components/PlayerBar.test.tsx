@@ -4,7 +4,7 @@ import type { User } from '../types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PlayerBar } from './PlayerBar.js';
 import { usePlayer, resetPlayer } from '../stores/playerStore.js';
-import { useNowPlaying, resetNowPlaying } from '../features/now-playing/index.js';
+import { resetNowPlaying } from '../features/now-playing/index.js';
 import { NotificationProvider } from '../contexts/NotificationContext.js';
 
 const mockSetFavorite = vi.hoisted(() => vi.fn());
@@ -36,7 +36,7 @@ function renderPlayerBar(props?: { user?: User }) {
 }
 
 vi.mock('../hooks/useSongInteraction.js', () => ({
-  useSongInteraction: (songId: string | undefined, fallback: { starred?: boolean; rating?: number }) => ({
+  useSongInteraction: (_songId: string | undefined, fallback: { starred?: boolean; rating?: number }) => ({
     starred: fallback?.starred ?? false,
     rating: fallback?.rating ?? 0,
     setFavorite: mockSetFavorite,

@@ -5,7 +5,7 @@ import { Icon } from './ui/Icon.js';
 import { CoverArt } from './CoverArt.js';
 import { FavoriteButton, StarRating } from './ActionButtons.js';
 import { ItemContextMenu } from './ItemContextMenu.js';
-import { ControlButton, PlayButton, Slider } from './PlayerControls.js';
+import { ControlButton, PlayPauseButton, Slider } from './PlayerControls.js';
 import { ExplicitTitle } from './ExplicitTitle.js';
 import { SleepTimerButton } from './SleepTimerButton.js';
 import { TrackActionsMenu } from './TrackActionsMenu.js';
@@ -197,7 +197,6 @@ function SeekProgress({ disabled }: { disabled: boolean }) {
         value={displayTime}
         onChange={seek}
         disabled={disabled}
-        variant="progress"
         ariaLabel="Seek"
         ariaValueText={`${formatTime(displayTime)} of ${formatTime(displayDuration)}`}
       />
@@ -286,7 +285,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
               <Icon name="mdi-skip-previous" size={22} />
             </ControlButton>
 
-            <PlayButton isPlaying={isPlaying} disabled={!hasTrack} onClick={togglePlay} />
+            <PlayPauseButton isPlaying={isPlaying} disabled={!hasTrack} onClick={togglePlay} />
 
             <ControlButton onClick={next} label="Next" disabled={!hasTrack}>
               <Icon name="mdi-skip-next" size={22} />
