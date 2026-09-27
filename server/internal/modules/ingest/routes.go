@@ -192,8 +192,43 @@ func (h *Handler) trigger(w http.ResponseWriter, r *http.Request) {
 // ---------------------------------------------------------------------------
 
 // collisionSuffixRe ports the old COLLISION_SUFFIX_REGEX: " (digits)" right
-// before the extension.
+// before the extension. The SQL prefilter below is deliberately looser
+// ("% (%)%") — titles like "Eagle (Short Version).flac" match it — so every
+// candidate is re-checked against this strict pattern.
 var collisionSuffixRe = regexp.MustCompile(`(?i) \(\d+\)\.[a-z0-9]+$`)
+
+// IsCollisionPath reports whether filePath ends in a collision suffix such
+// as " (1)" before its extension. Single definition shared by the conflicts
+// list and the admin status count so the dashboard card and the modal
+// always agree on what a conflict is.
+func IsCollisionPath(filePath string) bool {
+	return collisionSuffixRe.MatchString(filePath)
+}
+
+// CountConflicts counts active songs on collision paths (the strict
+// IsCollisionPath definition, not just the SQL prefilter).
+func CountConflicts(ctx context.Context, db *sql.DB) (int, error) {
+	rows, err := db.QueryContext(ctx,
+		`SELECT file_path FROM songs WHERE active = 1 AND file_path LIKE '% (%)%'`)
+	if err != nil {
+		return 0, fmt.Errorf("count conflicts: %w", err)
+	}
+	defer rows.Close()
+	count := 0
+	for rows.Next() {
+		var path string
+		if err := rows.Scan(&path); err != nil {
+			return 0, fmt.Errorf("count conflicts: %w", err)
+		}
+		if IsCollisionPath(path) {
+			count++
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("count conflicts: %w", err)
+	}
+	return count, nil
+}
 
 // Conflict is one collision candidate (old conflicts route DTO).
 type Conflict struct {
@@ -225,6 +260,9 @@ func (h *Handler) deleteConflicts(w http.ResponseWriter, r *http.Request) {
 // ListConflicts ports the old listCollisionSongs + name join: active songs
 // whose path ends in a collision suffix, with artist/album names.
 func (s *Service) ListConflicts(ctx context.Context) ([]Conflict, error) {
+	// Initialized (not nil) so an empty result encodes as {"conflicts": []} —
+	// a JSON null crashes the web client's conflicts modal.
+	conflicts := make([]Conflict, 0)
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT s.id, s.file_path, s.title, ar.name, al.name
 		 FROM songs s
@@ -236,14 +274,13 @@ func (s *Service) ListConflicts(ctx context.Context) ([]Conflict, error) {
 	}
 	defer rows.Close()
 
-	var conflicts []Conflict
 	for rows.Next() {
 		var c Conflict
 		var artistName, albumName *string
 		if err := rows.Scan(&c.ID, &c.FilePath, &c.Title, &artistName, &albumName); err != nil {
 			return nil, fmt.Errorf("list conflicts: %w", err)
 		}
-		if !collisionSuffixRe.MatchString(c.FilePath) {
+		if !IsCollisionPath(c.FilePath) {
 			continue
 		}
 		c.ArtistName = artistName

@@ -294,15 +294,25 @@ func TestAdminStatus(t *testing.T) {
 
 	s.seedCatalog(t)
 
+	// Conflict counting uses the strict collision-suffix definition, not the
+	// loose SQL prefilter: a parenthetical title matches the prefilter but
+	// must NOT count, or the dashboard card disagrees with the modal.
+	s.db.Exec(`INSERT INTO songs (id, title, file_path, active, mtime, checksum)
+		VALUES ('so-decoy', 'Decoy', '/music/Eagle (Short Version).flac', 1, 1, 'cd'),
+		       ('so-collision', 'Collision', '/music/Song (1).flac', 1, 1, 'cc')`)
+
 	rec := s.do(t, http.MethodGet, "/api/admin/status", admin)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("want 200, got %d", rec.Code)
 	}
 	status := decode(t, rec)
+	if status["conflictsCount"] != float64(1) {
+		t.Fatalf("conflictsCount = %v, want 1 (strict collision suffix only)", status["conflictsCount"])
+	}
 	counts := status["counts"].(map[string]any)
 	// the retired server counts every row (active and inactive); the missingCounts carry the
-	// inactive breakdown.
-	if counts["users"] != float64(1) || counts["songs"] != float64(2) ||
+	// inactive breakdown. (4 songs: 2 seeded + the collision decoy pair above.)
+	if counts["users"] != float64(1) || counts["songs"] != float64(4) ||
 		counts["albums"] != float64(2) || counts["artists"] != float64(2) {
 		t.Fatalf("counts = %v", counts)
 	}

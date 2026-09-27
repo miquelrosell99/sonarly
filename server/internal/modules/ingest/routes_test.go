@@ -372,6 +372,18 @@ func TestConflictRoutes(t *testing.T) {
 	if n := countRows(t, s.db, `SELECT COUNT(1) FROM songs WHERE id = 'song-1'`); n != 0 {
 		t.Error("conflict song row survived deletion")
 	}
+
+	// With no collision rows left the list must encode as {"conflicts": []} —
+	// a JSON null crashes the web client's conflicts modal.
+	rec = s.do(t, "GET", "/api/conflicts", nil, admin)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET conflicts after delete = %d", rec.Code)
+	}
+	if conflicts := decodeJSON(t, rec)["conflicts"]; conflicts == nil {
+		t.Fatal("conflicts is null, want []")
+	} else if list := conflicts.([]any); len(list) != 0 {
+		t.Fatalf("conflicts = %d, want 0", len(list))
+	}
 	// The decoy is untouched.
 	if !fileExists(decoyFile) {
 		t.Error("decoy file was deleted")
