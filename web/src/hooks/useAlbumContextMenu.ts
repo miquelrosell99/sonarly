@@ -19,9 +19,15 @@ interface AlbumDetail {
  */
 export type AlbumMenuTarget = Pick<Album, 'id'> & Partial<Pick<Album, 'artistId' | 'shownSongCount'>>;
 
+export interface AlbumContextMenuOptions {
+  /** Destructive action (the view owns the confirm + invalidate flow). */
+  onDelete?: () => void;
+  isAdmin?: boolean;
+}
+
 type LoadingId = 'play' | 'shuffle-play' | 'play-next' | 'add-to-queue' | null;
 
-export function useAlbumContextMenu(album: AlbumMenuTarget): ContextMenuSection[] {
+export function useAlbumContextMenu(album: AlbumMenuTarget, options?: AlbumContextMenuOptions): ContextMenuSection[] {
   const { playSongs, shufflePlay, playNext, addToQueue } = usePlayActions();
   const { notify } = useNotification();
   const [, navigate] = useLocation();
@@ -83,6 +89,14 @@ export function useAlbumContextMenu(album: AlbumMenuTarget): ContextMenuSection[
     sections.push({
       items: [
         { id: 'go-to-artist', label: 'Go to artist', icon: 'mdi-account-music', onClick: () => navigate(`/artists/${album.artistId}`) },
+      ],
+    });
+  }
+
+  if (options?.onDelete && (options.isAdmin ?? true)) {
+    sections.push({
+      items: [
+        { id: 'delete', label: 'Delete', icon: 'mdi-delete', variant: 'danger', onClick: options.onDelete },
       ],
     });
   }

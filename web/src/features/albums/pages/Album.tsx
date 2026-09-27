@@ -1,10 +1,11 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { useParams } from 'wouter';
+import { useParams, useLocation } from 'wouter';
 import type { Album as AlbumSummary, Song as SharedSong, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { cn } from '../../../lib/cn.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
+import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { CoverArt } from '../../../components/CoverArt.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
@@ -13,10 +14,12 @@ import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js'
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
+import { useAlbumContextMenu } from '../../../hooks/useAlbumContextMenu.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useLibraryMutation } from '../../../hooks/useLibraryMutation.js';
 import { useAlbumDetail } from '../../../hooks/useEntityDetails.js';
+import { useNotification } from '../../../contexts/NotificationContext.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { patchToPlayerSong } from '../../../lib/songPatch.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
@@ -39,6 +42,21 @@ function SongContextMenu({
   return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
 
+function AlbumHeaderContextMenu({
+  album,
+  isAdmin,
+  onDelete,
+  children,
+}: {
+  album: AlbumSummary;
+  isAdmin: boolean;
+  onDelete: () => void;
+  children: ReactNode;
+}) {
+  const sections = useAlbumContextMenu(album, { isAdmin, onDelete });
+  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+}
+
 function formatReleaseType(value: string): string {
   return value.length <= 3 ? value.toUpperCase() : value.charAt(0).toUpperCase() + value.slice(1);
 }
@@ -47,10 +65,13 @@ export function Album({ user, underlay }: { user: User; underlay?: UnderlayParam
   const { id: paramId } = useParams<{ id: string }>();
   const id = underlay?.id ?? paramId;
   const covered = underlay !== undefined && !underlay.fetchEnabled;
+  const [, navigate] = useLocation();
+  const { notify } = useNotification();
   const { data: detail, isLoading, error, refetch, patchDetail } = useAlbumDetail(id, !covered);
   const [songEditing, setSongEditing] = useState<SongWithNames[] | null>(null);
   const [albumEditing, setAlbumEditing] = useState<AlbumSummary | null>(null);
   const [syncEditing, setSyncEditing] = useState<SongWithNames | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [coverArtBusy, setCoverArtBusy] = useState(false);
   const albumCoverInputRef = useRef<HTMLInputElement>(null);
   const { setFavorite, setRating } = useFavoriteActions();
@@ -162,6 +183,15 @@ export function Album({ user, underlay }: { user: User; underlay?: UnderlayParam
     if (!albumEditing) return;
     if (await albumMutation.run(() => api(`/albums/${albumEditing.id}`, { method: 'DELETE' }))) {
       setAlbumEditing(null);
+    }
+  };
+
+  const handleHeaderDelete = async () => {
+    if (!detail) return;
+    if (await albumMutation.run(() => api(`/albums/${detail.album.id}`, { method: 'DELETE' }))) {
+      setDeleteOpen(false);
+      notify(`Deleted album "${detail.album.name}"`, 'success');
+      navigate('/albums');
     }
   };
 
@@ -279,6 +309,12 @@ export function Album({ user, underlay }: { user: User; underlay?: UnderlayParam
               <Icon name="mdi-pencil" size={18} />
               Edit
             </Button>
+            {user.isAdmin && (
+              <Button variant="danger" onClick={() => setDeleteOpen(true)} className="gap-2">
+                <Icon name="mdi-delete" size={18} />
+                Delete
+              </Button>
+            )}
             <FavoriteRatingGroup
               starred={detail.album.starred}
               onToggleFavorite={() => handleFavorite(!detail.album.starred)}
@@ -293,6 +329,19 @@ export function Album({ user, underlay }: { user: User; underlay?: UnderlayParam
           <span className="text-sm text-fg-secondary">
             {hiddenSongCount} hidden
           </span>
+        )
+      }
+      renderHeaderContextMenu={(target) =>
+        detail ? (
+          <AlbumHeaderContextMenu
+            album={detail.album}
+            isAdmin={user.isAdmin}
+            onDelete={() => setDeleteOpen(true)}
+          >
+            {target}
+          </AlbumHeaderContextMenu>
+        ) : (
+          target
         )
       }
     >
@@ -357,6 +406,18 @@ export function Album({ user, underlay }: { user: User; underlay?: UnderlayParam
         className="hidden"
         onChange={handleAlbumCoverArtFileChange}
       />
+
+      {detail && (
+        <ConfirmModal
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          title="Delete album"
+          message={`Delete "${detail.album.name}"? This cannot be undone.`}
+          confirmLabel={albumMutation.isPending ? 'Deleting…' : 'Delete'}
+          danger
+          onConfirm={() => void handleHeaderDelete()}
+        />
+      )}
 
       {syncEditing && (
         <SyncedLyricsEditor

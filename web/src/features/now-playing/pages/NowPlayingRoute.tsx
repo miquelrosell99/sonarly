@@ -229,7 +229,7 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
     if (context === 'playlist') {
       return isGuest ? <GuestPlaylist underlay={underlay} /> : <PlaylistDetail user={user} underlay={underlay} />;
     }
-    if (context === 'genre') return <Genre underlay={underlay} />;
+    if (context === 'genre') return <Genre user={user} underlay={underlay} />;
     if (context === 'composer') return <Composer underlay={underlay} />;
     if (context === 'label') return <Label underlay={underlay} />;
     return user ? <Album user={user} underlay={underlay} /> : <PageState error="Sign in to view this album">{null}</PageState>;

@@ -1,16 +1,21 @@
 // Package home is the /api/home aggregator (P8): the five landing-page
 // sections in one round trip, scoped to the caller's libraries.
 //
-// Shapes follow the retired server where they exist (mostPlayed, random and recentlyPlayed
-// are album cards) with two deliberate deviations:
+// Shapes follow the retired server where they exist (mostPlayed and random
+// are album cards) with three deliberate deviations:
 //
 //   - genres ranks by in-scope active song count (the task's "top by song
 //     count") and returns {name, songCount} objects instead of the old
 //     alphabetical name union — a flat list cannot express popularity.
-//   - recentAdditions is a SONG list in import order. Songs carry no
-//     created_at column; the rowid is the import order, which is what
-//     "created order" means for this schema. the retired server had no song section — it
-//     folded recent additions into album cards by file mtime.
+//   - recentAdditions is an ALBUM list in the v1-era fold: albums ordered by
+//     the newest in-scope song's file mtime (MAX(s.mtime) DESC, name
+//     tiebreak). The aggregate reads through the tolerant db.Millis because
+//     legacy databases stored mtimes as fractional REALs.
+//   - recentlyPlayed is a SONG list: the caller's most recently played songs
+//     from user_songs.last_played (title tiebreak). Viewers without plays of
+//     their own — guests on a share link, fresh accounts — get an empty
+//     section: the query keys strictly on the caller and never falls back to
+//     an owner's rows.
 //
 // random is seeded per request: candidate album ids are fetched once and
 // shuffled in Go with a seeded RNG, which keeps the selection reproducible
@@ -53,7 +58,7 @@ type AlbumCard struct {
 	Rating     *float64 `json:"rating,omitempty"`
 }
 
-// SongCard is the song shape the recentAdditions section returns (the
+// SongCard is the song shape the recentlyPlayed section returns (the
 // display subset of the catalog song DTO).
 type SongCard struct {
 	ID         string   `json:"id"`
@@ -86,8 +91,8 @@ type Response struct {
 	Genres          []GenreCard `json:"genres"`
 	MostPlayed      []AlbumCard `json:"mostPlayed"`
 	Random          []AlbumCard `json:"random"`
-	RecentAdditions []SongCard  `json:"recentAdditions"`
-	RecentlyPlayed  []AlbumCard `json:"recentlyPlayed"`
+	RecentAdditions []AlbumCard `json:"recentAdditions"`
+	RecentlyPlayed  []SongCard  `json:"recentlyPlayed"`
 }
 
 // Service loads the home sections. All queries take the caller's library
@@ -109,8 +114,8 @@ func (s *Service) Home(ctx context.Context, id auth.Identity, libraryID string, 
 		Genres:          []GenreCard{},
 		MostPlayed:      []AlbumCard{},
 		Random:          []AlbumCard{},
-		RecentAdditions: []SongCard{},
-		RecentlyPlayed:  []AlbumCard{},
+		RecentAdditions: []AlbumCard{},
+		RecentlyPlayed:  []SongCard{},
 	}
 	sections := []func() error{
 		func() error { genres, err := s.topGenres(ctx, scope, libraryID); resp.Genres = genres; return err },
@@ -125,13 +130,13 @@ func (s *Service) Home(ctx context.Context, id auth.Identity, libraryID string, 
 			return err
 		},
 		func() error {
-			songs, err := s.recentAdditions(ctx, id.UserID, scope, libraryID, hideExplicit)
-			resp.RecentAdditions = songs
+			albums, err := s.recentAdditions(ctx, id.UserID, scope, libraryID, hideExplicit)
+			resp.RecentAdditions = albums
 			return err
 		},
 		func() error {
-			albums, err := s.recentlyPlayed(ctx, id.UserID, scope, libraryID, hideExplicit)
-			resp.RecentlyPlayed = albums
+			songs, err := s.recentlyPlayed(ctx, id.UserID, scope, libraryID, hideExplicit)
+			resp.RecentlyPlayed = songs
 			return err
 		},
 	}
@@ -245,7 +250,7 @@ func scanAlbumCardRow(row interface{ Scan(...any) error }) (*albumCardRow, error
 }
 
 // scanAlbumCardRows scans album-card rows that carry one trailing aggregate
-// column (mostPlayed's SUM, recentlyPlayed's MAX). The aggregate value is
+// column (mostPlayed's SUM, recentAdditions's MAX). The aggregate value is
 // consumed into extra and discarded by the caller.
 func scanAlbumCardRows(rows *sql.Rows, extra any) ([]AlbumCard, error) {
 	defer rows.Close()
@@ -384,12 +389,44 @@ func (s *Service) randomAlbums(ctx context.Context, userID string, scope librari
 	return out, nil
 }
 
-// recentAdditions lists the newest imports first: the songs rowid is the
-// import order (there is no created_at column).
-func (s *Service) recentAdditions(ctx context.Context, userID string, scope libraries.Scope, libraryID string, hideExplicit bool) ([]SongCard, error) {
+// recentAdditions is the v1-era fold: album cards ordered by the newest
+// in-scope song's file mtime (MAX(s.mtime) DESC, name tiebreak). The
+// aggregate scans through db.Millis: legacy databases stored mtimes as
+// fractional REALs, which a plain sql.NullInt64 scan would reject.
+func (s *Service) recentAdditions(ctx context.Context, userID string, scope libraries.Scope, libraryID string, hideExplicit bool) ([]AlbumCard, error) {
+	join, joinArgs := albumJoin("inner", scope, libraryID)
+	libWhere, libArgs := albumLibraryWhere(libraryID)
+	args := append(append([]any{}, joinArgs...), userID)
+	args = append(args, libArgs...)
+	args = append(args, homeLimit)
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT `+albumCardColumns+`, MAX(s.mtime) AS last_mtime
+		FROM albums a
+		`+join+`
+		LEFT JOIN user_albums ua ON ua.album_id = a.id AND ua.user_id = ?
+		WHERE a.active = 1 `+libWhere+`
+		GROUP BY a.id`+explicitHaving(hideExplicit)+`
+		ORDER BY last_mtime DESC, a.name
+		LIMIT ?`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("load recent additions: %w", err)
+	}
+	albums, err := scanAlbumCardRows(rows, new(db.NullMillis))
+	if err != nil {
+		return nil, fmt.Errorf("load recent additions: %w", err)
+	}
+	return albums, nil
+}
+
+// recentlyPlayed lists the caller's most recently played songs
+// (user_songs.last_played DESC, title tiebreak). The section keys strictly
+// on the caller: viewers without user_songs rows — guests on a share link,
+// fresh accounts — get an empty list, never the owner's history.
+func (s *Service) recentlyPlayed(ctx context.Context, userID string, scope libraries.Scope, libraryID string, hideExplicit bool) ([]SongCard, error) {
 	scopeCond := libraries.ScopeCondition(scope, "s.library_id")
-	where := `WHERE s.active = 1 ` + scopeCond.SQL
-	args := append([]any{}, scopeCond.Params...)
+	where := `WHERE us.user_id = ? AND s.active = 1 ` + scopeCond.SQL
+	args := []any{userID}
+	args = append(args, scopeCond.Params...)
 	if libraryID != "" {
 		where += ` AND s.library_id = ?`
 		args = append(args, libraryID)
@@ -401,16 +438,23 @@ func (s *Service) recentAdditions(ctx context.Context, userID string, scope libr
 	rows, err := s.db.QueryContext(ctx,
 		`SELECT s.id, s.title, s.artist_id, ar.name, s.album_id, al.name, s.duration,
 			s.year, s.genre, s.explicit, s.cover_art_id, s.mtime, us.starred, us.rating
-		FROM songs s
+		FROM user_songs us
+		JOIN songs s ON s.id = us.song_id
 		LEFT JOIN artists ar ON ar.id = s.artist_id
 		LEFT JOIN albums al ON al.id = s.album_id
-		LEFT JOIN user_songs us ON us.user_id = ? AND us.song_id = s.id
 		`+where+`
-		ORDER BY s.rowid DESC
-		LIMIT ?`, append([]any{userID}, args...)...)
+		ORDER BY us.last_played DESC, s.title
+		LIMIT ?`, args...)
 	if err != nil {
-		return nil, fmt.Errorf("load recent additions: %w", err)
+		return nil, fmt.Errorf("load recently played: %w", err)
 	}
+	return scanSongCards(rows)
+}
+
+// scanSongCards scans the song-card projection the recentlyPlayed section
+// selects (the display subset of the catalog song DTO plus the caller's
+// starred/rating from user_songs).
+func scanSongCards(rows *sql.Rows) ([]SongCard, error) {
 	defer rows.Close()
 	songs := []SongCard{}
 	for rows.Next() {
@@ -423,7 +467,7 @@ func (s *Service) recentAdditions(ctx context.Context, userID string, scope libr
 		var duration db.NullInt64 // the retired server may have stored fractional REAL seconds
 		if err := rows.Scan(&card.ID, &card.Title, &artistID, &artistName, &albumID, &albumName,
 			&duration, &year, &genre, &explicit, &coverArt, &mtime, &starred, &rating); err != nil {
-			return nil, fmt.Errorf("load recent additions: %w", err)
+			return nil, err
 		}
 		card.Mtime = int64(mtime)
 		if v, ok := duration.Value(); ok {
@@ -442,42 +486,9 @@ func (s *Service) recentAdditions(ctx context.Context, userID string, scope libr
 		songs = append(songs, card)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("load recent additions: %w", err)
+		return nil, err
 	}
 	return songs, nil
-}
-
-// recentlyPlayed is the old section: albums ordered by the caller's most
-// recent play of any in-scope song.
-func (s *Service) recentlyPlayed(ctx context.Context, userID string, scope libraries.Scope, libraryID string, hideExplicit bool) ([]AlbumCard, error) {
-	join, joinArgs := albumJoin("inner", scope, libraryID)
-	libWhere, libArgs := albumLibraryWhere(libraryID)
-	having := `HAVING last_played IS NOT NULL`
-	if hideExplicit {
-		having += ` AND SUM(CASE WHEN s.explicit = 0 THEN 1 ELSE 0 END) > 0`
-	}
-	args := append(append([]any{}, joinArgs...), userID, userID)
-	args = append(args, libArgs...)
-	args = append(args, homeLimit)
-	rows, err := s.db.QueryContext(ctx,
-		`SELECT `+albumCardColumns+`, MAX(us.last_played) AS last_played
-		FROM albums a
-		`+join+`
-		LEFT JOIN user_songs us ON us.song_id = s.id AND us.user_id = ?
-		LEFT JOIN user_albums ua ON ua.album_id = a.id AND ua.user_id = ?
-		WHERE a.active = 1 `+libWhere+`
-		GROUP BY a.id
-		`+having+`
-		ORDER BY last_played DESC, a.name
-		LIMIT ?`, args...)
-	if err != nil {
-		return nil, fmt.Errorf("load recently played: %w", err)
-	}
-	albums, err := scanAlbumCardRows(rows, new(sql.NullString))
-	if err != nil {
-		return nil, fmt.Errorf("load recently played: %w", err)
-	}
-	return albums, nil
 }
 
 func stringArgs(ids []string) []any {

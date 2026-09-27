@@ -17,7 +17,12 @@ export interface EntityDetailProps {
   metadata?: MetadataItem[];
   actions?: ReactNode;
   headerChildren?: ReactNode;
-  renderHeader?: (header: React.ReactElement) => React.ReactElement;
+  /**
+   * Right-click menu for the header: receives the cover / title target and
+   * returns it wrapped in the view's ItemContextMenu. Applied to both the
+   * cover and the title so every dedicated view behaves the same.
+   */
+  renderHeaderContextMenu?: (target: React.ReactElement) => React.ReactElement;
   children?: ReactNode;
   className?: string;
   /** Retry action for the error state, rendered by PageState when provided. */
@@ -36,7 +41,7 @@ export function EntityDetail({
   metadata,
   actions,
   headerChildren,
-  renderHeader,
+  renderHeaderContextMenu,
   children,
   className,
   onRetry,
@@ -56,14 +61,21 @@ export function EntityDetail({
   }
 
   const header = (
-    <EntityHeader type={type} title={title} cover={cover} metadata={metadata} actions={actions}>
+    <EntityHeader
+      type={type}
+      title={title}
+      cover={cover}
+      metadata={metadata}
+      actions={actions}
+      wrapContextTarget={renderHeaderContextMenu}
+    >
       {headerChildren}
     </EntityHeader>
   );
 
   return (
     <div className={cn(className)}>
-      {renderHeader ? renderHeader(header) : header}
+      {header}
       {children}
     </div>
   );

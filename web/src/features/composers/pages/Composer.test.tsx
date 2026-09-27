@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, cleanup, waitFor } from '@testing-library/react';
+import { screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { Route, Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { Composer } from './Composer.js';
@@ -38,5 +38,24 @@ describe('Composer', () => {
       expect(screen.getByText('Composed Track')).toBeTruthy();
     });
     expect(mockApi).toHaveBeenCalledWith('/songs?composer=John+Doe');
+  });
+
+  it('opens a Play/Shuffle menu from the title header', async () => {
+    const loc = memoryLocation({ path: '/composers/John%20Doe' });
+    renderWithQueryClient(
+      <Router hook={loc.hook}>
+        <Route path="/composers/:name">{() => <Composer />}</Route>
+      </Router>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Composed Track')).toBeTruthy();
+    });
+
+    fireEvent.contextMenu(screen.getByRole('heading', { name: 'John Doe' }));
+
+    expect(screen.getByRole('menu')).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Play all' })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Shuffle play' })).toBeTruthy();
   });
 });
