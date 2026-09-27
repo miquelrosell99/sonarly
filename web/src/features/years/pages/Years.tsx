@@ -4,6 +4,7 @@ import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useLibraryStore } from '../../../stores/libraryStore.js';
 import { useSongsList, useYearsList, type YearCount } from '../../../hooks/useLibraryLists.js';
+import { YearCoverGrid } from '../components/YearCoverGrid.js';
 
 interface Track extends Song {
   artistName?: string;
@@ -39,16 +40,17 @@ export function Years() {
       header: 'Year',
       render: (entry) => (
         <Link href={`/years/${entry.year}`} className="hover:text-muted">
-          {entry.year} — {entry.songCount} {entry.songCount === 1 ? 'song' : 'songs'}
+          {entry.year}
         </Link>
       ),
     },
   ];
 
   const cardFields: LibraryViewCardField<YearCount>[] = [
+    { key: 'year', render: (entry) => entry.year },
     {
-      key: 'year',
-      render: (entry) => `${entry.year} — ${entry.songCount} ${entry.songCount === 1 ? 'song' : 'songs'}`,
+      key: 'count',
+      render: (entry) => `${entry.songCount} ${entry.songCount === 1 ? 'song' : 'songs'}`,
     },
   ];
 
@@ -67,7 +69,9 @@ export function Years() {
       emptyMessage="No years found."
       onRetry={() => void refetch()}
       defaultView="list"
-      availableViews={['list']}
+      availableViews={['list', 'grid']}
+      viewModeKey="years"
+      renderCover={(entry) => <YearCoverGrid year={entry.year} />}
     />
   );
 }
