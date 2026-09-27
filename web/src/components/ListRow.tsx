@@ -129,14 +129,14 @@ export function ListRow({
             type="button"
             {...dragHandleProps}
             aria-label="Drag to reorder"
-            className="cursor-grab text-fg-secondary opacity-0 transition hover:text-fg-primary group-hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing"
+            className="flex h-6 w-6 cursor-grab items-center justify-center text-fg-secondary opacity-0 transition hover:text-fg-primary group-hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing"
           >
             <Icon name="mdi-drag-vertical" size={18} />
           </button>
         </td>
       )}
       <td className="w-12 whitespace-nowrap py-2 px-2 text-center">
-        <span className="group/play relative inline-flex h-5 w-6 items-center justify-center text-muted">
+        <span className="group/play relative inline-flex h-6 w-6 items-center justify-center text-muted">
           <span className="transition group-hover/play:opacity-0">
             {isPlaying ? (
               <PlayingIndicator size={14} />

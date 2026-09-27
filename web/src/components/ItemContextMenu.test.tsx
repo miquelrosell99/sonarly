@@ -253,5 +253,78 @@ describe('ItemContextMenu', () => {
     expect(screen.queryByRole('menu')).toBeFalsy();
     expect(document.activeElement).toBe(target);
   });
+
+  it('closes on Tab and returns focus to the trigger (APG, audit F27b)', () => {
+    render(
+      <ItemContextMenu sections={sections}>
+        <button type="button" data-testid="target">
+          Trigger
+        </button>
+      </ItemContextMenu>,
+    );
+    const target = screen.getByTestId('target');
+    target.focus();
+
+    fireEvent.keyDown(target, { key: 'F10', shiftKey: true });
+    const menu = screen.getByRole('menu');
+    expect(document.activeElement).toBe(screen.getAllByRole('menuitem')[0]);
+
+    fireEvent.keyDown(menu, { key: 'Tab' });
+    expect(screen.queryByRole('menu')).toBeFalsy();
+    expect(document.activeElement).toBe(target);
+  });
+
+  it('moves focus with Home and End (APG, audit F27b)', () => {
+    render(
+      <ItemContextMenu sections={sections}>
+        <button type="button" data-testid="target">
+          Trigger
+        </button>
+      </ItemContextMenu>,
+    );
+    const target = screen.getByTestId('target');
+    target.focus();
+    fireEvent.keyDown(target, { key: 'F10', shiftKey: true });
+
+    const menu = screen.getByRole('menu');
+    const items = screen.getAllByRole('menuitem');
+    expect(document.activeElement).toBe(items[0]);
+
+    fireEvent.keyDown(menu, { key: 'End' });
+    expect(document.activeElement).toBe(items[items.length - 1]);
+
+    fireEvent.keyDown(menu, { key: 'Home' });
+    expect(document.activeElement).toBe(items[0]);
+  });
+
+  it('exposes aria-haspopup and toggles aria-expanded on anchored triggers', () => {
+    render(
+      <ItemContextMenu sections={sections} anchorToTrigger>
+        <button type="button" data-testid="target">
+          Trigger
+        </button>
+      </ItemContextMenu>,
+    );
+    const target = screen.getByTestId('target');
+    expect(target.getAttribute('aria-haspopup')).toBe('menu');
+    expect(target.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.contextMenu(target);
+    expect(target.getAttribute('aria-expanded')).toBe('true');
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(target.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('does not put menu-button semantics on plain right-click targets', () => {
+    render(
+      <ItemContextMenu sections={sections}>
+        <div data-testid="target">Right click me</div>
+      </ItemContextMenu>,
+    );
+    const target = screen.getByTestId('target');
+    expect(target.hasAttribute('aria-haspopup')).toBe(false);
+    expect(target.hasAttribute('aria-expanded')).toBe(false);
+  });
 });
 

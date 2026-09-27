@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useId, useRef, useState, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
@@ -31,6 +31,10 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Audit F27d: the combobox owns its listbox via aria-controls; the id is
+  // only referenced while the popup is actually rendered.
+  const listboxId = useId();
+  const listboxVisible = isOpen || filtersOpen;
   const debouncedQuery = useDebounce(inputValue, 200);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
   // F12b: one shared ['search','preview',…] family; the /search results page
@@ -186,9 +190,10 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
           placeholder="Search…"
           className={cn('input w-full pl-9 focus:ring-0 focus:ring-offset-0', hasFilters ? 'pr-10' : 'pr-9')}
           aria-label="Search"
-          aria-expanded={isOpen || filtersOpen}
+          aria-expanded={listboxVisible}
           aria-autocomplete="list"
           aria-activedescendant={highlightedIndex >= 0 ? items[highlightedIndex]?.id : undefined}
+          aria-controls={listboxVisible ? listboxId : undefined}
           role="combobox"
         />
         {hasFilters && onToggleFilters && (
@@ -228,7 +233,7 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
             </div>
           )}
           {(items.length > 0 || debouncedQuery.length > 0) && (
-            <div role="listbox">
+            <div role="listbox" id={listboxId}>
               {items.length === 0 ? (
                 <p className="px-4 py-2 text-sm text-muted">No results found.</p>
               ) : (
@@ -242,10 +247,11 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
                         const index = startIndex + localIndex;
                         const isHighlighted = index === highlightedIndex;
                         return (
-                          <li key={item.id}>
+                          <li key={item.id} role="presentation">
                             <button
                               type="button"
                               id={item.id}
+                              tabIndex={-1}
                               onClick={() => navigate(item.href)}
                               onMouseEnter={() => setHighlightedIndex(index)}
                               className={cn(

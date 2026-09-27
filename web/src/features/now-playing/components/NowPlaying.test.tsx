@@ -94,6 +94,36 @@ describe('NowPlaying', () => {
     expect(useNowPlaying.getState().isOpen).toBe(false);
   });
 
+  it('keeps Tab focus cycling inside the overlay (audit F27c)', () => {
+    useNowPlaying.getState().open();
+    usePlayer.getState().playQueue(
+      [{ id: 's1', title: 'Song', artistId: 'a1', artistName: 'Artist', albumId: 'alb1', albumName: 'Album' } as any],
+      0,
+    );
+    render(<NowPlaying user={mockUser} />, { wrapper: Wrapper });
+    const dialog = screen.getByRole('dialog');
+
+    const focusable = Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    expect(focusable.length).toBeGreaterThan(1);
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    // Shift+Tab from the first control wraps to the last instead of falling
+    // through to the PlayerBar/Sidebar underneath the aria-modal overlay.
+    first.focus();
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(last);
+    expect(dialog.contains(document.activeElement)).toBe(true);
+
+    // Tab from the last control wraps back to the first.
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(document.activeElement).toBe(first);
+  });
+
   it('does not close when a queue context menu is open and Escape is pressed', () => {
     useNowPlaying.getState().open();
     usePlayer.getState().playQueue(

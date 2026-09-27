@@ -152,16 +152,30 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
     firstItem?.focus();
   }, [open]);
 
-  const focusMenuItem = (direction: 1 | -1) => {
-    const menu = menuRef.current;
-    if (!menu) return;
-    const items = Array.from(
-      menu.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])'),
+  const getEnabledMenuItems = () =>
+    Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])') ?? [],
     );
+
+  const focusMenuItem = (direction: 1 | -1) => {
+    const items = getEnabledMenuItems();
     if (items.length === 0) return;
     const currentIndex = items.indexOf(document.activeElement as HTMLElement);
     const nextIndex = (currentIndex + direction + items.length) % items.length;
     items[nextIndex].focus();
+  };
+
+  const focusEdgeMenuItem = (edge: 'first' | 'last') => {
+    const items = getEnabledMenuItems();
+    if (items.length === 0) return;
+    (edge === 'first' ? items[0] : items[items.length - 1]).focus();
+  };
+
+  // APG: Tab closes the menu. Focus returns to the trigger, so the user's
+  // next Tab press continues through the page's tab order from there.
+  const closeMenuAndRefocusTrigger = () => {
+    setOpen(false);
+    childRef.current?.focus();
   };
 
   const handleMenuKeyDown = (e: React.KeyboardEvent) => {
@@ -171,6 +185,14 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       focusMenuItem(-1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      focusEdgeMenuItem('first');
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      focusEdgeMenuItem('last');
+    } else if (e.key === 'Tab') {
+      closeMenuAndRefocusTrigger();
     }
   };
 
@@ -243,6 +265,14 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
   if (!isValidElement(child)) {
     return <>{children}</>;
   }
+
+  // Popover-style triggers (anchorToTrigger) are menu buttons: expose the
+  // popup relationship and live expanded state (audit F27b). Plain right-click
+  // context targets are not in the tab order as menu buttons, so they stay
+  // bare.
+  const triggerAriaProps: Record<string, unknown> = anchorToTrigger
+    ? { 'aria-haspopup': 'menu', 'aria-expanded': open }
+    : {};
 
   type Handler<E> = ((e: E) => void) | undefined;
   const compose = <E,>(childHandler: Handler<E>, menuHandler: (e: E) => void) =>
@@ -326,6 +356,7 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
         {
           onContextMenu: handleContextMenu,
           onKeyDown: compose(childProps.onKeyDown, handleTriggerKeyDown),
+          ...triggerAriaProps,
           ...longPressProps,
         },
       )}
