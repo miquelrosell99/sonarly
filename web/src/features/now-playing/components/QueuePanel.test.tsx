@@ -3,12 +3,28 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { QueuePanel } from './QueuePanel.js';
 import { usePlayer, resetPlayer } from '../../../stores/playerStore.js';
+import { useAutoDjUi } from '../../../stores/autoDjStore.js';
 import { NotificationProvider } from '../../../contexts/NotificationContext.js';
 import type { User } from '../../../types';
 
 const mockSetLocation = vi.fn();
 vi.mock('wouter', () => ({
   useLocation: () => [{}, mockSetLocation],
+}));
+
+const mockUpdatePreferencesMutate = vi.fn();
+const mockPreferences = vi.hoisted(() => ({
+  current: {
+    autoDjEnabled: false,
+    autoDjMode: 'smart' as const,
+    autoDjTopUpThreshold: 5,
+    autoDjBatchSize: 10,
+  },
+}));
+
+vi.mock('../../../hooks/usePreferences.js', () => ({
+  usePreferences: () => ({ data: mockPreferences.current }),
+  useUpdatePreferences: () => ({ mutate: mockUpdatePreferencesMutate }),
 }));
 
 const mockUser = { id: 'u1', username: 'test', isAdmin: false } as User;
@@ -26,6 +42,14 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 beforeEach(() => {
   resetPlayer();
   mockSetLocation.mockClear();
+  mockUpdatePreferencesMutate.mockClear();
+  mockPreferences.current = {
+    autoDjEnabled: false,
+    autoDjMode: 'smart',
+    autoDjTopUpThreshold: 5,
+    autoDjBatchSize: 10,
+  };
+  useAutoDjUi.setState({ refreshNonce: 0, isFetching: false });
 });
 
 afterEach(() => {
@@ -158,5 +182,102 @@ describe('QueuePanel', () => {
       .filter((text) => text?.includes('First') || text?.includes('Second') || text?.includes('Third'))
       .map((text) => text?.replace(/^\d+/, '').replace(/Unknown artist\d+:\d+$/, '').trim());
     expect(titles).toEqual(['First', 'Third', 'Second']);
+  });
+});
+
+describe('QueuePanel Auto-DJ section', () => {
+  function djSong(id: string, reason: string) {
+    return { id, title: `Title ${id}`, addedByAutoDj: true, autoDjReason: reason } as any;
+  }
+
+  function seedWithDjPicks(enabled: boolean) {
+    mockPreferences.current = { ...mockPreferences.current, autoDjEnabled: enabled };
+    usePlayer.getState().playQueue(
+      [
+        { id: 's1', title: 'First' } as any,
+        djSong('dj1', 'More like Jazz Artist'),
+        djSong('dj2', 'Hidden gem — you haven\'t played this'),
+      ],
+      0,
+    );
+  }
+
+  it('renders upcoming suggestions as a distinct section with per-item reasons', () => {
+    seedWithDjPicks(true);
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+
+    expect(screen.getByText('Up next — Auto-DJ')).toBeTruthy();
+    expect(screen.getByText('More like Jazz Artist')).toBeTruthy();
+    expect(screen.getByText('Hidden gem — you haven\'t played this')).toBeTruthy();
+    // The per-row badge is redundant inside the section…
+    const pills = screen.getAllByText('Auto DJ').filter((el) => el.closest('button') === null);
+    expect(pills).toHaveLength(0);
+    // …and the header carries the live indicator + actions.
+    expect(screen.getByRole('button', { name: 'Refresh Auto-DJ suggestions' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Auto DJ settings' })).toBeTruthy();
+  });
+
+  it('keeps the row badge when Auto DJ is off but DJ picks are still queued', () => {
+    seedWithDjPicks(false);
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+
+    expect(screen.queryByText('Up next — Auto-DJ')).toBeFalsy();
+    const pills = screen.getAllByText('Auto DJ').filter((el) => el.closest('button') === null);
+    expect(pills).toHaveLength(2);
+  });
+
+  it('refresh action signals the engine through the Auto-DJ UI store', () => {
+    seedWithDjPicks(true);
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+
+    const before = useAutoDjUi.getState().refreshNonce;
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh Auto-DJ suggestions' }));
+
+    expect(useAutoDjUi.getState().refreshNonce).toBe(before + 1);
+  });
+
+  it('opens the tuning popover and applies changes immediately', () => {
+    seedWithDjPicks(true);
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Auto DJ settings' }));
+    const dialog = screen.getByRole('dialog', { name: 'Auto DJ settings' });
+    expect(dialog).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: /random/i }));
+    expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjMode: 'random' });
+
+    fireEvent.click(screen.getByRole('button', { name: '7 days' }));
+    expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjExcludeWindow: '7d' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close Auto DJ settings' }));
+    expect(screen.queryByRole('dialog', { name: 'Auto DJ settings' })).toBeFalsy();
+  });
+
+  it('shows the keep-it-going CTA when the queue is drained and Auto DJ is on', () => {
+    mockPreferences.current = { ...mockPreferences.current, autoDjEnabled: true };
+    usePlayer.getState().playQueue([{ id: 's1', title: 'Only' } as any], 0);
+
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+    expect(screen.getByText("Queue's end — Auto-DJ will keep it going")).toBeTruthy();
+  });
+
+  it('shows an enable CTA when the queue is drained and Auto DJ is off', () => {
+    usePlayer.getState().playQueue([{ id: 's1', title: 'Only' } as any], 0);
+
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+    fireEvent.click(screen.getByRole('button', { name: 'Turn on Auto DJ' }));
+    expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjEnabled: true });
+  });
+
+  it('reflects the active state on the queue header toggle', () => {
+    seedWithDjPicks(true);
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+    expect(screen.getByRole('button', { name: 'Auto DJ: on' }).getAttribute('aria-pressed')).toBe('true');
+
+    cleanup();
+    seedWithDjPicks(false);
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+    expect(screen.getByRole('button', { name: 'Auto DJ: off' }).getAttribute('aria-pressed')).toBe('false');
   });
 });
