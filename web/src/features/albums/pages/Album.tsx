@@ -306,7 +306,7 @@ export function Album({ user, underlay }: { user: User; underlay?: UnderlayParam
         getIndexLabel={(song) => song.trackNumber}
         groupBy={hasMultipleDiscs ? (song) => (song.discNumber ? String(song.discNumber) : undefined) : undefined}
         renderGroupHeader={hasMultipleDiscs ? (key) => `Disc ${Number(key).toString().padStart(2, '0')}` : undefined}
-        renderRow={(song, row, selectedRows) => (
+        renderRow={(_song, row, selectedRows) => (
           <SongContextMenu songs={selectedRows} onEdit={() => setSongEditing(selectedRows as SongWithNames[])} isAdmin={user.isAdmin}>
             {row}
           </SongContextMenu>

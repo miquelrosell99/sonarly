@@ -30,8 +30,10 @@ interface EditLine {
   text: string;
 }
 
+// a[href], not [href]: bare [href] also matches SVG <use> refs,
+// which are not focusable and would break the Tab cycle (audit P6 deferral).
 const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00.00';

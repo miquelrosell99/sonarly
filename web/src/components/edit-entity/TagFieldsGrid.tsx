@@ -25,7 +25,6 @@ export function TagFieldsGrid({
   onValueChange,
   explicit,
   onExplicitChange,
-  isMulti,
   readOnly,
   albumStats,
 }: TagFieldsGridProps) {

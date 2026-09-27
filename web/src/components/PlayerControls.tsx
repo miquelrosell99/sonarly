@@ -46,7 +46,7 @@ export const ControlButton = forwardRef<HTMLButtonElement, {
 
 ControlButton.displayName = 'ControlButton';
 
-export function PlayButton({
+export function PlayPauseButton({
   isPlaying,
   disabled,
   onClick,
@@ -88,7 +88,6 @@ export function Slider({
   className = '',
   ariaLabel,
   ariaValueText,
-  variant = 'volume',
 }: {
   value: number;
   min: number;
@@ -99,7 +98,6 @@ export function Slider({
   className?: string;
   ariaLabel?: string;
   ariaValueText?: string;
-  variant?: 'progress' | 'volume';
 }) {
   const range = max - min;
   const percentage = range === 0 ? 0 : ((value - min) / range) * 100;

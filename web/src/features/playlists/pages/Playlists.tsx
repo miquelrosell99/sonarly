@@ -38,6 +38,7 @@ export function Playlists() {
 
   const owner = get('owner');
   const visibility = get('visibility');
+  const hasActiveFilters = Boolean(owner || visibility);
 
   const filteredPlaylists = (playlists ?? []).filter((p) => {
     if (owner && p.ownerUsername !== owner) return false;
@@ -135,7 +136,11 @@ export function Playlists() {
             {children}
           </PlaylistContextMenu>
         )}
-        emptyMessage="No playlists match the current filters."
+        emptyMessage={
+          hasActiveFilters
+            ? 'No playlists match the current filters.'
+            : 'No playlists yet. Create one to get started.'
+        }
         defaultView="list"
       />
     </div>

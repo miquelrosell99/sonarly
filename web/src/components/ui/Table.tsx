@@ -1,4 +1,4 @@
-import { Children, Fragment, useState, type MouseEvent, type KeyboardEvent, type ReactNode, type ReactElement, cloneElement, isValidElement } from 'react';
+import { Fragment, useState, type MouseEvent, type KeyboardEvent, type ReactNode, cloneElement, isValidElement } from 'react';
 import { cn } from '../../lib/cn.js';
 import { PlayButton } from '../PlayButton.js';
 import { PlayingIndicator } from '../PlayingIndicator.js';

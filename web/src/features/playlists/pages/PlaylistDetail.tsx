@@ -319,7 +319,7 @@ export function PlaylistDetail({ user, underlay }: PlaylistDetailProps) {
         onPlaySelection={handlePlaySelection}
         renderRow={
           user
-            ? (song, row, selectedRows) => (
+            ? (_song, row, selectedRows) => (
               <PlaylistSongContextMenu songs={selectedRows} onEdit={() => setSongEditing(selectedRows)} isAdmin={user.isAdmin}>
                 {row}
               </PlaylistSongContextMenu>

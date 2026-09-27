@@ -20,7 +20,6 @@ import { Label } from '../../labels/pages/Label.js';
 import { HomePage } from '../../home/pages/HomePage.js';
 
 const CONTEXTS = ['playlist', 'album', 'genre', 'composer', 'label'] as const;
-type ContextType = (typeof CONTEXTS)[number];
 
 // Overlay route, Immich-style. Three shapes:
 //   /now-playing/<context>/<contextId>/<songId> — context page underneath
@@ -150,12 +149,19 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
   // shows in the player bar).
   useEffect(() => {
     if (hasContext) {
+      if (!resolvedSongs) return;
+      if (resolvedSongs.length === 0) return;
+      const startIndex = Math.max(0, resolvedSongs.findIndex((song) => song.id === songId));
+      // Settled means "playing the song this URL resolves to under this
+      // context" — not "playing songId": a bad deep link (songId absent from
+      // the context) falls back to the first song, and comparing against the
+      // raw songId would keep re-triggering playQueue forever, resetting
+      // playback each pass (P7 deferral).
       const alreadyPlaying =
-        currentSong?.id === songId && queueContext?.type === context && queueContext.id === contextId;
+        currentSong?.id === resolvedSongs[startIndex]?.id &&
+        queueContext?.type === context &&
+        queueContext.id === contextId;
       if (!alreadyPlaying) {
-        if (!resolvedSongs) return;
-        if (resolvedSongs.length === 0) return;
-        const startIndex = Math.max(0, resolvedSongs.findIndex((song) => song.id === songId));
         playQueue(resolvedSongs, startIndex, false, { type: context as QueueContext['type'], id: contextId });
       }
     } else if (songId && currentSong?.id !== songId) {

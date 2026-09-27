@@ -1,7 +1,7 @@
 // TEMPORARY diagnostic: render the full App against a REAL local v2 server
 // (127.0.0.1:4620, real production-shaped DB) and find which routes crash.
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React from 'react';
 
 // Diagnostic end-to-end smoke: renders the full app against a real server

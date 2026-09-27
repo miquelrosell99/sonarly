@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
+import { screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
 import { Router, Route } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
-import type { Song } from '../../../types';
+import type { Song, User } from '../../../types';
 import { Track } from './Track.js';
 import { renderWithQueryClient, createTestQueryClient } from '../../../lib/testing.js';
 import { NotificationProvider } from '../../../contexts/NotificationContext.js';
@@ -32,6 +32,8 @@ const makeSong = (id: string): Song =>
     gapless: false,
   }) as Song;
 
+const user = { id: 'u1', username: 'tester', isAdmin: false } as User;
+
 function renderTrack(path: string, queryClient = createTestQueryClient()) {
   const location = memoryLocation({ path });
   return {
@@ -39,7 +41,7 @@ function renderTrack(path: string, queryClient = createTestQueryClient()) {
     ...renderWithQueryClient(
       <Router hook={location.hook}>
         <NotificationProvider>
-          <Route path="/tracks/:id">{() => <Track />}</Route>
+          <Route path="/tracks/:id">{() => <Track user={user} />}</Route>
         </NotificationProvider>
       </Router>,
       queryClient,
@@ -142,5 +144,33 @@ describe('Track detail (react-query, P5)', () => {
       expect(queryClient.getQueryState(listKey)?.isInvalidated).toBe(true);
     });
     expect(mockApi.mock.calls.some((call) => String(call[0]) === '/songs/t1' && call[1]?.method === 'DELETE')).toBe(true);
+  });
+
+  it('applies the explicit-title policy on the detail page (F28)', async () => {
+    mockApi.mockImplementation(async (path: string) => {
+      if (path.startsWith('/songs/')) {
+        return { song: { ...makeSong(path.split('/')[2]), explicit: true } };
+      }
+      return {};
+    });
+
+    const { unmount } = renderTrack('/tracks/t1');
+    await screen.findByText('Song t1');
+    expect(screen.getByRole('img', { name: 'Explicit' })).toBeTruthy();
+    unmount();
+
+    // blurExplicitTitles blurs the visible title but keeps the text rendered.
+    const blurred = { ...user, blurExplicitTitles: true } as User;
+    const location = memoryLocation({ path: '/tracks/t1' });
+    renderWithQueryClient(
+      <Router hook={location.hook}>
+        <NotificationProvider>
+          <Route path="/tracks/:id">{() => <Track user={blurred} />}</Route>
+        </NotificationProvider>
+      </Router>,
+    );
+    await screen.findByText('Song t1');
+    expect(screen.getByRole('img', { name: 'Explicit' })).toBeTruthy();
+    expect(screen.getByText('Song t1').closest('span')?.className).toContain('blur-sm');
   });
 });

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Router } from 'wouter';
@@ -72,4 +72,23 @@ it('wires the combobox to its listbox and keeps options out of the tab order (au
   expect(listbox.querySelectorAll('li[role="presentation"]').length).toBe(1);
   const option = screen.getByRole('option', { name: 'Song 1' });
   expect(option.getAttribute('tabindex')).toBe('-1');
+});
+
+it('scopes the document-level Escape handler to the combobox (F27d)', () => {
+  renderSearchBox();
+  const input = screen.getByLabelText('Search');
+
+  // Escape elsewhere in the app must not close/blur the search input.
+  const other = document.createElement('button');
+  document.body.appendChild(other);
+  other.focus();
+  fireEvent.keyDown(document, { key: 'Escape' });
+  expect(document.activeElement).toBe(other);
+  other.remove();
+
+  // Escape while the input owns focus closes the dropdown and blurs.
+  input.focus();
+  expect(document.activeElement).toBe(input);
+  fireEvent.keyDown(document, { key: 'Escape' });
+  expect(document.activeElement).not.toBe(input);
 });

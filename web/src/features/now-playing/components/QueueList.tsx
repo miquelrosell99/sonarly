@@ -60,7 +60,7 @@ function buildDisplayItems(
   return queue.map((_, originalIndex) => withStatus(originalIndex, originalIndex));
 }
 
-export function QueueList({ user, title, showHeader = true, className }: QueueListProps) {
+export function QueueList({ title, showHeader = true, className }: QueueListProps) {
   const [, setLocation] = useLocation();
   const queue = usePlayer((state) => state.queue);
   const queueIndex = usePlayer((state) => state.queueIndex);
@@ -68,7 +68,6 @@ export function QueueList({ user, title, showHeader = true, className }: QueueLi
   const shuffle = usePlayer((state) => state.shuffle);
   const shuffledIndices = usePlayer((state) => state.shuffledIndices);
   const playAtIndex = usePlayer((state) => state.playAtIndex);
-  const toggleShuffle = usePlayer((state) => state.toggleShuffle);
   const clearQueue = usePlayer((state) => state.clearQueue);
   const { data: preferences } = usePreferences();
   const updatePreferences = useUpdatePreferences();
