@@ -167,7 +167,7 @@ export interface paths {
         head?: never;
         /**
          * Update current user's preferences (allowlisted keys)
-         * @description Partial update: every key in the body must be in the explicit allowlist (auto-dj knobs, appearance, hideSponsorButton, and the structural sidebar/theme documents) or the whole patch is rejected with 400 — unknown keys are never silently dropped or stored (mass-assignment fix). Values are validated per key; out-of-range out-of-range auto-dj numbers clamp instead of failing.
+         * @description Partial update: every key in the body must be in the explicit allowlist (auto-dj knobs, appearance, supportHidden, and the structural sidebar/theme documents) or the whole patch is rejected with 400 — unknown keys are never silently dropped or stored (mass-assignment fix). Values are validated per key; out-of-range out-of-range auto-dj numbers clamp instead of failing.
          */
         patch: operations["patchMyPreferences"];
         trace?: never;
@@ -2058,7 +2058,7 @@ export interface components {
             autoDjExcludeWindow?: components["schemas"]["AutoDjExcludeWindow"];
             autoDjPreferFavorites?: boolean;
             autoDjDiscovery?: number;
-            hideSponsorButton?: boolean;
+            supportHidden?: boolean;
             /** @enum {string} */
             themeMode?: "light" | "dark" | "oled" | "auto";
             /** @enum {string} */
@@ -2080,7 +2080,7 @@ export interface components {
             autoDjExcludeWindow?: components["schemas"]["AutoDjExcludeWindow"];
             autoDjPreferFavorites?: boolean;
             autoDjDiscovery?: number;
-            hideSponsorButton?: boolean;
+            supportHidden?: boolean;
             /** @enum {string} */
             themeMode?: "light" | "dark" | "oled" | "auto";
             /** @enum {string} */

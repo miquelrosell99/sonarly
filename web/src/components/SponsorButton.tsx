@@ -7,19 +7,48 @@ import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js
 
 const SPONSOR_URL = 'https://github.com/sponsors/miquelrosell99';
 
+// Same key name as the server preferences document; the guest fallback
+// (pre-login / share-token visitors, or the window before the preferences
+// query resolves) mirrors it in localStorage.
+const SUPPORT_HIDDEN_KEY = 'supportHidden';
+
+// Validated read in the themeStore idiom: only the exact 'true' spelling
+// counts — corrupt or stale values fall back to "shown".
+function readLocalSupportHidden(): boolean {
+  try {
+    return window.localStorage.getItem(SUPPORT_HIDDEN_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function writeLocalSupportHidden(hidden: boolean) {
+  try {
+    window.localStorage.setItem(SUPPORT_HIDDEN_KEY, String(hidden));
+  } catch {
+    // storage unavailable (private mode etc.): the dismissal just won't persist
+  }
+}
+
 export function SponsorButton() {
   const [open, setOpen] = useState(false);
   const { data: preferences } = usePreferences();
   const updatePreferences = useUpdatePreferences();
 
-  if (preferences?.hideSponsorButton) return null;
+  // Owner of the dismissal state: the server preference once the preferences
+  // document has loaded (logged in), otherwise the guest localStorage snapshot.
+  const hidden = preferences
+    ? Boolean(preferences.supportHidden)
+    : readLocalSupportHidden();
 
-  const handleOpen = () => {
-    window.open(SPONSOR_URL, '_blank', 'noopener,noreferrer');
-  };
+  if (hidden) return null;
 
-  const handleHide = () => {
-    updatePreferences.mutate({ hideSponsorButton: true });
+  const handleDontShowAgain = () => {
+    if (preferences) {
+      updatePreferences.mutate({ supportHidden: true });
+    } else {
+      writeLocalSupportHidden(true);
+    }
     setOpen(false);
   };
 
@@ -32,7 +61,7 @@ export function SponsorButton() {
         aria-label="Support Sonarly"
         className={cn(
           'flex h-11 w-11 items-center justify-center rounded-full text-accent transition',
-          'hover:bg-surface-hover hover:text-accent',
+          'hover:bg-surface-hover',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         )}
       >
@@ -46,12 +75,17 @@ export function SponsorButton() {
         className="max-w-md"
         footer={
           <div className="flex items-center justify-between gap-3">
-            <Button variant="primary" className="whitespace-nowrap" onClick={handleOpen}>
+            <a
+              href={SPONSOR_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn whitespace-nowrap"
+            >
               Open sponsors
-            </Button>
+            </a>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" className="whitespace-nowrap" onClick={handleHide}>
-                Don&apos;t show
+              <Button variant="ghost" className="whitespace-nowrap" onClick={handleDontShowAgain}>
+                Don&apos;t show again
               </Button>
               <Button variant="ghost" className="whitespace-nowrap" onClick={() => setOpen(false)}>
                 Close
