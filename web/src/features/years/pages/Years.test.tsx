@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, cleanup, waitFor } from '@testing-library/react';
+import { screen, cleanup, waitFor, fireEvent } from '@testing-library/react';
 import { Router } from 'wouter';
 import { Years } from './Years.js';
 import { renderWithQueryClient } from '../../../lib/testing.js';
@@ -13,6 +13,7 @@ vi.mock('../../../lib/api.js', () => ({
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  window.localStorage.clear();
 });
 
 describe('Years', () => {
@@ -29,11 +30,14 @@ describe('Years', () => {
           ],
         };
       }
+      if (path.startsWith('/albums?')) {
+        return { albums: [] };
+      }
       return {};
     });
   });
 
-  it('loads years and tracks (loading → success)', async () => {
+  it('loads years and tracks (loading → success), list shows the year only', async () => {
     renderWithQueryClient(
       <Router>
         <Years />
@@ -41,10 +45,33 @@ describe('Years', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('2020 — 1 song')).toBeTruthy();
+      expect(screen.getByText('2020')).toBeTruthy();
     });
-    expect(screen.getByText('2021 — 5 songs')).toBeTruthy();
+    expect(screen.getByText('2021')).toBeTruthy();
+    expect(screen.queryByText(/— \d+ song/)).toBeNull();
     expect(mockApi).toHaveBeenCalledWith('/years');
     expect(mockApi).toHaveBeenCalledWith('/songs');
+  });
+
+  it('switches to grid view and loads album covers per year', async () => {
+    renderWithQueryClient(
+      <Router>
+        <Years />
+      </Router>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('2021')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Grid view' }));
+
+    await waitFor(() => {
+      expect(mockApi).toHaveBeenCalledWith('/albums?year=2021&limit=4');
+      expect(mockApi).toHaveBeenCalledWith('/albums?year=2020&limit=4');
+    });
+    // Grid cards carry the count as a subtitle.
+    expect(screen.getByText('5 songs')).toBeTruthy();
+    expect(screen.getByText('1 song')).toBeTruthy();
   });
 });
