@@ -1,5 +1,8 @@
 // Screenshot capture for Sonarly's UI against a throwaway local instance.
-// Expects a running server (see run.sh) and writes PNGs to OUT_DIR.
+// Expects a running server (see run.sh). Captures every screen in both
+// color schemes into OUT_DIR/<scheme>/*.jpg (the app's default theme is
+// "auto", which follows the browser's prefers-color-scheme). JPEG keeps the
+// committed artifacts small; bump deviceScaleFactor for retina crispness.
 import { chromium } from 'playwright';
 import { mkdirSync, statSync } from 'node:fs';
 import path from 'node:path';
@@ -8,6 +11,7 @@ const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:4535';
 const USER = process.env.SONARLY_USER ?? 'screenshots';
 const PASS = process.env.SONARLY_PASSWORD ?? 'screenshots-pass-2026';
 const OUT = process.env.OUT_DIR ?? new URL('../../docs/img/screenshots/', import.meta.url).pathname;
+const SCHEMES = (process.env.SCHEMES ?? 'light,dark').split(',');
 mkdirSync(OUT, { recursive: true });
 
 // --- tiny cookie-jarred API client ---------------------------------------
@@ -74,55 +78,67 @@ if (songIds.length) {
 }
 console.log(`enriched: ${Math.min(10, songIds.length)} scrobbles, 2 playlists`);
 
-// --- browser ---------------------------------------------------------------
+// --- browser: one pass per color scheme ------------------------------------
 const browser = await chromium.launch({
   headless: true,
   args: ['--autoplay-policy=no-user-gesture-required', '--disable-dev-shm-usage'],
 });
-const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2 });
-for (const [name, value] of jar) {
-  await context.addCookies([{ name, value, domain: '127.0.0.1', path: '/', sameSite: 'Strict' }]);
-}
-const page = await context.newPage();
 
-async function settle() {
-  await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
-  await page.waitForFunction(
-    () => Array.from(document.querySelectorAll('img')).every((i) => i.complete),
-    { timeout: 8000 },
-  ).catch(() => {});
-  await page.waitForTimeout(700);
-}
+for (const scheme of SCHEMES) {
+  const dir = path.join(OUT, scheme);
+  mkdirSync(dir, { recursive: true });
+  const context = await browser.newContext({
+    viewport: { width: 1600, height: 1000 },
+    deviceScaleFactor: 2,
+    colorScheme: scheme,
+  });
+  for (const [name, value] of jar) {
+    await context.addCookies([{ name, value, domain: '127.0.0.1', path: '/', sameSite: 'Strict' }]);
+  }
+  const page = await context.newPage();
+  const kb = (f) => `${(statSync(path.join(dir, f)).size / 1024).toFixed(0)} KB`;
 
-async function shot(route, file) {
-  await page.goto(BASE + route, { waitUntil: 'load' });
-  await page.addStyleTag({ content: '::-webkit-scrollbar { display: none; }' }).catch(() => {});
+  async function settle() {
+    await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
+    await page.waitForFunction(
+      () => Array.from(document.querySelectorAll('img')).every((i) => i.complete),
+      { timeout: 8000 },
+    ).catch(() => {});
+    await page.waitForTimeout(700);
+  }
+
+  async function shot(route, file) {
+    await page.goto(BASE + route, { waitUntil: 'load' });
+    await page.addStyleTag({ content: '::-webkit-scrollbar { display: none; }' }).catch(() => {});
+    await settle();
+    await page.screenshot({ path: path.join(dir, file), type: 'jpeg', quality: 90 });
+    console.log(`captured ${scheme}/${file} (${kb(file)})`);
+  }
+
+  await shot('/home', 'home.jpg');
+  await shot('/albums', 'albums.jpg');
+
+  // album detail; start playback via the header Play button so the player bar
+  // is live (and /now-playing renders the queue instead of redirecting).
+  await page.goto(BASE + `/albums/${albums[0].id}`, { waitUntil: 'load' });
   await settle();
-  const target = path.join(OUT, file);
-  await page.screenshot({ path: target });
-  console.log(`captured ${file} (${(statSync(target).size / 1024).toFixed(0)} KB)`);
-}
-
-await shot('/home', 'home.png');
-await shot('/albums', 'albums.png');
-
-// album detail + try to start playback (best effort — selectors may drift)
-await page.goto(BASE + `/albums/${albums[0].id}`, { waitUntil: 'load' });
-await settle();
-await page.screenshot({ path: path.join(OUT, 'album.png') });
-console.log(`captured album.png (${(statSync(path.join(OUT, 'album.png')).size / 1024).toFixed(0)} KB)`);
-for (const sel of ['button[title*="lay" i]', '[aria-label*="lay" i]', 'button:has(svg)']) {
   try {
-    await page.locator(sel).first().click({ timeout: 1500 });
-    await page.waitForTimeout(1500);
-    break;
-  } catch { /* try next selector */ }
-}
+    await page.locator('button:has-text("Play")').first().click({ timeout: 3000 });
+    await page.waitForTimeout(2000);
+    console.log(`${scheme}: playback started`);
+  } catch {
+    console.warn(`warn [${scheme}]: could not start playback`);
+  }
+  await page.screenshot({ path: path.join(dir, 'album.jpg'), type: 'jpeg', quality: 90 });
+  console.log(`captured ${scheme}/album.jpg (${kb('album.jpg')})`);
 
-await shot('/now-playing', 'now-playing.png');
-await shot('/playlists', 'playlists.png');
-await shot('/statistics', 'statistics.png');
-await shot('/admin/libraries', 'admin-libraries.png');
+  await shot('/now-playing', 'now-playing.jpg');
+  await shot('/playlists', 'playlists.jpg');
+  await shot('/statistics', 'statistics.jpg');
+  await shot('/admin/libraries', 'admin-libraries.jpg');
+
+  await context.close();
+}
 
 await browser.close();
 console.log('done ->', OUT);

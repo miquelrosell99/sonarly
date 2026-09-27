@@ -13,6 +13,9 @@ LIB="$RUNTIME/library"
 DB="$RUNTIME/db"
 OUT="$REPO_ROOT/docs/img/screenshots"
 
+if [ "${KEEP_RUNTIME:-0}" != "1" ]; then
+  rm -rf "$RUNTIME"
+fi
 mkdir -p "$DB" "$OUT"
 
 if [ ! -d "$LIB" ] || [ -z "$(ls -A "$LIB" 2>/dev/null)" ]; then
