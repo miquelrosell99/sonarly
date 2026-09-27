@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { DuplicateStrategy } from '../types';
 import { api } from '../lib/api.js';
 
@@ -22,7 +22,28 @@ export interface UseUploadReturn {
   progress: UploadProgress;
   isUploading: boolean;
   error: string | null;
-  uploadFiles: (files: UploadFile[], libraryId: string, duplicateStrategy?: DuplicateStrategy) => Promise<void>;
+  uploadFiles: (
+    files: UploadFile[],
+    libraryId: string,
+    duplicateStrategy?: DuplicateStrategy,
+    options?: UploadOptions,
+  ) => Promise<void>;
+  /** Abort the in-flight upload (if any). Subsequent chunks are not sent. */
+  abort: () => void;
+}
+
+export interface UploadOptions {
+  signal?: AbortSignal;
+}
+
+/** Rejection marker for user-initiated cancels (distinct from a failed chunk). */
+export class UploadAbortedError extends Error {
+  readonly aborted = true;
+
+  constructor() {
+    super('Upload cancelled');
+    this.name = 'UploadAbortedError';
+  }
 }
 
 function generateFileId(): string {
@@ -33,6 +54,8 @@ function generateFileId(): string {
  * Upload one chunk: PUT application/octet-stream, the body is the chunk
  * bytes exactly (see server/internal/modules/uploads/routes.go).
  * XHR (not fetch) because upload progress events have no fetch equivalent.
+ * Non-2xx bodies are parsed as the server's `{error}` JSON envelope; a 401
+ * additionally dispatches `sonarly:unauthorized` (same contract as lib/api).
  */
 async function uploadChunk(
   sessionId: string,
@@ -40,6 +63,7 @@ async function uploadChunk(
   index: number,
   chunk: Blob,
   onProgress?: (loaded: number, total: number) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   const url = `/api/upload/sessions/${sessionId}/files/${fileId}/chunks/${index}`;
 
@@ -51,16 +75,34 @@ async function uploadChunk(
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve();
-      } else {
-        reject(new Error(xhr.statusText || `Upload failed (${xhr.status})`));
+        return;
       }
+      let message = xhr.statusText || `Upload failed (${xhr.status})`;
+      try {
+        const parsed = JSON.parse(xhr.responseText) as { error?: string };
+        if (parsed.error) message = parsed.error;
+      } catch {
+        // Not a JSON body; surface the statusText fallback.
+      }
+      if (xhr.status === 401 && typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('sonarly:unauthorized'));
+      }
+      reject(new Error(message));
     };
     xhr.onerror = () => reject(new Error('Network error while uploading chunk'));
+    xhr.onabort = () => reject(new UploadAbortedError());
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress) {
         onProgress(e.loaded, e.total);
       }
     };
+    if (signal) {
+      if (signal.aborted) {
+        reject(new UploadAbortedError());
+        return;
+      }
+      signal.addEventListener('abort', () => xhr.abort(), { once: true });
+    }
     xhr.send(chunk);
   });
 }
@@ -75,11 +117,29 @@ export function useUpload(): UseUploadReturn {
     currentFileProgress: 0,
   });
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const abort = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
+
   const uploadFiles = useCallback(async (
     files: UploadFile[],
     libraryId: string,
     duplicateStrategy?: DuplicateStrategy,
+    options?: UploadOptions,
   ): Promise<void> => {
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    if (options?.signal) {
+      if (options.signal.aborted) {
+        controller.abort();
+      } else {
+        options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+      }
+    }
+    const signal = controller.signal;
+
     setIsUploading(true);
     setError(null);
     setProgress({
@@ -100,6 +160,7 @@ export function useUpload(): UseUploadReturn {
       });
 
       for (let i = 0; i < files.length; i++) {
+        if (signal.aborted) throw new UploadAbortedError();
         const { file, relativePath } = files[i];
         const fileId = generateFileId();
         const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
@@ -111,6 +172,7 @@ export function useUpload(): UseUploadReturn {
         }));
 
         for (let index = 0; index < totalChunks; index++) {
+          if (signal.aborted) throw new UploadAbortedError();
           const start = index * CHUNK_SIZE;
           const end = Math.min(file.size, start + CHUNK_SIZE);
           const chunk = file.slice(start, end);
@@ -119,7 +181,7 @@ export function useUpload(): UseUploadReturn {
             const chunkProgress = total > 0 ? loaded / total : 0;
             const overallFileProgress = (index + chunkProgress) / totalChunks;
             setProgress((prev) => ({ ...prev, currentFileProgress: overallFileProgress * 100 }));
-          });
+          }, signal);
         }
 
         await api(`/upload/sessions/${sessionId}/files/${fileId}/complete`, {
@@ -136,13 +198,20 @@ export function useUpload(): UseUploadReturn {
 
       await api(`/upload/sessions/${sessionId}/complete`, { method: 'POST' });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Upload failed';
-      setError(message);
+      if (err instanceof UploadAbortedError) {
+        // User cancel: no error state; the caller keeps its file list so the
+        // upload can be retried.
+        setError(null);
+      } else {
+        const message = err instanceof Error ? err.message : 'Upload failed';
+        setError(message);
+      }
       throw err;
     } finally {
       setIsUploading(false);
+      abortControllerRef.current = null;
     }
   }, []);
 
-  return { progress, isUploading, error, uploadFiles };
+  return { progress, isUploading, error, uploadFiles, abort };
 }
