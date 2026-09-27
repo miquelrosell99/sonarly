@@ -124,7 +124,7 @@ describe('NowPlaying', () => {
     expect(document.activeElement).toBe(first);
   });
 
-  it('does not close when a queue context menu is open and Escape is pressed', () => {
+  it('does not close when a queue context menu is open and Escape is pressed', async () => {
     useNowPlaying.getState().open();
     usePlayer.getState().playQueue(
       [
@@ -134,7 +134,8 @@ describe('NowPlaying', () => {
       0,
     );
     render(<NowPlaying user={mockUser} />, { wrapper: Wrapper });
-    fireEvent.contextMenu(screen.getByText('Next'));
+    // QueuePanel is lazy (audit F19): the queue tab chunk resolves after open.
+    fireEvent.contextMenu(await screen.findByText('Next'));
     expect(screen.queryByRole('menu')).toBeTruthy();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(useNowPlaying.getState().isOpen).toBe(true);

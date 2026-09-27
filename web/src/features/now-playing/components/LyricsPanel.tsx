@@ -1,14 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { User } from '../../../types';
 import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { api } from '../../../lib/api.js';
 import { usePlayer } from '../../../stores/playerStore.js';
-import { SyncedLyricsEditor } from '../../songs/index.js';
 import { FetchLyricsModal } from '../../../components/FetchLyricsModal.js';
 import { normalizeSyncedLyrics } from '../../../lib/syncedLyrics.js';
 import type { NowPlayingTab } from '../stores/nowPlayingStore.js';
+
+// Audit F29 (plan P8 step 5): the editor (~600 LOC, owns an audio preview)
+// sat in the entry chunk because this panel is always mounted with the
+// overlay. Lazy-loading keeps it out of first paint; the chunk only loads
+// when an admin first opens the editor.
+const SyncedLyricsEditor = lazy(() =>
+  import('../../songs/components/SyncedLyricsEditor.js').then((m) => ({ default: m.SyncedLyricsEditor })),
+);
 
 interface LyricsPanelProps {
   user: User;
@@ -56,19 +63,21 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
   const plainLyrics = data?.lyrics;
 
   const editorModal = editorOpen && currentSong ? (
-    <SyncedLyricsEditor
-      songId={currentSong.id}
-      title={currentSong.title}
-      artistName={currentSong.artistName}
-      duration={currentSong.duration}
-      onClose={() => setEditorOpen(false)}
-      onSaved={() => {
-        setEditorOpen(false);
-        if (songId) {
-          queryClient.invalidateQueries({ queryKey: ['lyrics', songId] });
-        }
-      }}
-    />
+    <Suspense fallback={null}>
+      <SyncedLyricsEditor
+        songId={currentSong.id}
+        title={currentSong.title}
+        artistName={currentSong.artistName}
+        duration={currentSong.duration}
+        onClose={() => setEditorOpen(false)}
+        onSaved={() => {
+          setEditorOpen(false);
+          if (songId) {
+            queryClient.invalidateQueries({ queryKey: ['lyrics', songId] });
+          }
+        }}
+      />
+    </Suspense>
   ) : null;
 
   const fetchModal = currentSong ? (

@@ -95,6 +95,32 @@ function sampleCoverArt(url: string): Promise<string | null> {
   });
 }
 
+// Audit F29 (plan P8): Layout and the NowPlaying overlay both sample the same
+// cover URL when the track changes. A module-level promise cache dedups
+// in-flight decodes across consumers and replays settled ones, so a track
+// change decodes once no matter how many hooks mount. Bounded FIFO: when the
+// 201st URL is decoded the oldest entry is evicted. Failed decodes (null) are
+// dropped from the cache so a transient error retries on the next mount.
+const DECODE_CACHE_MAX = 200;
+const decodeCache = new Map<string, Promise<string | null>>();
+
+function cachedSample(url: string): Promise<string | null> {
+  const hit = decodeCache.get(url);
+  if (hit) return hit;
+  const promise = sampleCoverArt(url);
+  decodeCache.set(url, promise);
+  if (decodeCache.size > DECODE_CACHE_MAX) {
+    const oldest = decodeCache.keys().next().value;
+    if (oldest !== undefined) decodeCache.delete(oldest);
+  }
+  promise.then((sampled) => {
+    if (sampled === null && decodeCache.get(url) === promise) {
+      decodeCache.delete(url);
+    }
+  });
+  return promise;
+}
+
 export function useDominantColor(url: string | undefined) {
   const [color, setColor] = useState<string | null>(null);
 
@@ -105,7 +131,7 @@ export function useDominantColor(url: string | undefined) {
     }
 
     let cancelled = false;
-    sampleCoverArt(url).then((sampled) => {
+    cachedSample(url).then((sampled) => {
       if (!cancelled) setColor(sampled);
     });
 

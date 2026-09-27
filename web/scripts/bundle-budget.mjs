@@ -20,6 +20,11 @@ export const LIMITS = {
 };
 
 const VENDOR_RE = /^(react|tanstack|dnd-kit|wouter|zustand)-.+\.js$/;
+const DND_VENDOR_RE = /^dnd-kit-.+\.js$/;
+// Static import specifiers in a built chunk (`from"./x.js"`, `import"./x.js"`).
+// Dynamic `import("./x.js")` has no `from` and is intentionally not matched —
+// lazy chunks load through it.
+const STATIC_IMPORT_RE = /(?:\bfrom\s*|\bimport\s*)(["'])(\.\/[^"']+)\1/g;
 const KIB = 1024;
 
 const fmt = (bytes) => `${(bytes / KIB).toFixed(1)} KiB`;
@@ -55,6 +60,16 @@ export function checkBudget(assetsDir, limits = LIMITS) {
     offenders.push({ ...entry, limit: limits.entry });
   }
 
+  // Audit F19 (plan P8): QueueModal/QueuePanel are lazy, so the entry chunk
+  // must never *statically* import the dnd-kit vendor chunk. A static edge
+  // means drag-and-drop shipped on first paint again (e.g. /login).
+  let entryImports = [];
+  if (entryName) {
+    const entrySource = readFileSync(join(dir, entryName), 'utf8');
+    entryImports = [...entrySource.matchAll(STATIC_IMPORT_RE)].map((m) => m[2].slice(2));
+  }
+  const forbiddenImports = entryImports.filter((name) => DND_VENDOR_RE.test(name));
+
   let total = 0;
   for (const chunk of chunks) {
     total += chunk.bytes;
@@ -67,7 +82,16 @@ export function checkBudget(assetsDir, limits = LIMITS) {
     offenders.push({ name: '(total JS)', bytes: total, limit: limits.total });
   }
 
-  return { ok: offenders.length === 0, chunks, entryName, total, offenders, limits };
+  return {
+    ok: offenders.length === 0 && forbiddenImports.length === 0,
+    chunks,
+    entryName,
+    total,
+    offenders,
+    entryImports,
+    forbiddenImports,
+    limits,
+  };
 }
 
 export function formatReport(result) {
@@ -85,6 +109,13 @@ export function formatReport(result) {
     lines.push('Bundle budget exceeded:');
     for (const o of result.offenders) {
       lines.push(`  ✗ ${o.name}: ${fmt(o.bytes)} over the ${fmt(o.limit)} limit${o.note ? ` (${o.note})` : ''}`);
+    }
+  }
+  if (result.forbiddenImports.length > 0) {
+    lines.push('');
+    lines.push('Chunk-graph violation:');
+    for (const name of result.forbiddenImports) {
+      lines.push(`  ✗ entry chunk statically imports ${name} — dnd-kit must stay out of the entry chunk (QueueModal/QueuePanel are lazy, audit F19)`);
     }
   }
   return lines.join('\n');
