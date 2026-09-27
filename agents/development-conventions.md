@@ -18,7 +18,7 @@
 
 - Code is organized **feature-first**: each domain lives under `src/features/<name>/`; cross-feature imports go through the feature's public entry points, never deep internal files.
 - Shared UI primitives live in `web/src/components/` (and `components/ui/`); the app shell is `components/Layout.tsx`.
-- Domain/entity types live in `web/src/types/` (migrated from the retired `@sonarly/shared` package); the generated API contract lives in `src/contract/`.
+- Domain/entity types live in `web/src/types/` (migrated from the retired `@sonarly/shared` package); generated API types live in `src/contract/schema.ts` (types-only — runtime HTTP goes through `src/lib/api.ts`, the canonical client).
 - Web tests live next to source (`*.test.ts(x)`); page tests render through `web/src/lib/testing.tsx`.
 
 ## Server state (react-query)

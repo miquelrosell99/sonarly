@@ -64,4 +64,4 @@ The web client generates its TypeScript types from the spec:
 pnpm --filter @sonarly/web contract:gen   # server/api/openapi.yaml → web/src/contract/schema.ts
 ```
 
-`web/src/contract/wrapper.ts` layers typed access over the generated schema. Regenerate after changing the spec.
+`web/src/contract/schema.ts` is **types-only** for now: runtime code calls the API through `web/src/lib/api.ts` (the canonical HTTP client), and no client module imports the generated schema yet — it is kept as the source for the planned type consolidation. Regenerate after changing the spec; CI fails if the committed schema drifts from the spec.

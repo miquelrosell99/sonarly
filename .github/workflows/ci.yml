@@ -37,3 +37,9 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Verify generated contract schema is up to date
+        working-directory: web
+        run: |
+          node scripts/contract-gen.mjs /tmp/sonarly-contract-schema.ts
+          diff -u src/contract/schema.ts /tmp/sonarly-contract-schema.ts

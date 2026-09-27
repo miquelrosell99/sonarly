@@ -26,7 +26,7 @@ web/                    # React web client
 └── src/
     ├── features/       # domain-first pages/components (albums, playlists, admin, …)
     ├── components/     # shared UI primitives (PlayerBar, Sidebar, ui/*, …)
-    ├── contract/       # generated OpenAPI types + typed wrapper
+    ├── contract/       # generated OpenAPI types (schema.ts; types-only, not yet imported)
     ├── types/          # domain types (entities, preferences, smart-playlist rules)
     ├── hooks/          # react-query hooks and interaction logic
     ├── stores/         # Zustand client-state stores (player, library, theme)
@@ -93,7 +93,7 @@ The server is a modular monolith: each domain owns its package, its repository f
 
 - React 18 + Vite 6 + Tailwind CSS 3, wouter router, TanStack Query for server state, Zustand for client state.
 - Feature-first pages under `src/features/<name>/`; shared primitives under `src/components/`.
-- API access through `src/contract/` (OpenAPI-generated types + typed wrapper); auth errors are handled centrally.
+- API access through `src/lib/api.ts` (the canonical HTTP client; auth errors are handled centrally by dispatching `sonarly:unauthorized` on 401). `src/contract/schema.ts` holds OpenAPI-generated types only — runtime code does not import it yet (planned type-consolidation source).
 - Every route is lazy-loaded (per-route chunks); long lists render through virtualized lists/grids.
 - Design tokens and visual principles: [design-language.md](design-language.md).
 
