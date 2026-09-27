@@ -189,7 +189,9 @@ describe('Album detail header delete (admin)', () => {
     renderAlbum('/albums/al-1', createTestQueryClient(), nonAdmin);
 
     await waitFor(() => expect(screen.getAllByText('The Album').length).toBeGreaterThan(0));
-    expect(screen.queryByRole('button', { name: /^delete$/i })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    expect(screen.queryByRole('menuitem', { name: 'Delete' })).toBeNull();
   });
 
   it('lets an admin delete the album after confirmation: DELETE, invalidation, toast, navigation', async () => {
@@ -202,7 +204,8 @@ describe('Album detail header delete (admin)', () => {
 
     await waitFor(() => expect(screen.getAllByText('The Album').length).toBeGreaterThan(0));
 
-    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
 
     // ConfirmModal asks first; no DELETE request until confirmed
     const dialog = screen.getByRole('dialog');
@@ -225,7 +228,8 @@ describe('Album detail header delete (admin)', () => {
 
     await waitFor(() => expect(screen.getAllByText('The Album').length).toBeGreaterThan(0));
 
-    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
 
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -261,7 +265,7 @@ describe('Album detail header delete (admin)', () => {
     expect(screen.queryByRole('menuitem', { name: 'Delete' })).toBeNull();
   });
 
-  it('renders the favorite/rating group before Edit and Delete in the header', async () => {
+  it('renders favorite/rating on their own row and Edit/Delete inside the More actions menu', async () => {
     renderAlbum('/albums/al-1');
 
     await waitFor(() => expect(screen.getAllByText('The Album').length).toBeGreaterThan(0));
@@ -269,17 +273,18 @@ describe('Album detail header delete (admin)', () => {
     // The header favorite is the first of several (song rows carry their own).
     const favorite = screen.getAllByRole('button', { name: 'Add favorite' })[0];
     const rating = screen.getByRole('button', { name: 'Rate 5 stars' });
-    const edit = screen.getByRole('button', { name: 'Edit' });
-    const deleteButton = screen.getByRole('button', { name: /^delete$/i });
 
     expect(
       favorite.compareDocumentPosition(rating) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+
+    // Edit and Delete now live in the header "More actions" menu, Edit first.
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    const edit = screen.getByRole('menuitem', { name: 'Edit' });
+    const deleteItem = screen.getByRole('menuitem', { name: 'Delete' });
+
     expect(
-      rating.compareDocumentPosition(edit) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      edit.compareDocumentPosition(deleteButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+      edit.compareDocumentPosition(deleteItem) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 });

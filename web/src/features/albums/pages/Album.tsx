@@ -3,13 +3,12 @@ import { useParams, useLocation } from 'wouter';
 import type { Album as AlbumSummary, Song as SharedSong, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { cn } from '../../../lib/cn.js';
-import { Button } from '../../../components/ui/Button.js';
-import { Icon } from '../../../components/ui/Icon.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { CoverArt } from '../../../components/CoverArt.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { PlayButton } from '../../../components/PlayButton.js';
+import { EntityActionsMenu } from '../../../components/EntityActionsMenu.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
@@ -72,6 +71,12 @@ export function Album({ user, underlay }: { user: User; underlay?: UnderlayParam
   const [albumEditing, setAlbumEditing] = useState<AlbumSummary | null>(null);
   const [syncEditing, setSyncEditing] = useState<SongWithNames | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  // Header "..." menu: the same sections as the cover/title right-click menu,
+  // with Edit prepended (the hook only owns playback/download/navigation/Delete).
+  const albumMenuSections = useAlbumContextMenu(
+    { id: detail?.album.id ?? '' },
+    { isAdmin: user.isAdmin, onDelete: () => setDeleteOpen(true) },
+  );
   const [coverArtBusy, setCoverArtBusy] = useState(false);
   const albumCoverInputRef = useRef<HTMLInputElement>(null);
   const { setFavorite, setRating } = useFavoriteActions();
@@ -315,16 +320,12 @@ export function Album({ user, underlay }: { user: User; underlay?: UnderlayParam
             <PlayButton variant="default" onPlay={handlePlayAlbum} onShufflePlay={handleShuffleAlbumSongs}>
               Play
             </PlayButton>
-            <Button variant="ghost" onClick={() => setAlbumEditing(detail.album)} className="gap-2">
-              <Icon name="mdi-pencil" size={18} />
-              Edit
-            </Button>
-            {user.isAdmin && (
-              <Button variant="danger" onClick={() => setDeleteOpen(true)} className="gap-2">
-                <Icon name="mdi-delete" size={18} />
-                Delete
-              </Button>
-            )}
+            <EntityActionsMenu
+              sections={[
+                { items: [{ id: 'edit', label: 'Edit', icon: 'mdi-pencil', onClick: () => setAlbumEditing(detail.album) }] },
+                ...albumMenuSections,
+              ]}
+            />
           </>
         )
       }

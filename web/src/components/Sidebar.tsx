@@ -217,7 +217,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
 
   return (
     <>
-      <aside className="hidden w-60 shrink-0 flex-col bg-surface md:flex">{body}</aside>
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-rule/60 bg-surface md:flex">{body}</aside>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-[60] md:hidden">
