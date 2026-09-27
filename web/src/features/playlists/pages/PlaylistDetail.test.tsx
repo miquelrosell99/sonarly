@@ -151,7 +151,8 @@ describe('PlaylistDetail', () => {
       expect(screen.getByText('Track One')).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
 
     // ConfirmModal asks first; no DELETE request until confirmed
     const dialog = screen.getByRole('dialog');
@@ -178,7 +179,8 @@ describe('PlaylistDetail', () => {
       expect(screen.getByText('Track One')).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
 
     expect(screen.queryByRole('dialog')).toBeNull();

@@ -8,6 +8,7 @@ import { CoverArt } from '../../../components/CoverArt.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
+import { EntityActionsMenu } from '../../../components/EntityActionsMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { formatDuration } from '../../../lib/format.js';
 import { api } from '../../../lib/api.js';
@@ -56,6 +57,19 @@ export function Track({ user }: { user: User }) {
   const { notify } = useNotification();
   const songMutation = useLibraryMutation('song');
   const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
+  // Header "..." menu: Edit leads (it is not admin-gated — the old header
+  // button wasn't either), followed by the hook's playback/navigation/download
+  // sections. The hook's own trailing Edit section is dropped: it would
+  // duplicate ours for admins and its Delete lands before Edit.
+  const trackMenuSections = [
+    { items: [{ id: 'edit', label: 'Edit', icon: 'mdi-pencil', onClick: () => setEditing(true) }] },
+    ...useSongContextMenu(
+      track ?? ({ id: '' } as Song),
+      () => setEditing(true),
+      user.isAdmin,
+      { onDelete: () => setDeleteOpen(true) },
+    ).filter((section) => !section.items.some((item) => item.id === 'edit')),
+  ];
 
   const handleFavorite = async (starred: boolean) => {
     if (!track) return;
@@ -150,16 +164,7 @@ export function Track({ user }: { user: User }) {
                 <Icon name="mdi-play" size={18} />
                 Play
               </Button>
-              <Button variant="ghost" onClick={() => setEditing(true)} className="gap-2">
-                <Icon name="mdi-pencil" size={18} />
-                Edit
-              </Button>
-              {user.isAdmin && (
-                <Button variant="danger" onClick={() => setDeleteOpen(true)} className="gap-2">
-                  <Icon name="mdi-delete" size={18} />
-                  Delete
-                </Button>
-              )}
+              <EntityActionsMenu sections={trackMenuSections} />
             </>
           )
         }

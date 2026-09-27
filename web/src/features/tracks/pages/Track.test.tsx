@@ -144,7 +144,10 @@ describe('Track detail (react-query, P5)', () => {
     renderTrack('/tracks/t1', queryClient);
     await screen.findByText('Song t1');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    // Non-admins get no Delete in the header menu; Edit opens the modal,
+    // whose Delete drives the same confirm flow.
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
     fireEvent.click(screen.getAllByRole('button', { name: 'Delete' })[0]);
     fireEvent.click(screen.getAllByRole('button', { name: 'Delete' })[1]);
 
@@ -210,7 +213,8 @@ describe('Track detail header delete (admin)', () => {
 
     await screen.findByText('Song t1');
 
-    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
 
     // ConfirmModal asks first; no DELETE request until confirmed
     const dialog = screen.getByRole('dialog');
@@ -235,7 +239,8 @@ describe('Track detail header delete (admin)', () => {
 
     await screen.findByText('Song t1');
 
-    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
 
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -283,26 +288,26 @@ describe('Track detail header action order', () => {
     });
   });
 
-  it('renders the favorite/rating group as a row before Edit and Delete', async () => {
+  it('renders the favorite/rating group on their own row, with Edit/Delete inside the More actions menu', async () => {
     renderTrack('/tracks/t1', createTestQueryClient(), admin);
 
     await screen.findByText('Song t1');
 
     const favorite = screen.getByRole('button', { name: 'Add favorite' });
     const rating = screen.getByRole('button', { name: 'Rate 5 stars' });
-    const edit = screen.getByRole('button', { name: 'Edit' });
-    const deleteButton = screen.getByRole('button', { name: /^delete$/i });
 
     // The favorite star and the rating control sit in one group…
     expect(
       favorite.compareDocumentPosition(rating) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    // …and that group precedes Edit, which precedes Delete.
+
+    // …and Edit precedes Delete inside the header "More actions" menu.
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    const edit = screen.getByRole('menuitem', { name: 'Edit' });
+    const deleteItem = screen.getByRole('menuitem', { name: 'Delete' });
+
     expect(
-      rating.compareDocumentPosition(edit) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      edit.compareDocumentPosition(deleteButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+      edit.compareDocumentPosition(deleteItem) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
@@ -312,11 +317,13 @@ describe('Track detail header action order', () => {
     await screen.findByText('Song t1');
 
     const favorite = screen.getByRole('button', { name: 'Add favorite' });
-    const edit = screen.getByRole('button', { name: 'Edit' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    const edit = screen.getByRole('menuitem', { name: 'Edit' });
 
     expect(
       favorite.compareDocumentPosition(edit) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /^delete$/i })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: 'Delete' })).toBeNull();
   });
 });

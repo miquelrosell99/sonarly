@@ -7,7 +7,6 @@ import { FavoriteButton, StarRating } from './ActionButtons.js';
 import { ItemContextMenu } from './ItemContextMenu.js';
 import { ControlButton, PlayPauseButton, Slider } from './PlayerControls.js';
 import { ExplicitTitle } from './ExplicitTitle.js';
-import { SleepTimerButton } from './SleepTimerButton.js';
 import { TrackActionsMenu } from './TrackActionsMenu.js';
 import { usePlayer, type PlayerSong } from '../stores/playerStore.js';
 import { useSongInteraction } from '../hooks/useSongInteraction.js';
@@ -303,9 +302,15 @@ export function PlayerBar({ user }: PlayerBarProps) {
           <SeekProgress disabled={!hasTrack} />
         </div>
 
-        {/* Right: rating + DJ + favorite + volume */}
+        {/* Right: favorite + rating paired on one row; DJ + queue beside them; more + volume below */}
         <div className="flex min-w-0 flex-col items-end justify-center gap-1">
           <div className="flex items-center gap-2">
+            <FavoriteButton
+              starred={starred}
+              onClick={() => handleFavorite(!starred)}
+              label={starred ? 'Remove favorite' : 'Add favorite'}
+              disabled={!hasTrack}
+            />
             <fieldset disabled={!hasTrack} aria-label="Rating" className="m-0 hidden border-0 p-0 disabled:cursor-not-allowed disabled:opacity-40 lg:block">
               <StarRating
                 rating={rating}
@@ -356,17 +361,8 @@ export function PlayerBar({ user }: PlayerBarProps) {
                 <QueueModal user={user} />
               </Suspense>
             )}
-            <div className="hidden lg:block">
-              <SleepTimerButton />
-            </div>
           </div>
           <div className="flex items-center gap-2">
-            <FavoriteButton
-              starred={starred}
-              onClick={() => handleFavorite(!starred)}
-              label={starred ? 'Remove favorite' : 'Add favorite'}
-              disabled={!hasTrack}
-            />
             <TrackActionsMenu song={currentSong} />
             <ControlButton
               onClick={() => setVolume(volume > 0 ? 0 : 1)}

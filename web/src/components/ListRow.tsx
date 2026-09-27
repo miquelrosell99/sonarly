@@ -169,12 +169,24 @@ export function ListRow({
       {highlightedTitle}
       {restCells}
       {favorite && (
-        <td className="py-2 pr-4">
+        <td
+          className={cn(
+            'py-2 pr-4 transition-opacity',
+            // Hover-reveal keeps rows quiet on desktop; .hover-reveal forces
+            // full opacity on touch (no hover). A set favorite stays visible.
+            !favorite.starred && 'opacity-0 hover-reveal group-hover:opacity-100 group-focus-within:opacity-100',
+          )}
+        >
           <FavoriteButton starred={favorite.starred} onClick={favorite.onClick} />
         </td>
       )}
       {rating && (
-        <td className="py-2 pr-4">
+        <td
+          className={cn(
+            'py-2 pr-4 transition-opacity',
+            !rating.value && 'opacity-0 hover-reveal group-hover:opacity-100 group-focus-within:opacity-100',
+          )}
+        >
           <StarRating rating={rating.value} onRate={rating.onRate} />
         </td>
       )}
