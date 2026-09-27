@@ -22,13 +22,15 @@ for ((ai = 0; ai < NA; ai++)); do
   dir="$OUT/$artist/$album"
   mkdir -p "$dir"
 
-  case $((ai % 4)) in
-    0) X0=0;  Y0=0;    X1=1200; Y1=0 ;;
-    1) X1=0;  Y1=1200; X0=0;    Y0=0 ;;
-    2) X0=0;  Y0=1200; X1=1200; Y1=0 ;;
-    3) X0=1200; Y0=0;  X1=0;    Y1=1200 ;;
-  esac
-  ffmpeg -y -loglevel error -f lavfi -i "gradients=size=1200x1200:c0=${C0[$ai]}:c1=${C1[$ai]}:x0=$X0:y0=$Y0:x1=$X1:y1=$Y1:duration=1:rate=1" -frames:v 1 "$dir/cover.png"
+  # Cover: multi-stop radial/circular gradient + film grain + vignette.
+  # c2/c3 rotate the palette so each album mixes two curated color pairs.
+  nb=$((2 + ai % 3))
+  c2="${C0[$(( (ai + 1) % NA ))]}"; c3="${C1[$(( (ai + 1) % NA ))]}"
+  cx=$(( (ai * 421) % 1200 )); cy=$(( (ai * 719) % 1200 ))
+  gtype=$((1 + ai % 2)) # 1=radial, 2=circular
+  ffmpeg -y -loglevel error \
+    -f lavfi -i "gradients=size=1200x1200:c0=${C0[$ai]}:c1=${C1[$ai]}:c2=$c2:c3=$c3:nb_colors=$nb:seed=$((ai + 1)):type=$gtype:x0=$cx:y0=$cy:rate=1:duration=1" \
+    -frames:v 1 -vf "noise=alls=4:allf=t,vignette=PI/5" "$dir/cover.png"
 
   ntracks=$((6 + ai % 4))
   for ((ti = 0; ti < ntracks; ti++)); do
