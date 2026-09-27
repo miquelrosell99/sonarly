@@ -5,8 +5,6 @@ import type { Playlist, Song, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import type { UnderlayParams } from '../../../lib/types.js';
 import { songFromPlaylistEntry } from '../../../lib/entityMappers.js';
-import { Button } from '../../../components/ui/Button.js';
-import { Icon } from '../../../components/ui/Icon.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { EmptyState } from '../../../components/ui/EmptyState.js';
@@ -18,6 +16,7 @@ import { usePlayer } from '../../../stores/playerStore.js';
 import { patchToPlayerSong } from '../../../lib/songPatch.js';
 import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js';
 import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
+import { EntityActionsMenu } from '../../../components/EntityActionsMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
@@ -263,25 +262,18 @@ export function PlaylistDetail({ user, underlay }: PlaylistDetailProps) {
             >
               Play
             </PlayButton>
-            {user && (
-              <>
-                <Button variant="ghost" onClick={() => openForEdit(playlist.id)}>
-                  <Icon name="mdi-pencil" size={18} className="mr-1.5" />
-                  Edit
-                </Button>
-                {isOwner && (
-                  <Button variant="danger" onClick={() => setDeleteOpen(true)}>
-                    <Icon name="mdi-delete" size={18} className="mr-1.5" />
-                    Delete
-                  </Button>
-                )}
-                {isOwner && (
-                  <Button variant="ghost" onClick={() => setShareOpen(true)}>
-                    <Icon name="mdi-share-variant" size={18} className="mr-1.5" />
-                    Share
-                  </Button>
-                )}
-              </>
+            {user && playlist && (
+              <EntityActionsMenu
+                sections={[
+                  {
+                    items: [
+                      { id: 'edit', label: 'Edit', icon: 'mdi-pencil', onClick: () => openForEdit(playlist.id) },
+                      ...(isOwner ? [{ id: 'share', label: 'Share', icon: 'mdi-share-variant', onClick: () => setShareOpen(true) }] : []),
+                      ...(isOwner ? [{ id: 'delete', label: 'Delete', icon: 'mdi-delete', variant: 'danger' as const, onClick: () => setDeleteOpen(true) }] : []),
+                    ],
+                  },
+                ]}
+              />
             )}
           </>
         )

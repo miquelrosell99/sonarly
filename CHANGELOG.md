@@ -5,6 +5,20 @@ All notable changes to Sonarly are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.2] - 2026-09-27
+
+### Changed
+
+- **Entity headers**: Edit/Delete/Share no longer render as header buttons. They moved behind a single "More actions" (⋯) menu on the album, song, and playlist detail pages, alongside the full right-click context menu (playback, download, navigation, delete) — the header row now carries only Play + ⋯.
+- **Track header Edit is not admin-gated** and leads the ⋯ menu; Delete stays admin-only and last.
+- **Player bar**: favorite and rating controls now sit side by side on the top row (with Auto DJ and queue), and the sleep timer moved into the "More actions" menu (one level deep: Off / 5–60 min / end of track). While a timer runs, the trigger icon swaps to a timer so the state stays visible.
+- **List rows**: per-row favorite and rating controls hide until row hover on hover-capable devices (always visible on touch, and whenever a favorite/rating is set), decluttering track tables.
+- **Sidebar**: a subtle right hairline (`--rule`) separates it from the content area.
+
+### Fixed
+
+- Non-admins regained track Edit access in the header (the ⋯ menu composition no longer routes Edit through the admin filter).
+
 ## [2.2.1] - 2026-09-27
 
 ### Fixed
@@ -151,7 +165,10 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.0.0-rc1...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.2.2...HEAD
+[2.2.2]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.2.2
+[2.2.1]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.2.1
+[2.2.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.2.0
 [2.0.0-rc1]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.0.0-rc1
 [0.7.1]: https://github.com/miquelrosell99/sonarly/releases/tag/v0.7.1
 [0.7.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v0.7.0
