@@ -113,6 +113,7 @@ export function Playlists() {
         </Button>
       </div>
       <LibraryView
+        viewModeKey="playlists"
         data={filteredPlaylists}
         isLoading={isLoading}
         error={error}

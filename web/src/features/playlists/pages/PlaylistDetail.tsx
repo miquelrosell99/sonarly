@@ -3,6 +3,7 @@ import { useParams, useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Song, User } from '../../../types';
 import { api } from '../../../lib/api.js';
+import type { UnderlayParams } from '../../../lib/types.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
@@ -67,11 +68,21 @@ function PlaylistSongContextMenu({
 
 interface PlaylistDetailProps {
   user: User | null;
+  /**
+   * Now-playing underlay mount: wouter params don't include `:id` under
+   * /now-playing/..., so the route threads the contextId (see
+   * `UnderlayParams` in lib/types.ts). `fetchEnabled: false` means the player
+   * store already covers the URL — stay silent (zero-request refresh) and
+   * show the loading state instead of "not found" until the overlay closes.
+   */
+  underlay?: UnderlayParams;
 }
 
-export function PlaylistDetail({ user }: PlaylistDetailProps) {
-  const { id } = useParams<{ id: string }>();
-  const { data: playlist, isLoading, error, refetch } = usePlaylist(id);
+export function PlaylistDetail({ user, underlay }: PlaylistDetailProps) {
+  const { id: paramId } = useParams<{ id: string }>();
+  const id = underlay?.id ?? paramId;
+  const covered = underlay !== undefined && !underlay.fetchEnabled;
+  const { data: playlist, isLoading, error, refetch } = usePlaylist(id, !covered);
   const { openForEdit } = useCreatePlaylistModal();
   const { notify } = useNotification();
   const queryClient = useQueryClient();
@@ -224,7 +235,7 @@ export function PlaylistDetail({ user }: PlaylistDetailProps) {
 
   return (
     <EntityDetail
-      isLoading={isLoading}
+      isLoading={isLoading || covered}
       error={error?.message ?? null}
       notFound={!playlist}
       notFoundMessage="Playlist not found."

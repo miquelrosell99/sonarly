@@ -17,7 +17,7 @@ function renderLabel(path: string) {
     loc,
     ...renderWithQueryClient(
       <Router hook={loc.hook}>
-        <Route path="/labels/:name" component={Label} />
+        <Route path="/labels/:name">{() => <Label />}</Route>
       </Router>,
     ),
   };

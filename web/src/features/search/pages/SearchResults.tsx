@@ -254,6 +254,7 @@ export function SearchResults({ user }: SearchResultsProps) {
     ];
     return (
       <LibraryView
+        viewModeKey="search-songs"
         title={`Songs matching "${query}"`}
         data={songs}
         isLoading={isLoading}
@@ -308,6 +309,7 @@ export function SearchResults({ user }: SearchResultsProps) {
     ];
     return (
       <LibraryView
+        viewModeKey="search-albums"
         title={`Albums matching "${query}"`}
         data={albums}
         isLoading={isLoading}
@@ -348,6 +350,7 @@ export function SearchResults({ user }: SearchResultsProps) {
     const cardFields: LibraryViewCardField<Artist>[] = [{ key: 'name', render: (artist) => artist.name }];
     return (
       <LibraryView
+        viewModeKey="search-artists"
         title={`Artists matching "${query}"`}
         data={artists}
         isLoading={isLoading}
@@ -392,6 +395,7 @@ export function SearchResults({ user }: SearchResultsProps) {
     ];
     return (
       <LibraryView
+        viewModeKey="search-playlists"
         title={`Playlists matching "${query}"`}
         data={playlists}
         isLoading={isLoading}

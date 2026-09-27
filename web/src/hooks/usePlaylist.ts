@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { Playlist } from '../types';
 import { api } from '../lib/api.js';
 import { getShareToken, withShareToken } from '../lib/shareToken.js';
+import { LIBRARY_LIST_STALE_TIME } from './useLibraryLists.js';
 
 export interface PlaylistDetailEntry {
   id: string;
@@ -26,11 +27,12 @@ export interface PlaylistDetail extends Playlist {
   entries: PlaylistDetailEntry[];
 }
 
-export function usePlaylist(id: string | undefined) {
+export function usePlaylist(id: string | undefined, enabled = true) {
   return useQuery<{ playlist: PlaylistDetail }, Error, PlaylistDetail>({
     queryKey: ['playlist', id, getShareToken()],
     queryFn: () => api(withShareToken(`/playlists/${id}`)),
     select: (data) => data.playlist,
-    enabled: !!id,
+    staleTime: LIBRARY_LIST_STALE_TIME,
+    enabled: !!id && enabled,
   });
 }

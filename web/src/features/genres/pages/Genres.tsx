@@ -79,6 +79,7 @@ export function Genres() {
 
   return (
     <LibraryView
+      viewModeKey="genres"
       title="Genres"
       data={genres}
       isLoading={isLoading}

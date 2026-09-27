@@ -9,6 +9,7 @@ import { useAlbumDetail, useSongDetail } from '../../../hooks/useEntityDetails.j
 import { useLibraryStore } from '../../../stores/libraryStore.js';
 import { usePlayer, type PlayerSong, type QueueContext } from '../../../stores/playerStore.js';
 import { useNowPlaying } from '../stores/nowPlayingStore.js';
+import type { UnderlayParams } from '../../../lib/types.js';
 import { PlaylistDetail } from '../../playlists/pages/PlaylistDetail.js';
 import { GuestPlaylist } from '../../playlists/pages/GuestPlaylist.js';
 import { Album } from '../../albums/pages/Album.js';
@@ -72,6 +73,17 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
       queue.length > 0 &&
       (songId === undefined || queue.some((song) => song.id === songId))
     : false;
+
+  // The underlay pages read their :id from wouter params, which only exist on
+  // their own routes — mounted under /now-playing/... they arrived
+  // param-starved and rendered "not found" forever (guests saw exactly
+  // that). Thread the raw contextId explicitly; `fetchEnabled` mirrors the
+  // disabled-while-covered logic above: while the player store covers the
+  // URL the covered page stays silent (zero-request refresh), and guests —
+  // who never get an overlay covering the page — always fetch.
+  const underlay: UnderlayParams | undefined = hasContext
+    ? { id: params.contextId ?? '', fetchEnabled: !storeQueueCoversUrl || isGuest }
+    : undefined;
 
   // Resolve the context through the same queries the underlay pages use. All
   // of them are disabled while the store covers the URL (zero requests) and
@@ -177,7 +189,10 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
   }, [currentSong?.id]);
 
   // Closing the overlay returns to where the user came from (or the context
-  // page / home for direct visits).
+  // page / home for direct visits). The hand-back is a push navigation that
+  // must restore the underlying page's scroll position, not reset it — the
+  // one-shot flag tells the scroll-restoration hook to treat it like a pop
+  // (audit F8).
   useEffect(() => {
     if (isOpen) {
       wasOpenRef.current = true;
@@ -185,6 +200,7 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
     }
     if (ready && wasOpenRef.current) {
       const fallback = hasContext ? withShareToken(contextPath) : '/home';
+      useNowPlaying.getState().setSuppressNextReset(true);
       setLocation(returnPath ?? fallback);
       useNowPlaying.getState().setReturnPath(null);
     }
@@ -206,12 +222,12 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
 
   if (hasContext) {
     if (context === 'playlist') {
-      return isGuest ? <GuestPlaylist /> : <PlaylistDetail user={user} />;
+      return isGuest ? <GuestPlaylist underlay={underlay} /> : <PlaylistDetail user={user} underlay={underlay} />;
     }
-    if (context === 'genre') return <Genre />;
-    if (context === 'composer') return <Composer />;
-    if (context === 'label') return <Label />;
-    return user ? <Album user={user} /> : <PageState error="Sign in to view this album">{null}</PageState>;
+    if (context === 'genre') return <Genre underlay={underlay} />;
+    if (context === 'composer') return <Composer underlay={underlay} />;
+    if (context === 'label') return <Label underlay={underlay} />;
+    return user ? <Album user={user} underlay={underlay} /> : <PageState error="Sign in to view this album">{null}</PageState>;
   }
   return user ? <HomePage user={user} /> : <PageState error="Sign in to play tracks">{null}</PageState>;
 }

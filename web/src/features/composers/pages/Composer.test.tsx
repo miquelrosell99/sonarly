@@ -30,7 +30,7 @@ describe('Composer', () => {
     const loc = memoryLocation({ path: '/composers/John%20Doe' });
     renderWithQueryClient(
       <Router hook={loc.hook}>
-        <Route path="/composers/:name" component={Composer} />
+        <Route path="/composers/:name">{() => <Composer />}</Route>
       </Router>,
     );
 

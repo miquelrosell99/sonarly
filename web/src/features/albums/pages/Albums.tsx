@@ -253,6 +253,7 @@ export function Albums({ user }: { user: User }) {
   return (
     <>
       <LibraryView
+        viewModeKey="albums"
         title="Albums"
         data={filteredAlbums}
         isLoading={isLoading}

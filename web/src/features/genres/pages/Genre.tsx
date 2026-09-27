@@ -8,23 +8,25 @@ import { useLibraryStore } from '../../../stores/libraryStore.js';
 import { useAlbumsList, useSongsList } from '../../../hooks/useLibraryLists.js';
 import { TrackList } from '../../songs/index.js';
 import { AlbumList } from '../../albums/index.js';
-import type { SongWithNames } from '../../../lib/types.js';
+import type { SongWithNames, UnderlayParams } from '../../../lib/types.js';
 
 interface AlbumWithArtist extends Album {
   artistName?: string;
 }
 
-export function Genre() {
-  const { genre: encodedGenre } = useParams<{ genre: string }>();
+export function Genre({ underlay }: { underlay?: UnderlayParams }) {
+  const { genre: paramGenre } = useParams<{ genre: string }>();
+  const encodedGenre = underlay?.id ?? paramGenre;
   const genre = encodedGenre ? decodeURIComponent(encodedGenre) : '';
+  const covered = underlay !== undefined && !underlay.fetchEnabled;
 
   const { playSongs, shufflePlay } = usePlayActions();
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
-  const songsQuery = useSongsList({ libraryId: selectedLibraryId, genre: genre || undefined }, Boolean(genre));
-  const albumsQuery = useAlbumsList({ libraryId: selectedLibraryId, genre: genre || undefined }, Boolean(genre));
+  const songsQuery = useSongsList({ libraryId: selectedLibraryId, genre: genre || undefined }, Boolean(genre) && !covered);
+  const albumsQuery = useAlbumsList({ libraryId: selectedLibraryId, genre: genre || undefined }, Boolean(genre) && !covered);
   const tracks: SongWithNames[] = songsQuery.data?.songs ?? [];
   const albums: AlbumWithArtist[] = albumsQuery.data?.albums ?? [];
-  const isLoading = songsQuery.isLoading || albumsQuery.isLoading;
+  const isLoading = songsQuery.isLoading || albumsQuery.isLoading || covered;
   const error = songsQuery.error ?? albumsQuery.error;
 
   const actions = tracks.length > 0 && (

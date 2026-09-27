@@ -1,11 +1,12 @@
 import { useLocation, useSearch } from 'wouter';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { User } from '../types';
 import { api } from '../lib/api.js';
 import { ProfileModal } from '../features/profile/index.js';
 import { CreatePlaylistModal } from '../features/playlists/index.js';
-import { NowPlaying, useNowPlaying } from '../features/now-playing/index.js';
+import { NowPlaying } from '../features/now-playing/index.js';
 import { usePreferences, useSyncThemePreferences } from '../hooks/usePreferences.js';
+import { useScrollRestoration } from '../hooks/useScrollRestoration.js';
 import { usePlaylists } from '../hooks/usePlaylists.js';
 import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
 import { usePlayer } from '../stores/playerStore.js';
@@ -49,20 +50,16 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
   const openMobileNav = useCallback(() => setMobileNavOpen(true), []);
   const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
 
-  // Start each page at the top. Virtualized lists only render the window at
+  // Scroll restoration (audit F8): remember per-route scroll offsets and
+  // restore them on back/forward navigation; forward navigations start at
+  // the top. The now-playing overlay swaps the URL while open (Immich-style)
+  // and hands the position back through the store's one-shot suppress flag —
+  // see useScrollRestoration.ts. Virtualized lists only render the window at
   // the current scroll offset, so inheriting a deep offset from the previous
-  // page would show a blank region. The now-playing overlay swaps the URL
-  // while open (Immich-style) — never reset underneath it.
+  // page would show a blank region — the hook always settles the offset
+  // explicitly after commit.
   const mainRef = useRef<HTMLElement | null>(null);
-  const nowPlayingOpen = useNowPlaying((state) => state.isOpen);
-  const pathname = location.split('?')[0] ?? location;
-  const previousPathRef = useRef(pathname);
-  useEffect(() => {
-    if (previousPathRef.current !== pathname && !nowPlayingOpen) {
-      mainRef.current?.scrollTo?.({ top: 0 });
-    }
-    previousPathRef.current = pathname;
-  }, [pathname, nowPlayingOpen]);
+  const { onScroll } = useScrollRestoration(mainRef);
 
   // F3 + FF8: useSyncThemePreferences seeds the theme store ONCE per page
   // load from the first /me/preferences response that carries theme keys;
@@ -112,6 +109,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
         <main
           id="main-content"
           ref={mainRef}
+          onScroll={onScroll}
           tabIndex={-1}
           className="relative flex-1 overflow-y-auto motion-safe:scroll-smooth p-6 focus:outline-none"
         >
