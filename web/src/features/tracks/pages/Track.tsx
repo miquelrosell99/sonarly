@@ -1,18 +1,22 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useParams, useLocation } from 'wouter';
-import type { User } from '../../../types';
+import type { Song, User } from '../../../types';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
+import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { CoverArt } from '../../../components/CoverArt.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
+import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { formatDuration } from '../../../lib/format.js';
 import { api } from '../../../lib/api.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useLibraryMutation } from '../../../hooks/useLibraryMutation.js';
+import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
 import { useSongDetail } from '../../../hooks/useEntityDetails.js';
+import { useNotification } from '../../../contexts/NotificationContext.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 import type { SongWithNames } from '../../../lib/types.js';
@@ -21,6 +25,23 @@ import { patchToPlayerSong } from '../../../lib/songPatch.js';
 
 type TrackDetail = SongWithNames;
 
+function TrackHeaderContextMenu({
+  track,
+  isAdmin,
+  onEdit,
+  onDelete,
+  children,
+}: {
+  track: Song;
+  isAdmin: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  children: ReactNode;
+}) {
+  const sections = useSongContextMenu(track, onEdit, isAdmin, { onDelete });
+  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+}
+
 export function Track({ user }: { user: User }) {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
@@ -28,9 +49,11 @@ export function Track({ user }: { user: User }) {
   const { data, isLoading, error, refetch, patchDetail } = useSongDetail(id);
   const track: TrackDetail | undefined = data?.song;
   const [editing, setEditing] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [syncEditing, setSyncEditing] = useState(false);
   const { playSong } = usePlayActions();
   const { setFavorite, setRating } = useFavoriteActions();
+  const { notify } = useNotification();
   const songMutation = useLibraryMutation('song');
   const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
 
@@ -68,6 +91,8 @@ export function Track({ user }: { user: User }) {
   const handleDelete = async () => {
     if (!track) return;
     if (await songMutation.run(() => api(`/songs/${track.id}`, { method: 'DELETE' }))) {
+      setDeleteOpen(false);
+      notify(`Deleted track "${track.title}"`, 'success');
       navigate('/tracks');
     }
   };
@@ -119,6 +144,12 @@ export function Track({ user }: { user: User }) {
                 <Icon name="mdi-pencil" size={18} />
                 Edit
               </Button>
+              {user.isAdmin && (
+                <Button variant="danger" onClick={() => setDeleteOpen(true)} className="gap-2">
+                  <Icon name="mdi-delete" size={18} />
+                  Delete
+                </Button>
+              )}
               <FavoriteRatingGroup
                 starred={track.starred}
                 onToggleFavorite={() => handleFavorite(!track.starred)}
@@ -126,6 +157,20 @@ export function Track({ user }: { user: User }) {
                 onRate={handleRate}
               />
             </>
+          )
+        }
+        renderHeaderContextMenu={(target) =>
+          track ? (
+            <TrackHeaderContextMenu
+              track={track}
+              isAdmin={user.isAdmin}
+              onEdit={() => setEditing(true)}
+              onDelete={() => setDeleteOpen(true)}
+            >
+              {target}
+            </TrackHeaderContextMenu>
+          ) : (
+            target
           )
         }
       />
@@ -140,6 +185,17 @@ export function Track({ user }: { user: User }) {
           onEditSyncedLyrics={() => setSyncEditing(true)}
           saving={songMutation.isPending}
           deleting={songMutation.isPending}
+        />
+      )}
+      {track && (
+        <ConfirmModal
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          title="Delete track"
+          message={`Delete "${track.title}"? This cannot be undone.`}
+          confirmLabel={songMutation.isPending ? 'Deleting…' : 'Delete'}
+          danger
+          onConfirm={() => void handleDelete()}
         />
       )}
       {track && syncEditing && (

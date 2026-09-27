@@ -1,9 +1,12 @@
+import type { ReactNode } from 'react';
 import { useParams } from 'wouter';
 import type { Album } from '../../../types';
 import { Button } from '../../../components/ui/Button.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
+import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { usePlayShuffleMenuSections } from '../../../hooks/usePlayShuffleMenuSections.js';
 import { useLibraryStore } from '../../../stores/libraryStore.js';
 import { useAlbumsList, useSongsList } from '../../../hooks/useLibraryLists.js';
 import { TrackList } from '../../songs/index.js';
@@ -12,6 +15,17 @@ import type { SongWithNames } from '../../../lib/types.js';
 
 interface AlbumWithArtist extends Album {
   artistName?: string;
+}
+
+function YearHeaderContextMenu({
+  tracks,
+  children,
+}: {
+  tracks: SongWithNames[];
+  children: ReactNode;
+}) {
+  const sections = usePlayShuffleMenuSections(tracks);
+  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
 }
 
 export function Year() {
@@ -53,6 +67,9 @@ export function Year() {
       title={title}
       actions={actions}
       className="space-y-8"
+      renderHeaderContextMenu={(target) => (
+        <YearHeaderContextMenu tracks={tracks}>{target}</YearHeaderContextMenu>
+      )}
     >
       <div>
         <h3 className="mb-2 text-sm font-medium text-muted">Tracks</h3>

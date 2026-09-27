@@ -1,5 +1,6 @@
+import { useState, type ReactNode } from 'react';
 import { useParams, Link } from 'wouter';
-import type { Song, User } from '../../../types';
+import type { Artist, Song, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Card } from '../../../components/Card.js';
 import { CoverArt } from '../../../components/CoverArt.js';
@@ -10,18 +11,35 @@ import { PlayButton } from '../../../components/PlayButton.js';
 import { ScrollRow } from '../../../components/ScrollRow.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
+import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useLibraryMutation } from '../../../hooks/useLibraryMutation.js';
+import { useArtistContextMenu } from '../../../hooks/useArtistContextMenu.js';
 import { useArtistDetail, type ArtistAlbum } from '../../../hooks/useEntityDetails.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { formatDuration } from '../../../lib/format.js';
 import type { SongWithNames } from '../../../lib/types.js';
 
+function ArtistHeaderContextMenu({
+  artist,
+  onEdit,
+  children,
+}: {
+  artist: Artist;
+  onEdit: () => void;
+  children: ReactNode;
+}) {
+  const sections = useArtistContextMenu(artist, onEdit);
+  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+}
+
 export function Artist({ user }: { user: User }) {
   const { id } = useParams<{ id: string }>();
+  const [editing, setEditing] = useState(false);
   const { data: detail, isLoading, error, refetch, patchDetail } = useArtistDetail(id);
   const artist = detail?.artist;
   // The /artists/:id response embeds the artist's songs server-side — this
@@ -219,6 +237,15 @@ export function Artist({ user }: { user: User }) {
           </>
         )
       }
+      renderHeaderContextMenu={(target) =>
+        artist ? (
+          <ArtistHeaderContextMenu artist={artist} onEdit={() => setEditing(true)}>
+            {target}
+          </ArtistHeaderContextMenu>
+        ) : (
+          target
+        )
+      }
     >
       {artist && artistAlbums.length > 0 ? (
         <ScrollRow title="Albums">
@@ -281,6 +308,16 @@ export function Artist({ user }: { user: User }) {
         getRating={(track) => track.rating}
         emptyMessage="No tracks found."
       />
+
+      {editing && artist && (
+        <EditEntityModal
+          open
+          entityType="artist"
+          entity={(artist as unknown) as Record<string, unknown>}
+          onClose={() => setEditing(false)}
+          readOnly
+        />
+      )}
     </EntityDetail>
   );
 }
