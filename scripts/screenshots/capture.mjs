@@ -144,6 +144,9 @@ for (const scheme of SCHEMES) {
   try {
     await page.locator('button:has-text("Play")').first().click({ timeout: 3000 });
     await page.waitForTimeout(2000);
+    await page.mouse.move(2, 2); // park the cursor off the Play button so its tooltip isn't captured
+    await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); });
+    await page.waitForTimeout(900); // outlast the tooltip's show/hide transition
     console.log(`${scheme}: playback started`);
   } catch {
     console.warn(`warn [${scheme}]: could not start playback`);
