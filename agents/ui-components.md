@@ -11,12 +11,13 @@ Shared components live in `web/src/components/`. Use them for consistent layout,
 | `ArtistImage` | `components/ArtistImage.tsx` | Artist image from local disk with placeholder fallback. |
 | `LibraryView` | `components/LibraryView.tsx` | Toggleable list/grid view for library entities (artists, albums, etc.). |
 | `ListRow` | `components/ListRow.tsx` | Clickable table row with play, favorite, and rating actions. |
-| `ItemContextMenu` | `components/ItemContextMenu.tsx` | Right-click/long-press/keyboard context menu wrapper. Keyboard path: the wrapped trigger opens the menu with Shift+F10 or the Menu key (menu anchors below the trigger); ArrowUp/Down cycle items, Escape closes and returns focus to the trigger. |
+| `ItemContextMenu` | `components/ItemContextMenu.tsx` | Right-click/long-press/keyboard context menu wrapper. Keyboard path: the wrapped trigger opens the menu with Shift+F10 or the Menu key (menu anchors below the trigger); ArrowUp/Down cycle items, Home/End jump to the edges, Tab closes and returns focus to the trigger, Escape closes and returns focus to the trigger. Popover-style triggers (`anchorToTrigger`) automatically get `aria-haspopup="menu"` and a live `aria-expanded`. |
 | `FilterPanel` | `components/FilterPanel.tsx` | Filter controls for library pages. |
 | `SearchBox` | `components/SearchBox.tsx` | Global search input. |
 | `TopBar` | `components/TopBar.tsx` | Header with search and user menu. The connected-devices indicator polls `/api/players` only while other players are present (and never in background tabs) — see `playersPollInterval`. |
 | `Sidebar` | `components/Sidebar.tsx` | Navigation sidebar. |
 | `PlayerBar` | `components/PlayerBar.tsx` | Persistent playback controls. |
+| `NowPlayingAnnouncer` | `components/NowPlayingAnnouncer.tsx` | Visually-hidden polite live region (`aria-live="polite"`, `role="status"`) rendered in `Layout` next to the skip link; announces "Now playing: {title} by {artist}" whenever the current track changes. |
 | `AudioController` | `components/AudioController.tsx` | Audio element and playback state bridge. |
 | `ActionButtons` | `components/ActionButtons.tsx` | `FavoriteButton` and `StarRating` primitives. |
 | `FavoriteRatingGroup` | `components/FavoriteRatingGroup.tsx` | Inline favorite + rating combo used in headers and cards. |

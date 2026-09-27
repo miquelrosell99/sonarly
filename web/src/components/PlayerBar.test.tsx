@@ -196,6 +196,25 @@ describe('PlayerBar', () => {
     expect(screen.getByRole('menuitem', { name: 'Smart' })).toBeTruthy();
   });
 
+  it('exposes menu-button semantics on the Auto DJ trigger (audit F27b)', () => {
+    renderPlayerBar();
+    const djButton = screen.getByRole('button', { name: /auto dj/i });
+    expect(djButton.getAttribute('aria-haspopup')).toBe('menu');
+    expect(djButton.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.contextMenu(djButton);
+    expect(djButton.getAttribute('aria-expanded')).toBe('true');
+
+    const menu = screen.getByRole('menu');
+    fireEvent.keyDown(menu, { key: 'End' });
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Smart' }));
+
+    fireEvent.keyDown(menu, { key: 'Tab' });
+    expect(screen.queryByRole('menu')).toBeFalsy();
+    expect(document.activeElement).toBe(djButton);
+    expect(djButton.getAttribute('aria-expanded')).toBe('false');
+  });
+
   it('selects a DJ mode and persists the change', () => {
     renderPlayerBar();
     const djButton = screen.getByRole('button', { name: /auto dj/i });

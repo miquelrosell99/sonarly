@@ -100,8 +100,9 @@ function PlayButtonContent({
     ? (e: MouseEvent<HTMLButtonElement>) => {
         handlers.onClick(e);
         // Always stop propagation regardless of whether the hook consumed
-        // the synthetic click after a pointer gesture or invoked onPlay for
-        // keyboard/screen-reader activation.
+        // the synthetic click after a pointer gesture, invoked onPlay for a
+        // pointer click, or invoked the keyboard/screen-reader shuffle
+        // affordance (audit F27f).
         e.stopPropagation();
       }
     : (e: MouseEvent<HTMLButtonElement>) => {
@@ -136,13 +137,13 @@ function PlayButtonContent({
       <button
         {...baseProps}
         className={cn(
-          'group relative inline-flex h-5 w-5 items-center justify-center text-accent transition hover:text-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-40',
+          'group relative inline-flex h-6 w-6 items-center justify-center text-accent transition hover:text-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-40',
           className,
         )}
         onClick={handleClick}
         {...(handlers ? pointerHandlers(handlers) : {})}
       >
-        <ProgressRing isHolding={isHolding} size={20} />
+        <ProgressRing isHolding={isHolding} size={24} />
         <Icon name="mdi-play" size={16} className="relative z-10" />
         {handlers && (
           <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-bg-primary px-2 py-1 text-xs text-fg-primary opacity-0 shadow ring-1 ring-rule transition-opacity delay-700 duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
