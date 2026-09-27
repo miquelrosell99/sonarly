@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useParams, useLocation } from 'wouter';
+import type { User } from '../../../types';
 import { Button } from '../../../components/ui/Button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { CoverArt } from '../../../components/CoverArt.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
+import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { formatDuration } from '../../../lib/format.js';
 import { api } from '../../../lib/api.js';
@@ -19,9 +21,10 @@ import { patchToPlayerSong } from '../../../lib/songPatch.js';
 
 type TrackDetail = SongWithNames;
 
-export function Track() {
+export function Track({ user }: { user: User }) {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
+  const blurExplicitTitles = user.blurExplicitTitles === true;
   const { data, isLoading, error, refetch, patchDetail } = useSongDetail(id);
   const track: TrackDetail | undefined = data?.song;
   const [editing, setEditing] = useState(false);
@@ -98,7 +101,11 @@ export function Track() {
         notFoundMessage="Track not found."
         documentTitle={track?.title}
         type="Song"
-        title={track?.title}
+        title={
+          track ? (
+            <ExplicitTitle title={track.title} explicit={track.explicit} blur={blurExplicitTitles} />
+          ) : undefined
+        }
         cover={track ? <CoverArt coverArt={track.albumCoverArt ?? track.coverArt} alt={`Cover art for ${track.title}`} className="h-48 w-48 sm:h-56 sm:w-56" iconSize={64} /> : undefined}
         metadata={metadata}
         actions={

@@ -1,5 +1,5 @@
 import { Icon } from '../../../components/ui/Icon.js';
-import { ControlButton, PlayButton, Slider } from '../../../components/PlayerControls.js';
+import { ControlButton, PlayPauseButton, Slider } from '../../../components/PlayerControls.js';
 import { cn } from '../../../lib/cn.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 
@@ -41,7 +41,7 @@ export function TransportControls() {
         <ControlButton onClick={previous} label="Previous" disabled={!hasTrack} className="h-11 w-11">
           <Icon name="mdi-skip-previous" size={30} />
         </ControlButton>
-        <PlayButton
+        <PlayPauseButton
           isPlaying={isPlaying}
           disabled={!hasTrack}
           onClick={togglePlay}
@@ -65,7 +65,6 @@ export function TransportControls() {
           onChange={seek}
           disabled={!hasTrack}
           ariaLabel="Progress"
-          variant="progress"
         />
         <span className="w-11 shrink-0 text-xs font-mono tabular-nums text-fg-secondary">{formatTime(displayDuration)}</span>
       </div>

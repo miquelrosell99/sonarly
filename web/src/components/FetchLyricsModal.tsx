@@ -53,7 +53,6 @@ function buildSearchParams(title: string, artist?: string, album?: string, durat
 
 export function FetchLyricsModal({
   open,
-  songId,
   title,
   artistName,
   albumName,
@@ -108,10 +107,6 @@ export function FetchLyricsModal({
   };
 
   const selectedMatch = matches[selectedIndex];
-
-  const transferredValue = (key: keyof LyricsPatch): unknown => {
-    return pendingPatch[key];
-  };
 
   const isTransferred = (key: keyof LyricsPatch): boolean => {
     return key in pendingPatch;

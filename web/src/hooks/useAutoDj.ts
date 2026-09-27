@@ -87,8 +87,10 @@ export function useAutoDj() {
           notify(`${songs.length} ${songs.length === 1 ? 'song' : 'songs'} added to the queue`, 'info');
         }
       })
-      .catch(() => {
-        // Silently ignore; playback continues.
+      .catch((err: unknown) => {
+        // Q7 resolved "notify": a failed top-up must not fail silently while
+        // successes toast — playback continues regardless.
+        notify(err instanceof Error ? err.message : 'Auto DJ could not add songs', 'error');
       })
       .finally(() => {
         fetchingRef.current = false;

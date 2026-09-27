@@ -110,7 +110,7 @@ describe('LibraryView', () => {
   });
 
   it('selects a row on click and deselects others', () => {
-    renderView();
+    renderView({ onPlaySelection: vi.fn() });
     const alphaRow = getRowByText('Alpha');
     const betaRow = getRowByText('Beta');
 
@@ -128,7 +128,7 @@ describe('LibraryView', () => {
       { key: 'title', header: 'Title', render: (item) => <Link href={`/items/${item.id}`}>{item.title}</Link> },
       { key: 'artist', header: 'Artist', render: (item) => item.artist },
     ];
-    renderView({ columns: linkedColumns });
+    renderView({ columns: linkedColumns, onPlaySelection: vi.fn() });
     const alphaTitle = screen.getByText('Alpha');
     const alphaRow = alphaTitle.closest('tr') as HTMLElement;
 
@@ -137,7 +137,7 @@ describe('LibraryView', () => {
   });
 
   it('toggles row selection with ctrl+click', () => {
-    renderView();
+    renderView({ onPlaySelection: vi.fn() });
     const alphaRow = getRowByText('Alpha');
     const betaRow = getRowByText('Beta');
 
@@ -153,7 +153,7 @@ describe('LibraryView', () => {
   });
 
   it('selects a contiguous range with shift+click', () => {
-    renderView();
+    renderView({ onPlaySelection: vi.fn() });
     const alphaRow = getRowByText('Alpha');
     const gammaRow = getRowByText('Gamma');
     const deltaRow = getRowByText('Delta');
@@ -201,7 +201,7 @@ describe('LibraryView', () => {
   });
 
   it('clears selection on Escape', () => {
-    renderView();
+    renderView({ onPlaySelection: vi.fn() });
     const alphaRow = getRowByText('Alpha');
     const container = screen.getByRole('table');
 
@@ -209,6 +209,17 @@ describe('LibraryView', () => {
     expect(alphaRow.getAttribute('aria-selected')).toBe('true');
 
     fireEvent.keyDown(container, { key: 'Escape', code: 'Escape' });
+    expect(alphaRow.getAttribute('aria-selected')).toBe('false');
+  });
+
+  it('does not select rows when onPlaySelection is absent (F23/F28 dead affordance)', () => {
+    renderView();
+    const alphaRow = getRowByText('Alpha');
+
+    fireEvent.click(alphaRow);
+    expect(alphaRow.getAttribute('aria-selected')).toBe('false');
+
+    fireEvent.click(alphaRow, { ctrlKey: true });
     expect(alphaRow.getAttribute('aria-selected')).toBe('false');
   });
 

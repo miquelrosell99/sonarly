@@ -10,7 +10,7 @@
 //
 // `libraryId` is the library-store scope; changing it changes the key, so a
 // scope switch refetches exactly like the old hand-rolled effects did.
-// Details are fresh for 30s (LIBRARY_LIST_STALE_TIME), same as the lists.
+// Details are fresh for 30s, same as the lists (see useLibraryLists.ts).
 //
 // Favorite/rate edits patch the cached detail in place via `patchDetail` (the
 // detail-page analog of the lists' `patchItem`); structural edits invalidate
@@ -21,7 +21,8 @@ import type { components } from '../contract/schema.js';
 import type { Album, Song } from '../types';
 import { api } from '../lib/api.js';
 import { buildLibraryQuery, useLibraryStore } from '../stores/libraryStore.js';
-import { LIBRARY_LIST_STALE_TIME } from './useLibraryLists.js';
+
+const STALE_TIME = 30_000;
 
 // Response envelopes straight from the generated schema (plan 10d) — GET
 // /songs/:id returns the Song DTO, GET /albums/:id the Album plus its full
@@ -65,7 +66,7 @@ function useDetailQuery<TResponse>(
   const query = useQuery<TResponse, Error>({
     queryKey,
     queryFn: () => api<TResponse>(`/${domain}/${id}${buildLibraryQuery(libraryId)}`),
-    staleTime: LIBRARY_LIST_STALE_TIME,
+    staleTime: STALE_TIME,
     enabled: !!id && enabled,
   });
 

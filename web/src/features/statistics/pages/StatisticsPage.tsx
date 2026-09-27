@@ -1,18 +1,14 @@
 import { useState } from 'react';
 import type { StatisticsTimeRange } from '../../../types';
-import { useStatistics, type StatisticsMode } from '../hooks/useStatistics.js';
+import { useStatistics } from '../hooks/useStatistics.js';
 import { StatisticsView } from '../components/StatisticsView.js';
 
-interface StatisticsPageProps {
-  mode: StatisticsMode;
-  userId?: string;
-  title?: string;
-  subtitle?: string;
-}
-
-export function StatisticsPage({ mode, userId, title, subtitle }: StatisticsPageProps) {
+// The only route is /statistics, always mode "me". The overall/user modes
+// stay in the hooks for admin consumers (AdminUsers), but no page route ever
+// passes another mode or a userId (audit F29) — so this page takes no props.
+export function StatisticsPage() {
   const [range, setRange] = useState<StatisticsTimeRange>('all');
-  const { data, isLoading, error } = useStatistics(mode, userId, range);
+  const { data, isLoading, error } = useStatistics('me', undefined, range);
 
   return (
     <div className="space-y-6">
@@ -20,12 +16,9 @@ export function StatisticsPage({ mode, userId, title, subtitle }: StatisticsPage
         data={data}
         range={range}
         onRangeChange={setRange}
-        title={title ?? (mode === 'overall' ? 'Overall Statistics' : 'Your Statistics')}
-        subtitle={subtitle}
+        title="Your Statistics"
         isLoading={isLoading}
         error={error}
-        mode={mode}
-        userId={userId}
       />
     </div>
   );

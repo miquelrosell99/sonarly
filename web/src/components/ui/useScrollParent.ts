@@ -8,7 +8,7 @@ import { useCallback, useLayoutEffect, useState } from 'react';
 //
 // jsdom reports no computed overflow, so in tests this returns null and
 // virtualized components fall back to rendering everything.
-export function findScrollParent(el: HTMLElement): HTMLElement | null {
+function findScrollParent(el: HTMLElement): HTMLElement | null {
   let candidate: HTMLElement | null = null;
   let node: HTMLElement | null = el.parentElement;
   while (node) {

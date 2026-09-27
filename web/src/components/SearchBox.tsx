@@ -93,6 +93,10 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
       }
 
       if (e.key === 'Escape') {
+        // This handler is document-level, so it must only act when the
+        // combobox owns focus — Escape anywhere else in the app used to
+        // close the dropdown and blur the input regardless (audit F27d).
+        if (document.activeElement !== inputRef.current) return;
         setIsOpen(false);
         inputRef.current?.blur();
         return;

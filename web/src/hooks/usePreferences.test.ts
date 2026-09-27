@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, cleanup, waitFor } from '@testing-library/react';
+import { render, cleanup, waitFor, act } from '@testing-library/react';
 import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { UserPreferences } from '../types';
@@ -158,8 +158,13 @@ describe('useSyncThemePreferences (boot seed, F3)', () => {
     cleanup();
 
     // A later fetch (another device changed prefs) must not re-theme —
-    // after the boot seed only PATCH responses write.
+    // after the boot seed only PATCH responses write. The remount shares the
+    // cache and 30s staleTime (audit F29), so model the later fetch the way
+    // the app triggers one: invalidation.
     apiMock.mockResolvedValue({ preferences: { themeMode: 'light', accentColor: 'brown' } } as never);
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: ['me', 'preferences'] });
+    });
     render(
       React.createElement(
         QueryClientProvider,
@@ -198,6 +203,11 @@ describe('useSyncThemePreferences (boot seed, F3)', () => {
     cleanup();
 
     // The late boot seed sees different preferences and must not overwrite.
+    // Remount shares the cache + 30s staleTime, so trigger the later fetch
+    // the way the app does: invalidation.
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: ['me', 'preferences'] });
+    });
     renderSync({ themeMode: 'light', accentColor: 'brown' });
     await waitFor(() => {
       expect(queryClient.getQueryData(['me', 'preferences'])).toEqual({

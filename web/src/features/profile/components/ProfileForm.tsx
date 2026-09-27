@@ -68,21 +68,13 @@ export function ProfileForm({ user, onUserChange }: ProfileFormProps) {
     try {
       const body = new FormData();
       body.append('avatar', file);
-      const res = await fetch('/api/me/avatar', {
+      // api() handles the envelope, the 401 dispatch, and FormData (no
+      // JSON Content-Type) — the old raw fetch duplicated the envelope
+      // parsing and bypassed the unauthorized redirect (audit F29).
+      const { user: updated } = await api<{ user: User }>('/me/avatar', {
         method: 'POST',
         body,
-        credentials: 'include',
       });
-      if (!res.ok) {
-        const text = await res.text();
-        let message = text;
-        try {
-          const parsed = JSON.parse(text) as { error?: string };
-          if (parsed.error) message = parsed.error;
-        } catch {}
-        throw new Error(message);
-      }
-      const { user: updated } = (await res.json()) as { user: User };
       onUserChange(updated);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload avatar');

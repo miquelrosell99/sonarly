@@ -33,7 +33,7 @@ vi.mock('./TrackActionsMenu.js', () => ({
 }));
 
 vi.mock('../hooks/useSongInteraction.js', () => ({
-  useSongInteraction: (songId: string | undefined, fallback: { starred?: boolean; rating?: number }) => ({
+  useSongInteraction: (_songId: string | undefined, fallback: { starred?: boolean; rating?: number }) => ({
     starred: fallback?.starred ?? false,
     rating: fallback?.rating ?? 0,
     setFavorite: mockSetFavorite,

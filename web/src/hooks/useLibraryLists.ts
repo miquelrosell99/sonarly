@@ -30,10 +30,10 @@
 import { useCallback, useEffect } from 'react';
 import { keepPreviousData, useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import type { components } from '../contract/schema.js';
-import type { Album, Artist, Library, Playlist, Song } from '../types';
+import type { Album, Artist, Library, Song } from '../types';
 import { api } from '../lib/api.js';
 
-export const LIBRARY_LIST_STALE_TIME = 30_000;
+const LIBRARY_LIST_STALE_TIME = 30_000;
 
 export interface LibrariesResponse {
   libraries: Library[];

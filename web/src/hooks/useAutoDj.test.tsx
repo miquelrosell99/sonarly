@@ -275,6 +275,22 @@ describe('useAutoDj', () => {
     await waitFor(() => expect(mockNotify).toHaveBeenCalledWith('2 songs added to the queue', 'info'));
   });
 
+  it('notifies when the top-up request fails (F28 Q7: no silent failures)', async () => {
+    mockApi.mockRejectedValueOnce(new Error('Auto DJ service down'));
+
+    render(
+      <ControlledTestComponent
+        preferences={preferences()}
+        currentSong={song('current')}
+        queue={[song('q1')]}
+        queueIndex={0}
+      />,
+    );
+
+    await waitFor(() => expect(mockNotify).toHaveBeenCalledWith('Auto DJ service down', 'error'));
+    expect(mockAddToQueue).not.toHaveBeenCalled();
+  });
+
   it('removes pending Auto DJ items when Auto DJ is disabled', async () => {
     const { rerender } = render(
       <ControlledTestComponent

@@ -2,7 +2,6 @@ import { Router, Route, Switch, useLocation } from 'wouter';
 import { Suspense, lazy, useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { User } from './types';
-import type { StatisticsMode } from './features/statistics/index.js';
 import { Layout } from './components/Layout.js';
 import { Login } from './features/auth/index.js';
 import { Setup } from './features/setup/index.js';
@@ -45,7 +44,7 @@ const Tracks = lazyRoute<{ user: User }>(
   () => import('./features/tracks/index.js').then((m) => ({ default: m.Tracks })),
   <ListPageSkeleton />,
 );
-const Track = lazyRoute<{}>(
+const Track = lazyRoute<{ user: User }>(
   () => import('./features/tracks/index.js').then((m) => ({ default: m.Track })),
   <EntityDetailSkeleton />,
 );
@@ -165,7 +164,7 @@ const Label = lazyRoute<{}>(
   () => import('./features/labels/index.js').then((m) => ({ default: m.Label })),
   <EntityDetailSkeleton />,
 );
-const StatisticsPage = lazyRoute<{ mode: StatisticsMode }>(
+const StatisticsPage = lazyRoute<{}>(
   () => import('./features/statistics/index.js').then((m) => ({ default: m.StatisticsPage })),
   <PageSkeleton />,
 );
@@ -371,7 +370,7 @@ export default function App() {
             <Route path="/" component={() => <Redirect to="/home" />} />
             <Route path="/home" component={() => <HomePage user={user} />} />
             <Route path="/tracks" component={() => <Tracks user={user} />} />
-            <Route path="/tracks/:id" component={Track} />
+            <Route path="/tracks/:id" component={() => <Track user={user} />} />
             <Route path="/search" component={() => <SearchResults user={user} />} />
             <Route path="/playlists" component={Playlists} />
             <Route path="/playlists/:id" component={() => <PlaylistDetail user={user} />} />
@@ -400,7 +399,7 @@ export default function App() {
             <Route path="/admin/users" component={AdminRoute(AdminUsers)} />
             <Route path="/admin/system-tasks" component={AdminRoute(AdminSystemTasks)} />
             <Route path="/admin/genres" component={AdminRoute(AdminGenres)} />
-            <Route path="/statistics" component={() => <StatisticsPage mode="me" />} />
+            <Route path="/statistics" component={StatisticsPage} />
             <Route path="/settings" component={() => <Redirect to="/settings/profile" />} />
             <Route path="/settings/profile" component={() => <SettingsProfile user={user} onUserChange={setUser} />} />
             <Route path="/settings/appearance" component={SettingsAppearance} />

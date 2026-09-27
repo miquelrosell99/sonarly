@@ -12,8 +12,10 @@ export interface ModalProps {
   className?: string;
 }
 
+// a[href], not [href]: bare [href] also matches SVG <use> refs,
+// which are not focusable and would break the Tab cycle (audit P6 deferral).
 const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function Modal({ open, onClose, title, children, footer, className }: ModalProps) {
   // FF11: scope the title id per modal instance so simultaneously open

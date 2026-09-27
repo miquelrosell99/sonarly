@@ -214,6 +214,11 @@ export function LibraryView<T>({
 }: LibraryViewProps<T>) {
   const effectiveDefaultView = availableViews.includes(defaultView) ? defaultView : availableViews[0];
   const [viewMode, setViewMode] = usePersistentViewMode(viewModeKey, effectiveDefaultView, availableViews);
+  // Selection is an affordance OF play-selection: rows only highlight and
+  // select when the page can act on a selection (double-click/Enter plays
+  // it) — aligning with Table's `selectable = Boolean(onPlaySelection)` so
+  // pages without it don't show a dead selection affordance (audit F23/F28).
+  const selectable = Boolean(onPlaySelection);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null);
   const { ref: scrollAnchorRef, scrollParent } = useScrollParent<HTMLDivElement>();
@@ -264,6 +269,7 @@ export function LibraryView<T>({
   };
 
   const handleRowSelect = (item: T, e: MouseEvent) => {
+    if (!selectable) return;
     const id = getId(item);
     if (e.shiftKey && lastSelectedId) {
       selectRange(lastSelectedId, id);
@@ -335,7 +341,7 @@ export function LibraryView<T>({
     const rowIndexMap = new Map<T, number>();
     data.forEach((item, idx) => rowIndexMap.set(item, idx));
 
-    const selectedItems = data.filter((d) => selectedIds.has(getId(d)));
+    const selectedItems = selectable ? data.filter((d) => selectedIds.has(getId(d))) : [];
 
     const groups: { key?: string; items: T[] }[] = [];
     if (!groupBy) {
@@ -365,7 +371,7 @@ export function LibraryView<T>({
       const href = getHref(item);
       const starred = getFavorite?.(item);
       const rating = getRating?.(item);
-      const isSelected = selectedIds.has(id);
+      const isSelected = selectable && selectedIds.has(id);
       const isPlaying = playingId !== undefined && playingId === id;
       const indexLabel = getIndexLabel?.(item, index);
 
@@ -477,7 +483,7 @@ export function LibraryView<T>({
     );
 
     return (
-      <div className="overflow-x-auto" onKeyDown={handleContainerKeyDown}>
+      <div className="overflow-x-auto" onKeyDown={selectable ? handleContainerKeyDown : undefined}>
         {sortable ? (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={data.map((item) => getId(item))} strategy={verticalListSortingStrategy}>

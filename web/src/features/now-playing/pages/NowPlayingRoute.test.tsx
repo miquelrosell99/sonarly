@@ -100,6 +100,22 @@ describe('NowPlayingRoute (FF5: no context re-fetch when the store already holds
     expect(usePlayer.getState().queue.map((s) => s.id)).toEqual(['song-3', 'song-4', 'song-5']);
   });
 
+  it('bad deep link (unknown songId) falls back to the first song and settles (P7 loop guard)', async () => {
+    const playQueueSpy = vi.spyOn(usePlayer.getState(), 'playQueue');
+
+    await mountAt('/now-playing/playlist/pl-1/song-999');
+
+    expect(callsTo('/api/playlists/pl-1')).toHaveLength(1);
+    await waitFor(() => expect(usePlayer.getState().currentSong?.id).toBe('song-3'));
+    // Playback fell back to the first song, so the URL's songId can never
+    // "match" — the effect must not keep re-firing playQueue (each pass
+    // would reset currentTime and bump playSession, stalling playback).
+    await act(async () => {});
+    expect(playQueueSpy).toHaveBeenCalledTimes(1);
+    expect(usePlayer.getState().currentSong?.id).toBe('song-3');
+    playQueueSpy.mockRestore();
+  });
+
   it('cold album deep link resolves the real {album, songs} shape without crashing (F4)', async () => {
     await mountAt('/now-playing/album/al-9/song-4');
 

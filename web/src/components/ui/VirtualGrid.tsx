@@ -5,7 +5,7 @@ import { useScrollParent } from './useScrollParent.js';
 // Matches the responsive column classes used by the app's card grids
 // (grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5). Keep in sync
 // with those Tailwind classes wherever they appear.
-export function defaultGridColumns(width: number): number {
+function defaultGridColumns(width: number): number {
   if (width >= 1024) return 5;
   if (width >= 768) return 4;
   if (width >= 640) return 3;
