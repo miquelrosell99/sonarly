@@ -242,6 +242,18 @@ export function PlaylistDetail({ user, underlay }: PlaylistDetailProps) {
         )
       }
       metadata={metadata}
+      secondaryActions={
+        playlist &&
+        user && (
+          <FavoriteRatingGroup
+            starred={playlist.starred}
+            onToggleFavorite={() => handleFavorite(!playlist.starred)}
+            rating={playlist.rating}
+            onRate={(rating) => handleRate(rating || undefined)}
+            favoriteLabel={playlist.name}
+          />
+        )
+      }
       actions={
         playlist && (
           <>
@@ -269,13 +281,6 @@ export function PlaylistDetail({ user, underlay }: PlaylistDetailProps) {
                     Share
                   </Button>
                 )}
-                <FavoriteRatingGroup
-                  starred={playlist.starred}
-                  onToggleFavorite={() => handleFavorite(!playlist.starred)}
-                  rating={playlist.rating}
-                  onRate={(rating) => handleRate(rating || undefined)}
-                  favoriteLabel={playlist.name}
-                />
               </>
             )}
           </>
