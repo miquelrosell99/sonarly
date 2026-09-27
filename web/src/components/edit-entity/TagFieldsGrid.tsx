@@ -1,12 +1,15 @@
+import { cn } from '../../lib/cn.js';
 import { Checkbox } from '../ui/Checkbox.js';
-import { PillInput } from '../ui/PillInput.js';
 import { Field } from './Field.js';
+import { EditorSection } from './EditorSection.js';
 import { TagInput } from './TagInput.js';
+import { SortablePillInput } from './SortablePillInput.js';
 import type { TagField } from './fields.js';
 
 export interface TagFieldsGridProps {
   entityType: 'song' | 'album';
-  variant: 'primary' | 'secondary';
+  /** Section heading rendered above the grid (EditorSection). */
+  title: string;
   fields: TagField[];
   values: Record<string, string | string[]>;
   onValueChange: (key: string, value: string | string[]) => void;
@@ -15,11 +18,14 @@ export interface TagFieldsGridProps {
   isMulti: boolean;
   readOnly?: boolean;
   albumStats: { tracks: number; discs: number } | null;
+  /** Grid columns for the section's fields. */
+  gridClassName?: string;
+  className?: string;
 }
 
 export function TagFieldsGrid({
   entityType,
-  variant,
+  title,
   fields,
   values,
   onValueChange,
@@ -27,16 +33,18 @@ export function TagFieldsGrid({
   onExplicitChange,
   readOnly,
   albumStats,
+  gridClassName = 'grid-cols-1 sm:grid-cols-2',
+  className,
 }: TagFieldsGridProps) {
-  if (variant === 'primary') {
-    return (
-      <div className="grid flex-1 gap-4 sm:grid-cols-2">
-        {fields.map(({ key, label, type, autocomplete, multi }) => (
+  return (
+    <EditorSection title={title} className={className}>
+      <div className={cn('grid gap-4', gridClassName)}>
+        {fields.map(({ key, label, type, autocomplete, multi, wide }) => (
           <Field
             key={key}
             label={label}
             htmlFor={`edit-${key}`}
-            className={key === 'title' || key === 'album' ? 'sm:col-span-2' : undefined}
+            className={wide ? 'sm:col-span-2' : undefined}
           >
             {key === 'title' && entityType === 'song' ? (
               <div className="flex items-center gap-4">
@@ -60,7 +68,7 @@ export function TagFieldsGrid({
                 />
               </div>
             ) : multi ? (
-              <PillInput
+              <SortablePillInput
                 id={`edit-${key}`}
                 values={Array.isArray(values[key]) ? (values[key] as string[]) : []}
                 onChange={(value) => onValueChange(key, value)}
@@ -89,45 +97,6 @@ export function TagFieldsGrid({
           </Field>
         ))}
       </div>
-    );
-  }
-  return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-      {fields.map(({ key, label, type, autocomplete, multi }) => (
-        <Field
-          key={key}
-          label={label}
-          htmlFor={`edit-${key}`}
-          className={
-            key === 'artist'
-              ? 'col-span-2 sm:col-span-4'
-              : key === 'genre' || key === 'year'
-                ? 'col-span-2'
-                : 'col-span-1'
-          }
-        >
-          {multi ? (
-            <PillInput
-              id={`edit-${key}`}
-              values={Array.isArray(values[key]) ? (values[key] as string[]) : []}
-              onChange={(value) => onValueChange(key, value)}
-              autocomplete={autocomplete}
-              placeholder={label}
-              disabled={readOnly}
-            />
-          ) : (
-            <TagInput
-              id={`edit-${key}`}
-              value={String(values[key] ?? '')}
-              onChange={(value) => onValueChange(key, value)}
-              type={type}
-              autocomplete={autocomplete}
-              placeholder={label}
-              disabled={readOnly}
-            />
-          )}
-        </Field>
-      ))}
-    </div>
+    </EditorSection>
   );
 }

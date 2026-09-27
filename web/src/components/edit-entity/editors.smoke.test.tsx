@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 describe('edit-entity per-type editors (smoke)', () => {
-  it('SongEditor renders song fields and reports value changes', () => {
+  it('SongEditor renders song fields grouped into labelled sections and reports value changes', () => {
     const onValueChange = vi.fn();
     render(
       <SongEditor
@@ -28,11 +28,14 @@ describe('edit-entity per-type editors (smoke)', () => {
         syncedLinesCount={0}
       />,
     );
+    for (const section of ['Artwork', 'Core metadata', 'Artists & credits', 'Classification', 'Lyrics']) {
+      expect(screen.getByRole('heading', { name: section })).toBeTruthy();
+    }
     fireEvent.change(screen.getByLabelText(/title/i), { target: { value: 'New Title' } });
     expect(onValueChange).toHaveBeenCalledWith('title', 'New Title');
   });
 
-  it('AlbumEditor renders album fields', () => {
+  it('AlbumEditor renders album fields grouped into labelled sections', () => {
     render(
       <AlbumEditor
         entity={{ id: '2', title: 'Album' }}
@@ -42,6 +45,9 @@ describe('edit-entity per-type editors (smoke)', () => {
         albumStats={null}
       />,
     );
+    for (const section of ['Core metadata', 'Artwork', 'Artists & credits', 'Classification']) {
+      expect(screen.getByRole('heading', { name: section })).toBeTruthy();
+    }
     expect(screen.getByLabelText(/title/i)).toBeTruthy();
     expect(screen.getByPlaceholderText('Album artist')).toBeTruthy();
   });

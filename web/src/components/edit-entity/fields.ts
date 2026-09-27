@@ -5,23 +5,29 @@ export interface TagField {
   label: string;
   type?: 'text' | 'number';
   autocomplete?: AutocompleteField;
-  primary?: boolean;
   multi?: boolean;
+  /** Editor section the field renders in. */
+  group?: 'core' | 'artists' | 'classification';
+  /** Render across the full grid row. */
+  wide?: boolean;
 }
 
+// `group` drives the editor's section hierarchy (core metadata / artists &
+// credits / classification); `multi` fields accept ordered string arrays and
+// are rendered as reorderable chips.
 export const SONG_FIELDS: TagField[] = [
-  { key: 'title', label: 'Title', primary: true },
-  { key: 'album', label: 'Album', autocomplete: 'album', primary: true },
-  { key: 'trackNumber', label: 'Track number', type: 'number', primary: true },
-  { key: 'discNumber', label: 'Disc number', type: 'number', primary: true },
-  { key: 'artist', label: 'Artist', autocomplete: 'artist', multi: true },
-  { key: 'genre', label: 'Genre', autocomplete: 'genre', multi: true },
-  { key: 'year', label: 'Year', type: 'number' },
+  { key: 'title', label: 'Title', group: 'core', wide: true },
+  { key: 'album', label: 'Album', autocomplete: 'album', group: 'core', wide: true },
+  { key: 'trackNumber', label: 'Track number', type: 'number', group: 'core' },
+  { key: 'discNumber', label: 'Disc number', type: 'number', group: 'core' },
+  { key: 'artist', label: 'Artist', autocomplete: 'artist', multi: true, group: 'artists' },
+  { key: 'genre', label: 'Genre', autocomplete: 'genre', multi: true, group: 'classification' },
+  { key: 'year', label: 'Year', type: 'number', group: 'classification' },
 ];
 
 export const ALBUM_FIELDS: TagField[] = [
-  { key: 'title', label: 'Title', primary: true },
-  { key: 'albumArtist', label: 'Album artist', autocomplete: 'albumArtist', primary: true, multi: true },
-  { key: 'year', label: 'Year', type: 'number', primary: true },
-  { key: 'releaseType', label: 'Release type', autocomplete: 'releaseType' },
+  { key: 'title', label: 'Title', group: 'core', wide: true },
+  { key: 'albumArtist', label: 'Album artist', autocomplete: 'albumArtist', multi: true, group: 'artists' },
+  { key: 'year', label: 'Year', type: 'number', group: 'core' },
+  { key: 'releaseType', label: 'Release type', autocomplete: 'releaseType', group: 'classification' },
 ];

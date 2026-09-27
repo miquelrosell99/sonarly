@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
 import { CoverArtSection } from './CoverArtSection.js';
+import { EditorSection } from './EditorSection.js';
 import { TagFieldsGrid } from './TagFieldsGrid.js';
 import { ALBUM_FIELDS } from './fields.js';
 
@@ -29,48 +29,41 @@ export function AlbumEditor({
   onDeleteCoverArt,
 }: AlbumEditorProps) {
   const fields = ALBUM_FIELDS;
-  const primaryFields = useMemo(() => fields.filter((f) => f.primary), [fields]);
-  const secondaryFields = useMemo(() => fields.filter((f) => !f.primary), [fields]);
+  const coreFields = fields.filter((field) => field.group === 'core');
+  const artistFields = fields.filter((field) => field.group === 'artists');
+  const classificationFields = fields.filter((field) => field.group === 'classification');
+  const sharedProps = {
+    entityType: 'album' as const,
+    values,
+    onValueChange,
+    explicit: null,
+    onExplicitChange: () => undefined,
+    isMulti,
+    readOnly,
+    albumStats,
+  };
   return (
     <>
       <div className="flex flex-col gap-5 sm:flex-row">
-        <CoverArtSection
-          entityType="album"
-          entity={entity}
-          entities={entities}
-          isMulti={isMulti}
-          title={values.title}
-          readOnly={readOnly}
-          coverArtBusy={coverArtBusy}
-          onEditCoverArt={onEditCoverArt}
-          onDeleteCoverArt={onDeleteCoverArt}
-        />
-        <TagFieldsGrid
-          entityType="album"
-          variant="primary"
-          fields={primaryFields}
-          values={values}
-          onValueChange={onValueChange}
-          explicit={null}
-          onExplicitChange={() => undefined}
-          isMulti={isMulti}
-          readOnly={readOnly}
-          albumStats={albumStats}
-        />
+        <TagFieldsGrid {...sharedProps} title="Core metadata" fields={coreFields} className="flex-1" />
+        <EditorSection title="Artwork" className="shrink-0">
+          <CoverArtSection
+            entityType="album"
+            entity={entity}
+            entities={entities}
+            isMulti={isMulti}
+            title={values.title}
+            readOnly={readOnly}
+            coverArtBusy={coverArtBusy}
+            onEditCoverArt={onEditCoverArt}
+            onDeleteCoverArt={onDeleteCoverArt}
+          />
+        </EditorSection>
       </div>
 
-      <TagFieldsGrid
-        entityType="album"
-        variant="secondary"
-        fields={secondaryFields}
-        values={values}
-        onValueChange={onValueChange}
-        explicit={null}
-        onExplicitChange={() => undefined}
-        isMulti={isMulti}
-        readOnly={readOnly}
-        albumStats={albumStats}
-      />
+      <TagFieldsGrid {...sharedProps} title="Artists & credits" fields={artistFields} />
+
+      <TagFieldsGrid {...sharedProps} title="Classification" fields={classificationFields} />
     </>
   );
 }

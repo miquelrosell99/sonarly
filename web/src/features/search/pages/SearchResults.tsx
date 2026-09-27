@@ -20,6 +20,7 @@ import { useLibraryMutation, invalidateLibraryEntity } from '../../../hooks/useL
 import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
 import { patchToPlayerSong } from '../../../lib/songPatch.js';
 import { songFromPlaylistEntry, songFromSearchSong, playlistFromSearchPlaylist } from '../../../lib/entityMappers.js';
+import { SONG_COLUMN_CONFIG_KEY } from '../../songs/components/SongTable.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
@@ -261,6 +262,7 @@ export function SearchResults({ user }: SearchResultsProps) {
     return (
       <LibraryView
         viewModeKey="search-songs"
+        columnConfigKey={SONG_COLUMN_CONFIG_KEY}
         title={`Songs matching "${query}"`}
         data={songs}
         isLoading={isLoading}

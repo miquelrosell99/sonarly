@@ -24,6 +24,13 @@ import { VirtualGrid } from './ui/VirtualGrid.js';
 import { VirtualList } from './ui/VirtualList.js';
 import { useScrollParent } from './ui/useScrollParent.js';
 import { usePersistentViewMode, type ViewMode } from '../hooks/usePersistentViewMode.js';
+import {
+  useColumnConfig,
+  resolveColumns,
+  DEFAULT_LOCKED_COLUMN_KEYS,
+  type ColumnConfigColumn,
+} from '../hooks/useColumnConfig.js';
+import { ColumnConfigMenu } from './ColumnConfigMenu.js';
 
 export interface LibraryViewColumn<T> {
   key: string;
@@ -73,6 +80,14 @@ interface LibraryViewProps<T> {
    * and reloads (audit F28). Omit for ephemeral views (queue editor).
    */
   viewModeKey?: string;
+  /**
+   * Stable per-view key ('songs', 'artist-tracks', …) for the column
+   * configurator: a gear in the list toolbar opens a popover with show/hide
+   * toggles and reorder controls, persisted per view (see useColumnConfig).
+   * Views that reuse the same column definitions share one key so the
+   * configuration follows the user across pages. Omit for fixed layouts.
+   */
+  columnConfigKey?: string;
   getCover?: (item: T) => string | undefined;
   getCoverAlt?: (item: T) => string;
   renderCover?: (item: T) => ReactNode;
@@ -200,6 +215,7 @@ export function LibraryView<T>({
   defaultView = 'list',
   availableViews = ['list', 'grid'],
   viewModeKey,
+  columnConfigKey,
   getCover,
   getCoverAlt,
   renderCover,
@@ -214,6 +230,15 @@ export function LibraryView<T>({
 }: LibraryViewProps<T>) {
   const effectiveDefaultView = availableViews.includes(defaultView) ? defaultView : availableViews[0];
   const [viewMode, setViewMode] = usePersistentViewMode(viewModeKey, effectiveDefaultView, availableViews);
+  // Column configuration (audit: column configurator) — order + visibility
+  // persist per view key; locked columns (title, row actions) reorder but
+  // never hide. Without a key the view renders its natural column set.
+  const availableColumns: ColumnConfigColumn[] = columns.map((column) => ({
+    key: column.key,
+    label: typeof column.header === 'string' ? column.header : column.key,
+  }));
+  const columnConfig = useColumnConfig(columnConfigKey, availableColumns, DEFAULT_LOCKED_COLUMN_KEYS);
+  const visibleColumns = resolveColumns(columns, columnConfig.visibleKeys);
   // Selection is an affordance OF play-selection: rows only highlight and
   // select when the page can act on a selection (double-click/Enter plays
   // it) — aligning with Table's `selectable = Boolean(onPlaySelection)` so
@@ -358,7 +383,7 @@ export function LibraryView<T>({
     }
 
     const groupHeaderColSpan =
-      (sortable ? 1 : 0) + 1 + columns.length + (onFavorite ? 1 : 0) + (onRate ? 1 : 0);
+      (sortable ? 1 : 0) + 1 + visibleColumns.length + (onFavorite ? 1 : 0) + (onRate ? 1 : 0);
 
     // The dnd-sortable list (queue editor) and grouped lists keep the
     // unwindowed renderer: dnd and group headers do not survive windowing.
@@ -382,7 +407,7 @@ export function LibraryView<T>({
             item={item}
             getId={getId}
             index={index}
-            columns={columns}
+            columns={visibleColumns}
             isSelected={isSelected}
             isPlaying={isPlaying}
             onSelect={(e) => handleRowSelect(item, e)}
@@ -423,7 +448,7 @@ export function LibraryView<T>({
           indexPad={indexPad}
           indexLabel={indexLabel}
         >
-          {columns.map((col) => (
+          {visibleColumns.map((col) => (
             <td key={col.key} className={cn('truncate py-2 pr-4', col.className)}>
               {col.render(item)}
             </td>
@@ -440,7 +465,7 @@ export function LibraryView<T>({
           <tr>
             {sortable && <th className="w-8 py-2 pr-2 font-medium" aria-label="Reorder" />}
             <th className="w-12 py-2 px-2 text-center font-medium">#</th>
-            {columns.map((col) => (
+            {visibleColumns.map((col) => (
               <th key={col.key} className={cn('py-2 pr-4 font-medium', col.className)}>
                 {col.header}
               </th>
@@ -554,11 +579,13 @@ export function LibraryView<T>({
     );
   };
 
+  const showColumnConfig = columnConfigKey !== undefined && viewMode === 'list';
+
   return (
     <div ref={scrollAnchorRef}>
-      {title && (
+      {(title || showColumnConfig) && (
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-lg font-semibold tracking-tight">{title}</h2>
+          {title && <h2 className="font-display text-lg font-semibold tracking-tight">{title}</h2>}
           <div className="flex items-center gap-2">
             {onShufflePlay && (
               <button
@@ -600,6 +627,14 @@ export function LibraryView<T>({
                   </button>
                 )}
               </div>
+            )}
+            {showColumnConfig && (
+              <ColumnConfigMenu
+                entries={columnConfig.entries}
+                actionsLabel="Row actions"
+                onToggle={columnConfig.toggle}
+                onMove={columnConfig.move}
+              />
             )}
           </div>
         </div>

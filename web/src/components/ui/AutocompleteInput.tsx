@@ -109,6 +109,12 @@ export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputP
       }
     } else if (e.key === 'Escape') {
       setOpen(false);
+      if (open) {
+        // The dropdown consumed this Escape: swallow it so the enclosing
+        // layer (e.g. the edit-entity modal's document-level handler) does
+        // not close on top of the field. The next Escape reaches it.
+        e.stopPropagation();
+      }
       props.onKeyDown?.(e);
     } else {
       props.onKeyDown?.(e);

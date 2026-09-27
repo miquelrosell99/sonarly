@@ -1,9 +1,10 @@
-import { useRef, useCallback, useState } from 'react';
+import { createElement, useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { cn } from '../../lib/cn.js';
-import { AutocompleteInput, type AutocompleteField } from './AutocompleteInput.js';
-import { Icon } from './Icon.js';
+import { AutocompleteInput, type AutocompleteField } from '../ui/AutocompleteInput.js';
+import { chipShellClass, ChipMoveButtons, ChipRemoveButton } from './chipBits.js';
+import type { DndChipRowProps } from './PillDnd.js';
 
-interface PillInputProps {
+export interface SortablePillInputProps {
   id?: string;
   values: string[];
   onChange: (values: string[]) => void;
@@ -13,7 +14,25 @@ interface PillInputProps {
   className?: string;
 }
 
-export function PillInput({
+/**
+ * Multi-value tag field (song artists, genres, album artists) whose chips
+ * can be reordered — the array order is what the tags endpoint persists
+ * (the server writes junction `position` from the slice order).
+ *
+ * Reorder paths, all reporting through onChange:
+ * - pointer: drag a chip by its handle (available once the lazy dnd-kit
+ *   wrapper has loaded);
+ * - keyboard: focus a handle, press Enter/Space to lift, arrow keys to move,
+ *   Enter/Space to drop (dnd-kit KeyboardSensor) — or the chips' always
+ *   present move-left/move-right buttons, which work even before the wrapper
+ *   loads.
+ *
+ * The dnd-kit wrapper (`PillDnd`) dynamic-imports when the editor renders,
+ * keeping @dnd-kit out of the edit chunk's static graph. Chips and the text
+ * input render synchronously and never remount when the wrapper arrives, so
+ * in-progress typing and focus survive the upgrade.
+ */
+export function SortablePillInput({
   id,
   values,
   onChange,
@@ -21,9 +40,24 @@ export function PillInput({
   placeholder,
   disabled,
   className,
-}: PillInputProps) {
+}: SortablePillInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [rawInput, setRawInput] = useState('');
+  const [dndRow, setDndRow] = useState<ComponentType<DndChipRowProps> | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    import('./PillDnd.js')
+      .then((module) => {
+        if (alive) setDndRow(() => module.DndChipRow);
+      })
+      .catch(() => {
+        // dnd-kit failed to load: the move buttons remain fully usable.
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const focusInput = useCallback(() => {
     inputRef.current?.focus();
@@ -43,7 +77,6 @@ export function PillInput({
       onChange([...values, trimmed]);
       setRawInput('');
       if (shouldFocus) {
-        // Refocus after React renders the cleared input.
         requestAnimationFrame(focusInput);
       }
     },
@@ -56,6 +89,28 @@ export function PillInput({
       focusInput();
     },
     [values, onChange, focusInput],
+  );
+
+  const moveValue = useCallback(
+    (index: number, delta: -1 | 1) => {
+      const target = index + delta;
+      if (target < 0 || target >= values.length) return;
+      const next = [...values];
+      [next[index], next[target]] = [next[target], next[index]];
+      onChange(next);
+    },
+    [values, onChange],
+  );
+
+  const dragReorder = useCallback(
+    (from: number, to: number) => {
+      if (from === to) return;
+      const next = [...values];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      onChange(next);
+    },
+    [values, onChange],
   );
 
   const handleKeyDown = useCallback(
@@ -85,28 +140,25 @@ export function PillInput({
       role="group"
       aria-label={placeholder ?? 'Values'}
     >
-      {values.map((value, index) => (
-        <span
-          key={`${value}-${index}`}
-          className="inline-flex items-center gap-1 rounded-full bg-surface-hover px-2.5 py-0.5 text-sm text-fg-primary"
-        >
-          {value}
-          {!disabled && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                removeValue(index);
-              }}
-              aria-label={`Remove ${value}`}
-              title={`Remove ${value}`}
-              className="ml-0.5 rounded-full p-0.5 text-fg-secondary transition hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            >
-              <Icon name="mdi-close" size={14} />
-            </button>
-          )}
-        </span>
-      ))}
+      {dndRow
+        ? createElement(dndRow, {
+            values,
+            disabled,
+            onMove: moveValue,
+            onRemove: removeValue,
+            onDragReorder: dragReorder,
+          })
+        : values.map((value, index) => (
+          <span key={value} className={chipShellClass(Boolean(disabled))}>
+            <span className="max-w-44 truncate">{value}</span>
+            {!disabled && (
+              <>
+                <ChipMoveButtons value={value} index={index} total={values.length} onMove={(delta) => moveValue(index, delta)} />
+                <ChipRemoveButton value={value} onRemove={() => removeValue(index)} />
+              </>
+            )}
+          </span>
+        ))}
       {autocomplete ? (
         <AutocompleteInput
           id={id}
