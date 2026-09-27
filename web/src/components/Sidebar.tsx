@@ -84,7 +84,6 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
   const setSelectedLibraryId = useLibraryStore((state) => state.setSelectedLibraryId);
   const items = mergeSidebarItems(config);
-  const collapsed = preferences?.playlistsCollapsed ?? false;
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
   const prevLocationRef = useRef(location);
 
@@ -108,9 +107,18 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
   }, [mobileOpen, onMobileClose]);
 
   const orderedLibraryLinks = items
-    .filter((item): item is SidebarItem & { type: 'link' } => item.type === 'link')
+    .filter(
+      (item): item is SidebarItem & { type: 'link' } => item.type === 'link' && item.visible,
+    )
     .map((item) => LIBRARY_LINKS.find((link) => link.id === item.id))
     .filter((link): link is (typeof LIBRARY_LINKS)[number] => link !== undefined);
+
+  const playlistsItem = items.find((item) => item.type === 'playlists');
+  // The playlists section honors the sidebar config's visibility flag; its
+  // collapsed state comes from the config item when present, falling back to
+  // the legacy playlistsCollapsed preference.
+  const playlistsVisible = playlistsItem?.visible !== false;
+  const collapsed = playlistsItem?.collapsed ?? preferences?.playlistsCollapsed ?? false;
 
   const toggleCollapsed = () => {
     updatePreferences.mutate({ playlistsCollapsed: !collapsed });
@@ -138,6 +146,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
         ))}
       </nav>
 
+      {playlistsVisible && (
       <div className="mt-6 flex min-h-0 flex-1 flex-col">
         <div className="mb-2 flex shrink-0 items-center justify-between px-3">
           <div className="flex items-center gap-1">
@@ -212,6 +221,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
           </nav>
         )}
       </div>
+      )}
     </div>
   );
 

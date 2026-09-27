@@ -8,6 +8,7 @@ import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { useAdminRefresh } from '../contexts/AdminRefreshContext.js';
+import { formatDateTime } from '../../../lib/formatDate.js';
 
 interface IngestRun {
   id: string;
@@ -24,11 +25,9 @@ interface IngestModalProps {
   onSelectRun?: (id: string) => void;
 }
 
-function formatDateTime(value: string | null): string {
+function formatRunDate(value: string | null): string {
   if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Invalid date';
-  return date.toLocaleString();
+  return formatDateTime(value);
 }
 
 function formatDuration(startedAt: string | null, finishedAt: string | null): string {
@@ -128,13 +127,13 @@ export function IngestModal({ open, onClose, onSelectRun }: IngestModalProps) {
                     key: 'started',
                     header: 'Started',
                     className: 'w-48',
-                    render: (r) => <span className="font-mono">{formatDateTime(r.startedAt)}</span>,
+                    render: (r) => <span className="font-mono">{formatRunDate(r.startedAt)}</span>,
                   },
                   {
                     key: 'finished',
                     header: 'Finished',
                     className: 'w-48',
-                    render: (r) => <span className="font-mono">{formatDateTime(r.finishedAt)}</span>,
+                    render: (r) => <span className="font-mono">{formatRunDate(r.finishedAt)}</span>,
                   },
                   {
                     key: 'duration',

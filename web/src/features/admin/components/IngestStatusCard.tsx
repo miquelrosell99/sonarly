@@ -1,5 +1,6 @@
 import { Icon } from '../../../components/ui/Icon.js';
 import { StatusPill } from './StatusPill.js';
+import { formatDateTime } from '../../../lib/formatDate.js';
 
 interface IngestStatus {
   type: string;
@@ -36,10 +37,6 @@ const statLabels: Record<string, string> = {
 const ingestStatKeys = new Set(['processed', 'done', 'total', 'skipped', 'failed']);
 const conflictsStatKeys = new Set(['needsReview']);
 const missingStatKeys = new Set(['removed', 'deleted']);
-
-function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString();
-}
 
 function getNumericStats(stats: Record<string, unknown> | undefined): { key: string; value: number }[] {
   if (!stats) return [];

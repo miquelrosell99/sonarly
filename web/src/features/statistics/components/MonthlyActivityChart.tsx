@@ -39,13 +39,13 @@ function formatNumber(n: number): string {
 function formatMonthLabel(month: string): string {
   const [year, mon] = month.split('-');
   const date = new Date(Number(year), Number(mon) - 1, 1);
-  return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+  return date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
 }
 
 function formatShortMonth(month: string): string {
   const [year, mon] = month.split('-');
   const date = new Date(Number(year), Number(mon) - 1, 1);
-  return date.toLocaleDateString(undefined, { month: 'short' });
+  return date.toLocaleDateString('en-GB', { month: 'short' });
 }
 
 function getGroupColor(index: number): string {
