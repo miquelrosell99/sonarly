@@ -108,7 +108,7 @@ describe('TopBar filter data (F12 shared key families)', () => {
     expect(callsFor('/playlists')).toHaveLength(0);
   });
 
-  it('re-runs loadLibraries when the SSE library-changed event fires', async () => {
+  it('refetches /libraries when the SSE library-changed event fires', async () => {
     renderAt('/home', <TopBar user={user} onLogout={() => {}} />);
 
     await waitFor(() => {

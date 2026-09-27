@@ -11,7 +11,7 @@ import { SponsorButton } from './SponsorButton.js';
 import { UploadModal, UploadResultsModal, type UploadSummary } from './UploadModal.js';
 import { useLibraryStore } from '../stores/libraryStore.js';
 import { usePlaylists } from '../hooks/usePlaylists.js';
-import { useAlbumsList, useSongsList } from '../hooks/useLibraryLists.js';
+import { useAlbumsList, useLibraries, useSongsList } from '../hooks/useLibraryLists.js';
 import type { FilterDefinition } from './FilterPanel.js';
 import type { PlayerInfo } from '../types';
 
@@ -356,20 +356,9 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
   const [resultsOpen, setResultsOpen] = useState(false);
   const [uploadSummary, setUploadSummary] = useState<UploadSummary | null>(null);
   const filters = useFilterDefinitions(location);
-  const { libraries, selectedLibraryId, loadLibraries } = useLibraryStore();
-
-  useEffect(() => {
-    // The libraries list lives in libraryStore (Phase 10e migrates it to
-    // react-query); until then the SSE bridge is its only refresh signal —
-    // re-run the load when the server reports library changes so admin CRUD
-    // shows up in the selector without a reload.
-    const load = () => {
-      loadLibraries().catch(() => undefined);
-    };
-    load();
-    window.addEventListener('sonarly:library-changed', load);
-    return () => window.removeEventListener('sonarly:library-changed', load);
-  }, [loadLibraries]);
+  const { data: librariesData } = useLibraries();
+  const libraries = librariesData?.libraries ?? [];
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
 
   return (
     <header className="relative z-50 grid h-16 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-4 bg-bg-primary/80 px-4 backdrop-blur-md sm:grid-cols-[1fr_2fr_1fr] sm:px-6">

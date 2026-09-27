@@ -6,6 +6,7 @@ import { Icon } from './ui/Icon.js';
 import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
 import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
 import { useLibraryStore } from '../stores/libraryStore.js';
+import { useLibraries } from '../hooks/useLibraryLists.js';
 import { mergeSidebarItems } from '../lib/sidebar.js';
 import { LibrarySelector } from './LibrarySelector.js';
 import { SidebarPlaylistItem } from './SidebarPlaylistItem.js';
@@ -79,7 +80,9 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
   const { data: preferences } = usePreferences();
   const updatePreferences = useUpdatePreferences();
   const { open: openCreatePlaylist } = useCreatePlaylistModal();
-  const { libraries, selectedLibraryId, setSelectedLibraryId, error: librariesError } = useLibraryStore();
+  const { data: librariesData, error: librariesError } = useLibraries();
+  const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const setSelectedLibraryId = useLibraryStore((state) => state.setSelectedLibraryId);
   const items = mergeSidebarItems(config);
   const collapsed = preferences?.playlistsCollapsed ?? false;
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
@@ -117,10 +120,10 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
     <div className="flex flex-1 flex-col overflow-hidden p-3">
       <div className="mb-2 shrink-0 border-b border-rule pb-3">
         <LibrarySelector
-          libraries={libraries}
+          libraries={librariesData?.libraries ?? []}
           selectedLibraryId={selectedLibraryId}
           onSelect={setSelectedLibraryId}
-          error={librariesError}
+          error={librariesError?.message ?? null}
         />
       </div>
       <nav className="space-y-0.5 overflow-y-auto">

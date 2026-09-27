@@ -11,7 +11,7 @@ function readPersisted(): { state?: Record<string, unknown> } | null {
 describe('libraryStore persistence (FF7)', () => {
   beforeEach(() => {
     window.localStorage.clear();
-    useLibraryStore.setState({ selectedLibraryId: null, libraries: [], isLoading: false, error: null });
+    useLibraryStore.setState({ selectedLibraryId: null });
   });
 
   afterEach(() => {
@@ -30,12 +30,9 @@ describe('libraryStore persistence (FF7)', () => {
     expect(readPersisted()?.state?.selectedLibraryId).toBe(null);
   });
 
-  it('does not persist the libraries list (server state)', () => {
+  it('persists only the selection — the libraries list is server state (react-query)', () => {
     useLibraryStore.getState().setSelectedLibraryId('lib-1');
-    useLibraryStore.getState().setLibraries([{ id: 'lib-1', name: 'Music' } as never]);
     const persisted = readPersisted();
-    expect(persisted?.state).not.toHaveProperty('libraries');
-    expect(persisted?.state).not.toHaveProperty('isLoading');
     expect(Object.keys(persisted?.state ?? {})).toEqual(['selectedLibraryId']);
   });
 
