@@ -7,7 +7,9 @@ This guide covers the day-to-day: getting set up, adding music, browsing, playin
 1. Start the container (see [installation.md](installation.md)) and open the web UI at `http://<host>:4533`.
 2. The first visit redirects to `/setup`: create the admin account (username + password). This account is the server administrator.
 3. Log in. The library folder you mounted (`LIBRARY_MUSIC`) is already registered as the default library, and the first scan starts automatically.
-4. (Optional) Open Settings (Profile / Appearance / Playback / Sidebar) to adjust the theme, accent color, and player defaults.
+4. (Optional) Open Settings (Profile / Appearance / Library / Playback / Sidebar) to adjust the theme, accent color, default views, and player defaults.
+
+Settings changes are staged: pick what you want on each tab, then confirm with **Save changes** in the title bar (or press Ctrl/Cmd+S). Nothing is sent to the server until you save, and a failed save keeps your edits so you can retry. The same save bar applies to the admin panel's media settings.
 
 ![The first-boot setup wizard](img/screenshots/dark/setup-wizard.jpg)
 
