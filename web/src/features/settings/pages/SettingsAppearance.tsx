@@ -1,7 +1,7 @@
-import { Link } from 'wouter';
 import { Settings } from '../components/Settings.js';
+import { SettingsCard } from '../components/SettingsCard.js';
 import { useTheme } from '../../../stores/themeStore.js';
-import { useUpdatePreferences } from '../../../hooks/usePreferences.js';
+import { useSettingsDraft, useSettingsSaveBar } from '../hooks/useSettingsDraft.js';
 import { cn } from '../../../lib/cn.js';
 import type { ThemeMode, AccentColor } from '../../../types';
 
@@ -26,80 +26,76 @@ const accentColors: { value: AccentColor; label: string; className: string }[] =
 ];
 
 export function SettingsAppearance() {
-  const { themeMode, accentColor } = useTheme();
-  const updatePreferences = useUpdatePreferences();
-
-  // FF8: the PATCH mutation is the only ongoing writer. The store is seeded
-  // once per boot from the server preferences (useSyncThemePreferences), and
-  // afterwards only this mutation's server response updates it — a stale
-  // preferences refetch can never overwrite a local change.
-  const handleThemeMode = (mode: ThemeMode) => {
-    updatePreferences.mutate({ themeMode: mode });
-  };
-
-  const handleAccentColor = (color: AccentColor) => {
-    updatePreferences.mutate({ accentColor: color });
-  };
-
   return (
     <Settings>
-      <div className="w-full space-y-8">
-        <section>
-          <h3 className="mb-4 text-base font-medium">Theme</h3>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {themeModes.map((mode) => (
-              <button
-                key={mode.value}
-                type="button"
-                onClick={() => handleThemeMode(mode.value)}
-                aria-pressed={themeMode === mode.value}
-                className={cn(
-                  'rounded-md border px-4 py-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                  themeMode === mode.value
-                    ? 'border-accent bg-surface-hover text-fg-primary'
-                    : 'border-rule bg-surface text-fg-primary hover:bg-surface-hover',
-                )}
-              >
-                {mode.label}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <h3 className="mb-4 text-base font-medium">Accent color</h3>
-          <div className="flex flex-wrap gap-3">
-            {accentColors.map((color) => (
-              <button
-                key={color.value}
-                type="button"
-                onClick={() => handleAccentColor(color.value)}
-                aria-label={color.label}
-                aria-pressed={accentColor === color.value}
-                title={color.label}
-                className={cn(
-                  'h-11 w-11 rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
-                  color.className,
-                  accentColor === color.value
-                    ? 'ring-2 ring-fg-primary ring-offset-2 ring-offset-bg-primary'
-                    : 'hover:scale-105',
-                )}
-              />
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <h3 className="mb-4 text-base font-medium">Sidebar</h3>
-          <p className="text-sm text-muted">
-            Sidebar sections and their order are managed on the{' '}
-            <Link href="/settings/sidebar" className="text-accent hover:underline">
-              Sidebar settings
-            </Link>{' '}
-            page.
-          </p>
-        </section>
-      </div>
+      <AppearanceSettings />
     </Settings>
+  );
+}
+
+function AppearanceSettings() {
+  const { values, update } = useSettingsDraft();
+  useSettingsSaveBar();
+
+  // The theme store is the pre-hydration snapshot (instant paint); staged
+  // edits win over it, and the PATCH response stays the single writer (FF8):
+  // the saved theme only takes visual effect once "Save changes" succeeds.
+  const themeSnapshot = useTheme();
+  const themeMode = values.themeMode ?? themeSnapshot.themeMode;
+  const accentColor = values.accentColor ?? themeSnapshot.accentColor;
+
+  return (
+    <div className="w-full max-w-3xl space-y-6">
+      <SettingsCard
+        icon="mdi-weather-night"
+        title="Theme"
+        description="Choose how Sonarly looks on this device. Auto follows your system."
+      >
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {themeModes.map((mode) => (
+            <button
+              key={mode.value}
+              type="button"
+              onClick={() => update({ themeMode: mode.value })}
+              aria-pressed={themeMode === mode.value}
+              className={cn(
+                'rounded-md border px-4 py-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                themeMode === mode.value
+                  ? 'border-accent bg-surface-hover text-fg-primary'
+                  : 'border-rule bg-bg-primary text-fg-primary hover:bg-surface-hover',
+              )}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+      </SettingsCard>
+
+      <SettingsCard
+        icon="mdi-palette"
+        title="Accent color"
+        description="Tint highlights and controls across the app."
+      >
+        <div className="flex flex-wrap gap-3">
+          {accentColors.map((color) => (
+            <button
+              key={color.value}
+              type="button"
+              onClick={() => update({ accentColor: color.value })}
+              aria-label={color.label}
+              aria-pressed={accentColor === color.value}
+              title={color.label}
+              className={cn(
+                'h-11 w-11 rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
+                color.className,
+                accentColor === color.value
+                  ? 'ring-2 ring-fg-primary ring-offset-2 ring-offset-bg-primary'
+                  : 'hover:scale-105',
+              )}
+            />
+          ))}
+        </div>
+      </SettingsCard>
+    </div>
   );
 }

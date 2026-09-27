@@ -1,7 +1,9 @@
 export { Settings } from './components/Settings.js';
+export { SettingsCard } from './components/SettingsCard.js';
 export { TabNav } from './components/TabNav.js';
 export { SettingsAppearance } from './pages/SettingsAppearance.js';
 export { SettingsProfile } from './pages/SettingsProfile.js';
+export { SettingsLibrary } from './pages/SettingsLibrary.js';
 export { SettingsPlayback } from './pages/SettingsPlayback.js';
 export { SettingsSidebar } from './pages/SettingsSidebar.js';
 export { RenameProgressModal } from './components/RenameProgressModal.js';

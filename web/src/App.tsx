@@ -104,6 +104,10 @@ const SettingsAppearance = lazyRoute<{}>(
   () => import('./features/settings/index.js').then((m) => ({ default: m.SettingsAppearance })),
   <PageSkeleton />,
 );
+const SettingsLibrary = lazyRoute<{}>(
+  () => import('./features/settings/index.js').then((m) => ({ default: m.SettingsLibrary })),
+  <PageSkeleton />,
+);
 const SettingsPlayback = lazyRoute<{}>(
   () => import('./features/settings/index.js').then((m) => ({ default: m.SettingsPlayback })),
   <PageSkeleton />,
@@ -403,6 +407,7 @@ export default function App() {
             <Route path="/settings" component={() => <Redirect to="/settings/profile" />} />
             <Route path="/settings/profile" component={() => <SettingsProfile user={user} onUserChange={setUser} />} />
             <Route path="/settings/appearance" component={SettingsAppearance} />
+            <Route path="/settings/library" component={SettingsLibrary} />
             <Route path="/settings/playback" component={SettingsPlayback} />
             <Route path="/settings/sidebar" component={SettingsSidebar} />
             <Route path="/users" component={() => <Redirect to="/admin/users" />} />

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
 import type { UserPreferences } from '../../../types';
-import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferences.js';
+import { useSettingsDraft, useSettingsSaveBar } from '../hooks/useSettingsDraft.js';
 import { Settings } from '../components/Settings.js';
+import { SettingsCard } from '../components/SettingsCard.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { Checkbox } from '../../../components/ui/Checkbox.js';
 import { DEFAULT_SIDEBAR_ITEMS, SIDEBAR_LABELS } from '../../../lib/sidebar.js';
@@ -15,23 +15,25 @@ function itemLabel(item: SidebarItem): string {
 }
 
 export function SettingsSidebar() {
-  const { data: preferences } = usePreferences();
-  const { mutate: updatePreferences } = useUpdatePreferences();
-  const baseItems = preferences?.sidebarConfig?.items ?? DEFAULT_SIDEBAR_ITEMS;
-  const [items, setItems] = useState<SidebarItem[]>(baseItems);
+  return (
+    <Settings>
+      <SidebarSettings />
+    </Settings>
+  );
+}
 
-  useEffect(() => {
-    setItems(baseItems);
-  }, [baseItems]);
+function SidebarSettings() {
+  const { values, update } = useSettingsDraft();
+  useSettingsSaveBar();
+
+  const items = values.sidebarConfig?.items ?? DEFAULT_SIDEBAR_ITEMS;
 
   const persist = (next: SidebarItem[]) => {
-    setItems(next);
-    updatePreferences({ ...preferences, sidebarConfig: { items: next } });
+    update({ sidebarConfig: { items: next } });
   };
 
   const toggleVisible = (index: number) => {
-    const next = items.map((item, i) => (i === index ? { ...item, visible: !item.visible } : item));
-    persist(next);
+    persist(items.map((item, i) => (i === index ? { ...item, visible: !item.visible } : item)));
   };
 
   const move = (index: number, direction: -1 | 1) => {
@@ -43,20 +45,20 @@ export function SettingsSidebar() {
   };
 
   const toggleCollapsed = (index: number) => {
-    const next = items.map((item, i) =>
-      i === index && item.type === 'playlists' ? { ...item, collapsed: !item.collapsed } : item,
+    persist(
+      items.map((item, i) =>
+        i === index && item.type === 'playlists' ? { ...item, collapsed: !item.collapsed } : item,
+      ),
     );
-    persist(next);
   };
 
   return (
-    <Settings>
-      <div className="max-w-2xl">
-        <h3 className="mb-4 text-base font-medium">Sidebar layout</h3>
-        <p className="mb-4 text-sm text-muted">
-          Choose which sections appear in the sidebar and use the arrow buttons to reorder them.
-        </p>
-
+    <div className="w-full max-w-3xl">
+      <SettingsCard
+        icon="mdi-menu"
+        title="Sidebar layout"
+        description="Choose which sections appear in the sidebar and use the arrow buttons to reorder them."
+      >
         <ul className="space-y-2">
           {items.map((item, index) => (
             <li
@@ -104,7 +106,7 @@ export function SettingsSidebar() {
             </li>
           ))}
         </ul>
-      </div>
-    </Settings>
+      </SettingsCard>
+    </div>
   );
 }

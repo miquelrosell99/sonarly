@@ -10,35 +10,58 @@
 // falls back to the page's default — a list-only page can never inherit a
 // grid mode it cannot render. Callers that pass no key keep ephemeral local
 // state (queue editor, list-only pages).
+//
+// Resolution order for pages with a key: the user's explicit per-page choice
+// (sonarly-view-mode) wins; otherwise the fleet default from
+// `sonarly-view-mode-defaults` (edited on Settings → Library) applies;
+// otherwise the page's built-in `defaultView` prop.
 import { useCallback, useState } from 'react';
 
 export type ViewMode = 'list' | 'grid';
 
 const STORAGE_KEY = 'sonarly-view-mode';
+export const DEFAULT_VIEW_MODES_STORAGE_KEY = 'sonarly-view-mode-defaults';
+
+function parseModeMap(raw: string | null): Record<string, unknown> {
+  try {
+    const parsed: unknown = raw ? JSON.parse(raw) : null;
+    return parsed !== null && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
 
 function readStoredMode(pageKey: string): ViewMode | undefined {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return undefined;
-    const parsed: unknown = JSON.parse(raw);
-    if (parsed === null || typeof parsed !== 'object') return undefined;
-    const value = (parsed as Record<string, unknown>)[pageKey];
-    return value === 'list' || value === 'grid' ? value : undefined;
-  } catch {
-    return undefined;
-  }
+  const value = parseModeMap(window.localStorage.getItem(STORAGE_KEY))[pageKey];
+  return value === 'list' || value === 'grid' ? value : undefined;
 }
 
 function writeStoredMode(pageKey: string, mode: ViewMode): void {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : {};
-    const next = parsed !== null && typeof parsed === 'object' ? { ...(parsed as Record<string, unknown>) } : {};
+    const next = parseModeMap(window.localStorage.getItem(STORAGE_KEY));
     next[pageKey] = mode;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   } catch {
     // Storage unavailable (private mode, quota): the toggle still works,
     // it just doesn't persist — same graceful degradation as the theme store.
+  }
+}
+
+/** Fleet-wide default view per page key, as edited on Settings → Library. */
+export function readDefaultViewModes(): Record<string, ViewMode> {
+  const raw = parseModeMap(window.localStorage.getItem(DEFAULT_VIEW_MODES_STORAGE_KEY));
+  const result: Record<string, ViewMode> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (value === 'list' || value === 'grid') result[key] = value;
+  }
+  return result;
+}
+
+export function writeDefaultViewModes(defaults: Record<string, ViewMode>): void {
+  try {
+    window.localStorage.setItem(DEFAULT_VIEW_MODES_STORAGE_KEY, JSON.stringify(defaults));
+  } catch {
+    // Same graceful degradation as writeStoredMode.
   }
 }
 
@@ -52,7 +75,11 @@ export function usePersistentViewMode(
   const [viewMode, setViewModeState] = useState<ViewMode>(() => {
     if (!pageKey) return effectiveDefault;
     const stored = readStoredMode(pageKey);
-    return stored !== undefined && availableViews.includes(stored) ? stored : effectiveDefault;
+    if (stored !== undefined && availableViews.includes(stored)) return stored;
+    const fleetDefault = readDefaultViewModes()[pageKey];
+    return fleetDefault !== undefined && availableViews.includes(fleetDefault)
+      ? fleetDefault
+      : effectiveDefault;
   });
 
   const setViewMode = useCallback(

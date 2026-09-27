@@ -1,13 +1,16 @@
 import type { User } from '../../../types';
+import { SaveBar, SaveBarProvider, useSaveBarHost } from '../../../components/ui/SaveBar.js';
 import { TabNav } from '../../settings/index.js';
 
+// Overview → people → content sources → content pipeline → metadata →
+// maintenance.
 const tabs = [
   { key: '/admin/status', label: 'Status' },
+  { key: '/admin/users', label: 'Users' },
   { key: '/admin/libraries', label: 'Libraries' },
   { key: '/admin/media', label: 'Media' },
-  { key: '/admin/users', label: 'Users' },
-  { key: '/admin/system-tasks', label: 'System Tasks' },
   { key: '/admin/genres', label: 'Genres' },
+  { key: '/admin/system-tasks', label: 'System Tasks' },
 ];
 
 interface AdminShellProps {
@@ -26,9 +29,21 @@ export function AdminShell({ user, children }: AdminShellProps) {
   }
 
   return (
+    <SaveBarProvider>
+      <AdminChrome>{children}</AdminChrome>
+    </SaveBarProvider>
+  );
+}
+
+function AdminChrome({ children }: { children: React.ReactNode }) {
+  const controller = useSaveBarHost();
+  return (
     <div className="w-full">
-      <h2 className="font-display text-lg font-semibold">Admin panel</h2>
-      <TabNav items={tabs} className="mb-6 mt-4 border-b border-rule pb-2" />
+      <div className="mb-4 flex min-h-9 items-center justify-between gap-4">
+        <h2 className="font-display text-lg font-semibold">Admin panel</h2>
+        {controller && <SaveBar controller={controller} />}
+      </div>
+      <TabNav items={tabs} className="mb-6 border-b border-rule pb-2" />
       {children}
     </div>
   );
