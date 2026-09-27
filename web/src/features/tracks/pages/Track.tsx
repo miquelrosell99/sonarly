@@ -140,6 +140,12 @@ export function Track({ user }: { user: User }) {
                 <Icon name="mdi-play" size={18} />
                 Play
               </Button>
+              <FavoriteRatingGroup
+                starred={track.starred}
+                onToggleFavorite={() => handleFavorite(!track.starred)}
+                rating={track.rating}
+                onRate={handleRate}
+              />
               <Button variant="ghost" onClick={() => setEditing(true)} className="gap-2">
                 <Icon name="mdi-pencil" size={18} />
                 Edit
@@ -150,12 +156,6 @@ export function Track({ user }: { user: User }) {
                   Delete
                 </Button>
               )}
-              <FavoriteRatingGroup
-                starred={track.starred}
-                onToggleFavorite={() => handleFavorite(!track.starred)}
-                rating={track.rating}
-                onRate={handleRate}
-              />
             </>
           )
         }

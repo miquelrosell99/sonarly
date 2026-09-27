@@ -167,4 +167,22 @@ describe('Artist detail (react-query, embedded songs, P5)', () => {
     expect(screen.getByRole('dialog')).toBeTruthy();
     expect(screen.getByText('Edit artist')).toBeTruthy();
   });
+
+  it('renders the favorite/rating group in the header actions, ahead of the track list', async () => {
+    renderArtist('/artists/ar-1');
+    await screen.findByText('The Artist');
+
+    const favorite = screen.getAllByRole('button', { name: 'Add favorite' })[0];
+    const rating = screen.getAllByRole('button', { name: 'Rate 5 stars' })[0];
+
+    // Star and rating travel as one group in the header actions row…
+    expect(
+      favorite.compareDocumentPosition(rating) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // …ahead of the Tracks section where row-level favorite buttons live.
+    const tracksHeading = screen.getByRole('heading', { name: 'Tracks' });
+    expect(
+      rating.compareDocumentPosition(tracksHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
 });
