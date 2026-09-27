@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computePointerMenuPosition, MENU_VIEWPORT_MARGIN } from './menuPosition.js';
+import { computeAnchoredMenuPosition, computePointerMenuPosition, MENU_VIEWPORT_MARGIN } from './menuPosition.js';
 
 // Viewport and menu sizes shared across cases; the viewport is 600x400 and
 // the menu 150x120, so a menu fits anywhere with >8px margin to spare.
@@ -75,5 +75,45 @@ describe('computePointerMenuPosition', () => {
     const { x, y } = computePointerMenuPosition({ x: 100.4, y: 100.6 }, menu, viewport);
     expect(x).toBe(100);
     expect(y).toBe(101);
+  });
+});
+
+// Trigger rects as returned by getBoundingClientRect; the viewport is 600x400
+// and the menu 150x120 unless a case says otherwise.
+function triggerRect(top: number, right: number, bottom: number, left: number) {
+  return { top, right, bottom, left, width: right - left, height: bottom - top };
+}
+
+describe('computeAnchoredMenuPosition', () => {
+  it('opens top-end: bottom-right corner above the trigger, right-aligned', () => {
+    // top: 200 - 120 - 8 = 72; left: 300 - 150 = 150
+    expect(computeAnchoredMenuPosition(triggerRect(200, 300, 220, 280), menu, viewport, 'top-end')).toEqual({ x: 150, y: 72 });
+  });
+
+  it('opens bottom-start: below the trigger, left-aligned', () => {
+    // top: 124 + 8 = 132; left: 100
+    expect(computeAnchoredMenuPosition(triggerRect(100, 120, 124, 100), menu, viewport, 'bottom-start')).toEqual({ x: 100, y: 132 });
+  });
+
+  it('clamps the right-aligned left edge to the viewport margin', () => {
+    // left: 100 - 150 = -50 → clamped to 8
+    expect(computeAnchoredMenuPosition(triggerRect(200, 100, 220, 80), menu, viewport, 'top-end')).toEqual({ x: MENU_VIEWPORT_MARGIN, y: 72 });
+  });
+
+  it('clamps the top edge to the viewport margin when the trigger is at the top', () => {
+    // top: 20 - 120 - 8 = -108 → clamped to 8
+    const { y } = computeAnchoredMenuPosition(triggerRect(20, 300, 40, 280), menu, viewport, 'top-end');
+    expect(y).toBe(MENU_VIEWPORT_MARGIN);
+  });
+
+  it('keeps the near edge at the margin when the menu is wider than the viewport', () => {
+    const wide = { width: 700, height: 120 };
+    // left: 300 - 700 = -400, ceiling: 600 - 700 - 8 < margin → 8
+    expect(computeAnchoredMenuPosition(triggerRect(200, 300, 220, 280), wide, viewport, 'top-end')).toEqual({ x: MENU_VIEWPORT_MARGIN, y: 72 });
+  });
+
+  it('respects a custom margin', () => {
+    // top: 200 - 120 - 20 = 60; left: 300 - 150 = 150
+    expect(computeAnchoredMenuPosition(triggerRect(200, 300, 220, 280), menu, viewport, 'top-end', 20)).toEqual({ x: 150, y: 60 });
   });
 });
