@@ -33,7 +33,7 @@ export function ConflictsModal({ open, onClose }: ConflictsModalProps) {
     setLoading(true);
     try {
       const data = await api<{ conflicts: Conflict[] }>('/conflicts');
-      setConflicts(data.conflicts);
+      setConflicts(data.conflicts ?? []);
     } catch (err) {
       notify(err instanceof Error ? err.message : 'Failed to load conflicts', 'error');
     } finally {

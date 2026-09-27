@@ -8,6 +8,7 @@ import { cn } from '../lib/cn.js';
 import { usePlayer, type PlayerSong } from '../stores/playerStore.js';
 import { useNotification } from '../contexts/NotificationContext.js';
 import { usePopoverMenu } from './ui/usePopoverMenu.js';
+import { formatDateShortMonth } from '../lib/formatDate.js';
 
 interface TrackActionsMenuProps {
   song: PlayerSong | null;
@@ -48,7 +49,7 @@ export function TrackActionsMenu({ song }: TrackActionsMenuProps) {
   const saveQueueAsPlaylist = async () => {
     const { queue } = usePlayer.getState();
     if (queue.length === 0) return;
-    const name = `Queue — ${new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    const name = `Queue — ${formatDateShortMonth(new Date())}`;
     try {
       await api('/playlists', {
         method: 'POST',
