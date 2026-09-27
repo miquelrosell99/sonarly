@@ -8,6 +8,7 @@ import { Icon } from './ui/Icon.js';
 import { Modal } from './ui/Modal.js';
 import { Table, type TableColumn } from './ui/Table.js';
 import { useUpload, type UploadFile } from '../hooks/useUpload.js';
+import { useNotification } from '../contexts/NotificationContext.js';
 
 export interface UploadSummary {
   fileCount: number;
@@ -94,9 +95,11 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
   );
   const [selectedLibraryId, setSelectedLibraryId] = useState<string>(currentLibraryId ?? defaultLibraryId);
   const [duplicateStrategy, setDuplicateStrategy] = useState<DuplicateStrategy | ''>('');
+  const [settingsError, setSettingsError] = useState(false);
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const { progress, isUploading, error, uploadFiles } = useUpload();
+  const { progress, isUploading, error, uploadFiles, abort } = useUpload();
+  const { notify } = useNotification();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const isUsingDefaultLibrary = !currentLibraryId && Boolean(defaultLibraryId);
@@ -105,11 +108,18 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
     if (open) {
       setSelectedLibraryId(currentLibraryId ?? defaultLibraryId);
       setFiles([]);
+      setSettingsError(false);
       api<{ duplicateStrategy: DuplicateStrategy }>('/settings/media')
         .then((data) => setDuplicateStrategy(data.duplicateStrategy))
-        .catch(() => setDuplicateStrategy(''));
+        .catch(() => {
+          // Keep the select empty (upload stays gated) but never silently:
+          // notify + an inline explanation next to the strategy field.
+          setDuplicateStrategy('');
+          setSettingsError(true);
+          notify('Could not load upload settings', 'error');
+        });
     }
-  }, [open, currentLibraryId, defaultLibraryId]);
+  }, [open, currentLibraryId, defaultLibraryId, notify]);
 
   const totalSize = useMemo(
     () => files.reduce((sum, { file }) => sum + file.size, 0),
@@ -254,6 +264,12 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
               </div>
               <p className="text-xs text-fg-secondary">{Math.round(progress.currentFileProgress)}% uploaded</p>
             </div>
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" onClick={abort}>Cancel</Button>
+              <p className="text-xs text-fg-secondary">
+                Closing is disabled while an upload is in progress. Use Cancel to stop the upload.
+              </p>
+            </div>
           </div>
         ) : (
           <>
@@ -301,6 +317,11 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
           <p className="text-xs text-fg-secondary">
             Used when an uploaded song matches an existing song by title, album, and artists.
           </p>
+          {settingsError && (
+            <p className="text-xs text-danger" role="alert">
+              Upload settings could not be loaded, so uploading is unavailable. Close and reopen this dialog to retry.
+            </p>
+          )}
         </div>
 
         <div
