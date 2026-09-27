@@ -56,8 +56,16 @@ export function useClickAndHold({
       clearSuppressTimer();
       return;
     }
+    // Audit F27f: the accessible name announces "(hold to shuffle)", so
+    // keyboard/AT activation (a click with detail 0 — no pointer gesture)
+    // must get the shuffle affordance it announces; pointer clicks stay play
+    // and long-presses stay shuffle.
+    if (e.detail === 0) {
+      onHold();
+      return;
+    }
     onClick();
-  }, [onClick, clearSuppressTimer]);
+  }, [onClick, onHold, clearSuppressTimer]);
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return;

@@ -27,9 +27,10 @@
     --chart-9: 25 95% 53%;
     --chart-10: 210 80% 60%;
 
-    /* Semantic palette */
-    --danger: 0 84% 60%;
-    --success: 142 71% 45%;
+    /* Semantic palette — lightness set so 14px text meets WCAG AA (>= 4.5:1)
+       on --surface and --bg-primary (audit F10; verified in theme-contrast.test). */
+    --danger: 0 72% 45%;
+    --success: 142 70% 30%;
     --warning: 38 92% 50%;
     --info: 217 91% 60%;
   }

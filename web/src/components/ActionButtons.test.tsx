@@ -77,6 +77,22 @@ describe('StarRating', () => {
     expect(onRate).toHaveBeenCalledWith(3);
   });
 
+  it('gives every star a 24px desktop hit box (audit F27a)', () => {
+    render(<StarRating rating={0} onRate={vi.fn()} />);
+    for (const star of screen.getAllByRole('button')) {
+      expect(star.className).toContain('min-h-6');
+      expect(star.className).toContain('min-w-6');
+    }
+  });
+
+  it('keeps the overlay variant stars at a 24px desktop hit box (audit F27a)', () => {
+    render(<StarRating rating={0} onRate={vi.fn()} variant="overlay" />);
+    for (const star of screen.getAllByRole('button')) {
+      expect(star.className).toContain('min-h-6');
+      expect(star.className).toContain('min-w-6');
+    }
+  });
+
   it('clears the rating when the current value is clicked', () => {
     const onRate = vi.fn();
     render(<StarRating rating={3} onRate={onRate} />);

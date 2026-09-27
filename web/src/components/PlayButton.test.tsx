@@ -93,8 +93,10 @@ describe('PlayButton', () => {
     fireEvent.keyDown(button, { key: 'Enter' });
     fireEvent.click(button);
 
-    expect(onPlay).toHaveBeenCalledTimes(1);
-    expect(onShufflePlay).not.toHaveBeenCalled();
+    // Keyboard activation (detail 0) performs the announced shuffle
+    // affordance (audit F27f).
+    expect(onShufflePlay).toHaveBeenCalledTimes(1);
+    expect(onPlay).not.toHaveBeenCalled();
     expect(parentClick).not.toHaveBeenCalled();
   });
 
@@ -137,6 +139,14 @@ describe('PlayButton', () => {
     expect(screen.getByRole('button', { name: 'Play all (hold to shuffle)' })).toBeTruthy();
   });
 
+  it('gives the inline variant a 24px desktop target (audit F27a)', () => {
+    render(<PlayButton onPlay={vi.fn()} onShufflePlay={vi.fn()} label="Play" variant="inline" />);
+
+    const button = screen.getByRole('button', { name: /Play/ });
+    expect(button.className).toContain('h-6');
+    expect(button.className).toContain('w-6');
+  });
+
   it('uses the provided label verbatim as the accessible name', () => {
     render(<PlayButton onPlay={vi.fn()} onShufflePlay={vi.fn()} label="Alpha" />);
 
@@ -167,7 +177,7 @@ describe('PlayButton', () => {
     expect(onPlay).not.toHaveBeenCalled();
   });
 
-  it('calls onPlay when activated via keyboard Enter with onShufflePlay', () => {
+  it('keyboard Enter performs the shuffle affordance with onShufflePlay (audit F27f)', () => {
     const onPlay = vi.fn();
     const onShufflePlay = vi.fn();
     render(<PlayButton onPlay={onPlay} onShufflePlay={onShufflePlay} label="Play" />);
@@ -176,11 +186,11 @@ describe('PlayButton', () => {
     fireEvent.keyDown(button, { key: 'Enter' });
     fireEvent.click(button);
 
-    expect(onPlay).toHaveBeenCalledTimes(1);
-    expect(onShufflePlay).not.toHaveBeenCalled();
+    expect(onShufflePlay).toHaveBeenCalledTimes(1);
+    expect(onPlay).not.toHaveBeenCalled();
   });
 
-  it('calls onPlay when activated via keyboard Space with onShufflePlay', () => {
+  it('keyboard Space performs the shuffle affordance with onShufflePlay (audit F27f)', () => {
     const onPlay = vi.fn();
     const onShufflePlay = vi.fn();
     render(<PlayButton onPlay={onPlay} onShufflePlay={onShufflePlay} label="Play" />);
@@ -188,6 +198,18 @@ describe('PlayButton', () => {
     const button = screen.getByRole('button', { name: /Play/ });
     fireEvent.keyDown(button, { key: ' ' });
     fireEvent.click(button);
+
+    expect(onShufflePlay).toHaveBeenCalledTimes(1);
+    expect(onPlay).not.toHaveBeenCalled();
+  });
+
+  it('pointer-origin click (detail 1) stays play with onShufflePlay', () => {
+    const onPlay = vi.fn();
+    const onShufflePlay = vi.fn();
+    render(<PlayButton onPlay={onPlay} onShufflePlay={onShufflePlay} label="Play" />);
+
+    const button = screen.getByRole('button', { name: /Play/ });
+    fireEvent.click(button, { detail: 1 });
 
     expect(onPlay).toHaveBeenCalledTimes(1);
     expect(onShufflePlay).not.toHaveBeenCalled();

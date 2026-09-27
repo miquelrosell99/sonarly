@@ -14,6 +14,7 @@ import { TopBar } from './TopBar.js';
 import { Sidebar } from './Sidebar.js';
 import { PlayerBar } from './PlayerBar.js';
 import { AudioController } from './AudioController.js';
+import { NowPlayingAnnouncer } from './NowPlayingAnnouncer.js';
 
 interface LayoutProps {
   user: User;
@@ -97,6 +98,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
       >
         Skip to content
       </a>
+      <NowPlayingAnnouncer />
       <TopBar user={user} onLogout={handleLogout} onMenuClick={openMobileNav} />
 
       <div className="flex flex-1 min-h-0">

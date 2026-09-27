@@ -123,7 +123,12 @@ describe('HomePage', () => {
     await waitFor(() => {
       expect(screen.getByText('Older Song')).toBeTruthy();
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Older Song (hold to shuffle)' }));
+    // Pointer-origin activation: fire the pointer gesture, not a bare click —
+    // a detail-0 (keyboard-origin) click now performs the announced shuffle
+    // affordance (audit F27f).
+    const cardPlay = screen.getByRole('button', { name: 'Older Song (hold to shuffle)' });
+    fireEvent.pointerDown(cardPlay);
+    fireEvent.pointerUp(cardPlay);
 
     const songs = homePayload.recentAdditions;
     expect(playActions.playSongs).toHaveBeenCalledWith(songs, 1);

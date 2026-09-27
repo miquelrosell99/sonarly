@@ -289,6 +289,9 @@ describe('LibraryView', () => {
     renderView({ sortable: true, onReorder: vi.fn() });
     const dragHandles = screen.getAllByRole('button', { name: /drag to reorder/i });
     expect(dragHandles).toHaveLength(items.length);
+    // WCAG 2.5.8: desktop interactive targets are at least 24x24 (audit F27a).
+    expect(dragHandles[0].className).toContain('h-6');
+    expect(dragHandles[0].className).toContain('w-6');
   });
 
   it('does not render drag handles when sortable is disabled', () => {

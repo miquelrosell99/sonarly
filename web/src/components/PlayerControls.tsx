@@ -10,7 +10,7 @@ export const ControlButton = forwardRef<HTMLButtonElement, {
   onContextMenu?: (e: React.MouseEvent) => void;
   label: string;
   className?: string;
-}>(({
+} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'onContextMenu'>>(({
   children,
   active,
   disabled,
@@ -18,6 +18,7 @@ export const ControlButton = forwardRef<HTMLButtonElement, {
   onContextMenu,
   label,
   className,
+  ...rest
 }, ref) => {
   return (
     <button
@@ -27,6 +28,7 @@ export const ControlButton = forwardRef<HTMLButtonElement, {
       onContextMenu={onContextMenu}
       disabled={disabled}
       aria-label={label}
+      {...rest}
       className={cn(
         '-m-1 inline-flex h-11 w-11 items-center justify-center rounded-full transition',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary',
