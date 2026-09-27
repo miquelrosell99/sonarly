@@ -127,36 +127,38 @@ var inventory = []endpointRef{
 
 	// --- GET /api/home ------------------------------------------------------
 	// Consumer: web/src/features/home/pages/HomePage.tsx — HomeData interface
-	// (lines 36-42) reads exactly these five section keys; AlbumCard (184-235)
+	// (lines 36-42) reads exactly these five section keys; AlbumCard (168-220)
 	// reads the album-card fields (starred/rating via the favorite/rate props);
-	// RecentSongCard (363-415) reads the song-card fields; mostPlayed/random/
-	// recentlyPlayed all flow through those same two card components, so the
-	// full field set is asserted once on mostPlayed and the other two sections
-	// assert their key.
+	// RecentSongCard (322-375) reads the song-card fields. mostPlayed/random/
+	// recentAdditions all flow through the album card, so the full album field
+	// set is asserted once on mostPlayed and the other two sections assert
+	// their key; recentlyPlayed carries the song-card fields.
 	{
 		method: "get",
 		path:   "/api/home",
 		status: "200",
 		fields: []fieldRef{
-			{"genres.name", "HomePage.tsx:27 (HomeGenre), 37"},
-			{"genres.songCount", "HomePage.tsx:28, 37"},
-			{"mostPlayed.id", "HomePage.tsx:673, 703 (section key + card key)"},
-			{"mostPlayed.name", "HomePage.tsx:189, 485 (AlbumCard/FeaturedAlbumSlide)"},
-			{"mostPlayed.artistId", "HomePage.tsx:194"},
-			{"mostPlayed.artistName", "HomePage.tsx:196, 494"},
-			{"mostPlayed.year", "HomePage.tsx:201, 499"},
-			{"mostPlayed.coverArt", "HomePage.tsx:215, 476"},
-			{"mostPlayed.starred", "HomePage.tsx:221-222 (favorite toggle)"},
-			{"mostPlayed.rating", "HomePage.tsx:226-227"},
-			{"random", "HomePage.tsx:38, 675, 714 (section — entries read via the album card fields)"},
-			{"recentAdditions", "HomePage.tsx:40, 723-728 (section key)"},
-			{"recentAdditions.id", "HomePage.tsx:367, 727 (RecentSongCard)"},
-			{"recentAdditions.title", "HomePage.tsx:370, 396"},
-			{"recentAdditions.artistName", "HomePage.tsx:377"},
-			{"recentAdditions.albumName", "HomePage.tsx:386"},
-			{"recentAdditions.explicit", "HomePage.tsx:369 (ExplicitTitle)"},
-			{"recentAdditions.coverArt", "HomePage.tsx:395"},
-			{"recentlyPlayed", "HomePage.tsx:41, 674, 738 (section key)"},
+			{"genres.name", "HomePage.tsx:26 (HomeGenre), 37"},
+			{"genres.songCount", "HomePage.tsx:27, 37"},
+			{"mostPlayed.id", "HomePage.tsx:173, 663 (section key + card key)"},
+			{"mostPlayed.name", "HomePage.tsx:174, 181 (AlbumCard)"},
+			{"mostPlayed.artistId", "HomePage.tsx:179"},
+			{"mostPlayed.artistName", "HomePage.tsx:180-181"},
+			{"mostPlayed.year", "HomePage.tsx:186-190"},
+			{"mostPlayed.coverArt", "HomePage.tsx:200"},
+			{"mostPlayed.starred", "HomePage.tsx:206-207 (favorite toggle)"},
+			{"mostPlayed.rating", "HomePage.tsx:211-212"},
+			{"random", "HomePage.tsx:38, 675-676 (section — entries read via the album card fields)"},
+			{"recentAdditions", "HomePage.tsx:40, 687-688 (section — album cards, fields via mostPlayed)"},
+			{"recentlyPlayed", "HomePage.tsx:41, 699-700 (section key)"},
+			{"recentlyPlayed.id", "HomePage.tsx:327, 699 (RecentSongCard)"},
+			{"recentlyPlayed.title", "HomePage.tsx:330, 363"},
+			{"recentlyPlayed.artistName", "HomePage.tsx:337"},
+			{"recentlyPlayed.albumName", "HomePage.tsx:346"},
+			{"recentlyPlayed.explicit", "HomePage.tsx:329 (ExplicitTitle)"},
+			{"recentlyPlayed.coverArt", "HomePage.tsx:355"},
+			{"recentlyPlayed.starred", "HomePage.tsx:361-362 (favorite toggle)"},
+			{"recentlyPlayed.rating", "HomePage.tsx:366-367"},
 		},
 	},
 

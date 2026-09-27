@@ -139,4 +139,32 @@ describe('Artist detail (react-query, embedded songs, P5)', () => {
     });
     expect(mockApi.mock.calls.some((call) => String(call[0]) === '/favorites')).toBe(true);
   });
+
+  it('opens the artist context menu from the title header and cover', async () => {
+    renderArtist('/artists/ar-1');
+    await screen.findByText('The Artist');
+
+    fireEvent.contextMenu(screen.getByRole('heading', { name: 'The Artist' }));
+    expect(screen.getByRole('menu')).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Play' })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeTruthy();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('menu')).toBeNull();
+
+    // The cover image is a second right-click target for the same menu.
+    fireEvent.contextMenu(screen.getByAltText('Image for The Artist'));
+    expect(screen.getByRole('menu')).toBeTruthy();
+  });
+
+  it('opens the read-only artist editor from the header menu Edit item', async () => {
+    renderArtist('/artists/ar-1');
+    await screen.findByText('The Artist');
+
+    fireEvent.contextMenu(screen.getByRole('heading', { name: 'The Artist' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
+
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByText('Edit artist')).toBeTruthy();
+  });
 });

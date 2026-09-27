@@ -136,7 +136,7 @@ const Genres = lazyRoute<{}>(
   () => import('./features/genres/index.js').then((m) => ({ default: m.Genres })),
   <GridPageSkeleton />,
 );
-const Genre = lazyRoute<{}>(
+const Genre = lazyRoute<{ user: User }>(
   () => import('./features/genres/index.js').then((m) => ({ default: m.Genre })),
   <EntityDetailSkeleton />,
 );
@@ -384,7 +384,7 @@ export default function App() {
             <Route path="/album-artists" component={AlbumArtists} />
             <Route path="/album-artists/:id" component={() => <Artist user={user} />} />
             <Route path="/genres" component={Genres} />
-            <Route path="/genres/:genre" component={Genre} />
+            <Route path="/genres/:genre" component={() => <Genre user={user} />} />
             <Route path="/years" component={Years} />
             <Route path="/years/:year" component={Year} />
             <Route path="/composers" component={Composers} />

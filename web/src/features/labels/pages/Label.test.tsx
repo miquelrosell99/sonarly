@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, cleanup, waitFor } from '@testing-library/react';
+import { screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { Route, Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { Label } from './Label.js';
@@ -66,5 +66,19 @@ describe('Label', () => {
       expect(mockApi).toHaveBeenCalledWith('/songs?label=Warp');
       expect(mockApi).toHaveBeenCalledWith('/albums?label=Warp');
     });
+  });
+
+  it('opens a Play/Shuffle menu from the title header', async () => {
+    renderLabel('/labels/Sub%20Pop');
+
+    await waitFor(() => {
+      expect(screen.getByText('Label Track')).toBeTruthy();
+    });
+
+    fireEvent.contextMenu(screen.getByRole('heading', { name: 'Sub Pop' }));
+
+    expect(screen.getByRole('menu')).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Play all' })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Shuffle play' })).toBeTruthy();
   });
 });

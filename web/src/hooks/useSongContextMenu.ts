@@ -4,7 +4,17 @@ import type { ContextMenuSection } from '../components/ItemContextMenu.js';
 import { usePlayActions } from './usePlayActions.js';
 import { useAdminContextMenu } from './useAdminContextMenu.js';
 
-export function useSongContextMenu(song: Song, onEdit: () => void, isAdmin?: boolean): ContextMenuSection[] {
+export interface SongContextMenuOptions {
+  /** Destructive action (the view owns the confirm + invalidate flow). */
+  onDelete?: () => void;
+}
+
+export function useSongContextMenu(
+  song: Song,
+  onEdit: () => void,
+  isAdmin?: boolean,
+  options?: SongContextMenuOptions,
+): ContextMenuSection[] {
   const { playSong, playNext, addToQueue } = usePlayActions();
   const [, navigate] = useLocation();
 
@@ -27,10 +37,19 @@ export function useSongContextMenu(song: Song, onEdit: () => void, isAdmin?: boo
           : []),
       ],
     },
-    {
-      items: [{ id: 'edit', label: 'Edit', icon: 'mdi-pencil', onClick: onEdit }],
-    },
   ];
+
+  if (options?.onDelete && (isAdmin ?? true)) {
+    sections.push({
+      items: [
+        { id: 'delete', label: 'Delete', icon: 'mdi-delete', variant: 'danger', onClick: options.onDelete },
+      ],
+    });
+  }
+
+  sections.push({
+    items: [{ id: 'edit', label: 'Edit', icon: 'mdi-pencil', onClick: onEdit }],
+  });
 
   return useAdminContextMenu(sections, isAdmin ?? true);
 }

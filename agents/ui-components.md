@@ -21,7 +21,7 @@ Shared components live in `web/src/components/`. Use them for consistent layout,
 | `AudioController` | `components/AudioController.tsx` | Audio element and playback state bridge. |
 | `ActionButtons` | `components/ActionButtons.tsx` | `FavoriteButton` and `StarRating` primitives. |
 | `FavoriteRatingGroup` | `components/FavoriteRatingGroup.tsx` | Inline favorite + rating combo used in headers and cards. |
-| `EntityHeader` | `components/EntityHeader.tsx` | Reusable header with cover, title, metadata chips, and actions. |
+| `EntityHeader` | `components/EntityHeader.tsx` | Reusable header with cover, title, metadata chips, and actions. `EntityDetail` feeds it an optional `wrapContextTarget` (via the `renderHeaderContextMenu` prop) so right-clicking the cover and title opens the view's entity context menu at the pointer — every dedicated view (track, album, artist, playlist, genre, composer, label, year) plugs its menu in there. |
 | `MetadataBreadcrumb` | `components/MetadataBreadcrumb.tsx` | Horizontal metadata chips with optional links. |
 | `ExplicitTitle` | `components/ExplicitTitle.tsx` | Title text with explicit-content badge and blur toggle. |
 | `PageState` | `components/PageState.tsx` | Loading, empty, and error states for pages. Loading renders `role="status"` with a spinner; error renders `role="alert"` with an icon and an optional `onRetry` button; empty accepts an optional `emptyIcon`, `emptyDescription`, and `emptyAction`. All pages must use it instead of hand-rolled state blocks. |

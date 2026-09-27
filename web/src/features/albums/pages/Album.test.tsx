@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
+import { screen, fireEvent, cleanup, waitFor, act, within } from '@testing-library/react';
 import { Router, Route } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import type { Song, User } from '../../../types';
@@ -16,7 +16,15 @@ vi.mock('../../../lib/api.js', () => ({
   api: (...args: unknown[]) => mockApi(...args),
 }));
 
+const mockNotify = vi.hoisted(() => ({ notify: vi.fn() }));
+
+vi.mock('../../../contexts/NotificationContext.js', () => ({
+  useNotification: () => mockNotify,
+  NotificationProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 const user = { id: 'u1', username: 'tester', isAdmin: true, blurExplicitTitles: false, blurExplicitCovers: false } as User;
+const nonAdmin = { ...user, id: 'u2', isAdmin: false } as User;
 
 const makeSong = (id: string): Song =>
   ({
@@ -51,14 +59,14 @@ const albumPayload = () => ({
   songs: [makeSong('s1'), makeSong('s2')],
 });
 
-function renderAlbum(path: string, queryClient = createTestQueryClient()) {
-  const location = memoryLocation({ path });
+function renderAlbum(path: string, queryClient = createTestQueryClient(), viewer: User = user) {
+  const location = memoryLocation({ path, record: true });
   return {
     location,
     ...renderWithQueryClient(
       <Router hook={location.hook}>
         <NotificationProvider>
-          <Route path="/albums/:id">{() => <Album user={user} />}</Route>
+          <Route path="/albums/:id">{() => <Album user={viewer} />}</Route>
         </NotificationProvider>
       </Router>,
       queryClient,
@@ -166,5 +174,90 @@ describe('Album detail (react-query, P5)', () => {
     await waitFor(() => expect(screen.getAllByText('The Album').length).toBeGreaterThan(0));
     expect(screen.getByText('Song s1')).toBeTruthy();
     expect(albumCalls()).toHaveLength(1);
+  });
+});
+
+describe('Album detail header delete (admin)', () => {
+  beforeEach(() => {
+    mockApi.mockImplementation(async (path: string) => {
+      if (path.startsWith('/albums/')) return albumPayload();
+      return {};
+    });
+  });
+
+  it('hides the header Delete action from non-admins', async () => {
+    renderAlbum('/albums/al-1', createTestQueryClient(), nonAdmin);
+
+    await waitFor(() => expect(screen.getAllByText('The Album').length).toBeGreaterThan(0));
+    expect(screen.queryByRole('button', { name: /^delete$/i })).toBeNull();
+  });
+
+  it('lets an admin delete the album after confirmation: DELETE, invalidation, toast, navigation', async () => {
+    const queryClient = createTestQueryClient();
+    const listKey = ['albums', 'list', { libraryId: null }] as const;
+    queryClient.setQueryData(listKey, { albums: [albumPayload().album] });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    const { location } = renderAlbum('/albums/al-1', queryClient);
+
+    await waitFor(() => expect(screen.getAllByText('The Album').length).toBeGreaterThan(0));
+
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+
+    // ConfirmModal asks first; no DELETE request until confirmed
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Delete album')).toBeTruthy();
+    expect(mockApi).not.toHaveBeenCalledWith('/albums/al-1', { method: 'DELETE' });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(mockApi).toHaveBeenCalledWith('/albums/al-1', { method: 'DELETE' }));
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['albums'] });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['search'] });
+    });
+    expect(mockNotify.notify).toHaveBeenCalledWith('Deleted album "The Album"', 'success');
+    await waitFor(() => expect(location.history[location.history.length - 1]).toBe('/albums'));
+  });
+
+  it('does not delete when the header confirm dialog is cancelled', async () => {
+    renderAlbum('/albums/al-1');
+
+    await waitFor(() => expect(screen.getAllByText('The Album').length).toBeGreaterThan(0));
+
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(mockApi).not.toHaveBeenCalledWith('/albums/al-1', { method: 'DELETE' });
+  });
+
+  it('offers Delete in the header context menu for admins and confirms before deleting', async () => {
+    renderAlbum('/albums/al-1');
+
+    await waitFor(() => expect(screen.getAllByText('The Album').length).toBeGreaterThan(0));
+
+    // Right-click on the title header opens the album menu
+    fireEvent.contextMenu(screen.getByRole('heading', { name: 'The Album' }));
+    expect(screen.getByRole('menu')).toBeTruthy();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Delete album')).toBeTruthy();
+    expect(mockApi).not.toHaveBeenCalledWith('/albums/al-1', { method: 'DELETE' });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(mockApi).toHaveBeenCalledWith('/albums/al-1', { method: 'DELETE' }));
+  });
+
+  it('omits Delete from the header context menu for non-admins', async () => {
+    renderAlbum('/albums/al-1', createTestQueryClient(), nonAdmin);
+
+    await waitFor(() => expect(screen.getAllByText('The Album').length).toBeGreaterThan(0));
+
+    fireEvent.contextMenu(screen.getByRole('heading', { name: 'The Album' }));
+
+    expect(screen.getByRole('menuitem', { name: 'Play' })).toBeTruthy();
+    expect(screen.queryByRole('menuitem', { name: 'Delete' })).toBeNull();
   });
 });

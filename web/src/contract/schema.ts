@@ -890,7 +890,7 @@ export interface paths {
         };
         /**
          * Landing-page sections in one round trip
-         * @description `genres` ranks by in-scope active song count (not an alphabetical union) and `recentAdditions` is a song list in import order (the rowid is the import order; the old server folded additions into album cards). `random` is seeded per request; `limit` only caps the random section.
+         * @description `genres` ranks by in-scope active song count (not an alphabetical union). `recentAdditions` is an ALBUM list: albums ordered by the newest in-scope song file mtime (name breaks ties — the v1-era fold; legacy REAL mtimes are tolerated). `recentlyPlayed` is the caller's SONG list from user_songs.last_played (title breaks ties); viewers without plays of their own get an empty section, never the owner's history. `random` is seeded per request; `limit` only caps the random section.
          */
         get: operations["getHome"];
         put?: never;
@@ -2646,9 +2646,10 @@ export interface components {
             genres: components["schemas"]["HomeGenreCard"][];
             mostPlayed: components["schemas"]["HomeAlbumCard"][];
             random: components["schemas"]["HomeAlbumCard"][];
-            /** @description Songs in import order (the songs rowid is the import order). */
-            recentAdditions: components["schemas"]["HomeSongCard"][];
-            recentlyPlayed: components["schemas"]["HomeAlbumCard"][];
+            /** @description Album cards ordered by the newest in-scope song file mtime, newest first (album name breaks ties). */
+            recentAdditions: components["schemas"]["HomeAlbumCard"][];
+            /** @description The caller's most recently played songs (user_songs.last_played DESC, title breaks ties); empty for viewers without plays of their own. */
+            recentlyPlayed: components["schemas"]["HomeSongCard"][];
         };
         /** @description Display subset of the catalog song DTO plus the caller's interaction state. */
         AutoDjSong: {

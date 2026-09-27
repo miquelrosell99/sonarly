@@ -27,9 +27,9 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function createHarness(song: Song, onEdit: () => void, isAdmin = true) {
+function createHarness(song: Song, onEdit: () => void, isAdmin = true, options?: { onDelete?: () => void }) {
   return function SongMenuHarness() {
-    const sections = useSongContextMenu(song, onEdit, isAdmin);
+    const sections = useSongContextMenu(song, onEdit, isAdmin, options);
     return React.createElement(
       'div',
       { 'data-testid': 'menu' },
@@ -139,5 +139,30 @@ describe('useSongContextMenu', () => {
 
     expect(screen.queryByTestId('edit')).toBeFalsy();
     expect(screen.getByTestId('play')).toBeTruthy();
+  });
+
+  it('shows a danger Delete item when onDelete is provided for an admin', () => {
+    const onDelete = vi.fn();
+    const Harness = createHarness(song, vi.fn(), true, { onDelete });
+    render(React.createElement(Harness));
+
+    const deleteButton = screen.getByTestId('delete');
+    expect(deleteButton.textContent).toBe('Delete');
+    fireEvent.click(deleteButton);
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the Delete item when no onDelete is provided', () => {
+    const Harness = createHarness(song, vi.fn(), true);
+    render(React.createElement(Harness));
+
+    expect(screen.queryByTestId('delete')).toBeNull();
+  });
+
+  it('hides the Delete item from non-admins even when onDelete is provided', () => {
+    const Harness = createHarness(song, vi.fn(), false, { onDelete: vi.fn() });
+    render(React.createElement(Harness));
+
+    expect(screen.queryByTestId('delete')).toBeNull();
   });
 });

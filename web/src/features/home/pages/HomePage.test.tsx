@@ -40,9 +40,13 @@ const homePayload = {
   ],
   random: [{ id: 'album-2', name: 'Random Album', artistName: 'Artist B', starred: false }],
   recentAdditions: [
+    { id: 'album-4', name: 'Newest Album', artistName: 'Artist D', starred: false },
+    { id: 'album-5', name: 'Older Album', artistName: 'Artist E', starred: true },
+  ],
+  recentlyPlayed: [
     {
       id: 'song-1',
-      title: 'Newest Song',
+      title: 'Newest Played Song',
       artistId: 'artist-1',
       artistName: 'Artist A',
       albumId: 'album-1',
@@ -53,14 +57,11 @@ const homePayload = {
     },
     {
       id: 'song-2',
-      title: 'Older Song',
+      title: 'Older Played Song',
       artistName: 'Artist B',
       explicit: false,
       starred: true,
     },
-  ],
-  recentlyPlayed: [
-    { id: 'album-3', name: 'Recently Played Album', artistName: 'Artist C', starred: false },
   ],
 };
 
@@ -89,7 +90,7 @@ describe('HomePage', () => {
     });
   });
 
-  it('renders album sections and recent-additions song cards', async () => {
+  it('renders album sections and recently-played song cards', async () => {
     renderWithQueryClient(
       <Router>
         <NotificationProvider>
@@ -103,15 +104,18 @@ describe('HomePage', () => {
       expect(screen.getAllByText('Most Played Album').length).toBeGreaterThan(0);
     });
     expect(screen.getAllByText('Random Album').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Recently Played Album').length).toBeGreaterThan(0);
-    // recentAdditions renders song cards: title + artist name.
-    expect(screen.getByText('Newest Song')).toBeTruthy();
-    expect(screen.getByText('Older Song')).toBeTruthy();
-    expect(screen.queryByText('No recently added songs.')).toBeFalsy();
+    // recentAdditions renders album cards: name + artist name. Newest Album
+    // doubles as the recent-additions featured slide, hence getAllByText.
+    expect(screen.getAllByText('Newest Album').length).toBeGreaterThan(0);
+    expect(screen.getByText('Older Album')).toBeTruthy();
+    // recentlyPlayed renders song cards: title + artist name.
+    expect(screen.getByText('Newest Played Song')).toBeTruthy();
+    expect(screen.getByText('Older Played Song')).toBeTruthy();
+    expect(screen.queryByText('No recently added albums.')).toBeFalsy();
     expect(mockApi).toHaveBeenCalledWith('/home');
   });
 
-  it('plays the recent-additions song list in order from the clicked card', async () => {
+  it('plays the recently-played song list in order from the clicked card', async () => {
     renderWithQueryClient(
       <Router>
         <NotificationProvider>
@@ -121,16 +125,16 @@ describe('HomePage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Older Song')).toBeTruthy();
+      expect(screen.getByText('Older Played Song')).toBeTruthy();
     });
     // Pointer-origin activation: fire the pointer gesture, not a bare click —
     // a detail-0 (keyboard-origin) click now performs the announced shuffle
     // affordance (audit F27f).
-    const cardPlay = screen.getByRole('button', { name: 'Older Song (hold to shuffle)' });
+    const cardPlay = screen.getByRole('button', { name: 'Older Played Song (hold to shuffle)' });
     fireEvent.pointerDown(cardPlay);
     fireEvent.pointerUp(cardPlay);
 
-    const songs = homePayload.recentAdditions;
+    const songs = homePayload.recentlyPlayed;
     expect(playActions.playSongs).toHaveBeenCalledWith(songs, 1);
   });
 
@@ -148,7 +152,7 @@ describe('HomePage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('No recently added songs.')).toBeTruthy();
+      expect(screen.getByText('No recently added albums.')).toBeTruthy();
     });
   });
 
@@ -167,9 +171,9 @@ describe('HomePage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Newest Song')).toBeTruthy();
+      expect(screen.getByText('Newest Played Song')).toBeTruthy();
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Newest Song' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Newest Played Song' }));
 
     await waitFor(() => {
       expect(queryClient.getQueryState(searchKey)?.isInvalidated).toBe(true);

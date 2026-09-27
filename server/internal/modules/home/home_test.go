@@ -67,11 +67,15 @@ func (s *server) mustExec(t *testing.T, query string, args ...any) {
 // Fixture: two libraries, three users.
 //
 //	users: admin (all), alice → lib-a, carol → lib-b
-//	lib-a albums: Hot Album (Rock, 3 songs), Cold Album (Jazz, 1 song with an
-//		explicit sibling), Quiet Album (no plays)
+//	lib-a albums: Hot Album (Rock, 3 songs — one explicit), Cold Album (Jazz,
+//		2 songs), Quiet Album (no plays)
 //	lib-b album: Beta Worlds (alice cannot see it)
-//	alice's plays: Hot ×6 across two songs, Cold ×2 (last played 2026-09-20)
+//	alice's plays: Hot ×7 across three songs (one of them the explicit
+//		s-h3), Cold ×2 (last played 2026-09-20); s-h1 and s-h2 share a
+//		last_played to exercise the recently-played title tiebreak
 //	genres by in-scope song count: Rock 3, Jazz 1
+//	song mtimes deliberately shuffle import order: recency follows the
+//		file mtime (MAX per album), not the rowid
 // ---------------------------------------------------------------------------
 
 func (s *server) seed(t *testing.T) {
@@ -91,8 +95,6 @@ func (s *server) seed(t *testing.T) {
 		('al-cold', 'Cold Album', 'ar-cold', 'Cold Artist', 2019, 'Jazz', 1),
 		('al-quiet', 'Quiet Album', 'ar-hot', 'Hot Artist', 2021, 'Rock', 1),
 		('al-worlds', 'Beta Worlds', 'ar-beta', 'Beta', 2018, 'Ambient', 1)`)
-	// Insert order deliberately shuffles mtimes: recency follows the rowid
-	// (import order), not the file mtime.
 	exec(t, `INSERT INTO songs (id, file_path, title, artist_id, album_id, genre, genre_id, year, mtime, checksum, explicit, active, library_id, duration) VALUES
 		('s-q1', '/music/a/q1.flac', 'Quiet One', 'ar-hot', 'al-quiet', 'Rock', 'g-rock', 2021, 900, 'kq1', 0, 1, 'lib-a', 100),
 		('s-h1', '/music/a/h1.flac', 'Hot One', 'ar-hot', 'al-hot', 'Rock', 'g-rock', 2020, 300, 'kh1', 0, 1, 'lib-a', 100),
@@ -104,7 +106,8 @@ func (s *server) seed(t *testing.T) {
 
 	exec(t, `INSERT INTO user_songs (user_id, song_id, play_count, last_played, starred) VALUES
 		('user-alice', 's-h1', 4, '2026-09-18T10:00:00.000Z', 0),
-		('user-alice', 's-h2', 2, '2026-09-10T10:00:00.000Z', 1),
+		('user-alice', 's-h2', 2, '2026-09-18T10:00:00.000Z', 1),
+		('user-alice', 's-h3', 1, '2026-07-01T10:00:00.000Z', 0),
 		('user-alice', 's-c1', 1, '2026-09-20T10:00:00.000Z', 0),
 		('user-alice', 's-c2', 1, '2026-08-01T10:00:00.000Z', 0)`)
 }
@@ -134,6 +137,14 @@ func albumIDs(albums []home.AlbumCard) []string {
 	ids := make([]string, len(albums))
 	for i, a := range albums {
 		ids[i] = a.ID
+	}
+	return ids
+}
+
+func songIDs(songs []home.SongCard) []string {
+	ids := make([]string, len(songs))
+	for i, s := range songs {
+		ids[i] = s.ID
 	}
 	return ids
 }
@@ -175,7 +186,7 @@ func TestHomeShapes(t *testing.T) {
 		t.Fatalf("genres: %+v", resp.Genres)
 	}
 
-	// Most played: Hot (6 plays) before Cold (2); Quiet never played still
+	// Most played: Hot (7 plays) before Cold (2); Quiet never played still
 	// appears for the admin-style query? Alice is scoped → inner join:
 	// albums need in-scope songs, but zero-play albums survive the inner
 	// join (the LEFT user_songs keeps them) and sort last.
@@ -187,23 +198,24 @@ func TestHomeShapes(t *testing.T) {
 		t.Fatalf("Hot Album must lead most played: %v", ids)
 	}
 
-	// Recent additions: import order (rowid DESC), newest first: s-c2 last
-	// inserted → first.
-	songIDs := []string{}
-	for _, song := range resp.RecentAdditions {
-		songIDs = append(songIDs, song.ID)
+	// Recent additions: album cards by the newest in-scope song mtime
+	// (Quiet 900, Cold 500, Hot 300).
+	if !equals(albumIDs(resp.RecentAdditions), []string{"al-quiet", "al-cold", "al-hot"}) {
+		t.Fatalf("recent additions order: %v", albumIDs(resp.RecentAdditions))
 	}
-	if len(songIDs) != 6 || songIDs[0] != "s-c2" || songIDs[1] != "s-c1" {
-		t.Fatalf("recent additions order: %v", songIDs)
-	}
-	if resp.RecentAdditions[0].ArtistName == nil || *resp.RecentAdditions[0].ArtistName != "Cold Artist" {
+	if resp.RecentAdditions[0].ArtistName == nil || *resp.RecentAdditions[0].ArtistName != "Hot Artist" {
 		t.Fatalf("recent additions display names: %+v", resp.RecentAdditions[0])
 	}
 
-	// Recently played: Cold One (2026-09-20) beats Hot One (2026-09-18).
-	playedIDs := albumIDs(resp.RecentlyPlayed)
-	if len(playedIDs) != 2 || playedIDs[0] != "al-cold" || playedIDs[1] != "al-hot" {
+	// Recently played: the caller's songs by last_played DESC; s-h1/s-h2 tie
+	// on 2026-09-18 and fall back to the title (Hot One before Hot Two).
+	playedIDs := songIDs(resp.RecentlyPlayed)
+	if !equals(playedIDs, []string{"s-c1", "s-h1", "s-h2", "s-c2", "s-h3"}) {
 		t.Fatalf("recently played: %v", playedIDs)
+	}
+	if resp.RecentlyPlayed[0].ArtistName == nil || *resp.RecentlyPlayed[0].ArtistName != "Cold Artist" ||
+		resp.RecentlyPlayed[0].AlbumName == nil || *resp.RecentlyPlayed[0].AlbumName != "Cold Album" {
+		t.Fatalf("recently played display names: %+v", resp.RecentlyPlayed[0])
 	}
 
 	// Random: same in-scope album universe, size clamped.
@@ -227,17 +239,14 @@ func TestHomeScopeIsolation(t *testing.T) {
 			t.Fatalf("lib-a album leaked to carol: %v", albumIDs(resp.MostPlayed))
 		}
 	}
-	songIDs := []string{}
-	for _, song := range resp.RecentAdditions {
-		songIDs = append(songIDs, song.ID)
+	if !equals(albumIDs(resp.RecentAdditions), []string{"al-worlds"}) {
+		t.Fatalf("carol recent additions: %v", albumIDs(resp.RecentAdditions))
 	}
-	if !equals(songIDs, []string{"s-b1"}) {
-		t.Fatalf("carol recent additions: %v", songIDs)
-	}
-	// Carol's recently-played and most-played draw on her own user_songs
-	// rows — none exist → empty, not errors.
+	// Carol's recently-played draws on her own user_songs rows — none exist
+	// → empty (the guest/share-viewer contract: no owner fallback), not an
+	// error.
 	if len(resp.RecentlyPlayed) != 0 || len(resp.MostPlayed) != 1 {
-		t.Fatalf("carol sections: played=%v most=%v", albumIDs(resp.RecentlyPlayed), albumIDs(resp.MostPlayed))
+		t.Fatalf("carol sections: played=%v most=%v", songIDs(resp.RecentlyPlayed), albumIDs(resp.MostPlayed))
 	}
 	if len(resp.Genres) != 1 || resp.Genres[0].Name != "Ambient" {
 		t.Fatalf("carol genres: %+v", resp.Genres)
@@ -249,23 +258,18 @@ func TestHomeHideExplicit(t *testing.T) {
 	alice := s.session(t, "user-alice", "alice", false)
 	rec := s.do(t, http.MethodGet, "/api/home?hideExplicit=true", alice)
 	resp := decodeHome(t, rec)
-	for _, song := range resp.RecentAdditions {
-		if song.Explicit {
-			t.Fatalf("explicit song leaked: %s", song.ID)
-		}
+	// Album sections keep the old HAVING rule: an album keeps its slot while
+	// at least one in-scope song is non-explicit — none of the fixture
+	// albums are explicit-only, so the mtime order is unchanged.
+	if !equals(albumIDs(resp.RecentAdditions), []string{"al-quiet", "al-cold", "al-hot"}) {
+		t.Fatalf("recent additions under hideExplicit: %v", albumIDs(resp.RecentAdditions))
 	}
-	if contains(func() []string {
-		ids := []string{}
-		for _, s := range resp.RecentAdditions {
-			ids = append(ids, s.ID)
-		}
-		return ids
-	}(), "s-h3") {
-		t.Fatalf("explicit Hot Three must be hidden")
-	}
-	// Hot Album keeps a slot: it has non-explicit songs (old HAVING rule).
 	if !contains(albumIDs(resp.MostPlayed), "al-hot") {
 		t.Fatalf("Hot Album must survive hideExplicit")
+	}
+	// The song list drops the explicit Hot Three outright.
+	if !equals(songIDs(resp.RecentlyPlayed), []string{"s-c1", "s-h1", "s-h2", "s-c2"}) {
+		t.Fatalf("recently played under hideExplicit: %v", songIDs(resp.RecentlyPlayed))
 	}
 }
 
@@ -297,12 +301,55 @@ func TestHomeLibraryFilter(t *testing.T) {
 	admin := s.session(t, "user-admin", "root", true)
 	rec := s.do(t, http.MethodGet, "/api/home?libraryId=lib-b", admin)
 	resp := decodeHome(t, rec)
-	songIDs := []string{}
-	for _, song := range resp.RecentAdditions {
-		songIDs = append(songIDs, song.ID)
+	if !equals(albumIDs(resp.RecentAdditions), []string{"al-worlds"}) {
+		t.Fatalf("libraryId filter: %v", albumIDs(resp.RecentAdditions))
 	}
-	if !equals(songIDs, []string{"s-b1"}) {
-		t.Fatalf("libraryId filter: %v", songIDs)
+	// The admin has no user_songs rows of their own: an empty
+	// recently-played, never a fallback to another user's history.
+	if len(resp.RecentlyPlayed) != 0 {
+		t.Fatalf("admin recently played: %v", songIDs(resp.RecentlyPlayed))
+	}
+}
+
+func TestHomeRecentAdditionsMtime(t *testing.T) {
+	s := newSeededServer(t)
+	alice := s.session(t, "user-alice", "alice", false)
+
+	// Legacy databases stored mtimes as fractional REALs (better-sqlite3
+	// stat.mtimeMs). The MAX aggregate must scan through the tolerant
+	// db.Millis instead of blowing up on a float64.
+	s.mustExec(t, `UPDATE songs SET mtime = 900.5 WHERE id = 's-c1'`)
+	rec := s.do(t, http.MethodGet, "/api/home", alice)
+	resp := decodeHome(t, rec)
+	if !equals(albumIDs(resp.RecentAdditions), []string{"al-cold", "al-quiet", "al-hot"}) {
+		t.Fatalf("REAL mtime order: %v", albumIDs(resp.RecentAdditions))
+	}
+
+	// An exact mtime tie falls back to the album name: Cold before Quiet.
+	s.mustExec(t, `UPDATE songs SET mtime = 900 WHERE id = 's-c1'`)
+	rec = s.do(t, http.MethodGet, "/api/home", alice)
+	resp = decodeHome(t, rec)
+	if !equals(albumIDs(resp.RecentAdditions), []string{"al-cold", "al-quiet", "al-hot"}) {
+		t.Fatalf("tied mtime order: %v", albumIDs(resp.RecentAdditions))
+	}
+}
+
+func TestHomeRecentlyPlayedGuest(t *testing.T) {
+	s := newSeededServer(t)
+	// A guest/anonymous principal (share-link viewer) has no user_songs
+	// rows and an empty library scope: the section comes back empty rather
+	// than falling back to the owner's history.
+	resp, err := home.NewService(s.db).Home(context.Background(), auth.Identity{}, "", false, 10, 1)
+	if err != nil {
+		t.Fatalf("guest home: %v", err)
+	}
+	if len(resp.RecentlyPlayed) != 0 {
+		t.Fatalf("guest recently played must be empty: %v", songIDs(resp.RecentlyPlayed))
+	}
+	// The album sections honour the empty scope too.
+	if len(resp.RecentAdditions) != 0 || len(resp.MostPlayed) != 0 {
+		t.Fatalf("guest album sections must be empty: additions=%v most=%v",
+			albumIDs(resp.RecentAdditions), albumIDs(resp.MostPlayed))
 	}
 }
 

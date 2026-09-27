@@ -106,6 +106,20 @@ describe('PlaylistDetail', () => {
     expect(screen.getByRole('menuitem', { name: /play$/i })).toBeTruthy();
   });
 
+  it('opens the playlist context menu from the title header', async () => {
+    renderPlaylistDetail();
+
+    await waitFor(() => {
+      expect(screen.getByText('Track One')).toBeTruthy();
+    });
+
+    fireEvent.contextMenu(screen.getByRole('heading', { name: 'Test Playlist' }));
+
+    expect(screen.getByRole('menu')).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Play' })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeTruthy();
+  });
+
   it('hides account-only actions from anonymous guests', async () => {
     window.history.pushState({}, '', '/playlists/playlist-1?shareToken=token-123');
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });

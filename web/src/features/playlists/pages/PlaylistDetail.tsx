@@ -296,17 +296,17 @@ export function PlaylistDetail({ user, underlay }: PlaylistDetailProps) {
           </>
         )
       }
-      renderHeader={(header) =>
+      renderHeaderContextMenu={(target) =>
         playlist && user ? (
           <PlaylistHeaderContextMenu
             playlist={playlist}
             onEdit={() => openForEdit(playlist.id)}
             onConvert={handleConvert}
           >
-            {header}
+            {target}
           </PlaylistHeaderContextMenu>
         ) : (
-          header
+          target
         )
       }
     >

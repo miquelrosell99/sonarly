@@ -1,13 +1,27 @@
+import type { ReactNode } from 'react';
 import { useParams } from 'wouter';
 
 import { Button } from '../../../components/ui/Button.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
+import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
+import { usePlayShuffleMenuSections } from '../../../hooks/usePlayShuffleMenuSections.js';
 import { useLibraryStore } from '../../../stores/libraryStore.js';
 import { useSongsList } from '../../../hooks/useLibraryLists.js';
 import { TrackList } from '../../songs/index.js';
 import type { SongWithNames, UnderlayParams } from '../../../lib/types.js';
+
+function ComposerHeaderContextMenu({
+  tracks,
+  children,
+}: {
+  tracks: SongWithNames[];
+  children: ReactNode;
+}) {
+  const sections = usePlayShuffleMenuSections(tracks);
+  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+}
 
 export function Composer({ underlay }: { underlay?: UnderlayParams }) {
   const { name: paramName } = useParams<{ name: string }>();
@@ -46,6 +60,9 @@ export function Composer({ underlay }: { underlay?: UnderlayParams }) {
       title={composer}
       actions={actions}
       className="space-y-8"
+      renderHeaderContextMenu={(target) => (
+        <ComposerHeaderContextMenu tracks={tracks}>{target}</ComposerHeaderContextMenu>
+      )}
     >
       <div>
         <h3 className="mb-2 text-sm font-medium text-muted">Tracks</h3>

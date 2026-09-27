@@ -39,9 +39,9 @@ interface AlbumDetail {
   songs: Song[];
 }
 
-function createHarness(album: Album) {
+function createHarness(album: Album, options?: { onDelete?: () => void; isAdmin?: boolean }) {
   return function AlbumMenuHarness() {
-    const sections = useAlbumContextMenu(album);
+    const sections = useAlbumContextMenu(album, options);
     return React.createElement(
       'div',
       { 'data-testid': 'menu' },
@@ -203,5 +203,30 @@ describe('useAlbumContextMenu', () => {
       expect(mockNotify.notify).toHaveBeenCalledWith('Network error', 'error'),
     );
     expect(playActions.playSongs).not.toHaveBeenCalled();
+  });
+
+  it('shows a danger Delete item when onDelete is provided for an admin', () => {
+    const onDelete = vi.fn();
+    const Harness = createHarness(album, { onDelete, isAdmin: true });
+    render(React.createElement(Harness));
+
+    const deleteButton = screen.getByTestId('delete');
+    expect(deleteButton.textContent).toBe('Delete');
+    fireEvent.click(deleteButton);
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the Delete item when no onDelete is provided', () => {
+    const Harness = createHarness(album);
+    render(React.createElement(Harness));
+
+    expect(screen.queryByTestId('delete')).toBeNull();
+  });
+
+  it('hides the Delete item from non-admins even when onDelete is provided', () => {
+    const Harness = createHarness(album, { onDelete: vi.fn(), isAdmin: false });
+    render(React.createElement(Harness));
+
+    expect(screen.queryByTestId('delete')).toBeNull();
   });
 });

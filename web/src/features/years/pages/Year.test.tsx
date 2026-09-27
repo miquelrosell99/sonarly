@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, cleanup, waitFor } from '@testing-library/react';
+import { screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { Route, Router } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { Year } from './Year.js';
@@ -61,5 +61,19 @@ describe('Year', () => {
     expect(screen.queryByText('Album From 2021')).toBeNull();
     expect(mockApi).toHaveBeenCalledWith('/songs');
     expect(mockApi).toHaveBeenCalledWith('/albums');
+  });
+
+  it('opens a Play/Shuffle menu from the title header', async () => {
+    renderYear('/years/2020');
+
+    await waitFor(() => {
+      expect(screen.getByText('Song From 2020')).toBeTruthy();
+    });
+
+    fireEvent.contextMenu(screen.getByRole('heading', { name: '2020' }));
+
+    expect(screen.getByRole('menu')).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Play all' })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Shuffle play' })).toBeTruthy();
   });
 });

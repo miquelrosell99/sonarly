@@ -29,16 +29,17 @@ interface HomeGenre {
 }
 
 /**
- * /api/home payload. `recentAdditions` is a SONG list in import order —
- * the display subset of the catalog song DTO plus the caller's interaction
- * state — while mostPlayed/random/recentlyPlayed stay album lists.
+ * /api/home payload. `recentAdditions` is an ALBUM list ordered by the
+ * newest in-scope song file mtime; `recentlyPlayed` is the caller's SONG
+ * list (user_songs.last_played DESC) — both carry the caller's interaction
+ * state, and mostPlayed/random stay album lists.
  */
 interface HomeData {
   genres: HomeGenre[];
   mostPlayed: Album[];
   random: Album[];
-  recentAdditions: Song[];
-  recentlyPlayed: Album[];
+  recentAdditions: Album[];
+  recentlyPlayed: Song[];
 }
 
 interface AlbumDetail {
@@ -246,9 +247,9 @@ function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) 
 }
 
 /**
- * One recent-addition song card: the same Card/primitives the Tracks grid
+ * One recently-played song card: the same Card/primitives the Tracks grid
  * uses (ExplicitTitle, CoverArt, favorite/rate actions) wrapped in the
- * standard ItemContextMenu, with play starting the whole recent-additions
+ * standard ItemContextMenu, with play starting the whole recently-played
  * list in order at this song.
  */
 function RecentSongCard({
@@ -630,7 +631,7 @@ export function HomePage({ user }: { user: User }) {
       candidates.push(album);
     };
     add(data.mostPlayed[0]);
-    add(data.recentlyPlayed[0]);
+    add(data.recentAdditions[0]);
     add(data.random[0]);
     return candidates;
   }, [data]);
@@ -680,11 +681,11 @@ export function HomePage({ user }: { user: User }) {
 
       <ScrollRow title="Recently added">
         {data.recentAdditions.length === 0 ? (
-          <p className="text-sm text-fg-secondary">No recently added songs.</p>
+          <p className="text-sm text-fg-secondary">No recently added albums.</p>
         ) : (
-          data.recentAdditions.map((song, index) => (
-            <div key={song.id} className="w-40 flex-none sm:w-44">
-              <RecentSongCard song={song} songs={data.recentAdditions} index={index} user={user} />
+          data.recentAdditions.map((album) => (
+            <div key={album.id} className="w-40 flex-none sm:w-44">
+              <AlbumCard album={album} user={user} />
             </div>
           ))
         )}
@@ -692,11 +693,11 @@ export function HomePage({ user }: { user: User }) {
 
       <ScrollRow title="Recently played">
         {data.recentlyPlayed.length === 0 ? (
-          <p className="text-sm text-fg-secondary">No recently played albums.</p>
+          <p className="text-sm text-fg-secondary">No recently played songs.</p>
         ) : (
-          data.recentlyPlayed.map((album) => (
-            <div key={album.id} className="w-40 flex-none sm:w-44">
-              <AlbumCard album={album} user={user} />
+          data.recentlyPlayed.map((song, index) => (
+            <div key={song.id} className="w-40 flex-none sm:w-44">
+              <RecentSongCard song={song} songs={data.recentlyPlayed} index={index} user={user} />
             </div>
           ))
         )}
