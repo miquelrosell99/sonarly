@@ -305,6 +305,12 @@ export function Album({ user, underlay }: { user: User; underlay?: UnderlayParam
             <PlayButton variant="default" onPlay={handlePlayAlbum} onShufflePlay={handleShuffleAlbumSongs}>
               Play
             </PlayButton>
+            <FavoriteRatingGroup
+              starred={detail.album.starred}
+              onToggleFavorite={() => handleFavorite(!detail.album.starred)}
+              rating={detail.album.rating}
+              onRate={handleRate}
+            />
             <Button variant="ghost" onClick={() => setAlbumEditing(detail.album)} className="gap-2">
               <Icon name="mdi-pencil" size={18} />
               Edit
@@ -315,12 +321,6 @@ export function Album({ user, underlay }: { user: User; underlay?: UnderlayParam
                 Delete
               </Button>
             )}
-            <FavoriteRatingGroup
-              starred={detail.album.starred}
-              onToggleFavorite={() => handleFavorite(!detail.album.starred)}
-              rating={detail.album.rating}
-              onRate={handleRate}
-            />
           </>
         )
       }

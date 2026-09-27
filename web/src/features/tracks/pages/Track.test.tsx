@@ -272,3 +272,51 @@ describe('Track detail header delete (admin)', () => {
     expect(screen.queryByRole('menuitem', { name: 'Delete' })).toBeNull();
   });
 });
+
+describe('Track detail header action order', () => {
+  beforeEach(() => {
+    mockApi.mockImplementation(async (path: string) => {
+      if (path.startsWith('/songs/')) {
+        return { song: makeSong(path.split('/')[2]) };
+      }
+      return {};
+    });
+  });
+
+  it('renders the favorite/rating group as a row before Edit and Delete', async () => {
+    renderTrack('/tracks/t1', createTestQueryClient(), admin);
+
+    await screen.findByText('Song t1');
+
+    const favorite = screen.getByRole('button', { name: 'Add favorite' });
+    const rating = screen.getByRole('button', { name: 'Rate 5 stars' });
+    const edit = screen.getByRole('button', { name: 'Edit' });
+    const deleteButton = screen.getByRole('button', { name: /^delete$/i });
+
+    // The favorite star and the rating control sit in one group…
+    expect(
+      favorite.compareDocumentPosition(rating) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // …and that group precedes Edit, which precedes Delete.
+    expect(
+      rating.compareDocumentPosition(edit) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      edit.compareDocumentPosition(deleteButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('keeps the favorite/rating group before Edit for non-admins (no Delete)', async () => {
+    renderTrack('/tracks/t1');
+
+    await screen.findByText('Song t1');
+
+    const favorite = screen.getByRole('button', { name: 'Add favorite' });
+    const edit = screen.getByRole('button', { name: 'Edit' });
+
+    expect(
+      favorite.compareDocumentPosition(edit) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^delete$/i })).toBeNull();
+  });
+});

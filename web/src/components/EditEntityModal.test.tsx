@@ -65,7 +65,7 @@ describe('EditEntityModal', () => {
         onEditSyncedLyrics={onEditSyncedLyrics}
       />,
     );
-    expect(screen.getByLabelText(/lyrics/i)).toBeTruthy();
+    expect(screen.getByPlaceholderText('Add lyrics...')).toBeTruthy();
     expect(screen.getByText('1 synced lines')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /edit synced lyrics/i }));
     expect(onEditSyncedLyrics).toHaveBeenCalledTimes(1);
@@ -432,5 +432,103 @@ describe('EditEntityModal', () => {
       />,
     );
     expect(screen.getByText('3 synced lines')).toBeTruthy();
+  });
+
+  it('submits the song artist array in chip order after reordering', async () => {
+    const onSave = vi.fn();
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '23', title: 'Track', artist: ['Alpha', 'Beta', 'Gamma'] }}
+        onClose={vi.fn()}
+        onSave={onSave}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    // Reorder the chips with the move buttons: Gamma first.
+    fireEvent.click(screen.getByRole('button', { name: 'Move Gamma left' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Move Gamma left' }));
+
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ artist: ['Gamma', 'Alpha', 'Beta'] }));
+  });
+
+  it('submits the song genre array in chip order after reordering', async () => {
+    const onSave = vi.fn();
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '24', title: 'Track', genre: ['Rock', 'Pop'] }}
+        onClose={vi.fn()}
+        onSave={onSave}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move Pop left' }));
+
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ genre: ['Pop', 'Rock'] }));
+  });
+
+  it('submits the album artist array in chip order after reordering', async () => {
+    const onSave = vi.fn();
+    render(
+      <EditEntityModal
+        open
+        entityType="album"
+        entity={{ id: '25', title: 'Album', albumArtist: ['One', 'Two'] }}
+        onClose={vi.fn()}
+        onSave={onSave}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move One right' }));
+
+    fireEvent.click(screen.getByRole('button', { name: /save/i }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ albumArtist: ['Two', 'One'] }));
+  });
+
+  it('closes an open autocomplete dropdown on Escape before closing the modal', async () => {
+    global.fetch = vi.fn(async (input) => {
+      const url = typeof input === 'string' ? input : input.url;
+      if (url.includes('/suggestions?field=album')) {
+        return new Response(JSON.stringify({ suggestions: ['Some Album'] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      return new Response(JSON.stringify({}), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const onClose = vi.fn();
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '26', title: 'Track' }}
+        onClose={onClose}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    const albumInput = screen.getByPlaceholderText('Album');
+    fireEvent.focus(albumInput);
+    await waitFor(() => expect(screen.getByRole('listbox')).toBeTruthy());
+
+    // First Escape closes only the dropdown; the modal stays open.
+    fireEvent.keyDown(albumInput, { key: 'Escape' });
+    expect(screen.queryByRole('listbox')).toBeFalsy();
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(onClose).not.toHaveBeenCalled();
+
+    // Second Escape reaches the modal.
+    fireEvent.keyDown(albumInput, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

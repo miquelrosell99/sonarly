@@ -8,6 +8,7 @@ import { useFilterParams } from '../../../hooks/useFilterParams.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useLibraryStore } from '../../../stores/libraryStore.js';
 import { useSongsList } from '../../../hooks/useLibraryLists.js';
+import { SONG_COLUMN_CONFIG_KEY } from '../../songs/components/SongTable.js';
 import { formatDuration } from '../../../lib/format.js';
 
 interface TracksProps {
@@ -133,6 +134,7 @@ export function Tracks({ user }: TracksProps) {
   return (
     <LibraryView
       viewModeKey="tracks"
+      columnConfigKey={SONG_COLUMN_CONFIG_KEY}
       data={filteredTracks}
       isLoading={isLoading}
       error={error?.message ?? null}
