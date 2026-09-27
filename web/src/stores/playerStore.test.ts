@@ -5,10 +5,13 @@ import { usePlayer, resetPlayer, type PlayerSong } from './playerStore.js';
 function createSong(id: string, title = `Song ${id}`): Song {
   return {
     id,
-    filePath: `/music/${id}.mp3`,
     title,
+    explicit: false,
     mtime: 0,
-    checksum: `checksum-${id}`,
+    active: true,
+    starred: false,
+    coverArtMissing: false,
+    gapless: false,
   };
 }
 

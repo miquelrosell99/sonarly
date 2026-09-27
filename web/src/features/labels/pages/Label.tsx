@@ -1,5 +1,5 @@
 import { useParams } from 'wouter';
-import type { Song, Album } from '../../../types';
+import type { Album } from '../../../types';
 import { Button } from '../../../components/ui/Button.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { PlayButton } from '../../../components/PlayButton.js';
@@ -37,10 +37,10 @@ export function Label({ underlay }: { underlay?: UnderlayParams }) {
 
   const actions = tracks.length > 0 && (
     <>
-      <PlayButton variant="default" onPlay={() => playSongs(tracks as Song[], undefined, undefined, { type: 'label', id: label })}>
+      <PlayButton variant="default" onPlay={() => playSongs(tracks, undefined, undefined, { type: 'label', id: label })}>
         Play all
       </PlayButton>
-      <Button variant="ghost" onClick={() => shufflePlay(tracks as Song[], { type: 'label', id: label })}>
+      <Button variant="ghost" onClick={() => shufflePlay(tracks, { type: 'label', id: label })}>
         Shuffle
       </Button>
     </>

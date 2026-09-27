@@ -1,3 +1,17 @@
+// Smart-playlist rule shapes re-derived from the generated OpenAPI schema
+// (audit F17, plan 10d): the server schema honestly types `operator` as
+// string and the sort as one optional-field object ("field/operator
+// whitelists are enforced by the rules compiler, not by this schema"), so
+// the hand unions were deleted. The operator whitelist and field catalogue
+// below are client-side constants the editor needs — they stay hand-written.
+import type { components } from '../contract/schema.js';
+
+export type SmartPlaylistRule = components['schemas']['SmartPlaylistRule'];
+export type SmartPlaylistRules = components['schemas']['SmartPlaylistRules'];
+export type SmartPlaylistRuleGroup = NonNullable<components['schemas']['SmartPlaylistRules']['rules']>;
+export type SmartPlaylistSort = components['schemas']['SmartPlaylistSort'];
+
+/** Client-side operator whitelist, mirrored by the server's rules compiler. */
 export type SmartPlaylistOperator =
   | 'is'
   | 'isNot'
@@ -18,30 +32,6 @@ export type SmartPlaylistOperator =
   | 'notInPlaylist'
   | 'isMissing'
   | 'isPresent';
-
-export type SmartPlaylistSortDirection = 'asc' | 'desc';
-
-export type SmartPlaylistSort =
-  | { field: string; direction: SmartPlaylistSortDirection }
-  | { random: true };
-
-export interface SmartPlaylistRule {
-  field: string;
-  operator: SmartPlaylistOperator;
-  value?: string | number | boolean | string[] | number[];
-}
-
-export interface SmartPlaylistRuleGroup {
-  all?: SmartPlaylistRule[];
-  any?: SmartPlaylistRule[];
-}
-
-export interface SmartPlaylistRules {
-  rules?: SmartPlaylistRuleGroup;
-  sort?: SmartPlaylistSort[];
-  limit?: number;
-  limitPercent?: number;
-}
 
 export type SmartPlaylistFieldType = 'string' | 'number' | 'date' | 'boolean';
 

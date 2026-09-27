@@ -1,13 +1,13 @@
 import { useCallback, useState } from 'react';
 import type { Playlist, Song } from '../types';
+import type { components } from '../contract/schema.js';
 import type { ContextMenuSection } from '../components/ItemContextMenu.js';
 import { api } from '../lib/api.js';
+import { songFromPlaylistEntry } from '../lib/entityMappers.js';
 import { useNotification } from '../contexts/NotificationContext.js';
 import { usePlayActions } from './usePlayActions.js';
 
-interface PlaylistDetail {
-  playlist: Playlist & { songCount: number; entries: Song[] };
-}
+type PlaylistDetailResponse = components['schemas']['PlaylistDetail'];
 
 type LoadingId = 'play' | 'shuffle-play' | 'play-next' | 'add-to-queue' | 'convert' | null;
 
@@ -30,8 +30,9 @@ export function usePlaylistContextMenu(
     async (id: Exclude<LoadingId, 'convert'>, action: (songs: Song[]) => void | Promise<void>) => {
       setLoadingId(id);
       try {
-        const { playlist: detail } = await api<PlaylistDetail>(`/playlists/${playlist.id}`);
-        await action(detail.entries);
+        const { playlist: detail } = await api<{ playlist: PlaylistDetailResponse }>(`/playlists/${playlist.id}`);
+        // Wire entries are row-level PlaylistEntry shapes; widen via the shared mapper.
+        await action(detail.entries.map(songFromPlaylistEntry));
       } catch (err) {
         notify(err instanceof Error ? err.message : 'Failed to load playlist', 'error');
       } finally {

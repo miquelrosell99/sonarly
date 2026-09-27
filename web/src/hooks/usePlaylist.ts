@@ -1,31 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import type { Playlist } from '../types';
+import type { components } from '../contract/schema.js';
 import { api } from '../lib/api.js';
 import { getShareToken, withShareToken } from '../lib/shareToken.js';
 import { LIBRARY_LIST_STALE_TIME } from './useLibraryLists.js';
 
-export interface PlaylistDetailEntry {
-  id: string;
-  title: string;
-  album: string;
-  albumId?: string;
-  artist: string;
-  artistId?: string;
-  artistEntries?: { id: string; name: string }[];
-  track?: number;
-  discNumber?: number;
-  duration?: number;
-  genre?: string;
-  year?: number;
-  explicit?: boolean;
-  coverArt?: string;
-  albumCoverArt?: string;
-}
-
-export interface PlaylistDetail extends Playlist {
-  songCount: number;
-  entries: PlaylistDetailEntry[];
-}
+/** GET /playlists/:id response, straight from the generated schema. */
+export type PlaylistDetail = components['schemas']['PlaylistDetail'];
 
 export function usePlaylist(id: string | undefined, enabled = true) {
   return useQuery<{ playlist: PlaylistDetail }, Error, PlaylistDetail>({

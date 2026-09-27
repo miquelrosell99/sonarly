@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { Song, Album, Artist } from '../../../types';
+import type { components } from '../../../contract/schema.js';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Modal } from '../../../components/ui/Modal.js';
@@ -9,15 +9,16 @@ import { useNotification } from '../../../contexts/NotificationContext.js';
 import { useAdminRefresh } from '../contexts/AdminRefreshContext.js';
 import { TabNav } from '../../settings/index.js';
 
-interface MissingSong extends Song {
-  artistName?: string;
-  albumName?: string;
-}
+// Wire shapes come straight from the generated schema (plan 10d): the
+// missing endpoints return their own trimmed DTOs, not full Songs.
+type MissingSong = components['schemas']['MissingSong'];
+type MissingAlbum = components['schemas']['MissingAlbum'];
+type MissingArtist = components['schemas']['MissingArtist'];
 
 interface MissingData {
   songs: MissingSong[];
-  albums: Album[];
-  artists: Artist[];
+  albums: MissingAlbum[];
+  artists: MissingArtist[];
 }
 
 type Tab = 'songs' | 'albums' | 'artists';
@@ -108,7 +109,7 @@ export function MissingModal({ open, onClose }: MissingModalProps) {
     },
   ];
 
-  const albumColumns: TableColumn<Album>[] = [
+  const albumColumns: TableColumn<MissingAlbum>[] = [
     { key: 'name', header: 'Name', render: (a) => a.name },
     { key: 'artist', header: 'Artist', render: (a) => a.artistName || '-' },
     {
@@ -128,7 +129,7 @@ export function MissingModal({ open, onClose }: MissingModalProps) {
     },
   ];
 
-  const artistColumns: TableColumn<Artist>[] = [
+  const artistColumns: TableColumn<MissingArtist>[] = [
     { key: 'name', header: 'Name', render: (a) => a.name },
     {
       key: 'actions',
@@ -196,7 +197,7 @@ export function MissingModal({ open, onClose }: MissingModalProps) {
                 />
               )}
               {tab === 'albums' && (
-                <Table<Album>
+                <Table<MissingAlbum>
                   columns={albumColumns}
                   rows={data.albums}
                   rowKey={(a) => a.id}
@@ -204,7 +205,7 @@ export function MissingModal({ open, onClose }: MissingModalProps) {
                 />
               )}
               {tab === 'artists' && (
-                <Table<Artist>
+                <Table<MissingArtist>
                   columns={artistColumns}
                   rows={data.artists}
                   rowKey={(a) => a.id}

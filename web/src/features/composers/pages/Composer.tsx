@@ -1,5 +1,5 @@
 import { useParams } from 'wouter';
-import type { Song } from '../../../types';
+
 import { Button } from '../../../components/ui/Button.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { PlayButton } from '../../../components/PlayButton.js';
@@ -26,10 +26,10 @@ export function Composer({ underlay }: { underlay?: UnderlayParams }) {
 
   const actions = tracks.length > 0 && (
     <>
-      <PlayButton variant="default" onPlay={() => playSongs(tracks as Song[], undefined, undefined, { type: 'composer', id: composer })}>
+      <PlayButton variant="default" onPlay={() => playSongs(tracks, undefined, undefined, { type: 'composer', id: composer })}>
         Play all
       </PlayButton>
-      <Button variant="ghost" onClick={() => shufflePlay(tracks as Song[], { type: 'composer', id: composer })}>
+      <Button variant="ghost" onClick={() => shufflePlay(tracks, { type: 'composer', id: composer })}>
         Shuffle
       </Button>
     </>

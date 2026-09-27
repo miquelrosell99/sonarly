@@ -1,5 +1,5 @@
 import { useParams } from 'wouter';
-import type { Song, Album } from '../../../types';
+import type { Album } from '../../../types';
 import { Button } from '../../../components/ui/Button.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { PlayButton } from '../../../components/PlayButton.js';
@@ -33,10 +33,10 @@ export function Year() {
   const title = yearValid ? String(year) : undefined;
   const actions = tracks.length > 0 && (
     <>
-      <PlayButton variant="default" onPlay={() => playSongs(tracks as Song[])}>
+      <PlayButton variant="default" onPlay={() => playSongs(tracks)}>
         Play all
       </PlayButton>
-      <Button variant="ghost" onClick={() => shufflePlay(tracks as Song[])}>
+      <Button variant="ghost" onClick={() => shufflePlay(tracks)}>
         Shuffle
       </Button>
     </>
