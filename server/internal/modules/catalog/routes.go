@@ -14,9 +14,11 @@ import (
 )
 
 const (
-	// defaultListLimit mirrors the old hardcoded 500-row catalog lists.
-	defaultListLimit = 500
-	maxListLimit     = 500
+	// maxListLimit clamps an explicit ?limit= on the catalog lists; without
+	// the parameter the lists return the full in-scope collection (the old
+	// default 500-row cap silently truncated shuffle play to the first
+	// alphabetical rows — v2.3.2 removed it).
+	maxListLimit = 500
 	// genreAlbumsLimit mirrors the old /api/genres/:id/albums clamp (1..20,
 	// default 4).
 	defaultGenreAlbumsLimit = 4
@@ -111,8 +113,10 @@ func boolQuery(r *http.Request, key string) bool {
 	return v
 }
 
-// listLimit clamps the limit query parameter to (0, maxListLimit]; absent or
-// invalid values fall back to def.
+// listLimit clamps the limit query parameter to (0, max]; absent or invalid
+// values fall back to def. A def <= 0 means "no limit": the endpoint returns
+// the full in-scope collection, which is what the catalog lists want now that
+// the old 500-row default cap is gone.
 func listLimit(r *http.Request, key string, def, max int) int {
 	raw := r.URL.Query().Get(key)
 	if raw == "" {
@@ -133,7 +137,7 @@ func (h *Handler) listSongs(w http.ResponseWriter, r *http.Request) {
 		GenreID:      q.Get("genreId"),
 		LibraryID:    q.Get("libraryId"),
 		HideExplicit: boolQuery(r, "hideExplicit"),
-		Limit:        listLimit(r, "limit", defaultListLimit, maxListLimit),
+		Limit:        listLimit(r, "limit", 0, maxListLimit),
 	})
 	if err != nil {
 		writeServiceError(w, r, err)
@@ -168,7 +172,7 @@ func (h *Handler) listAlbums(w http.ResponseWriter, r *http.Request) {
 		Year:         year,
 		LibraryID:    q.Get("libraryId"),
 		HideExplicit: boolQuery(r, "hideExplicit"),
-		Limit:        listLimit(r, "limit", defaultListLimit, maxListLimit),
+		Limit:        listLimit(r, "limit", 0, maxListLimit),
 	})
 	if err != nil {
 		writeServiceError(w, r, err)

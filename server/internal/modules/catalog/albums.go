@@ -31,7 +31,8 @@ type AlbumFilter struct {
 	Year         *int
 	LibraryID    string
 	HideExplicit bool
-	Limit        int
+	// Limit caps the row count; <= 0 means no cap (full in-scope collection).
+	Limit int
 }
 
 // albumRow scans the shared album column order plus optional trailing
@@ -186,7 +187,14 @@ func listAlbums(ctx context.Context, q auth.Queries, userID string, scope librar
 		// SUM(CASE) quirk kept them via a phantom count; the Go server states the rule).
 		groupBy += ` HAVING total_song_count = 0 OR shown_song_count > 0`
 	}
-	args = append(args, f.Limit)
+	// Limit <= 0 means no cap (see listSongs): the full in-scope collection
+	// comes back so the web client's shuffle play covers every album, not
+	// just the first alphabetical ones.
+	limitSQL := ``
+	if f.Limit > 0 {
+		limitSQL = ` LIMIT ?`
+		args = append(args, f.Limit)
+	}
 
 	rows, err := q.QueryContext(ctx,
 		`SELECT `+albumColumns+`, ua.starred, ua.rating,
@@ -196,7 +204,7 @@ func listAlbums(ctx context.Context, q auth.Queries, userID string, scope librar
 		FROM albums a
 		`+joinSQL+`
 		LEFT JOIN user_albums ua ON ua.user_id = ? AND ua.album_id = a.id
-		`+where+` `+groupBy+` ORDER BY a.name LIMIT ?`, args...)
+		`+where+` `+groupBy+` ORDER BY a.name`+limitSQL, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list albums: %w", err)
 	}

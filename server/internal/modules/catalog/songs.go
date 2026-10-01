@@ -46,7 +46,8 @@ type SongFilter struct {
 	GenreID      string
 	LibraryID    string
 	HideExplicit bool
-	Limit        int
+	// Limit caps the row count; <= 0 means no cap (full in-scope collection).
+	Limit int
 }
 
 func scanSong(s interface{ Scan(...any) error }) (*Song, error) {
@@ -182,6 +183,10 @@ func attachSongGenres(ctx context.Context, q auth.Queries, songs []Song) error {
 
 // listSongs is the /api/songs query: active songs only, scope condition,
 // optional album/artist/genre/library filters, explicit hiding, title order.
+// Limit <= 0 means no cap: the full in-scope collection comes back (the
+// web client renders windowed lists and derives its shuffle queues from this,
+// so a silent default cap would bias "play random" to the first alphabetical
+// rows).
 func listSongs(ctx context.Context, q auth.Queries, userID string, scope libraries.Scope, f SongFilter) ([]Song, error) {
 	scopeCond := libraries.ScopeCondition(scope, "s.library_id")
 	where := `WHERE s.active = 1 ` + scopeCond.SQL
@@ -206,14 +211,18 @@ func listSongs(ctx context.Context, q auth.Queries, userID string, scope librari
 	if f.HideExplicit {
 		where += ` AND s.explicit = 0`
 	}
-	args = append(args, f.Limit)
+	limitSQL := ``
+	if f.Limit > 0 {
+		limitSQL = ` LIMIT ?`
+		args = append(args, f.Limit)
+	}
 
 	rows, err := q.QueryContext(ctx,
 		`SELECT `+songColumns+`,
 			ar.name AS artist_name, al.name AS album_name,
 			al.artist_name AS album_artist_name, al.cover_art_id AS album_cover_art_id,
 			us.starred, us.rating
-		`+songJoins+` `+where+` ORDER BY s.title LIMIT ?`, args...)
+		`+songJoins+` `+where+` ORDER BY s.title`+limitSQL, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list songs: %w", err)
 	}
