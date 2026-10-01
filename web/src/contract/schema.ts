@@ -3472,6 +3472,12 @@ export interface operations {
                 artistId?: string;
                 /** @description Filter by genre. */
                 genreId?: string;
+                /** @description Filter by genre name (junction match */
+                genre?: string;
+                /** @description Filter by label name (songs on albums carrying the label). */
+                label?: string;
+                /** @description Filter by composer name. */
+                composer?: string;
                 /** @description Narrow to one library. */
                 libraryId?: string;
                 /** @description Drop explicit songs. */
@@ -3615,6 +3621,10 @@ export interface operations {
             query?: {
                 artistId?: string;
                 genreId?: string;
+                /** @description Filter by genre name (junction match */
+                genre?: string;
+                /** @description Filter by label name. */
+                label?: string;
                 year?: number;
                 libraryId?: string;
                 hideExplicit?: boolean;

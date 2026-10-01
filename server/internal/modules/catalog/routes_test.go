@@ -153,6 +153,45 @@ func TestListSongsFilters(t *testing.T) {
 	}
 }
 
+// TestListSongsFiltersByName guards the v2.3.3 fix for the drift between the
+// web client (which keys genre/label/composer pages by display name) and the
+// Go server (which only read genreId): the pages used to receive the whole
+// unfiltered library. The name filters must return the same rows as their
+// genreId counterparts, respect scope, and match case-insensitively (the
+// junction name columns are COLLATE NOCASE).
+func TestListSongsFiltersByName(t *testing.T) {
+	s := newSeededServer(t)
+	admin := s.session(t, "user-admin", "root", true)
+	alice := s.session(t, "user-alice", "alice", false)
+
+	cases := []struct {
+		name   string
+		cookie *http.Cookie
+		query  string
+		want   []string
+	}{
+		{"genre name", alice, "?genre=Jazz", []string{"s-a1", "s-a2"}},
+		{"genre name matches genreId rows", alice, "?genre=Techno", []string{"s-a2", "s-a3"}},
+		{"genre name case-insensitive", alice, "?genre=jazz", []string{"s-a1", "s-a2"}},
+		{"genre name honors scope", alice, "?genre=Ambient", nil},
+		{"genre name admin sees all", admin, "?genre=Ambient", []string{"s-b1", "s-b2", "s-b3"}},
+		{"label name", admin, "?label=Label%20One", []string{"s-a1", "s-a2"}},
+		{"label name scoped", alice, "?label=Label%20One", []string{"s-a1", "s-a2"}},
+		{"composer name", alice, "?composer=Composer", []string{"s-a1", "s-a3"}},
+		{"composer name case-insensitive", alice, "?composer=composer", []string{"s-a1", "s-a3"}},
+		{"unknown names match nothing", alice, "?genre=Nope&label=Nope&composer=Nope", nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := s.do(t, http.MethodGet, "/api/songs"+tc.query, tc.cookie)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
+			}
+			expectIDs(t, songIDList(t, rec), tc.want...)
+		})
+	}
+}
+
 // TestCatalogListsUncappedByDefault guards the v2.3.2 fix for shuffle play
 // only covering the first 500 alphabetical rows: without ?limit= the lists
 // must return the whole in-scope collection, and an explicit ?limit= still
@@ -368,6 +407,18 @@ func TestListAlbumsFiltersAndCounts(t *testing.T) {
 	t.Run("by genre", func(t *testing.T) {
 		rec := s.do(t, http.MethodGet, "/api/albums?genreId=g-ambient", admin)
 		expectIDs(t, albumIDList(t, rec), "al-b1", "al-b2")
+	})
+	t.Run("by genre name", func(t *testing.T) {
+		rec := s.do(t, http.MethodGet, "/api/albums?genre=Jazz", admin)
+		expectIDs(t, albumIDList(t, rec), "al-a1")
+	})
+	t.Run("by genre name case-insensitive", func(t *testing.T) {
+		rec := s.do(t, http.MethodGet, "/api/albums?genre=jazz", admin)
+		expectIDs(t, albumIDList(t, rec), "al-a1")
+	})
+	t.Run("by label name", func(t *testing.T) {
+		rec := s.do(t, http.MethodGet, "/api/albums?label=Label%20One", admin)
+		expectIDs(t, albumIDList(t, rec), "al-a1")
 	})
 	t.Run("by library", func(t *testing.T) {
 		rec := s.do(t, http.MethodGet, "/api/albums?libraryId=lib-a", alice)
