@@ -137,6 +137,9 @@ func (h *Handler) listSongs(w http.ResponseWriter, r *http.Request) {
 		GenreID:      q.Get("genreId"),
 		LibraryID:    q.Get("libraryId"),
 		HideExplicit: boolQuery(r, "hideExplicit"),
+		GenreName:    q.Get("genre"),
+		Label:        q.Get("label"),
+		Composer:     q.Get("composer"),
 		Limit:        listLimit(r, "limit", 0, maxListLimit),
 	})
 	if err != nil {
@@ -172,6 +175,8 @@ func (h *Handler) listAlbums(w http.ResponseWriter, r *http.Request) {
 		Year:         year,
 		LibraryID:    q.Get("libraryId"),
 		HideExplicit: boolQuery(r, "hideExplicit"),
+		GenreName:    q.Get("genre"),
+		Label:        q.Get("label"),
 		Limit:        listLimit(r, "limit", 0, maxListLimit),
 	})
 	if err != nil {

@@ -48,6 +48,12 @@ type SongFilter struct {
 	HideExplicit bool
 	// Limit caps the row count; <= 0 means no cap (full in-scope collection).
 	Limit int
+	// GenreName, Label, and Composer filter by display name (the web's
+	// genre/label/composer pages key their routes by name, not id) through
+	// the same junctions the genreId filter uses.
+	GenreName string
+	Label     string
+	Composer  string
 }
 
 func scanSong(s interface{ Scan(...any) error }) (*Song, error) {
@@ -203,6 +209,18 @@ func listSongs(ctx context.Context, q auth.Queries, userID string, scope librari
 	if f.GenreID != "" {
 		where += ` AND EXISTS (SELECT 1 FROM song_genres sg WHERE sg.song_id = s.id AND sg.genre_id = ?)`
 		args = append(args, f.GenreID)
+	}
+	if f.GenreName != "" {
+		where += ` AND EXISTS (SELECT 1 FROM song_genres sg JOIN genres g ON g.id = sg.genre_id WHERE sg.song_id = s.id AND g.name = ?)`
+		args = append(args, f.GenreName)
+	}
+	if f.Label != "" {
+		where += ` AND EXISTS (SELECT 1 FROM album_labels al JOIN labels l ON l.id = al.label_id WHERE al.album_id = s.album_id AND l.name = ?)`
+		args = append(args, f.Label)
+	}
+	if f.Composer != "" {
+		where += ` AND EXISTS (SELECT 1 FROM song_composers sc JOIN artists c ON c.id = sc.artist_id WHERE sc.song_id = s.id AND c.name = ?)`
+		args = append(args, f.Composer)
 	}
 	if f.LibraryID != "" {
 		where += ` AND s.library_id = ?`

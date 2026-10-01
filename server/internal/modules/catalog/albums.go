@@ -33,6 +33,11 @@ type AlbumFilter struct {
 	HideExplicit bool
 	// Limit caps the row count; <= 0 means no cap (full in-scope collection).
 	Limit int
+	// GenreName and Label filter by display name (the web's genre/label
+	// pages key their routes by name, not id) through the album_genres /
+	// album_labels junctions, mirroring the genreId filter.
+	GenreName string
+	Label     string
 }
 
 // albumRow scans the shared album column order plus optional trailing
@@ -179,6 +184,14 @@ func listAlbums(ctx context.Context, q auth.Queries, userID string, scope librar
 	if f.GenreID != "" {
 		where += ` AND EXISTS (SELECT 1 FROM album_genres ag WHERE ag.album_id = a.id AND ag.genre_id = ?)`
 		args = append(args, f.GenreID)
+	}
+	if f.GenreName != "" {
+		where += ` AND EXISTS (SELECT 1 FROM album_genres ag JOIN genres g ON g.id = ag.genre_id WHERE ag.album_id = a.id AND g.name = ?)`
+		args = append(args, f.GenreName)
+	}
+	if f.Label != "" {
+		where += ` AND EXISTS (SELECT 1 FROM album_labels al JOIN labels l ON l.id = al.label_id WHERE al.album_id = a.id AND l.name = ?)`
+		args = append(args, f.Label)
 	}
 	groupBy := `GROUP BY a.id`
 	if f.HideExplicit {
