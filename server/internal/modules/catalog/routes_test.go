@@ -153,6 +153,49 @@ func TestListSongsFilters(t *testing.T) {
 	}
 }
 
+// TestCatalogListsUncappedByDefault guards the v2.3.2 fix for shuffle play
+// only covering the first 500 alphabetical rows: without ?limit= the lists
+// must return the whole in-scope collection, and an explicit ?limit= still
+// clamps to the documented maximum.
+func TestCatalogListsUncappedByDefault(t *testing.T) {
+	s := newSeededServer(t)
+	admin := s.session(t, "user-admin", "root", true)
+
+	// 600 rows per list, well past the old 500-row default cap. The extra
+	// songs carry no album so the album join stays untouched.
+	for i := 0; i < 600; i++ {
+		s.mustExec(t, `INSERT INTO songs (id, file_path, title, mtime, checksum, library_id) VALUES (?, ?, ?, 1000, ?, 'lib-a')`,
+			fmt.Sprintf("s-big-%04d", i), fmt.Sprintf("/music/a/big-%04d.flac", i), fmt.Sprintf("Big %04d", i), fmt.Sprintf("k-big-%04d", i))
+	}
+	for i := 0; i < 600; i++ {
+		s.mustExec(t, `INSERT INTO albums (id, name) VALUES (?, ?)`,
+			fmt.Sprintf("al-big-%04d", i), fmt.Sprintf("Big %04d", i))
+	}
+
+	// Admin scope sees the 9 seeded active songs and 7 seeded albums plus the bulk rows.
+	rec := s.do(t, http.MethodGet, "/api/songs", admin)
+	if got, want := len(songIDList(t, rec)), 609; got != want {
+		t.Fatalf("songs without limit: want %d rows, got %d", want, got)
+	}
+	rec = s.do(t, http.MethodGet, "/api/songs?limit=500", admin)
+	if got, want := len(songIDList(t, rec)), 500; got != want {
+		t.Fatalf("songs with limit=500: want %d rows, got %d", want, got)
+	}
+	rec = s.do(t, http.MethodGet, "/api/songs?limit=99999", admin)
+	if got, want := len(songIDList(t, rec)), 500; got != want {
+		t.Fatalf("songs with limit above max: want clamp to %d rows, got %d", want, got)
+	}
+
+	rec = s.do(t, http.MethodGet, "/api/albums", admin)
+	if got, want := len(albumIDList(t, rec)), 607; got != want {
+		t.Fatalf("albums without limit: want %d rows, got %d", want, got)
+	}
+	rec = s.do(t, http.MethodGet, "/api/albums?limit=500", admin)
+	if got, want := len(albumIDList(t, rec)), 500; got != want {
+		t.Fatalf("albums with limit=500: want %d rows, got %d", want, got)
+	}
+}
+
 func TestGetSongScopeMatrix(t *testing.T) {
 	s := newSeededServer(t)
 	cases := []struct {
