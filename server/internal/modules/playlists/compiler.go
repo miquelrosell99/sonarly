@@ -286,7 +286,9 @@ func compileStringRule(c *compileCtx, rule Rule, spec fieldSpec) (string, error)
 		return fmt.Sprintf("%s = %s %s", spec.expr, p, nocase), nil
 	case "isNot":
 		p := c.pushParam(raw)
-		return fmt.Sprintf("%s != %s %s", spec.expr, p, nocase), nil
+		// NULL-tolerant, like number isNot and string notContains: a song
+		// with no value (e.g. album.release_type unset) is "not X".
+		return fmt.Sprintf("(%s IS NULL OR %s != %s %s)", spec.expr, spec.expr, p, nocase), nil
 	case "contains", "startsWith", "endsWith":
 		p := c.pushParam(likePattern(raw, rule.Operator))
 		return fmt.Sprintf("%s LIKE %s ESCAPE '\\' %s", spec.expr, p, nocase), nil

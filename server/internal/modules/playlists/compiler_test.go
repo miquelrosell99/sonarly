@@ -74,6 +74,10 @@ func TestCompilerStringOperators(t *testing.T) {
 	assertIDs(t, compileIDs(t, env, all("albumArtist", "is", "Alpha"), owner), "s-a1", "s-a2")
 	assertIDs(t, compileIDs(t, env, all("artist", "contains", "bet"), owner), "s-b1", "s-b2")
 	assertIDs(t, compileIDs(t, env, all("releaseType", "is", "single"), owner), "s-b1", "s-b2")
+	// isNot on a joined string column must also match rows with no value:
+	// s-nolib has no album, so its release type is NULL.
+	assertIDs(t, compileIDs(t, env, all("releaseType", "isNot", "single"), owner),
+		"s-a1", "s-a2", "s-nolib")
 }
 
 // TestCompilerLikeEscape: LIKE metacharacters in values match literally,
