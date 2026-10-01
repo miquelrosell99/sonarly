@@ -109,4 +109,42 @@ describe('Albums', () => {
       expect(mockApi).toHaveBeenCalledTimes(2);
     });
   });
+
+  it('header shuffle play samples at most 100 albums randomly and queues their songs', async () => {
+    const manyAlbums = Array.from({ length: 150 }, (_, i) => ({
+      id: `album-${i + 1}`,
+      name: `Album ${i + 1}`,
+      artistName: 'Artist',
+      year: 2020,
+      starred: false,
+    }));
+    mockApi.mockImplementation(async (path: string) => {
+      if (path === '/albums') {
+        return { albums: manyAlbums };
+      }
+      if (path.startsWith('/albums/')) {
+        const id = path.split('/')[2];
+        return { album: { id }, songs: [{ id: `song-${id}` }] };
+      }
+      return {};
+    });
+
+    renderAlbums();
+    await waitFor(() => {
+      expect(screen.getByText('Album 1')).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Shuffle play' }));
+
+    await waitFor(() => {
+      expect(playActions.shufflePlay).toHaveBeenCalledTimes(1);
+    });
+    const detailCalls = mockApi.mock.calls.filter((call) => /^\/albums\/album-/.test(call[0] as string));
+    expect(detailCalls).toHaveLength(100);
+    expect(new Set(detailCalls.map((call) => call[0])).size).toBe(100);
+
+    const queued = playActions.shufflePlay.mock.calls[0][0] as { id: string }[];
+    expect(queued).toHaveLength(100);
+    expect(queued.every((song) => song.id.startsWith('song-album-'))).toBe(true);
+  });
 });
