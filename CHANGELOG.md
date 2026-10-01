@@ -5,6 +5,12 @@ All notable changes to Sonarly are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.3] - 2026-10-01
+
+### Fixed
+
+- **Genre, Label, and Composer pages showed your whole library instead of the filtered set**: the web client requests those lists by display name (`?genre=`, `?label=`, `?composer=`), but the Go server only read `genreId`, so the filters were silently ignored. `/api/songs` now accepts `genre`, `label`, and `composer` name filters, and `/api/albums` accepts `genre` and `label` — all junction-based (same rows as the existing `genreId` filter, case-insensitive, scope-aware), so the header/context-menu "Play all" and "Shuffle" actions on those pages now cover exactly the right songs.
+
 ## [2.3.2] - 2026-10-01
 
 ### Fixed
