@@ -578,6 +578,9 @@ paths:
         - { name: albumId, in: query, schema: { type: string }, description: Filter by album. }
         - { name: artistId, in: query, schema: { type: string }, description: Filter by primary artist. }
         - { name: genreId, in: query, schema: { type: string }, description: Filter by genre. }
+        - { name: genre, in: query, schema: { type: string }, description: Filter by genre name (junction match, same rows as genreId). }
+        - { name: label, in: query, schema: { type: string }, description: Filter by label name (songs on albums carrying the label). }
+        - { name: composer, in: query, schema: { type: string }, description: Filter by composer name. }
         - { name: libraryId, in: query, schema: { type: string }, description: Narrow to one library. }
         - { name: hideExplicit, in: query, schema: { type: boolean }, description: Drop explicit songs. }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500 }, description: Cap the number of returned songs; omit to return the full in-scope collection. }
@@ -691,6 +694,8 @@ paths:
       parameters:
         - { name: artistId, in: query, schema: { type: string } }
         - { name: genreId, in: query, schema: { type: string } }
+        - { name: genre, in: query, schema: { type: string }, description: Filter by genre name (junction match, same rows as genreId). }
+        - { name: label, in: query, schema: { type: string }, description: Filter by label name. }
         - { name: year, in: query, schema: { type: integer } }
         - { name: libraryId, in: query, schema: { type: string } }
         - { name: hideExplicit, in: query, schema: { type: boolean } }
