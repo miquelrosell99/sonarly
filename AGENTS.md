@@ -6,6 +6,17 @@ This file is the entry point for agent instructions. Each section below links to
 
 This project is developed with assistance from AI coding agents. Human review and validation are required before merging changes.
 
+## Ship workflow
+
+When a change is complete and verified (project tests/build pass), ship it — never leave it as uncommitted local work. In order:
+
+1. Commit with a Conventional Commits message (see `git-commits` skill).
+2. Push `main`.
+3. If the change is user-facing, cut a release: changelog entry + annotated `v*` tag; the `release-docker.yml` workflow publishes the image to GHCR (details in [Build and Development Commands](agents/build-commands.md)).
+4. Redeploy the live stack: bump the pinned image in the (gitignored) `compose.yaml` and run `docker compose -f compose.yaml pull && docker compose -f compose.yaml up -d`, then confirm the container is healthy.
+
+Do this by default whenever it makes sense (completed features and fixes, including small ones) — it is standing authorization, not something to ask about each time. Only hold back when the user has said not to ship or the action would be hard to undo.
+
 ## Reference
 
 - [Agent Quick Reference](agents/quick-reference.md)
