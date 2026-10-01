@@ -64,7 +64,7 @@ The editor offers operators per field type (`SmartPlaylistBlockEditor.tsx`); the
 
 Semantics worth knowing:
 
-- `notContains` also matches songs where the field is `NULL` (same for numeric `isNot` and date `notInTheLast`).
+- `notContains` also matches songs where the field is `NULL` (same for string and numeric `isNot` and date `notInTheLast`).
 - `inTheLast` / `notInTheLast` compare against `datetime('now', '-N days')`; any non-digits in the value are stripped.
 - `inPlaylist` / `notInPlaylist` take a playlist id and compile to an `EXISTS` subquery on `playlist_songs`.
 - For user-scoped fields, `isMissing` / `isPresent` also check the `user_songs` row itself (`us.user_id IS NULL OR …`), so "rating is missing" includes songs the user has never rated.
