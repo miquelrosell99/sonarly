@@ -21,6 +21,24 @@ interface AlbumDetail {
   songs: Song[];
 }
 
+// Shuffle play needs every sampled album's full song list, one request per
+// album. Cap the fan-out at a random sample instead of the (potentially
+// thousands-long) visible list: the queue still draws from the whole
+// collection — and, unlike the pre-2.3.2 first-500-alphabetical cap, evenly.
+const SHUFFLE_ALBUM_SAMPLE_SIZE = 100;
+
+// sampleItems returns up to size random items (partial Fisher-Yates, so every
+// subset of the input is equally likely — no sort-based hackery).
+function sampleItems<T>(items: T[], size: number): T[] {
+  const sample = [...items];
+  const n = Math.min(size, sample.length);
+  for (let i = 0; i < n; i++) {
+    const j = i + Math.floor(Math.random() * (sample.length - i));
+    [sample[i], sample[j]] = [sample[j], sample[i]];
+  }
+  return sample.slice(0, n);
+}
+
 function AlbumContextMenu({
   album,
   onEdit,
@@ -93,7 +111,7 @@ export function Albums({ user }: { user: User }) {
     if (albums.length === 0) return;
     try {
       const details = await Promise.all(
-        albums.map((album) => api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`)),
+        sampleItems(albums, SHUFFLE_ALBUM_SAMPLE_SIZE).map((album) => api<AlbumDetail>(`/albums/${album.id}${buildLibraryQuery(selectedLibraryId)}`)),
       );
       shufflePlay(details.flatMap((detail) => detail.songs));
     } catch (err) {
