@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **"Play random" only picked from the first ~500 alphabetical entries**: the catalog list endpoints hard-capped at 500 rows ordered by title/name (inherited from the old server), so shuffle play on Tracks, Albums, Years, Genres, Composers, and Labels kept queuing songs starting with "A". `/api/songs` and `/api/albums` now return the full in-scope collection unless an explicit `?limit=` (still clamped to 500) is passed, so shuffle — and "Play all" — cover the entire library.
 - **Albums-page shuffle request fan-out**: shuffle play fetches one album detail per queued album; it now draws from a random sample of at most 100 albums instead of firing one request per visible album.
+- **API responses are gzipped** (JSON/text only — audio streams, cover art, and downloads stream uncompressed), keeping full-collection list payloads at LAN speed.
 
 ## [2.3.1] - 2026-09-27
 
