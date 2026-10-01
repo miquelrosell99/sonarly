@@ -23,6 +23,10 @@ func New(cfg config.Config, log *slog.Logger) *Server {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
+	// Catalog lists can now return the full collection (tens of MB of JSON
+	// on large libraries); chi's default allowlist gzips text/JSON only, so
+	// audio streams, cover art, and ZIP downloads pass through untouched.
+	r.Use(middleware.Compress(5))
 	r.Use(apiTimeout(60 * time.Second))
 	return &Server{router: r, log: log}
 }
