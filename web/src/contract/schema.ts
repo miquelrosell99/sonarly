@@ -3476,6 +3476,7 @@ export interface operations {
                 libraryId?: string;
                 /** @description Drop explicit songs. */
                 hideExplicit?: boolean;
+                /** @description Cap the number of returned songs; omit to return the full in-scope collection. */
                 limit?: number;
             };
             header?: never;
@@ -3617,6 +3618,7 @@ export interface operations {
                 year?: number;
                 libraryId?: string;
                 hideExplicit?: boolean;
+                /** @description Cap the number of returned albums; omit to return the full in-scope collection. */
                 limit?: number;
             };
             header?: never;
