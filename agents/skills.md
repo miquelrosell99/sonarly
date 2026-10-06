@@ -4,6 +4,8 @@
 
 Sonarly-scoped skills, versioned with the repo:
 
+- `sonarly-development` — cross-cutting development contract: architecture, coding conventions, build/test/release workflow.
+- `sonarly-operations` — operating the deployment: deploy, upgrade, health checks, logs, rollback, migrations, backups, monitoring, incident response, maintenance.
 - `sonarly-library-operations` — scanning, ingest, organize, duplicates, uploads, job queue.
 - `sonarly-user-management` — auth, sessions, users admin, multi-user scoping.
 - `sonarly-playlists` — static/smart playlists, compiler, sharing, share tokens.
