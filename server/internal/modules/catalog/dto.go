@@ -8,7 +8,9 @@ type Entry struct {
 }
 
 // Song is the API-facing song shape (the old Song minus filePath and checksum —
-// see package doc).
+// see package doc). Lyrics are deliberately absent: they can be kilobytes per
+// track, so lists would pay megabytes for a field almost no row consumer
+// reads. GET /api/songs/{id}/lyrics is the one lyrics source (read/write).
 type Song struct {
 	ID                  string   `json:"id"`
 	Title               string   `json:"title"`
@@ -47,8 +49,6 @@ type Song struct {
 	RemixOf             *string  `json:"remixOf,omitempty"`
 	DisplayArtist       *string  `json:"displayArtist,omitempty"`
 	DisplayAlbumArtist  *string  `json:"displayAlbumArtist,omitempty"`
-	Lyrics              *string  `json:"lyrics,omitempty"`
-	SyncedLyrics        any      `json:"syncedLyrics,omitempty"`
 	Producers           []string `json:"producers,omitempty"`
 	ISRCs               []string `json:"isrcs,omitempty"`
 	OriginalYear        *int     `json:"originalYear,omitempty"`

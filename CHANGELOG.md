@@ -5,6 +5,12 @@ All notable changes to Sonarly are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.6] - 2026-10-07
+
+### Changed
+
+- **Song API responses no longer embed lyrics**: `lyrics` and `syncedLyrics` are kilobyte-sized fields that rode along on every song row of every list response (~7 MB across a 6k-track library), yet only the tag editor ever read them. `GET /api/songs/{id}/lyrics` is now the single lyrics source, with `PUT` unchanged for writes. The tag editor loads lyrics when it opens (single-song edits), and the synced-lyrics editor and Now Playing lyrics panel already fetched on demand. Collection payloads (Tracks, album/artist song lists, search, playlist contents) drop the lyrics weight entirely.
+
 ## [2.3.5] - 2026-10-07
 
 ### Fixed
@@ -216,7 +222,8 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.3.5...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.3.6...HEAD
+[2.3.6]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.6
 [2.3.5]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.5
 [2.3.4]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.4
 [2.3.3]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.3

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render as baseRender, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EditEntityModal } from './EditEntityModal.js';
@@ -9,6 +9,25 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false 
 function render(ui: React.ReactElement) {
   return baseRender(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 }
+
+function jsonResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
+// Default fetch stub: the modal's lyrics query answers "no lyrics" and every
+// other request 404s; tests that need their own fetch behavior override it.
+beforeEach(() => {
+  global.fetch = vi.fn(async (input) => {
+    const url = typeof input === 'string' ? input : input.url;
+    if (url.includes('/lyrics')) {
+      return jsonResponse({ lyrics: null, syncedLyrics: null });
+    }
+    return new Response('Not found', { status: 404 });
+  }) as unknown as typeof fetch;
+});
 
 afterEach(() => {
   cleanup();
@@ -530,5 +549,52 @@ describe('EditEntityModal', () => {
     // Second Escape reaches the modal.
     fireEvent.keyDown(albumInput, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('seeds lyrics from the lyrics endpoint when the song row carries none', async () => {
+    global.fetch = vi.fn(async () =>
+      jsonResponse({ lyrics: 'Stored lyrics text', syncedLyrics: '[00:01.00]one' }),
+    ) as unknown as typeof fetch;
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '27', title: 'Track' }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect((screen.getByPlaceholderText('Add lyrics...') as HTMLInputElement).value).toBe('Stored lyrics text');
+    });
+    expect(screen.getByText('1 synced lines')).toBeTruthy();
+  });
+
+  it('does not clobber lyrics typed before the endpoint answers', async () => {
+    let resolveLyrics: (response: Response) => void = () => {};
+    global.fetch = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveLyrics = resolve;
+        }),
+    ) as unknown as typeof fetch;
+    render(
+      <EditEntityModal
+        open
+        entityType="song"
+        entity={{ id: '28', title: 'Track' }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    const textarea = screen.getByPlaceholderText('Add lyrics...') as HTMLInputElement;
+    fireEvent.change(textarea, { target: { value: 'Typed first' } });
+    resolveLyrics(jsonResponse({ lyrics: 'Stored lyrics text', syncedLyrics: null }));
+
+    await waitFor(() => expect((textarea as HTMLInputElement).value).toBe('Typed first'));
   });
 });
