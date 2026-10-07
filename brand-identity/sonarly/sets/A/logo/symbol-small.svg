@@ -1,0 +1,1 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path id='ping' fill-rule='evenodd' data-color='text' d='M 10 50 A 40 40 0 0 0 50 90 L 50 82 A 32 32 0 0 1 18 50 Z'/><circle id='echo' cx='50' cy='87' r='11' data-color='accent'/></svg>

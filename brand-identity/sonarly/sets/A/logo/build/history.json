@@ -1,0 +1,12 @@
+[
+  {
+    "sha256": "d84d452e123f740f0175d3761240fcdf89b3b1fa5d76c97633bd4ed4efbc1177",
+    "anchors": 21,
+    "defect": ""
+  },
+  {
+    "sha256": "d285a67259d74d2eb0188ea35fde0bd4ed0b3a8b74e2b0b60f00efdfbc9dbf0c",
+    "anchors": 16,
+    "defect": "Ring filled as two discs: the inner return arc swept the short way (wrong sweep flag), so the band resolved as a symmetric difference of two circles."
+  }
+]
