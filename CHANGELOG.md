@@ -5,6 +5,12 @@ All notable changes to Sonarly are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.7] - 2026-10-07
+
+### Fixed
+
+- **Library sections took seconds to open** (Firefox profile: a 17-second task): the virtualized views only kicked in after the scroll container resolved, so the first render of every section — Tracks, Albums, Artists, every large list or grid — committed the entire unwindowed table (thousands of rows) and tore it down before paint; the scroll-restoration write then forced a full style flush over that DOM. `LibraryView` now chooses the windowed renderer unconditionally for large lists, and `VirtualList`/`VirtualGrid` render a small fixed first window (with an exact-height spacer) until the scroll container resolves, so section opens mount a few dozen rows instead of thousands.
+
 ## [2.3.6] - 2026-10-07
 
 ### Changed
@@ -222,7 +228,8 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.3.6...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.3.7...HEAD
+[2.3.7]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.7
 [2.3.6]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.6
 [2.3.5]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.5
 [2.3.4]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.4

@@ -132,4 +132,29 @@ describe('VirtualList', () => {
     expect(container.querySelectorAll('[data-row-index]')).toHaveLength(30);
     expect(container.querySelectorAll('tr[aria-hidden="true"]')).toHaveLength(0);
   });
+
+  it('renders a fixed fallback window (not every row) when no scroll container exists yet', () => {
+    const { container } = render(
+      <table>
+        <tbody>
+          <VirtualList
+            items={items}
+            getId={(item) => item.id}
+            renderItem={(item, index) => (
+              <tr data-row-index={index}>
+                <td>{item.id}</td>
+              </tr>
+            )}
+          />
+        </tbody>
+      </table>,
+    );
+    // First-commit fallback: the initial window plus a bottom spacer that
+    // preserves the total height — never a full 1000-row DOM.
+    expect(container.querySelectorAll('[data-row-index]')).toHaveLength(25);
+    expect(container.querySelector('[data-row-index="24"]')).toBeTruthy();
+    expect(container.querySelector('[data-row-index="25"]')).toBeFalsy();
+    const spacer = container.querySelector('tr[aria-hidden="true"]') as HTMLElement;
+    expect(spacer.style.height).toBe(`${(1000 - 25) * 48}px`);
+  });
 });

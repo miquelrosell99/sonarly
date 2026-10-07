@@ -7,7 +7,8 @@ import { useCallback, useLayoutEffect, useState } from 'react';
 // are ever embedded in another scroll container (e.g. a modal list).
 //
 // jsdom reports no computed overflow, so in tests this returns null and
-// virtualized components fall back to rendering everything.
+// virtualized components fall back to a small fixed window for large lists
+// (and everything for small ones) — see FALLBACK_ROWS / FALLBACK_CARDS.
 function findScrollParent(el: HTMLElement): HTMLElement | null {
   let candidate: HTMLElement | null = null;
   let node: HTMLElement | null = el.parentElement;

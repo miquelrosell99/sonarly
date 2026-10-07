@@ -113,8 +113,8 @@ describe('VirtualGrid', () => {
     expect(Math.max(...indexes)).toBeLessThan(items.length);
   });
 
-  it('renders every item when no scroll container is available', () => {
-    const few = items.slice(0, 50);
+  it('renders every item when no scroll container is available (small list)', () => {
+    const few = items.slice(0, 20);
     const { container } = render(
       <VirtualGrid
         items={few}
@@ -124,6 +124,25 @@ describe('VirtualGrid', () => {
       />,
     );
     expect(container.querySelectorAll('[data-index]')).toHaveLength(0);
-    expect(container.textContent).toContain('Item 49');
+    expect(container.textContent).toContain('Item 19');
+  });
+
+  it('renders a fixed fallback window (not every card) for large lists without a scroll container', () => {
+    const { container } = render(
+      <VirtualGrid
+        items={items}
+        getId={(item) => item.id}
+        scrollElement={null}
+        estimateCardHeight={() => ROW_HEIGHT}
+        renderItem={(item) => <div>{item.title}</div>}
+      />,
+    );
+    // First-commit fallback: 20 cards plus an estimated-height spacer —
+    // never a full 1000-card DOM.
+    expect(container.textContent).toContain('Item 0');
+    expect(container.textContent).toContain('Item 19');
+    expect(container.textContent).not.toContain('Item 20');
+    const spacer = container.querySelector('[aria-hidden="true"]') as HTMLElement;
+    expect(spacer.style.height).toBe(`${Math.ceil((1000 - 20) / 2) * ROW_HEIGHT}px`);
   });
 });

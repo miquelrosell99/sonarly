@@ -114,6 +114,39 @@ describe('LibraryView virtualization', () => {
   });
 });
 
+describe('LibraryView first-commit fallback (no scroll parent)', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('never renders every row of a large list while the scroll parent is unresolved', () => {
+    // Plain jsdom: no scrolling ancestor, so useScrollParent stays null as
+    // it does for the very first commit on a fresh section open. The view
+    // must show the cheap fallback window — building the full 400-row
+    // table for that one transient commit is what stalled section opens
+    // (seconds-long style flush, Firefox profile).
+    const data = bigList(400);
+    const { container } = render(
+      <Router>
+        <LibraryView<Item>
+          data={data}
+          columns={columns}
+          cardFields={cardFields}
+          getId={(item) => item.id}
+          getHref={(item) => `/items/${item.id}`}
+        />
+      </Router>,
+    );
+
+    const rows = container.querySelectorAll('tbody tr:not([aria-hidden="true"])');
+    expect(rows.length).toBeLessThan(80);
+    expect(container.textContent).toContain('Item 0');
+    expect(container.textContent).not.toContain('Item 399');
+    const spacer = container.querySelector('tr[aria-hidden="true"]') as HTMLElement;
+    expect(Number(spacer.style.height.replace('px', '')) + rows.length * 48).toBe(400 * 48);
+  });
+});
+
 describe('LibraryView scroll restoration after windowing (audit F8)', () => {
   beforeEach(() => {
     resetScrollRestoration();

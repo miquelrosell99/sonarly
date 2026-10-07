@@ -387,8 +387,13 @@ export function LibraryView<T>({
 
     // The dnd-sortable list (queue editor) and grouped lists keep the
     // unwindowed renderer: dnd and group headers do not survive windowing.
+    // Large plain lists window unconditionally — VirtualList renders a
+    // cheap fixed window until the scroll parent resolves (first commit),
+    // so this must not depend on scrollParent being non-null: gating on it
+    // rendered every row on section opens (seconds-long stalls, see
+    // VirtualList's FALLBACK_ROWS note).
     const useVirtualRows =
-      scrollParent !== null && !sortable && !groupBy && data.length > virtualizeThreshold;
+      !sortable && !groupBy && data.length > virtualizeThreshold;
 
     const renderItemRow = (item: T) => {
       const index = rowIndexMap.get(item) ?? 0;
@@ -554,7 +559,11 @@ export function LibraryView<T>({
       return renderContextMenu ? renderContextMenu(item, card, [item]) : card;
     };
 
-    const useVirtualGrid = scrollParent !== null && data.length > virtualizeThreshold;
+    // Virtualize large grids from the first commit — VirtualGrid renders a
+    // cheap fixed window until the scroll parent resolves (see its
+    // FALLBACK_CARDS note); gating on scrollParent rendered every card on
+    // section opens.
+    const useVirtualGrid = data.length > virtualizeThreshold;
 
     if (useVirtualGrid) {
       // className carries the grid marker + column config for styling hooks;
