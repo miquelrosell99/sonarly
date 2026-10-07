@@ -1,0 +1,26 @@
+{
+  "schema": "brand-identity/audit@1",
+  "findings": [
+    {
+      "id": "logo.ids",
+      "component": "logo",
+      "severity": "info",
+      "measured": null,
+      "threshold": null,
+      "message": "symbol.svg: 1 element(s) without an id",
+      "suggested_fix": "give every primitive a semantic id so edits change one element per round"
+    },
+    {
+      "id": "logo.role-tone",
+      "component": "logo",
+      "severity": "info",
+      "measured": "#9b541c",
+      "threshold": "#0e0b09",
+      "message": "accent resolves to #9b541c (UI tone); use brand-1 for #0e0b09",
+      "suggested_fix": "data-color=\"brand-1\" (or logo.colors) for the exact brand colour",
+      "roles": [
+        "accent"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,436 @@
+{
+  "schema": "brand-identity/identity@1",
+  "brand": {
+    "name": "sonarly",
+    "tagline": "Your music. Your disk. Any client.",
+    "languages": [
+      "en"
+    ],
+    "doc_lang": "en",
+    "sector": "self-hosted music streaming and collection management",
+    "numbers": true,
+    "copy": {
+      "sentence": {
+        "en": "Sonarly indexes the music folder you already have and serves it through the OpenSubsonic API, so any Subsonic client works — and your files stay on your disk, in your folder structure, exactly where you left them."
+      },
+      "nav": [
+        "Home",
+        "Albums",
+        "Playlists",
+        "Search"
+      ],
+      "cta": "Start listening"
+    }
+  },
+  "set": {
+    "id": "C",
+    "name": "Night Sweep",
+    "recommended": false,
+    "mechanism": "The OLED stage at night: a thin dial track, one thick chartreuse beam sweeping it, and the dot the beam finds — wide tracked capitals on a black that stays black.",
+    "expression_move": "The chartreuse beam is the only bright thing in the room.",
+    "differs_by": "Jellyfin and Navidrome own friendly blues, Plex magenta, Ampache orange; none owns a phosphor lime beam on OLED black."
+  },
+  "axes": {
+    "warm_cool": 2,
+    "classic_contemporary": 2,
+    "quiet_loud": 2,
+    "premium_accessible": 0
+  },
+  "components": {
+    "logo": {
+      "mode": "new",
+      "status": "proposed",
+      "source": null,
+      "sha256": null
+    },
+    "type": {
+      "mode": "new",
+      "status": "proposed",
+      "source": null,
+      "sha256": null
+    },
+    "palette": {
+      "mode": "new",
+      "status": "proposed",
+      "source": null,
+      "sha256": null
+    }
+  },
+  "type": {
+    "pairing_mode": "contrast",
+    "display": {
+      "family": "Funnel Display",
+      "source": "google",
+      "license": "OFL-1.1",
+      "weights": [
+        400,
+        700
+      ],
+      "location": {
+        "wght": 400
+      },
+      "features": [],
+      "case": "upper",
+      "tracking": 120,
+      "fallback": "system-ui, sans-serif",
+      "file": null
+    },
+    "text": {
+      "family": "IBM Plex Sans",
+      "source": "google",
+      "license": "OFL-1.1",
+      "weights": [
+        400,
+        500,
+        600
+      ],
+      "location": {
+        "wght": 400
+      },
+      "features": [],
+      "case": "as-is",
+      "tracking": 0,
+      "fallback": "system-ui, sans-serif",
+      "file": null
+    },
+    "mono": null
+  },
+  "logo": {
+    "type": "symbol+wordmark",
+    "concept": "A night dial: a thin track, one thick beam sweeping it, and the dot the sweep finds — playback as the lit part of the room.",
+    "symbol": "logo/symbol.svg",
+    "wordmark": {
+      "text": "Sonarly",
+      "role": "display",
+      "location": null,
+      "tracking": 120,
+      "case": "upper"
+    },
+    "monogram": null,
+    "lockups": [
+      "horizontal",
+      "stacked"
+    ],
+    "colors": {
+      "track": "text",
+      "beam": "accent",
+      "hit": "accent",
+      "wordmark": "text"
+    },
+    "defect": "Track ring filled as two discs: same sweep-flag bug as set A — the inner return arc swept the short way; fixed to sweep 1. Small-mark beam also had both arc sweeps inverted.",
+    "tags": [
+      "abstract-geometric"
+    ],
+    "clear_space": {
+      "unit": "cap-height",
+      "multiple": 1,
+      "inferred": true
+    },
+    "min_size": {
+      "px": 18,
+      "mm": 6
+    }
+  },
+  "palette": "palette.json",
+  "defaults_used": [],
+  "rationale": [
+    {
+      "claim": "Beam Lime #C8F04B is CIE76 54+ from every measured competitor primary, and lime is vivid only at high lightness (OKLCH L 0.87) — which suits an accent that lives on dark grounds.",
+      "evidence": "measured",
+      "source": "palette screen vs site/competitors.json"
+    },
+    {
+      "claim": "Funnel Display passes the tnum gate (tabular by default), so play counts and statistics stay aligned even when set in the display face.",
+      "evidence": "measured",
+      "source": "fonts audit"
+    },
+    {
+      "claim": "An open track arc plus one thick beam avoids the music category's clichés (play-button triangle, equalizer bars, vinyl disc) that were named before drawing.",
+      "evidence": "practice"
+    },
+    {
+      "claim": "OLED Black #0B0D10 keeps chroma at 0.008 so the ground stays neutral black rather than navy, and the track renders in near-white on it.",
+      "evidence": "measured",
+      "source": "palette screen"
+    }
+  ],
+  "derived": [
+    {
+      "file": "card.png",
+      "requires": [
+        "logo",
+        "type",
+        "palette"
+      ],
+      "inputs_sha256": "ecf1c2acbc8888c4ecb9a4cd43fcc019f5bd8061b32a50c2332ffde6d1ac091c"
+    }
+  ],
+  "audit": {
+    "schema": "brand-identity/audit@1",
+    "passed": true,
+    "counts": {
+      "gate": 0,
+      "warn": 6,
+      "info": 12
+    },
+    "findings": [
+      {
+        "id": "palette.contrast.light.primary-on-background",
+        "component": "palette",
+        "severity": "warn",
+        "measured": 1.31,
+        "threshold": 3.0,
+        "message": "light: primary #c8f04b on background #ffffff is 1.31:1, below 3.0:1 (primary fill against the page (needs a label or border if lower); WCAG 2, no rounding)",
+        "suggested_fix": {
+          "change": "modes.light.primary",
+          "from": "#c8f04b",
+          "to": "#76870a",
+          "how": "use primary-600 (same scale)",
+          "ratio_after": 4.01
+        },
+        "roles": [
+          "light.primary",
+          "light.background"
+        ]
+      },
+      {
+        "id": "palette.contrast.light.accent-on-background",
+        "component": "palette",
+        "severity": "warn",
+        "measured": 1.31,
+        "threshold": 3.0,
+        "message": "light: accent #c8f04b on background #ffffff is 1.31:1, below 3.0:1 (accent fill against the page (needs a label or border if lower); WCAG 2, no rounding)",
+        "suggested_fix": {
+          "change": "modes.light.accent",
+          "from": "#c8f04b",
+          "to": "#76870a",
+          "how": "use primary-600 (same scale)",
+          "ratio_after": 4.01
+        },
+        "roles": [
+          "light.accent",
+          "light.background"
+        ]
+      },
+      {
+        "id": "palette.cvd.dark.tritan.link-text",
+        "component": "palette",
+        "severity": "warn",
+        "measured": 4.96,
+        "threshold": 10.0,
+        "message": "dark: link and text collapse to CIEDE2000 5.0 for tritanopia (#dae1e5 vs #f2f3f4)",
+        "suggested_fix": {
+          "change": "modes.dark.text",
+          "from": "#f2f3f5",
+          "to": "#b8b8ba",
+          "how": "never carry meaning by colour alone (icon/label); or darken by OKLCH L -0.18, same hue"
+        },
+        "roles": [
+          "dark.link",
+          "dark.text"
+        ]
+      },
+      {
+        "id": "palette.contrast.light.border-on-background",
+        "component": "palette",
+        "severity": "info",
+        "measured": 1.25,
+        "threshold": 3.0,
+        "message": "light: border #e4e6e9 on background #ffffff is 1.25:1, below 3.0:1 (borders: dividers are exempt, input outlines need 3:1; WCAG 2, no rounding)",
+        "suggested_fix": {
+          "change": "modes.light.border",
+          "from": "#e4e6e9",
+          "to": "#6d747e",
+          "how": "use neutral-500 (same scale)",
+          "ratio_after": 4.72
+        },
+        "roles": [
+          "light.border",
+          "light.background"
+        ]
+      },
+      {
+        "id": "palette.contrast.dark.link-on-text",
+        "component": "palette",
+        "severity": "info",
+        "measured": 1.18,
+        "threshold": 3.0,
+        "message": "dark: link #c8f04b on text #f2f3f5 is 1.18:1, below 3.0:1 (underline links in dark mode (WCAG G183: without underline a link needs 3:1 against body text); WCAG 2, no rounding)",
+        "suggested_fix": {
+          "change": "modes.dark.link",
+          "from": "#c8f04b",
+          "to": "#76870a",
+          "how": "use primary-600 (same scale)",
+          "ratio_after": 3.61
+        },
+        "roles": [
+          "dark.link",
+          "dark.text"
+        ]
+      },
+      {
+        "id": "palette.contrast.dark.border-on-background",
+        "component": "palette",
+        "severity": "info",
+        "measured": 1.91,
+        "threshold": 3.0,
+        "message": "dark: border #3a424d on background #0b0d10 is 1.91:1, below 3.0:1 (borders: dividers are exempt, input outlines need 3:1; WCAG 2, no rounding)",
+        "suggested_fix": {
+          "change": "modes.dark.border",
+          "from": "#3a424d",
+          "to": "#6d747e",
+          "how": "use neutral-500 (same scale)",
+          "ratio_after": 4.12
+        },
+        "roles": [
+          "dark.border",
+          "dark.background"
+        ]
+      },
+      {
+        "id": "type.display.coverage.en_Latn.extended",
+        "component": "type",
+        "severity": "info",
+        "measured": "95/102",
+        "threshold": "100% auxiliary + punctuation",
+        "message": "Funnel Display lacks English auxiliary/punctuation characters: Ĕ Ĭ Ŏ ĕ ĭ ŏ ʻ",
+        "suggested_fix": "fine if the brand never writes them (loanwords, names); else another family"
+      },
+      {
+        "id": "type.display.confusables",
+        "component": "type",
+        "severity": "info",
+        "measured": 0.951,
+        "threshold": "0.9 (heuristic, uncalibrated)",
+        "message": "Funnel Display: I/l look alike at small sizes (IoU 0.95 at 48 px)",
+        "suggested_fix": "no ss/cv alternates; choose another face for small text and data"
+      },
+      {
+        "id": "type.display.web-weight",
+        "component": "type",
+        "severity": "info",
+        "measured": 14,
+        "threshold": null,
+        "message": "Funnel Display: ~14 KB WOFF2 for the brief's characters (one variable file, all weights; estimate)",
+        "suggested_fix": null
+      },
+      {
+        "id": "type.text.web-weight",
+        "component": "type",
+        "severity": "info",
+        "measured": 56,
+        "threshold": null,
+        "message": "IBM Plex Sans: ~56 KB WOFF2 for the brief's characters (one variable file, all weights; estimate)",
+        "suggested_fix": null
+      },
+      {
+        "id": "logo.ids",
+        "component": "logo",
+        "severity": "info",
+        "measured": null,
+        "threshold": null,
+        "message": "symbol.svg: 2 element(s) without an id",
+        "suggested_fix": "give every primitive a semantic id so edits change one element per round"
+      },
+      {
+        "id": "logo.contrast",
+        "component": "logo",
+        "severity": "warn",
+        "measured": 1.31,
+        "threshold": ">= 3.0:1 (WCAG 2.2 SC 1.4.11, practice)",
+        "message": "full-color: accent #c8f04b on #ffffff is 1.31:1",
+        "suggested_fix": "use a one-colour version on this ground, or declare logo.device tile|outline",
+        "roles": [
+          "accent"
+        ]
+      },
+      {
+        "id": "logo.contrast",
+        "component": "logo",
+        "severity": "warn",
+        "measured": 1.31,
+        "threshold": ">= 3.0:1 (WCAG 2.2 SC 1.4.11, practice)",
+        "message": "on-light-background: accent #c8f04b on #ffffff is 1.31:1",
+        "suggested_fix": "use a one-colour version on this ground, or declare logo.device tile|outline",
+        "roles": [
+          "accent"
+        ]
+      },
+      {
+        "id": "logo.contrast",
+        "component": "logo",
+        "severity": "warn",
+        "measured": 1.31,
+        "threshold": ">= 3.0:1 (WCAG 2.2 SC 1.4.11, practice)",
+        "message": "symbol-only: accent #c8f04b on #ffffff is 1.31:1",
+        "suggested_fix": "use a one-colour version on this ground, or declare logo.device tile|outline",
+        "roles": [
+          "accent"
+        ]
+      },
+      {
+        "id": "logo.light-swap",
+        "component": "logo",
+        "severity": "info",
+        "measured": 1.31,
+        "threshold": null,
+        "message": "favicon-16: accent #c8f04b is 1.31:1 on #ffffff; drawn in the light text colour #151c26 (a colour stays only where it reads)",
+        "suggested_fix": null,
+        "roles": [
+          "accent"
+        ]
+      },
+      {
+        "id": "logo.light-swap",
+        "component": "logo",
+        "severity": "info",
+        "measured": 1.31,
+        "threshold": null,
+        "message": "favicon-32: accent #c8f04b is 1.31:1 on #ffffff; drawn in the light text colour #151c26 (a colour stays only where it reads)",
+        "suggested_fix": null,
+        "roles": [
+          "accent"
+        ]
+      },
+      {
+        "id": "logo.light-swap",
+        "component": "logo",
+        "severity": "info",
+        "measured": 1.31,
+        "threshold": null,
+        "message": "favicon-48: accent #c8f04b is 1.31:1 on #ffffff; drawn in the light text colour #151c26 (a colour stays only where it reads)",
+        "suggested_fix": null,
+        "roles": [
+          "accent"
+        ]
+      },
+      {
+        "id": "logo.thin-feature",
+        "component": "logo",
+        "severity": "info",
+        "measured": {
+          "stroke_px2": 0.66,
+          "gap_px2": 0.14
+        },
+        "threshold": ">= 1 px = 5.6 units (heuristic, uncalibrated)",
+        "message": "symbol at 18 px (min size): strokes/gaps thinner than 1 px (lost 0.66 px², clogged 0.14 px²); symbol-small.svg covers small sizes",
+        "suggested_fix": "add symbol_small_svg for small sizes, or raise logo.min_size.px (or thicken the thin part / widen the gap)"
+      }
+    ],
+    "defaults": {
+      "matched": []
+    }
+  },
+  "card": {
+    "ground": "dark"
+  },
+  "palette_build": {
+    "strategy": null,
+    "accent": "#c8f04b",
+    "light_bg": null,
+    "dark_bg": "#0b0d10",
+    "neutral_tint": null,
+    "neutral_chroma": null,
+    "extra": []
+  }
+}
