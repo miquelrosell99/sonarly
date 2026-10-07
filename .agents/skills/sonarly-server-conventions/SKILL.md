@@ -35,6 +35,7 @@ whenToUse: When adding or modifying API endpoints, repositories, database migrat
 
 - Go tests live next to source (`*_test.go`) in the owning package. `go test ./... -count=1` and `go vet ./...` (from `server/`) are the pre-merge bar.
 - Integration patterns already established: httptest servers against the chi router; file-backed SQLite via the db package helpers; temp dirs for library fixtures. Reuse each module's `helpers_test.go` / `TestMain` scaffolding.
+- Never seed fixed calendar dates against time windows computed from `now` — the statistics suite hardcoded 2026-08/09 seeds against a rolling 30-day window and broke exactly 30 days later (v2.3.10). Seed relative to `time.Now()` and derive expected bucket labels from the same dates.
 - The request-parity and dual-run harnesses existed only during the cutover and were removed with the old server — there is nothing to keep green beyond the main suite.
 
 ## Web contract conventions
