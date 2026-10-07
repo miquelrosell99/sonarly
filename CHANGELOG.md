@@ -5,6 +5,12 @@ All notable changes to Sonarly are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.8] - 2026-10-07
+
+### Fixed
+
+- **Now Playing's queue view stalled on huge queues**: the queue editor rendered every row so drag-reorder could work — a whole-library shuffle means mounting thousands of rows (seconds of frozen UI). Queues above 500 items now use the same windowed renderer as the library lists; drag-reorder is impractical at that scale anyway, and Auto-DJ picks keep their per-row badge instead of the grouped section header.
+
 ## [2.3.7] - 2026-10-07
 
 ### Fixed
@@ -228,7 +234,8 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.3.7...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.3.8...HEAD
+[2.3.8]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.8
 [2.3.7]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.7
 [2.3.6]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.6
 [2.3.5]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.5
