@@ -158,4 +158,51 @@ describe('NowPlayingRoute (FF5: no context re-fetch when the store already holds
     expect(after.currentSong?.id).toBe(currentId);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  // Regression for the production "Maximum update depth exceeded" crash
+  // (React error #185): the play-start effect repositioned the queue to the
+  // URL's song on EVERY currentSong change, and the URL-sync effect rewrote
+  // the URL on every such reposition — two stale-closure effects ping-ponging
+  // playQueue/setLocation until React aborted the tree. Any track change
+  // while /now-playing/<songId> was open crashed the app (track end, skip,
+  // stream error). The play-start effect must adopt a URL target once and let
+  // natural playback progression flow into the URL instead.
+  it('track end under a settled lone-song URL advances playback without re-queueing (error #185)', async () => {
+    usePlayer.getState().playQueue(queueSongs, 1, false, undefined);
+    const playQueueSpy = vi.spyOn(usePlayer.getState(), 'playQueue');
+
+    await mountAt('/now-playing/song-2');
+    expect(usePlayer.getState().currentSong?.id).toBe('song-2');
+    playQueueSpy.mockClear();
+
+    // Natural track end advances to song-3 while the URL still names song-2.
+    await act(async () => {
+      usePlayer.getState().next();
+    });
+    await act(async () => {});
+
+    expect(usePlayer.getState().currentSong?.id).toBe('song-3');
+    // The drift is adopted by the URL-sync effect — never fought with a
+    // reposition back to song-2.
+    expect(playQueueSpy).not.toHaveBeenCalled();
+    playQueueSpy.mockRestore();
+  });
+
+  it('track end under a settled context URL advances playback without re-queueing (error #185)', async () => {
+    usePlayer.getState().playQueue(queueSongs, 1, false, { type: 'playlist', id: 'pl-1' });
+    const playQueueSpy = vi.spyOn(usePlayer.getState(), 'playQueue');
+
+    await mountAt('/now-playing/playlist/pl-1/song-2');
+    expect(usePlayer.getState().currentSong?.id).toBe('song-2');
+    playQueueSpy.mockClear();
+
+    await act(async () => {
+      usePlayer.getState().next();
+    });
+    await act(async () => {});
+
+    expect(usePlayer.getState().currentSong?.id).toBe('song-3');
+    expect(playQueueSpy).not.toHaveBeenCalled();
+    playQueueSpy.mockRestore();
+  });
 });

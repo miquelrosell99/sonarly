@@ -5,6 +5,12 @@ All notable changes to Sonarly are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.10] - 2026-10-07
+
+### Fixed
+
+- **Now Playing crashed on every track change while the overlay was open** (React error #185, "Maximum update depth exceeded"): the deep-link effect re-queued the player to the URL's song on *every* `currentSong` change while the URL-sync effect rewrote the URL on every such reposition — two effects with stale closures ping-ponging `playQueue`/`setLocation` until React aborted the tree. Any track end, skip, or stream-error advance with `/now-playing/...` open crashed the whole app (observed in production on a shuffled queue). The play-start effect now adopts a URL target once and lets natural playback progression flow into the URL instead of fighting it, for both lone-track and context URLs.
+
 ## [2.3.9] - 2026-10-07
 
 ### Fixed
@@ -241,6 +247,7 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Settings for retention, artist image sync, and organization pattern.
 
 [Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.3.9...HEAD
+[2.3.10]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.10
 [2.3.9]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.9
 [2.3.8]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.8
 [2.3.7]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.7
