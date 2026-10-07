@@ -28,6 +28,13 @@ export interface VirtualGridProps<T> {
 
 const GAP = 16; // gap-4 between cards
 
+// Cards to render while the scroll container is unresolved (first commit,
+// before the layout effect finds it). Same rationale as VirtualList's
+// FALLBACK_ROWS: a multi-hundred-card full render for that one transient
+// commit stalls section opens for seconds. Heights are estimates (the
+// virtualizer remeasures once the scroller exists, before paint).
+const FALLBACK_CARDS = 20;
+
 // Windowed card grid: renders only the cards near the viewport (plus
 // overscan) and pads the total height so the scrollbar stays correct at any
 // list length. Cards keep their normal markup (and aspect-square covers, so
@@ -60,9 +67,27 @@ export function VirtualGrid<T>({
     getItemKey: (index) => getId(items[index] as T),
   });
 
-  // No measurable scroll container (jsdom, exotic embedding): render
-  // everything rather than nothing.
+  // No measurable scroll container yet (first commit before the layout
+  // effect resolves it, jsdom, exotic embedding): large lists show a fixed
+  // initial window with an estimated-height spacer so the commit stays
+  // cheap; small lists render everything rather than nothing.
   if (scroller === null) {
+    if (items.length > FALLBACK_CARDS) {
+      const lanes = 2; // narrowest app grid (grid-cols-2)
+      const cardHeight = estimateCardHeight(0);
+      return (
+        <div ref={ref} className={className}>
+          {items.slice(0, FALLBACK_CARDS).map((item, index) => (
+            <Fragment key={getId(item)}>{renderItem(item, index)}</Fragment>
+          ))}
+          <div
+            aria-hidden="true"
+            className="col-span-full"
+            style={{ height: Math.ceil((items.length - FALLBACK_CARDS) / lanes) * cardHeight }}
+          />
+        </div>
+      );
+    }
     return (
       <div ref={ref} className={className}>
         {items.map((item, index) => (
