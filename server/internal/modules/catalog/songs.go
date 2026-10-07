@@ -14,15 +14,16 @@ import (
 // songColumns is the explicit column list every song SELECT shares; the
 // joined display names (artist_name, album_name, album_artist_name,
 // album_cover_art_id) and interaction columns (starred, rating) are appended
-// by each query in a fixed order and scanned by scanSong.
+// by each query in a fixed order and scanned by scanSong. Lyrics are not
+// selected: GET /api/songs/{id}/lyrics owns that payload (see the Song DTO).
 const songColumns = `s.id, s.title, s.track_number, s.disc_number, s.duration,
 	s.artist_id, s.album_id, s.genre, s.genre_id, s.library_id, s.year,
 	s.explicit, s.cover_art_id, s.cover_art_missing, s.mtime, s.active,
 	s.bit_rate, s.bits_per_sample, s.sample_rate, s.channels, s.bpm,
 	s.music_brainz_id, s.replay_gain, s.average_rating, s.comment,
 	s.sort_name, s.mood, s.media_type, s.original_release_date, s.release_date,
-	s.remix_of, s.display_artist, s.display_album_artist, s.lyrics,
-	s.synced_lyrics, s.producers, s.isrcs, s.musicbrainz_track_id,
+	s.remix_of, s.display_artist, s.display_album_artist,
+	s.producers, s.isrcs, s.musicbrainz_track_id,
 	s.musicbrainz_work_id, s.musicbrainz_disc_id, s.original_year,
 	s.original_artist, s.gapless, s.total_tracks, s.total_discs`
 
@@ -58,7 +59,7 @@ type SongFilter struct {
 
 func scanSong(s interface{ Scan(...any) error }) (*Song, error) {
 	var song Song
-	var syncedLyrics, producers, isrcs sql.NullString
+	var producers, isrcs sql.NullString
 	var explicit, coverArtMissing, gapless sql.NullInt64
 	var mtime db.Millis
 	// Numeric columns the retired server may have written as fractional REALs (mtimeMs,
@@ -76,8 +77,8 @@ func scanSong(s interface{ Scan(...any) error }) (*Song, error) {
 		&bitRate, &bitsPerSample, &sampleRate, &channels, &bpm,
 		&song.MusicBrainzID, &song.ReplayGain, &song.AverageRating, &song.Comment,
 		&song.SortName, &song.Mood, &song.MediaType, &song.OriginalReleaseDate, &song.ReleaseDate,
-		&song.RemixOf, &song.DisplayArtist, &song.DisplayAlbumArtist, &song.Lyrics,
-		&syncedLyrics, &producers, &isrcs, &song.MusicBrainzTrackID,
+		&song.RemixOf, &song.DisplayArtist, &song.DisplayAlbumArtist,
+		&producers, &isrcs, &song.MusicBrainzTrackID,
 		&song.MusicBrainzWorkID, &song.MusicBrainzDiscID, &song.OriginalYear,
 		&song.OriginalArtist, &gapless, &song.TotalTracks, &song.TotalDiscs,
 		&song.ArtistName, &song.AlbumName, &song.AlbumArtistName, &song.AlbumCoverArt,
@@ -110,9 +111,6 @@ func scanSong(s interface{ Scan(...any) error }) (*Song, error) {
 	song.Starred = starred.Valid && starred.Int64 == 1
 	if rating.Valid {
 		song.Rating = &rating.Float64
-	}
-	if v, ok := parseAnyColumn(syncedLyrics); ok {
-		song.SyncedLyrics = v
 	}
 	if v, ok := parseStringArrayColumn(producers); ok {
 		song.Producers = v

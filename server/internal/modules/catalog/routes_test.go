@@ -290,7 +290,7 @@ func TestGetSongShape(t *testing.T) {
 		"averageRating": 4.5, "comment": "c", "sortName": "one", "mood": "mellow",
 		"mediaType": "audio/flac", "originalReleaseDate": "2019-01-01",
 		"releaseDate": "2020-01-01", "remixOf": "rmx", "displayArtist": "Alpha",
-		"displayAlbumArtist": "Alpha", "lyrics": "la la", "originalYear": 2019,
+		"displayAlbumArtist": "Alpha", "originalYear": 2019,
 		"originalArtist": "Orig", "gapless": true, "totalTracks": "10",
 		"totalDiscs": "1", "artistName": "Alpha", "albumName": "A1",
 		"albumArtistName": "Alpha", "starred": true, "rating": 4.5,
@@ -323,9 +323,6 @@ func TestGetSongShape(t *testing.T) {
 	if !ok || len(composers) != 1 || composers[0].(map[string]any)["id"] != "ar-comp" {
 		t.Errorf("composerEntries: %v", song["composerEntries"])
 	}
-	if _, ok := song["syncedLyrics"]; !ok {
-		t.Error("syncedLyrics must be present and parsed")
-	}
 	if got := song["producers"]; fmt.Sprint(got) != "[P1 P2]" {
 		t.Errorf("producers: %v", got)
 	}
@@ -333,8 +330,10 @@ func TestGetSongShape(t *testing.T) {
 		t.Errorf("isrcs: %v", got)
 	}
 
-	// DTO contract: no server paths or content hashes leak.
-	for _, banned := range []string{"filePath", "checksum"} {
+	// Lyrics are not part of the song DTO — GET /api/songs/{id}/lyrics owns
+	// that payload (see lyrics_test.go); embedding it costs megabytes per
+	// collection response.
+	for _, banned := range []string{"filePath", "checksum", "lyrics", "syncedLyrics"} {
 		if _, present := song[banned]; present {
 			t.Errorf("song DTO must not include %q", banned)
 		}

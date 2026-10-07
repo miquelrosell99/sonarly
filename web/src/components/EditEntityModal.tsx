@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { SmartPlaylistRules } from '../types';
+import { api } from '../lib/api.js';
 import { Button } from './ui/Button.js';
 import { Modal } from './ui/Modal.js';
 import { ConfirmModal } from './ui/ConfirmModal.js';
@@ -56,7 +58,7 @@ export function EditEntityModal({
   const activeEntities = entities && entities.length > 0 ? entities : entity ? [entity] : [];
   const isMulti = entities !== undefined && entities.length > 1;
   const fields = entityType === 'album' ? ALBUM_FIELDS : SONG_FIELDS;
-  const { values, explicit, touchedFields, updateValue, updateExplicit, resetTagEdit } = useTagEditState(
+  const { values, explicit, touchedFields, updateValue, updateExplicit, seedValue, resetTagEdit } = useTagEditState(
     activeEntities,
     entityType,
     fields,
@@ -84,6 +86,42 @@ export function EditEntityModal({
     }
     wasOpenRef.current = open;
   }, [open, activeEntities, entityType, fields, isMulti]);
+
+  // Song rows no longer embed lyrics (they dominate list payloads); the
+  // single-song editor loads them on open from the lyrics endpoint. Multi
+  // edits skip the fetch — lyrics are per-song content and an untouched
+  // lyrics field is not part of a multi-save. The query shares the
+  // ['lyrics', id] key family so external edits invalidate it too.
+  const singleSongId =
+    !isMulti && entityType === 'song' && activeEntities[0] ? String(activeEntities[0].id) : null;
+  const lyricsQuery = useQuery({
+    queryKey: ['lyrics', singleSongId],
+    queryFn: () => api<{ lyrics?: string | null; syncedLyrics?: string | null }>(`/songs/${singleSongId}/lyrics`),
+    enabled: open && singleSongId !== null,
+    staleTime: 60_000,
+  });
+  const seededSongRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      seededSongRef.current = null;
+      return;
+    }
+    const data = lyricsQuery.data;
+    if (!data || singleSongId === null || seededSongRef.current === singleSongId) return;
+    seededSongRef.current = singleSongId;
+    // Seed only what the endpoint actually holds: an empty answer must not
+    // shadow a syncedLyrics value the entity record still carries.
+    const synced = normalizeSyncedLyrics(data.syncedLyrics);
+    if (synced.length > 0) {
+      setSyncedLyricsOverride(synced);
+    }
+    // seedValue applies after the open-reset above and only fills an empty
+    // field, so a fast typist is never clobbered by a slow fetch.
+    if (data.lyrics) {
+      seedValue('lyrics', data.lyrics);
+    }
+  }, [open, lyricsQuery.data, singleSongId, seedValue]);
 
   const handleSave = () => {
     if (readOnly) return;
