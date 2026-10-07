@@ -15,6 +15,10 @@ const SCROBBLE_MAX_SECONDS = 240;
 const STALLED_ERROR_DELAY_MS = 15000;
 // Start buffering the next track when this much of the current one remains.
 const PRELOAD_REMAINING_SECONDS = 30;
+// A track whose stream fails (vanished file, duplicate deactivated
+// mid-session) is skipped rather than dead-stopping the queue; the bound
+// keeps an all-dead queue or an unreachable server from skipping forever.
+const MAX_CONSECUTIVE_PLAY_ERRORS = 5;
 
 export function AudioController() {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -22,6 +26,7 @@ export function AudioController() {
   const preloadedUrlRef = useRef<string | null>(null);
   const lastScrobbledRef = useRef<string | null>(null);
   const stalledTimerRef = useRef<number | null>(null);
+  const consecutivePlayErrorsRef = useRef(0);
   const { notify } = useNotification();
 
   const currentSong = usePlayer((state) => state.currentSong);
@@ -247,11 +252,13 @@ export function AudioController() {
 
   const handlePlay = () => {
     clearStalledTimer();
+    consecutivePlayErrorsRef.current = 0;
     play();
   };
 
   const handlePlaying = () => {
     clearStalledTimer();
+    consecutivePlayErrorsRef.current = 0;
     play();
   };
 
@@ -337,6 +344,25 @@ export function AudioController() {
 
   const handleError = () => {
     clearStalledTimer();
+    // The stream endpoint answers unplayable tracks (inactive duplicates,
+    // vanished files) with a JSON error envelope the element surfaces as a
+    // load failure. Skip ahead instead of dead-stopping the queue; give up
+    // after a bounded run and when there is no next track to try.
+    consecutivePlayErrorsRef.current += 1;
+    const state = usePlayer.getState();
+    const hasNext = getNextSong({
+      queue: state.queue,
+      queueIndex: state.queueIndex,
+      shuffle: state.shuffle,
+      repeat: state.repeat,
+      shuffledIndices: state.shuffledIndices,
+    }) !== null;
+    if (hasNext && consecutivePlayErrorsRef.current < MAX_CONSECUTIVE_PLAY_ERRORS) {
+      state.next();
+      notify('Skipped a track that could not be played', 'info');
+      return;
+    }
+    consecutivePlayErrorsRef.current = 0;
     setStatus('error');
     notify('Could not play track', 'error');
   };
