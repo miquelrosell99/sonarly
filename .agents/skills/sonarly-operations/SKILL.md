@@ -9,7 +9,7 @@ whenToUse: When deploying or upgrading the Sonarly stack, or when it is unhealth
 
 Production stack = one all-in-one container (`compose.yaml`):
 
-- image `ghcr.io/miquelrosell99/sonarly:<pinned-semver-tag>` — host port
+- image `ghcr.io/miquelrosell99/sonarly:latest` — host port
   `${SONARLY_PORT:-4533}` → app `:3000`
 - volumes: `./config/sonarly/data:/data/db` (SQLite DB + avatars + artist
   images + upload staging), `${SONARLY_INGEST_PATH:-./config/sonarly/ingest}:/data/ingest`,
