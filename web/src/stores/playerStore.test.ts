@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { Song } from '../types';
 import { usePlayer, resetPlayer, type PlayerSong } from './playerStore.js';
 
@@ -441,5 +441,94 @@ describe('updateCurrentSong', () => {
   it('does nothing when no song is playing', () => {
     usePlayer.getState().updateCurrentSong({ starred: true });
     expect(usePlayer.getState().currentSong).toBeNull();
+  });
+});
+
+describe('playQueue inactive filtering', () => {
+  beforeEach(() => resetPlayer());
+
+  it('drops inactive songs instead of queueing tracks the stream endpoint refuses', () => {
+    const inactive: PlayerSong = { ...createSong('x'), active: false };
+    usePlayer.getState().playQueue([songA, inactive, songB], 0);
+
+    const state = usePlayer.getState();
+    expect(state.queue.map((s) => s.id)).toEqual(['a', 'b']);
+    expect(state.currentSong?.id).toBe('a');
+  });
+
+  it('keeps an explicit start index pointed at the same song after filtering', () => {
+    const inactive: PlayerSong = { ...createSong('x'), active: false };
+    usePlayer.getState().playQueue([songA, inactive, songB], 2);
+
+    const state = usePlayer.getState();
+    expect(state.queue.map((s) => s.id)).toEqual(['a', 'b']);
+    expect(state.queueIndex).toBe(1);
+    expect(state.currentSong?.id).toBe('b');
+  });
+
+  it('falls back to the first playable song when the requested one is inactive', () => {
+    const inactive: PlayerSong = { ...createSong('x'), active: false };
+    usePlayer.getState().playQueue([inactive, songA], 0);
+
+    const state = usePlayer.getState();
+    expect(state.queue.map((s) => s.id)).toEqual(['a']);
+    expect(state.queueIndex).toBe(0);
+    expect(state.currentSong?.id).toBe('a');
+  });
+
+  it('leaves an all-inactive list empty instead of queueing dead tracks', () => {
+    const inactive: PlayerSong = { ...createSong('x'), active: false };
+    usePlayer.getState().playQueue([inactive], 0);
+
+    const state = usePlayer.getState();
+    expect(state.queue).toEqual([]);
+    expect(state.currentSong).toBeNull();
+  });
+});
+
+describe('persisted queue shape', () => {
+  beforeEach(() => resetPlayer());
+
+  it('persists only the fields the player reads back, dropping lyrics payloads', () => {
+    const heavy: PlayerSong = {
+      ...createSong('a'),
+      lyrics: 'line\n'.repeat(500),
+      syncedLyrics: '[00:01.00] line\n'.repeat(200),
+      producers: ['producer one', 'producer two'],
+      artistName: 'Artist A',
+      albumName: 'Album A',
+    } as PlayerSong;
+    usePlayer.getState().playQueue([heavy], 0);
+
+    const raw = window.localStorage.getItem('sonarly-player');
+    expect(raw).toBeTruthy();
+    const persisted = JSON.parse(raw!);
+    expect(persisted.state.queue).toHaveLength(1);
+    expect(persisted.state.queue[0]).toEqual(
+      expect.objectContaining({ id: 'a', title: 'Song a', artistName: 'Artist A', albumName: 'Album A' }),
+    );
+    expect(persisted.state.queue[0]).not.toHaveProperty('lyrics');
+    expect(persisted.state.queue[0]).not.toHaveProperty('syncedLyrics');
+    expect(persisted.state.queue[0]).not.toHaveProperty('producers');
+  });
+
+  it('does not let a localStorage quota error propagate out of store actions', () => {
+    const quotaError = new DOMException('quota exceeded', 'QuotaExceededError');
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw quotaError;
+    });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      expect(() => {
+        usePlayer.getState().playQueue([songA, songB], 0);
+        usePlayer.getState().setStatus('error');
+      }).not.toThrow();
+      expect(usePlayer.getState().status).toBe('error');
+      expect(warn).toHaveBeenCalledTimes(1);
+    } finally {
+      setItem.mockRestore();
+      warn.mockRestore();
+    }
   });
 });

@@ -385,3 +385,68 @@ describe('autoplay handling', () => {
     expect(mockNotify).not.toHaveBeenCalled();
   });
 });
+
+describe('media element error (unplayable stream)', () => {
+  it('skips ahead to the next track instead of dead-stopping the queue', () => {
+    const { audio } = renderController();
+    act(() => {
+      usePlayer.getState().playQueue([createSong('a'), createSong('b')], 0);
+    });
+
+    fireEvent.error(audio);
+
+    const state = usePlayer.getState();
+    expect(state.queueIndex).toBe(1);
+    expect(state.currentSong?.id).toBe('b');
+    // The song-change effect reloads the element: loading until playback
+    // events confirm it actually plays.
+    expect(state.status).toBe('loading');
+    expect(mockNotify).toHaveBeenCalledWith('Skipped a track that could not be played', 'info');
+  });
+
+  it('gives up with an error status when there is no next track', () => {
+    const { audio } = renderController();
+    act(() => {
+      usePlayer.getState().playQueue([createSong('a')], 0);
+    });
+
+    fireEvent.error(audio);
+
+    expect(usePlayer.getState().status).toBe('error');
+    expect(mockNotify).toHaveBeenCalledWith('Could not play track', 'error');
+  });
+
+  it('stops skipping after a bounded run of consecutive failures', () => {
+    const { audio } = renderController();
+    const songs = Array.from({ length: 8 }, (_, i) => createSong(`s${i}`));
+    act(() => {
+      usePlayer.getState().playQueue(songs, 0, true);
+    });
+
+    for (let i = 0; i < 5; i += 1) {
+      fireEvent.error(audio);
+    }
+
+    const state = usePlayer.getState();
+    expect(state.status).toBe('error');
+    expect(mockNotify).toHaveBeenLastCalledWith('Could not play track', 'error');
+  });
+
+  it('resets the failure count once a track plays successfully', () => {
+    const { audio } = renderController();
+    const songs = [createSong('a'), createSong('b'), createSong('c')];
+    act(() => {
+      usePlayer.getState().playQueue(songs, 0);
+    });
+
+    fireEvent.error(audio);
+    expect(usePlayer.getState().currentSong?.id).toBe('b');
+    fireEvent.playing(audio);
+
+    // Two more failures would exceed the bound if the count had not reset.
+    fireEvent.error(audio);
+    expect(usePlayer.getState().currentSong?.id).toBe('c');
+    fireEvent.error(audio);
+    expect(usePlayer.getState().status).toBe('error');
+  });
+});

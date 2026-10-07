@@ -5,6 +5,13 @@ All notable changes to Sonarly are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.5] - 2026-10-07
+
+### Fixed
+
+- **"Play random" broke the player on large libraries**: shuffling the whole tracks list queued thousands of full song objects (embedded lyrics alone are ~7 MB in a 6k-track library), and the player persisted the entire queue to `localStorage` on every state change. That blows the browser's ~5 MB quota, and the persistence error propagated into every player action — the console filled with uncaught `DOMException: The quota has been exceeded` and playback never started. The persisted queue now carries only the fields the player actually reads back (lyrics are fetched on demand by the lyrics panel anyway), and a quota failure degrades to session-only playback with a console warning instead of crashing the player.
+- **Queueing tracks the library can no longer stream**: a page's list can go stale across scans, so "play random" could pick a track that duplicate detection later deactivated — the stream endpoint answers those with a JSON error envelope, which the browser cannot decode as audio. `playQueue` now drops inactive songs (keeping a double-clicked row pointed at the same track), and when a stream still fails, the player skips ahead to the next track instead of dead-stopping, giving up after 5 consecutive failures with the existing error notice.
+
 ## [2.3.4] - 2026-10-01
 
 ### Fixed
@@ -209,7 +216,8 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.3.4...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.3.5...HEAD
+[2.3.5]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.5
 [2.3.4]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.4
 [2.3.3]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.3
 [2.3.2]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.2
