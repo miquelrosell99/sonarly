@@ -1,0 +1,31 @@
+{
+  "display": {
+    "family": "Bricolage Grotesque",
+    "file": "/root/.cache/brand-identity/fonts/instances/BricolageGrotesque-66843ab840da6a18.ttf",
+    "location": {
+      "wght": 600,
+      "opsz": 72,
+      "wdth": 100
+    },
+    "weights": [
+      600
+    ],
+    "features": []
+  },
+  "text": {
+    "family": "Bricolage Grotesque",
+    "file": "/root/.cache/brand-identity/fonts/instances/BricolageGrotesque-d9186759b02c93b0.ttf",
+    "location": {
+      "wght": 400,
+      "opsz": 14,
+      "wdth": 100
+    },
+    "weights": [
+      400,
+      500
+    ],
+    "features": [
+      "tnum"
+    ]
+  }
+}

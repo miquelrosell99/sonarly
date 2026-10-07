@@ -1,0 +1,12 @@
+[
+  {
+    "sha256": "913dab83ccc5ff733f07bd2e33cdca479775b758a02ddb0e2701b4f13a396806",
+    "anchors": 30,
+    "defect": ""
+  },
+  {
+    "sha256": "35bfa4fd550d44f1a2d25924078bab75621a8a5d77e681f768a646b83bd141bb",
+    "anchors": 18,
+    "defect": "Track ring filled as two discs: same sweep-flag bug as set A \u2014 the inner return arc swept the short way; fixed to sweep 1. Small-mark beam also had both arc sweeps inverted."
+  }
+]
