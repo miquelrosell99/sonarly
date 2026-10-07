@@ -1,0 +1,7 @@
+[
+  {
+    "sha256": "d285a67259d74d2eb0188ea35fde0bd4ed0b3a8b74e2b0b60f00efdfbc9dbf0c",
+    "anchors": 16,
+    "defect": "Catalogue rule width and drop are a first pass (460 units at y=130); set to the real Bricolage advance width and below the y descender once the glyph table is built."
+  }
+]
