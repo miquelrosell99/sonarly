@@ -1,0 +1,41 @@
+{
+  "display": {
+    "family": "Zilla Slab",
+    "file": "/root/.cache/brand-identity/fonts/google/ofl/zillaslab/ZillaSlab-Medium.ttf",
+    "location": {
+      "wght": 500
+    },
+    "weights": [
+      500,
+      600
+    ],
+    "features": []
+  },
+  "text": {
+    "family": "Public Sans",
+    "file": "/root/.cache/brand-identity/fonts/instances/PublicSans-62f9605ba2a8f4d0.ttf",
+    "location": {
+      "wght": 400
+    },
+    "weights": [
+      400,
+      500,
+      600
+    ],
+    "features": [
+      "tnum"
+    ]
+  },
+  "mono": {
+    "family": "IBM Plex Mono",
+    "file": "/root/.cache/brand-identity/fonts/google/ofl/ibmplexmono/IBMPlexMono-Regular.ttf",
+    "location": {
+      "wght": 400
+    },
+    "weights": [
+      400,
+      500
+    ],
+    "features": []
+  }
+}

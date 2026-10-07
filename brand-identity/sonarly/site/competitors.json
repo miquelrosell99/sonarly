@@ -1,0 +1,535 @@
+{
+  "schema": "brand-identity/competitors@1",
+  "measuredAt": "2026-10-07T12:58:10.314Z",
+  "note": "Measured hex values approximate public websites; roles are unconfirmed proposals.",
+  "sites": [
+    {
+      "url": "https://www.navidrome.org/",
+      "host": "navidrome.org",
+      "status": "ok",
+      "title": "Navidrome",
+      "siteName": "Navidrome",
+      "description": "Welcome to Navidrome! Learn More Download Your Personal Streaming Service\nNavidrome allows you to enjoy your music collection from anywhere, by making it available through a modern Web UI and through a wide range of third-party compatible mobile apps, for both iOS and Android devices.",
+      "lang": "en",
+      "themeColor": "#ffffff",
+      "darkModeSupport": true,
+      "roles": {
+        "background": "#ffffff",
+        "border": "#dee2e6",
+        "text": "#212529",
+        "primary": "#30638e",
+        "onPrimary": "#ffffff",
+        "accent": "#ffa630",
+        "onAccent": "#000000",
+        "link": "#0d6efd",
+        "success": "#3772ff",
+        "warning": "#ed6a5a",
+        "danger": "#ed6a5a"
+      },
+      "confidence": {
+        "background": 0.85,
+        "border": 0.7,
+        "text": 0.7,
+        "primary": 0.9,
+        "onPrimary": 0.97,
+        "accent": 0.69,
+        "onAccent": 0.82,
+        "link": 0.97,
+        "success": 0.45,
+        "warning": 0.35,
+        "danger": 0.45
+      },
+      "notes": [],
+      "brandColors": [
+        "#30638e",
+        "#ffa630"
+      ],
+      "topColors": [
+        {
+          "hex": "#ffffff",
+          "oklch": "oklch(100.0% 0.000 90)",
+          "score": 222.74,
+          "areaShare": 0.7779,
+          "roles": [
+            "background",
+            "onPrimary"
+          ]
+        },
+        {
+          "hex": "#403f4c",
+          "oklch": "oklch(37.4% 0.022 289)",
+          "score": 116.49,
+          "areaShare": 0.4818,
+          "roles": []
+        },
+        {
+          "hex": "#000000",
+          "oklch": "oklch(0.0% 0.000 0)",
+          "score": 55.07,
+          "areaShare": 0,
+          "roles": [
+            "onAccent"
+          ]
+        },
+        {
+          "hex": "#30638e",
+          "oklch": "oklch(48.5% 0.089 246)",
+          "score": 36.88,
+          "areaShare": 0.1488,
+          "roles": [
+            "primary"
+          ]
+        },
+        {
+          "hex": "#0d6efd",
+          "oklch": "oklch(57.8% 0.228 260)",
+          "score": 5.3,
+          "areaShare": 0,
+          "roles": [
+            "link"
+          ]
+        },
+        {
+          "hex": "#495057",
+          "oklch": "oklch(42.8% 0.015 248)",
+          "score": 3.85,
+          "areaShare": 0,
+          "roles": []
+        },
+        {
+          "hex": "#ffa630",
+          "oklch": "oklch(79.6% 0.160 68)",
+          "score": 1.48,
+          "areaShare": 0.0026,
+          "roles": [
+            "accent"
+          ]
+        },
+        {
+          "hex": "#a5c9fe",
+          "oklch": "oklch(82.9% 0.084 258)",
+          "score": 0.68,
+          "areaShare": 0,
+          "roles": []
+        }
+      ],
+      "nHues": 2,
+      "hues": [
+        246,
+        68
+      ],
+      "lightnessRange": [
+        0,
+        1
+      ],
+      "strategy": "tokens",
+      "fonts": {
+        "heading": "\"Open Sans\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\"",
+        "body": "\"Open Sans\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\"",
+        "paragraph": "\"Open Sans\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\"",
+        "loaded": [
+          "Open Sans 300 normal",
+          "Open Sans 400 normal",
+          "Open Sans 700 normal",
+          "font awesome 7 free 900 normal",
+          "font awesome 7 brands 400 normal",
+          "subsonic 400 normal"
+        ]
+      },
+      "screenshot": "competitors/navidrome-org.png"
+    },
+    {
+      "url": "https://jellyfin.org/",
+      "host": "jellyfin.org",
+      "status": "ok",
+      "title": "The Free Software Media System | Jellyfin",
+      "siteName": null,
+      "description": "The volunteer-built media solution that puts you in control of your media. Stream to any device from your own server, with no strings attached.",
+      "lang": "en",
+      "themeColor": null,
+      "darkModeSupport": false,
+      "roles": {
+        "background": "#000b25",
+        "surface": "#172138",
+        "surfaceAlt": "#242526",
+        "border": "#bec3c9",
+        "text": "#ebedf0",
+        "primary": "#007ca6",
+        "onPrimary": "#ffffff",
+        "accent": "#3a3768",
+        "link": "#007ca6",
+        "success": "#00a400",
+        "warning": "#ffba00",
+        "danger": "#fa383e",
+        "info": "#54c7ec"
+      },
+      "confidence": {
+        "background": 0.78,
+        "surface": 0.73,
+        "surfaceAlt": 0.4,
+        "border": 0.93,
+        "text": 0.69,
+        "primary": 0.94,
+        "onPrimary": 0.97,
+        "accent": 0.28,
+        "link": 0.85,
+        "success": 0.45,
+        "warning": 0.45,
+        "danger": 0.45,
+        "info": 0.45
+      },
+      "notes": [],
+      "brandColors": [
+        "#007ca6",
+        "#3a3768"
+      ],
+      "topColors": [
+        {
+          "hex": "#000b25",
+          "oklch": "oklch(15.7% 0.059 258)",
+          "score": 262.48,
+          "areaShare": 0.5677,
+          "roles": [
+            "background"
+          ]
+        },
+        {
+          "hex": "#ffffff",
+          "oklch": "oklch(100.0% 0.000 90)",
+          "score": 136.04,
+          "areaShare": 0,
+          "roles": [
+            "onPrimary"
+          ]
+        },
+        {
+          "hex": "#172138",
+          "oklch": "oklch(25.1% 0.046 265)",
+          "score": 115.76,
+          "areaShare": 0.2538,
+          "roles": [
+            "surface"
+          ]
+        },
+        {
+          "hex": "#242526",
+          "oklch": "oklch(26.4% 0.002 248)",
+          "score": 54.83,
+          "areaShare": 0.1202,
+          "roles": [
+            "surfaceAlt"
+          ]
+        },
+        {
+          "hex": "#007ca6",
+          "oklch": "oklch(55.0% 0.111 231)",
+          "score": 53.13,
+          "areaShare": 0.0047,
+          "roles": [
+            "link",
+            "primary"
+          ]
+        },
+        {
+          "hex": "#000000",
+          "oklch": "oklch(0.0% 0.000 0)",
+          "score": 37.82,
+          "areaShare": 0,
+          "roles": []
+        },
+        {
+          "hex": "#333c44",
+          "oklch": "oklch(35.1% 0.018 245)",
+          "score": 31.06,
+          "areaShare": 0.0681,
+          "roles": []
+        },
+        {
+          "hex": "#3e2247",
+          "oklch": "oklch(30.6% 0.073 318)",
+          "score": 21.86,
+          "areaShare": 0,
+          "roles": []
+        }
+      ],
+      "nHues": 4,
+      "hues": [
+        231,
+        318,
+        284,
+        19
+      ],
+      "lightnessRange": [
+        0,
+        1
+      ],
+      "strategy": "tokens",
+      "fonts": {
+        "heading": "\"Noto Sans\", sans-serif",
+        "body": "\"Noto Sans\", sans-serif",
+        "paragraph": "\"Noto Sans\", sans-serif",
+        "loaded": [
+          "Noto Sans 400 normal"
+        ]
+      },
+      "screenshot": "competitors/jellyfin-org.png"
+    },
+    {
+      "url": "https://watch.plex.tv/",
+      "host": "plex.tv",
+      "status": "ok",
+      "title": "Watch Movies and TV Shows Free Online - Plex",
+      "siteName": "Plex.tv",
+      "description": "Plex has free movies and TV shows available with no sign up required.",
+      "lang": "en",
+      "themeColor": "#000000",
+      "darkModeSupport": false,
+      "roles": {
+        "background": "#1e1e1e",
+        "surface": "#000000",
+        "text": "#ffffff",
+        "primary": "#6f1052",
+        "accent": "#0133cf",
+        "link": "#e5a00d"
+      },
+      "confidence": {
+        "background": 0.89,
+        "surface": 0.9,
+        "text": 0.97,
+        "primary": 0.15,
+        "accent": 0.51,
+        "link": 0.77
+      },
+      "notes": [],
+      "brandColors": [
+        "#6f1052",
+        "#0133cf"
+      ],
+      "topColors": [
+        {
+          "hex": "#1e1e1e",
+          "oklch": "oklch(23.5% 0.000 90)",
+          "score": 754.79,
+          "areaShare": 0.9462,
+          "roles": [
+            "background"
+          ]
+        },
+        {
+          "hex": "#ffffff",
+          "oklch": "oklch(100.0% 0.000 90)",
+          "score": 573.86,
+          "areaShare": 0.0022,
+          "roles": [
+            "text"
+          ]
+        },
+        {
+          "hex": "#000000",
+          "oklch": "oklch(0.0% 0.000 0)",
+          "score": 230.71,
+          "areaShare": 0.2632,
+          "roles": [
+            "surface"
+          ]
+        },
+        {
+          "hex": "#6f1052",
+          "oklch": "oklch(37.1% 0.143 344)",
+          "score": 13.74,
+          "areaShare": 0,
+          "roles": [
+            "primary"
+          ]
+        },
+        {
+          "hex": "#0133cf",
+          "oklch": "oklch(43.0% 0.239 264)",
+          "score": 13.74,
+          "areaShare": 0,
+          "roles": [
+            "accent"
+          ]
+        },
+        {
+          "hex": "#e5a00d",
+          "oklch": "oklch(75.4% 0.155 77)",
+          "score": 4.11,
+          "areaShare": 0.0005,
+          "roles": [
+            "link"
+          ]
+        },
+        {
+          "hex": "#040405",
+          "oklch": "oklch(10.8% 0.004 286)",
+          "score": 0.69,
+          "areaShare": 0,
+          "roles": []
+        },
+        {
+          "hex": "#292f35",
+          "oklch": "oklch(30.2% 0.014 248)",
+          "score": 0.69,
+          "areaShare": 0,
+          "roles": []
+        }
+      ],
+      "nHues": 5,
+      "hues": [
+        344,
+        264,
+        77,
+        35,
+        204
+      ],
+      "lightnessRange": [
+        0,
+        1
+      ],
+      "strategy": "computed",
+      "fonts": {
+        "heading": "circularBold, \"circularBold Fallback\"",
+        "body": "Inter, \"Inter Fallback\"",
+        "paragraph": "Inter, \"Inter Fallback\", -apple-system, blinkmacsystemfont, \"Segoe UI\", roboto, oxygen-sans, ubuntu, cantarell, \"Helvetica Neue\", sans-serif",
+        "loaded": [
+          "Inter 100 900 normal",
+          "circularBold 700 normal"
+        ]
+      },
+      "screenshot": "competitors/plex-tv.png"
+    },
+    {
+      "url": "https://ampache.org/",
+      "host": "ampache.org",
+      "status": "ok",
+      "title": "Ampache",
+      "siteName": null,
+      "description": "Ampache.org",
+      "lang": "en",
+      "themeColor": null,
+      "darkModeSupport": false,
+      "roles": {
+        "background": "#ffffff",
+        "surface": "#e9e9e9",
+        "border": "#dadde1",
+        "text": "#32220f",
+        "primary": "#f8ac4c",
+        "onPrimary": "#32220f",
+        "accent": "#1990db",
+        "link": "#ff8300",
+        "success": "#00a400",
+        "warning": "#ffba00",
+        "danger": "#fa383e",
+        "info": "#54c7ec"
+      },
+      "confidence": {
+        "background": 0.97,
+        "surface": 0.9,
+        "border": 0.86,
+        "text": 0.93,
+        "primary": 0.71,
+        "onPrimary": 0.51,
+        "accent": 0.75,
+        "link": 0.85,
+        "success": 0.45,
+        "warning": 0.45,
+        "danger": 0.45,
+        "info": 0.45
+      },
+      "notes": [],
+      "brandColors": [
+        "#f8ac4c",
+        "#1990db"
+      ],
+      "topColors": [
+        {
+          "hex": "#ffffff",
+          "oklch": "oklch(100.0% 0.000 90)",
+          "score": 1810.14,
+          "areaShare": 0.9407,
+          "roles": [
+            "background"
+          ]
+        },
+        {
+          "hex": "#32220f",
+          "oklch": "oklch(26.7% 0.039 69)",
+          "score": 101.29,
+          "areaShare": 0,
+          "roles": [
+            "text",
+            "onPrimary"
+          ]
+        },
+        {
+          "hex": "#e9e9e9",
+          "oklch": "oklch(93.4% 0.000 90)",
+          "score": 81.88,
+          "areaShare": 0.0426,
+          "roles": [
+            "surface"
+          ]
+        },
+        {
+          "hex": "#dadde1",
+          "oklch": "oklch(89.6% 0.006 255)",
+          "score": 36.99,
+          "areaShare": 0,
+          "roles": [
+            "border"
+          ]
+        },
+        {
+          "hex": "#efca1b",
+          "oklch": "oklch(84.6% 0.169 95)",
+          "score": 15.38,
+          "areaShare": 0.008,
+          "roles": []
+        },
+        {
+          "hex": "#f8ac4c",
+          "oklch": "oklch(80.1% 0.141 69)",
+          "score": 11.73,
+          "areaShare": 0.0052,
+          "roles": [
+            "primary"
+          ]
+        },
+        {
+          "hex": "#000000",
+          "oklch": "oklch(0.0% 0.000 0)",
+          "score": 8.03,
+          "areaShare": 0,
+          "roles": []
+        },
+        {
+          "hex": "#0b333f",
+          "oklch": "oklch(30.0% 0.048 222)",
+          "score": 6.67,
+          "areaShare": 0.0035,
+          "roles": []
+        }
+      ],
+      "nHues": 3,
+      "hues": [
+        95,
+        54,
+        244
+      ],
+      "lightnessRange": [
+        0,
+        1
+      ],
+      "strategy": "tokens",
+      "fonts": {
+        "heading": "system-ui, -apple-system, \"Segoe UI\", Roboto, Ubuntu, Cantarell, \"Noto Sans\", sans-serif, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\"",
+        "body": "system-ui, -apple-system, \"Segoe UI\", Roboto, Ubuntu, Cantarell, \"Noto Sans\", sans-serif, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\"",
+        "paragraph": "system-ui, -apple-system, \"Segoe UI\", Roboto, Ubuntu, Cantarell, \"Noto Sans\", sans-serif, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\"",
+        "loaded": []
+      },
+      "screenshot": "competitors/ampache-org.png"
+    }
+  ],
+  "errors": []
+}
