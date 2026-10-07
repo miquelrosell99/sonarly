@@ -147,10 +147,30 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
   // Start playback when the URL targets something the store doesn't already
   // hold, then open the overlay (the guest shell has no overlay — playback
   // shows in the player bar).
+  //
+  // Repositioning is gated on the URL TARGET changing (deep link, back/
+  // forward navigation), not on currentSong differing from it: under an
+  // already-handled target, a currentSong drift is playback progression
+  // (track end, skip, error-advance) that the URL-sync effect below adopts.
+  // Re-queueing on every drift made those two effects ping-pong
+  // playQueue/setLocation with stale closures until React aborted the tree
+  // with "Maximum update depth exceeded" (error #185) on any track change
+  // while /now-playing/<songId> was open.
+  const handledTargetRef = useRef<string | null>(null);
   useEffect(() => {
+    const targetKey = hasContext ? `${context}|${contextId}|${songId ?? ''}` : (songId ?? null);
+    const targetChanged = handledTargetRef.current !== targetKey;
     if (hasContext) {
       if (!resolvedSongs) return;
       if (resolvedSongs.length === 0) return;
+      // Adopt the URL target on every pass, including when no reposition is
+      // needed: a drift of currentSong under an adopted target is playback
+      // progression (track end, skip, error-advance) that the URL-sync effect
+      // below adopts. Repositioning on every drift made those two effects
+      // ping-pong playQueue/setLocation with stale closures until React
+      // aborted the tree with "Maximum update depth exceeded" (error #185)
+      // on any track change while /now-playing was open.
+      handledTargetRef.current = targetKey;
       const startIndex = Math.max(0, resolvedSongs.findIndex((song) => song.id === songId));
       // Settled means "playing the song this URL resolves to under this
       // context" — not "playing songId": a bad deep link (songId absent from
@@ -161,20 +181,26 @@ export function NowPlayingRoute({ user }: { user: User | null }) {
         currentSong?.id === resolvedSongs[startIndex]?.id &&
         queueContext?.type === context &&
         queueContext.id === contextId;
-      if (!alreadyPlaying) {
+      if (!alreadyPlaying && targetChanged) {
         playQueue(resolvedSongs, startIndex, false, { type: context as QueueContext['type'], id: contextId });
       }
-    } else if (songId && currentSong?.id !== songId) {
-      // Lone-track link: play just that song. If the store already holds it,
-      // reposition within the persisted queue instead of re-fetching it.
-      if (loneSongStoreIndex >= 0) {
-        playQueue(queue, loneSongStoreIndex, false, undefined);
-      } else if (songQuery.data) {
-        playQueue([songQuery.data.song], 0, false, undefined);
-      } else {
-        return;
+    } else if (songId) {
+      // Lone-track link: adopt the URL target whenever it changes; play just
+      // that song, repositioning within the persisted queue if the store
+      // already holds it instead of re-fetching it.
+      if (targetChanged) {
+        handledTargetRef.current = targetKey;
+        if (currentSong?.id !== songId) {
+          if (loneSongStoreIndex >= 0) {
+            playQueue(queue, loneSongStoreIndex, false, undefined);
+          } else if (songQuery.data) {
+            playQueue([songQuery.data.song], 0, false, undefined);
+          } else {
+            handledTargetRef.current = null;
+            return;
+          }
+        }
       }
-      return;
     }
     if (currentSong && !isGuest) openNowPlaying();
     // eslint-disable-next-line react-hooks/exhaustive-deps
