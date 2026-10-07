@@ -39,7 +39,7 @@ When a change is complete and verified (project tests/build pass), ship it — n
 1. Commit with a Conventional Commits message (see `git-commits` skill).
 2. Push `main`.
 3. If the change is user-facing, cut a release: changelog entry + annotated `v*` tag; the `release-docker.yml` workflow publishes the image to GHCR (details in [Build and Development Commands](agents/build-commands.md)).
-4. Redeploy the live stack: bump the pinned image in the (gitignored) `compose.yaml` and run `docker compose -f compose.yaml pull && docker compose -f compose.yaml up -d`, then confirm the container is healthy.
+4. Redeploy the live stack: the (gitignored) `compose.yaml` tracks `:latest`, so `docker compose -f compose.yaml pull && docker compose -f compose.yaml up -d` picks up the just-published image — then confirm the container is healthy (rollbacks pin an explicit older tag, see the operations skill).
 
 Do this by default whenever it makes sense (completed features and fixes, including small ones) — it is standing authorization, not something to ask about each time. Only hold back when the user has said not to ship or the action would be hard to undo.
 

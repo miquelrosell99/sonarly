@@ -20,8 +20,8 @@ minute on first boot of a large DB (healthcheck start_period covers it).
 
 1. Back up first (`references/backups.md`) — migrations run automatically at
    container start and are forward-only.
-2. Bump the pinned tag in the gitignored root `compose.yaml`
-   (`image: ghcr.io/miquelrosell99/sonarly:X.Y.Z`).
+2. The gitignored root `compose.yaml` tracks `ghcr.io/miquelrosell99/sonarly:latest`,
+   so pulling is enough — no tag edit.
 3. `docker compose -f compose.yaml pull && docker compose -f compose.yaml up -d`
 4. Confirm healthy (`references/health-checks.md`) + `docker logs sonarly`
    shows migrations applied (ledger `schema_migrations`).
