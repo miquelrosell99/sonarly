@@ -1,0 +1,330 @@
+{
+  "schema": "brand-identity/identity@1",
+  "brand": {
+    "name": "sonarly",
+    "tagline": "Your music. Your disk. Any client.",
+    "languages": [
+      "en"
+    ],
+    "doc_lang": "en",
+    "sector": "self-hosted music streaming and collection management",
+    "numbers": true,
+    "copy": {
+      "sentence": {
+        "en": "Sonarly indexes the music folder you already have and serves it through the OpenSubsonic API, so any Subsonic client works — and your files stay on your disk, in your folder structure, exactly where you left them."
+      },
+      "nav": [
+        "Home",
+        "Albums",
+        "Playlists",
+        "Search"
+      ],
+      "cta": "Start listening"
+    }
+  },
+  "set": {
+    "id": "C",
+    "name": "Copper Night",
+    "recommended": false,
+    "mechanism": "The listening room after midnight: the same ring and copper echo pushed deeper — a blacker ground, heavy tracked capitals — borrowing Night Sweep's drama while the copper stays the only light in the room.",
+    "expression_move": "The copper echo dot against the deepest ground of the three, under wide tracked capitals.",
+    "differs_by": "Against the competitors' corporate primaries this keeps A's unowned warm-dark + deep-copper territory; within the refinement round it is the dramatic register the other two deliberately refuse to be."
+  },
+  "axes": {
+    "warm_cool": -1,
+    "classic_contemporary": 1,
+    "quiet_loud": 1,
+    "premium_accessible": -1
+  },
+  "components": {
+    "logo": {
+      "mode": "new",
+      "status": "proposed",
+      "source": null,
+      "sha256": null
+    },
+    "type": {
+      "mode": "new",
+      "status": "proposed",
+      "source": null,
+      "sha256": null
+    },
+    "palette": {
+      "mode": "new",
+      "status": "proposed",
+      "source": null,
+      "sha256": null
+    }
+  },
+  "type": {
+    "pairing_mode": "single-family",
+    "display": {
+      "family": "Bricolage Grotesque",
+      "source": "google",
+      "license": "OFL-1.1",
+      "weights": [
+        700
+      ],
+      "location": {
+        "wght": 700,
+        "opsz": 72,
+        "wdth": 100
+      },
+      "features": [],
+      "case": "upper",
+      "tracking": 80,
+      "fallback": "system-ui, sans-serif",
+      "file": null
+    },
+    "text": {
+      "family": "Bricolage Grotesque",
+      "source": "google",
+      "license": "OFL-1.1",
+      "weights": [
+        400,
+        500
+      ],
+      "location": {
+        "wght": 400,
+        "opsz": 14,
+        "wdth": 100
+      },
+      "features": [
+        "tnum"
+      ],
+      "case": "as-is",
+      "tracking": 0,
+      "fallback": "system-ui, sans-serif",
+      "file": null
+    },
+    "mono": null
+  },
+  "logo": {
+    "type": "symbol+wordmark",
+    "concept": "The echo mark at night: same open ring and copper dot, set against a deeper black with wide heavy capitals — playback as the lit part of a dark room.",
+    "symbol": "logo/symbol.svg",
+    "wordmark": {
+      "text": "Sonarly",
+      "role": "display",
+      "location": null,
+      "tracking": 80,
+      "case": "upper"
+    },
+    "monogram": null,
+    "lockups": [
+      "horizontal",
+      "stacked"
+    ],
+    "colors": {
+      "ping": "text",
+      "echo": "accent",
+      "wordmark": "text"
+    },
+    "tags": [
+      "abstract-geometric"
+    ],
+    "clear_space": {
+      "unit": "cap-height",
+      "multiple": 1,
+      "inferred": true
+    },
+    "min_size": {
+      "px": 18,
+      "mm": 6
+    }
+  },
+  "palette": "palette.json",
+  "defaults_used": [
+    {
+      "id": "terracotta-clay",
+      "why": "Echo Copper is the echo dot of the brand's namesake mechanism (Sonarly = sonar), not a clay or craft cue: a small signal, never a wash, measured 28 CIE76 from Ampache's #f8ac4c — the only warm competitor primary — and much deeper (L* 52 vs 70)."
+    },
+    {
+      "id": "logo-circle-container",
+      "why": "The ring is the sonar ping the brand is named for, not a container: it is open (60-degree gap at 3 o'clock) and carries the echo dot at its trailing end. No competitor on the shelf uses a ring mark."
+    }
+  ],
+  "rationale": [
+    {
+      "claim": "A restrained dose of the round-1 Night Sweep direction per owner review: a deeper ground (#0E0B09 vs #17130E), uppercase Bricolage 700 tracked +80, and no second accent — the drama comes from depth and tracking, not from lime.",
+      "evidence": "judgement",
+      "source": "owner review, round 1"
+    },
+    {
+      "claim": "Copper on the deeper ground keeps a measured 3:1+ separation (L* 52.3 accent vs L* 3.2 ground), so the echo dot stays visible without glow effects.",
+      "evidence": "measured",
+      "source": "palette screen"
+    },
+    {
+      "claim": "The mark is identical to the other refinements by design: one master ring-and-dot across all three temperatures, so the family reads as one identity with three registers.",
+      "evidence": "judgement",
+      "source": "owner review, round 1"
+    }
+  ],
+  "derived": [
+    {
+      "file": "card.png",
+      "requires": [
+        "logo",
+        "type",
+        "palette"
+      ],
+      "inputs_sha256": "34229c126276f40296c916b39630b806127db257983ca163f9b6bb7b7b6cafa7"
+    }
+  ],
+  "audit": {
+    "schema": "brand-identity/audit@1",
+    "passed": true,
+    "counts": {
+      "gate": 0,
+      "warn": 3,
+      "info": 7
+    },
+    "findings": [
+      {
+        "id": "palette.contrast.light.border-on-background",
+        "component": "palette",
+        "severity": "info",
+        "measured": 1.25,
+        "threshold": 3.0,
+        "message": "light: border #e9e5e3 on background #ffffff is 1.25:1, below 3.0:1 (borders: dividers are exempt, input outlines need 3:1; WCAG 2, no rounding)",
+        "suggested_fix": {
+          "change": "modes.light.border",
+          "from": "#e9e5e3",
+          "to": "#7b7169",
+          "how": "use neutral-500 (same scale)",
+          "ratio_after": 4.76
+        },
+        "roles": [
+          "light.border",
+          "light.background"
+        ]
+      },
+      {
+        "id": "palette.contrast.dark.link-on-text",
+        "component": "palette",
+        "severity": "info",
+        "measured": 2.59,
+        "threshold": 3.0,
+        "message": "dark: link #db8342 on text #f5f3f1 is 2.59:1, below 3.0:1 (underline links in dark mode (WCAG G183: without underline a link needs 3:1 against body text); WCAG 2, no rounding)",
+        "suggested_fix": {
+          "change": "modes.dark.link",
+          "from": "#db8342",
+          "to": "#b96a2e",
+          "how": "use primary-600 (same scale)",
+          "ratio_after": 3.67
+        },
+        "roles": [
+          "dark.link",
+          "dark.text"
+        ]
+      },
+      {
+        "id": "palette.contrast.dark.border-on-background",
+        "component": "palette",
+        "severity": "info",
+        "measured": 1.9,
+        "threshold": 3.0,
+        "message": "dark: border #4a3e36 on background #0e0b09 is 1.90:1, below 3.0:1 (borders: dividers are exempt, input outlines need 3:1; WCAG 2, no rounding)",
+        "suggested_fix": {
+          "change": "modes.dark.border",
+          "from": "#4a3e36",
+          "to": "#7b7169",
+          "how": "use neutral-500 (same scale)",
+          "ratio_after": 4.12
+        },
+        "roles": [
+          "dark.border",
+          "dark.background"
+        ]
+      },
+      {
+        "id": "type.display+text.coverage.en_Latn.extended",
+        "component": "type",
+        "severity": "info",
+        "measured": "95/102",
+        "threshold": "100% auxiliary + punctuation",
+        "message": "Bricolage Grotesque lacks English auxiliary/punctuation characters: Ĕ Ĭ Ŏ ĕ ĭ ŏ ʻ",
+        "suggested_fix": "fine if the brand never writes them (loanwords, names); else another family"
+      },
+      {
+        "id": "type.display+text.confusables",
+        "component": "type",
+        "severity": "warn",
+        "measured": 0.916,
+        "threshold": "0.9 (heuristic, uncalibrated)",
+        "message": "Bricolage Grotesque: I/l look alike at small sizes (IoU 0.92 at 48 px)",
+        "suggested_fix": "no ss/cv alternates; choose another face for small text and data"
+      },
+      {
+        "id": "type.display+text.web-weight",
+        "component": "type",
+        "severity": "info",
+        "measured": 127,
+        "threshold": null,
+        "message": "Bricolage Grotesque: ~127 KB WOFF2 for the brief's characters (one variable file, all weights; estimate)",
+        "suggested_fix": null
+      },
+      {
+        "id": "logo.ids",
+        "component": "logo",
+        "severity": "info",
+        "measured": null,
+        "threshold": null,
+        "message": "symbol.svg: 1 element(s) without an id",
+        "suggested_fix": "give every primitive a semantic id so edits change one element per round"
+      },
+      {
+        "id": "logo.role-tone",
+        "component": "logo",
+        "severity": "info",
+        "measured": "#9b541c",
+        "threshold": "#0e0b09",
+        "message": "accent resolves to #9b541c (UI tone); use brand-1 for #0e0b09",
+        "suggested_fix": "data-color=\"brand-1\" (or logo.colors) for the exact brand colour",
+        "roles": [
+          "accent"
+        ]
+      },
+      {
+        "id": "cohesion.sets-close",
+        "component": "cohesion",
+        "severity": "warn",
+        "measured": [
+          "A–B",
+          "A–C",
+          "B–C"
+        ],
+        "threshold": "2 axes, 2 steps",
+        "message": "sets too alike on the axes: A–B, A–C, B–C differ by 2+ steps on fewer than 2 axes (heuristic)",
+        "suggested_fix": null
+      },
+      {
+        "id": "cohesion.no-default-free-set",
+        "component": "cohesion",
+        "severity": "warn",
+        "measured": null,
+        "threshold": null,
+        "message": "every set uses at least one AI-defaults item; build one set without any",
+        "suggested_fix": null
+      }
+    ],
+    "defaults": {
+      "matched": [
+        "terracotta-clay"
+      ]
+    }
+  },
+  "card": {
+    "ground": "dark"
+  },
+  "palette_build": {
+    "strategy": null,
+    "accent": "#b96a2e",
+    "light_bg": null,
+    "dark_bg": "#0e0b09",
+    "neutral_tint": null,
+    "neutral_chroma": null,
+    "extra": []
+  }
+}

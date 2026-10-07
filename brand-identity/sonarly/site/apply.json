@@ -1,0 +1,173 @@
+{
+  "schema": "brand-identity/site-apply@1",
+  "createdAt": "2026-10-07T13:45:09+00:00",
+  "source": "site",
+  "url": "https://github.com/miquelrosell99/sonarly",
+  "current": {
+    "desktop": "site/current/desktop.png",
+    "mobile": "site/current/mobile.png",
+    "full": "site/current/full.png",
+    "header": "site/current/header.png",
+    "desktop-dark": "site/current/desktop-dark.png",
+    "mobile-dark": "site/current/mobile-dark.png",
+    "full-dark": "site/current/full-dark.png"
+  },
+  "sets": {
+    "A": {
+      "name": "Copper Echo",
+      "dir": "site/a-copper-echo",
+      "shots": {
+        "desktop": "site/a-copper-echo/desktop.png",
+        "mobile": "site/a-copper-echo/mobile.png",
+        "full": "site/a-copper-echo/full.png",
+        "header": "site/a-copper-echo/header.png"
+      },
+      "layoutStress": {
+        "desktop": 11,
+        "mobile": 4
+      },
+      "fontsLoaded": true,
+      "logo": {
+        "desktop": "full-color-dark.svg",
+        "mobile": "full-color-dark.svg"
+      },
+      "notes": [],
+      "findings": [
+        {
+          "id": "site-layout-stress",
+          "component": "site",
+          "severity": "warn",
+          "measured": {
+            "desktop": 11,
+            "mobile": 4
+          },
+          "threshold": 0,
+          "message": "15 element(s) (desktop + mobile) overflow or gain lines with the new faces/logo (heuristic, uncalibrated): div \"\" overflows; div \"\" overflows; div \"\" overflows",
+          "suggested_fix": "look at the screenshots; x-height is already matched with size-adjust, so this is the face's width - consider a narrower text face or a looser site layout"
+        },
+        {
+          "id": "site-logo-small-desktop",
+          "component": "site",
+          "severity": "info",
+          "measured": 0.25,
+          "threshold": 0.5,
+          "message": "desktop: the logo fills 25% of the site's logo box (aspect mismatch; heuristic)",
+          "suggested_fix": "a symbol or stacked variant in logo/build/ fits a square slot"
+        },
+        {
+          "id": "site-logo-small-mobile",
+          "component": "site",
+          "severity": "info",
+          "measured": 0.25,
+          "threshold": 0.5,
+          "message": "mobile: the logo fills 25% of the site's logo box (aspect mismatch; heuristic)",
+          "suggested_fix": "a symbol or stacked variant in logo/build/ fits a square slot"
+        }
+      ]
+    },
+    "B": {
+      "name": "Signal Archive",
+      "dir": "site/b-signal-archive",
+      "shots": {
+        "desktop": "site/b-signal-archive/desktop.png",
+        "mobile": "site/b-signal-archive/mobile.png",
+        "full": "site/b-signal-archive/full.png",
+        "header": "site/b-signal-archive/header.png"
+      },
+      "layoutStress": {
+        "desktop": 27,
+        "mobile": 4
+      },
+      "fontsLoaded": true,
+      "logo": {
+        "desktop": "full-color-dark.svg",
+        "mobile": "full-color-dark.svg"
+      },
+      "notes": [],
+      "findings": [
+        {
+          "id": "site-layout-stress",
+          "component": "site",
+          "severity": "warn",
+          "measured": {
+            "desktop": 27,
+            "mobile": 4
+          },
+          "threshold": 0,
+          "message": "31 element(s) (desktop + mobile) overflow or gain lines with the new faces/logo (heuristic, uncalibrated): tbody \"\" overflows; tr \"\" overflows; td \"\" overflows",
+          "suggested_fix": "look at the screenshots; x-height is already matched with size-adjust, so this is the face's width - consider a narrower text face or a looser site layout"
+        },
+        {
+          "id": "site-logo-small-desktop",
+          "component": "site",
+          "severity": "info",
+          "measured": 0.26,
+          "threshold": 0.5,
+          "message": "desktop: the logo fills 26% of the site's logo box (aspect mismatch; heuristic)",
+          "suggested_fix": "a symbol or stacked variant in logo/build/ fits a square slot"
+        },
+        {
+          "id": "site-logo-small-mobile",
+          "component": "site",
+          "severity": "info",
+          "measured": 0.26,
+          "threshold": 0.5,
+          "message": "mobile: the logo fills 26% of the site's logo box (aspect mismatch; heuristic)",
+          "suggested_fix": "a symbol or stacked variant in logo/build/ fits a square slot"
+        }
+      ]
+    },
+    "C": {
+      "name": "Copper Night",
+      "dir": "site/c-copper-night",
+      "shots": {
+        "desktop": "site/c-copper-night/desktop.png",
+        "mobile": "site/c-copper-night/mobile.png",
+        "full": "site/c-copper-night/full.png",
+        "header": "site/c-copper-night/header.png"
+      },
+      "layoutStress": {
+        "desktop": 11,
+        "mobile": 4
+      },
+      "fontsLoaded": true,
+      "logo": {
+        "desktop": "full-color-dark.svg",
+        "mobile": "full-color-dark.svg"
+      },
+      "notes": [],
+      "findings": [
+        {
+          "id": "site-layout-stress",
+          "component": "site",
+          "severity": "warn",
+          "measured": {
+            "desktop": 11,
+            "mobile": 4
+          },
+          "threshold": 0,
+          "message": "15 element(s) (desktop + mobile) overflow or gain lines with the new faces/logo (heuristic, uncalibrated): div \"\" overflows; div \"\" overflows; div \"\" overflows",
+          "suggested_fix": "look at the screenshots; x-height is already matched with size-adjust, so this is the face's width - consider a narrower text face or a looser site layout"
+        },
+        {
+          "id": "site-logo-small-desktop",
+          "component": "site",
+          "severity": "info",
+          "measured": 0.17,
+          "threshold": 0.5,
+          "message": "desktop: the logo fills 17% of the site's logo box (aspect mismatch; heuristic)",
+          "suggested_fix": "a symbol or stacked variant in logo/build/ fits a square slot"
+        },
+        {
+          "id": "site-logo-small-mobile",
+          "component": "site",
+          "severity": "info",
+          "measured": 0.17,
+          "threshold": 0.5,
+          "message": "mobile: the logo fills 17% of the site's logo box (aspect mismatch; heuristic)",
+          "suggested_fix": "a symbol or stacked variant in logo/build/ fits a square slot"
+        }
+      ]
+    }
+  }
+}
