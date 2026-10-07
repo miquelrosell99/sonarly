@@ -9,3 +9,8 @@
 - **Test commands:** `cd server && go test ./... -count=1` (server), `pnpm test` (web)
 - **Build commands:** `pnpm -r build` (web), `go build ./...` in `server/` (server)
 - **Database:** SQLite via `modernc.org/sqlite`, migrations in `server/internal/db/migrations/` (ledger: `schema_migrations`)
+- **Debugging a production web crash:**
+  1. `docker compose -f compose.yaml logs | grep "client error report"` — the app POSTs uncaught client errors to the server; the report includes the route and the minified stack.
+  2. `curl -s localhost:4534 | grep -o 'index-[^"]*\.js'` — the served entry-chunk hash is content-derived; compare against `web/dist/assets/` to identify the exact build (a matching local `pnpm -r build` reproduces the deployed bundle byte-for-byte).
+  3. Reproduce against a throwaway instance with readable errors: run the `ghcr.io/.../sonarly:latest` image on a free port (see `scripts/screenshots/run.sh` for the env it needs), point a vite dev server at it (temp config overriding `server.proxy` to the throwaway port), and drive it with Playwright (`scripts/screenshots/node_modules`). Seed persisted stores (`sonarly-player` localStorage shape: `{state: {queue, queueIndex, shuffle, shuffledIndices, …}, version: 1}`) via `addInitScript` to mirror a user's browser profile.
+  4. Need real catalog data? Copy the live DB with python's sqlite3 backup API into the throwaway (read-only open → `.backup`), then forge a session: insert a row into `sessions` (`sess` = `{"userId","username","isAdmin"}` JSON, ISO `expire`) and set the `sessionId` cookie to `<sid>.<base64url(HMAC-SHA256(sid, SESSION_SECRET))>` — the throwaway's own secret works, no production secret needed. Never point the throwaway's writes at the real DB directory.
