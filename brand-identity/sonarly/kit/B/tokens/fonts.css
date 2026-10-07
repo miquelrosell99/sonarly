@@ -1,0 +1,13 @@
+:root {
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-display-weight: 600;
+  --font-display-tracking: -0.010em;
+  --font-display-variation: "opsz" 72, "wdth" 100;
+  --font-text: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-text-weight: 400;
+  --font-text-tracking: 0.000em;
+  --font-text-variation: "opsz" 14, "wdth" 100;
+  --font-mono: "IBM Plex Mono", 'Courier New', monospace;
+  --font-mono-weight: 400;
+  --font-mono-tracking: 0.000em;
+}
