@@ -123,6 +123,16 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
         .map((item) => item.id),
     );
   }, [autoDjEnabled, windowed, displayItems]);
+  // Windowed queues lose the grouped Auto-DJ section (grouping cannot
+  // survive windowing) — a bar above the list carries the same label and
+  // refresh/tune controls instead.
+  const djPickCount = useMemo(
+    () =>
+      autoDjEnabled
+        ? displayItems.filter((item) => item.status === 'future' && item.song.addedByAutoDj).length
+        : 0,
+    [autoDjEnabled, displayItems],
+  );
   const futureCount = useMemo(
     () => displayItems.filter((item) => item.status === 'future').length,
     [displayItems],
@@ -312,12 +322,12 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
     );
   };
 
-  const renderDjGroupHeader = (_key: string, groupItems: QueueDisplayItem[]) => (
+  const renderDjControls = (count: number) => (
     <span className="flex items-center justify-between gap-2 py-1">
       <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent">
         <AutoDjLiveDot />
         Up next — Auto-DJ
-        <span className="text-muted">· {groupItems.length}</span>
+        <span className="text-muted">· {count}</span>
       </span>
       <span className="flex items-center gap-1">
         <button
@@ -343,6 +353,9 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
       </span>
     </span>
   );
+
+  const renderDjGroupHeader = (_key: string, groupItems: QueueDisplayItem[]) =>
+    renderDjControls(groupItems.length);
 
   if (queue.length === 0) {
     return (
@@ -410,6 +423,9 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
         )}
       </div>
       <div className="min-h-0 flex-1">
+        {windowed && autoDjEnabled && djPickCount > 0 && (
+          <div className="shrink-0 border-b border-rule/50 px-1">{renderDjControls(djPickCount)}</div>
+        )}
         <LibraryView<QueueDisplayItem>
           title={showHeader ? (title ?? 'Up next') : undefined}
           data={items}

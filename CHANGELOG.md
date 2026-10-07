@@ -5,6 +5,12 @@ All notable changes to Sonarly are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.9] - 2026-10-07
+
+### Fixed
+
+- **Auto-DJ controls on huge queues**: windowed queues (over 500 items) lost the grouped Auto-DJ section header, which was the only home of the "fresh suggestions" refresh and Auto-DJ tune controls. A compact bar above the list now carries the same label, count, and controls whenever Auto-DJ is active — for both windowed and grouped queues (one shared renderer).
+
 ## [2.3.8] - 2026-10-07
 
 ### Fixed
@@ -234,7 +240,8 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.3.8...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.3.9...HEAD
+[2.3.9]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.9
 [2.3.8]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.8
 [2.3.7]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.7
 [2.3.6]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.6
