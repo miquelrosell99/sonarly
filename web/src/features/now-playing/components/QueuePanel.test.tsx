@@ -149,6 +149,21 @@ describe('QueuePanel', () => {
     expect(dragHandles).toHaveLength(2);
   });
 
+  it('windows very large queues instead of mounting every row', () => {
+    // A whole-library shuffle produces a multi-thousand-row queue; mounting
+    // all of it (required by drag-reorder) stalls the panel for seconds.
+    const songs = Array.from({ length: 600 }, (_, i) => ({ id: `s${i}`, title: `Song ${i}` }));
+    usePlayer.getState().playQueue(songs as any, 0);
+
+    const { container } = render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+    // Reorder is disabled at this scale: it needs every row mounted.
+    expect(screen.queryByRole('button', { name: /drag to reorder/i })).toBeFalsy();
+    const rows = container.querySelectorAll('tbody tr:not([aria-hidden="true"])');
+    expect(rows.length).toBeLessThan(100);
+    expect(screen.getByText('Song 0')).toBeTruthy();
+    expect(screen.queryByText('Song 599')).toBeFalsy();
+  });
+
   it('styles past, current, and future songs differently', () => {
     usePlayer.getState().playQueue([
       { id: 's1', title: 'Past' } as any,

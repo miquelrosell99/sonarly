@@ -30,6 +30,13 @@ interface QueueDisplayItem {
 
 const AUTO_DJ_GROUP_KEY = 'auto-dj';
 
+// Drag-reorder and the Auto-DJ section header need every row mounted, which
+// makes a whole-library-shuffle queue (thousands of rows) take seconds to
+// open. Past this size the queue switches to the windowed renderer:
+// dragging across thousands of rows is impractical anyway, and Auto-DJ picks
+// keep their per-row badge instead of the section header.
+const QUEUE_FULL_RENDER_LIMIT = 500;
+
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
   const mins = Math.floor(seconds / 60);
@@ -104,15 +111,18 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
 
   // While Auto DJ is active, upcoming DJ picks render as their own section.
   // Items stay in the single player queue (drag/reorder semantics unchanged);
-  // grouping only labels the contiguous run — usually the queue tail.
+  // grouping only labels the contiguous run — usually the queue tail. Large
+  // queues skip the section (windowed rows can't group) — the per-row badge
+  // labels DJ picks instead.
+  const windowed = displayItems.length > QUEUE_FULL_RENDER_LIMIT;
   const djSectionIds = useMemo(() => {
-    if (!autoDjEnabled) return new Set<string>();
+    if (!autoDjEnabled || windowed) return new Set<string>();
     return new Set(
       displayItems
         .filter((item) => item.status === 'future' && item.song.addedByAutoDj)
         .map((item) => item.id),
     );
-  }, [autoDjEnabled, displayItems]);
+  }, [autoDjEnabled, windowed, displayItems]);
   const futureCount = useMemo(
     () => displayItems.filter((item) => item.status === 'future').length,
     [displayItems],
@@ -414,11 +424,11 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
           defaultView="list"
           playingId={currentSong ? `${currentSong.id}-${queueIndex}` : undefined}
           emptyMessage="The queue is empty."
-          sortable
-          onReorder={handleReorder}
+          sortable={!windowed}
+          onReorder={windowed ? undefined : handleReorder}
           getRowClassName={getRowClassName}
-          groupBy={autoDjEnabled ? (item) => (djSectionIds.has(item.id) ? AUTO_DJ_GROUP_KEY : '') : undefined}
-          renderGroupHeader={autoDjEnabled ? renderDjGroupHeader : undefined}
+          groupBy={autoDjEnabled && !windowed ? (item) => (djSectionIds.has(item.id) ? AUTO_DJ_GROUP_KEY : '') : undefined}
+          renderGroupHeader={autoDjEnabled && !windowed ? renderDjGroupHeader : undefined}
         />
       </div>
       {futureCount === 0 && autoDjEnabled && (
