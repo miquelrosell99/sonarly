@@ -1,0 +1,343 @@
+{
+  "schema": "brand-identity/identity@1",
+  "brand": {
+    "name": "sonarly",
+    "tagline": "Your music. Your disk. Any client.",
+    "languages": [
+      "en"
+    ],
+    "doc_lang": "en",
+    "sector": "self-hosted music streaming and collection management",
+    "numbers": true,
+    "copy": {
+      "sentence": {
+        "en": "Sonarly indexes the music folder you already have and serves it through the OpenSubsonic API, so any Subsonic client works — and your files stay on your disk, in your folder structure, exactly where you left them."
+      },
+      "nav": [
+        "Home",
+        "Albums",
+        "Playlists",
+        "Search"
+      ],
+      "cta": "Start listening"
+    }
+  },
+  "set": {
+    "id": "B",
+    "name": "Catalogue Card",
+    "recommended": false,
+    "mechanism": "The collector's catalogue card: the wordmark sits on a ruled shelf line, the type is catalogue ink and slab, and one date-stamp red marks what matters — paper, ink, stamp.",
+    "expression_move": "The stamp-red shelf rule under the wordmark, repeated as the only divider.",
+    "differs_by": "All four competitors are dark tech products in neutral sans; this is the only light, archival direction on the shelf — it reads as the collection itself, not a streaming startup."
+  },
+  "axes": {
+    "warm_cool": -2,
+    "classic_contemporary": -2,
+    "quiet_loud": -1,
+    "premium_accessible": 1
+  },
+  "components": {
+    "logo": {
+      "mode": "new",
+      "status": "proposed",
+      "source": null,
+      "sha256": null
+    },
+    "type": {
+      "mode": "new",
+      "status": "proposed",
+      "source": null,
+      "sha256": null
+    },
+    "palette": {
+      "mode": "new",
+      "status": "proposed",
+      "source": null,
+      "sha256": null
+    }
+  },
+  "type": {
+    "pairing_mode": "data-face",
+    "display": {
+      "family": "Zilla Slab",
+      "source": "google",
+      "license": "OFL-1.1",
+      "weights": [
+        500,
+        600
+      ],
+      "location": {},
+      "features": [],
+      "case": "as-is",
+      "tracking": -5,
+      "fallback": "Rockwell, Georgia, serif",
+      "file": null
+    },
+    "text": {
+      "family": "Public Sans",
+      "source": "google",
+      "license": "OFL-1.1",
+      "weights": [
+        400,
+        500,
+        600
+      ],
+      "location": {
+        "wght": 400
+      },
+      "features": [
+        "tnum"
+      ],
+      "case": "as-is",
+      "tracking": 0,
+      "fallback": "system-ui, sans-serif",
+      "file": null
+    },
+    "mono": {
+      "family": "IBM Plex Mono",
+      "source": "google",
+      "license": "OFL-1.1",
+      "weights": [
+        400,
+        500
+      ],
+      "location": {},
+      "features": [],
+      "case": "as-is",
+      "tracking": 0,
+      "fallback": "'Courier New', monospace",
+      "file": null
+    }
+  },
+  "logo": {
+    "type": "wordmark",
+    "concept": "The name entered in the catalogue and set on its shelf: a slab wordmark, one red shelf rule, and a small S-on-the-rule mark for tabs and favicons.",
+    "symbol": null,
+    "wordmark": {
+      "text": "Sonarly",
+      "role": "display",
+      "location": null,
+      "tracking": -5,
+      "case": "as-is"
+    },
+    "monogram": null,
+    "lockups": [
+      "horizontal"
+    ],
+    "colors": {
+      "wordmark": "primary",
+      "shelf-rule": "accent",
+      "small-mark": "primary"
+    },
+    "defect": "Shelf rule was a guessed 440 units wide and stopped under the l, before the y; set to the full 506-unit advance so the word sits fully on its shelf.",
+    "tags": [],
+    "clear_space": {
+      "unit": "cap-height",
+      "multiple": 1,
+      "inferred": true
+    },
+    "min_size": {
+      "px": 16,
+      "mm": 6
+    }
+  },
+  "palette": "palette.json",
+  "defaults_used": [
+    {
+      "id": "terracotta-clay",
+      "why": "Date-Stamp Red is a saturated library date-stamp red for small marks, not a clay or material cue: its job is the stamp, its chroma (OKLCH C 0.077) sits just under the terracotta band, and it is CIE76 52+ from every measured competitor primary."
+    }
+  ],
+  "rationale": [
+    {
+      "claim": "No competitor presents a light, archival direction; all four measured sites read as dark or white-techy products, so the catalogue card stands apart by ground alone.",
+      "evidence": "measured",
+      "source": "site/competitors.json"
+    },
+    {
+      "claim": "Date-Stamp Red #C1342B is a saturated stamp red (OKLCH C 0.077, just under the terracotta band) and CIE76 52+ from every measured competitor primary.",
+      "evidence": "measured",
+      "source": "palette screen vs site/competitors.json"
+    },
+    {
+      "claim": "Zilla Slab gives the catalogue a print voice, IBM Plex Mono handles figures and codes, and Public Sans keeps UI reading neutral; each family has one role.",
+      "evidence": "judgement"
+    },
+    {
+      "claim": "The shelf rule under the wordmark is the set's one loud move; every other element stays quiet so the rule can repeat as the system's only divider.",
+      "evidence": "practice"
+    }
+  ],
+  "derived": [
+    {
+      "file": "card.png",
+      "requires": [
+        "logo",
+        "type",
+        "palette"
+      ],
+      "inputs_sha256": "66064a98c616d2f08c0d71b7ababaeb6967fa2146d350901b2edce42a421b7bc"
+    }
+  ],
+  "audit": {
+    "schema": "brand-identity/audit@1",
+    "passed": true,
+    "counts": {
+      "gate": 0,
+      "warn": 1,
+      "info": 10
+    },
+    "findings": [
+      {
+        "id": "palette.contrast.light.border-on-background",
+        "component": "palette",
+        "severity": "info",
+        "measured": 1.36,
+        "threshold": 3.0,
+        "message": "light: border #cfd2cd on background #f1f2f0 is 1.36:1, below 3.0:1 (borders: dividers are exempt, input outlines need 3:1; WCAG 2, no rounding)",
+        "suggested_fix": {
+          "change": "modes.light.border",
+          "from": "#cfd2cd",
+          "to": "#898c87",
+          "how": "darken by OKLCH L -0.22, same hue",
+          "ratio_after": 3.03
+        },
+        "roles": [
+          "light.border",
+          "light.background"
+        ]
+      },
+      {
+        "id": "palette.contrast.dark.link-on-text",
+        "component": "palette",
+        "severity": "info",
+        "measured": 2.54,
+        "threshold": 3.0,
+        "message": "dark: link #ea796b on text #f3f3f3 is 2.54:1, below 3.0:1 (underline links in dark mode (WCAG G183: without underline a link needs 3:1 against body text); WCAG 2, no rounding)",
+        "suggested_fix": {
+          "change": "modes.dark.link",
+          "from": "#ea796b",
+          "to": "#e24439",
+          "how": "use accent-600 (same scale)",
+          "ratio_after": 3.7
+        },
+        "roles": [
+          "dark.link",
+          "dark.text"
+        ]
+      },
+      {
+        "id": "palette.contrast.dark.border-on-background",
+        "component": "palette",
+        "severity": "info",
+        "measured": 1.88,
+        "threshold": 3.0,
+        "message": "dark: border #414141 on background #0f0f0f is 1.88:1, below 3.0:1 (borders: dividers are exempt, input outlines need 3:1; WCAG 2, no rounding)",
+        "suggested_fix": {
+          "change": "modes.dark.border",
+          "from": "#414141",
+          "to": "#737373",
+          "how": "use neutral-500 (same scale)",
+          "ratio_after": 4.04
+        },
+        "roles": [
+          "dark.border",
+          "dark.background"
+        ]
+      },
+      {
+        "id": "palette.harmony.primary-accent",
+        "component": "palette",
+        "severity": "info",
+        "measured": -0.63,
+        "threshold": -0.3,
+        "message": "Ou-Luo two-colour model scores #1c1917 + #c1342b at -0.63 (negative = less harmonious on a grey CRT test, no context): model signal only; the pairing table in references/pairing.md takes precedence",
+        "suggested_fix": null,
+        "roles": [
+          "light.primary",
+          "light.accent"
+        ]
+      },
+      {
+        "id": "type.display.coverage.en_Latn.extended",
+        "component": "type",
+        "severity": "info",
+        "measured": "101/102",
+        "threshold": "100% auxiliary + punctuation",
+        "message": "Zilla Slab lacks English auxiliary/punctuation characters: ʻ",
+        "suggested_fix": "fine if the brand never writes them (loanwords, names); else another family"
+      },
+      {
+        "id": "type.display.coverage.gf-latin-core",
+        "component": "type",
+        "severity": "info",
+        "measured": "304/319",
+        "threshold": "GF Latin Core",
+        "message": "Zilla Slab misses 15/319 GF Latin Core codepoints (reach beyond the brief's languages)",
+        "suggested_fix": "matters only if the brand may add more Latin-script languages"
+      },
+      {
+        "id": "type.display.web-weight",
+        "component": "type",
+        "severity": "info",
+        "measured": 33,
+        "threshold": null,
+        "message": "Zilla Slab: ~33 KB WOFF2 for the brief's characters (per weight file; estimate)",
+        "suggested_fix": null
+      },
+      {
+        "id": "type.text.coverage.gf-latin-core",
+        "component": "type",
+        "severity": "info",
+        "measured": "318/319",
+        "threshold": "GF Latin Core",
+        "message": "Public Sans misses 1/319 GF Latin Core codepoints (reach beyond the brief's languages)",
+        "suggested_fix": "matters only if the brand may add more Latin-script languages"
+      },
+      {
+        "id": "type.text.web-weight",
+        "component": "type",
+        "severity": "info",
+        "measured": 21,
+        "threshold": null,
+        "message": "Public Sans: ~21 KB WOFF2 for the brief's characters (one variable file, all weights; estimate)",
+        "suggested_fix": null
+      },
+      {
+        "id": "type.mono.web-weight",
+        "component": "type",
+        "severity": "info",
+        "measured": 12,
+        "threshold": null,
+        "message": "IBM Plex Mono: ~12 KB WOFF2 for the brief's characters (per weight file; estimate)",
+        "suggested_fix": null
+      },
+      {
+        "id": "logo.small-size",
+        "component": "logo",
+        "severity": "warn",
+        "measured": {
+          "stroke_px2": 0.03,
+          "gap_px2": 2.46
+        },
+        "threshold": "1 px (raster erosion test, heuristic, uncalibrated)",
+        "message": "symbol-small at 16 px: features narrower than 1 px (lost 0.03 px², clogged 2.46 px²)",
+        "suggested_fix": "add or simplify symbol-small.svg: fewer, bolder parts"
+      }
+    ],
+    "defaults": {
+      "matched": [
+        "terracotta-clay"
+      ]
+    }
+  },
+  "palette_build": {
+    "strategy": null,
+    "accent": "#c1342b",
+    "light_bg": "#f1f2f0",
+    "dark_bg": null,
+    "neutral_tint": null,
+    "neutral_chroma": null,
+    "extra": []
+  }
+}

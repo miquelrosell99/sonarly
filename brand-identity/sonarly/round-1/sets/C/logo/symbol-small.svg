@@ -1,0 +1,1 @@
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path id='beam' fill-rule='evenodd' data-color='accent' d='M 50 90 A 40 40 0 0 0 90 50 L 74 50 A 24 24 0 0 1 50 74 Z'/><circle id='hit' cx='86' cy='50' r='10' data-color='accent'/></svg>

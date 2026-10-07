@@ -1,0 +1,44 @@
+{
+  "schema": "brand-identity/brief@1",
+  "brand": "sonarly",
+  "tagline": "Your music. Your disk. Any client.",
+  "site": "https://github.com/miquelrosell99/sonarly",
+  "languages": [
+    "en"
+  ],
+  "doc_lang": "en",
+  "numbers": true,
+  "components": {
+    "logo": "new",
+    "type": "new",
+    "palette": "new"
+  },
+  "sources": {},
+  "sets": 3,
+  "sector": "self-hosted music streaming and collection management",
+  "audience": "self-hosters and digital music collectors who want their own library to feel like a premium streaming service",
+  "attributes": [
+    "collector-grade",
+    "trustworthy",
+    "calm"
+  ],
+  "competitors": [
+    "Navidrome",
+    "Jellyfin",
+    "Plex",
+    "Ampache"
+  ],
+  "axes": [],
+  "copy": {
+    "sentence": {
+      "en": "Sonarly indexes the music folder you already have and serves it through the OpenSubsonic API, so any Subsonic client works — and your files stay on your disk, in your folder structure, exactly where you left them."
+    },
+    "nav": [
+      "Home",
+      "Albums",
+      "Playlists",
+      "Search"
+    ],
+    "cta": "Start listening"
+  }
+}

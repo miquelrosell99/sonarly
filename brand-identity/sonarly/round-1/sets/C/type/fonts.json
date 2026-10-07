@@ -1,0 +1,27 @@
+{
+  "display": {
+    "family": "Funnel Display",
+    "file": "/root/.cache/brand-identity/fonts/instances/FunnelDisplay-146b967c96fae7c6.ttf",
+    "location": {
+      "wght": 400
+    },
+    "weights": [
+      400,
+      700
+    ],
+    "features": []
+  },
+  "text": {
+    "family": "IBM Plex Sans",
+    "file": "/root/.cache/brand-identity/fonts/instances/IBMPlexSans-11eadf23676df83c.ttf",
+    "location": {
+      "wght": 400
+    },
+    "weights": [
+      400,
+      500,
+      600
+    ],
+    "features": []
+  }
+}

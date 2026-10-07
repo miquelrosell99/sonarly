@@ -1,0 +1,497 @@
+{
+  "schema": "brand-identity/sets@1",
+  "sets": [
+    {
+      "identity": {
+        "set": {
+          "id": "A",
+          "name": "Copper Echo",
+          "recommended": false,
+          "mechanism": "The sonar ping that returns your own signal: one thin ring sweeps out and a single copper dot comes back — an index that answers with your collection. A warm dark room for listening, paired with a restrained warm off-white light surface so the product stays software.",
+          "expression_move": "The copper echo dot is the only saturated moment; everything else is near-black, bone or paper.",
+          "differs_by": "Every competitor pairs a neutral sans with a corporate primary (Navidrome blue, Jellyfin cyan, Plex magenta, Ampache orange); this is the only warm dark room with a single deep-copper signal, now with a light surface that belongs to the same environment."
+        },
+        "axes": {
+          "warm_cool": -1,
+          "classic_contemporary": 1,
+          "quiet_loud": -2,
+          "premium_accessible": -2
+        },
+        "card": {
+          "ground": "dark"
+        },
+        "type": {
+          "pairing_mode": "single-family",
+          "display": {
+            "family": "Bricolage Grotesque",
+            "source": "google",
+            "license": "OFL-1.1",
+            "weights": [600],
+            "location": {"wght": 600, "opsz": 72, "wdth": 100},
+            "features": [],
+            "case": "lower",
+            "tracking": -10,
+            "fallback": "system-ui, sans-serif",
+            "file": null
+          },
+          "text": {
+            "family": "Bricolage Grotesque",
+            "source": "google",
+            "license": "OFL-1.1",
+            "weights": [400, 500],
+            "location": {"wght": 400, "opsz": 14, "wdth": 100},
+            "features": ["tnum"],
+            "case": "as-is",
+            "tracking": 0,
+            "fallback": "system-ui, sans-serif",
+            "file": null
+          },
+          "mono": null
+        },
+        "logo": {
+          "type": "symbol+wordmark",
+          "concept": "A sonar sweep and its echo, nothing more: an open ring and one copper dot. The mark is kept to two primitives so it survives every size and becomes the interface's signal language.",
+          "symbol": "logo/symbol.svg",
+          "wordmark": {
+            "text": "Sonarly",
+            "role": "display",
+            "location": null,
+            "tracking": -10,
+            "case": "lower"
+          },
+          "monogram": null,
+          "lockups": ["horizontal", "stacked"],
+          "colors": {
+            "ping": "text",
+            "echo": "accent",
+            "wordmark": "text"
+          },
+          "tags": ["abstract-geometric"],
+          "clear_space": {
+            "unit": "cap-height",
+            "multiple": 1,
+            "inferred": true
+          },
+          "min_size": {
+            "px": 18,
+            "mm": 6
+          }
+        },
+        "palette_build": {
+          "strategy": null,
+          "accent": "#b96a2e",
+          "light_bg": "#f5f2eb",
+          "dark_bg": "#17130e",
+          "neutral_tint": null,
+          "neutral_chroma": null,
+          "extra": []
+        },
+        "defaults_used": [
+          {
+            "id": "terracotta-clay",
+            "why": "Echo Copper is the echo dot of the brand's namesake mechanism (Sonarly = sonar), not a clay or craft cue: a small signal, never a wash, measured 28 CIE76 from Ampache's #f8ac4c — the only warm competitor primary — and much deeper (L* 52 vs 70)."
+          },
+          {
+            "id": "logo-circle-container",
+            "why": "The ring is the sonar ping the brand is named for, not a container: it is open (60-degree gap at 3 o'clock) and carries the echo dot at its trailing end. No competitor on the shelf uses a ring mark."
+          },
+          {
+            "id": "cream-ground",
+            "why": "Owner direction from the round-1 review: the light UI surface is deliberately a restrained warm off-white so the product keeps a light mode that belongs to the same environment as the warm dark ground. It is a UI surface, not a brand wash, and no competitor on the measured shelf uses a warm neutral."
+          }
+        ],
+        "rationale": [
+          {
+            "claim": "The light surface moved from pure white to a warm off-white (#F5F2EB) at owner direction, so the system reads as software with a warm dark mode rather than an all-dark product drifting toward retro hi-fi.",
+            "evidence": "judgement",
+            "source": "owner review, round 1"
+          },
+          {
+            "claim": "Echo Copper #B96A2E (L* 52.3) sits 28 CIE76 from Ampache's #f8ac4c and 35 from Plex's brand yellow — clear of the near-colour rule — and stays a small signal on both grounds.",
+            "evidence": "measured",
+            "source": "palette screen vs site/competitors.json"
+          },
+          {
+            "claim": "Bricolage Grotesque carries display and text in one variable file (~126 KB); its I/l IoU 0.92 warning applies at small text sizes and is a known trade-off of the quirky cut.",
+            "evidence": "measured",
+            "source": "fonts audit"
+          },
+          {
+            "claim": "The mark is kept to two primitives (open ring + dot) per owner direction: it must survive 16 px and become the interface's signal language rather than a decorated logo.",
+            "evidence": "judgement",
+            "source": "owner review, round 1"
+          }
+        ]
+      },
+      "palette": {
+        "schema": "brand-identity/palette@1",
+        "name": "Copper Echo",
+        "direction": "A warm listening-room black, a restrained warm off-white light surface, one deep-copper signal.",
+        "brand": [
+          {
+            "id": "brand-1",
+            "name": "Room Black",
+            "hex": "#17130e",
+            "source": "chosen",
+            "locked": true,
+            "usage": "the dark ground: app chrome, cards, the room around the artwork",
+            "print": {
+              "lab_d50": [6.1, 0.8, 3.3],
+              "cmyk": null,
+              "pantone_ref": null
+            }
+          },
+          {
+            "id": "brand-2",
+            "name": "Echo Copper",
+            "hex": "#b96a2e",
+            "source": "chosen",
+            "locked": true,
+            "usage": "the echo dot, play state, calls to action — small signals only",
+            "print": {
+              "lab_d50": [52.3, 23.2, 38.1],
+              "cmyk": null,
+              "pantone_ref": null
+            }
+          }
+        ],
+        "feels": ["listening", "warm", "precise"]
+      },
+      "symbol_svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g id='ping' data-color='text'><path fill-rule='evenodd' d='M 88.1 28.0 A 44 44 0 1 0 88.1 72.0 L 82.9 69.0 A 38 38 0 1 1 82.9 31.0 Z'/></g><circle id='echo' cx='85.5' cy='70.5' r='8.5' data-color='accent'/></svg>",
+      "symbol_small_svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path id='ping' fill-rule='evenodd' data-color='text' d='M 10 50 A 40 40 0 0 0 50 90 L 50 82 A 32 32 0 0 1 18 50 Z'/><circle id='echo' cx='50' cy='87' r='11' data-color='accent'/></svg>",
+      "wordmark_detail_svg": null
+    },
+    {
+      "identity": {
+        "set": {
+          "id": "B",
+          "name": "Signal Archive",
+          "recommended": true,
+          "mechanism": "Your catalogue, found by a signal: the same open ring sweeps a thin copper catalogue line and lands on one item — A's sonar echo disciplined by editorial indexing; two typefaces, paper warmth, one controlled signal.",
+          "expression_move": "One thin copper catalogue rule under the wordmark, repeated as the system's only divider.",
+          "differs_by": "Keeps A's unowned warm-dark + deep-copper territory against the competitors' corporate primaries, and is the only refinement with a true light archival surface — no competitor on the shelf reads as warm paper and copper."
+        },
+        "axes": {
+          "warm_cool": -1,
+          "classic_contemporary": 0,
+          "quiet_loud": -1,
+          "premium_accessible": 0
+        },
+        "type": {
+          "pairing_mode": "data-face",
+          "display": {
+            "family": "Bricolage Grotesque",
+            "source": "google",
+            "license": "OFL-1.1",
+            "weights": [600],
+            "location": {"wght": 600, "opsz": 72, "wdth": 100},
+            "features": [],
+            "case": "lower",
+            "tracking": -10,
+            "fallback": "system-ui, sans-serif",
+            "file": null
+          },
+          "text": {
+            "family": "Bricolage Grotesque",
+            "source": "google",
+            "license": "OFL-1.1",
+            "weights": [400, 500],
+            "location": {"wght": 400, "opsz": 14, "wdth": 100},
+            "features": ["tnum"],
+            "case": "as-is",
+            "tracking": 0,
+            "fallback": "system-ui, sans-serif",
+            "file": null
+          },
+          "mono": {
+            "family": "IBM Plex Mono",
+            "source": "google",
+            "license": "OFL-1.1",
+            "weights": [400, 500],
+            "location": {},
+            "features": [],
+            "case": "as-is",
+            "tracking": 0,
+            "fallback": "'Courier New', monospace",
+            "file": null
+          }
+        },
+        "logo": {
+          "type": "symbol+wordmark",
+          "concept": "The echo mark set on its catalogue line: open ring and copper dot above a thin full-width copper rule — the sweep crossing the index, landing on one item.",
+          "symbol": "logo/symbol.svg",
+          "wordmark": {
+            "text": "Sonarly",
+            "role": "display",
+            "location": null,
+            "tracking": -10,
+            "case": "lower"
+          },
+          "monogram": null,
+          "lockups": ["horizontal", "stacked"],
+          "colors": {
+            "ping": "text",
+            "echo": "accent",
+            "rule": "accent",
+            "wordmark": "text"
+          },
+          "defect": "Catalogue rule width and drop are a first pass (460 units at y=130); set to the real Bricolage advance width and below the y descender once the glyph table is built.",
+          "tags": ["abstract-geometric"],
+          "misuse": [
+            {"do": "stretch"},
+            {"do": "recolour"},
+            {"do": "low-contrast"},
+            {"do": "rearrange"},
+            {"svg": "logo/misuse-1.svg", "label": "Don't move the echo — the dot returns to the sweep's trailing end"},
+            {"svg": "logo/misuse-2.svg", "label": "Don't close the gap — a closed ring is a spinner, not a ping"}
+          ],
+          "clear_space": {
+            "unit": "cap-height",
+            "multiple": 1,
+            "inferred": true
+          },
+          "min_size": {
+            "px": 18,
+            "mm": 6
+          }
+        },
+        "palette_build": {
+          "strategy": null,
+          "accent": "#b96a2e",
+          "light_bg": "#eeece6",
+          "dark_bg": "#171513",
+          "neutral_tint": null,
+          "neutral_chroma": null,
+          "extra": []
+        },
+        "defaults_used": [
+          {
+            "id": "terracotta-clay",
+            "why": "Echo Copper is the echo dot of the brand's namesake mechanism (Sonarly = sonar), not a clay or craft cue: a small signal, never a wash, measured 28 CIE76 from Ampache's #f8ac4c — the only warm competitor primary — and much deeper (L* 52 vs 70)."
+          },
+          {
+            "id": "cream-ground",
+            "why": "The paper #EEECE6 is an owner-specified colour from the round-1 review (the archival light surface of the Signal Archive direction), not a generated default; it is the direction's ground, paired with owner-specified ink #171513."
+          },
+          {
+            "id": "logo-circle-container",
+            "why": "The ring is the sonar ping the brand is named for, not a container: it is open (60-degree gap at 3 o'clock) and carries the echo dot at its trailing end. No competitor on the shelf uses a ring mark."
+          }
+        ],
+        "rationale": [
+          {
+            "claim": "A × B synthesis per owner direction: A's ring-and-copper metaphor and colour, B's editorial catalogue discipline (paper, ink, ruled line, mono metadata), with copper kept to one signal and one accent.",
+            "evidence": "judgement",
+            "source": "owner review, round 1"
+          },
+          {
+            "claim": "Paper #EEECE6, ink #171513 and copper #B96A2E are the owner's specified Signal Archive colours; copper stays CIE76 28+ from every warm competitor primary.",
+            "evidence": "measured",
+            "source": "owner spec + palette screen vs site/competitors.json"
+          },
+          {
+            "claim": "Two typefaces only, per owner direction: Bricolage Grotesque carries personality in display and text; IBM Plex Mono (tabular by default) carries catalogue metadata, figures and codes — no third voice.",
+            "evidence": "judgement",
+            "source": "owner review, round 1"
+          },
+          {
+            "claim": "The thin copper catalogue rule under the wordmark instantiates the scan-line device in the mark itself and becomes the system's one divider; at 4 units on a 100-unit grid it stays a hairline at display sizes.",
+            "evidence": "practice"
+          }
+        ]
+      },
+      "palette": {
+        "schema": "brand-identity/palette@1",
+        "name": "Signal Archive",
+        "direction": "Warm archival paper, near-black ink, one thin copper signal.",
+        "brand": [
+          {
+            "id": "brand-1",
+            "name": "Archive Ink",
+            "hex": "#171513",
+            "source": "chosen",
+            "locked": true,
+            "usage": "wordmark, headings, body ink on paper; the dark mode ground",
+            "print": {
+              "lab_d50": [6.9, 0.2, -1.7],
+              "cmyk": null,
+              "pantone_ref": null
+            }
+          },
+          {
+            "id": "brand-2",
+            "name": "Echo Copper",
+            "hex": "#b96a2e",
+            "source": "chosen",
+            "locked": true,
+            "usage": "the echo dot, the catalogue rule, calls to action — one signal only",
+            "print": {
+              "lab_d50": [52.3, 23.2, 38.1],
+              "cmyk": null,
+              "pantone_ref": null
+            }
+          }
+        ],
+        "feels": ["archival", "warm", "found"]
+      },
+      "symbol_svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g id='ping' data-color='text'><path fill-rule='evenodd' d='M 88.1 28.0 A 44 44 0 1 0 88.1 72.0 L 82.9 69.0 A 38 38 0 1 1 82.9 31.0 Z'/></g><circle id='echo' cx='85.5' cy='70.5' r='8.5' data-color='accent'/></svg>",
+      "symbol_small_svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path id='ping' fill-rule='evenodd' data-color='text' d='M 10 50 A 40 40 0 0 0 50 90 L 50 82 A 32 32 0 0 1 18 50 Z'/><circle id='echo' cx='50' cy='87' r='11' data-color='accent'/></svg>",
+      "wordmark_detail_svg": "<svg xmlns='http://www.w3.org/2000/svg'><rect id='catalogue-rule' x='0' y='130' width='499' height='4' data-color='accent'/></svg>",
+      "misuse_svgs": {
+        "misuse-1": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g data-color='text'><path fill-rule='evenodd' d='M 88.1 28.0 A 44 44 0 1 0 88.1 72.0 L 82.9 69.0 A 38 38 0 1 1 82.9 31.0 Z'/></g><circle cx='85.5' cy='29.5' r='8.5' data-color='accent'/></svg>",
+        "misuse-2": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g data-color='text'><path fill-rule='evenodd' d='M 6 50a44 44 0 1 0 88 0a44 44 0 1 0 -88 0Z M 12 50a38 38 0 1 0 76 0a38 38 0 1 0 -76 0Z'/></g><circle cx='85.5' cy='70.5' r='8.5' data-color='accent'/></svg>"
+      }
+    },
+    {
+      "identity": {
+        "set": {
+          "id": "C",
+          "name": "Copper Night",
+          "recommended": false,
+          "mechanism": "The listening room after midnight: the same ring and copper echo pushed deeper — a blacker ground, heavy tracked capitals — borrowing Night Sweep's drama while the copper stays the only light in the room.",
+          "expression_move": "The copper echo dot against the deepest ground of the three, under wide tracked capitals.",
+          "differs_by": "Against the competitors' corporate primaries this keeps A's unowned warm-dark + deep-copper territory; within the refinement round it is the dramatic register the other two deliberately refuse to be."
+        },
+        "axes": {
+          "warm_cool": -1,
+          "classic_contemporary": 1,
+          "quiet_loud": 1,
+          "premium_accessible": -1
+        },
+        "card": {
+          "ground": "dark"
+        },
+        "type": {
+          "pairing_mode": "single-family",
+          "display": {
+            "family": "Bricolage Grotesque",
+            "source": "google",
+            "license": "OFL-1.1",
+            "weights": [700],
+            "location": {"wght": 700, "opsz": 72, "wdth": 100},
+            "features": [],
+            "case": "upper",
+            "tracking": 80,
+            "fallback": "system-ui, sans-serif",
+            "file": null
+          },
+          "text": {
+            "family": "Bricolage Grotesque",
+            "source": "google",
+            "license": "OFL-1.1",
+            "weights": [400, 500],
+            "location": {"wght": 400, "opsz": 14, "wdth": 100},
+            "features": ["tnum"],
+            "case": "as-is",
+            "tracking": 0,
+            "fallback": "system-ui, sans-serif",
+            "file": null
+          },
+          "mono": null
+        },
+        "logo": {
+          "type": "symbol+wordmark",
+          "concept": "The echo mark at night: same open ring and copper dot, set against a deeper black with wide heavy capitals — playback as the lit part of a dark room.",
+          "symbol": "logo/symbol.svg",
+          "wordmark": {
+            "text": "Sonarly",
+            "role": "display",
+            "location": null,
+            "tracking": 80,
+            "case": "upper"
+          },
+          "monogram": null,
+          "lockups": ["horizontal", "stacked"],
+          "colors": {
+            "ping": "text",
+            "echo": "accent",
+            "wordmark": "text"
+          },
+          "tags": ["abstract-geometric"],
+          "clear_space": {
+            "unit": "cap-height",
+            "multiple": 1,
+            "inferred": true
+          },
+          "min_size": {
+            "px": 18,
+            "mm": 6
+          }
+        },
+        "palette_build": {
+          "strategy": null,
+          "accent": "#b96a2e",
+          "light_bg": null,
+          "dark_bg": "#0e0b09",
+          "neutral_tint": null,
+          "neutral_chroma": null,
+          "extra": []
+        },
+        "defaults_used": [
+          {
+            "id": "terracotta-clay",
+            "why": "Echo Copper is the echo dot of the brand's namesake mechanism (Sonarly = sonar), not a clay or craft cue: a small signal, never a wash, measured 28 CIE76 from Ampache's #f8ac4c — the only warm competitor primary — and much deeper (L* 52 vs 70)."
+          },
+          {
+            "id": "logo-circle-container",
+            "why": "The ring is the sonar ping the brand is named for, not a container: it is open (60-degree gap at 3 o'clock) and carries the echo dot at its trailing end. No competitor on the shelf uses a ring mark."
+          }
+        ],
+        "rationale": [
+          {
+            "claim": "A restrained dose of the round-1 Night Sweep direction per owner review: a deeper ground (#0E0B09 vs #17130E), uppercase Bricolage 700 tracked +80, and no second accent — the drama comes from depth and tracking, not from lime.",
+            "evidence": "judgement",
+            "source": "owner review, round 1"
+          },
+          {
+            "claim": "Copper on the deeper ground keeps a measured 3:1+ separation (L* 52.3 accent vs L* 3.2 ground), so the echo dot stays visible without glow effects.",
+            "evidence": "measured",
+            "source": "palette screen"
+          },
+          {
+            "claim": "The mark is identical to the other refinements by design: one master ring-and-dot across all three temperatures, so the family reads as one identity with three registers.",
+            "evidence": "judgement",
+            "source": "owner review, round 1"
+          }
+        ]
+      },
+      "palette": {
+        "schema": "brand-identity/palette@1",
+        "name": "Copper Night",
+        "direction": "The deepest warm black of the three, one copper echo, wide tracked capitals.",
+        "brand": [
+          {
+            "id": "brand-1",
+            "name": "Night Black",
+            "hex": "#0e0b09",
+            "source": "chosen",
+            "locked": true,
+            "usage": "the midnight ground: app background, player chrome, dark cards",
+            "print": {
+              "lab_d50": [3.2, 0.4, -0.3],
+              "cmyk": null,
+              "pantone_ref": null
+            }
+          },
+          {
+            "id": "brand-2",
+            "name": "Echo Copper",
+            "hex": "#b96a2e",
+            "source": "chosen",
+            "locked": true,
+            "usage": "the echo dot, play state, calls to action — the only light in the room",
+            "print": {
+              "lab_d50": [52.3, 23.2, 38.1],
+              "cmyk": null,
+              "pantone_ref": null
+            }
+          }
+        ],
+        "feels": ["nocturnal", "warm", "dramatic"]
+      },
+      "symbol_svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g id='ping' data-color='text'><path fill-rule='evenodd' d='M 88.1 28.0 A 44 44 0 1 0 88.1 72.0 L 82.9 69.0 A 38 38 0 1 1 82.9 31.0 Z'/></g><circle id='echo' cx='85.5' cy='70.5' r='8.5' data-color='accent'/></svg>",
+      "symbol_small_svg": "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path id='ping' fill-rule='evenodd' data-color='text' d='M 10 50 A 40 40 0 0 0 50 90 L 50 82 A 32 32 0 0 1 18 50 Z'/><circle id='echo' cx='50' cy='87' r='11' data-color='accent'/></svg>",
+      "wordmark_detail_svg": null
+    }
+  ]
+}
