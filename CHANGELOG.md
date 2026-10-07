@@ -5,6 +5,12 @@ All notable changes to Sonarly are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-10-07
+
+### Added
+
+- **Brand identity — Signal Archive**: Sonarly's first committed brand system, developed through two measured exploration rounds against the competitor shelf (Navidrome, Jellyfin, Plex, Ampache — all neutral sans with corporate primaries). The mark is an open sonar sweep ring with a single copper echo dot — the index that answers with your collection — set on a thin copper catalogue rule. Voice: Bricolage Grotesque (display and text) + IBM Plex Mono (catalogue metadata, tabular figures). Colours: archival paper `#EEECE6`, Archive Ink `#171513`, Echo Copper `#B96A2E` kept to one signal. Ships a 13-page guidelines kit (PDF, logo variants in SVG/PNG incl. favicons and app icon, design tokens, misuse rules covering both generic abuse and the two mark-specific failures: echo moved off the sweep's end, gap closed into a spinner). The complete exploration record — brief, measured competitor evidence, both rounds' sets and boards — lives alongside the kit in `brand-identity/`.
+
 ## [2.3.10] - 2026-10-07
 
 ### Fixed
@@ -247,6 +253,7 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Settings for retention, artist image sync, and organization pattern.
 
 [Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.3.9...HEAD
+[3.0.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.0.0
 [2.3.10]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.10
 [2.3.9]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.9
 [2.3.8]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.8
