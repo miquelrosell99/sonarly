@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -71,13 +72,28 @@ func (s *server) mustExec(t *testing.T, query string, args ...any) {
 // ---------------------------------------------------------------------------
 // Fixture: two users with deterministic listening history.
 //
-//	alice: s1 ×5 (3 in Aug, 2 in Sep), s2 ×3 (Sep), s3 ×2 (Sep)
+//	alice: s1 ×5 (3 older, 2 recent), s2 ×3 (recent), s3 ×2 (recent)
 //	       durations: s1=100, s2=200, s3=150 → total 10 plays, 1400s
 //	       ratings: s1=5, s2=4, s3=3 (global average 4.0); s4 unrated row
 //	       starred: s1
-//	carol: s1 ×1 (Sep, 100s)
-//	s5 is inactive: alice played it once in Sep but it must count NOWHERE.
+//	carol: s1 ×1 (recent, 100s)
+//	s5 is inactive: alice played it once recently but it must count NOWHERE.
+//
+// The ranged statistics windows are computed against 'now', so the play
+// dates are relative to the run date, not fixed calendar dates: "recent" is
+// a single day two days back (safely inside a 30-day window, one calendar
+// day so every monthly bucket stays whole) and "older" is 45 days before
+// that (outside a 30-day window, in a different month, so the monthly
+// assertions see exactly two buckets at any run date).
 // ---------------------------------------------------------------------------
+
+// seededMonths mirrors the seed's relative dates for calendar-proof
+// assertions: the "older" and "recent" YYYY-MM bucket labels.
+func seededMonths() (older string, recent string) {
+	now := time.Now().UTC()
+	recentDay := time.Date(now.Year(), now.Month(), now.Day()-2, 12, 0, 0, 0, time.UTC)
+	return recentDay.AddDate(0, 0, -45).Format("2006-01"), recentDay.Format("2006-01")
+}
 
 func (s *server) seed(t *testing.T) {
 	t.Helper()
@@ -104,22 +120,28 @@ func (s *server) seed(t *testing.T) {
 		exec(t, `INSERT INTO listening_history (id, user_id, song_id, played_at, duration_listened)
 			VALUES (?, ?, ?, ?, ?)`, "h-"+userID+"-"+songID+"-"+playedAt, userID, songID, playedAt, duration)
 	}
-	// Alice: s1 ×5 → 3 in Aug, 2 in Sep.
-	history("user-alice", "s1", "2026-08-05T10:00:00.000Z", 100)
-	history("user-alice", "s1", "2026-08-12T10:00:00.000Z", 100)
-	history("user-alice", "s1", "2026-08-19T10:00:00.000Z", 100)
-	history("user-alice", "s1", "2026-09-02T10:00:00.000Z", 100)
-	history("user-alice", "s1", "2026-09-10T10:00:00.000Z", 100)
-	// Alice: s2 ×3, s3 ×2, all in Sep.
-	history("user-alice", "s2", "2026-09-03T10:00:00.000Z", 200)
-	history("user-alice", "s2", "2026-09-11T10:00:00.000Z", 200)
-	history("user-alice", "s2", "2026-09-20T10:00:00.000Z", 200)
-	history("user-alice", "s3", "2026-09-05T10:00:00.000Z", 150)
-	history("user-alice", "s3", "2026-09-15T10:00:00.000Z", 150)
+	now := time.Now().UTC()
+	recentDay := time.Date(now.Year(), now.Month(), now.Day()-2, 12, 0, 0, 0, time.UTC)
+	olderDay := recentDay.AddDate(0, 0, -45)
+	at := func(day time.Time, minute int) string {
+		return day.Add(time.Duration(minute) * time.Minute).Format("2006-01-02T15:04:05.000Z")
+	}
+	// Alice: s1 ×5 → 3 older, 2 recent.
+	history("user-alice", "s1", at(olderDay, 0), 100)
+	history("user-alice", "s1", at(olderDay, 1), 100)
+	history("user-alice", "s1", at(olderDay, 2), 100)
+	history("user-alice", "s1", at(recentDay, 0), 100)
+	history("user-alice", "s1", at(recentDay, 1), 100)
+	// Alice: s2 ×3, s3 ×2, all recent.
+	history("user-alice", "s2", at(recentDay, 10), 200)
+	history("user-alice", "s2", at(recentDay, 11), 200)
+	history("user-alice", "s2", at(recentDay, 12), 200)
+	history("user-alice", "s3", at(recentDay, 20), 150)
+	history("user-alice", "s3", at(recentDay, 21), 150)
 	// Alice played the inactive s5 — it must count nowhere.
-	history("user-alice", "s5", "2026-09-08T10:00:00.000Z", 100)
-	// Carol: s1 once in Sep.
-	history("user-carol", "s1", "2026-09-09T10:00:00.000Z", 100)
+	history("user-alice", "s5", at(recentDay, 30), 100)
+	// Carol: s1 once, recent.
+	history("user-carol", "s1", at(recentDay, 40), 100)
 
 	exec(t, `INSERT INTO user_songs (user_id, song_id, starred, rating, play_count) VALUES
 		('user-alice', 's1', 1, 5, 5),
@@ -248,10 +270,11 @@ func TestUserStatisticsGoldenNumbers(t *testing.T) {
 		}
 	}
 
-	// Monthly plays: 3 in August, 7 in September.
+	// Monthly plays: 3 older, 7 recent (bucket labels follow the run date).
+	olderMonth, recentMonth := seededMonths()
 	if len(stats.MonthlyPlays) != 2 ||
-		stats.MonthlyPlays[0].Month != "2026-08" || stats.MonthlyPlays[0].Plays != 3 ||
-		stats.MonthlyPlays[1].Month != "2026-09" || stats.MonthlyPlays[1].Plays != 7 {
+		stats.MonthlyPlays[0].Month != olderMonth || stats.MonthlyPlays[0].Plays != 3 ||
+		stats.MonthlyPlays[1].Month != recentMonth || stats.MonthlyPlays[1].Plays != 7 {
 		t.Fatalf("monthlyPlays: %+v", stats.MonthlyPlays)
 	}
 }
@@ -311,6 +334,7 @@ func TestOverallStatisticsGoldenNumbers(t *testing.T) {
 func TestMonthlyGroupedGoldenNumbers(t *testing.T) {
 	s := newSeededServer(t)
 	alice := s.session(t, "user-alice", "alice", false)
+	olderMonth, recentMonth := seededMonths()
 
 	rec := s.do(t, http.MethodGet, "/api/statistics/me/monthly-grouped?groupBy=artist", alice)
 	var payload struct {
@@ -320,8 +344,8 @@ func TestMonthlyGroupedGoldenNumbers(t *testing.T) {
 		t.Fatalf("decode: %v (%s)", err, rec.Body.String())
 	}
 	want := []statistics.MonthlyGroupedItem{
-		{Month: "2026-08", Groups: []statistics.GroupItem{{Key: "Artist A", Plays: 3}}},
-		{Month: "2026-09", Groups: []statistics.GroupItem{{Key: "Artist A", Plays: 5}, {Key: "Artist B", Plays: 2}}},
+		{Month: olderMonth, Groups: []statistics.GroupItem{{Key: "Artist A", Plays: 3}}},
+		{Month: recentMonth, Groups: []statistics.GroupItem{{Key: "Artist A", Plays: 5}, {Key: "Artist B", Plays: 2}}},
 	}
 	assertGroupedEqual(t, payload.Data, want)
 
@@ -332,8 +356,8 @@ func TestMonthlyGroupedGoldenNumbers(t *testing.T) {
 	// Rating keys are the ratings cast to text (wire parity: REAL columns cast
 	// as '5.0', half-ratings as '4.5').
 	want = []statistics.MonthlyGroupedItem{
-		{Month: "2026-08", Groups: []statistics.GroupItem{{Key: "5.0", Plays: 3}}},
-		{Month: "2026-09", Groups: []statistics.GroupItem{
+		{Month: olderMonth, Groups: []statistics.GroupItem{{Key: "5.0", Plays: 3}}},
+		{Month: recentMonth, Groups: []statistics.GroupItem{
 			{Key: "4.0", Plays: 3}, {Key: "3.0", Plays: 2}, {Key: "5.0", Plays: 2},
 		}},
 	}
@@ -344,8 +368,8 @@ func TestMonthlyGroupedGoldenNumbers(t *testing.T) {
 		t.Fatalf("decode: %v", err)
 	}
 	want = []statistics.MonthlyGroupedItem{
-		{Month: "2026-08", Groups: []statistics.GroupItem{{Key: "Favorite", Plays: 3}}},
-		{Month: "2026-09", Groups: []statistics.GroupItem{
+		{Month: olderMonth, Groups: []statistics.GroupItem{{Key: "Favorite", Plays: 3}}},
+		{Month: recentMonth, Groups: []statistics.GroupItem{
 			{Key: "Not favorite", Plays: 5}, {Key: "Favorite", Plays: 2},
 		}},
 	}
