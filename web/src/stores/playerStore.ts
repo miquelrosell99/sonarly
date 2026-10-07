@@ -84,6 +84,43 @@ const initialState: PlayerState = {
   sleepTimer: { mode: 'off' },
 };
 
+// Only the fields the player UI reads back are persisted with the queue.
+// Whole-library shuffles carry ~13 MB of full song JSON (lyrics dominate),
+// which blows the ~5 MB localStorage quota; zustand persist does not catch
+// the quota DOMException, so it would propagate into every store action.
+const PERSISTED_SONG_FIELDS = [
+  'id',
+  'title',
+  'duration',
+  'year',
+  'explicit',
+  'mtime',
+  'active',
+  'starred',
+  'coverArtMissing',
+  'gapless',
+  'artistId',
+  'artistName',
+  'artistEntries',
+  'albumId',
+  'albumName',
+  'albumCoverArt',
+  'coverArt',
+  'addedByAutoDj',
+  'autoDjReason',
+] as const;
+
+type PersistedSong = Pick<PlayerSong, (typeof PERSISTED_SONG_FIELDS)[number]>;
+
+function slimSong(song: PlayerSong): PersistedSong {
+  const slim = {} as PersistedSong;
+  for (const field of PERSISTED_SONG_FIELDS) {
+    const value = song[field];
+    if (value !== undefined) (slim as Record<string, unknown>)[field] = value;
+  }
+  return slim;
+}
+
 function shuffleArray<T>(array: T[]): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -146,21 +183,33 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
       },
 
       playQueue: (songs, startIndex, shuffle, context) => {
+        // Library scans deactivate songs (duplicates, vanished files) while a
+        // page may still hold a stale list; the stream endpoint refuses
+        // inactive ids, so drop them instead of queueing tracks that can only
+        // fail. An explicit start index refers to the caller's visible list —
+        // remap it to the same song after filtering.
+        const playable = songs.filter((song) => song.active !== false);
+        const requested = startIndex !== undefined ? songs[startIndex] : undefined;
+        let requestedIndex = startIndex;
+        if (requested !== undefined) {
+          const mapped = playable.findIndex((song) => song.id === requested.id);
+          requestedIndex = mapped >= 0 ? mapped : 0;
+        }
         const nextShuffle = shuffle ?? get().shuffle;
         let safeIndex: number;
-        if (songs.length === 0) {
+        if (playable.length === 0) {
           safeIndex = 0;
-        } else if (startIndex === undefined) {
-          safeIndex = nextShuffle ? Math.floor(Math.random() * songs.length) : 0;
+        } else if (requestedIndex === undefined) {
+          safeIndex = nextShuffle ? Math.floor(Math.random() * playable.length) : 0;
         } else {
-          safeIndex = Math.max(0, Math.min(startIndex, songs.length - 1));
+          safeIndex = Math.max(0, Math.min(requestedIndex, playable.length - 1));
         }
-        const currentSong = songs[safeIndex] ?? null;
-        const shuffledIndices = nextShuffle && songs.length > 0
-          ? buildShuffledIndices(songs.length, safeIndex)
+        const currentSong = playable[safeIndex] ?? null;
+        const shuffledIndices = nextShuffle && playable.length > 0
+          ? buildShuffledIndices(playable.length, safeIndex)
           : [];
         set({
-          queue: songs,
+          queue: playable,
           queueIndex: safeIndex,
           currentSong,
           status: 'playing',
@@ -463,7 +512,42 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
       name: 'sonarly-player',
       storage: createJSONStorage(() => {
         if (typeof window !== 'undefined' && window.localStorage) {
-          return window.localStorage;
+          // zustand persist lets storage exceptions propagate out of every
+          // action that calls set(). A queue larger than the localStorage
+          // quota must degrade to session-only playback, not crash the
+          // player — so quota errors are swallowed (warned once).
+          const local = window.localStorage;
+          let quotaWarned = false;
+          const warnQuota = () => {
+            if (quotaWarned) return;
+            quotaWarned = true;
+            console.warn(
+              'sonarly-player: localStorage quota exceeded; the play queue will not persist across reloads',
+            );
+          };
+          return {
+            getItem: (key) => {
+              try {
+                return local.getItem(key);
+              } catch {
+                return null;
+              }
+            },
+            setItem: (key, value) => {
+              try {
+                local.setItem(key, value);
+              } catch {
+                warnQuota();
+              }
+            },
+            removeItem: (key) => {
+              try {
+                local.removeItem(key);
+              } catch {
+                warnQuota();
+              }
+            },
+          };
         }
         return {
           getItem: () => null,
@@ -472,7 +556,7 @@ export const usePlayer = create<PlayerState & PlayerActions>()(
         };
       }),
       partialize: (state) => ({
-        queue: state.queue,
+        queue: state.queue.map(slimSong),
         queueIndex: state.queueIndex,
         queueContext: state.queueContext,
         volume: state.volume,
