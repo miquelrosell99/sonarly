@@ -164,6 +164,28 @@ describe('QueuePanel', () => {
     expect(screen.queryByText('Song 599')).toBeFalsy();
   });
 
+  it('keeps the Auto-DJ controls reachable on windowed queues', () => {
+    mockPreferences.current = { ...mockPreferences.current, autoDjEnabled: true };
+    const songs = Array.from({ length: 600 }, (_, i) => ({
+      id: `s${i}`,
+      title: `Song ${i}`,
+      addedByAutoDj: i >= 10,
+      autoDjReason: 'More like this',
+    }));
+    usePlayer.getState().playQueue(songs as any, 0);
+
+    render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
+
+    // The grouped section header cannot survive windowing, so its label and
+    // refresh/tune controls move to a bar above the list.
+    expect(screen.getByText(/Up next — Auto-DJ/)).toBeTruthy();
+    expect(screen.getByText(`· ${600 - 10}`)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /refresh auto-dj suggestions/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /auto dj settings/i })).toBeTruthy();
+    // Per-row badge replaces the section for individual picks.
+    expect(screen.getAllByText('Auto DJ').length).toBeGreaterThan(0);
+  });
+
   it('styles past, current, and future songs differently', () => {
     usePlayer.getState().playQueue([
       { id: 's1', title: 'Past' } as any,
