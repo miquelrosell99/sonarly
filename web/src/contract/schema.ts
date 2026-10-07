@@ -2141,7 +2141,7 @@ export interface components {
             time: number;
             text: string;
         };
-        /** @description The API-facing song shape (no filePath/checksum anywhere in the API). */
+        /** @description The API-facing song shape (no filePath/checksum anywhere in the API). Lyrics are not part of it — GET /api/songs/{id}/lyrics is the single lyrics source (read) and PUT the write path; embedding kilobyte lyrics fields in every list row costs megabytes per collection response. */
         Song: {
             id: string;
             title: string;
@@ -2182,9 +2182,6 @@ export interface components {
             remixOf?: string;
             displayArtist?: string;
             displayAlbumArtist?: string;
-            lyrics?: string;
-            /** @description Parsed LRC payload; usually SyncedLyricLine[], but any JSON stored in the column passes through. */
-            syncedLyrics?: components["schemas"]["SyncedLyricLine"][] | string;
             producers?: string[];
             isrcs?: string[];
             originalYear?: number;

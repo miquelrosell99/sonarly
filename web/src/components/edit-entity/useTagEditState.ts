@@ -48,6 +48,18 @@ export function useTagEditState(
     [isMulti],
   );
 
+  // Fills a field only while it is still empty (the lyrics editor seeds from
+  // the lyrics endpoint after the modal resets on open). Unlike updateValue
+  // it never marks the field touched — a seeded value is not a user edit and
+  // must not sneak into a multi-entity save.
+  const seedValue = useCallback((key: string, value: string | string[]) => {
+    setValues((prev) => {
+      const current = prev[key];
+      if (current !== undefined && current !== '') return prev;
+      return { ...prev, [key]: value };
+    });
+  }, []);
+
   const updateExplicit = useCallback(
     (checked: boolean) => {
       setExplicit(checked);
@@ -64,5 +76,5 @@ export function useTagEditState(
     setTouchedFields(new Set());
   }, [activeEntities, entityType, fields, isMulti]);
 
-  return { values, explicit, touchedFields, updateValue, updateExplicit, resetTagEdit };
+  return { values, explicit, touchedFields, updateValue, updateExplicit, seedValue, resetTagEdit };
 }

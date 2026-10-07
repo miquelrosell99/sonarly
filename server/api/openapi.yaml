@@ -3685,7 +3685,7 @@ components:
         text: { type: string }
     Song:
       type: object
-      description: The API-facing song shape (no filePath/checksum anywhere in the API).
+      description: The API-facing song shape (no filePath/checksum anywhere in the API). Lyrics are not part of it — GET /api/songs/{id}/lyrics is the single lyrics source (read) and PUT the write path; embedding kilobyte lyrics fields in every list row costs megabytes per collection response.
       required:
         - id
         - title
@@ -3733,13 +3733,6 @@ components:
         remixOf: { type: string }
         displayArtist: { type: string }
         displayAlbumArtist: { type: string }
-        lyrics: { type: string }
-        syncedLyrics:
-          description: Parsed LRC payload; usually SyncedLyricLine[], but any JSON stored in the column passes through.
-          oneOf:
-            - type: array
-              items: { $ref: '#/components/schemas/SyncedLyricLine' }
-            - type: string
         producers:
           type: array
           items: { type: string }
