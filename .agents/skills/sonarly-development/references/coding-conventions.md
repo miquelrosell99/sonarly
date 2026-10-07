@@ -27,6 +27,11 @@ Canonical: `agents/development-conventions.md` (web) and the
 - Feature-first structure; generated contract types win on drift.
 - **react-query for all server state** — key families like
   `['songs','list',…]`; SSE invalidation contract via `/api/events`.
+- **URL ↔ playback is single-writer per transition** in `NowPlayingRoute`:
+  the play-start effect owns URL-target changes (reposition once per
+  `context|contextId|songId`), the URL-sync effect owns playback drift
+  (track end/skip → rewrite URL). Two effects re-asserting against each
+  other oscillates to a "Maximum update depth exceeded" crash (v2.3.10).
 - Page tests compose from `web/src/lib/testing.tsx`.
 - TypeScript strict with `noUnusedLocals`/`noUnusedParameters`; Vitest
   colocated.
@@ -45,6 +50,9 @@ Conventional Commits, types `feat fix docs style refactor test chore`
   `helpers_test.go` / `TestMain` scaffolding. Established integration
   patterns: httptest against the chi router, file-backed SQLite via the db
   package helpers, temp dirs for library fixtures.
+- Never seed fixed calendar dates against time windows computed from `now`
+  (statistics suite, v2.3.10) — seed relative to `time.Now()` and derive
+  expected bucket labels from the same dates.
 - Web: Vitest colocated; CI also regenerates the contract schema and diffs
   against the committed `schema.ts` — drift fails the build.
 - **No lint is configured** — don't add claims of lint passing; the bar is
