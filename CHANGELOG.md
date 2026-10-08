@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Concurrent-session discipline for agent fleets** — AGENTS.md, the `sonarly-development` skill, and the agent references now carry the same rules the fleet developed in the Notees repo (2026-10-08): a gitignored `.worktrees/<slug>/` worktree per concurrent session (own branch off main, own install, own gate runs, distinct dev ports — server :3000, Vite :5173), a serialized landing flow on main (fetch, rebase, fast-forward merge, push, then worktree/branch cleanup), shared-record-file rules (`CHANGELOG.md` under `[Unreleased]`, `docs/`, `agents/`, `AGENTS.md`, the OpenAPI contract — minimal anchored edits, keep-both conflict resolution), and detect-and-coexist handling for the shared environment. Internal guidance; no behavior change.
 
+## [3.0.1] - 2026-10-08
+
+### Changed
+
+- **Accent picker rework**: the appearance dropdown is replaced by the canonical macOS-style control — a wrapping row of color swatches with a ring on the selected one. Colors stay visible without a popup, and the ten accents wrap cleanly into two rows.
+
 ## [3.0.0] - 2026-10-07
 
 ### Added
