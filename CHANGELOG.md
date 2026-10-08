@@ -5,6 +5,12 @@ All notable changes to Sonarly are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Concurrent-session discipline for agent fleets** — AGENTS.md, the `sonarly-development` skill, and the agent references now carry the same rules the fleet developed in the Notees repo (2026-10-08): a gitignored `.worktrees/<slug>/` worktree per concurrent session (own branch off main, own install, own gate runs, distinct dev ports — server :3000, Vite :5173), a serialized landing flow on main (fetch, rebase, fast-forward merge, push, then worktree/branch cleanup), shared-record-file rules (`CHANGELOG.md` under `[Unreleased]`, `docs/`, `agents/`, `AGENTS.md`, the OpenAPI contract — minimal anchored edits, keep-both conflict resolution), and detect-and-coexist handling for the shared environment. Internal guidance; no behavior change.
+
 ## [3.0.0] - 2026-10-07
 
 ### Added

@@ -55,3 +55,43 @@ cd server && go build ./... && go vet ./... && go test ./... -count=1
   change affects), `agents/*` (the reference the change affects), and this
   skill's references.
 - Never re-tag; a broken release is fixed by the next patch version.
+
+## Concurrent sessions (owner 2026-10-08; canonical: `agents/build-commands.md`)
+
+More than one agent (or human) session may work in this repo — and against
+the same dev environment — concurrently. Assume it by default.
+
+- **Worktrees live in `.worktrees/`** (gitignored): `git worktree add
+  .worktrees/<slug> -b <slug> main`. Concurrent sessions on unrelated tasks
+  each default to their own worktree — own branch, own `pnpm install`
+  (shared store makes it cheap), own gate runs (`pnpm -r build && pnpm test`
+  + the Go suites) — so one session's half-done slice cannot break another's
+  tests; the main checkout is where slices land, not where concurrent
+  development happens. Dev servers are NOT isolated: each session takes
+  distinct ports (server :3000, Vite :5173 — Vite auto-increments). A solo
+  session or a trivial docs-only slice may stay in the main checkout. Never
+  a random sibling folder.
+- **Landing + cleanup**: slices land one at a time in the main checkout —
+  fetch, rebase the session branch onto the freshest main, fast-forward
+  merge, push; if main moved or `.git/index.lock` is present another landing
+  is in flight — wait, re-fetch, redo the rebase. Then clean up: `git
+  worktree remove .worktrees/<slug>` + `git branch -d <slug>` (the safe
+  delete only succeeds once the slice is fully merged).
+- **Shared record files**: `CHANGELOG.md` (entries prepend under
+  `## [Unreleased]`, Keep a Changelog — never reorder existing entries),
+  `docs/`, `agents/`, `AGENTS.md`, and the API contract
+  (`server/api/openapi.yaml` + the regenerated `web/src/contract/schema.ts`)
+  are touched by nearly every slice and conflict at merge time by
+  construction — keep edits minimal and anchored; resolve conflicts by
+  keeping both blocks, never dropping another slice's entry.
+- **Parallel sessions**: detect before writing — `git status --porcelain` +
+  `git log --oneline -5` at session start, `git worktree list` (a stale
+  entry from a crashed session gets pruned once confirmed dead — never a
+  live sibling), a present `.git/index.lock`, already-bound dev ports,
+  `docker compose -f compose.yaml ps` for the live stack. Handle: per-file
+  staging only (never `git add -A` / `git commit -a`); red tests in files
+  you didn't touch are another session's in-flight work (report, don't
+  fix); avoid stack-wide actions without checking; re-read files that change
+  under you; snapshot-commit your own verified states early — uncommitted
+  work is one rebase away from gone. Base discipline: the
+  `agent-repo-workflow` user skill.

@@ -68,7 +68,11 @@ When a change is complete and verified: Conventional Commits message → push
 `main` → if user-facing, changelog entry + annotated `v*` tag (CI publishes
 the GHCR image) → redeploy the live stack (bump the pinned tag in the
 gitignored `compose.yaml`, `pull && up -d`, confirm healthy). Don't leave
-verified work uncommitted.
+verified work uncommitted. With concurrent sessions developing, each
+defaults to its own `.worktrees/<slug>/` worktree and slices land one at a
+time on main (fetch, rebase, fast-forward merge, push, then `git worktree
+remove` + `git branch -d`) — see `references/development-workflow.md`
+(Concurrent sessions).
 
 ## Read by topic
 
