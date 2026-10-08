@@ -37,10 +37,11 @@ by rescan (playlists/ratings are NOT — they live in the DB).
    `users.subscript_password_encrypted` (AES-256-GCM) and signs cookies;
    rotation logs everyone out and breaks every Subsonic client's stored
    password.
-5. **The live root `compose.yaml` is gitignored** and pins a semver tag (not
-   `:latest`, no `build:` section); the tracked template is
-   `docker/compose.yaml.example`. Never tag a local build with a registry tag
-   — it shadows the registry image until the next pull.
+5. **The live root `compose.yaml` is gitignored** and tracks `:latest` (no
+   `build:` section; redeploys are `pull && up -d`, rollbacks pin an explicit
+   older tag); the tracked template is `docker/compose.yaml.example`. Never
+   tag a local build with a registry tag — it shadows the registry image until
+   the next pull.
 6. **Never re-tag; same-day fix = next patch.** Tags are immutable releases.
 7. **Fleet-agnostic artifacts** — never hardcode host names, IPs, or tailnet
    names; write `<host>`, `<tailnet>`, `<lan-ip>` or "the fleet host". Real
