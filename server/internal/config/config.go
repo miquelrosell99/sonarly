@@ -18,6 +18,9 @@ type Config struct {
 	WebDist             string // built web client (SPA); missing dir = API-only mode
 	SessionSecret       string // >= 32 chars; never logged
 	SessionCookieSecure bool   // mark the session cookie Secure (set behind HTTPS)
+	// SignupEnabled opens POST /api/signup (advertised via GET /api/setup).
+	// Off by default: public account creation is an opt-in surface.
+	SignupEnabled bool
 
 	// Library runtime (P4b). Zero disables the trigger.
 	WatchPollInterval     time.Duration // fs poll cadence for library changes (default 5s)
@@ -45,6 +48,7 @@ func Load() (Config, error) {
 		WebDist:               getEnv("SONARLY_WEB_DIST", "./web-dist"),
 		SessionSecret:         os.Getenv("SESSION_SECRET"),
 		SessionCookieSecure:   getBoolEnv("SESSION_COOKIE_SECURE", false),
+		SignupEnabled:         getBoolEnv("SONARLY_SIGNUP_ENABLED", false),
 		WatchPollInterval:     time.Duration(getIntEnv("SONARLY_WATCH_POLL_INTERVAL", 5)) * time.Second,
 		ScanInterval:          time.Duration(getIntEnv("SONARLY_SCAN_INTERVAL_MINUTES", 60)) * time.Minute,
 		ArtistImageInterval:   time.Duration(getIntEnv("SONARLY_ARTIST_IMAGE_INTERVAL_MINUTES", 1440)) * time.Minute,

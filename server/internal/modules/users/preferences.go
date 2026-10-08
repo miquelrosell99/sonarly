@@ -105,7 +105,7 @@ var preferenceAllowlist = map[string]preferenceValidator{
 	"autoDjPreferFavorites": boolValidator("autoDjPreferFavorites"),
 	"autoDjDiscovery":       clampedNumberValidator("autoDjDiscovery", 0, 100),
 	"themeMode":             enumValidator("themeMode", "light", "dark", "oled", "auto"),
-	"accentColor": enumValidator("accentColor", "auto", "monochrome", "brown", "green",
+	"accentColor": enumValidator("accentColor", "auto", "copper", "monochrome", "brown", "green",
 		"orange", "teal", "purple", "yellow", "cyan", "blue"),
 	"playlistsCollapsed": boolValidator("playlistsCollapsed"),
 	// supportHidden backs the sponsorship CTA dismissal (TopBar heart ->

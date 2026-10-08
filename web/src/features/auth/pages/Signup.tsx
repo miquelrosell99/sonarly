@@ -6,9 +6,12 @@ import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 import { BrandMark } from '../../../components/BrandMark.js';
 
-export function Login({ onLogin, signupEnabled = false }: { onLogin: (user: User) => void; signupEnabled?: boolean }) {
+const MIN_PASSWORD = 8;
+
+export function Signup({ onSignup }: { onSignup: (user: User) => void }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -16,20 +19,24 @@ export function Login({ onLogin, signupEnabled = false }: { onLogin: (user: User
     e.preventDefault();
     if (submitting) return;
     setError(null);
+    if (password.length < MIN_PASSWORD) {
+      setError(`Password must be at least ${MIN_PASSWORD} characters.`);
+      return;
+    }
+    if (password !== confirm) {
+      setError('Passwords do not match.');
+      return;
+    }
     setSubmitting(true);
     try {
-      const { user } = await api<{ user: User }>('/login', {
+      const { user } = await api<{ user: User }>('/signup', {
         method: 'POST',
         body: JSON.stringify({ username, password }),
       });
-      onLogin(user);
+      onSignup(user);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Login failed';
-      setError(
-        message === 'Invalid credentials'
-          ? 'The username or password is incorrect. Please try again.'
-          : message,
-      );
+      const message = err instanceof Error ? err.message : 'Signup failed';
+      setError(message === 'Not found' ? 'Signups are disabled on this server.' : message);
     } finally {
       setSubmitting(false);
     }
@@ -73,23 +80,36 @@ export function Login({ onLogin, signupEnabled = false }: { onLogin: (user: User
           <Input
             id="password"
             type="password"
-            autoComplete="current-password"
+            autoComplete="new-password"
+            minLength={MIN_PASSWORD}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
         </div>
+        <div>
+          <label htmlFor="confirm" className="mb-1 block text-sm font-medium text-fg-primary">
+            Confirm password
+          </label>
+          <Input
+            id="confirm"
+            type="password"
+            autoComplete="new-password"
+            minLength={MIN_PASSWORD}
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            required
+          />
+        </div>
         <Button type="submit" className="w-full" disabled={submitting}>
-          {submitting ? 'Signing in…' : 'Sign in'}
+          {submitting ? 'Creating account…' : 'Create account'}
         </Button>
-        {signupEnabled && (
-          <p className="text-center text-sm text-fg-secondary">
-            No account yet?{' '}
-            <Link href="/signup" className="text-accent hover:underline">
-              Create one
-            </Link>
-          </p>
-        )}
+        <p className="text-center text-sm text-fg-secondary">
+          Already have an account?{' '}
+          <Link href="/login" className="text-accent hover:underline">
+            Sign in
+          </Link>
+        </p>
       </form>
     </div>
   );

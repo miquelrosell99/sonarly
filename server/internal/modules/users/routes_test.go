@@ -30,6 +30,13 @@ type testServer struct {
 
 func newTestServer(t *testing.T) *testServer {
 	t.Helper()
+	return newTestServerWith(t, false)
+}
+
+// newTestServerWith builds a test server, optionally with public signup
+// enabled (SONARLY_SIGNUP_ENABLED).
+func newTestServerWith(t *testing.T, signupEnabled bool) *testServer {
+	t.Helper()
 	database, err := db.OpenInMemory(context.Background())
 	if err != nil {
 		t.Fatalf("open test db: %v", err)
@@ -39,7 +46,7 @@ func newTestServer(t *testing.T) *testServer {
 	store := auth.NewStore(database)
 	mw := auth.NewMiddleware(store, database, secret, false)
 	svc := users.NewService(database, store, secret, t.TempDir())
-	handler := users.NewHandler(svc, store, mw, secret, false)
+	handler := users.NewHandler(svc, store, mw, secret, false, signupEnabled)
 
 	r := chi.NewRouter()
 	handler.Routes(r)
@@ -670,4 +677,97 @@ func TestAdminDeleteUser(t *testing.T) {
 
 func mustBody(rec *httptest.ResponseRecorder) []byte {
 	return rec.Body.Bytes()
+}
+
+func TestSignupDisabledAnswersNotFound(t *testing.T) {
+	s := newTestServer(t)
+	s.setup(t, "admin", adminPass)
+
+	rec := s.do(t, http.MethodPost, "/api/signup", map[string]string{
+		"username": "bob", "password": "bob-pass-1",
+	})
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("signup when disabled: want 404, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var count int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM users WHERE username = 'bob'`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("disabled signup must not create users, found %d", count)
+	}
+}
+
+func TestSetupStatusAdvertisesSignupEnabled(t *testing.T) {
+	disabled := newTestServer(t)
+	rec := disabled.do(t, http.MethodGet, "/api/setup", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("setup status: want 200, got %d", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), `"signupEnabled":false`) {
+		t.Fatalf("setup status must advertise signupEnabled=false: %s", rec.Body.String())
+	}
+
+	enabled := newTestServerWith(t, true)
+	rec = enabled.do(t, http.MethodGet, "/api/setup", nil)
+	if !strings.Contains(rec.Body.String(), `"signupEnabled":true`) {
+		t.Fatalf("setup status must advertise signupEnabled=true: %s", rec.Body.String())
+	}
+}
+
+func TestSignupCreatesRegularUserAndSession(t *testing.T) {
+	s := newTestServerWith(t, true)
+	s.setup(t, "admin", adminPass)
+
+	rec := s.do(t, http.MethodPost, "/api/signup", map[string]string{
+		"username": "bob", "password": "bob-pass-1",
+	})
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("signup: want 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	cookies := s.responseCookies(rec)
+	if len(cookies) != 1 {
+		t.Fatalf("signup must set a session cookie, got %d", len(cookies))
+	}
+
+	// The fresh session works and belongs to a non-admin account.
+	me := s.do(t, http.MethodGet, "/api/me", nil, cookies[0])
+	if me.Code != http.StatusOK {
+		t.Fatalf("me after signup: want 200, got %d", me.Code)
+	}
+	if !strings.Contains(me.Body.String(), `"username":"bob"`) || !strings.Contains(me.Body.String(), `"isAdmin":false`) {
+		t.Fatalf("signup must create a regular user: %s", me.Body.String())
+	}
+
+	// Signups land on no libraries until an admin assigns one.
+	var libs int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM user_libraries WHERE user_id = (SELECT id FROM users WHERE username = 'bob')`).Scan(&libs); err != nil {
+		t.Fatal(err)
+	}
+	if libs != 0 {
+		t.Fatalf("signup user must have no library assignment, got %d", libs)
+	}
+}
+
+func TestSignupValidationAndDuplicates(t *testing.T) {
+	s := newTestServerWith(t, true)
+	s.setup(t, "admin", adminPass)
+
+	if rec := s.do(t, http.MethodPost, "/api/signup", map[string]string{
+		"username": "bob", "password": "short",
+	}); rec.Code != http.StatusBadRequest {
+		t.Fatalf("short password: want 400, got %d", rec.Code)
+	}
+
+	if rec := s.do(t, http.MethodPost, "/api/signup", map[string]string{
+		"username": "bob", "password": "bob-pass-1",
+	}); rec.Code != http.StatusCreated {
+		t.Fatalf("first signup: want 201, got %d", rec.Code)
+	}
+
+	if rec := s.do(t, http.MethodPost, "/api/signup", map[string]string{
+		"username": "bob", "password": "bob-pass-2",
+	}); rec.Code != http.StatusConflict {
+		t.Fatalf("duplicate username: want 409, got %d", rec.Code)
+	}
 }

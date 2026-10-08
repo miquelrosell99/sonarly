@@ -70,7 +70,7 @@ func mountRoutes(ctx context.Context, srv *httpserver.Server, database *sql.DB, 
 
 	sessionStore := auth.NewStore(database)
 	authMW := auth.NewMiddleware(sessionStore, database, cfg.SessionSecret, cfg.SessionCookieSecure)
-	users.NewHandler(users.NewService(database, sessionStore, cfg.SessionSecret, cfg.DataDir), sessionStore, authMW, cfg.SessionSecret, cfg.SessionCookieSecure).
+	users.NewHandler(users.NewService(database, sessionStore, cfg.SessionSecret, cfg.DataDir), sessionStore, authMW, cfg.SessionSecret, cfg.SessionCookieSecure, cfg.SignupEnabled).
 		Routes(srv.Router())
 	// Playlists (P6): static + smart playlists, per-user shares, link
 	// sharing, and THE single access policy — the streaming endpoint's

@@ -131,6 +131,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a regular account (only when SONARLY_SIGNUP_ENABLED is set)
+         * @description Public self-signup, gated by the SONARLY_SIGNUP_ENABLED env var (default off; when off this route answers 404). Creates a non-admin user with no library assignment — an admin scopes content afterwards — and starts a session exactly like login.
+         */
+        post: operations["signup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me": {
         parameters: {
             query?: never;
@@ -2089,7 +2109,7 @@ export interface components {
             /** @enum {string} */
             themeMode?: "light" | "dark" | "oled" | "auto";
             /** @enum {string} */
-            accentColor?: "auto" | "monochrome" | "brown" | "green" | "orange" | "teal" | "purple" | "yellow" | "cyan" | "blue";
+            accentColor?: "auto" | "copper" | "monochrome" | "brown" | "green" | "orange" | "teal" | "purple" | "yellow" | "cyan" | "blue";
             playlistsCollapsed?: boolean;
             sidebar?: Record<string, never>;
             theme?: Record<string, never>;
@@ -2111,7 +2131,7 @@ export interface components {
             /** @enum {string} */
             themeMode?: "light" | "dark" | "oled" | "auto";
             /** @enum {string} */
-            accentColor?: "auto" | "monochrome" | "brown" | "green" | "orange" | "teal" | "purple" | "yellow" | "cyan" | "blue";
+            accentColor?: "auto" | "copper" | "monochrome" | "brown" | "green" | "orange" | "teal" | "purple" | "yellow" | "cyan" | "blue";
             playlistsCollapsed?: boolean;
             sidebar?: Record<string, never>;
             theme?: Record<string, never>;
@@ -3053,7 +3073,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Whether the zero-users setup gate is open. */
+            /** @description Whether the zero-users setup gate is open, and whether public signup is enabled. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -3061,6 +3081,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         needsSetup: boolean;
+                        signupEnabled: boolean;
                     };
                 };
             };
@@ -3119,6 +3140,64 @@ export interface operations {
             };
             /** @description Setup already completed. */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    signup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    username: string;
+                    /** Format: password */
+                    password: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Account created; session cookie set. */
+            201: {
+                headers: {
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        user: components["schemas"]["PublicUser"];
+                    };
+                };
+            };
+            /** @description Validation failure (missing username/password, password shorter than 8 chars). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Signup is disabled (SONARLY_SIGNUP_ENABLED not set). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Username is taken. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

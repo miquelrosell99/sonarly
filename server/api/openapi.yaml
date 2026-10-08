@@ -230,14 +230,15 @@ paths:
       security: []
       responses:
         '200':
-          description: Whether the zero-users setup gate is open.
+          description: Whether the zero-users setup gate is open, and whether public signup is enabled.
           content:
             application/json:
               schema:
                 type: object
-                required: [needsSetup]
+                required: [needsSetup, signupEnabled]
                 properties:
                   needsSetup: { type: boolean }
+                  signupEnabled: { type: boolean }
         '500':
           description: Internal failure.
           content:
@@ -281,6 +282,55 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
         '403':
           description: Setup already completed.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/signup:
+    post:
+      operationId: signup
+      tags: [auth]
+      summary: Create a regular account (only when SONARLY_SIGNUP_ENABLED is set)
+      description: >
+        Public self-signup, gated by the SONARLY_SIGNUP_ENABLED env var
+        (default off; when off this route answers 404). Creates a non-admin
+        user with no library assignment — an admin scopes content afterwards —
+        and starts a session exactly like login.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string, format: password, minLength: 8 }
+      responses:
+        '201':
+          description: Account created; session cookie set.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user: { $ref: '#/components/schemas/PublicUser' }
+        '400':
+          description: Validation failure (missing username/password, password shorter than 8 chars).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '404':
+          description: Signup is disabled (SONARLY_SIGNUP_ENABLED not set).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: Username is taken.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -3616,7 +3666,7 @@ components:
         themeMode: { type: string, enum: [light, dark, oled, auto] }
         accentColor:
           type: string
-          enum: [auto, monochrome, brown, green, orange, teal, purple, yellow, cyan, blue]
+          enum: [auto, copper, monochrome, brown, green, orange, teal, purple, yellow, cyan, blue]
         playlistsCollapsed: { type: boolean }
         sidebar: { type: object }
         theme: { type: object }
@@ -3641,7 +3691,7 @@ components:
         themeMode: { type: string, enum: [light, dark, oled, auto] }
         accentColor:
           type: string
-          enum: [auto, monochrome, brown, green, orange, teal, purple, yellow, cyan, blue]
+          enum: [auto, copper, monochrome, brown, green, orange, teal, purple, yellow, cyan, blue]
         playlistsCollapsed: { type: boolean }
         sidebar: { type: object }
         theme: { type: object }
