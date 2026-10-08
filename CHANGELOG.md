@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [Unreleased]
+
+## [3.1.1] - 2026-10-08
+
+### Fixed
+
+- **Accent contract trimmed to the shipped palette**: the `accentColor` enum in the OpenAPI spec, the server-side preferences validator, and the generated web contract now list only the five offered accents (auto, copper, monochrome, green, purple, blue) — Brown/Orange/Teal/Yellow/Cyan no longer validate, matching the 3.1.0 picker.
+
+### Changed
+
+- **Segmented controls off pills and sharp corners**: the Now Playing Queue/Lyrics tabs and the Auto DJ tune popover mode/window controls take the 12px input-family radius (and the active tab loses its drop shadow).
+
 ## [3.1.0] - 2026-10-08
 
 ### Changed
@@ -285,7 +297,8 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.1...HEAD
+[3.1.1]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.1
 [3.1.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.0
 [3.0.1]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.0.1
 [3.0.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.0.0

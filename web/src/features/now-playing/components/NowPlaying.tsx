@@ -65,10 +65,10 @@ function TabButton({
       aria-controls={ariaControls}
       tabIndex={active ? 0 : -1}
       className={cn(
-        'inline-flex min-h-11 items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition',
+        'inline-flex min-h-11 items-center gap-2 rounded-input px-4 py-1.5 text-sm font-medium transition',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         active
-          ? 'bg-accent text-bg-primary shadow-sm'
+          ? 'bg-accent text-bg-primary'
           : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary'
       )}
     >
@@ -325,7 +325,7 @@ export function NowPlaying({ user }: NowPlayingProps) {
           <div className="flex h-[58vh] min-h-[320px] min-w-0 flex-col overflow-hidden rounded-card border border-rule/50 bg-surface/80 backdrop-blur-xl md:h-full md:min-h-0">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rule/50 px-3 py-2.5 sm:px-4">
               <div
-                className="flex items-center gap-1 rounded-full border border-rule/50 bg-bg-primary/60 p-1"
+                className="flex items-center gap-1 rounded-input border border-rule/50 bg-bg-primary/60 p-1"
                 role="tablist"
                 aria-label="Now playing panels"
                 onKeyDown={handleTabListKeyDown}
