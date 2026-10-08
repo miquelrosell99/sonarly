@@ -53,7 +53,7 @@ function SidebarSettings() {
   };
 
   return (
-    <div className="w-full max-w-3xl">
+    <div className="w-full">
       <SettingsCard
         icon="mdi-menu"
         title="Sidebar layout"

@@ -43,7 +43,7 @@ function AdminChrome({ children }: { children: React.ReactNode }) {
         <h2 className="font-display text-lg font-semibold">Admin panel</h2>
         {controller && <SaveBar controller={controller} />}
       </div>
-      <TabNav items={tabs} className="mb-6 border-b border-rule pb-2" />
+      <TabNav items={tabs} className="mb-6 border-b border-rule" />
       {children}
     </div>
   );

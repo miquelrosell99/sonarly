@@ -17,6 +17,8 @@ interface SidebarProps {
   user: User;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  /** Desktop collapsed mode: slim icon rail instead of the full sidebar. */
+  rail?: boolean;
 }
 
 const LIBRARY_LINKS = [
@@ -75,7 +77,7 @@ function SidebarNavLink({
   );
 }
 
-export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileClose }: SidebarProps) {
+export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileClose, rail = false }: SidebarProps) {
   const [location] = useLocation();
   const { data: preferences } = usePreferences();
   const updatePreferences = useUpdatePreferences();
@@ -126,7 +128,9 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
 
   const body = (
     <div className="flex flex-1 flex-col overflow-hidden p-3">
-      <div className="mb-2 shrink-0 border-b border-rule pb-3">
+      {/* The top bar owns the library selector on desktop; in the drawer
+          (mobile) the sidebar still carries it. */}
+      <div className="mb-2 shrink-0 border-b border-rule pb-3 md:hidden">
         <LibrarySelector
           libraries={librariesData?.libraries ?? []}
           selectedLibraryId={selectedLibraryId}
@@ -225,9 +229,72 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
     </div>
   );
 
+  // Collapsed desktop mode: the same config-filtered sections as icon
+  // buttons (Spotify-style rail). Tooltips carry the labels.
+  const railBody = (
+    <div className="flex flex-1 flex-col items-center gap-1 overflow-y-auto overscroll-contain px-2 py-3">
+      <nav className="flex flex-col items-center gap-1">
+        {orderedLibraryLinks.map((link) => {
+          const active = isActive(location, link.href);
+          return (
+            <Link
+              key={link.id}
+              href={link.href}
+              aria-label={link.label}
+              title={link.label}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'flex h-11 w-11 items-center justify-center rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                active
+                  ? 'bg-surface-hover text-accent'
+                  : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
+              )}
+            >
+              <Icon name={link.icon} size={22} />
+            </Link>
+          );
+        })}
+      </nav>
+      {playlistsVisible && (
+        <div className="mt-2 flex flex-col items-center gap-1 border-t border-rule pt-2">
+          <Link
+            href="/playlists"
+            aria-label="All playlists"
+            title="All playlists"
+            aria-current={isActive(location, '/playlists') ? 'page' : undefined}
+            className={cn(
+              'flex h-11 w-11 items-center justify-center rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              isActive(location, '/playlists')
+                ? 'bg-surface-hover text-accent'
+                : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
+            )}
+          >
+            <Icon name="mdi-playlist-music" size={22} />
+          </Link>
+          <button
+            type="button"
+            aria-label="Create playlist"
+            title="Create playlist"
+            onClick={openCreatePlaylist}
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <Icon name="mdi-playlist-plus" size={22} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <>
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-rule/60 bg-surface md:flex">{body}</aside>
+      <aside
+        className={cn(
+          'hidden shrink-0 flex-col border-r border-rule/60 bg-surface md:flex',
+          rail ? 'w-[4.5rem]' : 'w-60',
+        )}
+      >
+        {rail ? railBody : body}
+      </aside>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-[60] md:hidden">

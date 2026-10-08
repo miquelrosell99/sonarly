@@ -106,7 +106,7 @@ function PlaybackSettings() {
     discovery <= 33 ? 'Familiar' : discovery >= 67 ? 'Adventurous' : 'Balanced';
 
   return (
-    <div className="w-full max-w-3xl space-y-6">
+    <div className="w-full space-y-6">
     <SettingsCard
       icon="mdi-robot"
       title="Auto DJ"

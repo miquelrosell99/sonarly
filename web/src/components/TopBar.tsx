@@ -8,6 +8,8 @@ import { usePopoverMenu } from './ui/usePopoverMenu.js';
 import { api } from '../lib/api.js';
 import { Avatar } from './Avatar.js';
 import { SearchBox } from './SearchBox.js';
+import { BrandMark } from './BrandMark.js';
+import { LibrarySelector } from './LibrarySelector.js';
 import { SponsorButton } from './SponsorButton.js';
 import { UploadModal, UploadResultsModal, type UploadSummary } from './UploadModal.js';
 import { useLibraryStore } from '../stores/libraryStore.js';
@@ -277,9 +279,10 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
   const [resultsOpen, setResultsOpen] = useState(false);
   const [uploadSummary, setUploadSummary] = useState<UploadSummary | null>(null);
   const filters = useFilterDefinitions(location);
-  const { data: librariesData } = useLibraries();
+  const { data: librariesData, error: librariesError } = useLibraries();
   const libraries = librariesData?.libraries ?? [];
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
+  const setSelectedLibraryId = useLibraryStore((state) => state.setSelectedLibraryId);
 
   return (
     <header className="relative z-50 grid h-16 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-4 bg-bg-primary/80 px-4 backdrop-blur-md sm:grid-cols-[1fr_2fr_1fr] sm:px-6">
@@ -287,8 +290,9 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
         <button
           type="button"
           onClick={onMenuClick}
-          aria-label="Open navigation"
-          className="flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent md:hidden"
+          aria-label="Toggle navigation"
+          title="Toggle navigation"
+          className="flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <Icon name="mdi-menu" size={20} />
         </button>
@@ -296,13 +300,17 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
           href="/home"
           className="flex items-center gap-2 text-xl font-bold tracking-tight text-fg-primary hover:text-fg-primary"
         >
-          <img
-            src="/app-icon.png"
-            alt=""
-            className="app-icon h-8 w-8 rounded-md"
-          />
+          <BrandMark className="h-7 w-7" />
           <span className="hidden font-display min-[420px]:block">Sonarly</span>
         </Link>
+        <div className="ml-2 hidden w-44 shrink-0 border-l border-rule/60 pl-2 md:block">
+          <LibrarySelector
+            libraries={librariesData?.libraries ?? []}
+            selectedLibraryId={selectedLibraryId}
+            onSelect={setSelectedLibraryId}
+            error={librariesError?.message ?? null}
+          />
+        </div>
       </div>
 
       <div className="relative hidden w-full max-w-xl justify-self-center sm:block">
