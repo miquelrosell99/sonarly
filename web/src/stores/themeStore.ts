@@ -3,6 +3,7 @@ import { create } from 'zustand';
 export type ThemeMode = 'light' | 'dark' | 'oled' | 'auto';
 export type AccentColor =
   | 'auto'
+  | 'copper'
   | 'monochrome'
   | 'brown'
   | 'green'
@@ -28,7 +29,10 @@ const THEME_STORAGE_KEY = 'sonarly-theme';
 // Accents that can land on the DOM (and in storage). 'auto' is a valid
 // preference but never persists: apply() stores the resolved accent, so the
 // pre-hydration bootstrap and a cold-booted store read back the same value.
+// 'copper' is the Signal Archive brand accent and the default (owner
+// decision 2026-10-07, superseding the launch-day monochrome default).
 const ACCENT_COLORS: AccentColor[] = [
+  'copper',
   'monochrome',
   'brown',
   'green',
@@ -50,9 +54,10 @@ const isAccentColor = (value: unknown): value is AccentColor =>
 
 function resolveAccent(accentColor: AccentColor): string {
   if (accentColor !== 'auto') return accentColor;
-  // Default accent is monochrome: black on light mode, white on dark/OLED
-  // (--accent follows --fg-primary). Owner decision 2026-09-26.
-  return 'monochrome';
+  // Default accent is Echo Copper, the Signal Archive brand signal
+  // (owner decision 2026-10-07, superseding the launch-day monochrome
+  // default). Light/dark tones come from the .accent-copper classes.
+  return 'copper';
 }
 
 interface PersistedTheme {

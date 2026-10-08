@@ -1,6 +1,6 @@
 # Sonarly Design Language
 
-A premium music interface for a self-hosted collection. The visual direction is deliberately Tidal-inspired: a near-black canvas that lets album art become the hero, with a single bright accent and refined typography.
+The Sonarly web UI implements the **Signal Archive** brand identity (adopted 2026-10-07; guidelines and assets in `brand-identity/sonarly/kit/B/`). The visual direction: a warm archival paper surface and an Archive Ink dark room, one Echo Copper signal, and a catalogue's typographic discipline. Dark modes stay near-black so album art remains the hero.
 
 ## Subject and audience
 
@@ -12,11 +12,16 @@ A premium music interface for a self-hosted collection. The visual direction is 
 
 | Reference | Share | Why |
 |---|---|---|
-| `luxury-industrial-minimalism` | 50% | Dark, refined surfaces, precise spacing, premium finishes. |
-| `editorial-software` | 30% | Content as interface; large cover art, clear hierarchy, calm reading. |
-| `futuristic-operating-system` | 20% | Dark panel workspace, real-time playback state, subtle ambient color. |
+| `archival-catalogue` | 50% | Warm paper, ruled lines, ink typography, one stamp of colour — the collection as an index. |
+| `luxury-industrial-minimalism` | 30% | Refined dark surfaces, precise spacing, premium finishes. |
+| `editorial-software` | 20% | Content as interface; large cover art, clear hierarchy, calm reading. |
 
-This is not a generic "dark mode + bright accent" choice. The dark canvas is specific to music apps: the user's album artwork is the actual content, and a dark stage makes that artwork pop.
+The warm ground is specific to music apps: the user's album artwork is the actual content, and a quiet stage — paper by day, ink by night — makes that artwork pop without turning the product into a boutique-hifi pastiche.
+
+## Brand assets in the app
+
+- **Mark:** the open sonar sweep ring with the copper echo dot (`brand-identity/sonarly/kit/B/logo/master-symbol.svg`). Shipped as `web/public/favicon.svg` (small mark), `favicon.ico`, and `app-icon.png` (copper tile, 512). Misuse rules (never close the ring's gap, never move the echo dot) are in the kit's page 05.
+- **Tokens:** the palette below is the source of truth; `brand-identity/sonarly/kit/B/tokens/tokens.css` holds the same values as design tokens (plus full colour scales).
 
 ## Color tokens
 
@@ -24,25 +29,25 @@ Semantic CSS custom properties in HSL. All components should use these tokens, n
 
 | Token | Light | Dark | OLED | Usage |
 |---|---|---|---|---|
-| `--bg-primary` | `#F7F7F7` | `#0A0A0A` | `#000000` | App background |
-| `--surface` | `#FFFFFF` | `#121212` | `#0A0A0A` | Cards, sidebar, panels |
-| `--surface-hover` | `#F0F0F0` | `#1A1A1A` | `#141414` | Hover states |
-| `--rule` | `#E5E5E5` | `#272727` | `#1F1F1F` | Borders, dividers |
-| `--fg-primary` | `#0A0A0A` | `#FFFFFF` | `#FFFFFF` | Primary text |
-| `--fg-secondary` | `#6A6A6A` | `#A7A7A7` | `#B3B3B3` | Muted/caption text |
-| `--muted` | `#6A6A6A` | `#A7A7A7` | `#B3B3B3` | Same values as `--fg-secondary` |
-| `--accent` | `#0066FF` | `#00D4FF` | `#00D4FF` | Active links, play buttons, focus rings. Per-theme fallback definition — the shipped default is monochrome (see Configurable accent) |
+| `--bg-primary` | `#EEECE6` | `#171513` | `#000000` | App background (archival paper / archive ink) |
+| `--surface` | `#FFFFFF` | `#322920` | `#17130E`-ish | Cards, sidebar, panels |
+| `--surface-hover` | `#E4E2DC` | `#493F35` | warmer step | Hover states |
+| `--rule` | `#CFCBC1` | `#5D534A` | warmer step | Borders, dividers |
+| `--fg-primary` | `#231A11` | `#F4F3F1` | near-white | Primary text |
+| `--fg-secondary` | `#5D534A` | `#D7D3CF` | muted step | Muted/caption text |
+| `--muted` | `#5D534A` | `#D7D3CF` | muted step | Same values as `--fg-secondary` |
+| `--accent` | `#9B541C` | `#DB8342` | `#DB8342` | Active links, play buttons, focus rings. Default accent is Echo Copper (see Configurable accent) |
 
-Semantic palette:
+Semantic palette (lightness set so 14px text meets WCAG AA on surfaces; verified in `web/src/theme-contrast.test.ts`):
 
 | Token | Light | Dark/OLED | Usage |
 |---|---|---|---|
-| `--danger` | `#EF4343` | `#F05B5B` | Errors, destructive actions |
-| `--success` | `#21C45D` | `#2ED16A` | Confirmations |
-| `--warning` | `#F59F0A` | `#FFAC17` | Cautions |
-| `--info` | `#257EFF` | `#257EFF` | Informational |
+| `--danger` | `#B4312B` | `#FE8477` | Errors, destructive actions |
+| `--success` | `#08795E` | `#3FC6A0` | Confirmations |
+| `--warning` | `#895D06` | `#C9AA37` | Cautions |
+| `--info` | `#196AAF` | `#66B2FD` | Informational |
 
-Data (chart) palette, consumed by the statistics pages via `var(--chart-1)`…`var(--chart-10)` (dark and OLED share values):
+Data (chart) palette, consumed by the statistics pages via `var(--chart-1)`…`var(--chart-10)` (unchanged by the brand — dataviz hues stay distinguishable):
 
 | Token | Light | Dark/OLED |
 |---|---|---|
@@ -59,10 +64,11 @@ Data (chart) palette, consumed by the statistics pages via `var(--chart-1)`…`v
 
 ### Configurable accent
 
-The default accent is **monochrome**: `--accent` follows `--fg-primary` (near-black on light mode, white on dark/OLED) — a deliberate, owner-approved departure from Tidal's bright-accent look. The `--accent` values in the table above are the per-theme fallback definitions of the token, applied only when no accent class is set; in practice the pre-hydration bootstrap and the theme store always apply `accent-monochrome` (the default) or one of the palette classes below, which override `--accent` per choice.
+The default accent is **Echo Copper** — the brand's single signal (owner decision 2026-10-07, superseding the launch-day monochrome default). The accent palette below remains user-configurable in Settings → Appearance, and **Monochrome** (`--accent` follows `--fg-primary`) is still available.
 
 | Accent | Token | Sample |
 |---|---|---|
+| Copper | `--accent-copper` | `#9B541C` (light) / `#DB8342` (dark) |
 | Monochrome | `--fg-primary` | — |
 | Brown | `--accent-brown` | `#A16B45` |
 | Green | `--accent-green` | `#21C45D` |
@@ -73,19 +79,19 @@ The default accent is **monochrome**: `--accent` follows `--fg-primary` (near-bl
 | Cyan | `--accent-cyan` | `#00D4FF` |
 | Blue | `--accent-blue` | `#0066FF` |
 
-Users can override the accent through Settings → Appearance. Always test a custom accent against all three modes; bright accents may need different opacity or glow treatment in OLED mode.
+Users can override the accent through Settings → Appearance. Always test a custom accent against all three modes.
 
 ## Typography
 
-Loaded from Google Fonts (`web/index.html`):
+Loaded from Google Fonts (`web/index.html`); the brand uses exactly two faces:
 
 | Role | Typeface | Weights | Usage |
 |---|---|---|---|
-| Display / headings | **Space Grotesk** | 500, 700 | Page titles, section headers, player track title, logo wordmark |
-| Body / UI | **Inter** | 400, 500, 600 | Labels, buttons, lists, captions |
-| Data / times | **JetBrains Mono** | 400 | Durations, counters, timestamps |
+| Display / headings | **Bricolage Grotesque** | 600 (variable opsz) | Page titles, section headers, player track title, logo wordmark |
+| Body / UI | **Bricolage Grotesque** | 400, 500 | Labels, buttons, lists, captions |
+| Data / times | **IBM Plex Mono** | 400, 500 | Durations, counters, timestamps, catalogue metadata |
 
-Tailwind classes: `font-display`, `font-sans`, `font-mono`.
+Tailwind classes: `font-display`, `font-sans`, `font-mono`. Bricolage's `opsz` axis is requested as a range (`10..96`), so browsers pick the right optical size automatically; headings track slightly tight (`tracking-tight`), echoing the wordmark.
 
 ## Signature element
 
@@ -94,13 +100,13 @@ Tailwind classes: `font-display`, `font-sans`, `font-mono`.
 Why:
 - Specific to a music player (not a generic dashboard).
 - Makes the interface feel alive and personal.
-- Differentiates Sonarly from a plain Tidal clone while staying in the same premium family.
+- Sits naturally on both brand grounds without fighting the copper signal.
 
 Implementation: `web/src/hooks/useDominantColor.ts` samples cover art via an offscreen canvas, mutes saturation, and returns an `hsl()` color that is applied through CSS custom properties (`--now-playing-color`).
 
 ## Layout principles
 
-- **Full-height dark shell.** Top bar, sidebar, and player bar frame a scrollable main area.
+- **Full-height shell.** Top bar, sidebar, and player bar frame a scrollable main area.
 - **Navigation recedes.** Sidebar uses muted text and a thin accent indicator for the active item.
 - **Content breathes.** Generous padding, rounded corners (`rounded-xl` / `rounded-2xl`), and soft shadows on cover art.
 - **Player bar is persistent.** Full-width progress scrubber, album thumbnail, centered transport controls, volume on the right.
@@ -109,7 +115,7 @@ Implementation: `web/src/hooks/useDominantColor.ts` samples cover art via an off
 
 ### Buttons
 
-- **Primary:** `.btn` — rounded-full, accent background, dark/light contrasting text.
+- **Primary:** `.btn` — rounded-full, accent background, contrasting text.
 - **Secondary:** `.btn-ghost` — rounded-full, rule border, surface background.
 
 ### Cards
@@ -126,14 +132,14 @@ Implementation: `web/src/hooks/useDominantColor.ts` samples cover art via an off
 
 - Hover-only overlays (card actions, row play buttons) must also carry `group-focus-within/...:opacity-100` and the `.hover-reveal` utility, which forces visibility on touch devices (`@media (hover: none)`).
 - A global `prefers-reduced-motion` dampener in `index.css` zeroes transition/animation durations; JS-driven animations (WAAPI, rAF count-ups, intervals) must check the media query themselves.
-- Durations, counters, and timestamps use `font-mono` (JetBrains Mono); page titles and section headers use `font-display` (Space Grotesk).
+- Durations, counters, and timestamps use `font-mono` (IBM Plex Mono); page titles and section headers use `font-display` (Bricolage Grotesque).
 
 ## Modes
 
-Light, dark, and OLED modes are supported via `theme-light`, `theme-dark`, and `theme-oled` classes on `<html>`. OLED uses pure black (`#000000`) for the background and slightly lighter surfaces to maximize contrast and battery life.
+Light, dark, and OLED modes are supported via `theme-light`, `theme-dark`, and `theme-oled` classes on `<html>`. Dark is Archive Ink (`#171513`); OLED keeps a pure-black ground (`#000000`) for battery life, with warm-tinted surfaces so it still belongs to the brand.
 
 ## Rejected alternatives
 
-- **Warm cream + serif display:** A common AI default; felt wrong for a technical, music-first product.
-- **Broadsheet hairline rules:** Too editorial and not tactile enough for a player.
-- **Pure black dark mode:** Tried `#000000` for dark mode, but it made cover art feel harsh; `#0A0A0A` keeps depth while staying cinematic.
+- **Pure-white light mode:** reads clinical next to the warm paper; `#EEECE6` gives the collection a place to sit.
+- **Blue-family accents (the category code):** every competitor owns a corporate blue/cyan; Echo Copper is the one signal nobody on the shelf has.
+- **Pure black dark mode:** tried `#000000` for dark mode, but it made cover art feel harsh; `#171513` keeps depth while staying cinematic.
