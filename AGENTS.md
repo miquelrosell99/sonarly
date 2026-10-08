@@ -43,6 +43,16 @@ When a change is complete and verified (project tests/build pass), ship it — n
 
 Do this by default whenever it makes sense (completed features and fixes, including small ones) — it is standing authorization, not something to ask about each time. Only hold back when the user has said not to ship or the action would be hard to undo.
 
+## Concurrent sessions (owner 2026-10-08)
+
+More than one agent (or human) session may be working in this repo — and against the same dev environment — at the same time. Assume it.
+
+- **Worktrees live in `.worktrees/`**: concurrent sessions on unrelated tasks each default to their own gitignored `.worktrees/<slug>/` (`git worktree add .worktrees/<slug> -b <slug> main`) — own branch, own `pnpm install` (the shared store makes it cheap), own gate runs — so one session's half-done edits can't break another's tests. Never a random sibling folder. A solo session or a trivial docs-only slice may stay in the main checkout. Dev servers are NOT isolated by worktrees: each session takes distinct ports (server :3000, Vite :5173 — Vite auto-increments).
+- **Landing + cleanup**: slices land one at a time in the main checkout — fetch, rebase the session branch onto the freshest main, fast-forward merge, push; if main moved or `.git/index.lock` is present another landing is in flight — wait and redo the rebase. A landed slice cleans up after itself: `git worktree remove .worktrees/<slug>` + `git branch -d <slug>`.
+- **Shared record files**: `CHANGELOG.md` (entries prepend under `## [Unreleased]` — never reorder existing entries), `docs/`, `agents/`, `AGENTS.md`, and the API contract (`server/api/openapi.yaml` + the regenerated `web/src/contract/schema.ts`) are touched by nearly every slice and conflict at merge time by construction — keep edits minimal and anchored; resolve conflicts by keeping both blocks, never dropping another slice's entry.
+- **Detect before writing and before shared-state actions**: `git status --porcelain` + `git log --oneline -5` at session start (unfamiliar changes belong to someone else's in-flight task), `git worktree list` (a stale entry from a crashed session gets pruned once confirmed dead — never a live sibling), a present `.git/index.lock`, already-bound dev ports, `docker compose -f compose.yaml ps` for the live stack.
+- **Handle**: never revert, delete, reformat, or commit files outside your task (per-file staging only — never `git add -A` / `git commit -a`); red tests in files you didn't touch are another session's in-flight work — report them, don't fix them; avoid stack-wide actions (image rebuilds, DB resets) without checking who else is using the environment; snapshot-commit your own verified states early — uncommitted work is one rebase away from gone. Detail: `agents/build-commands.md` (Concurrent sessions) + the `agent-repo-workflow` skill.
+
 ## Reference
 
 - [Agent Quick Reference](agents/quick-reference.md)

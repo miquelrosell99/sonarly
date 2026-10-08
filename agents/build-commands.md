@@ -81,3 +81,19 @@ docker compose -f compose.yaml up -d
 5. On the server: `docker compose -f compose.yaml pull && docker compose -f compose.yaml up -d`.
 
 Database migrations run automatically on container start (ledger-tracked, idempotent DDL). Rollback = restore the pre-update DB backup + the previous image tag (see docs/deployment.md).
+
+## Concurrent sessions (owner 2026-10-08)
+
+More than one agent (or human) session may be working in this repo — and against the same dev environment — at the same time. Assume it. (Mirrors the fleet-wide rules developed in the Notees repo, 2026-10-08.)
+
+**Worktrees live in `.worktrees/`** (gitignored): concurrent sessions on unrelated tasks each default to their own `git worktree add .worktrees/<slug> -b <slug> main` — own branch, own `pnpm install` (the shared store makes it cheap), own gate runs (`pnpm -r build && pnpm test` + `cd server && go build ./... && go vet ./... && go test ./... -count=1`) — so one session's half-done edits can't break another's tests. The main checkout is where slices land, not where concurrent development happens. Never a random sibling folder. A solo session or a trivial docs-only slice may stay in the main checkout and commit promptly. Dev servers are NOT isolated by worktrees: each session takes distinct ports (server :3000, Vite :5173 — Vite auto-increments; note which a session uses).
+
+**Landing + cleanup**: slices land one at a time in the main checkout — fetch, rebase the session branch onto the freshest main, fast-forward merge, push. If main moved between your rebase and your merge — or `.git/index.lock` is present — another landing is in flight: wait, re-fetch, redo the rebase. Land promptly after the gate is green; frequent small merges keep divergence small. When the slice has landed, clean up: `git worktree remove .worktrees/<slug>` + `git branch -d <slug>` (the safe delete only succeeds once the slice is fully merged), so `git worktree list` stays truthful.
+
+**Shared record files**: `CHANGELOG.md` (entries prepend under `## [Unreleased]`, Keep a Changelog — never renumber or reorder existing entries), `docs/`, `agents/`, `AGENTS.md`, and the API contract (`server/api/openapi.yaml` + the regenerated `web/src/contract/schema.ts`) are touched by nearly every slice, so they conflict at merge time by construction. Rules: keep the edit minimal and anchored; resolve a conflict there by keeping BOTH blocks — never drop another slice's entry.
+
+**Detect before writing, and again before any shared-state operation**: `git status --porcelain` (files you did not make are another session's in-flight work) + `git log --oneline -5` (unfamiliar recent commits) at session start; `git worktree list` (parallel work lives in `.worktrees/<slug>/`; a stale entry from a crashed session gets pruned once confirmed dead — `git worktree remove --force` + `git branch -D` — never against a live, unfamiliar sibling); a present `.git/index.lock` (wait for it, never delete it reflexively); already-bound dev ports; `docker compose -f compose.yaml ps` for the live stack.
+
+**Handle**: keep writes inside your task's files; stage per-file (`git add <path>`), never `git add -A` / `git commit -a`; never revert, delete, reformat, or "tidy" files you didn't create; red tests or vet errors in files you didn't touch are presumed to be another session's in-progress work — report them, don't fix them; if a file changes under you, re-read it and integrate, don't overwrite; avoid stack-wide actions (image rebuilds, DB resets) without checking who else is using the environment; snapshot-commit your own verified stable states early — uncommitted work is one rebase away from gone.
+
+Base discipline: the `agent-repo-workflow` user skill (concurrent agents, snapshot commits, verify before finishing).
