@@ -1,6 +1,7 @@
 export type ThemeMode = 'light' | 'dark' | 'oled' | 'auto';
 export type AccentColor =
   | 'auto'
+  | 'copper'
   | 'monochrome'
   | 'brown'
   | 'green'
