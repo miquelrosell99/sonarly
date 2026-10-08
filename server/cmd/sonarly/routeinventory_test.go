@@ -128,6 +128,7 @@ var pinnedRoutes = []string{
 	"POST /api/ratings",
 	"POST /api/scans",
 	"POST /api/setup",
+	"POST /api/signup",
 	"POST /api/songs/{id}/cover-art",
 	"POST /api/songs/{id}/scrobble",
 	"POST /api/upload/sessions",

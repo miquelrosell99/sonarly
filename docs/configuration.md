@@ -24,6 +24,7 @@ All `SONARLY_*` durations that accept `0` disable that trigger entirely.
 | `SONARLY_REVIEW_RETENTION_DAYS` | `30` | Default retention (days) for files parked in the ingest review folder. Overridable from Settings (media) per deployment, clamped 1–365. | Shorten if review piles up; lengthen if you need more time to fix files. |
 | `SONARLY_TRANSCODE_CONCURRENCY` | `2` | Maximum concurrent ffmpeg transcodes server-wide. | Raise on a fast host with many transcode-hungry clients; see [faq.md](faq.md#how-does-transcoding-work). |
 | `SONARLY_FFMPEG_PATH` | `ffmpeg` | ffmpeg binary used for transcoding; resolved via `PATH` unless overridden. | If ffmpeg lives outside `PATH` in a custom runtime. |
+| `SONARLY_SIGNUP_ENABLED` | unset (`false`) | Allows visitors to create their own accounts: the login screen gains a "Create one" link to `/signup`, and `POST /api/signup` creates a regular (non-admin) user with no library assignment — an admin scopes content afterwards. When unset or `false`, the route answers 404 and the link is hidden. | Enable only for servers meant to be open to new users. |
 
 ## Compose-level variables
 

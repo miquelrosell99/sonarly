@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { Link } from 'wouter';
 import type { User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
+import { BrandMark } from '../../../components/BrandMark.js';
 
-export function Login({ onLogin }: { onLogin: (user: User) => void }) {
+export function Login({ onLogin, signupEnabled = false }: { onLogin: (user: User) => void; signupEnabled?: boolean }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +38,12 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg-primary p-6">
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight text-fg-primary">Sonarly</h1>
+        <div className="flex flex-col items-center gap-3 pb-4 text-center">
+          <BrandMark className="h-14 w-14" />
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-fg-primary">
+            Sonarly
+          </h1>
+        </div>
         {error && (
           <div
             className="rounded-md border border-danger/30 bg-danger/10 p-3 text-sm text-danger"
@@ -75,6 +82,14 @@ export function Login({ onLogin }: { onLogin: (user: User) => void }) {
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? 'Signing in…' : 'Sign in'}
         </Button>
+        {signupEnabled && (
+          <p className="text-center text-sm text-fg-secondary">
+            No account yet?{' '}
+            <Link href="/signup" className="text-accent hover:underline">
+              Create one
+            </Link>
+          </p>
+        )}
       </form>
     </div>
   );

@@ -19,10 +19,15 @@ type Handler struct {
 	mw     *auth.Middleware
 	secret string
 	secure bool
+	// signupEnabled gates POST /api/signup and is advertised via GET
+	// /api/setup so the login screen can offer "Create an account".
+	// Off by default (SONARLY_SIGNUP_ENABLED): public account creation is a
+	// deliberate opt-in, not a default attack surface.
+	signupEnabled bool
 }
 
-func NewHandler(svc *Service, store *auth.Store, mw *auth.Middleware, sessionSecret string, secureCookie bool) *Handler {
-	return &Handler{svc: svc, store: store, mw: mw, secret: sessionSecret, secure: secureCookie}
+func NewHandler(svc *Service, store *auth.Store, mw *auth.Middleware, sessionSecret string, secureCookie bool, signupEnabled bool) *Handler {
+	return &Handler{svc: svc, store: store, mw: mw, secret: sessionSecret, secure: secureCookie, signupEnabled: signupEnabled}
 }
 
 // Routes registers the users endpoints on r.
@@ -31,6 +36,7 @@ func (h *Handler) Routes(r chi.Router) {
 	r.Post("/api/logout", h.logout)
 	r.Get("/api/setup", h.setupStatus)
 	r.Post("/api/setup", h.setup)
+	r.Post("/api/signup", h.signup)
 
 	r.Group(func(r chi.Router) {
 		r.Use(h.mw.AuthMiddleware, auth.RequireAuth)
@@ -269,7 +275,7 @@ func (h *Handler) setupStatus(w http.ResponseWriter, r *http.Request) {
 		writeServiceError(w, r, err)
 		return
 	}
-	httpserver.JSON(w, http.StatusOK, map[string]any{"needsSetup": needed})
+	httpserver.JSON(w, http.StatusOK, map[string]any{"needsSetup": needed, "signupEnabled": h.signupEnabled})
 }
 
 func (h *Handler) setup(w http.ResponseWriter, r *http.Request) {
@@ -293,6 +299,47 @@ func (h *Handler) setup(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := h.startSession(w, r, auth.Session{
 		UserID: user.ID, Username: user.Username, IsAdmin: true,
+	}); err != nil {
+		slog.ErrorContext(r.Context(), "create session", "err", err)
+		httpserver.Error(w, http.StatusInternalServerError, "Internal Server Error")
+		return
+	}
+	httpserver.JSON(w, http.StatusCreated, map[string]any{"user": user})
+}
+
+// signup creates a regular (non-admin) account and starts a session for it.
+// Only mounted when SONARLY_SIGNUP_ENABLED is true; when disabled the route
+// answers 404 so the surface does not exist at all. Signups get no library
+// assignment — an admin scopes content afterwards.
+func (h *Handler) signup(w http.ResponseWriter, r *http.Request) {
+	if !h.signupEnabled {
+		httpserver.Error(w, http.StatusNotFound, "Not found")
+		return
+	}
+	var body struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if !decodeJSON(w, r, &body) {
+		return
+	}
+	if err := h.svc.CreateUser(r.Context(), CreateInput{
+		Username: body.Username,
+		Password: body.Password,
+		IsAdmin:  false,
+	}); err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	// Land the new account straight in the app: fetch it the way login does
+	// (PublicUser) and start the session cookie the same way.
+	user, err := h.svc.Login(r.Context(), body.Username, body.Password)
+	if err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	if err := h.startSession(w, r, auth.Session{
+		UserID: user.ID, Username: user.Username, IsAdmin: user.IsAdmin,
 	}); err != nil {
 		slog.ErrorContext(r.Context(), "create session", "err", err)
 		httpserver.Error(w, http.StatusInternalServerError, "Internal Server Error")
