@@ -75,7 +75,7 @@ function LibrarySettings() {
   };
 
   return (
-    <div className="w-full max-w-3xl">
+    <div className="w-full">
       <SettingsCard
         icon="mdi-view-grid-outline"
         title="Default views"

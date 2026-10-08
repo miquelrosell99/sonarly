@@ -173,7 +173,7 @@ export function MissingModal({ open, onClose }: MissingModalProps) {
 
           {!loading && (
             <>
-              <nav className="flex items-center justify-between gap-2 border-b border-rule pb-2">
+              <nav className="flex items-center justify-between gap-2 border-b border-rule">
                 <TabNav
                   items={tabs.map(({ key, label, count }) => ({ key, label: `${label} (${count})` }))}
                   activeKey={tab}
