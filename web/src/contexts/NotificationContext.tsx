@@ -117,7 +117,7 @@ function NotificationItem({
   return (
     <div
       ref={cardRef}
-      className={`flex max-w-sm flex-col rounded-md border shadow-lg ${cardClass}`}
+      className={`flex max-w-sm flex-col rounded-input border shadow-lg ${cardClass}`}
       // Only errors are assertive; success/info feedback must not interrupt
       // a screen reader (audit F26).
       role={notification.type === 'error' ? 'alert' : 'status'}

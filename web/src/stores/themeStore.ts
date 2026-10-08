@@ -4,15 +4,10 @@ export type ThemeMode = 'light' | 'dark' | 'oled' | 'auto';
 export type AccentColor =
   | 'auto'
   | 'copper'
-  | 'monochrome'
-  | 'brown'
   | 'green'
-  | 'orange'
-  | 'teal'
   | 'purple'
-  | 'yellow'
-  | 'cyan'
-  | 'blue';
+  | 'blue'
+  | 'monochrome';
 
 interface ThemeState {
   themeMode: ThemeMode;
@@ -29,19 +24,15 @@ const THEME_STORAGE_KEY = 'sonarly-theme';
 // Accents that can land on the DOM (and in storage). 'auto' is a valid
 // preference but never persists: apply() stores the resolved accent, so the
 // pre-hydration bootstrap and a cold-booted store read back the same value.
-// 'copper' is the Signal Archive brand accent and the default (owner
-// decision 2026-10-07, superseding the launch-day monochrome default).
+// Five accents only (owner decision 2026-10-08): Copper is the Signal
+// Archive brand accent and the default (owner decision 2026-10-07,
+// superseding the launch-day monochrome default).
 const ACCENT_COLORS: AccentColor[] = [
   'copper',
-  'monochrome',
-  'brown',
   'green',
-  'orange',
-  'teal',
   'purple',
-  'yellow',
-  'cyan',
   'blue',
+  'monochrome',
 ];
 
 const accentClasses = ACCENT_COLORS.map((accent) => `accent-${accent}`);
@@ -120,6 +111,17 @@ export const useTheme = create<ThemeState>((set, get) => ({
     const resolvedAccent = resolveAccent(accentColor);
 
     html.classList.add(`theme-${resolvedMode}`, `accent-${resolvedAccent}`);
+
+    // index.html hardcodes media-scoped <meta name="theme-color"> grounds for
+    // light (#EEECE6) and dark (#171513); a media query cannot see the OLED
+    // class, so apply() repaints the dark meta for OLED's pure-black ground
+    // and restores it when the mode changes back.
+    const darkMeta = document.querySelector<HTMLMetaElement>(
+      'meta[name="theme-color"][media*="dark"]',
+    );
+    if (darkMeta) {
+      darkMeta.content = resolvedMode === 'oled' ? '#000000' : '#171513';
+    }
 
     // Persist the RESOLVED values as { mode, accent } so the index.html
     // bootstrap can put the same classes on <html> before hydration — a cold

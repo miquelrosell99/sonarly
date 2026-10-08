@@ -10,11 +10,11 @@
        Copper signal. Hex values from brand-identity/sonarly/kit/B/tokens/tokens.css. */
     --bg-primary: 45 19% 92%;
     --fg-primary: 30 35% 10%;
-    --fg-secondary: 28 11% 33%;
+    --fg-secondary: 30 5% 33%;
     --surface: 0 0% 100%;
     --surface-hover: 45 13% 88%;
     --rule: 43 13% 78%;
-    --muted: 28 11% 33%;
+    --muted: 30 5% 33%;
     --accent: 26 69% 36%;
 
     /* Data palette */
@@ -30,10 +30,12 @@
     --chart-10: 210 80% 60%;
 
     /* Semantic palette — lightness set so 14px text meets WCAG AA (>= 4.5:1)
-       on --surface and --bg-primary (audit F10; verified in theme-contrast.test). */
-    --danger: 3 61% 44%;
-    --success: 166 87% 25%;
-    --warning: 40 92% 28%;
+       on --surface and --bg-primary (audit F10; verified in theme-contrast.test).
+       Hues follow the spec values: danger #ef5550 (~h4), warning #f28b3f
+       (~h28), success #29b672 (~h152). */
+    --danger: 4 61% 44%;
+    --success: 152 87% 25%;
+    --warning: 28 92% 28%;
     --info: 208 75% 39%;
   }
 
@@ -44,11 +46,11 @@
        reads clean against them. */
     --bg-primary: 30 10% 8%;
     --fg-primary: 40 12% 95%;
-    --fg-secondary: 30 6% 78%;
+    --fg-secondary: 30 6% 65%;
     --surface: 30 7% 14%;
     --surface-hover: 30 7% 20%;
     --rule: 30 6% 30%;
-    --muted: 30 6% 78%;
+    --muted: 30 6% 65%;
     --accent: 25 68% 56%;
 
     /* Data palette */
@@ -64,9 +66,9 @@
     --chart-10: 210 80% 65%;
 
     /* Semantic palette */
-    --danger: 6 98% 73%;
-    --success: 163 54% 51%;
-    --warning: 47 57% 50%;
+    --danger: 4 98% 73%;
+    --success: 152 54% 51%;
+    --warning: 28 57% 50%;
     --info: 210 97% 70%;
   }
 
@@ -76,11 +78,11 @@
        stay clean, per the dark theme. */
     --bg-primary: 0 0% 0%;
     --fg-primary: 40 11% 97%;
-    --fg-secondary: 30 6% 76%;
+    --fg-secondary: 30 6% 65%;
     --surface: 30 6% 7%;
     --surface-hover: 30 6% 11%;
     --rule: 30 5% 18%;
-    --muted: 30 6% 76%;
+    --muted: 30 6% 65%;
     --accent: 25 68% 56%;
 
     /* Data palette */
@@ -96,9 +98,9 @@
     --chart-10: 210 80% 65%;
 
     /* Semantic palette */
-    --danger: 6 98% 73%;
-    --success: 163 54% 51%;
-    --warning: 47 57% 50%;
+    --danger: 4 98% 73%;
+    --success: 152 54% 51%;
+    --warning: 28 57% 50%;
     --info: 210 97% 70%;
   }
 
@@ -122,20 +124,19 @@
 }
 
 /* Accent palette overrides. DELIBERATELY outside @layer base: Tailwind 3.4
-   intermittently drops small hand-written rule runs inside layers (shipped
-   broken brown/orange/teal/yellow accents to production for weeks); unlayered
+   intermittently drops small hand-written rule runs inside layers; unlayered
    CSS passes through untouched and, per the cascade, beats @layer base —
-   which is exactly what an override wants. */
+   which is exactly what an override wants.
+   Five accents only (owner decision 2026-10-08): Copper (brand default),
+   Green, Purple, Blue, Monochrome. Saturated hues lighten on dark/OLED
+   grounds (copper precedent) so the near-black --bg-primary button label
+   keeps WCAG AA; light-mode values are tuned down so text-bg-primary on the
+   accent also meets AA (verified against the theme math). */
 :root {
   --accent-copper: 26 69% 36%;
-  --accent-brown: 25 40% 45%;
-  --accent-green: 142 71% 45%;
-  --accent-orange: 25 95% 53%;
-  --accent-teal: 174 72% 43%;
-  --accent-purple: 270 60% 55%;
-  --accent-yellow: 45 93% 47%;
-  --accent-cyan: 192 100% 50%;
-  --accent-blue: 217 100% 50%;
+  --accent-green: 142 71% 27%;
+  --accent-purple: 270 60% 52%;
+  --accent-blue: 217 100% 47%;
 }
 
 .accent-copper { --accent: var(--accent-copper); }
@@ -144,31 +145,68 @@
 .theme-oled.accent-copper {
   --accent: 25 68% 56%;
 }
-.accent-brown { --accent: var(--accent-brown); }
 .accent-green { --accent: var(--accent-green); }
-.accent-orange { --accent: var(--accent-orange); }
-.accent-teal { --accent: var(--accent-teal); }
+.theme-dark.accent-green,
+.theme-oled.accent-green {
+  --accent: 142 71% 47%;
+}
 .accent-purple { --accent: var(--accent-purple); }
-.accent-yellow { --accent: var(--accent-yellow); }
-.accent-cyan { --accent: var(--accent-cyan); }
+.theme-dark.accent-purple,
+.theme-oled.accent-purple {
+  --accent: 270 60% 72%;
+}
 .accent-blue { --accent: var(--accent-blue); }
+.theme-dark.accent-blue,
+.theme-oled.accent-blue {
+  --accent: 217 100% 67%;
+}
+/* Monochrome: the accent IS the foreground, so on-accent text is
+   --bg-primary in every theme — contrast holds by construction. */
 .accent-monochrome { --accent: var(--fg-primary); }
+
+/* Deliberate brand moment: the Login sign-in button stays a full pill over
+   the app-wide 16px .btn radius. Unlayered on purpose so it beats .btn. */
+.btn-pill {
+  border-radius: 9999px;
+}
 
 @layer components {
   .btn {
-    @apply inline-flex h-10 items-center justify-center gap-2 rounded-full border border-accent bg-accent px-5 text-sm font-semibold text-bg-primary transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-button border border-accent bg-accent px-5 text-sm font-semibold text-bg-primary transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  /* Tactile press (design system): hover darkens subtly, active compresses
+     and darkens harder. filter overrides the hover filter while pressed. */
+  .btn:active {
+    transform: scale(0.97);
+    filter: brightness(0.9);
   }
   .btn-ghost {
-    @apply inline-flex h-10 items-center justify-center gap-2 rounded-full border border-rule bg-surface px-5 text-sm font-semibold text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary;
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-button border border-rule bg-surface px-5 text-sm font-semibold text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary;
   }
   .btn-ghost:hover {
     border-color: hsl(var(--fg-secondary));
   }
+  .btn-ghost:active {
+    transform: scale(0.97);
+    filter: brightness(0.95);
+  }
   .btn-danger {
-    @apply inline-flex h-10 items-center justify-center gap-2 rounded-full border border-rule bg-surface px-5 text-sm font-semibold text-danger transition hover:border-danger hover:bg-danger hover:text-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-button border border-rule bg-surface px-5 text-sm font-semibold text-danger transition hover:border-danger hover:bg-danger hover:text-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-danger:active {
+    transform: scale(0.97);
+    filter: brightness(0.9);
   }
   .input {
-    @apply block h-10 w-full rounded-lg border border-rule bg-surface px-3 text-sm text-fg-primary transition focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-60;
+    @apply block h-10 w-full rounded-input border border-rule bg-surface px-3 text-sm text-fg-primary transition focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  /* Shared tactile press for the app's icon-button bases (PlayerControls
+     ControlButton/PlayPauseButton, PlayButton overlay). Centralized here so
+     icon buttons press without per-instance active: variants in JSX. */
+  .icon-btn:active {
+    transform: scale(0.97);
+    filter: brightness(0.9);
   }
   .input::placeholder {
     color: hsl(var(--fg-secondary));

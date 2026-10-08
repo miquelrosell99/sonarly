@@ -431,7 +431,7 @@ function FeaturedAlbumSlide({ album, active }: FeaturedAlbumSlideProps) {
       aria-hidden={!active || undefined}
       className="relative z-10 flex w-full min-w-0 shrink-0 flex-col gap-4 md:flex-row md:items-start md:gap-6"
     >
-      <div className="w-40 shrink-0 overflow-hidden rounded-2xl shadow-2xl shadow-black/30 sm:w-52 md:w-64 lg:w-72">
+      <div className="w-40 shrink-0 overflow-hidden rounded-2xl sm:w-52 md:w-64 lg:w-72">
         <CoverArt
           coverArt={album.coverArt}
           alt={`Cover art for ${album.name}`}
@@ -441,7 +441,7 @@ function FeaturedAlbumSlide({ album, active }: FeaturedAlbumSlideProps) {
       </div>
       <div className="flex min-w-0 flex-col gap-3">
         <h2
-          className="line-clamp-2 break-words font-display text-2xl font-bold tracking-tight text-fg-primary sm:text-4xl md:text-5xl lg:text-6xl"
+          className="line-clamp-2 break-words font-display text-2xl font-semibold tracking-tight text-fg-primary sm:text-4xl md:text-5xl lg:text-6xl"
           title={album.name}
         >
           <Link href={`/albums/${album.id}`} className="hover:text-muted">
@@ -548,7 +548,7 @@ function FeaturedAlbum({ albums }: { albums: Album[] }) {
 
   return (
     <div className="mb-8">
-      <h2 className="mb-4 font-display text-xl font-bold tracking-tight">Featured albums</h2>
+      <h2 className="mb-4 font-display text-xl font-semibold tracking-tight">Featured albums</h2>
       <section
         aria-roledescription="carousel"
         aria-label="Featured albums"
@@ -556,7 +556,7 @@ function FeaturedAlbum({ albums }: { albums: Album[] }) {
         onMouseLeave={() => setPaused(false)}
         onFocus={() => setPaused(true)}
         onBlur={() => setPaused(false)}
-        className="relative overflow-hidden rounded-3xl p-4 sm:p-6"
+        className="relative overflow-hidden rounded-card p-4 sm:p-6"
       style={
         dominantColor
           ? ({

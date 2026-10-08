@@ -80,8 +80,13 @@ function SongContextMenu({
   isAdmin: boolean;
   children: ReactNode;
 }) {
-  const sections = useSongsContextMenu(songs, onEdit, isAdmin);
-  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+  const { sections, deleteConfirm } = useSongsContextMenu(songs, onEdit, isAdmin);
+  return (
+    <>
+      <ItemContextMenu sections={sections}>{children}</ItemContextMenu>
+      {deleteConfirm}
+    </>
+  );
 }
 
 export function SearchResults({ user }: SearchResultsProps) {

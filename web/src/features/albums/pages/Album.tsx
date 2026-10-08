@@ -37,8 +37,13 @@ function SongContextMenu({
   isAdmin: boolean;
   children: ReactNode;
 }) {
-  const sections = useSongsContextMenu(songs as SharedSong[], onEdit, isAdmin);
-  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+  const { sections, deleteConfirm } = useSongsContextMenu(songs as SharedSong[], onEdit, isAdmin);
+  return (
+    <>
+      <ItemContextMenu sections={sections}>{children}</ItemContextMenu>
+      {deleteConfirm}
+    </>
+  );
 }
 
 function AlbumHeaderContextMenu({

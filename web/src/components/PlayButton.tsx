@@ -115,7 +115,7 @@ function PlayButtonContent({
       <button
         {...baseProps}
         className={cn(
-          'group relative flex h-11 w-11 items-center justify-center rounded-full bg-accent text-bg-primary shadow-lg shadow-black/30 transition-all duration-200 hover:scale-105 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-40',
+          'group icon-btn relative flex h-11 w-11 items-center justify-center rounded-full bg-accent text-bg-primary transition-all duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-40',
           className,
         )}
         onClick={handleClick}

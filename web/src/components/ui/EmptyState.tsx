@@ -13,8 +13,9 @@ interface EmptyStateProps {
   className?: string;
 }
 
-// Design-token-consistent empty state: icon + one-line explanation + an
-// optional primary action. Sentence case, plain verbs (design-language tone).
+// Design-token-consistent empty state: icon + heading + one-line explanation
+// + an optional primary action. Sentence case, plain verbs (design-language
+// tone). The title is a real heading; the CTA is the accent button.
 export function EmptyState({
   icon = 'mdi-information-outline',
   title,
@@ -27,11 +28,11 @@ export function EmptyState({
     <div
       className={cn('flex flex-col items-center justify-center gap-2 py-8 text-center text-sm', className)}
     >
-      <Icon name={icon} size={24} className="text-fg-secondary" />
-      <p className="font-medium text-fg-primary">{title}</p>
+      <Icon name={icon} size={44} className="text-fg-secondary" />
+      <h2 className="font-semibold text-fg-primary">{title}</h2>
       {description && <p className="max-w-sm text-muted">{description}</p>}
       {actionLabel && (
-        <Button variant="ghost" className="mt-2" onClick={onAction}>
+        <Button className="mt-2" onClick={onAction}>
           {actionLabel}
         </Button>
       )}

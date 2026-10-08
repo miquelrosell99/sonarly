@@ -59,7 +59,7 @@ export function LibrarySelector({ libraries, selectedLibraryId, onSelect, error 
       {open && (
         <div
           role="listbox"
-          className="absolute left-0 top-full z-40 mt-2 w-full rounded-xl border border-rule bg-surface p-1 shadow-xl"
+          className="absolute left-0 top-full z-40 mt-2 w-full rounded-popover border border-rule bg-surface p-1 shadow-xl"
         >
           <button
             type="button"

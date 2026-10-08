@@ -147,7 +147,7 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
           type="button"
           onClick={onClose}
           aria-label="Close Auto DJ settings"
-          className="inline-flex h-7 w-7 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="-m-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <Icon name="mdi-close" size={18} />
         </button>

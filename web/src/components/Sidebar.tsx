@@ -87,6 +87,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
   const setSelectedLibraryId = useLibraryStore((state) => state.setSelectedLibraryId);
   const items = mergeSidebarItems(config);
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
   const prevLocationRef = useRef(location);
 
   // Close the mobile drawer after navigation
@@ -97,12 +98,41 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
     }
   }, [location, onMobileClose]);
 
-  // Move focus into the drawer when it opens; close on Escape
+  // Move focus into the drawer when it opens; close on Escape; keep Tab
+  // cycling inside while open (the drawer is aria-modal — mirrors the trap
+  // in ui/Modal.tsx, scoped to the drawer element).
   useEffect(() => {
     if (!mobileOpen) return;
     drawerCloseRef.current?.focus();
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onMobileClose?.();
+      if (e.key === 'Escape') {
+        onMobileClose?.();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const drawer = drawerRef.current;
+      if (!drawer) return;
+      const focusable = Array.from(
+        drawer.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (focusable.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first || !drawer.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !drawer.contains(active)) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
@@ -171,7 +201,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
               Playlists
             </span>
             {playlists && playlists.length > 0 && (
-              <span className="ml-1 rounded-full bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium text-fg-secondary">
+              <span className="ml-1 rounded-full bg-surface-hover px-1.5 py-0.5 text-2xs font-medium text-fg-secondary">
                 {playlists.length}
               </span>
             )}
@@ -306,6 +336,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
             className="absolute inset-0 h-full w-full cursor-default bg-black/50"
           />
           <aside
+            ref={drawerRef}
             role="dialog"
             aria-modal="true"
             aria-label="Navigation"

@@ -30,7 +30,7 @@ export const ControlButton = forwardRef<HTMLButtonElement, {
       aria-label={label}
       {...rest}
       className={cn(
-        '-m-1 inline-flex h-11 w-11 items-center justify-center rounded-full transition',
+        'icon-btn -m-1 inline-flex h-11 w-11 items-center justify-center rounded-full transition',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary',
         'disabled:cursor-not-allowed disabled:opacity-40',
         active
@@ -66,7 +66,7 @@ export function PlayPauseButton({
       disabled={disabled}
       aria-label={isPlaying ? 'Pause' : 'Play'}
       className={cn(
-        'mx-1 flex h-11 w-11 items-center justify-center rounded-full bg-accent text-bg-primary transition',
+        'icon-btn mx-1 flex h-11 w-11 items-center justify-center rounded-full bg-accent text-bg-primary transition',
         'hover:scale-105 hover:brightness-110',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary',
         'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100',
