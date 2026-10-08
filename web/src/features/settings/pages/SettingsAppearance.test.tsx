@@ -89,7 +89,7 @@ describe('SettingsAppearance', () => {
         'border-accent bg-surface-hover',
       );
     });
-    expect(screen.getByRole('button', { name: 'Accent color: Copper' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Copper' }).getAttribute('aria-checked')).toBe('true');
   });
 
   it('renders the stored selection from server preferences', async () => {
@@ -99,7 +99,7 @@ describe('SettingsAppearance', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Dark' }).getAttribute('aria-pressed')).toBe('true');
     });
-    expect(screen.getByRole('button', { name: 'Accent color: Purple' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Purple' }).getAttribute('aria-checked')).toBe('true');
   });
 
   it('stages an accent change, shows the save bar, and PATCHes on save', async () => {
@@ -107,19 +107,17 @@ describe('SettingsAppearance', () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Accent color: Copper' })).toBeTruthy();
+      expect(screen.getByRole('radio', { name: 'Copper' }).getAttribute('aria-checked')).toBe('true');
     });
 
-    // Open the dropdown and pick Green.
-    fireEvent.click(screen.getByRole('button', { name: 'Accent color: Copper' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Green' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Green' }));
 
     // Staged, not saved: no request yet, but the selection and the bar show.
     expect(apiMock).not.toHaveBeenCalledWith(
       '/me/preferences',
       expect.objectContaining({ method: 'PATCH' }),
     );
-    expect(screen.getByRole('button', { name: 'Accent color: Green' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Green' }).getAttribute('aria-checked')).toBe('true');
 
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
@@ -132,7 +130,7 @@ describe('SettingsAppearance', () => {
     // The server response is the single writer (FF8).
     await waitFor(() => {
       expect(useTheme.getState().accentColor).toBe('purple');
-      expect(screen.getByRole('button', { name: 'Accent color: Purple' })).toBeTruthy();
+      expect(screen.getByRole('radio', { name: 'Purple' }).getAttribute('aria-checked')).toBe('true');
     });
     // Saved: the bar is gone.
     expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
