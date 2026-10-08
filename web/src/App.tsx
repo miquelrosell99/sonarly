@@ -305,7 +305,7 @@ export default function App() {
         className="flex h-screen items-center justify-center bg-bg-primary text-fg-secondary"
       >
         <div className="flex flex-col items-center gap-3">
-          <span className="font-display text-xl font-bold text-fg-primary">Sonarly</span>
+          <span className="font-display text-xl font-semibold text-fg-primary">Sonarly</span>
           <span className="text-sm">Could not reach the server.</span>
           <button
             type="button"
@@ -326,7 +326,7 @@ export default function App() {
         className="flex h-screen items-center justify-center bg-bg-primary text-fg-secondary"
       >
         <div className="flex items-center gap-3">
-          <span className="font-display text-xl font-bold text-fg-primary">Sonarly</span>
+          <span className="font-display text-xl font-semibold text-fg-primary">Sonarly</span>
           <span className="text-sm">Loading…</span>
         </div>
       </div>

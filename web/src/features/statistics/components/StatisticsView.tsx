@@ -139,12 +139,12 @@ function SectionCard({
 }) {
   return (
     <section
-      className={cn('stat-reveal rounded-2xl border border-rule bg-surface p-4 sm:p-5', className)}
+      className={cn('stat-reveal rounded-card border border-rule bg-surface p-4 sm:p-5', className)}
       style={staggerStyle(stagger)}
     >
       <div className="mb-4 flex items-center gap-2">
         <Icon name={icon} size={20} className="text-accent" />
-        <h3 className="font-display text-lg font-bold tracking-tight text-fg-primary">{title}</h3>
+        <h3 className="font-display text-lg font-semibold tracking-tight text-fg-primary">{title}</h3>
       </div>
       {children}
     </section>
@@ -162,7 +162,7 @@ function RangeSelector({
     <div
       role="group"
       aria-label="Time range"
-      className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full border border-rule bg-surface p-1 scrollbar-hide"
+      className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-input border border-rule bg-surface p-1 scrollbar-hide"
     >
       {RANGE_OPTIONS.map((option) => (
         <button
@@ -171,7 +171,7 @@ function RangeSelector({
           onClick={() => onRangeChange(option.value)}
           aria-pressed={range === option.value}
           className={cn(
-            'h-10 shrink-0 rounded-full px-4 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+            'h-10 shrink-0 rounded-input px-4 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
             range === option.value
               ? 'bg-accent text-bg-primary shadow-sm'
               : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
@@ -187,11 +187,11 @@ function RangeSelector({
 function HeroStat({ icon, label, value }: { icon: string; label: string; value: number }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-hover text-fg-secondary">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card bg-surface-hover text-fg-secondary">
         <Icon name={icon} size={20} />
       </div>
       <div className="min-w-0">
-        <p className="font-display text-2xl font-bold tracking-tight text-fg-primary tabular-nums">
+        <p className="font-display text-2xl font-semibold tracking-tight text-fg-primary tabular-nums">
           <AnimatedNumber value={value} />
         </p>
         <p className="mt-0.5 truncate text-xs text-fg-secondary">{label}</p>
@@ -205,21 +205,14 @@ function HeroStats({ totals }: { totals: StatisticsTotals }) {
   return (
     <section
       aria-label="Listening summary"
-      className="stat-reveal relative overflow-hidden rounded-2xl border border-rule bg-surface p-6 sm:p-8"
+      className="stat-reveal relative overflow-hidden rounded-card border border-rule bg-surface p-6 sm:p-8"
       style={staggerStyle(0)}
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-accent/15 blur-3xl"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-32 -left-16 h-64 w-64 rounded-full blur-3xl"
-        style={{ background: 'radial-gradient(closest-side, hsl(var(--chart-5) / 0.15), transparent)' }}
-      />
       <div className="relative">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Listening time</p>
-        <p className="mt-3 bg-gradient-to-r from-fg-primary via-fg-primary to-accent bg-clip-text font-display text-5xl font-bold tracking-tight text-transparent tabular-nums sm:text-6xl">
+        {/* Solid foreground number — the app-wide rule is 600; this hero is
+            the one deliberate 700 tier (design system exception). */}
+        <p className="mt-3 font-display text-5xl font-bold tracking-tight text-fg-primary tabular-nums sm:text-6xl">
           <AnimatedNumber value={seconds} formatter={formatListenDuration} />
         </p>
         <p className="mt-2 text-sm text-fg-secondary">
@@ -417,7 +410,7 @@ function GenreChart({ genres, stagger }: { genres: StatisticsTopLists['topGenres
                 className="stat-grow-x h-full rounded-full transition group-hover:brightness-110"
                 style={{
                   width: `${max > 0 ? (genre.plays / max) * 100 : 0}%`,
-                  background: 'linear-gradient(90deg, hsl(var(--accent) / 0.55), hsl(var(--accent)))',
+                  background: 'hsl(var(--accent))',
                   ...staggerStyle(index),
                 }}
               />
@@ -450,7 +443,7 @@ function TopPlayedYears({ years, stagger }: { years: TopYearItem[]; stagger: num
                   className="stat-grow-x h-full rounded-full transition group-hover:brightness-110"
                   style={{
                     width: `${max > 0 ? (year.plays / max) * 100 : 0}%`,
-                    background: 'linear-gradient(90deg, hsl(var(--accent) / 0.55), hsl(var(--accent)))',
+                    background: 'hsl(var(--accent))',
                     ...staggerStyle(index),
                   }}
                 />
@@ -566,14 +559,14 @@ function DonutChart({ distribution, stagger }: { distribution: StatisticsCharts[
             })}
           </svg>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-[10px] font-medium uppercase tracking-widest text-fg-secondary">
+            <span className="text-2xs font-medium uppercase tracking-widest text-fg-secondary">
               {hovered?.rating ? `${hovered.rating}/5` : hovered?.key === 'unrated' ? 'Unrated' : 'Rated'}
             </span>
-            <span className="font-mono text-3xl font-bold text-fg-primary tabular-nums">
+            <span className="font-mono text-3xl font-semibold text-fg-primary tabular-nums">
               {formatNumber(hoveredInfo.count)}
             </span>
             {hoveredPercentage !== undefined && (
-              <span className="font-mono text-[10px] text-fg-secondary tabular-nums">{hoveredPercentage}%</span>
+              <span className="font-mono text-2xs text-fg-secondary tabular-nums">{hoveredPercentage}%</span>
             )}
           </div>
         </div>
@@ -728,14 +721,14 @@ export function StatisticsView({
           <div className="h-8 w-48 animate-pulse rounded-lg bg-surface" />
           <div className="h-12 w-64 animate-pulse rounded-full bg-surface" />
         </div>
-        <div className="h-64 animate-pulse rounded-2xl bg-surface" />
+        <div className="h-64 animate-pulse rounded-card bg-surface" />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="h-72 animate-pulse rounded-2xl bg-surface" />
-          <div className="h-72 animate-pulse rounded-2xl bg-surface" />
+          <div className="h-72 animate-pulse rounded-card bg-surface" />
+          <div className="h-72 animate-pulse rounded-card bg-surface" />
         </div>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 min-[1280px]:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-80 animate-pulse rounded-2xl bg-surface" />
+            <div key={i} className="h-80 animate-pulse rounded-card bg-surface" />
           ))}
         </div>
       </div>
@@ -752,7 +745,7 @@ export function StatisticsView({
     <div className="space-y-6">
       <div className="stat-reveal flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" style={staggerStyle(0)}>
         <div>
-          {title && <h2 className="font-display text-2xl font-bold tracking-tight text-fg-primary">{title}</h2>}
+          {title && <h2 className="font-display text-2xl font-semibold tracking-tight text-fg-primary">{title}</h2>}
           {subtitle && <p className="mt-1 text-sm text-fg-secondary">{subtitle}</p>}
         </div>
         <RangeSelector range={range} onRangeChange={onRangeChange} />
@@ -772,7 +765,7 @@ export function StatisticsView({
         <DonutChart distribution={data.charts.ratingDistribution} stagger={2} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 min-[1280px]:grid-cols-3">
         <TopSongs songs={data.top.topSongs} stagger={2} />
         <TopArtists artists={data.top.topArtists} stagger={3} />
         <TopAlbums albums={data.top.topAlbums} stagger={4} />
@@ -780,7 +773,7 @@ export function StatisticsView({
         <TopPlayedYears years={data.top.topYears} stagger={6} />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 min-[1280px]:grid-cols-3">
         <TopRatedArtists artists={data.rated.topRatedArtists} stagger={7} />
         <TopRatedGenres genres={data.rated.topRatedGenres} stagger={8} />
         <TopRatedYears years={data.rated.topRatedYears} stagger={9} />

@@ -159,7 +159,7 @@ export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputP
         <ul
           id={listboxId}
           role="listbox"
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-rule bg-surface shadow-lg"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-popover border border-rule bg-surface shadow-lg"
           onMouseDown={() => {
             ignoreBlurRef.current = true;
           }}

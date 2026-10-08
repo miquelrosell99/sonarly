@@ -530,7 +530,7 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
         role="dialog"
         aria-modal="true"
         aria-labelledby="synced-lyrics-title"
-        className="flex h-full w-full flex-col overflow-hidden bg-surface shadow-2xl outline-none sm:h-auto sm:max-h-[90vh] sm:max-w-3xl sm:rounded-2xl sm:border sm:border-rule"
+        className="flex h-full w-full flex-col overflow-hidden bg-surface shadow-2xl outline-none sm:h-auto sm:max-h-[90vh] sm:max-w-3xl sm:rounded-sheet sm:border sm:border-rule"
       >
         <div className="flex items-center justify-between gap-2 border-b border-rule/60 px-4 py-4 sm:px-6">
           <div className="min-w-0">

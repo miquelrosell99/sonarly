@@ -35,13 +35,13 @@ export function EntityHeader({
   wrapContextTarget,
 }: EntityHeaderProps) {
   const coverElement = cover ? (
-    <div className={cn('shrink-0 shadow-lg', blurCover && 'blur-sm')}>
+    <div className={cn('shrink-0', blurCover && 'blur-sm')}>
       {cover}
     </div>
   ) : null;
 
   const titleElement = (
-    <h1 className="font-display text-2xl font-bold tracking-tight text-fg-primary sm:text-3xl">
+    <h1 className="font-display text-2xl font-semibold tracking-tight text-fg-primary sm:text-3xl">
       {title}
     </h1>
   );

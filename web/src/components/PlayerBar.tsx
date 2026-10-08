@@ -79,7 +79,7 @@ const TrackInfo = memo(function TrackInfo({ song, blur }: TrackInfoProps) {
             type="button"
             onClick={handleOpenNowPlaying}
             aria-label="Open Now Playing"
-            className="h-14 w-14 shrink-0 overflow-hidden rounded-md shadow-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="h-14 w-14 shrink-0 overflow-hidden rounded-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <CoverArt
               coverArt={song.albumCoverArt ?? song.coverArt}
@@ -263,7 +263,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
   const autoDjAnchorRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <footer className="relative shrink-0 select-none overflow-hidden border-t border-rule/50 bg-surface">
+    <footer className="relative shrink-0 select-none overflow-hidden border-t border-rule/50 bg-surface pb-[env(safe-area-inset-bottom)]">
       {/* Ambient wash from the currently playing cover art */}
       <div
         className="pointer-events-none absolute inset-0 opacity-20"

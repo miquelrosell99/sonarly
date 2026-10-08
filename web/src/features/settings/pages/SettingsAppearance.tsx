@@ -16,15 +16,10 @@ const themeModes: { value: ThemeMode; label: string }[] = [
 
 const accentColors: { value: AccentColor; label: string; className: string }[] = [
   { value: 'copper', label: 'Copper', className: 'bg-[hsl(var(--accent-copper))]' },
-  { value: 'monochrome', label: 'Monochrome', className: 'bg-fg-primary' },
-  { value: 'brown', label: 'Brown', className: 'bg-[hsl(var(--accent-brown))]' },
   { value: 'green', label: 'Green', className: 'bg-[hsl(var(--accent-green))]' },
-  { value: 'orange', label: 'Orange', className: 'bg-[hsl(var(--accent-orange))]' },
-  { value: 'teal', label: 'Teal', className: 'bg-[hsl(var(--accent-teal))]' },
   { value: 'purple', label: 'Purple', className: 'bg-[hsl(var(--accent-purple))]' },
-  { value: 'yellow', label: 'Yellow', className: 'bg-[hsl(var(--accent-yellow))]' },
-  { value: 'cyan', label: 'Cyan', className: 'bg-[hsl(var(--accent-cyan))]' },
   { value: 'blue', label: 'Blue', className: 'bg-[hsl(var(--accent-blue))]' },
+  { value: 'monochrome', label: 'Monochrome', className: 'bg-fg-primary' },
 ];
 
 // Live preview: theme and accent edits repaint the app immediately through

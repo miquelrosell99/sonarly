@@ -58,14 +58,14 @@ export function TrackList({
               <button
                 type="button"
                 onClick={() => onItemClick(track)}
-                className="flex min-h-11 w-full items-center justify-between rounded-md px-2 py-2 text-left text-sm hover:bg-surface-hover"
+                className="flex min-h-11 w-full items-center justify-between rounded-item px-2 py-2 text-left text-sm hover:bg-surface-hover"
               >
                 {content}
               </button>
             ) : (
               <Link
                 href={`/tracks/${track.id}`}
-                className="flex min-h-11 items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-surface-hover"
+                className="flex min-h-11 items-center justify-between rounded-item px-2 py-2 text-sm hover:bg-surface-hover"
               >
                 {content}
               </Link>

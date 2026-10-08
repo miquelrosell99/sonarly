@@ -46,7 +46,7 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg-primary p-6">
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight text-fg-primary">Welcome to Sonarly</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-fg-primary">Welcome to Sonarly</h1>
         <p className="text-sm text-muted">
           Create the admin account to get started.
         </p>

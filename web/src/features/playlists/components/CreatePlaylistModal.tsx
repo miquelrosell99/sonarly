@@ -184,7 +184,7 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
           </div>
           <div>
             <span className="mb-1.5 block text-sm font-medium text-fg-secondary">Playlist type</span>
-            <div role="group" aria-label="Playlist type" className="inline-flex rounded-full border border-rule bg-surface p-1">
+            <div role="group" aria-label="Playlist type" className="inline-flex rounded-input border border-rule bg-surface p-1">
               {(['standard', 'smart'] as const).map((mode) => (
                 <button
                   key={mode}
@@ -193,7 +193,7 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
                   onClick={() => requestModeSwitch(mode)}
                   disabled={save.isPending || loadingPlaylist}
                   className={cn(
-                    'rounded-full px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                    'rounded-input px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                     isSmart === (mode === 'smart')
                       ? 'bg-accent text-bg-primary'
                       : 'text-fg-secondary hover:text-fg-primary',
@@ -212,7 +212,7 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
           {isSmart && (
             <div>
               <span className="mb-1.5 block text-sm font-medium text-fg-secondary">Smart resolution</span>
-              <div role="group" aria-label="Smart resolution" className="inline-flex rounded-full border border-rule bg-surface p-1">
+              <div role="group" aria-label="Smart resolution" className="inline-flex rounded-input border border-rule bg-surface p-1">
                 {(['tracks', 'query'] as const).map((mode) => (
                   <button
                     key={mode}
@@ -221,7 +221,7 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
                     onClick={() => setResolveMode(mode)}
                     disabled={save.isPending || loadingPlaylist}
                     className={cn(
-                      'rounded-full px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                      'rounded-input px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                       resolveMode === mode
                         ? 'bg-accent text-bg-primary'
                         : 'text-fg-secondary hover:text-fg-primary',

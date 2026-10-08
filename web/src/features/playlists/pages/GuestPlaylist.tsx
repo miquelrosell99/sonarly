@@ -12,7 +12,7 @@ export function GuestPlaylist({ underlay }: { underlay?: UnderlayParams }) {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-bg-primary text-fg-primary">
       <header className="flex shrink-0 items-center justify-between px-6 py-3">
-        <span className="font-display text-lg font-bold text-fg-primary">Sonarly</span>
+        <span className="font-display text-lg font-semibold text-fg-primary">Sonarly</span>
         <Link
           href="/login"
           className="rounded-lg px-3 py-1.5 text-sm font-medium text-fg-secondary transition hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"

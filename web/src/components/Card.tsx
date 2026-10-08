@@ -52,7 +52,7 @@ export function Card({
 }: CardProps) {
   return (
     <div
-      className="group/card relative flex flex-col gap-2 rounded-xl p-1 transition-colors duration-200 hover:bg-surface"
+      className="group/card relative flex flex-col gap-2 rounded-card p-1 transition-colors duration-200 hover:bg-surface"
       onContextMenu={onContextMenu}
     >
       {cover ? (
@@ -64,7 +64,7 @@ export function Card({
             e.stopPropagation();
             onContextMenu?.(e);
           }}
-          className="relative block overflow-hidden rounded-xl shadow-md outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
+          className="relative block overflow-hidden rounded-card outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
         >
           <div className="transition duration-300 group-hover/card:scale-105">{cover}</div>
           {isPlaying && (
@@ -102,7 +102,7 @@ export function Card({
           </div>
         </Link>
       ) : null}
-      <div className={cn('space-y-0.5 px-1', !cover && 'rounded-xl border border-rule bg-surface p-3')}>
+      <div className={cn('space-y-0.5 px-1', !cover && 'rounded-card border border-rule bg-surface p-3')}>
         <Link href={href} className="line-clamp-2 break-words text-sm font-medium text-fg-primary hover:text-muted">
           {title}
         </Link>

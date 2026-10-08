@@ -35,7 +35,7 @@ export function EntityActionsMenu({ sections, label = 'More actions' }: EntityAc
             ref={menu.menuRef}
             {...menu.menuProps}
             aria-label={label}
-            className="fixed z-50 min-w-[12rem] rounded-md border border-rule bg-surface py-1 shadow-lg"
+            className="fixed z-50 min-w-[12rem] rounded-popover border border-rule bg-surface py-1 shadow-lg"
           >
             {visibleSections.map((section, sIdx) => (
               <div key={sIdx}>

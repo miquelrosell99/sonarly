@@ -30,7 +30,7 @@ export function NowPlayingCover({ coverArt, alt, className }: NowPlayingCoverPro
   return (
     <div
       className={cn(
-        'relative aspect-square w-full max-w-[420px] overflow-hidden rounded-2xl shadow-2xl shadow-black/40 ring-1 ring-fg-primary/10',
+        'relative aspect-square w-full max-w-[420px] overflow-hidden rounded-2xl ring-1 ring-fg-primary/10',
         'transition-[transform,opacity] duration-300 ease-out motion-reduce:transition-none',
         settled ? 'scale-100 opacity-100' : 'scale-[0.96] opacity-60',
         className

@@ -48,7 +48,7 @@ export function Organize() {
       <h2 className="mb-4 text-lg font-semibold">Organize Library</h2>
       <PageState loading={loading}>
         <p className="mb-4 text-sm text-muted">
-          Current pattern: <code className="rounded bg-surface px-1 py-0.5">{pattern}</code>
+          Current pattern: <code className="rounded bg-surface px-1 py-0.5 font-mono">{pattern}</code>
         </p>
         <Button onClick={run} disabled={starting || jobId !== null}>
           {starting ? 'Starting…' : jobId !== null ? 'Reorganizing…' : 'Reorganize existing library'}

@@ -234,7 +234,7 @@ export function SmartPlaylistBlockEditor({ initialRules, onChange }: SmartPlayli
               type="button"
               onClick={() => activeKey === 'any' && toggleMatchType()}
               className={cn(
-                'rounded px-2.5 py-1 text-xs font-medium transition',
+                'rounded-item px-2.5 py-1 text-xs font-medium transition',
                 activeKey === 'all'
                   ? 'bg-accent text-bg-primary'
                   : 'text-fg-secondary hover:text-fg-primary',
@@ -246,7 +246,7 @@ export function SmartPlaylistBlockEditor({ initialRules, onChange }: SmartPlayli
               type="button"
               onClick={() => activeKey === 'all' && toggleMatchType()}
               className={cn(
-                'rounded px-2.5 py-1 text-xs font-medium transition',
+                'rounded-item px-2.5 py-1 text-xs font-medium transition',
                 activeKey === 'any'
                   ? 'bg-accent text-bg-primary'
                   : 'text-fg-secondary hover:text-fg-primary',
@@ -389,7 +389,7 @@ function RuleBlock({
           disabled={!canMoveUp}
           aria-label="Move rule up"
           title="Move rule up"
-          className="rounded p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <Icon name="mdi-chevron-up" size={18} />
         </button>
@@ -399,7 +399,7 @@ function RuleBlock({
           disabled={!canMoveDown}
           aria-label="Move rule down"
           title="Move rule down"
-          className="rounded p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <Icon name="mdi-chevron-down" size={18} />
         </button>
@@ -408,7 +408,7 @@ function RuleBlock({
           onClick={onRemove}
           aria-label="Remove rule"
           title="Remove rule"
-          className="rounded p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <Icon name="mdi-delete" size={18} />
         </button>
@@ -589,7 +589,7 @@ function SortBlock({
           disabled={!canMoveUp}
           aria-label="Move sort up"
           title="Move sort up"
-          className="rounded p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <Icon name="mdi-chevron-up" size={18} />
         </button>
@@ -599,7 +599,7 @@ function SortBlock({
           disabled={!canMoveDown}
           aria-label="Move sort down"
           title="Move sort down"
-          className="rounded p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <Icon name="mdi-chevron-down" size={18} />
         </button>
@@ -608,7 +608,7 @@ function SortBlock({
           onClick={onRemove}
           aria-label="Remove sort"
           title="Remove sort"
-          className="rounded p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
           <Icon name="mdi-delete" size={18} />
         </button>

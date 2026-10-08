@@ -1,5 +1,6 @@
 import { cn } from '../lib/cn.js';
 import { Button } from './ui/Button.js';
+import { EmptyState } from './ui/EmptyState.js';
 import { Icon } from './ui/Icon.js';
 
 interface PageStateProps {
@@ -62,19 +63,17 @@ export function PageState({
   }
 
   if (isEmpty) {
+    // One empty-state implementation: the shared EmptyState owns the icon,
+    // heading, and primary CTA treatment.
     return (
-      <div
-        className={cn('flex flex-col items-center justify-center gap-2 py-8 text-sm text-muted', className)}
-      >
-        <Icon name={emptyIcon} size={24} className="text-fg-secondary" />
-        <p>{emptyMessage}</p>
-        {emptyDescription && <p className="max-w-sm text-center">{emptyDescription}</p>}
-        {emptyAction && (
-          <Button variant="ghost" className="mt-2" onClick={emptyAction.onClick}>
-            {emptyAction.label}
-          </Button>
-        )}
-      </div>
+      <EmptyState
+        icon={emptyIcon}
+        title={emptyMessage}
+        description={emptyDescription}
+        actionLabel={emptyAction?.label}
+        onAction={emptyAction?.onClick}
+        className={className}
+      />
     );
   }
 

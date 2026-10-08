@@ -21,7 +21,7 @@ export function Field({
 
 export function ReadOnlyValue({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-10 items-center rounded-lg border border-rule bg-surface px-3 text-sm text-fg-primary">
+    <div className="flex h-10 items-center rounded-input border border-rule bg-surface px-3 text-sm text-fg-primary">
       {children}
     </div>
   );
