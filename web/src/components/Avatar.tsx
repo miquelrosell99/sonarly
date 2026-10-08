@@ -4,10 +4,11 @@ import type { User } from '../types';
 interface AvatarProps {
   user: User;
   className?: string;
-  variant?: 'accent' | 'surface';
+  /** 'default' tints the initials tile like a raised surface; 'surface' is flat. */
+  variant?: 'default' | 'surface';
 }
 
-export function Avatar({ user, className, variant = 'accent' }: AvatarProps) {
+export function Avatar({ user, className, variant = 'default' }: AvatarProps) {
   const initials = user.name && user.surname
     ? `${user.name[0]}${user.surname[0]}`.toUpperCase()
     : user.name
@@ -27,9 +28,9 @@ export function Avatar({ user, className, variant = 'accent' }: AvatarProps) {
   return (
     <div
       className={cn(
-        'flex items-center justify-center rounded-full text-xs font-bold',
-        variant === 'accent'
-          ? 'bg-accent text-bg-primary'
+        'flex items-center justify-center rounded-full text-xs font-semibold',
+        variant === 'default'
+          ? 'bg-surface-hover text-fg-primary'
           : 'bg-surface text-muted',
         className,
       )}

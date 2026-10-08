@@ -76,7 +76,7 @@ afterEach(() => {
 
 function createHarness(songs: Song[], onEdit: () => void, isAdmin?: boolean, options?: { allowDownload?: boolean }) {
   return function SongsMenuHarness() {
-    const sections = useSongsContextMenu(songs, onEdit, isAdmin, options);
+    const { sections, deleteConfirm } = useSongsContextMenu(songs, onEdit, isAdmin, options);
     return React.createElement(
       'div',
       { 'data-testid': 'menu' },
@@ -91,6 +91,7 @@ function createHarness(songs: Song[], onEdit: () => void, isAdmin?: boolean, opt
           }, item.label),
         ),
       ),
+      deleteConfirm,
     );
   };
 }
@@ -198,10 +199,9 @@ describe('useSongsContextMenu', () => {
     expect(screen.queryByTestId('delete')).toBeNull();
   });
 
-  it('deletes each selected track after confirm, invalidates once, and toasts', async () => {
+  it('deletes each selected track after the ConfirmModal confirms, invalidates once, and toasts', async () => {
     wireRun();
     mockedApi.mockResolvedValue(undefined);
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     const Harness = createHarness([song, otherSong], vi.fn(), true);
     render(React.createElement(Harness));
@@ -210,6 +210,10 @@ describe('useSongsContextMenu', () => {
     expect(deleteButton.textContent).toBe('Delete 2 tracks');
     expect(deleteButton.getAttribute('data-variant')).toBe('danger');
     fireEvent.click(deleteButton);
+
+    // The window.confirm gate became the shared ConfirmModal.
+    expect(screen.getByText('Delete 2 tracks?')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
     await waitFor(() => expect(mockNotify.notify).toHaveBeenCalledWith('Deleted 2 tracks', 'success'));
     expect(mockedApi).toHaveBeenCalledTimes(2);
@@ -221,26 +225,27 @@ describe('useSongsContextMenu', () => {
   it('deletes a single selected track with a singular confirm and toast', async () => {
     wireRun();
     mockedApi.mockResolvedValue(undefined);
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     const Harness = createHarness([song], vi.fn(), true);
     render(React.createElement(Harness));
 
     fireEvent.click(screen.getByTestId('delete'));
 
-    expect(confirmSpy).toHaveBeenCalledWith('Delete 1 track? This cannot be undone.');
+    expect(screen.getByText('Delete 1 track?')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
     await waitFor(() => expect(mockNotify.notify).toHaveBeenCalledWith('Deleted 1 track', 'success'));
     expect(mockedApi).toHaveBeenCalledTimes(1);
   });
 
   it('deletes nothing when the confirm is cancelled', () => {
     wireRun();
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
 
     const Harness = createHarness([song, otherSong], vi.fn(), true);
     render(React.createElement(Harness));
 
     fireEvent.click(screen.getByTestId('delete'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
     expect(mockedApi).not.toHaveBeenCalled();
     expect(libraryMutation.invalidate).not.toHaveBeenCalled();
@@ -250,12 +255,12 @@ describe('useSongsContextMenu', () => {
   it('notifies nothing on failure (the mutation wrapper toasts the error)', async () => {
     wireRun();
     mockedApi.mockRejectedValue(new Error('boom'));
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
 
     const Harness = createHarness([song], vi.fn(), true);
     render(React.createElement(Harness));
 
     fireEvent.click(screen.getByTestId('delete'));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
     await waitFor(() => expect(libraryMutation.invalidate).toHaveBeenCalledTimes(1));
     expect(mockNotify.notify).not.toHaveBeenCalled();

@@ -62,14 +62,15 @@ function PlayersDropdown({ user }: { user: User }) {
       <button
         type="button"
         {...menu.triggerProps}
+        aria-label={`Connected devices (${otherPlayers.length})`}
         title={`Connected devices (${otherPlayers.length})`}
         className={cn(
-          'relative flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          'relative flex h-9 w-9 items-center justify-center rounded-full text-fg-secondary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
           menu.open ? 'bg-surface-hover text-fg-primary' : 'hover:bg-surface-hover hover:text-fg-primary',
         )}
       >
         <Icon name="mdi-cast-audio" size={20} />
-        <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-bg-primary">
+        <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-2xs font-semibold text-bg-primary">
           {otherPlayers.length}
         </span>
       </button>
@@ -78,7 +79,7 @@ function PlayersDropdown({ user }: { user: User }) {
         <div
           ref={menu.menuRef}
           {...menu.menuProps}
-          className="absolute right-0 top-full z-40 mt-2 w-64 rounded-xl border border-rule bg-surface p-1 shadow-xl"
+          className="absolute right-0 top-full z-40 mt-2 w-64 rounded-popover border border-rule bg-surface p-1 shadow-xl"
         >
           {otherPlayers.map((player) => (
             <div key={player.id} className="px-3 py-2 text-sm">
@@ -126,7 +127,7 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
         <div
           ref={menu.menuRef}
           {...menu.menuProps}
-          className="absolute right-0 top-full z-40 mt-2 w-52 rounded-xl border border-rule bg-surface p-1 shadow-xl"
+          className="absolute right-0 top-full z-40 mt-2 w-52 rounded-popover border border-rule bg-surface p-1 shadow-xl"
         >
           <button
             type="button"
@@ -285,20 +286,20 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
   const setSelectedLibraryId = useLibraryStore((state) => state.setSelectedLibraryId);
 
   return (
-    <header className="relative z-50 grid h-16 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-4 bg-bg-primary/80 px-4 backdrop-blur-md sm:grid-cols-[1fr_2fr_1fr] sm:px-6">
+    <header className="relative z-50 grid h-11 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-4 bg-bg-primary px-4 sm:grid-cols-[1fr_2fr_1fr] min-[640px]:px-6">
       <div className="flex min-w-0 items-center gap-2">
         <button
           type="button"
           onClick={onMenuClick}
           aria-label="Toggle navigation"
           title="Toggle navigation"
-          className="flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
         >
           <Icon name="mdi-menu" size={20} />
         </button>
         <Link
           href="/home"
-          className="flex items-center gap-2 text-xl font-bold tracking-tight text-fg-primary hover:text-fg-primary"
+          className="flex items-center gap-2 text-xl font-semibold tracking-tight text-fg-primary hover:text-fg-primary"
         >
           <BrandMark className="h-7 w-7" />
           <span className="hidden font-display min-[420px]:block">Sonarly</span>
@@ -313,7 +314,7 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
         </div>
       </div>
 
-      <div className="relative hidden w-full max-w-xl justify-self-center sm:block">
+      <div className="relative hidden w-full max-w-xl justify-self-center min-[640px]:block">
         <SearchBox
           filters={filters}
           filtersOpen={filtersOpen}
@@ -326,7 +327,7 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
           href="/search"
           aria-label="Search"
           title="Search"
-          className="flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:hidden"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent min-[640px]:hidden [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
         >
           <Icon name="mdi-magnify" size={20} />
         </Link>

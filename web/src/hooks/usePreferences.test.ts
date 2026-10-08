@@ -161,7 +161,7 @@ describe('useSyncThemePreferences (boot seed, F3)', () => {
     // after the boot seed only PATCH responses write. The remount shares the
     // cache and 30s staleTime (audit F29), so model the later fetch the way
     // the app triggers one: invalidation.
-    apiMock.mockResolvedValue({ preferences: { themeMode: 'light', accentColor: 'brown' } } as never);
+    apiMock.mockResolvedValue({ preferences: { themeMode: 'light', accentColor: 'blue' } } as never);
     await act(async () => {
       await queryClient.invalidateQueries({ queryKey: ['me', 'preferences'] });
     });
@@ -175,7 +175,7 @@ describe('useSyncThemePreferences (boot seed, F3)', () => {
 
     await waitFor(() => {
       expect(queryClient.getQueryData(['me', 'preferences'])).toEqual({
-        preferences: { themeMode: 'light', accentColor: 'brown' },
+        preferences: { themeMode: 'light', accentColor: 'blue' },
       });
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -208,10 +208,10 @@ describe('useSyncThemePreferences (boot seed, F3)', () => {
     await act(async () => {
       await queryClient.invalidateQueries({ queryKey: ['me', 'preferences'] });
     });
-    renderSync({ themeMode: 'light', accentColor: 'brown' });
+    renderSync({ themeMode: 'light', accentColor: 'blue' });
     await waitFor(() => {
       expect(queryClient.getQueryData(['me', 'preferences'])).toEqual({
-        preferences: { themeMode: 'light', accentColor: 'brown' },
+        preferences: { themeMode: 'light', accentColor: 'blue' },
       });
     });
     await new Promise((resolve) => setTimeout(resolve, 0));

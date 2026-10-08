@@ -74,7 +74,7 @@ export function SleepTimerButton() {
       ref={menu.menuRef}
       {...menu.menuProps}
       aria-label="Sleep timer"
-      className="fixed z-50 min-w-[10rem] rounded-md border border-rule bg-surface py-1 shadow-lg"
+      className="fixed z-50 min-w-[10rem] rounded-popover border border-rule bg-surface py-1 shadow-lg"
     >
       {items.map((item) => (
         <button

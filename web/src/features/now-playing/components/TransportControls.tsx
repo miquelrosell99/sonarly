@@ -45,7 +45,7 @@ export function TransportControls() {
           isPlaying={isPlaying}
           disabled={!hasTrack}
           onClick={togglePlay}
-          className="mx-2 h-14 w-14 shadow-lg shadow-accent/30"
+          className="icon-btn mx-2 h-14 w-14"
           iconSize={32}
         />
         <ControlButton onClick={next} label="Next" disabled={!hasTrack} className="h-11 w-11">

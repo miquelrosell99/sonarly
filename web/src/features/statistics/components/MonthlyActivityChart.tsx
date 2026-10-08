@@ -55,14 +55,15 @@ function getGroupColor(index: number): string {
 interface ChartDataItem {
   month: string;
   total: number;
-  groups: { key: string; plays: number; color: string; gradient?: boolean }[];
+  groups: { key: string; plays: number; color: string }[];
 }
 
 function buildSimpleData(monthlyPlays: StatisticsMonthlyPlaysItem[]): ChartDataItem[] {
   return monthlyPlays.map((item) => ({
     month: item.month,
     total: item.plays,
-    groups: [{ key: 'Plays', plays: item.plays, color: 'hsl(var(--accent))', gradient: true }],
+    // Solid accent at 75% opacity — large chart areas stay quiet (no gradient).
+    groups: [{ key: 'Plays', plays: item.plays, color: 'hsl(var(--accent) / 0.75)' }],
   }));
 }
 
@@ -142,9 +143,7 @@ function BarStack({
               className="w-full transition-all duration-500 ease-out motion-reduce:transition-none"
               style={{
                 height: `${data.total > 0 ? (group.plays / data.total) * 100 : 0}%`,
-                ...(group.gradient
-                  ? { background: `linear-gradient(to top, hsl(var(--accent) / 0.45), ${group.color})` }
-                  : { backgroundColor: group.color }),
+                backgroundColor: group.color,
               }}
               title={`${group.key}: ${formatNumber(group.plays)}`}
             />
@@ -173,7 +172,7 @@ function BarStack({
       <span
         className={cn(
           'truncate text-center font-mono tabular-nums transition',
-          size === 'lg' ? 'text-xs' : 'text-[10px]',
+          size === 'lg' ? 'text-xs' : 'text-2xs',
           selected ? 'text-accent' : 'text-fg-secondary group-hover/bar:text-fg-primary',
         )}
       >
@@ -207,7 +206,7 @@ function GroupBySelect({
     <select
       value={value}
       onChange={(e) => onChange(e.target.value as MonthlyPlaysGroupBy | 'total')}
-      className="h-11 rounded-lg border border-rule bg-surface px-3 text-xs text-fg-primary outline-none transition focus:border-accent focus-visible:ring-2 focus-visible:ring-accent"
+      className="h-11 rounded-input border border-rule bg-surface px-3 text-xs text-fg-primary outline-none transition focus:border-accent focus-visible:ring-2 focus-visible:ring-accent"
       aria-label="Group by"
     >
       {GROUP_BY_OPTIONS.map((option) => (
@@ -292,11 +291,11 @@ export function MonthlyActivityChart({ monthlyPlays, mode, userId, range }: Mont
 
   return (
     <>
-      <div className="rounded-2xl border border-rule bg-surface p-4 sm:p-5">
+      <div className="rounded-card border border-rule bg-surface p-4 sm:p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Icon name="mdi-chart-bar" size={20} className="text-accent" />
-            <h3 className="font-display text-lg font-bold tracking-tight text-fg-primary">Listening Activity</h3>
+            <h3 className="font-display text-lg font-semibold tracking-tight text-fg-primary">Listening Activity</h3>
           </div>
           <div className="flex items-center gap-2">
             <GroupBySelect value={groupBy} onChange={setGroupBy} />
@@ -347,7 +346,7 @@ export function MonthlyActivityChart({ monthlyPlays, mode, userId, range }: Mont
                       <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: getGroupColor(index) }} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-medium text-fg-primary">{key}</p>
-                        <p className="text-[10px] text-fg-secondary">{formatNumber(plays)} plays</p>
+                        <p className="text-2xs text-fg-secondary">{formatNumber(plays)} plays</p>
                       </div>
                     </div>
                   ))}

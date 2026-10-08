@@ -100,6 +100,10 @@ export function ListRow({
     ? cloneElement(titleCell, {
         className: cn(
           (titleCell.props as { className?: string }).className,
+          // Title column reads 600 per spec; Tailwind emits font-semibold
+          // after font-medium, so this deterministically wins over a
+          // column-level font-medium.
+          'font-semibold',
           isPlaying && 'text-accent',
         ),
       })
@@ -114,7 +118,6 @@ export function ListRow({
       className={cn(
         'group h-12 cursor-pointer select-none transition outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
         isSelected ? 'bg-surface-hover' : 'hover:bg-surface-hover',
-        isPlaying && 'bg-accent/10',
         isDragging && 'z-10 scale-[1.02] shadow-lg',
         className,
       )}
@@ -135,7 +138,12 @@ export function ListRow({
           </button>
         </td>
       )}
-      <td className="w-12 whitespace-nowrap py-2 px-2 text-center">
+      <td className="relative w-12 whitespace-nowrap py-2 px-2 text-center">
+        {/* Playing rows signal with a left accent bar (sidebar idiom), never a
+            full-row accent fill. */}
+        {isPlaying && (
+          <span className="absolute left-0 top-1/2 h-5 w-[2.5px] -translate-y-1/2 rounded-full bg-accent" />
+        )}
         <span className="group/play relative inline-flex h-6 w-6 items-center justify-center text-muted">
           <span className="transition group-hover/play:opacity-0">
             {isPlaying ? (

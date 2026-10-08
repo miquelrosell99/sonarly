@@ -2,15 +2,10 @@ export type ThemeMode = 'light' | 'dark' | 'oled' | 'auto';
 export type AccentColor =
   | 'auto'
   | 'copper'
-  | 'monochrome'
-  | 'brown'
   | 'green'
-  | 'orange'
-  | 'teal'
   | 'purple'
-  | 'yellow'
-  | 'cyan'
-  | 'blue';
+  | 'blue'
+  | 'monochrome';
 
 export type AutoDjMode = 'similar' | 'random' | 'smart';
 

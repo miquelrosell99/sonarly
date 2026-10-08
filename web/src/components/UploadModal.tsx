@@ -210,7 +210,7 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
               onClick={() => removeFile(relativePath)}
               disabled={isUploading}
               aria-label="Remove file"
-              className="shrink-0 rounded p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-danger disabled:opacity-50"
+              className="shrink-0 rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-danger disabled:opacity-50"
             >
               <Icon name="mdi-close" size={16} />
             </button>

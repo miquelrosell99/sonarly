@@ -236,7 +236,7 @@ export function NowPlaying({ user }: NowPlayingProps) {
       {/* Content: stacked and scrollable on narrow screens, two-column hero on wide */}
       <div
         className={cn(
-          'relative z-0 h-full min-h-0 w-full overflow-y-auto',
+          'relative z-0 h-full min-h-0 w-full overflow-y-auto pb-[env(safe-area-inset-bottom)]',
           closing ? 'now-playing-content-exit' : 'now-playing-content'
         )}
       >
@@ -250,7 +250,7 @@ export function NowPlaying({ user }: NowPlayingProps) {
             />
             <div className="w-full min-w-0 space-y-1.5">
               <h2
-                className="line-clamp-2 break-words font-display text-2xl font-bold leading-tight text-fg-primary sm:text-3xl"
+                className="line-clamp-2 break-words font-display text-2xl font-semibold leading-tight text-fg-primary sm:text-3xl"
                 title={currentSong.title}
               >
                 <ExplicitTitle
@@ -322,7 +322,7 @@ export function NowPlaying({ user }: NowPlayingProps) {
           </div>
 
           {/* Right: card with tabs */}
-          <div className="flex h-[58vh] min-h-[320px] min-w-0 flex-col overflow-hidden rounded-2xl border border-rule/50 bg-surface/80 backdrop-blur-xl md:h-full md:min-h-0">
+          <div className="flex h-[58vh] min-h-[320px] min-w-0 flex-col overflow-hidden rounded-card border border-rule/50 bg-surface/80 backdrop-blur-xl md:h-full md:min-h-0">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rule/50 px-3 py-2.5 sm:px-4">
               <div
                 className="flex items-center gap-1 rounded-full border border-rule/50 bg-bg-primary/60 p-1"

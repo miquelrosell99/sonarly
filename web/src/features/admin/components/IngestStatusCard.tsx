@@ -99,7 +99,7 @@ export function IngestStatusCard({
   const timestamp = ingest.finishedAt ?? ingest.startedAt;
 
   return (
-    <div className="w-full rounded border border-rule bg-surface p-4 text-left shadow-sm">
+    <div className="w-full rounded-card border border-rule bg-surface p-4 text-left">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-base font-semibold">Latest ingest</h3>

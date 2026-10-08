@@ -110,7 +110,7 @@ export function TrackActionsMenu({ song }: TrackActionsMenuProps) {
       ref={menu.menuRef}
       {...menu.menuProps}
       aria-label={view === 'main' ? 'Track actions' : 'Sleep timer'}
-      className="fixed z-50 min-w-[12rem] rounded-md border border-rule bg-surface py-1 shadow-lg"
+      className="fixed z-50 min-w-[12rem] rounded-popover border border-rule bg-surface py-1 shadow-lg"
     >
       {items.map((item) => (
         <button

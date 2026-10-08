@@ -60,9 +60,10 @@ export function SponsorButton() {
         title="Support Sonarly"
         aria-label="Support Sonarly"
         className={cn(
-          'flex h-11 w-11 items-center justify-center rounded-full text-accent transition',
+          'flex h-9 w-9 items-center justify-center rounded-full text-accent transition',
           'hover:bg-surface-hover',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          '[@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
         )}
       >
         <Icon name="mdi-heart" size={20} />

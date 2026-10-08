@@ -13,7 +13,7 @@ interface ColumnConfigMenuProps {
 }
 
 const MOVE_BUTTON_CLASS =
-  'rounded p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-fg-secondary';
+  'rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-fg-secondary';
 
 /**
  * Gear-affordance popover listing a list view's columns with show/hide
@@ -98,7 +98,7 @@ export function ColumnConfigMenu({ entries, actionsLabel, onToggle, onMove }: Co
         aria-label={`${entry.label} column`}
         onClick={() => onToggle(entry.key)}
         className={cn(
-          'flex min-w-0 flex-1 items-center justify-between gap-2 rounded px-2 py-1 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          'flex min-w-0 flex-1 items-center justify-between gap-2 rounded-item px-2 py-1 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
           entry.locked ? 'cursor-not-allowed text-fg-secondary' : 'text-fg-primary hover:bg-surface-hover',
         )}
       >

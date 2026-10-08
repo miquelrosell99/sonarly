@@ -55,8 +55,13 @@ function PlaylistSongContextMenu({
   allowDownload: boolean;
   children: React.ReactNode;
 }) {
-  const sections = useSongsContextMenu(songs, onEdit, isAdmin, { allowDownload });
-  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+  const { sections, deleteConfirm } = useSongsContextMenu(songs, onEdit, isAdmin, { allowDownload });
+  return (
+    <>
+      <ItemContextMenu sections={sections}>{children}</ItemContextMenu>
+      {deleteConfirm}
+    </>
+  );
 }
 
 interface PlaylistDetailProps {

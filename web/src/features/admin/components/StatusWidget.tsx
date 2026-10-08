@@ -19,7 +19,7 @@ export function StatusWidget({ label, count, icon, onClick, status }: StatusWidg
         <Icon name={icon} size={22} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="font-display text-2xl font-bold text-fg-primary">{count.toLocaleString()}</p>
+        <p className="font-display text-2xl font-semibold text-fg-primary">{count.toLocaleString()}</p>
         <p className="text-xs text-fg-secondary">{label}</p>
       </div>
       {status && (

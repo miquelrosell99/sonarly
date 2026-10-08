@@ -28,7 +28,7 @@ export function AlbumList({
         <li key={album.id}>
           <Link
             href={`/albums/${album.id}`}
-            className="flex min-h-11 items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-surface-hover"
+            className="flex min-h-11 items-center justify-between rounded-item px-2 py-2 text-sm hover:bg-surface-hover"
           >
             <span>{album.name}</span>
             <span className="text-muted">

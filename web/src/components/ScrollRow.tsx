@@ -34,7 +34,7 @@ export function ScrollRow({ title, children }: ScrollRowProps) {
   return (
     <section>
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="font-display text-xl font-bold tracking-tight">{title}</h2>
+        <h2 className="font-display text-xl font-semibold tracking-tight">{title}</h2>
         <div className="flex items-center">
           <button
             type="button"

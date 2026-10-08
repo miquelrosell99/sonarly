@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-10-08
+
+### Changed
+
+- **Design-system alignment pass** (RosellRamos audit, 2026-10-08): the accent picker is trimmed to five choices — Copper (default, unchanged), Green, Purple, Blue, Monochrome — with Brown/Orange/Teal/Yellow/Cyan removed everywhere (CSS override tables, theme store, settings, pre-hydration bootstrap); saturated accents lighten on dark/OLED grounds (copper precedent) and the surviving light-mode accents are darkened so accent-button labels keep WCAG AA in every theme. Buttons, inputs, and chips move off the full pill to the spec radii (16px buttons, 12px inputs/chips/checkboxes); cards unify at 20px, modals/sheets at 28px, menus/popovers at 8px, list rows at 8px — all via new `card`/`sheet`/`button`/`input`/`item`/`popover` radius tokens in the Tailwind config. Breakpoints move to the spec grid (480/768/1024/1440); usages that depended on the old 640/1280 boundaries pin them explicitly. The top bar is a solid 44px strip (no blur), titles drop to 600 everywhere except the statistics hero number (the app's one deliberate 700), `--fg-secondary`/`--muted` darken to the spec's 65% on dark grounds, and semantic hues move to the spec values (danger `#ef5550`, warning `#f28b3f`, success `#29b672`) with contrast-test-verified lightness.
+
+### Fixed
+
+- **Bulk song delete no longer uses `window.confirm`**: the context-menu delete now gates on the shared `ConfirmModal` (the hook returns the pending-delete modal; hosts render it), keeping the single-invalidation, single-toast flow.
+- **Playing-row highlight and statistics surfaces follow the spec**: the active list row signals with a 2.5px left accent bar instead of a full-row accent tint; the statistics hero drops its blurred accent blobs and gradient-clipped number (solid foreground, same 700 weight); genre/year bars and the monthly-activity chart use solid accent fills instead of gradients; drop shadows are gone from static surfaces (entity covers, cards, player bar, hero cover, ingest card, hover play FABs); empty states share one implementation with a 44px icon, a real heading, and a primary CTA; the sidebar mobile drawer traps Tab focus while open; the Queue/Auto-DJ popover close buttons get 44px hit areas; the avatar initial tile is a neutral surface, not an accent fill; buttons and icon buttons press (scale 0.97 + darken) on `:active` and hover darkens instead of lightening; OLED mode updates the `theme-color` meta to the pure-black ground.
+
+### Added
+
+- **Font preloads**: `index.html` preloads the Bricolage Grotesque + IBM Plex Mono stylesheet (same URL as the existing link, so no double download).
+
 ### Added
 
 - **Concurrent-session discipline for agent fleets** — AGENTS.md, the `sonarly-development` skill, and the agent references now carry the same rules the fleet developed in the Notees repo (2026-10-08): a gitignored `.worktrees/<slug>/` worktree per concurrent session (own branch off main, own install, own gate runs, distinct dev ports — server :3000, Vite :5173), a serialized landing flow on main (fetch, rebase, fast-forward merge, push, then worktree/branch cleanup), shared-record-file rules (`CHANGELOG.md` under `[Unreleased]`, `docs/`, `agents/`, `AGENTS.md`, the OpenAPI contract — minimal anchored edits, keep-both conflict resolution), and detect-and-coexist handling for the shared environment. Internal guidance; no behavior change.
@@ -270,7 +285,9 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v2.3.9...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.0
+[3.0.1]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.0.1
 [3.0.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.0.0
 [2.3.10]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.10
 [2.3.9]: https://github.com/miquelrosell99/sonarly/releases/tag/v2.3.9

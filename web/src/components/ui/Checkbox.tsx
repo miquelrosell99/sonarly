@@ -36,7 +36,7 @@ export function Checkbox({ label, description, className, id, indeterminate, ...
         />
         <span
           className={cn(
-            'absolute inset-0 rounded-md border border-rule bg-surface transition',
+            'absolute inset-0 rounded-input border border-rule bg-surface transition',
             'peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-bg-primary',
             'peer-checked:border-accent peer-checked:bg-accent',
             indeterminate && 'border-accent bg-accent',
