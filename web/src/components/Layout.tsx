@@ -47,8 +47,28 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
   const { data: playlists } = usePlaylists();
   const currentSong = usePlayer((state) => state.currentSong);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const openMobileNav = useCallback(() => setMobileNavOpen(true), []);
   const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
+  // Desktop sidebar collapse (device-local chrome state, like the theme
+  // snapshot). The same hamburger toggles the icon rail on desktop and
+  // opens the drawer on mobile.
+  const [sidebarRail, setSidebarRail] = useState(
+    () => window.localStorage.getItem('sonarly-sidebar') === 'rail',
+  );
+  const toggleNavigation = useCallback(() => {
+    if (window.matchMedia('(min-width: 768px)').matches) {
+      setSidebarRail((prev) => {
+        const next = !prev;
+        try {
+          window.localStorage.setItem('sonarly-sidebar', next ? 'rail' : 'full');
+        } catch {
+          // Storage unavailable: the collapse lasts the session.
+        }
+        return next;
+      });
+    } else {
+      setMobileNavOpen(true);
+    }
+  }, []);
 
   // Scroll restoration (audit F8): remember per-route scroll offsets and
   // restore them on back/forward navigation; forward navigations start at
@@ -96,7 +116,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
         Skip to content
       </a>
       <NowPlayingAnnouncer />
-      <TopBar user={user} onLogout={handleLogout} onMenuClick={openMobileNav} />
+      <TopBar user={user} onLogout={handleLogout} onMenuClick={toggleNavigation} />
 
       <div className="flex flex-1 min-h-0">
         <Sidebar
@@ -105,6 +125,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
           user={user}
           mobileOpen={mobileNavOpen}
           onMobileClose={closeMobileNav}
+          rail={sidebarRail}
         />
         <main
           id="main-content"

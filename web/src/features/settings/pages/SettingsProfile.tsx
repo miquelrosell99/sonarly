@@ -11,7 +11,7 @@ interface SettingsProfileProps {
 export function SettingsProfile({ user, onUserChange }: SettingsProfileProps) {
   return (
     <Settings>
-      <div className="w-full max-w-3xl">
+      <div className="w-full">
         <SettingsCard
           icon="mdi-account"
           title="Profile"
