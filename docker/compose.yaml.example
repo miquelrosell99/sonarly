@@ -47,6 +47,9 @@ services:
       - SONARLY_WATCH_POLL_INTERVAL=5
       - SONARLY_ARTIST_IMAGE_INTERVAL_MINUTES=1440
       - SONARLY_INGEST_INTERVAL_MINUTES=60
+      # Public self-signup from the login screen (off by default; the link
+      # and POST /api/signup only exist when set to true).
+      - SONARLY_SIGNUP_ENABLED=false
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
     restart: unless-stopped

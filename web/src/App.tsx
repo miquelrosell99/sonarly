@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { User } from './types';
 import { Layout } from './components/Layout.js';
 import { Login } from './features/auth/index.js';
+import { Signup } from './features/auth/pages/Signup.js';
 import { Setup } from './features/setup/index.js';
 import {
   EntityDetailSkeleton,
@@ -184,6 +185,7 @@ function Redirect({ to }: { to: string }) {
 export default function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [needsSetup, setNeedsSetup] = useState<boolean | undefined>(undefined);
+  const [signupEnabled, setSignupEnabled] = useState(false);
   const [bootError, setBootError] = useState(false);
   const [bootAttempt, setBootAttempt] = useState(0);
   const queryClient = useQueryClient();
@@ -200,7 +202,7 @@ export default function App() {
     let cancelled = false;
     setBootError(false);
     Promise.all([
-      api<{ needsSetup: boolean }>('/setup').catch(() => ({ needsSetup: false })),
+      api<{ needsSetup: boolean; signupEnabled: boolean }>('/setup').catch(() => ({ needsSetup: false, signupEnabled: false })),
       // Use fetch directly so a 401 (logged out) can be told apart from
       // network/server errors, which should not bounce the user to login.
       fetch('/api/me', { credentials: 'include' }).then(async (res) => {
@@ -213,6 +215,7 @@ export default function App() {
       .then(([setup, me]) => {
         if (cancelled) return;
         setNeedsSetup(setup.needsSetup);
+        setSignupEnabled(setup.signupEnabled);
         setUser(me);
       })
       .catch(() => {
@@ -348,7 +351,8 @@ export default function App() {
       <Router>
         <ErrorBoundary>
           <Switch>
-            <Route path="/login" component={() => <Login onLogin={(u) => { queryClient.clear(); setUser(u); }} />} />
+            <Route path="/login" component={() => <Login onLogin={(u) => { queryClient.clear(); setUser(u); }} signupEnabled={signupEnabled} />} />
+            <Route path="/signup" component={() => <Signup onSignup={(u) => { queryClient.clear(); setUser(u); }} />} />
             {/* Anonymous share-link visitors get a guest view of the linked
                 playlist; every other route still requires an account. */}
             <Route
