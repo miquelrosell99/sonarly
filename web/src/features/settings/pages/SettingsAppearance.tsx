@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Settings } from '../components/Settings.js';
 import { SettingsCard } from '../components/SettingsCard.js';
 import { useTheme } from '../../../stores/themeStore.js';
 import { useSettingsDraft, useSettingsSaveBar } from '../hooks/useSettingsDraft.js';
 import { usePreferences } from '../../../hooks/usePreferences.js';
 import { cn } from '../../../lib/cn.js';
-import { Icon } from '../../../components/ui/Icon.js';
 import type { ThemeMode, AccentColor } from '../../../types';
 
 const themeModes: { value: ThemeMode; label: string }[] = [
@@ -117,94 +116,34 @@ function AppearanceSettings() {
         title="Accent color"
         description="Tint highlights and controls across the app."
       >
-        {/* Legacy stored 'auto' accents display as Copper (what auto
+        {/* macOS-style accent picker: wrapping swatches, ring on the active
+            one. Legacy stored 'auto' accents display as Copper (what auto
             resolves to); picking any option stages a concrete accent. */}
-        <AccentDropdown
-          value={accentColor === 'auto' ? 'copper' : accentColor}
-          onChange={(value) => update({ accentColor: value })}
-        />
+        <div role="radiogroup" aria-label="Accent color" className="flex flex-wrap gap-3">
+          {accentColors.map((color) => {
+            const selected = color.value === (accentColor === 'auto' ? 'copper' : accentColor);
+            return (
+              <button
+                key={color.value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                aria-label={color.label}
+                title={color.label}
+                onClick={() => update({ accentColor: color.value })}
+                className={cn(
+                  'h-10 w-10 rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
+                  color.className,
+                  selected
+                    ? 'ring-2 ring-fg-primary ring-offset-2 ring-offset-bg-primary'
+                    : 'hover:scale-105',
+                )}
+              />
+            );
+          })}
+        </div>
       </SettingsCard>
     </div>
   );
 }
 
-function AccentDropdown({
-  value,
-  onChange,
-}: {
-  value: AccentColor;
-  onChange: (value: AccentColor) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handle = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', handle);
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handle);
-      document.removeEventListener('keydown', handleKey);
-    };
-  }, [open]);
-
-  const selected = accentColors.find((color) => color.value === value) ?? accentColors[0];
-
-  return (
-    <div ref={ref} className="relative w-full max-w-xs">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-label={`Accent color: ${selected.label}`}
-        className="flex w-full items-center gap-2 rounded-lg border border-rule bg-surface px-3 py-2 text-sm font-medium text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-      >
-        <span className={cn('h-4 w-4 shrink-0 rounded-full', selected.className)} aria-hidden="true" />
-        <span className="min-w-0 flex-1 truncate text-left">{selected.label}</span>
-        <Icon
-          name="mdi-chevron-down"
-          size={16}
-          className={cn('shrink-0 text-fg-secondary transition-transform', open && 'rotate-180')}
-        />
-      </button>
-      {open && (
-        <div
-          role="listbox"
-          className="absolute left-0 top-full z-40 mt-2 max-h-64 w-full overflow-y-auto rounded-xl border border-rule bg-surface p-1 shadow-xl"
-        >
-          {accentColors.map((color) => (
-            <button
-              key={color.value}
-              type="button"
-              role="option"
-              aria-selected={color.value === value}
-              onClick={() => {
-                onChange(color.value);
-                setOpen(false);
-              }}
-              className={cn(
-                'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition',
-                color.value === value
-                  ? 'bg-accent/10 text-accent'
-                  : 'text-fg-primary hover:bg-surface-hover',
-              )}
-            >
-              <span className={cn('h-4 w-4 shrink-0 rounded-full', color.className)} aria-hidden="true" />
-              <span className="min-w-0 flex-1 truncate">{color.label}</span>
-              {color.value === value && <Icon name="mdi-check" size={16} className="shrink-0" />}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
