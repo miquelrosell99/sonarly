@@ -156,7 +156,7 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
       <div className="max-h-[60vh] space-y-4 overflow-y-auto p-3">
         <div>
           <span className="mb-1.5 block text-xs font-medium text-fg-secondary">Mode</span>
-          <div className="inline-flex w-full overflow-hidden rounded-md border border-rule" role="group" aria-label="Auto DJ mode">
+          <div className="inline-flex w-full overflow-hidden rounded-input border border-rule" role="group" aria-label="Auto DJ mode">
             {modeOptions.map((option) => {
               const selected = mode === option.value;
               return (
@@ -205,7 +205,7 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
 
         <div>
           <span className="mb-1.5 block text-xs font-medium text-fg-secondary">Exclude recently played</span>
-          <div className="inline-flex w-full overflow-hidden rounded-md border border-rule" role="group" aria-label="Exclude recently played window">
+          <div className="inline-flex w-full overflow-hidden rounded-input border border-rule" role="group" aria-label="Exclude recently played window">
             {AUTO_DJ_EXCLUDE_WINDOWS.map((window) => {
               const selected = excludeWindow === window;
               return (

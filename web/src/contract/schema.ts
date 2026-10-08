@@ -2109,7 +2109,7 @@ export interface components {
             /** @enum {string} */
             themeMode?: "light" | "dark" | "oled" | "auto";
             /** @enum {string} */
-            accentColor?: "auto" | "copper" | "monochrome" | "brown" | "green" | "orange" | "teal" | "purple" | "yellow" | "cyan" | "blue";
+            accentColor?: "auto" | "copper" | "monochrome" | "green" | "purple" | "blue";
             playlistsCollapsed?: boolean;
             sidebar?: Record<string, never>;
             theme?: Record<string, never>;
@@ -2131,7 +2131,7 @@ export interface components {
             /** @enum {string} */
             themeMode?: "light" | "dark" | "oled" | "auto";
             /** @enum {string} */
-            accentColor?: "auto" | "copper" | "monochrome" | "brown" | "green" | "orange" | "teal" | "purple" | "yellow" | "cyan" | "blue";
+            accentColor?: "auto" | "copper" | "monochrome" | "green" | "purple" | "blue";
             playlistsCollapsed?: boolean;
             sidebar?: Record<string, never>;
             theme?: Record<string, never>;

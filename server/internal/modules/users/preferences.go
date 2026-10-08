@@ -105,8 +105,8 @@ var preferenceAllowlist = map[string]preferenceValidator{
 	"autoDjPreferFavorites": boolValidator("autoDjPreferFavorites"),
 	"autoDjDiscovery":       clampedNumberValidator("autoDjDiscovery", 0, 100),
 	"themeMode":             enumValidator("themeMode", "light", "dark", "oled", "auto"),
-	"accentColor": enumValidator("accentColor", "auto", "copper", "monochrome", "brown", "green",
-		"orange", "teal", "purple", "yellow", "cyan", "blue"),
+	"accentColor": enumValidator("accentColor", "auto", "copper", "monochrome", "green",
+		"purple", "blue"),
 	"playlistsCollapsed": boolValidator("playlistsCollapsed"),
 	// supportHidden backs the sponsorship CTA dismissal (TopBar heart ->
 	// support modal "Don't show again"). Boolean; guests mirror the same key

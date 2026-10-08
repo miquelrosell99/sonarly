@@ -3666,7 +3666,7 @@ components:
         themeMode: { type: string, enum: [light, dark, oled, auto] }
         accentColor:
           type: string
-          enum: [auto, copper, monochrome, brown, green, orange, teal, purple, yellow, cyan, blue]
+          enum: [auto, copper, monochrome, green, purple, blue]
         playlistsCollapsed: { type: boolean }
         sidebar: { type: object }
         theme: { type: object }
@@ -3691,7 +3691,7 @@ components:
         themeMode: { type: string, enum: [light, dark, oled, auto] }
         accentColor:
           type: string
-          enum: [auto, copper, monochrome, brown, green, orange, teal, purple, yellow, cyan, blue]
+          enum: [auto, copper, monochrome, green, purple, blue]
         playlistsCollapsed: { type: boolean }
         sidebar: { type: object }
         theme: { type: object }
