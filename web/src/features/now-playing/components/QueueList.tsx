@@ -336,7 +336,7 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
           disabled={isFetching}
           aria-label="Refresh Auto-DJ suggestions"
           title="Fresh suggestions"
-          className="inline-flex h-6 w-6 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
         >
           <Icon name="mdi-refresh" size={14} className={cn(isFetching && 'animate-spin')} />
         </button>
@@ -346,7 +346,7 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
           onClick={() => setTuneOpen((v) => !v)}
           aria-label="Auto DJ settings"
           title="Tune Auto DJ"
-          className="inline-flex h-6 w-6 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
         >
           <Icon name="mdi-cog" size={14} />
         </button>

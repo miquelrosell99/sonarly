@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [Unreleased]
+
+## [3.1.3] - 2026-10-15
+
+### Fixed
+
+- **Virtualized card grids no longer change column count with list length**: `VirtualGrid` still derived its 3-column step from the pre-3.1.0 640px boundary while the CSS grids moved to 480px, so a grid rendered 2 columns below and 3 columns above the 150-item virtualization threshold at 480–640px widths. Both paths now step at 480px (RosellRamos DS audit 2026-10-15, grids sweep).
+- **Touch-target floor (≥44px) closes its last gaps**: the home featured-album pager dots become 44px hit areas (dot as inner span); the inline row-hover play button, the queue Auto-DJ refresh/tune buttons, and the expanded-sidebar playlist header buttons get the coarse-pointer 44px bump already used by the favorite/star buttons; the seek/volume sliders and Auto DJ segmented controls grow to 44px on coarse pointers.
+- **Card titles are semibold as documented**: `Card.tsx` title weight now matches `docs/design-language.md`.
+
+### Changed
+
+- **Card grid-item recipe registered as a design override**: 20px covers with the hover zoom, the surface-fill hover, and 14px metadata are documented in `docs/design-language.md` and now also in `.agents/design-overrides.md`, converting an undocumented deviation into a ruled decision.
+
 ## [3.1.2] - 2026-10-15
 
 ### Added
@@ -315,7 +329,8 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.1...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.3...HEAD
+[3.1.3]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.3
 [3.1.2]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.2
 [3.1.1]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.1
 [3.1.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.0

@@ -166,7 +166,7 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
                   onClick={() => updatePreferences.mutate({ autoDjMode: option.value })}
                   aria-pressed={selected}
                   className={cn(
-                    'inline-flex min-h-[36px] flex-1 items-center justify-center gap-1 px-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                    'inline-flex min-h-[36px] flex-1 items-center justify-center gap-1 px-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:min-h-11',
                     selected
                       ? 'bg-surface-hover font-medium text-accent'
                       : 'bg-surface text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
@@ -215,7 +215,7 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
                   onClick={() => updatePreferences.mutate({ autoDjExcludeWindow: window })}
                   aria-pressed={selected}
                   className={cn(
-                    'min-h-[36px] flex-1 px-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                    'min-h-[36px] flex-1 px-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:min-h-11',
                     selected
                       ? 'bg-surface-hover font-medium text-accent'
                       : 'bg-surface text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',

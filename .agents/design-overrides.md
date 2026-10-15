@@ -2,6 +2,15 @@
 
 Documented deviations from the [RosellRamos design system](/root/.agents/skills/rosellramos-design-system/SKILL.md). Contract: `rosellramos-design-system/references/overrides.md` — an undocumented deviation is drift; a documented one is a decision. Newest first; write the entry in the same pass as the deviation it records.
 
+### Card grid-item recipe (cover radius, hover zoom, hover fill, metadata size)
+
+- **Rule**: `rosellramos-design-system/references/audit-checklist.md` §5 grid-item anatomy — cover radius 12px, hover raises the item border hairline→outline (no shadow, no scale above 1.02), metadata 12px muted.
+- **Decision**: Sonarly cards (`web/src/components/Card.tsx`) use `rounded-card` (20px) covers with a `scale-105` hover zoom on the cover, a `bg-surface` full-item hover fill instead of a border raise, and 14px (`text-sm`) metadata.
+- **Rationale**: Canonical project doc `docs/design-language.md` documents exactly this anatomy ("Rounded-card (20px) cover art with a hover zoom"); the Signal Archive identity treats the cover as the card's visual anchor. The scale applies to the cover only, never the card frame, and no shadow is involved.
+- **Scope**: component — `Card.tsx` and surfaces rendered through it (all card grids).
+- **Ruled**: 2026-10-15 audit; canonical doc predates the register.
+- **Review trigger**: card redesign; grid-density work.
+
 ### Ambient dominant-color washes
 
 - **Rule**: SKILL.md hard rule "Never put color on chrome" + default 6 "Zero visual noise" (no tinted overlays).
