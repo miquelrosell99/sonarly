@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.4] - 2026-10-15
+
+### Fixed
+
+- **Player bar height is a single source of truth**: `PLAYER_BAR_HEIGHT` (new `web/src/lib/playerBarHeight.ts`) replaces the triplicated 96px — the bar's inline style plus the Queue/Auto-DJ popover clamp math — so the popovers can never mis-position if the bar height changes.
+- **Mobile nav drawer respects the notch**: the drawer header pads `env(safe-area-inset-top)`, so the close button no longer collides with notches in landscape.
+
+### Changed
+
+- **Tighter page gutters on phones**: main content padding drops 24px → 16px below the `sm` breakpoint (360px phones were carrying desktop gutters).
+- **Fetch-metadata/lyrics modal icon buttons lose their `shadow-sm`**: elevation stays on floating transient layers only.
+
 ## [3.1.3] - 2026-10-15
 
 ### Fixed
@@ -329,7 +341,8 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.3...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.4...HEAD
+[3.1.4]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.4
 [3.1.3]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.3
 [3.1.2]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.2
 [3.1.1]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.1

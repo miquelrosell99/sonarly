@@ -418,7 +418,7 @@ export function FetchMetadataModal({
                         onClick={handleApplyCoverArt}
                         disabled={!mbValue || applyingCoverArt || entityType === 'artist'}
                         title="Apply cover art"
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-fg-primary shadow-sm transition hover:bg-surface-hover hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-fg-primary transition hover:bg-surface-hover hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {applyingCoverArt ? (
                           <Icon name="mdi-loading" className="animate-spin" size={16} />
@@ -432,7 +432,7 @@ export function FetchMetadataModal({
                         onClick={() => transferValue(key)}
                         disabled={!mbHasValue}
                         title="Transfer value"
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-fg-primary shadow-sm transition hover:bg-surface-hover hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-fg-primary transition hover:bg-surface-hover hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <Icon name="mdi-arrow-right" size={16} />
                       </button>
@@ -442,7 +442,7 @@ export function FetchMetadataModal({
                         type="button"
                         onClick={() => revertValue(key)}
                         title="Revert"
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-fg-primary shadow-sm transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-fg-primary transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                       >
                         <Icon name="mdi-undo" size={16} />
                       </button>
