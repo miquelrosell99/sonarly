@@ -553,7 +553,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
           />
         </Modal>
 
-        <div className="rounded-md border border-rule">
+        <div className="rounded-item border border-rule">
           <Table columns={columns} rows={users} rowKey={(u) => u.id} empty="No users found." />
         </div>
       </div>
@@ -625,7 +625,7 @@ function UserLibrariesSection({ userId }: { userId: string }) {
           {sortedLibraries.map((library) => (
             <li
               key={library.id}
-              className="flex items-center justify-between rounded-lg border border-rule bg-bg-primary px-4 py-3"
+              className="flex items-center justify-between rounded-item border border-rule bg-bg-primary px-4 py-3"
             >
               <Checkbox
                 id={`edit-user-library-${userId}-${library.id}`}

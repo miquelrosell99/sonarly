@@ -25,7 +25,7 @@ export function EditableCoverArt({
   return (
     <div
       className={cn(
-        'group relative aspect-square h-40 w-40 overflow-hidden rounded-xl bg-surface-hover',
+        'group relative aspect-square h-40 w-40 overflow-hidden rounded-card bg-surface-hover',
         onView && 'cursor-pointer',
         className,
       )}

@@ -54,7 +54,7 @@ function SidebarNavLink({
     <Link
       href={href}
       className={cn(
-        'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
+        'group relative flex items-center gap-3 rounded-item px-3 py-2 text-sm font-medium transition',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         active
           ? 'bg-surface-hover text-accent'
@@ -189,7 +189,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
               aria-label="Collapse playlists"
               title="Collapse playlists"
               onClick={toggleCollapsed}
-              className="-m-2.5 flex h-11 w-11 items-center justify-center rounded-md text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="-m-2.5 flex h-11 w-11 items-center justify-center rounded-item text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <Icon
                 name="mdi-chevron-down"
@@ -212,7 +212,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
               aria-label="All playlists"
               title="All playlists"
               className={cn(
-                'rounded-md p-1.5 transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                'rounded-item p-1.5 transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                 isActive(location, '/playlists')
                   ? 'text-accent'
                   : 'text-fg-secondary hover:text-fg-primary',
@@ -225,7 +225,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
               aria-label="Create playlist"
               title="Create playlist"
               onClick={openCreatePlaylist}
-              className="rounded-md p-1.5 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="rounded-item p-1.5 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <Icon name="mdi-playlist-plus" size={18} />
             </button>
@@ -274,7 +274,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
               title={link.label}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex h-11 w-11 items-center justify-center rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                'flex h-11 w-11 items-center justify-center rounded-item transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                 active
                   ? 'bg-surface-hover text-accent'
                   : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
@@ -293,7 +293,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
             title="All playlists"
             aria-current={isActive(location, '/playlists') ? 'page' : undefined}
             className={cn(
-              'flex h-11 w-11 items-center justify-center rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              'flex h-11 w-11 items-center justify-center rounded-item transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
               isActive(location, '/playlists')
                 ? 'bg-surface-hover text-accent'
                 : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
@@ -306,7 +306,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
             aria-label="Create playlist"
             title="Create playlist"
             onClick={openCreatePlaylist}
-            className="flex h-11 w-11 items-center justify-center rounded-lg text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="flex h-11 w-11 items-center justify-center rounded-item text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <Icon name="mdi-playlist-plus" size={22} />
           </button>
@@ -349,7 +349,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
                 aria-label="Close navigation"
                 title="Close navigation"
                 onClick={onMobileClose}
-                className="flex h-11 w-11 items-center justify-center rounded-md text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="flex h-11 w-11 items-center justify-center rounded-item text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 <Icon name="mdi-close" size={20} />
               </button>

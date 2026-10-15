@@ -94,7 +94,7 @@ function AppearanceSettings() {
               onClick={() => update({ themeMode: mode.value })}
               aria-pressed={themeMode === mode.value}
               className={cn(
-                'rounded-md border px-4 py-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                'rounded-item border px-4 py-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                 themeMode === mode.value
                   ? 'border-accent bg-surface-hover text-fg-primary'
                   : 'border-rule bg-bg-primary text-fg-primary hover:bg-surface-hover',

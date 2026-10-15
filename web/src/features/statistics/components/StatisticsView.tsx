@@ -85,7 +85,7 @@ function ShowMoreButton({ expanded, onClick, count }: { expanded: boolean; onCli
     <button
       type="button"
       onClick={onClick}
-      className="mt-3 flex h-11 w-full items-center justify-center rounded-xl text-xs font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="mt-3 flex h-11 w-full items-center justify-center rounded-item text-xs font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       {expanded ? 'Show less' : `Show ${count - 5} more`}
     </button>
@@ -263,11 +263,11 @@ function TopListRow({
   return (
     <Link
       href={href}
-      className="group/row relative flex items-center gap-3 overflow-hidden rounded-xl p-2 transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="group/row relative flex items-center gap-3 overflow-hidden rounded-item p-2 transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       <span
         aria-hidden="true"
-        className="absolute inset-y-0 left-0 rounded-xl bg-accent/[0.07]"
+        className="absolute inset-y-0 left-0 rounded-item bg-accent/[0.07]"
         style={{ width: `${Math.max(0, Math.min(100, proportion * 100))}%` }}
       />
       <RankBadge rank={rank} />
@@ -302,7 +302,7 @@ function TopSongs({ songs, stagger }: { songs: StatisticsTopLists['topSongs']; s
               <CoverArt
                 coverArt={song.albumCoverArt}
                 alt={song.title}
-                className="relative h-10 w-10 rounded-lg"
+                className="relative h-10 w-10 rounded-item"
                 iconSize={20}
               />
             }
@@ -377,7 +377,7 @@ function TopAlbums({ albums, stagger }: { albums: StatisticsTopLists['topAlbums'
               <CoverArt
                 coverArt={album.coverArt}
                 alt={album.albumName}
-                className="relative h-10 w-10 rounded-lg"
+                className="relative h-10 w-10 rounded-item"
                 iconSize={20}
               />
             }
@@ -398,7 +398,7 @@ function GenreChart({ genres, stagger }: { genres: StatisticsTopLists['topGenres
     <SectionCard icon="mdi-chart-pie" title="Top Genres" stagger={stagger}>
       <div className="space-y-1">
         {genres.slice(0, limit).map((genre, index) => (
-          <div key={genre.genre} className="group -mx-2 space-y-1.5 rounded-xl px-2 py-2 transition hover:bg-surface-hover">
+          <div key={genre.genre} className="group -mx-2 space-y-1.5 rounded-item px-2 py-2 transition hover:bg-surface-hover">
             <div className="flex items-baseline justify-between gap-3 text-sm">
               <span className="truncate font-medium text-fg-primary">{genre.genre}</span>
               <span className="font-mono text-fg-secondary tabular-nums transition group-hover:text-fg-primary">
@@ -434,7 +434,7 @@ function TopPlayedYears({ years, stagger }: { years: TopYearItem[]; stagger: num
           <Link
             key={year.year}
             href={`/years/${year.year}`}
-            className="group flex items-center justify-between gap-3 rounded-xl p-2 transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="group flex items-center justify-between gap-3 rounded-item p-2 transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <span className="font-mono font-medium text-fg-primary tabular-nums">{year.year}</span>
             <div className="flex items-center gap-3">
@@ -579,7 +579,7 @@ function DonutChart({ distribution, stagger }: { distribution: StatisticsCharts[
               onMouseEnter={() => setHovered(segment)}
               onMouseLeave={() => setHovered(null)}
               className={cn(
-                'flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                'flex items-center gap-2 rounded-item px-2 py-1.5 text-sm transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                 hovered && hovered.key !== segment.key ? 'opacity-60' : undefined,
               )}
             >
@@ -647,7 +647,7 @@ function TopRatedGenres({ genres, stagger }: { genres: StatisticsRatedLists['top
                 title={genre.genre}
                 subtitle={`${formatNumber(genre.ratedSongs)} rated songs`}
                 image={
-                  <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-hover">
+                  <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-item bg-surface-hover">
                     <Icon name="mdi-tag" size={20} className="text-fg-secondary" />
                   </span>
                 }
@@ -678,7 +678,7 @@ function TopRatedYears({ years, stagger }: { years: StatisticsRatedLists['topRat
             title={String(year.year)}
             subtitle={`${formatNumber(year.ratedSongs)} rated songs`}
             image={
-              <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-hover">
+              <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-item bg-surface-hover">
                 <Icon name="mdi-calendar-clock" size={20} className="text-fg-secondary" />
               </span>
             }
@@ -718,7 +718,7 @@ export function StatisticsView({
     return (
       <div className="space-y-6" aria-busy="true" aria-label="Loading statistics">
         <div className="flex items-center justify-between gap-4">
-          <div className="h-8 w-48 animate-pulse rounded-lg bg-surface" />
+          <div className="h-8 w-48 animate-pulse rounded-item bg-surface" />
           <div className="h-12 w-64 animate-pulse rounded-full bg-surface" />
         </div>
         <div className="h-64 animate-pulse rounded-card bg-surface" />

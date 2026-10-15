@@ -53,7 +53,7 @@ export function Signup({ onSignup }: { onSignup: (user: User) => void }) {
         </div>
         {error && (
           <div
-            className="rounded-md border border-danger/30 bg-danger/10 p-3 text-sm text-danger"
+            className="rounded-item border border-danger/30 bg-danger/10 p-3 text-sm text-danger"
             role="alert"
           >
             {error}

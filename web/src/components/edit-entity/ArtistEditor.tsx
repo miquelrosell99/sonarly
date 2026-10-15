@@ -17,7 +17,7 @@ export function ArtistEditor({ entity, entities, readOnly, values, onValueChange
       <ArtistImage
         artistId={String(activeEntities[0]?.id ?? entity?.id ?? '')}
         alt={String(values.name || 'Artist')}
-        className="h-40 w-40 rounded-xl"
+        className="h-40 w-40 rounded-card"
         iconSize={40}
       />
       <div className="flex-1">

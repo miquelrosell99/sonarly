@@ -7,7 +7,7 @@ interface ArtistImageProps {
   alt: string;
   iconSize?: number;
   className?: string;
-  shape?: 'circle' | 'rounded';
+  shape?: 'circle' | 'square';
 }
 
 export function ArtistImage({
@@ -15,7 +15,7 @@ export function ArtistImage({
   alt,
   iconSize = 32,
   className,
-  shape = 'rounded',
+  shape = 'square',
 }: ArtistImageProps) {
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -25,7 +25,7 @@ export function ArtistImage({
       <div
         className={cn(
           'flex aspect-square items-center justify-center bg-surface-hover',
-          shape === 'circle' ? 'rounded-full' : 'rounded-xl',
+          shape === 'circle' ? 'rounded-full' : 'rounded-card',
           className,
         )}
       >
@@ -38,7 +38,7 @@ export function ArtistImage({
     <div
       className={cn(
         'aspect-square overflow-hidden bg-surface-hover',
-        shape === 'circle' ? 'rounded-full' : 'rounded-xl',
+        shape === 'circle' ? 'rounded-full' : 'rounded-card',
         className,
       )}
     >

@@ -64,7 +64,7 @@ function SidebarSettings() {
             <li
               key={item.id}
               className={cn(
-                'flex items-center justify-between rounded-lg border p-3 transition',
+                'flex items-center justify-between rounded-item border p-3 transition',
                 item.visible ? 'border-rule bg-bg-primary' : 'border-rule bg-surface opacity-60',
               )}
             >

@@ -128,11 +128,11 @@ function BarStack({
             onSelect?.();
           }
         }}
-        className={`relative w-full cursor-pointer rounded-t-md bg-surface-hover outline-none focus-visible:ring-2 focus-visible:ring-accent ${size === 'lg' ? 'h-64' : 'h-48'}`}
+        className={`relative w-full cursor-pointer rounded-t-item bg-surface-hover outline-none focus-visible:ring-2 focus-visible:ring-accent ${size === 'lg' ? 'h-64' : 'h-48'}`}
       >
         <div
           className={cn(
-            'stat-grow-y absolute bottom-0 left-0 right-0 flex flex-col-reverse rounded-t-md overflow-hidden transition group-hover/bar:brightness-110',
+            'stat-grow-y absolute bottom-0 left-0 right-0 flex flex-col-reverse rounded-t-item overflow-hidden transition group-hover/bar:brightness-110',
             selected && 'brightness-110',
           )}
           style={{ height: `${displayHeight}%`, '--stagger': Math.min(stagger, 12) } as CSSProperties}
@@ -151,7 +151,7 @@ function BarStack({
         </div>
         <div
           className={cn(
-            'absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded-md bg-fg-primary px-2 py-1 text-xs text-bg-primary whitespace-nowrap z-10',
+            'absolute bottom-full left-1/2 mb-2 -translate-x-1/2 rounded-item bg-fg-primary px-2 py-1 text-xs text-bg-primary whitespace-nowrap z-10',
             selected ? 'block' : 'hidden group-hover/bar:block group-focus-visible/bar:block',
           )}
         >
@@ -302,7 +302,7 @@ export function MonthlyActivityChart({ monthlyPlays, mode, userId, range }: Mont
             <button
               type="button"
               onClick={() => setModalOpen(true)}
-              className="flex h-11 w-11 items-center justify-center rounded-lg border border-rule text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="flex h-11 w-11 items-center justify-center rounded-item border border-rule text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               aria-label="Expand chart"
             >
               <Icon name="mdi-arrow-expand" size={18} />
@@ -329,7 +329,7 @@ export function MonthlyActivityChart({ monthlyPlays, mode, userId, range }: Mont
           </div>
           <ChartBody data={chartData} groupBy={groupBy} size="lg" showLabels />
           {groupBy !== 'total' && chartData.length > 0 && (
-            <div className="rounded-xl border border-rule bg-surface p-3">
+            <div className="rounded-card border border-rule bg-surface p-3">
               <h4 className="mb-2 text-sm font-medium text-fg-primary">Breakdown</h4>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
                 {Array.from(
@@ -342,7 +342,7 @@ export function MonthlyActivityChart({ monthlyPlays, mode, userId, range }: Mont
                 )
                   .sort((a, b) => b[1] - a[1])
                   .map(([key, plays], index) => (
-                    <div key={key} className="flex items-center gap-2 rounded-lg bg-surface-hover px-3 py-2">
+                    <div key={key} className="flex items-center gap-2 rounded-item bg-surface-hover px-3 py-2">
                       <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: getGroupColor(index) }} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-medium text-fg-primary">{key}</p>

@@ -203,7 +203,7 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
               {tasks.map((task) => (
                 <div
                   key={task.id}
-                  className="flex flex-col gap-3 rounded-md border border-rule bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 rounded-item border border-rule bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
                     <div className="flex items-center gap-2">
@@ -232,7 +232,7 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
           <button
             type="button"
             onClick={() => setHistoryOpen((open) => !open)}
-            className="flex w-full items-center justify-between rounded-md border border-rule bg-surface p-4 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="flex w-full items-center justify-between rounded-item border border-rule bg-surface p-4 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <div>
               <h3 className="text-base font-medium">History</h3>
@@ -252,7 +252,7 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
                 isEmpty={history.length === 0}
                 emptyMessage="No task history yet."
               >
-                <div className="rounded-md border border-rule">
+                <div className="rounded-item border border-rule">
                   <Table
                     columns={historyColumns}
                     rows={history}

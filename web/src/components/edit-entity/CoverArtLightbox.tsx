@@ -30,10 +30,10 @@ export function CoverArtLightbox({
           <img
             src={`/api/cover-art/${coverArt}`}
             alt={alt}
-            className="max-h-[85vh] max-w-[85vw] rounded-xl object-contain shadow-2xl"
+            className="max-h-[85vh] max-w-[85vw] rounded-popover object-contain shadow-2xl"
           />
         ) : (
-          <div className="flex h-64 w-64 items-center justify-center rounded-xl bg-surface shadow-2xl">
+          <div className="flex h-64 w-64 items-center justify-center rounded-popover bg-surface shadow-2xl">
             <Icon name="mdi-album" size={64} className="text-fg-secondary" />
           </div>
         )}

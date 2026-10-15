@@ -226,10 +226,10 @@ export function SmartPlaylistBlockEditor({ initialRules, onChange }: SmartPlayli
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-rule bg-surface p-4">
+      <div className="rounded-card border border-rule bg-surface p-4">
         <div className="mb-3 flex items-center gap-2 text-sm">
           <span className="font-medium text-fg-primary">Match</span>
-          <div className="inline-flex rounded-md border border-rule bg-bg-primary p-0.5">
+          <div className="inline-flex rounded-item border border-rule bg-bg-primary p-0.5">
             <button
               type="button"
               onClick={() => activeKey === 'any' && toggleMatchType()}
@@ -281,7 +281,7 @@ export function SmartPlaylistBlockEditor({ initialRules, onChange }: SmartPlayli
         </Button>
       </div>
 
-      <div className="rounded-xl border border-rule bg-surface p-4">
+      <div className="rounded-card border border-rule bg-surface p-4">
         <div className="mb-3 flex items-center justify-between">
           <span className="text-sm font-medium text-fg-primary">Sort</span>
           <Button variant="ghost" onClick={addSort} className="text-sm">
@@ -306,7 +306,7 @@ export function SmartPlaylistBlockEditor({ initialRules, onChange }: SmartPlayli
         </div>
       </div>
 
-      <div className="rounded-xl border border-rule bg-surface p-4">
+      <div className="rounded-card border border-rule bg-surface p-4">
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-fg-primary">Limit</span>
           <Input
@@ -350,7 +350,7 @@ function RuleBlock({
   const showValue = rule.operator !== 'isMissing' && rule.operator !== 'isPresent';
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-rule bg-bg-primary p-3">
+    <div className="flex items-center gap-2 rounded-item border border-rule bg-bg-primary p-3">
       <select
         value={rule.field}
         onChange={(e) => onFieldChange(e.target.value)}
@@ -560,7 +560,7 @@ function SortBlock({
   const sortItem = isRandom ? null : (sort as { field: string; direction: 'asc' | 'desc' });
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-rule bg-bg-primary p-3">
+    <div className="flex items-center gap-2 rounded-item border border-rule bg-bg-primary p-3">
       <select
         value={sortItem?.field ?? 'title'}
         onChange={(e) => onFieldChange(e.target.value)}

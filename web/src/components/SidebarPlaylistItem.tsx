@@ -71,7 +71,7 @@ export function SidebarPlaylistItem({ playlist, href, active, isOwner }: Sidebar
         <Link
           href={href}
           className={cn(
-            'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition',
+            'group relative flex items-center gap-3 rounded-item px-3 py-2 text-sm font-medium transition',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
             active
               ? 'bg-surface-hover text-accent'

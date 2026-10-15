@@ -330,7 +330,7 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           className={cn(
-            'relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 text-center transition',
+            'relative flex flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed p-8 text-center transition',
             isDragging
               ? 'border-accent bg-accent/10'
               : 'border-rule bg-surface hover:border-fg-secondary/40',
@@ -367,7 +367,7 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
                 Clear
               </Button>
             </div>
-            <div className="max-h-48 overflow-y-auto rounded-md border border-rule">
+            <div className="max-h-48 overflow-y-auto rounded-item border border-rule">
               <Table
                 columns={fileColumns}
                 rows={files}
@@ -406,7 +406,7 @@ export function UploadResultsModal({ open, onClose, summary }: UploadResultsModa
           <span className="font-medium">Upload successful</span>
         </div>
         {summary && (
-          <div className="rounded-md border border-rule bg-surface p-3 text-sm">
+          <div className="rounded-item border border-rule bg-surface p-3 text-sm">
             <p className="text-fg-primary">
               <span className="font-medium">{summary.fileCount}</span> file
               {summary.fileCount === 1 ? '' : 's'} uploaded

@@ -124,7 +124,7 @@ function PlayButtonContent({
         <ProgressRing isHolding={isHolding} size={44} />
         <Icon name="mdi-play" size={22} className="relative z-10" />
         {handlers && (
-          <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-bg-primary px-2 py-1 text-xs text-fg-primary opacity-0 shadow ring-1 ring-rule transition-opacity delay-700 duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+          <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-item bg-bg-primary px-2 py-1 text-xs text-fg-primary opacity-0 shadow ring-1 ring-rule transition-opacity delay-700 duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
             Hold to shuffle
           </span>
         )}
@@ -146,7 +146,7 @@ function PlayButtonContent({
         <ProgressRing isHolding={isHolding} size={24} />
         <Icon name="mdi-play" size={16} className="relative z-10" />
         {handlers && (
-          <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-bg-primary px-2 py-1 text-xs text-fg-primary opacity-0 shadow ring-1 ring-rule transition-opacity delay-700 duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+          <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-item bg-bg-primary px-2 py-1 text-xs text-fg-primary opacity-0 shadow ring-1 ring-rule transition-opacity delay-700 duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
             Hold to shuffle
           </span>
         )}
@@ -170,7 +170,7 @@ function PlayButtonContent({
       </span>
       {children}
       {handlers && (
-        <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-bg-primary px-2 py-1 text-xs text-fg-primary opacity-0 shadow ring-1 ring-rule transition-opacity delay-700 duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+        <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-item bg-bg-primary px-2 py-1 text-xs text-fg-primary opacity-0 shadow ring-1 ring-rule transition-opacity delay-700 duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
           Hold to shuffle
         </span>
       )}

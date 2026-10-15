@@ -375,7 +375,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
               </p>
             </div>
 
-            <div className="rounded-md border border-rule bg-surface p-3">
+            <div className="rounded-item border border-rule bg-surface p-3">
               <p className="text-xs font-medium text-muted">Preview</p>
               <code className="mt-1 block break-all text-sm text-fg-primary">{previewPath}</code>
             </div>
@@ -391,7 +391,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
           </div>
         </Modal>
 
-        <div className="rounded-md border border-rule">
+        <div className="rounded-item border border-rule">
           <Table
             columns={columns}
             rows={libraries}
@@ -468,7 +468,7 @@ function LibraryUsersSection({ libraryId }: { libraryId: string }) {
           {sortedUsers.map((u) => (
             <li
               key={u.id}
-              className="flex items-center justify-between rounded-lg border border-rule bg-bg-primary px-4 py-3"
+              className="flex items-center justify-between rounded-item border border-rule bg-bg-primary px-4 py-3"
             >
               <Checkbox
                 id={`edit-library-user-${libraryId}-${u.id}`}
