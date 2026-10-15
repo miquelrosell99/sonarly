@@ -6,4 +6,5 @@ export { SettingsProfile } from './pages/SettingsProfile.js';
 export { SettingsLibrary } from './pages/SettingsLibrary.js';
 export { SettingsPlayback } from './pages/SettingsPlayback.js';
 export { SettingsSidebar } from './pages/SettingsSidebar.js';
+export { SettingsAbout } from './pages/SettingsAbout.js';
 export { RenameProgressModal } from './components/RenameProgressModal.js';
