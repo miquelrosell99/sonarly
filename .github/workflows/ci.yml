@@ -36,6 +36,10 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Design-token drift check
+        working-directory: web
+        run: node scripts/token-drift.mjs
+
       - name: Verify generated contract schema is up to date
         working-directory: web
         run: |
