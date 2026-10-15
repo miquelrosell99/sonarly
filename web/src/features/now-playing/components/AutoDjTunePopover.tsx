@@ -7,6 +7,7 @@ import { Input } from '../../../components/ui/Input.js';
 import { usePreferences, useUpdatePreferences } from '../../../hooks/usePreferences.js';
 import { AUTO_DJ_EXCLUDE_WINDOWS } from '../../../types/index.js';
 import type { AutoDjExcludeWindow, AutoDjMode } from '../../../types/index.js';
+import { PLAYER_BAR_HEIGHT } from '../../../lib/playerBarHeight.js';
 
 interface AutoDjTunePopoverProps {
   anchorRef: React.RefObject<HTMLElement | null>;
@@ -34,13 +35,12 @@ function computePosition(trigger: HTMLElement, panel: HTMLElement) {
   const triggerRect = trigger.getBoundingClientRect();
   const panelRect = panel.getBoundingClientRect();
   const margin = 8;
-  const playBarHeight = 96;
   const maxLeft = window.innerWidth - panelRect.width - margin;
   const left = clamp(triggerRect.right - panelRect.width, margin, maxLeft);
   const top = clamp(
     triggerRect.top - panelRect.height - margin,
     margin,
-    window.innerHeight - panelRect.height - margin - playBarHeight,
+    window.innerHeight - panelRect.height - margin - PLAYER_BAR_HEIGHT,
   );
   return { top, left };
 }

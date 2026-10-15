@@ -132,7 +132,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
           ref={mainRef}
           onScroll={onScroll}
           tabIndex={-1}
-          className="relative flex-1 overflow-y-auto motion-safe:scroll-smooth p-6 focus:outline-none"
+          className="relative flex-1 overflow-y-auto p-4 motion-safe:scroll-smooth focus:outline-none sm:p-6"
         >
           {children}
         </main>
