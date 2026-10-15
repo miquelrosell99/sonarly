@@ -29,13 +29,13 @@ Documented deviations from the [RosellRamos design system](/root/.agents/skills/
 - **Ruled**: code comment at `web/src/index.css` (pre-2026-10-08); registered 2026-10-15.
 - **Review trigger**: Tailwind upgrade past 3.4; move to CSS-first theming.
 
-### Legacy `min-[640px]` / `min-[1280px]` breakpoints
+### Off-grid breakpoint usages (`min-[640px]` / `min-[1280px]` / `min-[420px]`)
 
 - **Rule**: `rosellramos-design-system/references/tokens.md` breakpoints — 480 / 768 / 1024 / 1440.
-- **Decision**: `web/tailwind.config.js` ships the spec grid (`sm 480 / md 768 / lg 1024 / xl 1440`); the few usages that must keep their old boundary (`TopBar.tsx`, `StatisticsView.tsx`) use explicit `min-[640px]` / `min-[1280px]` (documented in the config comment).
-- **Rationale**: Migrating those boundaries changes layout at 640–1024px / 1280–1440px widths and needs visual verification, not a blind find-replace.
-- **Scope**: global, finite list — grep `min-\[640px\]|min-\[1280px\]` before closing this entry.
-- **Ruled**: 2026-10-15 audit.
+- **Decision**: `web/tailwind.config.js` ships the spec grid (`sm 480 / md 768 / lg 1024 / xl 1440`). A finite set of usages keeps an explicit off-grid boundary instead: `min-[640px]`/`min-[1280px]` in `TopBar.tsx` and `StatisticsView.tsx` (documented in the config comment), and `min-[420px]` in `TopBar.tsx:305` (wordmark) + `StatisticsView.tsx:222` (hero-stat grid) — 420px exists so large phones (~430px CSS width) get the wordmark and a two-stat row that `sm:` (480px) would deny them.
+- **Rationale**: migrating the 640/1280 boundaries changes layout at 640–1024px / 1280–1440px widths and needs visual verification, not a blind find-replace; the 420px boundary is a deliberate large-phone floor below the spec's smallest step.
+- **Scope**: global, finite list — grep `min-\[640px\]|min-\[1280px\]|min-\[420px\]` before closing this entry.
+- **Ruled**: 2026-10-15 audit (640/1280); min-[420px] registered 2026-10-15 in the audit-fix pass.
 - **Review trigger**: any redesign touching TopBar or Statistics; a dedicated responsive pass.
 
 ## Resolved entries (kept for history)

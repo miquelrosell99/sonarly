@@ -7,9 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Settings → About**: a new settings section with the brand mark, source and AGPL-3.0 license links, and the copyright line (`© {year} Miquel Rosell Tarragó`).
+
+### Changed
+
+- **Corner radii fully on tokens**: the last raw Tailwind radii (`rounded-md/lg/xl/2xl` and bare `rounded`, ~150 usages) are replaced by the design-system token family — cards and cover art 20px, list-row highlights and small controls 8px, floating panels 8px. A few surfaces move 12/16px → 20px as part of the standardization (RosellRamos DS audit 2026-10-15).
+- **Type scale completes**: new `3xs` (11px) and `badge` (em-relative explicit-tag) font tokens retire the last arbitrary font sizes.
+- **Queue popover focuses on open**: keyboard users now land inside the queue dialog instead of tabbing through the page behind it.
+
 ### Fixed
 
 - **Statistics time-range pill loses its drop shadow**: the selected range button in the statistics header no longer carries `shadow-sm` on a static control, matching the elevation rule the 3.1.0 segmented-control cleanup applied elsewhere (RosellRamos DS audit 2026-10-15).
+
+### Internal
+
+- **Design-token drift gate**: `web/scripts/token-drift.mjs` runs in CI and under `pnpm test` — raw radii, default Tailwind palette hues, arbitrary color/font-size class values, hardcoded canvas paint, unresolved CSS variables, px font-sizes, px border-radii, and color literals inside `var()` fallbacks all fail the build. Off-grid breakpoint exceptions self-check against `.agents/design-overrides.md`, so documented deviations can never silently outlive their register entry.
 
 ## [3.1.1] - 2026-10-08
 
