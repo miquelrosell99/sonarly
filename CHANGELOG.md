@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.2] - 2026-10-15
+
 ### Added
 
 - **Settings → About**: a new settings section with the brand mark, source and AGPL-3.0 license links, and the copyright line (`© {year} Miquel Rosell Tarragó`).
@@ -314,6 +316,7 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Settings for retention, artist image sync, and organization pattern.
 
 [Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.1...HEAD
+[3.1.2]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.2
 [3.1.1]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.1
 [3.1.0]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.0
 [3.0.1]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.0.1
