@@ -41,6 +41,10 @@ export function QueueModal({ user }: QueueModalProps) {
     const panel = panelRef.current;
     if (!trigger || !panel) return;
     setStyle(computePosition(trigger, panel));
+    // Non-modal popover, but keyboard users still land inside the dialog on
+    // open (mirrors ColumnConfigMenu's first-focusable pattern) instead of
+    // tabbing through the page behind it.
+    panel.querySelector<HTMLElement>('button:not([disabled])')?.focus();
   }, [open]);
 
   useEffect(() => {
@@ -95,7 +99,7 @@ export function QueueModal({ user }: QueueModalProps) {
             aria-label="Queue"
             style={style}
             className={cn(
-              'fixed z-50 flex w-[min(20rem,calc(100vw-1rem))] max-h-[60vh] flex-col overflow-hidden rounded-xl border border-rule/50 bg-surface shadow-2xl',
+              'fixed z-50 flex w-[min(20rem,calc(100vw-1rem))] max-h-[60vh] flex-col overflow-hidden rounded-popover border border-rule/50 bg-surface shadow-2xl',
             )}
           >
             <div className="flex items-center justify-between border-b border-rule/50 px-3 py-2">
