@@ -64,20 +64,15 @@ Data (chart) palette, consumed by the statistics pages via `var(--chart-1)`…`v
 
 ### Configurable accent
 
-The default accent is **Echo Copper** — the brand's single signal (superseding the launch-day monochrome default). The accent palette below remains user-configurable in Settings → Appearance, and **Monochrome** (`--accent` follows `--fg-primary`) is still available.
+The default accent is **Echo Copper** — the brand's single signal (superseding the launch-day monochrome default). Settings → Appearance offers the RosellRamos-curated five(commit `65b154d`): the brand accent plus **Monochrome** (`--accent` follows `--fg-primary`) and three curated hues.
 
 | Accent | Token | Sample |
 |---|---|---|
 | Copper | `--accent-copper` | `#9B541C` (light) / `#DB8342` (dark) |
-| Monochrome | `--fg-primary` | — |
-| Brown | `--accent-brown` | `#A16B45` |
 | Green | `--accent-green` | `#21C45D` |
-| Orange | `--accent-orange` | `#FF7415` |
-| Teal | `--accent-teal` | `#1FBDAD` |
 | Purple | `--accent-purple` | `#8C40D9` |
-| Yellow | `--accent-yellow` | `#E7B008` |
-| Cyan | `--accent-cyan` | `#00D4FF` |
 | Blue | `--accent-blue` | `#0066FF` |
+| Monochrome | `--fg-primary` | — |
 
 Users can override the accent through Settings → Appearance. Always test a custom accent against all three modes.
 
@@ -108,25 +103,25 @@ Implementation: `web/src/hooks/useDominantColor.ts` samples cover art via an off
 
 - **Full-height shell.** Top bar, sidebar, and player bar frame a scrollable main area.
 - **Navigation recedes.** Sidebar uses muted text and a thin accent indicator for the active item.
-- **Content breathes.** Generous padding, rounded corners (`rounded-xl` / `rounded-2xl`), and soft shadows on cover art.
+- **Content breathes.** Generous padding, tokenized corner radii (`rounded-card` 20px), and hairline rules — no shadows on static surfaces.
 - **Player bar is persistent.** Full-width progress scrubber, album thumbnail, centered transport controls, volume on the right.
 
 ## Components
 
 ### Buttons
 
-- **Primary:** `.btn` — rounded-full, accent background, contrasting text.
-- **Secondary:** `.btn-ghost` — rounded-full, rule border, surface background.
+- **Primary:** `.btn` — 16px radius (`rounded-button` token), accent background, contrasting text. Full-pill (`9999px`) is reserved for the Login sign-in brand moment (`.btn-pill`).
+- **Secondary:** `.btn-ghost` — 16px radius, rule border, surface background.
 
 ### Cards
 
-- Rounded-xl cover art with a hover zoom and overlay.
+- Rounded-card (20px) cover art with a hover zoom and overlay.
 - Play button appears on hover; favorite and rating in the top corners.
 - Title in semibold primary; artist/year in secondary.
 
 ### Inputs
 
-- `.input` — rounded-lg, surface background, rule border, accent focus ring.
+- `.input` — 12px radius (`rounded-input` token), surface background, rule border, accent focus ring.
 
 ### Interaction conventions
 

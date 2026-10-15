@@ -62,6 +62,7 @@ More than one agent (or human) session may be working in this repo — and again
 - [Development Conventions](agents/development-conventions.md)
 - [Reusable UI Components](agents/ui-components.md)
 - [Design Language](agents/design-language.md)
+- [Design Overrides Register](.agents/design-overrides.md) — documented deviations from the RosellRamos design system; deviations without an entry here are audit Criticals
 - [Build and Development Commands](agents/build-commands.md)
 - [User Settings & Preferences Storage](agents/user-settings.md)
 - [Security Considerations](agents/security.md)
@@ -69,4 +70,4 @@ More than one agent (or human) session may be working in this repo — and again
 - [Development Skill](.agents/skills/sonarly-development/) — architecture, coding conventions, development workflow (mandatory for code changes; see "Skills (mandatory)")
 - [Operations Skill](.agents/skills/sonarly-operations/) — deployment, health checks, logs, rollback, migrations, backups, monitoring, incident response, maintenance (mandatory for ops work)
 - [Project Skills](.agents/skills/) — Sonarly-scoped skills: development, operations, library operations, user management, playlists, server conventions
-- [Project Documentation](docs/README.md) — user-facing docs index: philosophy, installation, usage, ux, configuration, deployment, troubleshooting, faq, smart playlists, API, DB schema, design language. `.audits/` (empty by design) is the designated drop zone for future internal audit reports — user docs never live there; transition-era records are in git history at the 2.0.0 tag. The OpenSubsonic behavioral contract lives with the adapter at `server/internal/modules/opensubsonic/QUIRKS.md`.
+- [Project Documentation](docs/README.md) — user-facing docs index: philosophy, installation, usage, ux, configuration, deployment, troubleshooting, faq, smart playlists, API, DB schema, design language. `.audits/` is the designated drop zone for internal audit reports (RosellRamos design-system audits live there) — user docs never live there; transition-era records are in git history at the 2.0.0 tag. The OpenSubsonic behavioral contract lives with the adapter at `server/internal/modules/opensubsonic/QUIRKS.md`.
