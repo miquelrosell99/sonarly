@@ -11,6 +11,7 @@ const sections = [
   { key: '/settings/library', label: 'Library' },
   { key: '/settings/playback', label: 'Playback' },
   { key: '/settings/sidebar', label: 'Sidebar' },
+  { key: '/settings/about', label: 'About' },
 ];
 
 interface SettingsProps {
@@ -58,7 +59,7 @@ function SettingsChrome({ children }: SettingsProps) {
                 className={cn(
                   // Inset accent bar on the active item — the sidebar's
                   // language — with no layout shift.
-                  'rounded-md px-3 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                  'rounded-item px-3 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                   active
                     ? 'bg-surface-hover font-medium text-fg-primary shadow-[inset_2px_0_0_0_hsl(var(--accent))]'
                     : 'text-muted hover:bg-surface-hover hover:text-fg-primary',
