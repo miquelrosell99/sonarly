@@ -117,6 +117,10 @@ const SettingsSidebar = lazyRoute<{}>(
   () => import('./features/settings/index.js').then((m) => ({ default: m.SettingsSidebar })),
   <PageSkeleton />,
 );
+const SettingsAbout = lazyRoute<{}>(
+  () => import('./features/settings/index.js').then((m) => ({ default: m.SettingsAbout })),
+  <PageSkeleton />,
+);
 const Artists = lazyRoute<{}>(
   () => import('./features/artists/index.js').then((m) => ({ default: m.Artists })),
   <GridPageSkeleton />,
@@ -310,7 +314,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setBootAttempt((n) => n + 1)}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-bg-primary transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="rounded-item bg-accent px-4 py-2 text-sm font-medium text-bg-primary transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             Try again
           </button>
@@ -414,6 +418,7 @@ export default function App() {
             <Route path="/settings/library" component={SettingsLibrary} />
             <Route path="/settings/playback" component={SettingsPlayback} />
             <Route path="/settings/sidebar" component={SettingsSidebar} />
+            <Route path="/settings/about" component={SettingsAbout} />
             <Route path="/users" component={() => <Redirect to="/admin/users" />} />
             <Route path="*" component={() => <Redirect to="/" />} />
           </Switch>
