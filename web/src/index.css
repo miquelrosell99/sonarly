@@ -233,6 +233,13 @@
     outline: none;
   }
 
+  /* Touch floor: seek/volume sliders are primary controls on coarse pointers. */
+  @media (pointer: coarse) {
+    .slider {
+      height: 44px !important;
+    }
+  }
+
   .slider:focus-visible {
     @apply ring-2 ring-accent ring-offset-2 ring-offset-bg-primary;
   }

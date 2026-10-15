@@ -103,7 +103,7 @@ export function Card({
         </Link>
       ) : null}
       <div className={cn('space-y-0.5 px-1', !cover && 'rounded-card border border-rule bg-surface p-3')}>
-        <Link href={href} className="line-clamp-2 break-words text-sm font-medium text-fg-primary hover:text-muted">
+        <Link href={href} className="line-clamp-2 break-words text-sm font-semibold text-fg-primary hover:text-muted">
           {title}
         </Link>
         {fields?.map((field, idx) => {
