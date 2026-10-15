@@ -103,7 +103,7 @@ export function ConflictsModal({ open, onClose }: ConflictsModalProps) {
           )}
 
           {conflicts.length > 0 && (
-            <div className="overflow-hidden rounded-md border border-rule">
+            <div className="overflow-hidden rounded-item border border-rule">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-surface text-fg-primary">
                   <tr>

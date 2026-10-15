@@ -38,7 +38,7 @@ export function UserSection({ user, onSettings, onAdmin, onLogout }: UserSection
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-3 rounded-md p-2 text-left transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="flex w-full items-center gap-3 rounded-item p-2 text-left transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         aria-haspopup="menu"
         aria-expanded={open}
       >
@@ -52,7 +52,7 @@ export function UserSection({ user, onSettings, onAdmin, onLogout }: UserSection
       {open && (
         <div
           role="menu"
-          className="absolute bottom-full left-0 mb-2 w-48 rounded-md border border-rule bg-surface py-1 shadow-sm"
+          className="absolute bottom-full left-0 mb-2 w-48 rounded-popover border border-rule bg-surface py-1 shadow-sm"
         >
           <button
             type="button"

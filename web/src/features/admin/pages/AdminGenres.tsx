@@ -223,7 +223,7 @@ export function AdminGenres({ user }: AdminGenresProps) {
           </p>
         )}
 
-        <div className="flex items-end gap-2 rounded-md border border-rule bg-surface p-4">
+        <div className="flex items-end gap-2 rounded-item border border-rule bg-surface p-4">
           <div className="flex-1">
             <label htmlFor="new-root-genre" className="mb-1.5 block text-sm font-medium text-fg-secondary">
               New root genre
@@ -247,7 +247,7 @@ export function AdminGenres({ user }: AdminGenresProps) {
         {loading && flat.length === 0 && tree.length === 0 ? (
           <p className="text-sm text-fg-secondary">Loading genres…</p>
         ) : (
-          <div className="rounded-md border border-rule">
+          <div className="rounded-item border border-rule">
             {tree.length === 0 ? (
               <p className="p-4 text-sm text-fg-secondary">No genres yet.</p>
             ) : (
@@ -464,7 +464,7 @@ function GenreTreeItem({
       </div>
 
       {isAdding && (
-        <div className="mx-3 mb-3 flex items-center gap-2 rounded-lg border border-rule bg-surface p-2">
+        <div className="mx-3 mb-3 flex items-center gap-2 rounded-item border border-rule bg-surface p-2">
           <Input
             placeholder="Child genre name"
             value={inlineAdd.name}

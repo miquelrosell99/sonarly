@@ -586,7 +586,7 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
               <div aria-hidden="true" className="pointer-events-none absolute left-0 right-0 top-1/2 h-px bg-accent" />
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded bg-surface/80 px-1.5 py-0.5 font-mono text-xs tabular-nums text-accent"
+                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-item bg-surface/80 px-1.5 py-0.5 font-mono text-xs tabular-nums text-accent"
               >
                 {formatTime(currentTime)}
               </div>

@@ -90,7 +90,7 @@ function LibrarySettings() {
                   <div
                     role="group"
                     aria-label={`${page.label} default view`}
-                    className="inline-flex overflow-hidden rounded-md border border-rule"
+                    className="inline-flex overflow-hidden rounded-item border border-rule"
                   >
                     {viewModeOptions.map((option) => {
                       const selected = value === option.value;

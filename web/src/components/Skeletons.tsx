@@ -9,8 +9,8 @@ function SkeletonHeader() {
     <div className="mb-4 flex items-center justify-between">
       <Skeleton className="h-6 w-32" />
       <div className="flex items-center gap-2">
-        <Skeleton className="h-9 w-9 rounded-md" />
-        <Skeleton className="h-9 w-[76px] rounded-md" />
+        <Skeleton className="h-9 w-9 rounded-item" />
+        <Skeleton className="h-9 w-[76px] rounded-item" />
       </div>
     </div>
   );
@@ -46,7 +46,7 @@ export function GridPageSkeleton({ cards = 10 }: { cards?: number }) {
       >
         {Array.from({ length: cards }, (_, i) => (
           <div key={i} className="flex flex-col gap-2 p-1">
-            <Skeleton className="aspect-square w-full rounded-xl" />
+            <Skeleton className="aspect-square w-full rounded-card" />
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="h-3 w-1/2" />
           </div>
@@ -60,7 +60,7 @@ export function EntityDetailSkeleton() {
   return (
     <div role="status" aria-label="Loading">
       <div className="mb-6 flex items-end gap-6">
-        <Skeleton className="h-40 w-40 shrink-0 rounded-xl md:h-48 md:w-48" />
+        <Skeleton className="h-40 w-40 shrink-0 rounded-card md:h-48 md:w-48" />
         <div className="flex min-w-0 flex-1 flex-col gap-3 pb-1">
           <Skeleton className="h-3 w-20" />
           <Skeleton className="h-8 w-2/3 max-w-md" />
@@ -112,7 +112,7 @@ export function QueuePanelSkeleton({ rows = 7 }: { rows?: number }) {
       </div>
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="flex h-12 items-center gap-3 border-b border-rule px-2">
-          <Skeleton className="h-8 w-8 shrink-0 rounded" />
+          <Skeleton className="h-8 w-8 shrink-0 rounded-item" />
           <Skeleton className="h-4 w-1/3 min-w-32" />
           <Skeleton className="h-4 ml-auto w-16" />
         </div>

@@ -136,7 +136,7 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
       role="dialog"
       aria-label="Auto DJ settings"
       style={style}
-      className="fixed z-50 flex w-[min(19rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-xl border border-rule/50 bg-surface shadow-2xl"
+      className="fixed z-50 flex w-[min(19rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-popover border border-rule/50 bg-surface shadow-2xl"
     >
       <div className="flex items-center justify-between border-b border-rule/50 px-3 py-2">
         <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-fg-primary">
@@ -196,7 +196,7 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
             className="slider w-full cursor-pointer transition"
             style={{ '--slider-fill': `${discoveryInput}%` } as React.CSSProperties}
           />
-          <div className="mt-1 flex justify-between text-[11px] text-muted">
+          <div className="mt-1 flex justify-between text-3xs text-muted">
             <span>Familiar</span>
             <span aria-hidden="true">{discoveryLabel}</span>
             <span>Adventurous</span>
@@ -249,7 +249,7 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
             onBlur={commitBatchSize}
             className="w-full"
           />
-          <p className="mt-1 text-[11px] text-muted">How many tracks each refill adds.</p>
+          <p className="mt-1 text-3xs text-muted">How many tracks each refill adds.</p>
         </div>
       </div>
     </div>,

@@ -131,7 +131,7 @@ export function RenameProgressModal({ jobId, onClose, onComplete }: RenameProgre
             </p>
           )}
           {showFailures && (
-            <div className="rounded-md border border-danger/30 bg-danger/10 p-3">
+            <div className="rounded-item border border-danger/30 bg-danger/10 p-3">
               <p className="text-sm font-medium text-danger">
                 {failed} file{failed === 1 ? '' : 's'} failed
               </p>

@@ -157,7 +157,7 @@ export function IngestModal({ open, onClose, onSelectRun }: IngestModalProps) {
                           e.stopPropagation();
                           setRunToDelete(r.id);
                         }}
-                        className="rounded p-3 text-fg-secondary transition-colors hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+                        className="rounded-item p-3 text-fg-secondary transition-colors hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
                         aria-label="Delete ingest run"
                         title="Delete"
                       >

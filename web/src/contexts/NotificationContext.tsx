@@ -123,7 +123,7 @@ function NotificationItem({
       role={notification.type === 'error' ? 'alert' : 'status'}
       style={reducedMotion.current ? undefined : { opacity: 0 }}
     >
-      <div className="h-1 w-full overflow-hidden rounded-t-md bg-rule">
+      <div className="h-1 w-full overflow-hidden rounded-t-item bg-rule">
         <div ref={progressRef} className="h-full w-full bg-accent" />
       </div>
       <div className="flex items-start gap-3 px-4 py-3">

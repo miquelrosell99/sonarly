@@ -310,7 +310,7 @@ export function FetchMetadataModal({
         )}
 
         {error && (
-          <div className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+          <div className="rounded-item border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
             {error}
           </div>
         )}
@@ -351,7 +351,7 @@ export function FetchMetadataModal({
         )}
 
         {!loading && matches.length === 0 && !error && (
-          <div className="rounded-lg border border-rule bg-surface px-4 py-6 text-center text-sm text-fg-secondary">
+          <div className="rounded-item border border-rule bg-surface px-4 py-6 text-center text-sm text-fg-secondary">
             No MusicBrainz matches found.
           </div>
         )}
@@ -359,7 +359,7 @@ export function FetchMetadataModal({
         {coverArtMessage && (
           <div
             className={cn(
-              'rounded-lg px-4 py-3 text-sm',
+              'rounded-item px-4 py-3 text-sm',
               coverArtMessage.type === 'success'
                 ? 'border border-success/30 bg-success/10 text-success'
                 : 'border border-danger/30 bg-danger/10 text-danger',
@@ -388,7 +388,7 @@ export function FetchMetadataModal({
                 <div
                   key={key}
                   className={cn(
-                    'grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-lg border border-rule p-3',
+                    'grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-item border border-rule p-3',
                     transferred && 'border-accent/50 bg-accent/5',
                   )}
                 >
@@ -399,7 +399,7 @@ export function FetchMetadataModal({
                         <img
                           src={String(mbValue)}
                           alt="MusicBrainz cover art"
-                          className="mt-1 h-20 w-20 rounded-lg object-cover"
+                          className="mt-1 h-20 w-20 rounded-item object-cover"
                         />
                       ) : (
                         <span className="text-sm text-fg-secondary">No cover art</span>
@@ -453,7 +453,7 @@ export function FetchMetadataModal({
                     <div className="text-xs text-fg-secondary">{label}</div>
                     {isCoverArt ? (
                       internalValue ? (
-                        <CoverArt coverArt={String(internalValue)} alt="Current cover art" className="mt-1 h-20 w-20 rounded-lg" iconSize={24} />
+                        <CoverArt coverArt={String(internalValue)} alt="Current cover art" className="mt-1 h-20 w-20 rounded-item" iconSize={24} />
                       ) : (
                         <span className="text-sm text-fg-secondary">No cover art</span>
                       )

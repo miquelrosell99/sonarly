@@ -199,7 +199,7 @@ function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) 
           <CoverArt
             coverArt={album.coverArt}
             alt={`Cover art for ${album.name}`}
-            className="rounded-xl"
+            className="rounded-card"
           />
         }
         favorite={{
@@ -354,7 +354,7 @@ function RecentSongCard({
             <CoverArt
               coverArt={song.coverArt}
               alt={`Cover art for ${song.title}`}
-              className="rounded-xl"
+              className="rounded-card"
             />
           }
           favorite={{
@@ -431,12 +431,12 @@ function FeaturedAlbumSlide({ album, active }: FeaturedAlbumSlideProps) {
       aria-hidden={!active || undefined}
       className="relative z-10 flex w-full min-w-0 shrink-0 flex-col gap-4 md:flex-row md:items-start md:gap-6"
     >
-      <div className="w-40 shrink-0 overflow-hidden rounded-2xl sm:w-52 md:w-64 lg:w-72">
+      <div className="w-40 shrink-0 overflow-hidden rounded-card sm:w-52 md:w-64 lg:w-72">
         <CoverArt
           coverArt={album.coverArt}
           alt={`Cover art for ${album.name}`}
           iconSize={64}
-          className="rounded-2xl"
+          className="rounded-card"
         />
       </div>
       <div className="flex min-w-0 flex-col gap-3">

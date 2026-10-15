@@ -425,7 +425,7 @@ export function SharePlaylistModal({
       >
         {activeTab === 'members' ? (
           <div className="space-y-4">
-            <div className="rounded-lg border border-rule bg-surface px-3 py-1">
+            <div className="rounded-item border border-rule bg-surface px-3 py-1">
               <Checkbox
                 id="share-playlist-public"
                 label="Public"
@@ -452,7 +452,7 @@ export function SharePlaylistModal({
                   return (
                     <li
                       key={share.userId}
-                      className="flex flex-wrap items-center gap-3 rounded-lg border border-rule bg-surface px-3 py-2"
+                      className="flex flex-wrap items-center gap-3 rounded-item border border-rule bg-surface px-3 py-2"
                     >
                       <Avatar user={avatarUser} variant="surface" className="h-8 w-8" />
                       <span className="min-w-0 flex-1 truncate text-sm">{share.username}</span>
@@ -471,7 +471,7 @@ export function SharePlaylistModal({
                         onClick={() => handleRemoveShare(share)}
                         disabled={busy}
                         aria-label={`Remove ${share.username}`}
-                        className="flex h-11 w-11 items-center justify-center rounded-lg text-fg-secondary transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                        className="flex h-11 w-11 items-center justify-center rounded-item text-fg-secondary transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                       >
                         <Icon name="mdi-close" size={18} />
                       </button>
@@ -482,7 +482,7 @@ export function SharePlaylistModal({
             </PageState>
 
             {addOpen ? (
-              <div className="space-y-2 rounded-lg border border-rule bg-surface p-3">
+              <div className="space-y-2 rounded-item border border-rule bg-surface p-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <UserShareSearch
                     excludeIds={new Set(shares.map((s) => s.userId))}
@@ -544,7 +544,7 @@ export function SharePlaylistModal({
                     {copied ? 'Copied' : 'Copy'}
                   </Button>
                 </div>
-                <div className="rounded-lg border border-rule bg-surface px-3 py-1">
+                <div className="rounded-item border border-rule bg-surface px-3 py-1">
                   <Checkbox
                     id="share-playlist-allow-download"
                     label="Allow download"

@@ -117,7 +117,7 @@ export function IngestReportModal({ runId, open, onClose }: IngestReportModalPro
             </div>
 
             {run.error && (
-              <div className="rounded-lg border border-danger/30 bg-danger/5 p-4">
+              <div className="rounded-item border border-danger/30 bg-danger/5 p-4">
                 <div className="flex items-start gap-2">
                   <Icon name="mdi-alert-circle-outline" size={18} className="mt-0.5 shrink-0 text-danger" />
                   <div>
@@ -158,7 +158,7 @@ export function IngestReportModal({ runId, open, onClose }: IngestReportModalPro
                 {filter === 'all' ? 'No individual jobs recorded for this run.' : 'No jobs match the selected filter.'}
               </p>
             ) : (
-              <ul className="divide-y divide-rule rounded-lg border border-rule">
+              <ul className="divide-y divide-rule rounded-item border border-rule">
                 {filteredJobs.map((j) => (
                   <li key={j.id} className="p-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -173,7 +173,7 @@ export function IngestReportModal({ runId, open, onClose }: IngestReportModalPro
                       </div>
                     </div>
                     {j.error && (
-                      <div className="mt-3 rounded border border-danger/20 bg-danger/5 p-3">
+                      <div className="mt-3 rounded-item border border-danger/20 bg-danger/5 p-3">
                         <p className="text-xs font-medium text-danger">Failure reason</p>
                         <p className="mt-1 whitespace-pre-wrap text-sm text-fg-primary">{j.error}</p>
                       </div>

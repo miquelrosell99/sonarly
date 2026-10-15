@@ -61,7 +61,7 @@ export function ColumnConfigMenu({ entries, actionsLabel, onToggle, onMove }: Co
     total: number,
     reorderable: boolean,
   ) => (
-    <li key={entry.key} className="flex items-center gap-1 rounded-md px-1 py-0.5 hover:bg-surface-hover">
+    <li key={entry.key} className="flex items-center gap-1 rounded-item px-1 py-0.5 hover:bg-surface-hover">
       {reorderable ? (
         <>
           <button
@@ -126,7 +126,7 @@ export function ColumnConfigMenu({ entries, actionsLabel, onToggle, onMove }: Co
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center rounded-md border border-rule bg-surface p-2 text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="inline-flex items-center rounded-item border border-rule bg-surface p-2 text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
         <Icon name="mdi-cog" size={20} />
       </button>
@@ -135,7 +135,7 @@ export function ColumnConfigMenu({ entries, actionsLabel, onToggle, onMove }: Co
           ref={panelRef}
           role="group"
           aria-label="Column settings"
-          className="absolute right-0 top-full z-50 mt-2 w-60 rounded-lg border border-rule bg-surface p-2 shadow-lg"
+          className="absolute right-0 top-full z-50 mt-2 w-60 rounded-popover border border-rule bg-surface p-2 shadow-lg"
         >
           <ul className="max-h-72 overflow-y-auto">
             {entries.map((entry, index) => renderRow(entry, index, entries.length, true))}

@@ -20,6 +20,11 @@ export default {
       fontSize: {
         // Small end the app actually uses (badges, kbd hints, chart axes).
         '2xs': ['0.625rem', { lineHeight: '1rem' }],
+        // 11px helper/hint tier (slider ends, input explanations).
+        '3xs': ['0.6875rem', { lineHeight: '1rem' }],
+        // The explicit-tag glyph scales with its parent title (em-relative on
+        // purpose — ExplicitTitle renders titles at several sizes).
+        badge: ['0.65em', { lineHeight: '1' }],
       },
       borderRadius: {
         // Radius tokens (design system): surfaces, sheets, controls, rows.

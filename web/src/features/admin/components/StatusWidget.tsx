@@ -13,9 +13,9 @@ export function StatusWidget({ label, count, icon, onClick, status }: StatusWidg
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-4 rounded-xl border border-rule bg-surface p-4 text-left transition-colors hover:bg-surface-hover"
+      className="flex items-center gap-4 rounded-card border border-rule bg-surface p-4 text-left transition-colors hover:bg-surface-hover"
     >
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-hover text-accent">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-item bg-surface-hover text-accent">
         <Icon name={icon} size={22} />
       </div>
       <div className="min-w-0 flex-1">
