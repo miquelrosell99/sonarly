@@ -586,10 +586,14 @@ function FeaturedAlbum({ albums }: { albums: Album[] }) {
               type="button"
               onClick={() => setIndex(i)}
               aria-label={`Go to featured album ${i + 1}`}
-              className={`h-2 rounded-full transition-all ${
-                i === activeDotIndex ? 'w-6 bg-accent' : 'w-2 bg-fg-secondary/40 hover:bg-fg-secondary/70'
-              }`}
-            />
+              className="group flex h-11 w-11 items-center justify-center rounded-full"
+            >
+              <span
+                className={`h-2 rounded-full transition-all ${
+                  i === activeDotIndex ? 'w-6 bg-accent' : 'w-2 bg-fg-secondary/40 group-hover:bg-fg-secondary/70'
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}

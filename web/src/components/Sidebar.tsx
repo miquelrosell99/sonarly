@@ -212,7 +212,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
               aria-label="All playlists"
               title="All playlists"
               className={cn(
-                'rounded-item p-1.5 transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                'rounded-item p-1.5 transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11',
                 isActive(location, '/playlists')
                   ? 'text-accent'
                   : 'text-fg-secondary hover:text-fg-primary',
@@ -225,7 +225,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
               aria-label="Create playlist"
               title="Create playlist"
               onClick={openCreatePlaylist}
-              className="rounded-item p-1.5 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="rounded-item p-1.5 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
             >
               <Icon name="mdi-playlist-plus" size={18} />
             </button>
