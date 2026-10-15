@@ -173,7 +173,7 @@ function RangeSelector({
           className={cn(
             'h-10 shrink-0 rounded-input px-4 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
             range === option.value
-              ? 'bg-accent text-bg-primary shadow-sm'
+              ? 'bg-accent text-bg-primary'
               : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
           )}
         >
