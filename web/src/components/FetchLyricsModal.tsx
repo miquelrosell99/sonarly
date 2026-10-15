@@ -189,7 +189,7 @@ export function FetchLyricsModal({
         )}
 
         {error && (
-          <div className="rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+          <div className="rounded-item border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
             {error}
           </div>
         )}
@@ -231,7 +231,7 @@ export function FetchLyricsModal({
         )}
 
         {!loading && matches.length === 0 && !error && (
-          <div className="rounded-lg border border-rule bg-surface px-4 py-6 text-center text-sm text-fg-secondary">
+          <div className="rounded-item border border-rule bg-surface px-4 py-6 text-center text-sm text-fg-secondary">
             No LRCLIB matches found.
           </div>
         )}
@@ -254,7 +254,7 @@ export function FetchLyricsModal({
                 <div
                   key={key}
                   className={cn(
-                    'grid grid-cols-[1fr_auto_1fr] items-start gap-3 rounded-lg border border-rule p-3',
+                    'grid grid-cols-[1fr_auto_1fr] items-start gap-3 rounded-item border border-rule p-3',
                     transferred && 'border-accent/50 bg-accent/5',
                   )}
                 >

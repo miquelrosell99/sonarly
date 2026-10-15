@@ -60,7 +60,7 @@ function StatCard({
 }) {
   const label = statLabels[statKey] ?? statKey;
   const className =
-    'rounded border border-rule bg-bg-primary p-3 text-center transition-colors hover:bg-surface-hover';
+    'rounded-item border border-rule bg-bg-primary p-3 text-center transition-colors hover:bg-surface-hover';
 
   let onClick: (() => void) | undefined;
   if (ingestStatKeys.has(statKey)) onClick = onOpenIngest;
@@ -110,7 +110,7 @@ export function IngestStatusCard({
             <button
               type="button"
               onClick={onOpenReport}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rule px-3 py-1.5 text-xs font-medium text-fg-secondary transition-colors hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="inline-flex items-center gap-1.5 rounded-item border border-rule px-3 py-1.5 text-xs font-medium text-fg-secondary transition-colors hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <Icon name="mdi-information-outline" size={14} />
               View report
@@ -119,7 +119,7 @@ export function IngestStatusCard({
           <button
             type="button"
             onClick={() => onOpenHistory?.()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-rule px-3 py-1.5 text-xs font-medium text-fg-secondary transition-colors hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="inline-flex items-center gap-1.5 rounded-item border border-rule px-3 py-1.5 text-xs font-medium text-fg-secondary transition-colors hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <Icon name="mdi-history" size={14} />
             History

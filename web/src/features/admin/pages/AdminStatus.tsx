@@ -106,7 +106,7 @@ export function AdminStatus({ user }: AdminStatusProps) {
             onOpenMissing={() => setActiveModal('missing')}
           />
         ) : status ? (
-          <div className="rounded border border-rule bg-surface p-4 text-sm text-muted">
+          <div className="rounded-item border border-rule bg-surface p-4 text-sm text-muted">
             No ingest jobs yet. Use the Media page to trigger one.
           </div>
         ) : null}

@@ -602,20 +602,20 @@ export function LibraryView<T>({
                 aria-label="Shuffle play"
                 onClick={() => onShufflePlay(data)}
                 disabled={data.length === 0}
-                className="inline-flex items-center rounded-md border border-rule bg-surface p-2 text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+                className="inline-flex items-center rounded-item border border-rule bg-surface p-2 text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
               >
                 <Icon name="mdi-shuffle" size={20} />
               </button>
             )}
             {availableViews.length > 1 && (
-              <div className="flex items-center rounded-md border border-rule bg-surface p-1">
+              <div className="flex items-center rounded-item border border-rule bg-surface p-1">
                 {availableViews.includes('list') && (
                   <button
                     type="button"
                     aria-label="List view"
                     onClick={() => setViewMode('list')}
                     className={cn(
-                      'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                      'rounded-item p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                       viewMode === 'list' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
                     )}
                   >
@@ -628,7 +628,7 @@ export function LibraryView<T>({
                     aria-label="Grid view"
                     onClick={() => setViewMode('grid')}
                     className={cn(
-                      'rounded p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                      'rounded-item p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                       viewMode === 'grid' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
                     )}
                   >

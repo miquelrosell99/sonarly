@@ -448,14 +448,14 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
         />
       </div>
       {futureCount === 0 && autoDjEnabled && (
-        <div className="flex shrink-0 items-center gap-2 rounded-lg border border-rule/50 bg-surface px-3 py-2 text-xs text-fg-secondary">
+        <div className="flex shrink-0 items-center gap-2 rounded-item border border-rule/50 bg-surface px-3 py-2 text-xs text-fg-secondary">
           <AutoDjLiveDot />
           <span className="flex-1">Queue's end — Auto-DJ will keep it going</span>
           {isFetching && <span className="text-muted">Fetching…</span>}
         </div>
       )}
       {futureCount === 0 && !autoDjEnabled && (
-        <div className="flex shrink-0 items-center gap-2 rounded-lg border border-rule/50 bg-surface px-3 py-2 text-xs text-fg-secondary">
+        <div className="flex shrink-0 items-center gap-2 rounded-item border border-rule/50 bg-surface px-3 py-2 text-xs text-fg-secondary">
           <Icon name="mdi-record-player" size={14} className="text-muted" />
           <span className="flex-1">Queue's end — turn on Auto DJ to keep listening</span>
           <button

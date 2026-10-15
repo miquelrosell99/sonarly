@@ -25,7 +25,7 @@ export function FilterPanel({ filters, className }: FilterPanelProps) {
   const { get, set } = useFilterParams();
 
   return (
-    <div className={cn('rounded-md border border-rule bg-bg-primary p-4 shadow-lg', className)}>
+    <div className={cn('rounded-item border border-rule bg-bg-primary p-4 shadow-lg', className)}>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filters.map((filter) => {
           const value = get(filter.key) ?? '';

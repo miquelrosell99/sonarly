@@ -213,7 +213,7 @@ export function Artist({ user }: { user: User }) {
             alt={`Image for ${artist.name}`}
             className="h-48 w-48 sm:h-56 sm:w-56"
             iconSize={64}
-            shape="rounded"
+            shape="square"
           />
         )
       }

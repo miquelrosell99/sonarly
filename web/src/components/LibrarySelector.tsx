@@ -45,7 +45,7 @@ export function LibrarySelector({ libraries, selectedLibraryId, onSelect, error 
         aria-expanded={open}
         aria-label={`Library: ${label}`}
         title={label}
-        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="flex w-full items-center gap-2 rounded-item px-3 py-2 text-sm font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
         <Icon name="mdi-music-box-multiple" size={18} className="shrink-0 text-accent" />
         <span className="min-w-0 flex-1 truncate text-left">{label}</span>
@@ -67,7 +67,7 @@ export function LibrarySelector({ libraries, selectedLibraryId, onSelect, error 
             aria-selected={selectedLibraryId === null}
             onClick={() => { onSelect(null); setOpen(false); }}
             className={cn(
-              'flex w-full rounded-lg px-3 py-2 text-left text-sm transition',
+              'flex w-full rounded-item px-3 py-2 text-left text-sm transition',
               selectedLibraryId === null
                 ? 'bg-accent/10 text-accent'
                 : 'text-fg-primary hover:bg-surface-hover focus-visible:bg-surface-hover',
@@ -84,7 +84,7 @@ export function LibrarySelector({ libraries, selectedLibraryId, onSelect, error 
               aria-selected={selectedLibraryId === library.id}
               onClick={() => { onSelect(library.id); setOpen(false); }}
               className={cn(
-                'flex w-full rounded-lg px-3 py-2 text-left text-sm transition',
+                'flex w-full rounded-item px-3 py-2 text-left text-sm transition',
                 selectedLibraryId === library.id
                   ? 'bg-accent/10 text-accent'
                   : 'text-fg-primary hover:bg-surface-hover focus-visible:bg-surface-hover',

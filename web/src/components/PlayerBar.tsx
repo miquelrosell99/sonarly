@@ -79,7 +79,7 @@ const TrackInfo = memo(function TrackInfo({ song, blur }: TrackInfoProps) {
             type="button"
             onClick={handleOpenNowPlaying}
             aria-label="Open Now Playing"
-            className="h-14 w-14 shrink-0 overflow-hidden rounded-md transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="h-14 w-14 shrink-0 overflow-hidden rounded-item transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <CoverArt
               coverArt={song.albumCoverArt ?? song.coverArt}
@@ -160,7 +160,7 @@ const TrackInfo = memo(function TrackInfo({ song, blur }: TrackInfoProps) {
         </>
       ) : (
         <>
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-surface-hover">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-item bg-surface-hover">
             <Icon name="mdi-music" size={20} className="text-fg-secondary" />
           </div>
           <div className="min-w-0">

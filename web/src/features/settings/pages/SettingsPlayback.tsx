@@ -134,7 +134,7 @@ function PlaybackSettings() {
                 type="button"
                 onClick={() => update({ autoDjMode: option.value })}
                 aria-pressed={selected}
-                className={`flex flex-col items-center gap-2 rounded-md border px-4 py-4 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                className={`flex flex-col items-center gap-2 rounded-item border px-4 py-4 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   selected
                     ? 'border-accent bg-surface-hover text-accent'
                     : 'border-rule bg-bg-primary text-fg-secondary hover:bg-surface-hover hover:text-fg-primary'
@@ -167,7 +167,7 @@ function PlaybackSettings() {
             <div
               role="group"
               aria-labelledby="auto-dj-exclude-window-label"
-              className="inline-flex overflow-hidden rounded-md border border-rule"
+              className="inline-flex overflow-hidden rounded-item border border-rule"
             >
               {excludeWindowOptions.map((option) => {
                 const selected = excludeWindow === option.value;

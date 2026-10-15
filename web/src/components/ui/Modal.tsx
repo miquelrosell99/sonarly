@@ -99,7 +99,7 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <Icon name="mdi-close" size={20} />
           </button>

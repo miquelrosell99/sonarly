@@ -218,7 +218,7 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
           </button>
         )}
         {!hasFilters && (
-          <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-rule bg-surface px-1.5 py-0.5 text-2xs text-muted sm:block">
+          <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-item border border-rule bg-surface px-1.5 py-0.5 text-2xs text-muted sm:block">
             Ctrl+K
           </kbd>
         )}

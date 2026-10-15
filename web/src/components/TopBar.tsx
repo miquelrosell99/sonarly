@@ -133,7 +133,7 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
             type="button"
             role="menuitem"
             onClick={() => navigate('/statistics')}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+            className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
           >
             <Icon name="mdi-chart-bar" size={18} className="text-fg-secondary" />
             Statistics
@@ -143,7 +143,7 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
               type="button"
               role="menuitem"
               onClick={() => { menu.closeMenu(); onUpload(); }}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+              className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
             >
               <Icon name="mdi-upload" size={18} className="text-fg-secondary" />
               Upload
@@ -153,7 +153,7 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
             type="button"
             role="menuitem"
             onClick={() => navigate('/settings/profile')}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+            className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
           >
             <Icon name="mdi-cog" size={18} className="text-fg-secondary" />
             Settings
@@ -163,7 +163,7 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
               type="button"
               role="menuitem"
               onClick={() => navigate('/admin')}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+              className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
             >
               <Icon name="mdi-account-group" size={18} className="text-fg-secondary" />
               Admin
@@ -174,7 +174,7 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
             type="button"
             role="menuitem"
             onClick={() => { menu.closeMenu(); onLogout(); }}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+            className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
           >
             <Icon name="mdi-logout" size={18} className="text-fg-secondary" />
             Log out
