@@ -342,7 +342,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
             aria-label="Navigation"
             className="absolute inset-y-0 left-0 flex w-64 flex-col bg-surface shadow-xl"
           >
-            <div className="flex shrink-0 items-center justify-end px-3 pt-2">
+            <div className="flex shrink-0 items-center justify-end px-3 pt-[max(0.5rem,env(safe-area-inset-top))]">
               <button
                 ref={drawerCloseRef}
                 type="button"

@@ -13,6 +13,7 @@ import { useSongInteraction } from '../hooks/useSongInteraction.js';
 import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
 import { useNowPlaying } from '../features/now-playing/stores/nowPlayingStore.js';
 import { getShareToken } from '../lib/shareToken.js';
+import { PLAYER_BAR_HEIGHT } from '../lib/playerBarHeight.js';
 import { AutoDjTunePopover } from '../features/now-playing/components/AutoDjTunePopover.js';
 
 // Audit F19 (plan P8): importing QueueModal through the now-playing barrel
@@ -273,7 +274,10 @@ export function PlayerBar({ user }: PlayerBarProps) {
         }}
       />
 
-      <div className="relative z-10 grid h-24 grid-cols-3 items-center gap-4 px-4">
+      <div
+        className="relative z-10 grid grid-cols-3 items-center gap-4 px-4"
+        style={{ height: PLAYER_BAR_HEIGHT }}
+      >
         {/* Left: cover + metadata */}
         <TrackInfo song={currentSong} blur={user?.blurExplicitTitles === true} />
 
