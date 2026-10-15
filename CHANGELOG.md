@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [Unreleased]
+### Fixed
+
+- **Statistics time-range pill loses its drop shadow**: the selected range button in the statistics header no longer carries `shadow-sm` on a static control, matching the elevation rule the 3.1.0 segmented-control cleanup applied elsewhere (RosellRamos DS audit 2026-10-15).
 
 ## [3.1.1] - 2026-10-08
 
