@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.9] - 2026-10-18
+
+### Added
+
+- **Remove from playlist in the row context menu**: the track list of a playlist (single track or multi-selection) now has a "Remove from playlist" entry directly below "Add to playlist". It rewrites the membership minus the picked tracks — files are never touched, and re-adding undoes it. Static playlists only (smart playlists are rule-driven); hidden from share-link guests.
+
 ## [3.1.8] - 2026-10-18
 
 ### Added
@@ -395,7 +401,8 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.7...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.9...HEAD
+[3.1.9]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.9
 [3.1.7]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.7
 [3.1.6]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.6
 [3.1.5]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.5
