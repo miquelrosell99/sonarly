@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
 import type { Playlist, User, UserPreferences, SidebarItem } from '../types';
 import { cn } from '../lib/cn.js';
@@ -86,6 +86,19 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
   const setSelectedLibraryId = useLibraryStore((state) => state.setSelectedLibraryId);
   const items = mergeSidebarItems(config);
+  // Sidebar order: starred playlists first, then alphabetical (case-
+  // insensitive) — the API returns creation order, which is un-scannable
+  // once the list grows.
+  const sortedPlaylists = useMemo(
+    () =>
+      playlists
+        ? [...playlists].sort((a, b) => {
+            if (a.starred !== b.starred) return a.starred ? -1 : 1;
+            return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+          })
+        : playlists,
+    [playlists],
+  );
   const drawerCloseRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const prevLocationRef = useRef(location);
@@ -239,7 +252,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
           // while the list scrolls. Short lists collapse the section
           // naturally — no layout shift.
           <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain">
-            {playlists?.map((playlist) => {
+            {sortedPlaylists?.map((playlist) => {
               const href = `/playlists/${playlist.id}`;
               const active = isActive(location, href);
               return (

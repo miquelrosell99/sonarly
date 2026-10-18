@@ -1,5 +1,6 @@
 import { Fragment, useState, type MouseEvent, type KeyboardEvent, type ReactNode, cloneElement, isValidElement } from 'react';
 import { cn } from '../../lib/cn.js';
+import { startSongsDrag } from '../../lib/dragSongs.js';
 import { PlayButton } from '../PlayButton.js';
 import { PlayingIndicator } from '../PlayingIndicator.js';
 
@@ -28,6 +29,12 @@ interface TableProps<T> {
   groupBy?: (row: T) => string | undefined;
   /** Render a custom header for a group. Receives the group key and the rows in the group. */
   renderGroupHeader?: (key: string, rows: T[]) => ReactNode;
+  /**
+   * Song-list opt-in for drag-and-drop: return the song ids a row drag
+   * carries (usually the multi-selection when the row is part of it).
+   * Enables dragging rows onto sidebar playlists. Omit for non-song tables.
+   */
+  getDragSongIds?: (row: T, selectedRows: T[]) => string[] | undefined;
 }
 
 function isInteractiveTarget(target: EventTarget, currentTarget: EventTarget) {
@@ -59,6 +66,7 @@ export function Table<T>({
   getIndexLabel,
   groupBy,
   renderGroupHeader,
+  getDragSongIds,
 }: TableProps<T>) {
   const selectable = Boolean(onPlaySelection);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -214,11 +222,15 @@ export function Table<T>({
                     index + 1
                   );
 
+                const menuSelection = selectedRows.length > 0 ? selectedRows : [row];
+                const dragIds = getDragSongIds?.(row, menuSelection);
                 const tr = (
                   <tr
                     key={id}
                     tabIndex={selectable ? 0 : undefined}
                     aria-selected={selectable ? isSelected : undefined}
+                    draggable={dragIds !== undefined && dragIds.length > 0}
+                    onDragStart={dragIds && dragIds.length > 0 ? (e) => startSongsDrag(e, dragIds) : undefined}
                     className={cn(
                       'transition',
                       selectable && 'group cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
@@ -260,7 +272,6 @@ export function Table<T>({
                   </tr>
                 );
 
-                const menuSelection = selectedRows.length > 0 ? selectedRows : [row];
                 return renderRow ? (
                   <Fragment key={id}>{renderRow(row, tr, menuSelection)}</Fragment>
                 ) : (

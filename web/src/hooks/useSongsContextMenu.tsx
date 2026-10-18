@@ -9,6 +9,7 @@ import { getShareToken } from '../lib/shareToken.js';
 import { useNotification } from '../contexts/NotificationContext.js';
 import { usePlayActions } from './usePlayActions.js';
 import { useLibraryMutation } from './useLibraryMutation.js';
+import { useAddToPlaylistStore } from '../stores/addToPlaylistStore.js';
 
 export interface SongsContextMenuOptions {
   /**
@@ -39,6 +40,7 @@ export function useSongsContextMenu(
   const songMutation = useLibraryMutation('song');
   const [, navigate] = useLocation();
   const allowDownload = options?.allowDownload ?? getShareToken() === undefined;
+  const openAddToPlaylist = useAddToPlaylistStore((s) => s.open);
   const [pendingDelete, setPendingDelete] = useState<{ count: number; trackLabel: string } | null>(null);
 
   const count = songs.length;
@@ -75,6 +77,19 @@ export function useSongsContextMenu(
           { id: 'play', label: 'Play', icon: 'mdi-play', onClick: () => playSongs(songs) },
           { id: 'play-next', label: 'Play next', icon: 'mdi-playlist-plus', onClick: () => playNext(songs) },
           { id: 'add-to-queue', label: 'Add to queue', icon: 'mdi-playlist-play', onClick: () => addToQueue(songs) },
+        ],
+      });
+    }
+
+    if (getShareToken() === undefined) {
+      sections.push({
+        items: [
+          {
+            id: 'add-to-playlist',
+            label: count === 1 ? 'Add to playlist' : `Add ${count} tracks to playlist`,
+            icon: 'mdi-playlist-music',
+            onClick: () => openAddToPlaylist(songs),
+          },
         ],
       });
     }

@@ -33,6 +33,10 @@ interface ListRowProps {
   sortableStyle?: React.CSSProperties;
   isDragging?: boolean;
   dragHandleProps?: Record<string, unknown>;
+  /** HTML5 drag source (drag songs to a playlist): makes the row draggable. */
+  draggable?: boolean;
+  onDragStart?: React.DragEventHandler<HTMLTableRowElement>;
+  onDragEnd?: React.DragEventHandler<HTMLTableRowElement>;
   className?: string;
   indexPad?: number;
   indexLabel?: ReactNode;
@@ -70,6 +74,9 @@ export function ListRow({
   sortableStyle,
   isDragging = false,
   dragHandleProps,
+  draggable,
+  onDragStart,
+  onDragEnd,
   className,
   indexPad,
   indexLabel,
@@ -125,6 +132,9 @@ export function ListRow({
       onDoubleClick={handleDoubleClick}
       onKeyDown={handleKeyDown}
       onContextMenu={onContextMenu}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
     >
       {sortable && (
         <td className="w-8 whitespace-nowrap py-2 pr-2">

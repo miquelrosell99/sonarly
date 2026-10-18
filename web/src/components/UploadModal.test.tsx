@@ -122,8 +122,9 @@ describe('UploadModal', () => {
     await waitFor(() => expect(MockXMLHttpRequest.instances).toHaveLength(1));
     const xhr = MockXMLHttpRequest.instances[0];
 
-    // Close hint is visible while uploading.
-    expect(screen.getByText(/closing is disabled while an upload is in progress/i)).toBeTruthy();
+    // Footer shows the batch progress while uploading.
+    expect(screen.getByText(/uploading 0 of 1 file/i)).toBeTruthy();
+    expect(screen.getByRole('progressbar', { name: /upload progress/i })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
@@ -149,6 +150,8 @@ describe('UploadModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(onClose).not.toHaveBeenCalled();
-    expect(screen.getByText(/closing is disabled while an upload is in progress/i)).toBeTruthy();
+    expect(screen.getByText(/uploading 0 of 1 file/i)).toBeTruthy();
+    // Footer Cancel (not the disabled close button) is the escape hatch.
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
   });
 });

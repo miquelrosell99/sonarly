@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [Unreleased]
+### Added
+
+- **Add to playlist from anywhere**: the context menus on tracks (single and multi-selection), albums, and artists gain "Add to playlist", opening a picker modal where one or more playlists can be selected (smart playlists excluded — their membership is rule-driven). Songs can also be dragged from any song list (tracks, search, artist, album, playlist) onto a sidebar playlist entry. Backed by the new `POST /api/playlists/{id}/songs` endpoint: union append, existing order preserved, duplicates always skipped.
+
+### Changed
+
+- **Upload modal**: a single total-progress bar replaces the per-file bar (current file name + overall percent), and Cancel moves into the modal footer, where it stays visible while uploading.
+- **Sidebar playlist order**: starred playlists first, then alphabetical (case-insensitive) — the raw creation order was un-scannable once the list grows.
+
+### Documentation
+
+- `docs/api.md` now enumerates the playlist endpoints, including the new append endpoint and the replace (`PUT …/songIds`) vs append (`POST …/songs`) membership semantics.
 
 ## [3.1.4] - 2026-10-15
 

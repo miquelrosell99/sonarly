@@ -145,6 +145,11 @@ export function Tracks({ user }: TracksProps) {
       onPlay={handlePlay}
       onPlaySelection={handlePlaySelection}
       onShufflePlay={handleShufflePlay}
+      getDragSongIds={(track, selectedItems) =>
+        selectedItems.some((selected) => selected.id === track.id)
+          ? selectedItems.map((selected) => selected.id)
+          : [track.id]
+      }
       disableRowShuffle
       playingId={playingId}
       onFavorite={handleFavorite}

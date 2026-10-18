@@ -376,6 +376,59 @@ func (s *Service) Update(ctx context.Context, id auth.Identity, playlistID strin
 	return s.Get(ctx, id, playlistID, "")
 }
 
+// AddSongs answers POST /api/playlists/{id}/songs: appends song ids to a
+// static playlist's membership. The rewrite is the union of the current
+// members and the new ids — existing order is preserved, new ids land at
+// the end, and duplicates are skipped (the Subsonic adapter's updatePlaylist
+// merge semantics, surfaced as a native endpoint so callers don't need the
+// read-modify-write PUT). Edit access required; smart playlists reject
+// manual membership edits.
+func (s *Service) AddSongs(ctx context.Context, id auth.Identity, playlistID string, songIDs []string) (*Detail, error) {
+	existing, err := GetByID(ctx, s.db, playlistID)
+	if err != nil {
+		return nil, err
+	}
+	access, err := Resolve(ctx, s.db, existing, id, "")
+	if err != nil {
+		return nil, err
+	}
+	if access == AccessNone {
+		return nil, ErrNotFound
+	}
+	if access < AccessEdit {
+		return nil, ErrForbidden
+	}
+	if existing.IsSmart {
+		return nil, rulesErrorf("cannot manually edit songs of a smart playlist")
+	}
+	valid, err := s.validateSongIDs(ctx, id, songIDs)
+	if err != nil {
+		return nil, err
+	}
+	current, err := SongIDs(ctx, s.db, playlistID)
+	if err != nil {
+		return nil, err
+	}
+	seen := make(map[string]bool, len(current)+len(valid))
+	merged := make([]string, 0, len(current)+len(valid))
+	for _, sid := range current {
+		if !seen[sid] {
+			seen[sid] = true
+			merged = append(merged, sid)
+		}
+	}
+	for _, sid := range valid {
+		if !seen[sid] {
+			seen[sid] = true
+			merged = append(merged, sid)
+		}
+	}
+	if err := Update(ctx, s.db, existing, merged, true); err != nil {
+		return nil, err
+	}
+	return s.Get(ctx, id, playlistID, "")
+}
+
 // Delete answers DELETE /api/playlists/{id}: owner only.
 func (s *Service) Delete(ctx context.Context, id auth.Identity, playlistID string) error {
 	existing, err := GetByID(ctx, s.db, playlistID)

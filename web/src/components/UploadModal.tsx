@@ -187,6 +187,14 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
 
   const canUpload = selectedLibraryId.length > 0 && duplicateStrategy.length > 0 && files.length > 0 && !isUploading;
 
+  // One bar for the whole batch: completed files plus the in-flight file's
+  // share. The per-file percentage lived here once and read as noise next to
+  // the batch counter.
+  const totalProgress =
+    progress.totalFiles > 0
+      ? ((progress.completedFiles + progress.currentFileProgress / 100) / progress.totalFiles) * 100
+      : 0;
+
   const fileColumns: TableColumn<UploadFile>[] = useMemo(
     () => [
       {
@@ -224,19 +232,29 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
   const footer = (
     <div className="flex items-center justify-between gap-4">
       <div className="text-xs text-fg-secondary">
-        {files.length > 0 && (
+        {isUploading ? (
           <span>
-            {files.length} file{files.length === 1 ? '' : 's'} · {formatBytes(totalSize)}
+            Uploading {progress.completedFiles} of {progress.totalFiles} file{progress.totalFiles === 1 ? '' : 's'}…
           </span>
+        ) : (
+          files.length > 0 && (
+            <span>
+              {files.length} file{files.length === 1 ? '' : 's'} · {formatBytes(totalSize)}
+            </span>
+          )
         )}
       </div>
       <div className="flex items-center gap-2">
-        <Button variant="ghost" onClick={onClose} disabled={isUploading}>
-          Cancel
-        </Button>
-        <Button onClick={handleUpload} disabled={!canUpload}>
-          {isUploading ? 'Uploading…' : 'Upload'}
-        </Button>
+        {isUploading ? (
+          <Button variant="ghost" onClick={abort}>Cancel</Button>
+        ) : (
+          <>
+            <Button variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button onClick={handleUpload} disabled={!canUpload}>
+              Upload
+            </Button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -244,7 +262,7 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
   const modalOnClose = isUploading ? () => {} : onClose;
 
   return (
-    <Modal open={open} onClose={modalOnClose} title="Upload" footer={isUploading ? null : footer} className="max-w-2xl">
+    <Modal open={open} onClose={modalOnClose} title="Upload" footer={footer} className="max-w-2xl">
       <div className="space-y-4">
         {isUploading ? (
           <div className="flex flex-col items-center justify-center gap-5 py-8 text-center">
@@ -254,21 +272,22 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
             <div className="w-full max-w-md space-y-1">
               <div className="flex justify-between gap-2 text-xs text-fg-secondary">
                 <span className="min-w-0 flex-1 truncate" title={progress.currentFile}>{progress.currentFile}</span>
-                <span className="shrink-0">{progress.completedFiles} / {progress.totalFiles}</span>
+                <span className="shrink-0">{Math.round(totalProgress)}%</span>
               </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-surface-hover">
+              <div
+                className="h-2 w-full overflow-hidden rounded-full bg-surface-hover"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(totalProgress)}
+                aria-label="Upload progress"
+              >
                 <div
                   className="h-full bg-accent transition-all"
-                  style={{ width: `${progress.currentFileProgress}%` }}
+                  style={{ width: `${totalProgress}%` }}
                 />
               </div>
-              <p className="text-xs text-fg-secondary">{Math.round(progress.currentFileProgress)}% uploaded</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" onClick={abort}>Cancel</Button>
-              <p className="text-xs text-fg-secondary">
-                Closing is disabled while an upload is in progress. Use Cancel to stop the upload.
-              </p>
+              <p className="text-xs text-fg-secondary">Uploading… use Cancel in the footer to stop.</p>
             </div>
           </div>
         ) : (

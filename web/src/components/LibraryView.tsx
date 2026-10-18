@@ -20,6 +20,7 @@ import { Card } from './Card.js';
 import { CoverArt } from './CoverArt.js';
 import { ListRow } from './ListRow.js';
 import { PageState } from './PageState.js';
+import { startSongsDrag } from '../lib/dragSongs.js';
 import { VirtualGrid } from './ui/VirtualGrid.js';
 import { VirtualList } from './ui/VirtualList.js';
 import { useScrollParent } from './ui/useScrollParent.js';
@@ -101,6 +102,12 @@ interface LibraryViewProps<T> {
   groupBy?: (item: T) => string | undefined;
   /** Render a custom header for a group. Receives the group key and the items in the group. */
   renderGroupHeader?: (key: string, items: T[]) => ReactNode;
+  /**
+   * Song-list opt-in for drag-and-drop: return the song ids a row drag
+   * carries (usually the multi-selection when the row is part of it).
+   * Enables dragging rows onto sidebar playlists. Omit for non-song views.
+   */
+  getDragSongIds?: (item: T, selectedItems: T[]) => string[] | undefined;
   /**
    * Lists longer than this are windowed (only visible rows/cards render).
    * dnd-sortable and grouped lists are never windowed. Defaults to 150.
@@ -226,6 +233,7 @@ export function LibraryView<T>({
   getIndexLabel,
   groupBy,
   renderGroupHeader,
+  getDragSongIds,
   virtualizeThreshold = 150,
 }: LibraryViewProps<T>) {
   const effectiveDefaultView = availableViews.includes(defaultView) ? defaultView : availableViews[0];
@@ -437,6 +445,8 @@ export function LibraryView<T>({
         );
       }
 
+      const menuSelection = selectedItems.length > 0 ? selectedItems : [item];
+      const dragIds = getDragSongIds?.(item, menuSelection);
       const row = (
         <ListRow
           href={href}
@@ -449,6 +459,8 @@ export function LibraryView<T>({
           onShufflePlay={onShufflePlay && !disableRowShuffle ? () => onShufflePlay(data) : undefined}
           favorite={onFavorite ? { starred, onClick: () => onFavorite(item, !starred) } : undefined}
           rating={onRate ? { value: rating, onRate: (value) => onRate(item, value || undefined) } : undefined}
+          draggable={dragIds !== undefined && dragIds.length > 0}
+          onDragStart={dragIds && dragIds.length > 0 ? (e) => startSongsDrag(e, dragIds) : undefined}
           className={getRowClassName?.(item)}
           indexPad={indexPad}
           indexLabel={indexLabel}
@@ -460,7 +472,6 @@ export function LibraryView<T>({
           ))}
         </ListRow>
       );
-      const menuSelection = selectedItems.length > 0 ? selectedItems : [item];
       return renderContextMenu ? renderContextMenu(item, row, menuSelection) : row;
     };
 
