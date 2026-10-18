@@ -1226,6 +1226,44 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+  /api/playlists/{id}/songs:
+    post:
+      operationId: addSongsToPlaylist
+      tags: [playlists]
+      summary: Append songs to a static playlist
+      description: >
+        Appends `songIds` to the membership: existing order is preserved,
+        new ids land at the end, and ids already in the playlist are
+        skipped. Edit access required; smart playlists reject manual
+        membership edits with 400.
+      parameters:
+        - $ref: '#/components/parameters/PlaylistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [songIds]
+              properties:
+                songIds:
+                  type: array
+                  minItems: 1
+                  items: { type: string }
+      responses:
+        '200':
+          description: Updated playlist.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [playlist]
+                properties:
+                  playlist: { $ref: '#/components/schemas/PlaylistDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /api/playlists/{id}/albums:
     get:
       operationId: listPlaylistCoverAlbums

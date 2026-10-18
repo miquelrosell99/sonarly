@@ -197,6 +197,11 @@ export function SongTable<T extends SongListItem>({
         getIndexLabel={getIndexLabel}
         groupBy={groupBy}
         renderGroupHeader={renderGroupHeader}
+        getDragSongIds={(song, selectedRows) =>
+          selectedRows.some((selected) => selected.id === song.id)
+            ? selectedRows.map((selected) => selected.id)
+            : [song.id]
+        }
       />
     </div>
   );

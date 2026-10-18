@@ -12,6 +12,8 @@ import { usePlaylistContextMenu } from '../hooks/usePlaylistContextMenu.js';
 import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
 import { usePlaylist } from '../hooks/usePlaylist.js';
 import { useNotification } from '../contexts/NotificationContext.js';
+import { useAddSongsToPlaylist } from '../hooks/useAddSongsToPlaylist.js';
+import { hasSongsDragData, readSongsDragData } from '../lib/dragSongs.js';
 
 interface SidebarPlaylistItemProps {
   playlist: Playlist;
@@ -35,6 +37,28 @@ export function SidebarPlaylistItem({ playlist, href, active, isOwner }: Sidebar
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [dropActive, setDropActive] = useState(false);
+  const addSongs = useAddSongsToPlaylist();
+
+  // Drop target for drags from song lists. Smart playlists reject manual
+  // membership edits, so they don't accept the drop at all.
+  const acceptsSongsDrop = !playlist.isSmart;
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!acceptsSongsDrop || !hasSongsDragData(e.dataTransfer)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    setDropActive(true);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    setDropActive(false);
+    if (!acceptsSongsDrop) return;
+    const songIds = readSongsDragData(e.dataTransfer);
+    if (!songIds) return;
+    e.preventDefault();
+    void addSongs([playlist], songIds);
+  };
 
   const sections = usePlaylistContextMenu(
     playlist,
@@ -70,12 +94,17 @@ export function SidebarPlaylistItem({ playlist, href, active, isOwner }: Sidebar
       <ItemContextMenu sections={sections} openOnLongPress>
         <Link
           href={href}
+          onDragOver={handleDragOver}
+          onDragLeave={() => setDropActive(false)}
+          onDrop={handleDrop}
+          aria-label={playlist.isSmart ? undefined : `Add dragged songs to ${playlist.name}`}
           className={cn(
             'group relative flex items-center gap-3 rounded-item px-3 py-2 text-sm font-medium transition',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
             active
               ? 'bg-surface-hover text-accent'
               : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
+            dropActive && 'bg-accent/15 text-fg-primary ring-2 ring-inset ring-accent',
           )}
         >
           {active && (

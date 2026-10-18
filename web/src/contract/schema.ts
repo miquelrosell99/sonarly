@@ -611,6 +611,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/playlists/{id}/songs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Append songs to a static playlist
+         * @description Appends `songIds` to the membership: existing order is preserved, new ids land at the end, and ids already in the playlist are skipped. Edit access required; smart playlists reject manual membership edits with 400.
+         */
+        post: operations["addSongsToPlaylist"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/playlists/{id}/albums": {
         parameters: {
             query?: never;
@@ -4277,6 +4297,41 @@ export interface operations {
                     "application/json": components["schemas"]["Ok"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    addSongsToPlaylist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Playlist id (UUID). */
+                id: components["parameters"]["PlaylistId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    songIds: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Updated playlist. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        playlist: components["schemas"]["PlaylistDetail"];
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];

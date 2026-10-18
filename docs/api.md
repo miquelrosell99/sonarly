@@ -27,7 +27,9 @@ npx @redocly/cli preview-docs server/api/openapi.yaml  # local preview server
 | Auth & profile | `POST /api/login`, `POST /api/logout`, `POST /api/setup`, `GET/PATCH /api/me`, `GET/PATCH /api/me/preferences`, `POST /api/me/avatar`, `GET /api/avatars/{id}` |
 | Catalog | `/api/songs`, `/api/albums`, `/api/artists`, `/api/genres` (+ tree), `/api/years`, `/api/search` (full-text), `/api/cover-art/{id}`, `/api/home`, `/api/suggestions` |
 | Playback | `GET /api/stream/{id}` (+ `?download=1` single-track download), `POST /api/download` (multi-track ZIP pack), `POST /api/songs/{id}/scrobble`, `/api/playback/auto-dj`, `/api/players`, bookmarks |
-| Playlists | `/api/playlists` (static + smart), share members, share links (`POST` mint/regenerate with `allowDownload`, `PATCH` toggles download permission without rotating the token), share-token guest access |
+| Playlists | `GET/POST /api/playlists` (static + smart), `GET/PUT/DELETE /api/playlists/{id}`, `POST /api/playlists/{id}/songs` (append — skips duplicates, existing order kept, new ids appended at the end), `GET /api/playlists/{id}/albums` (cover mosaic), share members (`POST /api/playlists/{id}/share`, `DELETE /api/playlists/{id}/share/{userId}`), share links (`POST` mint/regenerate with `allowDownload`, `PATCH` toggles download permission without rotating the token, `DELETE` clears), share-token guest access |
+
+Membership writes come in two shapes: `PUT /api/playlists/{id}` with `songIds` **replaces** the whole membership (smart playlists reject it), while `POST /api/playlists/{id}/songs` **appends** to it. Both require edit access (owner or `canEdit` share) and validate that every id is an active song inside the caller's library scope — one bad id fails the whole write with 400.
 | User data | `/api/favorites`, `/api/ratings` (0–5, half steps), listening statistics |
 | Library ops | `POST /api/scans`, `GET /api/scans/status`, `/api/ingest` (+ trigger), `/api/conflicts`, `/api/upload/sessions`, `/api/libraries` |
 | Admin | users CRUD, user↔library assignment, libraries CRUD, genres, media settings, system tasks (+ history, run), status, missing-files management, ingest runs |

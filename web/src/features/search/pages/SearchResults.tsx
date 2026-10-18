@@ -279,6 +279,11 @@ export function SearchResults({ user }: SearchResultsProps) {
         onPlay={playSong}
         onPlaySelection={playSongs}
         onShufflePlay={shufflePlay}
+        getDragSongIds={(song, selectedItems) =>
+          selectedItems.some((selected) => selected.id === song.id)
+            ? selectedItems.map((selected) => selected.id)
+            : [song.id]
+        }
         onFavorite={(song, starred) => void handleFavorite<Song>('song', 'songs', song.id, starred)}
         onRate={(song, rating) => void handleRate<Song>('song', 'songs', song.id, rating)}
         getFavorite={(song) => song.starred}

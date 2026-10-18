@@ -6,12 +6,14 @@ import { downloadSongs } from '../lib/download.js';
 import { getShareToken } from '../lib/shareToken.js';
 import { useNotification } from '../contexts/NotificationContext.js';
 import { usePlayActions } from './usePlayActions.js';
+import { useAddToPlaylistStore } from '../stores/addToPlaylistStore.js';
 
-type LoadingId = 'play' | 'shuffle-play' | 'play-next' | 'add-to-queue' | 'download' | null;
+type LoadingId = 'play' | 'shuffle-play' | 'play-next' | 'add-to-queue' | 'add-to-playlist' | 'download' | null;
 
 export function useArtistContextMenu(artist: Artist, onEdit: () => void): ContextMenuSection[] {
   const { playSongs, shufflePlay, playNext, addToQueue } = usePlayActions();
   const { notify } = useNotification();
+  const openAddToPlaylist = useAddToPlaylistStore((s) => s.open);
   const [loadingId, setLoadingId] = useState<LoadingId>(null);
   const allowDownload = getShareToken() === undefined;
 
@@ -58,6 +60,12 @@ export function useArtistContextMenu(artist: Artist, onEdit: () => void): Contex
     await withSongs('download', (songs) => downloadSongs(songs.map((song) => song.id)));
   }, [withSongs]);
 
+  const handleAddToPlaylist = useCallback(async () => {
+    await withSongs('add-to-playlist', (songs) => {
+      openAddToPlaylist(songs);
+    });
+  }, [withSongs, openAddToPlaylist]);
+
   const sections: ContextMenuSection[] = [
     {
       title: 'Playback',
@@ -69,6 +77,20 @@ export function useArtistContextMenu(artist: Artist, onEdit: () => void): Contex
       ],
     },
   ];
+
+  if (getShareToken() === undefined) {
+    sections.push({
+      items: [
+        {
+          id: 'add-to-playlist',
+          label: 'Add to playlist',
+          icon: 'mdi-playlist-music',
+          loading: loadingId === 'add-to-playlist',
+          onClick: handleAddToPlaylist,
+        },
+      ],
+    });
+  }
 
   if (allowDownload) {
     sections.push({

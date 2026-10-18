@@ -125,6 +125,7 @@ var pinnedRoutes = []string{
 	"POST /api/playlists",
 	"POST /api/playlists/{id}/share",
 	"POST /api/playlists/{id}/share-link",
+	"POST /api/playlists/{id}/songs",
 	"POST /api/ratings",
 	"POST /api/scans",
 	"POST /api/setup",

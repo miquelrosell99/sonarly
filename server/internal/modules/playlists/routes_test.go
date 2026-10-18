@@ -3,6 +3,7 @@ package playlists
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -709,5 +710,80 @@ func TestCoverAlbums(t *testing.T) {
 	res, _ = env.do(t, "GET", "/api/playlists/pl-smart/albums", outsider, nil)
 	if res.StatusCode != 404 {
 		t.Fatalf("outsider: want 404, got %d", res.StatusCode)
+	}
+}
+
+// AddSongs: union append — existing order preserved, duplicates skipped,
+// new ids land at the end. Edit access required (view-only share 403, no
+// access 404), smart playlists and bad ids 400, anonymous 401.
+func TestAddSongs(t *testing.T) {
+	env := newEnv(t)
+	owner := env.cookie(t, "u-owner", "owner", false)
+	viewer := env.cookie(t, "u-viewer", "viewer", false)
+	outsider := env.cookie(t, "u-outsider", "outsider", false)
+
+	// Owner appends to pl-shared-e (currently [s-a2]): the duplicate s-a2
+	// is skipped, s-a1 is appended after the existing member.
+	res, body := env.do(t, "POST", "/api/playlists/pl-shared-e/songs", owner, `{"songIds":["s-a2","s-a1"]}`)
+	if res.StatusCode != 200 {
+		t.Fatalf("owner append: %d", res.StatusCode)
+	}
+	if ids := entryIDs(decodeDetail(t, body)); !slices.Equal(ids, []string{"s-a2", "s-a1"}) {
+		t.Fatalf("membership after append = %v, want [s-a2 s-a1]", ids)
+	}
+
+	// Re-adding an existing member is a no-op (union, no duplicates).
+	res, body = env.do(t, "POST", "/api/playlists/pl-shared-e/songs", owner, `{"songIds":["s-a1"]}`)
+	if res.StatusCode != 200 {
+		t.Fatalf("re-add: %d", res.StatusCode)
+	}
+	if ids := entryIDs(decodeDetail(t, body)); !slices.Equal(ids, []string{"s-a2", "s-a1"}) {
+		t.Fatalf("membership after re-add = %v, want unchanged [s-a2 s-a1]", ids)
+	}
+
+	// A user with an edit share appends too.
+	res, _ = env.do(t, "POST", "/api/playlists/pl-shared-e/songs", viewer, `{"songIds":["s-a1"]}`)
+	if res.StatusCode != 200 {
+		t.Fatalf("editor append: %d", res.StatusCode)
+	}
+
+	// View-only share: 403. No access: 404 (never probe).
+	res, _ = env.do(t, "POST", "/api/playlists/pl-shared-v/songs", viewer, `{"songIds":["s-a1"]}`)
+	if res.StatusCode != 403 {
+		t.Fatalf("view-only append: want 403, got %d", res.StatusCode)
+	}
+	res, _ = env.do(t, "POST", "/api/playlists/pl-private/songs", outsider, `{"songIds":["s-b1"]}`)
+	if res.StatusCode != 404 {
+		t.Fatalf("outsider append: want 404, got %d", res.StatusCode)
+	}
+
+	// Smart playlists reject manual membership edits.
+	res, _ = env.do(t, "POST", "/api/playlists/pl-smart/songs", owner, `{"songIds":["s-a1"]}`)
+	if res.StatusCode != 400 {
+		t.Fatalf("smart append: want 400, got %d", res.StatusCode)
+	}
+
+	// Out-of-scope and unknown ids: 400 and nothing changes.
+	res, _ = env.do(t, "POST", "/api/playlists/pl-private/songs", owner, `{"songIds":["s-b1"]}`)
+	if res.StatusCode != 400 {
+		t.Fatalf("out-of-scope append: want 400, got %d", res.StatusCode)
+	}
+	res, _ = env.do(t, "POST", "/api/playlists/pl-private/songs", owner, `{"songIds":["nope"]}`)
+	if res.StatusCode != 400 {
+		t.Fatalf("unknown id append: want 400, got %d", res.StatusCode)
+	}
+	_, body = env.do(t, "GET", "/api/playlists/pl-private", owner, nil)
+	if ids := entryIDs(decodeDetail(t, body)); !slices.Equal(ids, []string{"s-a1", "s-a2"}) {
+		t.Fatalf("failed appends must not change membership, got %v", ids)
+	}
+
+	// Empty list and anonymous callers are rejected.
+	res, _ = env.do(t, "POST", "/api/playlists/pl-private/songs", owner, `{"songIds":[]}`)
+	if res.StatusCode != 400 {
+		t.Fatalf("empty append: want 400, got %d", res.StatusCode)
+	}
+	res, _ = env.do(t, "POST", "/api/playlists/pl-private/songs", nil, `{"songIds":["s-a1"]}`)
+	if res.StatusCode != 401 {
+		t.Fatalf("anonymous append: want 401, got %d", res.StatusCode)
 	}
 }

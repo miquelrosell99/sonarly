@@ -304,6 +304,11 @@ export function Artist({ user }: { user: User }) {
         onPlay={handlePlay}
         onPlaySelection={handlePlaySelection}
         onShufflePlay={handleShuffleTracks}
+        getDragSongIds={(track, selectedItems) =>
+          selectedItems.some((selected) => selected.id === track.id)
+            ? selectedItems.map((selected) => selected.id)
+            : [track.id]
+        }
         playingId={playingId}
         onFavorite={handleTrackFavorite}
         onRate={handleTrackRate}

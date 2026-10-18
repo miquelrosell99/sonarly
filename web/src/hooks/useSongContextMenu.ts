@@ -5,6 +5,7 @@ import { downloadTrackUrl, saveUrl } from '../lib/download.js';
 import { getShareToken } from '../lib/shareToken.js';
 import { usePlayActions } from './usePlayActions.js';
 import { useAdminContextMenu } from './useAdminContextMenu.js';
+import { useAddToPlaylistStore } from '../stores/addToPlaylistStore.js';
 
 export interface SongContextMenuOptions {
   /** Destructive action (the view owns the confirm + invalidate flow). */
@@ -26,6 +27,7 @@ export function useSongContextMenu(
   const { playSong, playNext, addToQueue } = usePlayActions();
   const [, navigate] = useLocation();
   const allowDownload = options?.allowDownload ?? getShareToken() === undefined;
+  const openAddToPlaylist = useAddToPlaylistStore((s) => s.open);
 
   const sections: ContextMenuSection[] = [
     {
@@ -34,6 +36,11 @@ export function useSongContextMenu(
         { id: 'play', label: 'Play', icon: 'mdi-play', onClick: () => playSong(song) },
         { id: 'play-next', label: 'Play next', icon: 'mdi-playlist-plus', onClick: () => playNext(song) },
         { id: 'add-to-queue', label: 'Add to queue', icon: 'mdi-playlist-play', onClick: () => addToQueue([song]) },
+      ],
+    },
+    {
+      items: [
+        { id: 'add-to-playlist', label: 'Add to playlist', icon: 'mdi-playlist-music', onClick: () => openAddToPlaylist([song]) },
       ],
     },
     {

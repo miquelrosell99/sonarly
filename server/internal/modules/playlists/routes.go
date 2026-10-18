@@ -40,6 +40,7 @@ func (h *Handler) Routes(r chi.Router) {
 		r.Get("/api/playlists", h.list)
 		r.Post("/api/playlists", h.create)
 		r.Put("/api/playlists/{id}", h.update)
+		r.Post("/api/playlists/{id}/songs", h.addSongs)
 		r.Delete("/api/playlists/{id}", h.delete)
 		r.Post("/api/playlists/{id}/share", h.share)
 		r.Delete("/api/playlists/{id}/share/{userId}", h.unshare)
@@ -202,6 +203,32 @@ func (h *Handler) update(w http.ResponseWriter, r *http.Request) {
 		Rules:       rules,
 		ResolveMode: body.ResolveMode,
 	})
+	if err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	httpserver.JSON(w, http.StatusOK, map[string]any{"playlist": detail})
+}
+
+// addSongsBody is the POST /songs body: ids to append to the membership.
+type addSongsBody struct {
+	SongIDs []string `json:"songIds"`
+}
+
+// addSongs answers POST /api/playlists/{id}/songs — the union append the
+// context menu "Add to playlist" and drag-and-drop flows use. Duplicates
+// are skipped server-side; smart playlists answer 400.
+func (h *Handler) addSongs(w http.ResponseWriter, r *http.Request) {
+	var body addSongsBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		httpserver.Error(w, http.StatusBadRequest, "Invalid JSON body")
+		return
+	}
+	if len(body.SongIDs) == 0 {
+		httpserver.Error(w, http.StatusBadRequest, "songIds is required")
+		return
+	}
+	detail, err := h.svc.AddSongs(r.Context(), identity(r), chi.URLParam(r, "id"), body.SongIDs)
 	if err != nil {
 		writeServiceError(w, r, err)
 		return

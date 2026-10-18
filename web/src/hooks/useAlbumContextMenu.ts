@@ -7,6 +7,7 @@ import { downloadSongs } from '../lib/download.js';
 import { getShareToken } from '../lib/shareToken.js';
 import { useNotification } from '../contexts/NotificationContext.js';
 import { usePlayActions } from './usePlayActions.js';
+import { useAddToPlaylistStore } from '../stores/addToPlaylistStore.js';
 
 interface AlbumDetail {
   album: Album;
@@ -33,12 +34,13 @@ export interface AlbumContextMenuOptions {
   allowDownload?: boolean;
 }
 
-type LoadingId = 'play' | 'shuffle-play' | 'play-next' | 'add-to-queue' | 'download' | null;
+type LoadingId = 'play' | 'shuffle-play' | 'play-next' | 'add-to-queue' | 'add-to-playlist' | 'download' | null;
 
 export function useAlbumContextMenu(album: AlbumMenuTarget, options?: AlbumContextMenuOptions): ContextMenuSection[] {
   const { playSongs, shufflePlay, playNext, addToQueue } = usePlayActions();
   const { notify } = useNotification();
   const [, navigate] = useLocation();
+  const openAddToPlaylist = useAddToPlaylistStore((s) => s.open);
   const [loadingId, setLoadingId] = useState<LoadingId>(null);
   const disabled = album.shownSongCount === 0;
   const allowDownload = options?.allowDownload ?? getShareToken() === undefined;
@@ -88,6 +90,12 @@ export function useAlbumContextMenu(album: AlbumMenuTarget, options?: AlbumConte
     await withAlbumSongs('download', (songs) => downloadSongs(songs.map((song) => song.id)));
   }, [withAlbumSongs]);
 
+  const handleAddToPlaylist = useCallback(async () => {
+    await withAlbumSongs('add-to-playlist', (songs) => {
+      openAddToPlaylist(songs);
+    });
+  }, [withAlbumSongs, openAddToPlaylist]);
+
   const sections: ContextMenuSection[] = [
     {
       title: 'Playback',
@@ -99,6 +107,21 @@ export function useAlbumContextMenu(album: AlbumMenuTarget, options?: AlbumConte
       ],
     },
   ];
+
+  if (getShareToken() === undefined) {
+    sections.push({
+      items: [
+        {
+          id: 'add-to-playlist',
+          label: 'Add to playlist',
+          icon: 'mdi-playlist-music',
+          disabled,
+          loading: loadingId === 'add-to-playlist',
+          onClick: handleAddToPlaylist,
+        },
+      ],
+    });
+  }
 
   if (allowDownload) {
     sections.push({
