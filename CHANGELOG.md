@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.11] - 2026-10-18
+
+### Fixed
+
+- **Context menus work across the artist page**: the album cards in the Albums row now open the standard album menu (play/shuffle/play next/add to queue/add to playlist/download) instead of the browser's default menu, and the track rows gain the standard track menu with multi-selection, add-to-playlist, and (for admins) edit/delete, plus the tag-edit modal.
+
 ## [3.1.10] - 2026-10-18
 
 ### Fixed
@@ -408,7 +414,8 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.10...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.11...HEAD
+[3.1.11]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.11
 [3.1.10]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.10
 [3.1.9]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.9
 [3.1.7]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.7
