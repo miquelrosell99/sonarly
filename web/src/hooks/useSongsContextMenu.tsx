@@ -18,6 +18,12 @@ export interface SongsContextMenuOptions {
    * flag (the detail DTO carries it) must be passed in explicitly.
    */
   allowDownload?: boolean;
+  /**
+   * When set (playlist track lists only), a "Remove from playlist" entry
+   * renders right below "Add to playlist". The host owns the membership
+   * rewrite; the entry is membership-only and never touches files.
+   */
+  onRemoveFromPlaylist?: () => void;
 }
 
 export interface SongsContextMenu {
@@ -90,6 +96,14 @@ export function useSongsContextMenu(
             icon: 'mdi-playlist-music',
             onClick: () => openAddToPlaylist(songs),
           },
+          ...(options?.onRemoveFromPlaylist
+            ? [{
+                id: 'remove-from-playlist',
+                label: count === 1 ? 'Remove from playlist' : `Remove ${count} tracks from playlist`,
+                icon: 'mdi-playlist-remove',
+                onClick: options.onRemoveFromPlaylist,
+              }]
+            : []),
         ],
       });
     }

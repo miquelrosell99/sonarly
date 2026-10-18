@@ -47,15 +47,17 @@ function PlaylistSongContextMenu({
   onEdit,
   isAdmin,
   allowDownload,
+  onRemoveFromPlaylist,
   children,
 }: {
   songs: Song[];
   onEdit: () => void;
   isAdmin: boolean;
   allowDownload: boolean;
+  onRemoveFromPlaylist?: () => void;
   children: React.ReactNode;
 }) {
-  const { sections, deleteConfirm } = useSongsContextMenu(songs, onEdit, isAdmin, { allowDownload });
+  const { sections, deleteConfirm } = useSongsContextMenu(songs, onEdit, isAdmin, { allowDownload, onRemoveFromPlaylist });
   return (
     <>
       <ItemContextMenu sections={sections}>{children}</ItemContextMenu>
@@ -143,6 +145,26 @@ export function PlaylistDetail({ user, underlay }: PlaylistDetailProps) {
 
   const handleConvert = () => {
     refetch();
+  };
+
+  // Membership rewrite minus the picked rows: PUT songIds replaces the
+  // membership, so the surviving entries are sent back in order. Files are
+  // never touched — re-add undoes the removal.
+  const handleRemoveFromPlaylist = async (songs: Song[]) => {
+    if (!playlist) return;
+    const removeIds = new Set(songs.map((song) => song.id));
+    const remaining = displayEntries.filter((entry) => !removeIds.has(entry.id)).map((entry) => entry.id);
+    try {
+      await api(`/playlists/${playlist.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ songIds: remaining }),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['playlist', playlist.id] });
+      await queryClient.invalidateQueries({ queryKey: ['playlists'] });
+      notify(`Removed ${songs.length} ${songs.length === 1 ? 'track' : 'tracks'} from "${playlist.name}"`, 'success');
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Failed to remove tracks from playlist', 'error');
+    }
   };
 
   const handleDelete = async () => {
@@ -330,6 +352,11 @@ export function PlaylistDetail({ user, underlay }: PlaylistDetailProps) {
             onEdit={() => setSongEditing(selectedRows)}
             isAdmin={user?.isAdmin ?? false}
             allowDownload={user !== null || playlist?.shareDownload === true}
+            onRemoveFromPlaylist={
+              user && playlist && !playlist.isSmart
+                ? () => void handleRemoveFromPlaylist(selectedRows)
+                : undefined
+            }
           >
             {row}
           </PlaylistSongContextMenu>

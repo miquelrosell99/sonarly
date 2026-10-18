@@ -120,6 +120,61 @@ describe('PlaylistDetail', () => {
     expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeTruthy();
   });
 
+  it('removes a track from the playlist via the row context menu', async () => {
+    const { queryClient } = renderPlaylistDetail();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await waitFor(() => {
+      expect(screen.getByText('Track One')).toBeTruthy();
+    });
+
+    const rows = screen.getAllByRole('row');
+    fireEvent.contextMenu(rows[1]);
+    const menu = screen.getByRole('menu');
+
+    // The entry sits directly below "Add to playlist".
+    const labels = within(menu).getAllByRole('menuitem').map((item) => item.textContent);
+    const addIdx = labels.findIndex((l) => l?.includes('Add to playlist'));
+    expect(addIdx).toBeGreaterThanOrEqual(0);
+    expect(labels[addIdx + 1]).toContain('Remove from playlist');
+
+    fireEvent.click(within(menu).getByRole('menuitem', { name: /remove from playlist/i }));
+
+    await waitFor(() =>
+      expect(mockApi).toHaveBeenCalledWith('/playlists/playlist-1', {
+        method: 'PUT',
+        body: JSON.stringify({ songIds: ['song-2'] }),
+      }),
+    );
+    await waitFor(() => {
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['playlist', 'playlist-1'] });
+    });
+    expect(mockNotify.notify).toHaveBeenCalledWith('Removed 1 track from "Test Playlist"', 'success');
+  });
+
+  it('hides the remove-from-playlist entry from anonymous guests', async () => {
+    window.history.pushState({}, '', '/playlists/playlist-1?shareToken=token-123');
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <NotificationProvider>
+            <Route path="/playlists/:id" component={() => <PlaylistDetail user={null} />} />
+          </NotificationProvider>
+        </Router>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Track One')).toBeTruthy();
+    });
+
+    const rows = screen.getAllByRole('row');
+    fireEvent.contextMenu(rows[1]);
+
+    expect(screen.queryByRole('menuitem', { name: /remove from playlist/i })).toBeNull();
+  });
+
   it('hides account-only actions from anonymous guests', async () => {
     window.history.pushState({}, '', '/playlists/playlist-1?shareToken=token-123');
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
