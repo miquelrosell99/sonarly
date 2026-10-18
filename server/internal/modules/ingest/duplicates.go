@@ -138,13 +138,7 @@ func resolveSongIdentity(ctx context.Context, db *sql.DB, meta *audio.Metadata) 
 		artistIDs = append(artistIDs, id)
 	}
 
-	albumArtistNames := meta.AlbumArtists
-	if len(albumArtistNames) == 0 && meta.AlbumArtist != "" {
-		albumArtistNames = []string{meta.AlbumArtist}
-	}
-	if len(albumArtistNames) == 0 {
-		albumArtistNames = artistNames
-	}
+	albumArtistNames := library.AlbumArtistNames(meta, artistNames)
 	albumArtistIDs := make([]string, 0, len(albumArtistNames))
 	for _, name := range albumArtistNames {
 		id, err := library.EnsureArtist(ctx, db, name, nil)

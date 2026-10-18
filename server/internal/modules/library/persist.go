@@ -142,7 +142,7 @@ func persistSongTx(ctx context.Context, ex execer, in PersistInput) (string, err
 		primaryArtistID = &artistIDs[0]
 	}
 
-	albumArtistNames := albumArtistNames(meta, artistNames)
+	albumArtistNames := AlbumArtistNames(meta, artistNames)
 	var albumArtistIDs []string
 	for _, name := range albumArtistNames {
 		id, err := ensureArtist(ctx, ex, name, nil)
@@ -933,12 +933,29 @@ func artistNames(meta *audio.Metadata) []string {
 	return nil
 }
 
-func albumArtistNames(meta *audio.Metadata, songArtists []string) []string {
+// VariousArtists is the album artist a file is grouped under when its tags
+// name several track artists but no album artist — the compilation
+// signature (ARTIST_SPLIT_REGEX already split "A / B" into two names).
+// Single-artist files keep the track-artist fallback so ordinary albums are
+// unaffected; single-artist-per-track compilations are indistinguishable
+// from distinct same-named albums without a MusicBrainz id, so those still
+// need a real album-artist tag.
+const VariousArtists = "Various Artists"
+
+// AlbumArtistNames resolves the album-artist list used for grouping:
+// the tagged album artist when present, else the compilation sentinel for
+// multi-artist files, else the track artists. Shared by the scanner/persist
+// path, ingest duplicate detection, and the organizer's {albumArtist} token
+// so every surface derives the same album identity from the same tags.
+func AlbumArtistNames(meta *audio.Metadata, songArtists []string) []string {
 	if len(meta.AlbumArtists) > 0 {
 		return meta.AlbumArtists
 	}
 	if meta.AlbumArtist != "" {
 		return []string{meta.AlbumArtist}
+	}
+	if len(songArtists) > 1 {
+		return []string{VariousArtists}
 	}
 	return songArtists
 }
