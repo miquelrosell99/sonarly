@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.10] - 2026-10-18
+
+### Fixed
+
+- **"Remove from playlist" shows its icon**: `mdi-playlist-remove` is now part of the generated MDI sprite (the build only embeds a curated subset; the icon was referenced but missing, rendering a blank space).
+- **No file-delete entry in playlist track lists**: the row context menu of a playlist no longer offers "Delete tracks" to admins — rows are playlist membership, and the destructive membership action is "Remove from playlist"; the old entry deleted the audio files themselves.
+
 ## [3.1.9] - 2026-10-18
 
 ### Added
@@ -401,7 +408,8 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.9...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.10...HEAD
+[3.1.10]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.10
 [3.1.9]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.9
 [3.1.7]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.7
 [3.1.6]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.6
