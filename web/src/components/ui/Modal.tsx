@@ -116,7 +116,7 @@ export function Modal({ open, onClose, title, children, footer, className, close
           className,
         )}
       >
-        <div className="flex items-center justify-between border-b border-rule/60 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-rule px-6 py-4">
           <h3 id={titleId} className="text-lg font-semibold">{title}</h3>
           <button
             type="button"
@@ -134,7 +134,7 @@ export function Modal({ open, onClose, title, children, footer, className, close
         </div>
 
         {footer && (
-          <div className="border-t border-rule/60 px-6 py-4">
+          <div className="border-t border-rule px-6 py-4">
             {footer}
           </div>
         )}

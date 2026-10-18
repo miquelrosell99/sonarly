@@ -105,10 +105,10 @@ export function QueueModal({ user }: QueueModalProps) {
             aria-label="Queue"
             style={style}
             className={cn(
-              'fixed z-50 flex w-[min(20rem,calc(100vw-1rem))] max-h-[60vh] flex-col overflow-hidden rounded-popover border border-rule/50 bg-surface shadow-2xl',
+              'fixed z-50 flex w-[min(20rem,calc(100vw-1rem))] max-h-[60vh] flex-col overflow-hidden rounded-popover border border-rule bg-surface shadow-2xl',
             )}
           >
-            <div className="flex items-center justify-between border-b border-rule/50 px-3 py-2">
+            <div className="flex items-center justify-between border-b border-rule px-3 py-2">
               <span className="text-sm font-semibold text-fg-primary">Queue</span>
               <button
                 type="button"

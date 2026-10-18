@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.8] - 2026-10-18
+
+### Added
+
+- **Menu typeahead**: typing printable characters inside any context or dropdown menu jumps focus to the next item whose label starts with what you typed (multi-character buffer, 500ms reset, cycles, skips disabled items) — both the context-menu and the shared popover-menu keyboard paths.
+
+### Changed
+
+- **Hairlines are uniform**: the 18 reduced-opacity `border-rule/50` and `/60` borders across modals, popovers, the sidebar, player bar, top bar, queue, lyrics, and the synced-lyrics editor now render at the token's own opacity. The NowPlaying queue/lyrics panel is the deliberate exception — its translucent scrim over the artwork-driven ambient wash stays (registered in `.agents/design-overrides.md`).
+
+### Documentation
+
+- `.agents/design-overrides.md` gains the NowPlaying translucency exception entry.
+
 ## [3.1.7] - 2026-10-18
 
 ### Fixed

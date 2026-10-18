@@ -333,7 +333,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
       <aside
         aria-label="Navigation"
         className={cn(
-          'hidden shrink-0 flex-col border-r border-rule/60 bg-surface md:flex',
+          'hidden shrink-0 flex-col border-r border-rule bg-surface md:flex',
           rail ? 'w-[4.5rem]' : 'w-60',
         )}
       >

@@ -532,7 +532,7 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
         aria-labelledby="synced-lyrics-title"
         className="flex h-full w-full flex-col overflow-hidden bg-surface shadow-2xl outline-none sm:h-auto sm:max-h-[90vh] sm:max-w-3xl sm:rounded-sheet sm:border sm:border-rule"
       >
-        <div className="flex items-center justify-between gap-2 border-b border-rule/60 px-4 py-4 sm:px-6">
+        <div className="flex items-center justify-between gap-2 border-b border-rule px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h3 id="synced-lyrics-title" className="font-display text-lg font-semibold">Synced Lyrics</h3>
             <p className="truncate text-sm text-fg-secondary">{title}{artistName ? ` • ${artistName}` : ''}</p>
@@ -648,13 +648,13 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
             </div>
 
             {actionError && (
-              <p role="alert" className="border-t border-rule/60 px-4 py-2 text-sm text-danger sm:px-6">
+              <p role="alert" className="border-t border-rule px-4 py-2 text-sm text-danger sm:px-6">
                 {actionError}
               </p>
             )}
 
             {/* Transport + insert, thumb-reachable at the bottom */}
-            <div className="flex items-center gap-3 border-t border-rule/60 px-4 py-3 sm:px-6">
+            <div className="flex items-center gap-3 border-t border-rule px-4 py-3 sm:px-6">
               <button
                 type="button"
                 onClick={togglePlay}
@@ -669,7 +669,7 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
               </Button>
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t border-rule/60 px-4 py-4 sm:px-6">
+            <div className="flex items-center justify-end gap-2 border-t border-rule px-4 py-4 sm:px-6">
               <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
               <Button onClick={handleSave} loading={saving}>Save</Button>
             </div>

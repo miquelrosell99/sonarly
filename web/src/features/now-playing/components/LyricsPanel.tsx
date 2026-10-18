@@ -239,7 +239,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-1 rounded-full border border-rule/50 p-1">
+        <div className="flex items-center gap-1 rounded-full border border-rule p-1">
           <button
             type="button"
             onClick={() => setMode('dynamic')}
