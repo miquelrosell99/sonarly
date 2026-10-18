@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.7] - 2026-10-18
+
+### Fixed
+
+- **Compilation albums no longer shatter into one album per track artist**: a file whose tags name several track artists but no album artist now groups under "Various Artists" (the fallback is shared by the scanner, ingest duplicate detection, and the organizer's `{albumArtist}` token). One real-world case: a 44-track "Disney Love Songs" release had become 39 single-artist albums. Single-artist files keep the track-artist fallback; single-artist-per-track compilations still need a real album-artist tag (they are indistinguishable from distinct same-named albums without a MusicBrainz id).
+
 ## [3.1.6] - 2026-10-18
 
 ### Fixed
@@ -375,7 +381,9 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.5...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.7...HEAD
+[3.1.7]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.7
+[3.1.6]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.6
 [3.1.5]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.5
 [3.1.4]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.4
 [3.1.3]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.3
