@@ -26,7 +26,7 @@ export function FavoriteButton({ starred, onClick, label, className, variant = '
       aria-label={label ?? (starred ? 'Remove favorite' : 'Add favorite')}
       title={label ?? (starred ? 'Remove favorite' : 'Add favorite')}
       className={cn(
-        'flex h-8 w-8 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
+        'icon-btn flex h-8 w-8 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-40 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
         starred
           ? 'text-accent hover:bg-accent/10'
           : variant === 'overlay'
@@ -107,7 +107,7 @@ export function StarRating({ rating = 0, onRate, className, variant = 'default' 
             onMouseEnter={(e) => handleMove(e, value)}
             aria-label={label}
             className={cn(
-              'inline-flex min-h-6 min-w-6 items-center justify-center rounded-item transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
+              'icon-btn inline-flex min-h-6 min-w-6 items-center justify-center rounded-item transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
               isOverlay ? 'p-0' : 'p-0.5',
               filled || half
                 ? 'text-accent'

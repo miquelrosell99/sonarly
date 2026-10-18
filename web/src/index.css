@@ -170,6 +170,17 @@
   border-radius: 9999px;
 }
 
+@keyframes ds-dialog-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @layer components {
   .btn {
     @apply inline-flex h-10 items-center justify-center gap-2 rounded-button border border-accent bg-accent px-5 text-sm font-semibold text-bg-primary transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-50;
@@ -181,7 +192,7 @@
     filter: brightness(0.9);
   }
   .btn-ghost {
-    @apply inline-flex h-10 items-center justify-center gap-2 rounded-button border border-rule bg-surface px-5 text-sm font-semibold text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary;
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-button border border-rule bg-surface px-5 text-sm font-semibold text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-ghost:hover {
     border-color: hsl(var(--fg-secondary));
@@ -196,6 +207,23 @@
   .btn-danger:active {
     transform: scale(0.97);
     filter: brightness(0.9);
+  }
+  /* Touch floor: text buttons bump to 44px on coarse pointers (JSX icon
+   * buttons carry the per-instance [@media(pointer:coarse)] override). */
+  @media (pointer: coarse) {
+    .btn, .btn-ghost, .btn-danger {
+      height: 44px;
+    }
+  }
+  /* Dialog entrance (design system: ~400ms ease-out). Class applied by
+   * ui/Modal on mount; keyframes at root so they survive layer ordering. */
+  .dialog-enter {
+    animation: ds-dialog-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dialog-enter {
+      animation: none;
+    }
   }
   .input {
     @apply block h-10 w-full rounded-input border border-rule bg-surface px-3 text-sm text-fg-primary transition focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-60;

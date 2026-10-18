@@ -344,7 +344,7 @@ export function LibraryView<T>({
   if (isLoading) {
     return (
       <div>
-        {title && <h2 className="mb-4 font-display text-lg font-semibold tracking-tight">{title}</h2>}
+        {title && <h1 className="mb-4 font-display text-lg font-semibold tracking-tight">{title}</h1>}
         <PageState loading>{null}</PageState>
       </div>
     );
@@ -353,7 +353,7 @@ export function LibraryView<T>({
   if (errorText) {
     return (
       <div>
-        {title && <h2 className="mb-4 font-display text-lg font-semibold tracking-tight">{title}</h2>}
+        {title && <h1 className="mb-4 font-display text-lg font-semibold tracking-tight">{title}</h1>}
         <PageState error={errorText} onRetry={onRetry}>{null}</PageState>
       </div>
     );
@@ -362,7 +362,7 @@ export function LibraryView<T>({
   if (data.length === 0) {
     return (
       <div>
-        {title && <h2 className="mb-4 font-display text-lg font-semibold tracking-tight">{title}</h2>}
+        {title && <h1 className="mb-4 font-display text-lg font-semibold tracking-tight">{title}</h1>}
         <PageState isEmpty emptyMessage={emptyMessage} emptyDescription={emptyDescription} emptyAction={emptyAction}>{null}</PageState>
       </div>
     );
@@ -605,7 +605,7 @@ export function LibraryView<T>({
     <div ref={scrollAnchorRef}>
       {(title || showColumnConfig) && (
         <div className="mb-4 flex items-center justify-between">
-          {title && <h2 className="font-display text-lg font-semibold tracking-tight">{title}</h2>}
+          {title && <h1 className="font-display text-lg font-semibold tracking-tight">{title}</h1>}
           <div className="flex items-center gap-2">
             {onShufflePlay && (
               <button

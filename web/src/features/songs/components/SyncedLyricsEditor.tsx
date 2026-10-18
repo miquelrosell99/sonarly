@@ -623,7 +623,7 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
                         aria-label={`Edit line: ${line.text || '(empty)'} at ${formatTime(line.time)}`}
                         title="Click to edit, drag to retime, arrow keys to nudge"
                         className={cn(
-                          'flex h-11 min-w-0 max-w-full cursor-ns-resize items-center rounded-full border bg-surface px-3 text-sm shadow-sm transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                          'flex h-11 min-w-0 max-w-full cursor-ns-resize items-center rounded-full border bg-surface px-3 text-sm transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                           nearCenter ? 'border-accent' : 'border-rule hover:border-fg-secondary',
                           draggingId === line.id && 'border-accent ring-2 ring-accent',
                         )}

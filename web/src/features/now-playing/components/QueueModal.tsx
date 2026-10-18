@@ -33,6 +33,7 @@ export function QueueModal({ user }: QueueModalProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
   const [style, setStyle] = useState<React.CSSProperties>({});
 
   useLayoutEffect(() => {
@@ -40,11 +41,16 @@ export function QueueModal({ user }: QueueModalProps) {
     const trigger = triggerRef.current;
     const panel = panelRef.current;
     if (!trigger || !panel) return;
+    restoreFocusRef.current = document.activeElement as HTMLElement | null;
     setStyle(computePosition(trigger, panel));
     // Non-modal popover, but keyboard users still land inside the dialog on
     // open (mirrors ColumnConfigMenu's first-focusable pattern) instead of
     // tabbing through the page behind it.
     panel.querySelector<HTMLElement>('button:not([disabled])')?.focus();
+    return () => {
+      restoreFocusRef.current?.focus?.();
+      restoreFocusRef.current = null;
+    };
   }, [open]);
 
   useEffect(() => {

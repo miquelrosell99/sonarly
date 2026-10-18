@@ -15,6 +15,8 @@ import {
 import { AdminRefreshProvider } from './features/admin/contexts/AdminRefreshContext.js';
 import { useServerEvents } from './hooks/useServerEvents.js';
 import { ErrorBoundary, reportClientError } from './components/ErrorBoundary.js';
+import { Button } from './components/ui/Button.js';
+import { useDelayedVisible } from './hooks/useDelayedVisible.js';
 import { AddToPlaylistModal } from './components/AddToPlaylistModal.js';
 import { api } from './lib/api.js';
 import { getShareToken } from './lib/shareToken.js';
@@ -31,11 +33,18 @@ function lazyRoute<P extends object>(
   // exists because TS cannot prove it for an unresolved generic P.
   const Component = lazy(factory) as unknown as ComponentType<P>;
   const LazyRoute = (props: P) => (
-    <Suspense fallback={fallback}>
+    <Suspense fallback={<DelayedFallback>{fallback}</DelayedFallback>}>
       <Component {...props} />
     </Suspense>
   );
   return LazyRoute;
+}
+
+// Loading choreography: fast chunk loads must not flash a skeleton. The
+// fallback stays empty for the first 300 ms and only then paints.
+function DelayedFallback({ children }: { children: ReactNode }) {
+  const show = useDelayedVisible(true, 300);
+  return show ? <>{children}</> : null;
 }
 
 const HomePage = lazyRoute<{ user: User }>(
@@ -312,13 +321,9 @@ export default function App() {
         <div className="flex flex-col items-center gap-3">
           <span className="font-display text-xl font-semibold text-fg-primary">Sonarly</span>
           <span className="text-sm">Could not reach the server.</span>
-          <button
-            type="button"
-            onClick={() => setBootAttempt((n) => n + 1)}
-            className="rounded-item bg-accent px-4 py-2 text-sm font-medium text-bg-primary transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-          >
+          <Button type="button" onClick={() => setBootAttempt((n) => n + 1)}>
             Try again
-          </button>
+          </Button>
         </div>
       </div>
     );

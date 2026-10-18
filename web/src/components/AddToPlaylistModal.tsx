@@ -2,9 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Modal } from './ui/Modal.js';
 import { Button } from './ui/Button.js';
 import { Checkbox } from './ui/Checkbox.js';
+import { EmptyState } from './ui/EmptyState.js';
 import { Input } from './ui/Input.js';
 import { usePlaylists } from '../hooks/usePlaylists.js';
 import { useAddSongsToPlaylist } from '../hooks/useAddSongsToPlaylist.js';
+import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
+import { useDelayedVisible } from '../hooks/useDelayedVisible.js';
 import { useAddToPlaylistStore } from '../stores/addToPlaylistStore.js';
 
 /**
@@ -18,6 +21,8 @@ export function AddToPlaylistModal() {
   const close = useAddToPlaylistStore((s) => s.close);
   const addSongs = useAddSongsToPlaylist();
   const { data: playlists, isLoading, isError } = usePlaylists({ enabled: target !== null });
+  const { open: openCreatePlaylist } = useCreatePlaylistModal();
+  const showLoading = useDelayedVisible(isLoading, 300);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState('');
@@ -92,15 +97,23 @@ export function AddToPlaylistModal() {
           )}
 
           {isLoading ? (
-            <p className="py-6 text-center text-sm text-fg-secondary">Loading playlists…</p>
+            showLoading ? (
+              <p className="py-6 text-center text-sm text-fg-secondary">Loading playlists…</p>
+            ) : (
+              <div className="py-6" aria-hidden="true" />
+            )
           ) : isError ? (
             <p className="py-6 text-center text-sm text-danger" role="alert">
               Could not load playlists.
             </p>
           ) : staticPlaylists.length === 0 ? (
-            <p className="py-6 text-center text-sm text-fg-secondary">
-              No playlists yet — create one from the Playlists page.
-            </p>
+            <EmptyState
+              icon="mdi-playlist-music"
+              title="No playlists yet"
+              description="Create a playlist to start collecting songs."
+              actionLabel="Create playlist"
+              onAction={openCreatePlaylist}
+            />
           ) : visible.length === 0 ? (
             <p className="py-6 text-center text-sm text-fg-secondary">No playlists match "{filter.trim()}".</p>
           ) : (
@@ -109,6 +122,7 @@ export function AddToPlaylistModal() {
                 <Checkbox
                   key={playlist.id}
                   id={`add-to-playlist-${playlist.id}`}
+                  className="rounded-item hover:bg-surface-hover"
                   label={playlist.name}
                   description={
                     playlist.songCount > 0

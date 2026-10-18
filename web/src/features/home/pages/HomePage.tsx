@@ -440,14 +440,14 @@ function FeaturedAlbumSlide({ album, active }: FeaturedAlbumSlideProps) {
         />
       </div>
       <div className="flex min-w-0 flex-col gap-3">
-        <h2
+        <h3
           className="line-clamp-2 break-words font-display text-2xl font-semibold tracking-tight text-fg-primary sm:text-4xl md:text-5xl lg:text-6xl"
           title={album.name}
         >
           <Link href={`/albums/${album.id}`} className="hover:text-muted">
             {album.name}
           </Link>
-        </h2>
+        </h3>
         <p className="truncate text-base text-fg-secondary sm:text-lg">
           {album.artistId ? (
             <Link href={`/artists/${album.artistId}`} className="hover:text-muted">

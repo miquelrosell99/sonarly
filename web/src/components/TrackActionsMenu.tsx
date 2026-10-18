@@ -131,7 +131,7 @@ export function TrackActionsMenu({ song }: TrackActionsMenuProps) {
             item.active && 'text-accent',
           )}
         >
-          <Icon name={item.icon} size={16} className={cn('text-fg-secondary', item.active && 'text-accent')} />
+          <Icon name={item.icon} size={18} className={cn('text-fg-secondary', item.active && 'text-accent')} />
           {item.label}
           {item.active && <Icon name="mdi-check" size={16} className="ml-auto text-accent" />}
         </button>

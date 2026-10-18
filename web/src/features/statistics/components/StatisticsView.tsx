@@ -143,7 +143,7 @@ function SectionCard({
       style={staggerStyle(stagger)}
     >
       <div className="mb-4 flex items-center gap-2">
-        <Icon name={icon} size={20} className="text-accent" />
+        <Icon name={icon} size={20} className="text-fg-secondary" />
         <h3 className="font-display text-lg font-semibold tracking-tight text-fg-primary">{title}</h3>
       </div>
       {children}
@@ -209,7 +209,7 @@ function HeroStats({ totals }: { totals: StatisticsTotals }) {
       style={staggerStyle(0)}
     >
       <div className="relative">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Listening time</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-fg-secondary">Listening time</p>
         {/* Solid foreground number — the app-wide rule is 600; this hero is
             the one deliberate 700 tier (design system exception). */}
         <p className="mt-3 font-display text-5xl font-bold tracking-tight text-fg-primary tabular-nums sm:text-6xl">
@@ -235,7 +235,7 @@ function RankBadge({ rank }: { rank: number }) {
     <span
       className={cn(
         'relative w-6 shrink-0 text-center font-mono text-sm font-semibold tabular-nums',
-        rank <= 3 ? 'text-accent' : 'text-fg-secondary',
+        rank <= 3 ? 'text-fg-primary' : 'text-fg-secondary',
       )}
     >
       {rank}
@@ -745,7 +745,7 @@ export function StatisticsView({
     <div className="space-y-6">
       <div className="stat-reveal flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" style={staggerStyle(0)}>
         <div>
-          {title && <h2 className="font-display text-2xl font-semibold tracking-tight text-fg-primary">{title}</h2>}
+          {title && <h1 className="font-display text-2xl font-semibold tracking-tight text-fg-primary">{title}</h1>}
           {subtitle && <p className="mt-1 text-sm text-fg-secondary">{subtitle}</p>}
         </div>
         <RangeSelector range={range} onRangeChange={onRangeChange} />

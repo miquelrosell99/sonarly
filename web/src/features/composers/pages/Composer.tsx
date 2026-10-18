@@ -65,7 +65,7 @@ export function Composer({ underlay }: { underlay?: UnderlayParams }) {
       )}
     >
       <div>
-        <h3 className="mb-2 text-sm font-medium text-muted">Tracks</h3>
+        <h2 className="mb-2 text-sm font-medium text-muted">Tracks</h2>
         <TrackList
           tracks={tracks}
           empty={<p className="text-sm text-muted">No tracks for this composer.</p>}

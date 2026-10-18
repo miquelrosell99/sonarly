@@ -14,6 +14,7 @@ interface LibrarySelectorProps {
 export function LibrarySelector({ libraries, selectedLibraryId, onSelect, error }: LibrarySelectorProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -23,15 +24,42 @@ export function LibrarySelector({ libraries, selectedLibraryId, onSelect, error 
       }
     };
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
     };
     document.addEventListener('mousedown', handle);
     document.addEventListener('keydown', handleKey);
+    // Keyboard support: land focus on the selected option (or the first)
+    // when the listbox opens — Escape returns it to the trigger above.
+    const options = Array.from(
+      ref.current?.querySelectorAll<HTMLElement>('[role="option"]:not([aria-disabled="true"])') ?? [],
+    );
+    const selectedOption =
+      options.find((el) => el.getAttribute('aria-selected') === 'true') ?? options[0];
+    selectedOption?.focus();
     return () => {
       document.removeEventListener('mousedown', handle);
       document.removeEventListener('keydown', handleKey);
     };
   }, [open]);
+
+  // Arrow navigation between the option buttons while the listbox has focus.
+  const handleListboxKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    const options = Array.from(
+      ref.current?.querySelectorAll<HTMLElement>('[role="option"]:not([aria-disabled="true"])') ?? [],
+    );
+    if (options.length === 0) return;
+    const current = options.indexOf(document.activeElement as HTMLElement);
+    const next =
+      e.key === 'ArrowDown'
+        ? (current + 1) % options.length
+        : (current - 1 + options.length) % options.length;
+    options[next].focus();
+  };
 
   const selected = libraries.find((l) => l.id === selectedLibraryId);
   const label = selected?.name ?? 'All libraries';
@@ -39,15 +67,16 @@ export function LibrarySelector({ libraries, selectedLibraryId, onSelect, error 
   return (
     <div ref={ref} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={`Library: ${label}`}
         title={label}
-        className="flex w-full items-center gap-2 rounded-item px-3 py-2 text-sm font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="flex w-full items-center gap-2 rounded-input border border-rule bg-surface px-3 py-2 text-sm font-medium text-fg-secondary transition hover:border-fg-secondary hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
-        <Icon name="mdi-music-box-multiple" size={18} className="shrink-0 text-accent" />
+        <Icon name="mdi-music-box-multiple" size={18} className="shrink-0 text-fg-secondary" />
         <span className="min-w-0 flex-1 truncate text-left">{label}</span>
         <Icon
           name="mdi-chevron-down"
@@ -59,6 +88,7 @@ export function LibrarySelector({ libraries, selectedLibraryId, onSelect, error 
       {open && (
         <div
           role="listbox"
+          onKeyDown={handleListboxKeyDown}
           className="absolute left-0 top-full z-40 mt-2 w-full rounded-popover border border-rule bg-surface p-1 shadow-xl"
         >
           <button
@@ -67,13 +97,16 @@ export function LibrarySelector({ libraries, selectedLibraryId, onSelect, error 
             aria-selected={selectedLibraryId === null}
             onClick={() => { onSelect(null); setOpen(false); }}
             className={cn(
-              'flex w-full rounded-item px-3 py-2 text-left text-sm transition',
+              'flex w-full items-center rounded-item px-3 py-2 text-left text-sm transition',
               selectedLibraryId === null
-                ? 'bg-accent/10 text-accent'
+                ? 'text-accent'
                 : 'text-fg-primary hover:bg-surface-hover focus-visible:bg-surface-hover',
             )}
           >
             All libraries
+            {selectedLibraryId === null && (
+              <Icon name="mdi-check" size={16} className="ml-auto shrink-0" />
+            )}
           </button>
           <div className="my-1 border-t border-rule" />
           {libraries.map((library) => (
@@ -84,13 +117,16 @@ export function LibrarySelector({ libraries, selectedLibraryId, onSelect, error 
               aria-selected={selectedLibraryId === library.id}
               onClick={() => { onSelect(library.id); setOpen(false); }}
               className={cn(
-                'flex w-full rounded-item px-3 py-2 text-left text-sm transition',
+                'flex w-full items-center rounded-item px-3 py-2 text-left text-sm transition',
                 selectedLibraryId === library.id
-                  ? 'bg-accent/10 text-accent'
+                  ? 'text-accent'
                   : 'text-fg-primary hover:bg-surface-hover focus-visible:bg-surface-hover',
               )}
             >
               <span className="truncate">{library.name}</span>
+              {selectedLibraryId === library.id && (
+                <Icon name="mdi-check" size={16} className="ml-auto shrink-0" />
+              )}
             </button>
           ))}
           {error ? (

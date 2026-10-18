@@ -4,6 +4,7 @@ import type { PlaylistShareEntry, PlaylistVisibility, User } from '../../../type
 import { api } from '../../../lib/api.js';
 import { cn } from '../../../lib/cn.js';
 import { Modal } from '../../../components/ui/Modal.js';
+import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { Button } from '../../../components/ui/Button.js';
 import { Input } from '../../../components/ui/Input.js';
 import { Icon } from '../../../components/ui/Icon.js';
@@ -54,7 +55,7 @@ function TabButton({
         'inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         active
-          ? 'bg-accent text-bg-primary shadow-sm'
+          ? 'bg-accent text-bg-primary'
           : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
       )}
     >
@@ -227,6 +228,8 @@ export function SharePlaylistModal({
   const [resetKey, setResetKey] = useState(0);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [confirmRemoveShare, setConfirmRemoveShare] = useState<PlaylistShareEntry | null>(null);
+  const [confirmRevokeLink, setConfirmRevokeLink] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -468,7 +471,7 @@ export function SharePlaylistModal({
                       </select>
                       <button
                         type="button"
-                        onClick={() => handleRemoveShare(share)}
+                        onClick={() => setConfirmRemoveShare(share)}
                         disabled={busy}
                         aria-label={`Remove ${share.username}`}
                         className="flex h-11 w-11 items-center justify-center rounded-item text-fg-secondary transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
@@ -559,7 +562,7 @@ export function SharePlaylistModal({
                     <Icon name="mdi-refresh" size={16} className="mr-1.5" />
                     Regenerate
                   </Button>
-                  <Button variant="danger" onClick={handleRevokeLink} disabled={busy} className="min-h-[44px]">
+                  <Button variant="danger" onClick={() => setConfirmRevokeLink(true)} disabled={busy} className="min-h-[44px]">
                     <Icon name="mdi-link-variant-off" size={16} className="mr-1.5" />
                     Revoke
                   </Button>
@@ -579,6 +582,32 @@ export function SharePlaylistModal({
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={confirmRemoveShare !== null}
+        onClose={() => setConfirmRemoveShare(null)}
+        title="Remove member"
+        message={`Remove ${confirmRemoveShare?.username}'s access to this playlist?`}
+        confirmLabel="Remove"
+        danger
+        onConfirm={() => {
+          const share = confirmRemoveShare;
+          setConfirmRemoveShare(null);
+          if (share) void handleRemoveShare(share);
+        }}
+      />
+      <ConfirmModal
+        open={confirmRevokeLink}
+        onClose={() => setConfirmRevokeLink(false)}
+        title="Revoke share link"
+        message="Revoke this share link? Everyone using it will lose access."
+        confirmLabel="Revoke"
+        danger
+        onConfirm={() => {
+          setConfirmRevokeLink(false);
+          void handleRevokeLink();
+        }}
+      />
     </Modal>
   );
 }

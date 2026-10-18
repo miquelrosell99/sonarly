@@ -97,16 +97,21 @@ export function SidebarPlaylistItem({ playlist, href, active, isOwner }: Sidebar
           onDragOver={handleDragOver}
           onDragLeave={() => setDropActive(false)}
           onDrop={handleDrop}
-          aria-label={playlist.isSmart ? undefined : `Add dragged songs to ${playlist.name}`}
+          aria-describedby={playlist.isSmart ? undefined : `drop-desc-${playlist.id}`}
           className={cn(
-            'group relative flex items-center gap-3 rounded-item px-3 py-2 text-sm font-medium transition',
+            'group relative flex items-center gap-3 rounded-item px-3 py-2 text-sm font-medium transition [@media(pointer:coarse)]:min-h-11',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
             active
               ? 'bg-surface-hover text-accent'
               : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
-            dropActive && 'bg-accent/15 text-fg-primary ring-2 ring-inset ring-accent',
+            dropActive && 'bg-surface-hover text-fg-primary ring-2 ring-inset ring-accent',
           )}
         >
+          {!playlist.isSmart && (
+            <span id={`drop-desc-${playlist.id}`} className="sr-only">
+              Drop target for dragged songs
+            </span>
+          )}
           {active && (
             <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-accent" />
           )}

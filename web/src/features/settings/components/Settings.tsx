@@ -44,7 +44,7 @@ function SettingsChrome({ children }: SettingsProps) {
   return (
     <div className="w-full">
       <div className="mb-4 flex min-h-9 items-center justify-between gap-4">
-        <h2 className="font-display text-lg font-semibold">Settings</h2>
+        <h1 className="font-display text-lg font-semibold">Settings</h1>
         {controller && <SaveBar controller={controller} />}
       </div>
       <div className="flex flex-col gap-8 md:flex-row">
@@ -57,14 +57,17 @@ function SettingsChrome({ children }: SettingsProps) {
                 href={section.key}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
-                  // Inset accent bar on the active item — the sidebar's
-                  // language — with no layout shift.
-                  'rounded-item px-3 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                  // Accent bar on the active item — the sidebar's language —
+                  // a real element, with no layout shift.
+                  'relative rounded-item px-3 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
                   active
-                    ? 'bg-surface-hover font-medium text-fg-primary shadow-[inset_2px_0_0_0_hsl(var(--accent))]'
+                    ? 'bg-surface-hover font-medium text-fg-primary'
                     : 'text-muted hover:bg-surface-hover hover:text-fg-primary',
                 )}
               >
+                {active && (
+                  <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-accent" />
+                )}
                 {section.label}
               </Link>
             );

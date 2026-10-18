@@ -130,11 +130,12 @@ function NotificationItem({
         <Icon name={iconName} size={20} className="mt-0.5" />
         <span className="flex-1 text-sm">{notification.message}</span>
         <button
+          type="button"
           onClick={() => setExiting(true)}
-          className="text-xs font-medium opacity-70 hover:opacity-100"
           aria-label="Dismiss"
+          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-item text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
-          ×
+          <Icon name="mdi-close" size={14} />
         </button>
       </div>
     </div>

@@ -2,6 +2,51 @@
 
 Documented deviations from the [RosellRamos design system](/root/.agents/skills/rosellramos-design-system/SKILL.md). Contract: `rosellramos-design-system/references/overrides.md` — an undocumented deviation is drift; a documented one is a decision. Newest first; write the entry in the same pass as the deviation it records.
 
+### Chrome surface-step (sidebar, player bar on `--surface`)
+
+- **Rule**: SKILL.md default 3 — solid sidebar on the ground color; checklist §7 "Sidebar — solid ground color, hairline separator, never its own card".
+- **Decision**: The desktop sidebar (`web/src/components/Sidebar.tsx:335`) and the player bar (`web/src/components/PlayerBar.tsx:267`) sit on `--surface`, one step up from the `--bg-primary` ground. The mobile drawer keeps `bg-surface` as a `role="dialog"` overlay under the modal exception.
+- **Rationale**: Canonical project doc `docs/design-language.md:33` documents this in the token table ("`--surface` … Cards, sidebar, panels") — the Signal Archive identity frames content between two warm tonal steps; this entry registers what the canonical doc already says (same treatment the card-grid recipe got on 2026-10-15).
+- **Scope**: surface — desktop sidebar and player bar chrome only. No other chrome may step up to `--surface`.
+- **Ruled**: 2026-10-18 audit (documented in `docs/design-language.md` since pre-2.0).
+- **Review trigger**: shell redesign; brand refresh; a DS ruling that sidebars must sit on the ground.
+
+### Full-pill Login button (`.btn-pill`)
+
+- **Rule**: Checklist §4 shape scale — buttons 16px (`rounded-button`); the DS shape table tops out at 16px.
+- **Decision**: The Login page sign-in button keeps a full pill (`border-radius: 9999px`) via the `.btn-pill` class (`web/src/index.css:169-171`), over the app-wide 16px `.btn` radius.
+- **Rationale**: Deliberate brand moment, documented by its in-code comment; the rest of the app is uniformly 16px.
+- **Scope**: component — the Login sign-in button only.
+- **Ruled**: code comment pre-2026-10-08; registered 2026-10-18.
+- **Review trigger**: auth-page redesign; formal shape-scale work.
+
+### `rounded-full` pill convention (icon buttons, avatars, chips)
+
+- **Rule**: `rosellramos-design-system/references/tokens.md` shape scale — buttons 16/12/10px; the DS table has no pill step.
+- **Decision**: `rounded-full` (9999px) is the app's established convention for circular controls and containers: icon buttons, avatars, the play button, chips, pager dots, and toggle pills (88 usages across 41 files).
+- **Rationale**: A circle is the natural shape for single-icon controls at any size; it reads as one convention, not drift. Distinct from `.btn-pill`, which is a *text* button exception.
+- **Scope**: global convention — circular icon-only controls, avatars, and chips.
+- **Ruled**: 2026-10-18 audit.
+- **Review trigger**: DS adds a pill step to the shape scale; a shape-token sweep.
+
+### Statistics proportional data-bar tint
+
+- **Rule**: SKILL.md accent usage table — accent MUST NOT appear on card/list-item backgrounds.
+- **Decision**: `StatisticsView.tsx:270` (`TopListRow`) paints a proportional `bg-accent/[0.07]` fill behind each statistics row as a data bar (aria-hidden).
+- **Rationale**: It is a data-viz proportion indicator (the "progress" family of accent uses), not a selection or hover state; at 7% alpha it reads as a bar chart, not a row fill.
+- **Scope**: component — the statistics top-list rows only.
+- **Ruled**: 2026-10-18 audit.
+- **Review trigger**: statistics page redesign; any second use of proportional row tints.
+
+### Card hover action-reveal scrim (`bg-black/50`)
+
+- **Rule**: Checklist §2 — zero hardcoded paint outside the token file; SKILL.md default 6 "no tinted overlays" on surfaces.
+- **Decision**: `Card.tsx:75` renders a `bg-black/50` scrim over the cover on hover to legibility-mask the revealed action buttons.
+- **Rationale**: A scrim is a legibility tool over photographic cover art (the art itself is untokenizable); black at 50% is the neutral choice that works across all themes and accents. The registered card-grid recipe covers the zoom/fill/metadata anatomy; this registers the scrim that rides with it.
+- **Scope**: component — the Card hover action-reveal only.
+- **Ruled**: 2026-10-18 audit.
+- **Review trigger**: card redesign; introduction of a `--scrim` token (then convert).
+
 ### Card grid-item recipe (cover radius, hover zoom, hover fill, metadata size)
 
 - **Rule**: `rosellramos-design-system/references/audit-checklist.md` §5 grid-item anatomy — cover radius 12px, hover raises the item border hairline→outline (no shadow, no scale above 1.02), metadata 12px muted.
