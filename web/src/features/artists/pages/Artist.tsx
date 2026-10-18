@@ -18,10 +18,13 @@ import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useLibraryMutation } from '../../../hooks/useLibraryMutation.js';
 import { useArtistContextMenu } from '../../../hooks/useArtistContextMenu.js';
+import { useAlbumContextMenu } from '../../../hooks/useAlbumContextMenu.js';
+import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
 import { useArtistDetail, type ArtistAlbum } from '../../../hooks/useEntityDetails.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { formatDuration } from '../../../lib/format.js';
+import { patchToPlayerSong } from '../../../lib/songPatch.js';
 import type { SongWithNames } from '../../../lib/types.js';
 
 function ArtistHeaderContextMenu({
@@ -35,6 +38,41 @@ function ArtistHeaderContextMenu({
 }) {
   const sections = useArtistContextMenu(artist, onEdit);
   return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+}
+
+function ArtistAlbumContextMenu({
+  album,
+  artistId,
+  children,
+}: {
+  album: ArtistAlbum;
+  artistId: string;
+  children: ReactNode;
+}) {
+  // The same album menu the albums grid renders; artistId keeps "Go to
+  // artist" working (this page also serves /album-artists/:id).
+  const sections = useAlbumContextMenu({ id: album.id, artistId });
+  return <ItemContextMenu sections={sections}>{children}</ItemContextMenu>;
+}
+
+function ArtistTrackContextMenu({
+  songs,
+  onEdit,
+  isAdmin,
+  children,
+}: {
+  songs: SongWithNames[];
+  onEdit: () => void;
+  isAdmin: boolean;
+  children: ReactNode;
+}) {
+  const { sections, deleteConfirm } = useSongsContextMenu(songs, onEdit, isAdmin);
+  return (
+    <>
+      <ItemContextMenu sections={sections}>{children}</ItemContextMenu>
+      {deleteConfirm}
+    </>
+  );
 }
 
 export function Artist({ user }: { user: User }) {
@@ -57,8 +95,51 @@ export function Artist({ user }: { user: User }) {
   const artistMutation = useLibraryMutation('artist');
   const currentAlbumId = usePlayer((state) => state.currentSong?.albumId);
   const playingId = usePlayer((state) => state.currentSong?.id);
+  const updateCurrentSong = usePlayer((state) => state.updateCurrentSong);
   const selectedLibraryId = useLibraryStore((state) => state.selectedLibraryId);
   const blurExplicitTitles = user.blurExplicitTitles === true;
+
+  const [songEditing, setSongEditing] = useState<SongWithNames[] | null>(null);
+
+  const handleSongSave = async (patched: Record<string, unknown>) => {
+    if (!songEditing || songEditing.length !== 1) return;
+    if (
+      await songMutation.run(() =>
+        api(`/songs/${songEditing[0].id}/tags`, {
+          method: 'PUT',
+          body: JSON.stringify(patched),
+        }),
+      )
+    ) {
+      if (songEditing[0].id === usePlayer.getState().currentSong?.id) {
+        updateCurrentSong(patchToPlayerSong(patched));
+      }
+      setSongEditing(null);
+      refetch();
+    }
+  };
+
+  const handleSongSaveMany = async (patched: Record<string, unknown>) => {
+    if (!songEditing || songEditing.length < 2) return;
+    if (
+      await songMutation.run(() =>
+        api('/songs/tags', {
+          method: 'PUT',
+          body: JSON.stringify({
+            ids: songEditing.map((s) => s.id),
+            tags: patched,
+          }),
+        }),
+      )
+    ) {
+      const currentId = usePlayer.getState().currentSong?.id;
+      if (currentId && songEditing.some((s) => s.id === currentId)) {
+        updateCurrentSong(patchToPlayerSong(patched));
+      }
+      setSongEditing(null);
+      refetch();
+    }
+  };
 
   const handleFavorite = async (starred: boolean) => {
     if (!artist) return;
@@ -252,37 +333,39 @@ export function Artist({ user }: { user: User }) {
       {artist && artistAlbums.length > 0 ? (
         <ScrollRow title="Albums">
           {artistAlbums.map((album) => (
-            <div key={album.id} className="w-40 flex-none sm:w-44">
-              <Card
-                href={`/albums/${album.id}`}
-                title={album.name}
-                cover={<CoverArt coverArt={album.coverArt} alt={`Cover art for ${album.name}`} />}
-                fields={[
-                  {
-                    content: album.year !== undefined && album.year !== null && (
-                      <Link href={`/years/${album.year}`} className="hover:text-muted">
-                        {album.year}
-                      </Link>
-                    ),
-                  },
-                ]}
-                favorite={{
-                  starred: album.starred,
-                  onClick: () => handleAlbumFavorite(album, !album.starred),
-                  label: album.starred ? 'Remove favorite' : 'Add favorite',
-                }}
-                rating={{
-                  value: album.rating,
-                  onRate: (rating) => handleAlbumRate(album, rating || undefined),
-                }}
-                play={{
-                  onPlay: () => playAlbum(album),
-                  onShufflePlay: () => shufflePlayAlbum(album),
-                  label: album.name,
-                }}
-                isPlaying={currentAlbumId === album.id}
-              />
-            </div>
+            <ArtistAlbumContextMenu key={album.id} album={album} artistId={artist.id}>
+              <div className="w-40 flex-none sm:w-44">
+                <Card
+                  href={`/albums/${album.id}`}
+                  title={album.name}
+                  cover={<CoverArt coverArt={album.coverArt} alt={`Cover art for ${album.name}`} />}
+                  fields={[
+                    {
+                      content: album.year !== undefined && album.year !== null && (
+                        <Link href={`/years/${album.year}`} className="hover:text-muted">
+                          {album.year}
+                        </Link>
+                      ),
+                    },
+                  ]}
+                  favorite={{
+                    starred: album.starred,
+                    onClick: () => handleAlbumFavorite(album, !album.starred),
+                    label: album.starred ? 'Remove favorite' : 'Add favorite',
+                  }}
+                  rating={{
+                    value: album.rating,
+                    onRate: (rating) => handleAlbumRate(album, rating || undefined),
+                  }}
+                  play={{
+                    onPlay: () => playAlbum(album),
+                    onShufflePlay: () => shufflePlayAlbum(album),
+                    label: album.name,
+                  }}
+                  isPlaying={currentAlbumId === album.id}
+                />
+              </div>
+            </ArtistAlbumContextMenu>
           ))}
         </ScrollRow>
       ) : (
@@ -314,8 +397,38 @@ export function Artist({ user }: { user: User }) {
         onRate={handleTrackRate}
         getFavorite={(track) => track.starred}
         getRating={(track) => track.rating}
+        renderContextMenu={(_track, children, selectedItems) => (
+          <ArtistTrackContextMenu
+            songs={selectedItems}
+            onEdit={() => setSongEditing(selectedItems)}
+            isAdmin={user.isAdmin}
+          >
+            {children}
+          </ArtistTrackContextMenu>
+        )}
         emptyMessage="No tracks found."
       />
+
+      {songEditing && songEditing.length > 0 && (
+        <EditEntityModal
+          open
+          entityType="song"
+          entities={songEditing.map((song) => ({
+            ...song,
+            artist: song.artistName,
+            album: song.albumName,
+          }))}
+          entity={
+            songEditing.length === 1
+              ? { ...songEditing[0], artist: songEditing[0].artistName, album: songEditing[0].albumName }
+              : undefined
+          }
+          onClose={() => setSongEditing(null)}
+          onSave={handleSongSave}
+          onSaveMany={handleSongSaveMany}
+          saving={songMutation.isPending}
+        />
+      )}
 
       {editing && artist && (
         <EditEntityModal

@@ -102,6 +102,30 @@ describe('Artist detail (react-query, embedded songs, P5)', () => {
     expect(mockApi.mock.calls.filter((call) => String(call[0]).startsWith('/artists/'))).toHaveLength(1);
   });
 
+  it('opens the album context menu on the album cards', async () => {
+    renderArtist('/artists/ar-1');
+    await screen.findByText('Track s1');
+
+    fireEvent.contextMenu(screen.getAllByText('Some Album')[0]);
+
+    const menu = screen.getByRole('menu');
+    expect(menu).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Play' })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: /add to playlist/i })).toBeTruthy();
+  });
+
+  it('opens the track context menu on the track rows', async () => {
+    renderArtist('/artists/ar-1');
+    await screen.findByText('Track s1');
+
+    fireEvent.contextMenu(screen.getByText('Track s1'));
+
+    const menu = screen.getByRole('menu');
+    expect(menu).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: /add to playlist/i })).toBeTruthy();
+    expect(screen.queryByRole('menuitem', { name: /remove from playlist/i })).toBeNull();
+  });
+
   it('renders the error state with retry; retrying recovers', async () => {
     let fail = true;
     mockApi.mockImplementation(async (path: string) => {
