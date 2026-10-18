@@ -56,6 +56,35 @@ func TestBuildTargetPathEveryToken(t *testing.T) {
 	}
 }
 
+// Compilation fallback: no album-artist tag + several track artists lands
+// under "Various Artists" (same rule as the scanner's album grouping), while
+// single-artist files keep falling back to the track artist.
+func TestBuildTargetPathCompilationFallback(t *testing.T) {
+	compilation := &audio.Metadata{
+		Title:   "The Title",
+		Artists: []string{"Artist A", "Artist B"},
+		Album:   "The Album",
+		TrackNo: 1,
+	}
+	got := ingest.BuildTargetPath("{albumArtist}/{album}/{track} - {title}", "/lib", compilation, "/src/file.flac")
+	want := filepath.Join("/lib", "Various Artists/The Album/1 - The Title.flac")
+	if got != want {
+		t.Fatalf("compilation: got %s, want %s", got, want)
+	}
+
+	single := &audio.Metadata{
+		Title:   "The Title",
+		Artists: []string{"Artist A"},
+		Album:   "The Album",
+		TrackNo: 1,
+	}
+	got = ingest.BuildTargetPath("{albumArtist}/{album}", "/lib", single, "/src/file.flac")
+	want = filepath.Join("/lib", "Artist A/The Album.flac")
+	if got != want {
+		t.Fatalf("single artist: got %s, want %s", got, want)
+	}
+}
+
 func TestBuildTargetPathAbsentValues(t *testing.T) {
 	// Title carries the filename fallback ReadMetadata would have applied
 	// (the old readMetadata ran before buildTargetPath saw the tags).

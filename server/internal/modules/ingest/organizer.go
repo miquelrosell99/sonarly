@@ -67,7 +67,14 @@ func buildVariables(meta *audio.Metadata) map[string]string {
 		albumArtist = meta.AlbumArtist
 	}
 	if albumArtist == "" {
-		albumArtist = artist
+		// Same compilation fallback as the scanner's album grouping: a file
+		// with several track artists and no album-artist tag lands under
+		// "Various Artists", not under the first track artist.
+		if len(meta.Artists) > 1 {
+			albumArtist = library.VariousArtists
+		} else {
+			albumArtist = artist
+		}
 	}
 	genre := firstNonEmpty(meta.Genres)
 

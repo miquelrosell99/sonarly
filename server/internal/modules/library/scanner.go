@@ -562,7 +562,7 @@ func (s *Scanner) persistCoverOnly(ctx context.Context, path string, meta *audio
 	}()
 
 	artistNames := artistNames(meta)
-	albumArtistNames := albumArtistNames(meta, artistNames)
+	albumArtistNames := AlbumArtistNames(meta, artistNames)
 	var genreIDs []string
 	for _, name := range meta.Genres {
 		id, err := ensureGenre(ctx, tx, name)
