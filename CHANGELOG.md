@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.5] - 2026-10-18
+
 ### Added
 
 - **Add to playlist from anywhere**: the context menus on tracks (single and multi-selection), albums, and artists gain "Add to playlist", opening a picker modal where one or more playlists can be selected (smart playlists excluded — their membership is rule-driven). Songs can also be dragged from any song list (tracks, search, artist, album, playlist) onto a sidebar playlist entry. Backed by the new `POST /api/playlists/{id}/songs` endpoint: union append, existing order preserved, duplicates always skipped.
@@ -352,7 +354,8 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.4...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.5...HEAD
+[3.1.5]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.5
 [3.1.4]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.4
 [3.1.3]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.3
 [3.1.2]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.2
