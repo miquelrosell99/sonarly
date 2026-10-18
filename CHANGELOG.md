@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.6] - 2026-10-18
+
 ### Fixed
 
 - **Design-system audit 2026-10-18 — Criticals**: the playing row in song tables and the current row in the queue panel no longer carry a full-row accent tint (accent is reserved for interactive/selected/progress signals; the playing bars + accent title already carried it), and the share-dialog selected tab loses its drop shadow (elevation is for floating layers only).
