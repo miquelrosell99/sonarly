@@ -406,7 +406,7 @@ export function SharePlaylistModal({
         role="tablist"
         aria-label="Playlist sharing"
         onKeyDown={handleTabListKeyDown}
-        className="mb-5 flex items-center gap-1 rounded-full border border-rule/50 bg-bg-primary/60 p-1"
+        className="mb-5 flex items-center gap-1 rounded-full border border-rule bg-bg-primary/60 p-1"
       >
         {SHARE_TABS.map((tab) => (
           <TabButton

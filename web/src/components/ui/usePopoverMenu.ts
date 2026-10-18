@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type MutableRefObject } from 'react';
 import { computeAnchoredMenuPosition, type MenuPlacement, type Point } from '../../lib/menuPosition.js';
+import { createMenuTypeahead } from '../../lib/menuTypeahead.js';
 
 export type PopoverMenuPlacement = MenuPlacement;
 
@@ -136,14 +137,29 @@ export function usePopoverMenu<T extends HTMLElement = HTMLButtonElement>({
     return () => observer.disconnect();
   }, [open, portal, positionMenu]);
 
+  // APG typeahead (printable-character jump-to-item), shared with
+  // ItemContextMenu via lib/menuTypeahead. The item query is inlined (rather
+  // than closing over getEnabledMenuItems below) to avoid the TDZ — this
+  // memo runs during render, before later consts initialize.
+  const typeahead = useMemo(
+    () =>
+      createMenuTypeahead(() =>
+        Array.from(
+          menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])') ?? [],
+        ),
+      ),
+    [],
+  );
+
   // Move focus to the first menu item when the menu opens.
   useLayoutEffect(() => {
     if (!open) return;
+    typeahead.reset();
     const menu = menuRef.current;
     if (!menu) return;
     const firstItem = menu.querySelector<HTMLElement>('[role="menuitem"]:not([disabled])');
     firstItem?.focus();
-  }, [open]);
+  }, [open, typeahead]);
 
   const getEnabledMenuItems = () =>
     Array.from(
@@ -165,7 +181,10 @@ export function usePopoverMenu<T extends HTMLElement = HTMLButtonElement>({
   };
 
   const handleMenuKeyDown = (e: ReactKeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      typeahead.handleKey(e.key);
+    } else if (e.key === 'ArrowDown') {
       e.preventDefault();
       focusMenuItem(1);
     } else if (e.key === 'ArrowUp') {

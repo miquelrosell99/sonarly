@@ -326,7 +326,7 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
           <BrandMark className="h-7 w-7" />
           <span className="hidden font-display min-[420px]:block">Sonarly</span>
         </Link>
-        <div className="ml-2 hidden w-44 shrink-0 border-l border-rule/60 pl-2 md:block">
+        <div className="ml-2 hidden w-44 shrink-0 border-l border-rule pl-2 md:block">
           <LibrarySelector
             libraries={librariesData?.libraries ?? []}
             selectedLibraryId={selectedLibraryId}

@@ -74,6 +74,51 @@ describe('ItemContextMenu', () => {
     expect(screen.getByText('Delete').className.includes('text-danger')).toBe(true);
   });
 
+  it('moves focus with printable-character typeahead', () => {
+    vi.useFakeTimers();
+    try {
+      render(
+        <ItemContextMenu
+          sections={[
+            {
+              items: [
+                { id: 'queue', label: 'Add to queue', onClick: vi.fn() },
+                { id: 'play', label: 'Play next', onClick: vi.fn() },
+                { id: 'star', label: 'Star', onClick: vi.fn() },
+              ],
+            },
+          ]}
+        >
+          <div data-testid="target">Right click me</div>
+        </ItemContextMenu>,
+      );
+      fireEvent.contextMenu(screen.getByTestId('target'));
+      const menu = screen.getByRole('menu');
+      const items = screen.getAllByRole('menuitem');
+
+      // Opening moves focus to the first item.
+      expect(document.activeElement).toBe(items[0]);
+
+      fireEvent.keyDown(menu, { key: 'p' });
+      expect(document.activeElement).toBe(items[1]);
+
+      // Multi-character buffer that matches nothing keeps focus put.
+      fireEvent.keyDown(menu, { key: 'l' });
+      expect(document.activeElement).toBe(items[1]);
+
+      // Past the 500ms reset window the buffer starts over.
+      vi.advanceTimersByTime(600);
+      fireEvent.keyDown(menu, { key: 's' });
+      expect(document.activeElement).toBe(items[2]);
+
+      vi.advanceTimersByTime(600);
+      fireEvent.keyDown(menu, { key: 'a' });
+      expect(document.activeElement).toBe(items[0]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('clamps the menu position to the viewport', () => {
     const originalWidth = window.innerWidth;
     const originalHeight = window.innerHeight;

@@ -1,7 +1,8 @@
-import { Children, cloneElement, isValidElement, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { Children, cloneElement, isValidElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../lib/cn.js';
 import { computeAnchoredMenuPosition, computePointerMenuPosition, type MenuPlacement, type Point } from '../lib/menuPosition.js';
+import { createMenuTypeahead } from '../lib/menuTypeahead.js';
 import { Icon } from './ui/Icon.js';
 
 export interface ContextMenuItem {
@@ -43,6 +44,18 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
   // Pointer position for pointer/long-press opens; the layout effect
   // measures the menu and clamps/flips around it before paint.
   const pointerPosRef = useRef<Point | null>(null);
+
+  // APG typeahead (printable-character jump-to-item), shared with
+  // usePopoverMenu via lib/menuTypeahead.
+  const typeahead = useMemo(
+    () =>
+      createMenuTypeahead(() =>
+        Array.from(
+          menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])') ?? [],
+        ),
+      ),
+    [],
+  );
 
   const cancelLongPress = () => {
     if (longPressTimerRef.current !== null) {
@@ -117,11 +130,12 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
 
   useLayoutEffect(() => {
     if (!open) return;
+    typeahead.reset();
     const menu = menuRef.current;
     if (!menu) return;
     const firstItem = menu.querySelector<HTMLElement>('[role="menuitem"]:not([disabled])');
     firstItem?.focus();
-  }, [open]);
+  }, [open, typeahead]);
 
   const getEnabledMenuItems = () =>
     Array.from(
@@ -150,7 +164,10 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
   };
 
   const handleMenuKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      typeahead.handleKey(e.key);
+    } else if (e.key === 'ArrowDown') {
       e.preventDefault();
       focusMenuItem(1);
     } else if (e.key === 'ArrowUp') {

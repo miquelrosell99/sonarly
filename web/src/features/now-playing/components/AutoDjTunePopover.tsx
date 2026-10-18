@@ -136,9 +136,9 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
       role="dialog"
       aria-label="Auto DJ settings"
       style={style}
-      className="fixed z-50 flex w-[min(19rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-popover border border-rule/50 bg-surface shadow-2xl"
+      className="fixed z-50 flex w-[min(19rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-popover border border-rule bg-surface shadow-2xl"
     >
-      <div className="flex items-center justify-between border-b border-rule/50 px-3 py-2">
+      <div className="flex items-center justify-between border-b border-rule px-3 py-2">
         <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-fg-primary">
           <Icon name="mdi-record-player" size={14} className="text-accent" />
           Auto DJ

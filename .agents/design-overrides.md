@@ -2,6 +2,15 @@
 
 Documented deviations from the [RosellRamos design system](/root/.agents/skills/rosellramos-design-system/SKILL.md). Contract: `rosellramos-design-system/references/overrides.md` — an undocumented deviation is drift; a documented one is a decision. Newest first; write the entry in the same pass as the deviation it records.
 
+### Now-playing panel translucency and hairlines (exception)
+
+- **Rule**: SKILL.md default 6 "Zero visual noise" — no tinted overlays or translucency on persistent chrome; hairlines render at the `--rule` token's own opacity.
+- **Decision**: The NowPlaying queue/lyrics panel (`web/src/features/now-playing/components/NowPlaying.tsx:325-328`) stays on `bg-surface/80 backdrop-blur-xl` over the page — including when no dominant color is set — and keeps its hairlines at `border-rule/50`. The now-playing background is an exception; the solid-fallback idea is not applied here.
+- **Rationale**: The panel floats over the (registered) ambient dominant-color wash; a fixed translucent scrim + backdrop blur is what keeps the queue/lyrics readable over a *changing* artwork-driven background, which a solid fill cannot do once the wash appears. The wash and the scrim are one immersive treatment. All other app chrome standardizes on solid surfaces and full-opacity `--rule` hairlines (done 2026-10-18).
+- **Scope**: surface — the NowPlaying queue/lyrics panel only. No other panel may use translucency over chrome.
+- **Ruled**: 2026-10-18 audit; owner exception same day.
+- **Review trigger**: now-playing redesign; removal of the ambient wash; a ruling against translucent chrome.
+
 ### Chrome surface-step (sidebar, player bar on `--surface`)
 
 - **Rule**: SKILL.md default 3 — solid sidebar on the ground color; checklist §7 "Sidebar — solid ground color, hairline separator, never its own card".
