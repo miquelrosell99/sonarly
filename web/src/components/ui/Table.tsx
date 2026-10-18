@@ -235,7 +235,7 @@ export function Table<T>({
                       'transition',
                       selectable && 'group cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
                       isSelected ? 'bg-surface-hover' : selectable ? 'hover:bg-surface-hover' : '',
-                      isPlayingTitle && 'bg-accent/10',
+                      dragIds !== undefined && dragIds.length > 0 && 'cursor-grab active:cursor-grabbing',
                     )}
                     onClick={selectable ? (e) => {
                       if (isInteractiveTarget(e.target, e.currentTarget)) return;

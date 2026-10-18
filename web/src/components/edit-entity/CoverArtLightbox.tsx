@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Icon } from '../ui/Icon.js';
 
 export function CoverArtLightbox({
@@ -9,6 +10,23 @@ export function CoverArtLightbox({
   alt: string;
   onClose: () => void;
 }) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    restoreFocusRef.current = document.activeElement as HTMLElement | null;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    closeButtonRef.current?.focus();
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      restoreFocusRef.current?.focus?.();
+      restoreFocusRef.current = null;
+    };
+  }, [onClose]);
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4"
@@ -18,6 +36,7 @@ export function CoverArtLightbox({
       aria-label="Cover art preview"
     >
       <button
+        ref={closeButtonRef}
         type="button"
         onClick={onClose}
         aria-label="Close preview"

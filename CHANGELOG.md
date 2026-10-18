@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Design-system audit 2026-10-18 — Criticals**: the playing row in song tables and the current row in the queue panel no longer carry a full-row accent tint (accent is reserved for interactive/selected/progress signals; the playing bars + accent title already carried it), and the share-dialog selected tab loses its drop shadow (elevation is for floating layers only).
+- **Dialogs**: every modal now enters with a 400ms ease-out animation and locks page scroll behind the backdrop (nested dialogs counted); the queue popover restores focus to its trigger on close; the cover-art lightbox closes on Escape and manages focus; the upload dialog's close button shows its disabled state while uploading.
+- **Keyboard and screen-reader gaps**: icon-only buttons in the fetch-metadata/lyrics dialogs gain `aria-label`s; the players dropdown stops announcing itself as an empty menu; the toast dismiss becomes a real icon button with a focus ring; sidebar playlist links keep their name (the drag hint moves to `aria-describedby`); the library picker opens with arrow-key navigation; page and settings titles become the page `<h1>` and detail-page section titles step down correctly.
+- **Interactive-state coverage**: `.btn-ghost` and the playlist-type segmented buttons gain disabled dimming; text buttons bump to 44px on touch screens; the crash/recovery buttons use the shared Button primitive (darken-on-hover, press feedback, right radius); favorite/star buttons get press + disabled states.
+- **Destructive actions**: revoking a share link or removing a member from a shared playlist now asks for confirmation first.
+
+### Changed
+
+- **Loading feedback follows the design-system choreography**: a new `useDelayedVisible` hook keeps spinners and route skeletons hidden for the first 300ms, so fast loads no longer flash affordances (page states, the add-to-playlist picker, lazy-route fallbacks).
+- **Selection idioms unified**: selected rows in the library picker use accent text + a check mark instead of a full-row accent fill; drag-over feedback uses the same quiet hover fill everywhere; draggable rows show a grab cursor; selected playing/current rows everywhere rely on the small-indicator + accent-text idiom.
+- **Accent stays off chrome**: statistics section icons, the "Listening time" eyebrow, and top-3 rank badges go quiet (foreground tones); the settings rail paints its active indicator as a real element instead of an inset box-shadow.
+- **The "no playlists yet" picker state** now uses the standard empty-state composition with a "Create playlist" shortcut.
+
+### Documentation
+
+- `.agents/design-overrides.md` gains entries for the conventions the audit surfaced: the sidebar/player-bar surface step, the full-pill Login button, the `rounded-full` pill convention, the statistics proportional data-bar tint, and the card hover scrim.
+
 ## [3.1.5] - 2026-10-18
 
 ### Added

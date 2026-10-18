@@ -126,6 +126,7 @@ export function ListRow({
         'group h-12 cursor-pointer select-none transition outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
         isSelected ? 'bg-surface-hover' : 'hover:bg-surface-hover',
         isDragging && 'z-10 scale-[1.02] shadow-lg',
+        draggable && 'cursor-grab active:cursor-grabbing',
         className,
       )}
       onClick={handleClick}

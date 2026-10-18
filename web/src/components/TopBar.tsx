@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import type { User } from '../types';
@@ -48,25 +48,47 @@ export function usePlayers(userId: string) {
 
 function PlayersDropdown({ user }: { user: User }) {
   const { data: players = [] } = usePlayers(user.id);
-  const menu = usePopoverMenu<HTMLButtonElement>({ portal: false });
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const otherPlayers = useMemo(
     () => players.filter((player) => player.userId !== user.id),
     [players, user.id],
   );
 
+  // Plain popover (not a menu — the rows are static player info, not
+  // menuitems): outside mousedown and Escape close it.
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    const handleMouse = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKey);
+    document.addEventListener('mousedown', handleMouse);
+    return () => {
+      document.removeEventListener('keydown', handleKey);
+      document.removeEventListener('mousedown', handleMouse);
+    };
+  }, [open]);
+
   if (otherPlayers.length === 0) return null;
 
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative">
       <button
         type="button"
-        {...menu.triggerProps}
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
         aria-label={`Connected devices (${otherPlayers.length})`}
         title={`Connected devices (${otherPlayers.length})`}
         className={cn(
           'relative flex h-9 w-9 items-center justify-center rounded-full text-fg-secondary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
-          menu.open ? 'bg-surface-hover text-fg-primary' : 'hover:bg-surface-hover hover:text-fg-primary',
+          open ? 'bg-surface-hover text-fg-primary' : 'hover:bg-surface-hover hover:text-fg-primary',
         )}
       >
         <Icon name="mdi-cast-audio" size={20} />
@@ -75,10 +97,10 @@ function PlayersDropdown({ user }: { user: User }) {
         </span>
       </button>
 
-      {menu.open && (
+      {open && (
         <div
-          ref={menu.menuRef}
-          {...menu.menuProps}
+          role="dialog"
+          aria-label="Players"
           className="absolute right-0 top-full z-40 mt-2 w-64 rounded-popover border border-rule bg-surface p-1 shadow-xl"
         >
           {otherPlayers.map((player) => (
@@ -110,7 +132,7 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
         ref={menu.triggerRef}
         type="button"
         {...menu.triggerProps}
-        className="flex items-center gap-2 rounded-full p-1 pr-3 text-left transition hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="flex items-center gap-2 rounded-full p-1 pr-3 text-left transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
         <Avatar user={user} className="h-8 w-8" />
         <span className="hidden max-w-[8rem] truncate text-sm font-medium md:block">

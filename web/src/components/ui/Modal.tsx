@@ -10,6 +10,7 @@ export interface ModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
+  closeDisabled?: boolean;
 }
 
 // a[href], not [href]: bare [href] also matches SVG <use> refs,
@@ -17,13 +18,35 @@ export interface ModalProps {
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function Modal({ open, onClose, title, children, footer, className }: ModalProps) {
+// Body scroll-lock shared by all modal instances: the first lock captures the
+// original overflow and the last unlock restores it, so nested modals
+// (Modal inside Modal) never release the lock prematurely.
+let bodyLockCount = 0;
+let bodyLockOriginalOverflow: string | null = null;
+
+export function Modal({ open, onClose, title, children, footer, className, closeDisabled }: ModalProps) {
   // FF11: scope the title id per modal instance so simultaneously open
   // modals (QueueModal over NowPlaying over lyrics editors) never produce
   // duplicate aria-labelledby targets.
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    if (bodyLockCount === 0) {
+      bodyLockOriginalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
+    bodyLockCount += 1;
+    return () => {
+      bodyLockCount -= 1;
+      if (bodyLockCount === 0) {
+        document.body.style.overflow = bodyLockOriginalOverflow ?? '';
+        bodyLockOriginalOverflow = null;
+      }
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -89,7 +112,7 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
         ref={dialogRef}
         tabIndex={-1}
         className={cn(
-          'flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-sheet border border-rule bg-surface shadow-2xl outline-none',
+          'dialog-enter flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-sheet border border-rule bg-surface shadow-2xl outline-none',
           className,
         )}
       >
@@ -98,8 +121,9 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
           <button
             type="button"
             onClick={onClose}
+            disabled={closeDisabled}
             aria-label="Close"
-            className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Icon name="mdi-close" size={20} />
           </button>

@@ -57,7 +57,7 @@ export function EditableCoverArt({
               disabled={busy}
               aria-label="Change cover art"
               title="Change cover art"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-fg-primary shadow-sm transition hover:bg-surface-hover hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-fg-primary transition hover:bg-surface-hover hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Icon name="mdi-pencil" size={18} />
             </button>
@@ -72,7 +72,7 @@ export function EditableCoverArt({
               disabled={busy}
               aria-label="Remove cover art"
               title="Remove cover art"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-fg-primary shadow-sm transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-fg-primary transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Icon name="mdi-delete" size={18} />
             </button>

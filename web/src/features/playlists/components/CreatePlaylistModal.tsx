@@ -193,7 +193,7 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
                   onClick={() => requestModeSwitch(mode)}
                   disabled={save.isPending || loadingPlaylist}
                   className={cn(
-                    'rounded-input px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                    'rounded-input px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50',
                     isSmart === (mode === 'smart')
                       ? 'bg-accent text-bg-primary'
                       : 'text-fg-secondary hover:text-fg-primary',
@@ -221,7 +221,7 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
                     onClick={() => setResolveMode(mode)}
                     disabled={save.isPending || loadingPlaylist}
                     className={cn(
-                      'rounded-input px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                      'rounded-input px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50',
                       resolveMode === mode
                         ? 'bg-accent text-bg-primary'
                         : 'text-fg-secondary hover:text-fg-primary',

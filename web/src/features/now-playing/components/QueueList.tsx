@@ -191,7 +191,7 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
       case 'past':
         return 'opacity-50';
       case 'current':
-        return 'bg-accent/10';
+        return '';
       default:
         return '';
     }

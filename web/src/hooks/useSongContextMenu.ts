@@ -40,11 +40,6 @@ export function useSongContextMenu(
     },
     {
       items: [
-        { id: 'add-to-playlist', label: 'Add to playlist', icon: 'mdi-playlist-music', onClick: () => openAddToPlaylist([song]) },
-      ],
-    },
-    {
-      items: [
         ...(song.albumId
           ? [{ id: 'go-to-album', label: 'Go to album', icon: 'mdi-album', onClick: () => navigate(`/albums/${song.albumId}`) }]
           : []),
@@ -54,6 +49,14 @@ export function useSongContextMenu(
       ],
     },
   ];
+
+  if (getShareToken() === undefined) {
+    sections.push({
+      items: [
+        { id: 'add-to-playlist', label: 'Add to playlist', icon: 'mdi-playlist-music', onClick: () => openAddToPlaylist([song]) },
+      ],
+    });
+  }
 
   if (allowDownload) {
     sections.push({

@@ -287,7 +287,7 @@ export function Artist({ user }: { user: User }) {
         </ScrollRow>
       ) : (
         <>
-          <h3 className="mb-3 text-sm font-medium text-fg-secondary">Albums</h3>
+          <h2 className="mb-3 text-sm font-medium text-fg-secondary">Albums</h2>
           <p className="py-4 text-sm text-muted">No albums found.</p>
         </>
       )}

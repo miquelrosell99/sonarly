@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react';
+import { Button } from './ui/Button.js';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -54,13 +55,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <div className="flex flex-col items-center gap-3 text-center">
             <span className="text-base font-medium text-fg-primary">Something went wrong</span>
             <span className="text-sm">This view crashed unexpectedly.</span>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="rounded-item bg-accent px-4 py-2 text-sm font-medium text-bg-primary transition hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            >
+            <Button type="button" onClick={() => window.location.reload()}>
               Reload
-            </button>
+            </Button>
           </div>
         </div>
       );

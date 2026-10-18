@@ -262,7 +262,7 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
   const modalOnClose = isUploading ? () => {} : onClose;
 
   return (
-    <Modal open={open} onClose={modalOnClose} title="Upload" footer={footer} className="max-w-2xl">
+    <Modal open={open} onClose={modalOnClose} title="Upload" footer={footer} className="max-w-2xl" closeDisabled={isUploading}>
       <div className="space-y-4">
         {isUploading ? (
           <div className="flex flex-col items-center justify-center gap-5 py-8 text-center">
@@ -351,7 +351,7 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
           className={cn(
             'relative flex flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed p-8 text-center transition',
             isDragging
-              ? 'border-accent bg-accent/10'
+              ? 'border-accent bg-surface-hover'
               : 'border-rule bg-surface hover:border-fg-secondary/40',
           )}
         >

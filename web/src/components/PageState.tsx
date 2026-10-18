@@ -1,4 +1,5 @@
 import { cn } from '../lib/cn.js';
+import { useDelayedVisible } from '../hooks/useDelayedVisible.js';
 import { Button } from './ui/Button.js';
 import { EmptyState } from './ui/EmptyState.js';
 import { Icon } from './ui/Icon.js';
@@ -32,14 +33,21 @@ export function PageState({
   className,
   children,
 }: PageStateProps) {
+  const showSpinner = useDelayedVisible(!!loading, 300);
   if (loading) {
+    // Loading choreography: the container keeps its place from the first
+    // frame; only the spinner + message appear, and only after 300 ms.
     return (
       <div
         role="status"
         className={cn('flex flex-col items-center justify-center gap-2 py-8 text-sm text-muted', className)}
       >
-        <Icon name="mdi-loading" size={24} className="animate-spin motion-reduce:animate-none" />
-        <p>{loadingMessage}</p>
+        {showSpinner && (
+          <>
+            <Icon name="mdi-loading" size={24} className="animate-spin motion-reduce:animate-none" />
+            <p>{loadingMessage}</p>
+          </>
+        )}
       </div>
     );
   }

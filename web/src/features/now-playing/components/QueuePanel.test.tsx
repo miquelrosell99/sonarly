@@ -195,11 +195,10 @@ describe('QueuePanel', () => {
 
     render(<QueuePanel user={mockUser} />, { wrapper: Wrapper });
     const pastRow = screen.getByText('Past').closest('tr');
-    const currentRow = screen.getByText('Current').closest('tr');
     const futureRow = screen.getByText('Future').closest('tr');
 
     expect(pastRow?.className).toContain('opacity-50');
-    expect(currentRow?.className).toContain('bg-accent/10');
+    expect(screen.getByText('Current').className).toContain('text-accent');
     expect(futureRow?.className).not.toContain('opacity-50');
     expect(futureRow?.className).not.toContain('bg-accent/10');
   });

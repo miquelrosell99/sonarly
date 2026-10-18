@@ -54,7 +54,7 @@ function SidebarNavLink({
     <Link
       href={href}
       className={cn(
-        'group relative flex items-center gap-3 rounded-item px-3 py-2 text-sm font-medium transition',
+        'group relative flex items-center gap-3 rounded-item px-3 py-2 text-sm font-medium transition [@media(pointer:coarse)]:min-h-11',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         active
           ? 'bg-surface-hover text-accent'
@@ -331,6 +331,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
   return (
     <>
       <aside
+        aria-label="Navigation"
         className={cn(
           'hidden shrink-0 flex-col border-r border-rule/60 bg-surface md:flex',
           rail ? 'w-[4.5rem]' : 'w-60',
