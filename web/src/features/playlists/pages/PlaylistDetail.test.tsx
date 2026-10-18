@@ -46,13 +46,13 @@ afterEach(() => {
 
 let playlistOwnerId = 'user-1';
 
-function renderPlaylistDetail({ ownerId = 'user-1' } = {}) {
+function renderPlaylistDetail({ ownerId = 'user-1', isAdmin = false } = {}) {
   playlistOwnerId = ownerId;
   window.history.pushState({}, '', '/playlists/playlist-1');
   const user = {
     id: 'user-1',
     username: 'user',
-    isAdmin: false,
+    isAdmin,
     createdAt: new Date().toISOString(),
   };
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -121,7 +121,9 @@ describe('PlaylistDetail', () => {
   });
 
   it('removes a track from the playlist via the row context menu', async () => {
-    const { queryClient } = renderPlaylistDetail();
+    // Even for admins the playlist row menu must not offer file deletion —
+    // rows are membership, "Remove from playlist" is the destructive-ish act.
+    const { queryClient } = renderPlaylistDetail({ isAdmin: true });
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
     await waitFor(() => {
@@ -137,6 +139,7 @@ describe('PlaylistDetail', () => {
     const addIdx = labels.findIndex((l) => l?.includes('Add to playlist'));
     expect(addIdx).toBeGreaterThanOrEqual(0);
     expect(labels[addIdx + 1]).toContain('Remove from playlist');
+    expect(labels.some((l) => /delete/i.test(l ?? ''))).toBe(false);
 
     fireEvent.click(within(menu).getByRole('menuitem', { name: /remove from playlist/i }));
 

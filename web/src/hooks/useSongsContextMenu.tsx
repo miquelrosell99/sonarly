@@ -24,6 +24,12 @@ export interface SongsContextMenuOptions {
    * rewrite; the entry is membership-only and never touches files.
    */
   onRemoveFromPlaylist?: () => void;
+  /**
+   * Whether the file-delete entry shows for admins. Views whose rows are
+   * playlist membership (not library files) pass false — removal there is
+   * membership-only and "Delete tracks" would destroy user files.
+   */
+  allowDelete?: boolean;
 }
 
 export interface SongsContextMenu {
@@ -121,7 +127,7 @@ export function useSongsContextMenu(
       });
     }
 
-    if (isAdmin ?? true) {
+    if ((isAdmin ?? true) && (options?.allowDelete ?? true)) {
       const label = count === 1 ? 'Edit' : `Edit ${count} songs`;
       sections.push({
         items: [{ id: 'edit', label, icon: 'mdi-pencil', onClick: onEdit }],

@@ -57,7 +57,13 @@ function PlaylistSongContextMenu({
   onRemoveFromPlaylist?: () => void;
   children: React.ReactNode;
 }) {
-  const { sections, deleteConfirm } = useSongsContextMenu(songs, onEdit, isAdmin, { allowDownload, onRemoveFromPlaylist });
+  const { sections, deleteConfirm } = useSongsContextMenu(songs, onEdit, isAdmin, {
+    allowDownload,
+    onRemoveFromPlaylist,
+    // Rows are playlist membership, not library files: admins remove tracks
+    // via "Remove from playlist" — the file-delete entry must not appear here.
+    allowDelete: false,
+  });
   return (
     <>
       <ItemContextMenu sections={sections}>{children}</ItemContextMenu>
