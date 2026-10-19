@@ -19,9 +19,18 @@ export const LIMITS = {
   // SponsorButton in the TopBar, the boot-error retry), bringing
   // @radix-ui/react-slot + cva into the entry. Deliberate, ~4 KiB; revisit
   // by lazy-loading the playlist modal, not by de-cataloging the shell.
-  entry: 260 * 1024,
+  // 260 → 380 KiB (2026-10-19, menu/select catalog migration): the Radix
+  // dropdown-menu (TopBar user menu, player-bar track/sleep menus) and the
+  // Radix select (UploadModal via the TopBar) are shell chrome now — the
+  // runtime cost of retiring usePopoverMenu and the native selects, ordered
+  // by the owner. ~+100 KiB is the radix menu/select/popover runtime plus
+  // the migrated call sites; revisit by lazy-loading the upload flow, not
+  // by de-cataloging the shell.
+  entry: 380 * 1024,
   lazyChunk: 350 * 1024,
-  total: 900 * 1024,
+  // 900 → 940 KiB (same migration): the catalog runtime lands in both the
+  // entry and the lazy route chunks that host the migrated modals/pages.
+  total: 940 * 1024,
 };
 
 const VENDOR_RE = /^(react|tanstack|dnd-kit|wouter|zustand)-.+\.js$/;

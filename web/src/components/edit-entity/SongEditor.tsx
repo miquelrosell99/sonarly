@@ -1,4 +1,5 @@
 import { Button } from '../ui/button.js';
+import { Textarea } from '../ui/textarea.js';
 import { CoverArtSection } from './CoverArtSection.js';
 import { EditorSection } from './EditorSection.js';
 import { Field } from './Field.js';
@@ -78,14 +79,14 @@ export function SongEditor({
       <EditorSection title="Lyrics">
         <div className="space-y-3">
           <Field label="Lyrics" htmlFor="edit-lyrics">
-            <textarea
+            <Textarea
               id="edit-lyrics"
               value={String(values.lyrics ?? '')}
               onChange={(e) => onValueChange('lyrics', e.target.value)}
               placeholder="Add lyrics..."
               rows={5}
               disabled={readOnly}
-              className="input w-full resize-none py-2 align-top !h-auto min-h-[8rem]"
+              className="resize-none !h-auto min-h-[8rem]"
             />
           </Field>
 

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Buttons are now full pills (corner-full 9999px)**: the fleet-wide ruling (M3 corner-full buttons at every size) supersedes sonarly's registered 16px button shape — every button, including the Login sign-in, now wears the corner-full radius via the shared `rounded-button` token.
+- **Native selects are now the design system's dropdown field**: every picker (upload library/duplicate strategy, filters, media/user/genre/library admin settings, smart-playlist rule and sort editors, playlist sharing roles, ingest library) renders the catalog select component with the shared focus/hover registers. Empty "no selection" options keep their previous labels ("All", "Original format", "Custom", "No parent (root)"); the smart-playlist rating picker gains an explicit "Any rating" entry where the field previously rendered blank.
 
 ## [3.1.11] - 2026-10-18
 

@@ -12,9 +12,10 @@
 //     coarse-pointer 44px touch floor live in the base.
 //   - THE APP PRIMITIVE: this file also hosts the sonarly Button contract
 //     (the old components/ui/Button.tsx): primary/ghost/danger variants,
-//     the loading register (spinner + aria-busy + disabled), and the
-//     marker classes (.btn/.btn-ghost/.btn-danger) kept as documented hooks
-//     for existing feature CSS in index.css.
+//     the loading register (spinner + aria-busy + disabled). The old
+//     .btn/.btn-ghost/.btn-danger marker classes retired with the last raw
+//     call sites and their index.css blocks (migration 2026-10-19) — no
+//     feature CSS cites them anymore.
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -70,15 +71,9 @@ export interface ButtonProps
   loading?: boolean
 }
 
-// Marker classes kept as documented hooks for existing feature CSS
-// (index.css .btn/.btn-ghost/.btn-danger). New variants (destructive,
-// outline, secondary, link) carry no legacy CSS and get no marker.
-const MARKER_BY_VARIANT: Record<string, string | undefined> = {
-  default: "btn",
-  primary: "btn",
-  ghost: "btn-ghost",
-  danger: "btn-danger",
-}
+// Marker classes retired 2026-10-19: the last raw .btn/.btn-ghost/.btn-danger
+// call sites now compose this primitive, and the index.css register blocks
+// went with them.
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, loading = false, disabled, children, ...props }, ref) => {
@@ -88,7 +83,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       // needs a wrapper element, so asChild renders children as-is.
       return (
         <Comp
-          className={cn(buttonVariants({ variant, size, className }), MARKER_BY_VARIANT[variant ?? "default"])}
+          className={cn(buttonVariants({ variant, size, className }))}
           ref={ref}
           disabled={disabled}
           {...props}
@@ -101,7 +96,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <Comp
         className={cn(
           buttonVariants({ variant, size, className }),
-          MARKER_BY_VARIANT[variant ?? "default"],
         )}
         ref={ref}
         disabled={disabled || loading}

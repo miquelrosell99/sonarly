@@ -91,7 +91,7 @@ describe('UploadModal', () => {
     expect(screen.getByLabelText(/duplicate strategy/i)).toBeTruthy();
 
     await waitFor(() => {
-      expect((screen.getByLabelText(/duplicate strategy/i) as HTMLSelectElement).value).toBe('skip');
+      expect(screen.getByLabelText(/duplicate strategy/i).textContent).toContain('Skip duplicate');
     });
   });
 
@@ -113,7 +113,7 @@ describe('UploadModal', () => {
   it('Cancel aborts an in-flight upload and keeps the file list', async () => {
     renderModal();
     await waitFor(() => {
-      expect((screen.getByLabelText(/duplicate strategy/i) as HTMLSelectElement).value).toBe('skip');
+      expect(screen.getByLabelText(/duplicate strategy/i).textContent).toContain('Skip duplicate');
     });
 
     addFile();
@@ -141,7 +141,7 @@ describe('UploadModal', () => {
     const onClose = vi.fn();
     renderModal({ onClose });
     await waitFor(() => {
-      expect((screen.getByLabelText(/duplicate strategy/i) as HTMLSelectElement).value).toBe('skip');
+      expect(screen.getByLabelText(/duplicate strategy/i).textContent).toContain('Skip duplicate');
     });
 
     addFile();

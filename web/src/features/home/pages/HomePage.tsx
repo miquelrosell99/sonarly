@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import type { Album, Song, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Icon } from '../../../components/ui/Icon.js';
+import { Button } from '../../../components/ui/button.js';
 import { PageState } from '../../../components/PageState.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
@@ -474,21 +475,13 @@ function FeaturedAlbumSlide({ album, active }: FeaturedAlbumSlideProps) {
           )}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={handlePlay}
-            disabled={loading}
-            className="btn h-12 px-8 text-base"
-          >
+          <Button type="button" onClick={handlePlay} disabled={loading} size="lg">
             <Icon name="mdi-play" size={22} />
             {loading ? 'Loading…' : 'Play'}
-          </button>
-          <Link
-            href={`/albums/${album.id}`}
-            className="btn-ghost h-12 px-8 text-base hover:text-on-surface"
-          >
-            View album
-          </Link>
+          </Button>
+          <Button variant="ghost" size="lg" asChild>
+            <Link href={`/albums/${album.id}`}>View album</Link>
+          </Button>
         </div>
       </div>
     </div>

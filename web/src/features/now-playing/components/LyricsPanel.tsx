@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { User } from '../../../types';
 import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
+import { Button } from '../../../components/ui/button.js';
 import { api } from '../../../lib/api.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { FetchLyricsModal } from '../../../components/FetchLyricsModal.js';
@@ -158,13 +159,9 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 text-on-surface-variant">
         <p className="text-sm">Could not load lyrics.</p>
-        <button
-          type="button"
-          onClick={() => refetch()}
-          className="btn-ghost text-xs"
-        >
+        <Button variant="ghost" className="text-xs" onClick={() => refetch()}>
           Retry
-        </button>
+        </Button>
       </div>
     );
   }

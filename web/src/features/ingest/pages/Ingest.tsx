@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Library } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/button.js';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../components/ui/select.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
 import { PageState } from '../../../components/PageState.js';
 import { ProgressBar } from '../../../components/ui/ProgressBar.js';
@@ -122,19 +129,22 @@ export function Ingest() {
       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold">Ingest Queue</h2>
         <div className="flex items-center gap-3">
-          <select
+          <Select
             value={selectedLibraryId}
-            onChange={(e) => setSelectedLibraryId(e.target.value)}
+            onValueChange={setSelectedLibraryId}
             disabled={triggering || libraries.length === 0}
-            className="input"
-            aria-label="Library"
           >
-            {libraries.map((library) => (
-              <option key={library.id} value={library.id}>
-                {library.name} {library.isDefault ? '(default)' : ''}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger aria-label="Library" className="w-auto min-w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {libraries.map((library) => (
+                <SelectItem key={library.id} value={library.id}>
+                  {library.name} {library.isDefault ? '(default)' : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button onClick={trigger} disabled={triggering || libraries.length === 0}>
             Trigger Ingest
           </Button>

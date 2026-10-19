@@ -14,6 +14,19 @@ import { Icon } from "@/components/ui/Icon"
 
 const Select = SelectPrimitive.Root
 
+// Same app overlay-authority convention as dropdown-menu.tsx: the open
+// overlay takes the first Escape — Radix dismisses without stopping the
+// event, and the app Modal stack listens on document keydown bubble, so an
+// unstopped Escape would close the enclosing dialog too.
+const composeEscapeSwallow = (
+  userHandler:
+    | ((event: KeyboardEvent) => void)
+    | undefined
+) => (event: KeyboardEvent) => {
+  userHandler?.(event)
+  event.stopPropagation()
+}
+
 const SelectGroup = SelectPrimitive.Group
 
 const SelectValue = SelectPrimitive.Value
@@ -76,10 +89,11 @@ SelectScrollDownButton.displayName =
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
+>(({ className, children, position = "popper", onEscapeKeyDown, ...props }, ref) => (
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
+      onEscapeKeyDown={composeEscapeSwallow(onEscapeKeyDown)}
       className={cn(
         "relative z-50 max-h-[--radix-select-content-available-height] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-popover border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-select-content-transform-origin]",
         position === "popper" &&

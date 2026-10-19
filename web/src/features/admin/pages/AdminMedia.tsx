@@ -3,6 +3,13 @@ import type { User, DuplicateStrategy } from '../../../types';
 import { DUPLICATE_STRATEGY_LABELS } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/button.js';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../components/ui/select.js';
 import { PageState } from '../../../components/PageState.js';
 import { AdminShell } from '../components/AdminShell.js';
 import { SettingsCard } from '../../settings/index.js';
@@ -234,17 +241,22 @@ function AdminMediaBody({
             <p className="mb-2 text-xs text-on-surface-variant">
               When an uploaded song matches an existing song by title, album, and artists.
             </p>
-            <select
-              id="duplicate-strategy"
+            <Select
               value={form.duplicateStrategy}
-              onChange={(e) => setForm((prev) => ({ ...prev, duplicateStrategy: e.target.value as DuplicateStrategy }))}
-              className="input w-full"
+              onValueChange={(value) => setForm((prev) => ({ ...prev, duplicateStrategy: value as DuplicateStrategy }))}
               disabled={saving}
             >
-              {Object.entries(DUPLICATE_STRATEGY_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
+              <SelectTrigger id="duplicate-strategy" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(DUPLICATE_STRATEGY_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label htmlFor="review-retention" className="mb-1 block text-sm font-medium">
@@ -253,19 +265,22 @@ function AdminMediaBody({
             <p className="mb-2 text-xs text-on-surface-variant">
               Files moved to the ingest review folder are deleted after this many days.
             </p>
-            <select
-              id="review-retention"
-              value={form.reviewRetentionDays}
-              onChange={(e) => setForm((prev) => ({ ...prev, reviewRetentionDays: Number(e.target.value) }))}
-              className="input w-full"
+            <Select
+              value={String(form.reviewRetentionDays)}
+              onValueChange={(value) => setForm((prev) => ({ ...prev, reviewRetentionDays: Number(value) }))}
               disabled={saving}
             >
-              {RETENTION_OPTIONS.map((days) => (
-                <option key={days} value={days}>
-                  {days} days
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id="review-retention" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {RETENTION_OPTIONS.map((days) => (
+                  <SelectItem key={days} value={String(days)}>
+                    {days} days
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </SettingsCard>

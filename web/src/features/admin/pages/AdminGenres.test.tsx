@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { selectRadixOption } from '../../../lib/testing.js';
 import { Router } from 'wouter';
 import type { User } from '../../../types';
 import { AdminGenres } from './AdminGenres.js';
@@ -146,7 +147,7 @@ describe('AdminGenres', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: /move classic rock/i }));
-    fireEvent.change(screen.getByLabelText(/move classic rock to parent/i), { target: { value: 'g3' } });
+    selectRadixOption(screen.getByLabelText(/move classic rock to parent/i), 'Jazz');
 
     await waitFor(() => {
       expect(mockApi).toHaveBeenCalledWith('/genres/g2', {
@@ -164,7 +165,7 @@ describe('AdminGenres', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: /move classic rock/i }));
-    fireEvent.change(screen.getByLabelText(/move classic rock to parent/i), { target: { value: '' } });
+    selectRadixOption(screen.getByLabelText(/move classic rock to parent/i), 'No parent (root)');
 
     await waitFor(() => {
       expect(mockApi).toHaveBeenCalledWith('/genres/g2', {
