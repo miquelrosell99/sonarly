@@ -17,7 +17,7 @@ import { SearchBox } from './SearchBox.js';
 import { BrandMark } from './BrandMark.js';
 import { LibrarySelector } from '../../features/entities/LibrarySelector.js';
 import { SponsorButton } from './SponsorButton.js';
-import { UploadModal, UploadResultsModal, type UploadSummary } from '../../components/UploadModal.js';
+import { UploadModal, UploadResultsModal, type UploadSummary } from '../edit-entity/UploadModal.js';
 import { useLibraryStore } from '../../stores/libraryStore.js';
 import { usePlaylists } from '../../hooks/usePlaylists.js';
 import { useAlbumsList, useLibraries, useSongsList } from '../../hooks/useLibraryLists.js';

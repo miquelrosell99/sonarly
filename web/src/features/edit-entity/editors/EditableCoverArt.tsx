@@ -1,6 +1,6 @@
-import { cn } from '../../lib/cn.js';
-import { CoverArt } from '../../features/entities/CoverArt.js';
-import { Icon } from '../ui/Icon.js';
+import { cn } from '../../../lib/cn.js';
+import { CoverArt } from '../../../features/entities/CoverArt.js';
+import { Icon } from '../../../components/ui/Icon.js';
 
 export function EditableCoverArt({
   coverArt,

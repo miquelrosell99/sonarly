@@ -1,6 +1,6 @@
 import { createElement, useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
-import { cn } from '../../lib/cn.js';
-import { AutocompleteInput, type AutocompleteField } from '../ui/AutocompleteInput.js';
+import { cn } from '../../../lib/cn.js';
+import { AutocompleteInput, type AutocompleteField } from '../../../components/ui/AutocompleteInput.js';
 import { chipShellClass, ChipMoveButtons, ChipRemoveButton } from './chipBits.js';
 import type { DndChipRowProps } from './PillDnd.js';
 

@@ -11,7 +11,7 @@ import { PlayButton } from '../../player/PlayButton.js';
 import { ScrollRow } from '../../entities/ScrollRow.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../library-view/index.js';
 import { ExplicitTitle } from '../../entities/ExplicitTitle.js';
-import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { EditEntityModal } from '../../edit-entity/EditEntityModal.js';
 import { ItemContextMenu } from '../../entities/ItemContextMenu.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';

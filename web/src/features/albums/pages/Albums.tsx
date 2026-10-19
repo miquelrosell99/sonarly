@@ -11,7 +11,7 @@ import { usePlayer } from '../../../stores/playerStore.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
 import { useAlbumContextMenu } from '../../../hooks/useAlbumContextMenu.js';
 import { ItemContextMenu } from '../../entities/ItemContextMenu.js';
-import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { EditEntityModal } from '../../edit-entity/EditEntityModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { useAlbumsList } from '../../../hooks/useLibraryLists.js';

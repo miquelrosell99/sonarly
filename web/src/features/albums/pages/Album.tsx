@@ -10,7 +10,7 @@ import { ExplicitTitle } from '../../entities/ExplicitTitle.js';
 import { PlayButton } from '../../player/PlayButton.js';
 import { EntityActionsMenu } from '../../entities/EntityActionsMenu.js';
 import { FavoriteRatingGroup } from '../../entities/FavoriteRatingGroup.js';
-import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { EditEntityModal } from '../../edit-entity/EditEntityModal.js';
 import { ItemContextMenu } from '../../entities/ItemContextMenu.js';
 import { useSongsContextMenu } from '../../../hooks/useSongsContextMenu.js';
 import { useAlbumContextMenu } from '../../../hooks/useAlbumContextMenu.js';

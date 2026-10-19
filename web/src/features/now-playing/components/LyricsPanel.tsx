@@ -6,7 +6,7 @@ import { Icon } from '../../../components/ui/Icon.js';
 import { Button } from '../../../components/ui/button.js';
 import { api } from '../../../lib/api.js';
 import { usePlayer } from '../../../stores/playerStore.js';
-import { FetchLyricsModal } from '../../../components/FetchLyricsModal.js';
+import { FetchLyricsModal } from '../../edit-entity/FetchLyricsModal.js';
 import { normalizeSyncedLyrics } from '../../../lib/syncedLyrics.js';
 import type { NowPlayingTab } from '../stores/nowPlayingStore.js';
 

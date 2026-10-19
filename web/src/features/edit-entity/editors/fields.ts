@@ -1,4 +1,4 @@
-import type { AutocompleteField } from '../ui/AutocompleteInput.js';
+import type { AutocompleteField } from '../../../components/ui/AutocompleteInput.js';
 
 export interface TagField {
   key: string;

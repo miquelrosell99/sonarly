@@ -23,7 +23,7 @@ import { useNotification } from '../../../contexts/NotificationContext.js';
 import { usePlaylist } from '../../../hooks/usePlaylist.js';
 import { useCreatePlaylistModal } from '../../../hooks/useCreatePlaylistModal.js';
 import { SongTable } from '../../songs/components/SongTable.js';
-import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { EditEntityModal } from '../../edit-entity/EditEntityModal.js';
 import { SharePlaylistModal } from '../components/SharePlaylistModal.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 

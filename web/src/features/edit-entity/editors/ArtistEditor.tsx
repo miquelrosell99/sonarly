@@ -1,5 +1,5 @@
-import { ArtistImage } from '../../features/entities/ArtistImage.js';
-import { Input } from '../ui/input.js';
+import { ArtistImage } from '../../../features/entities/ArtistImage.js';
+import { Input } from '../../../components/ui/input.js';
 import { Field, ReadOnlyValue } from './Field.js';
 
 interface ArtistEditorProps {

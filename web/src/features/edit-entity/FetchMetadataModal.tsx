@@ -1,19 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { MusicBrainzMatch, MusicBrainzSearchResult, SongTags } from '../types';
-import { api } from '../lib/api.js';
-import { cn } from '../lib/cn.js';
-import { Button } from './ui/button.js';
-import { Input } from './ui/input.js';
+import type { MusicBrainzMatch, MusicBrainzSearchResult, SongTags } from '../../types';
+import { api } from '../../lib/api.js';
+import { cn } from '../../lib/cn.js';
+import { Button } from '../../components/ui/button.js';
+import { Input } from '../../components/ui/input.js';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from './ui/select.js';
-import { Modal } from './ui/Modal.js';
-import { Icon } from './ui/Icon.js';
-import { CoverArt } from '../features/entities/CoverArt.js';
+} from '../../components/ui/select.js';
+import { Modal } from '../../components/ui/Modal.js';
+import { Icon } from '../../components/ui/Icon.js';
+import { CoverArt } from '../../features/entities/CoverArt.js';
 
 type EntityType = 'song' | 'album' | 'artist';
 

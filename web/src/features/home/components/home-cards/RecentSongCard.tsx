@@ -11,7 +11,7 @@ import { Card } from '../../../entities/Card.js';
 import { CoverArt } from '../../../entities/CoverArt.js';
 import { ExplicitTitle } from '../../../entities/ExplicitTitle.js';
 import { ItemContextMenu } from '../../../entities/ItemContextMenu.js';
-import { EditEntityModal } from '../../../../components/EditEntityModal.js';
+import { EditEntityModal } from '../../../edit-entity/EditEntityModal.js';
 import { useSongContextMenu } from '../../../../hooks/useSongContextMenu.js';
 import { SyncedLyricsEditor } from '../../../songs/index.js';
 import { patchToPlayerSong } from '../../../../lib/songPatch.js';

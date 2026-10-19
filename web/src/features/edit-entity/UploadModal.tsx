@@ -1,21 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { DuplicateStrategy, Library } from '../types';
-import { DUPLICATE_STRATEGY_LABELS } from '../types';
-import { cn } from '../lib/cn.js';
-import { api } from '../lib/api.js';
-import { Button } from './ui/button.js';
+import type { DuplicateStrategy, Library } from '../../types';
+import { DUPLICATE_STRATEGY_LABELS } from '../../types';
+import { cn } from '../../lib/cn.js';
+import { api } from '../../lib/api.js';
+import { Button } from '../../components/ui/button.js';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from './ui/select.js';
-import { Icon } from './ui/Icon.js';
-import { Modal } from './ui/Modal.js';
-import { Table, type TableColumn } from './ui/Table.js';
-import { useUpload, type UploadFile } from '../hooks/useUpload.js';
-import { useNotification } from '../contexts/NotificationContext.js';
+} from '../../components/ui/select.js';
+import { Icon } from '../../components/ui/Icon.js';
+import { Modal } from '../../components/ui/Modal.js';
+import { Table, type TableColumn } from '../../components/ui/Table.js';
+import { useUpload, type UploadFile } from '../../hooks/useUpload.js';
+import { useNotification } from '../../contexts/NotificationContext.js';
 
 export interface UploadSummary {
   fileCount: number;
