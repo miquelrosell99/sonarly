@@ -5,7 +5,7 @@ import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { ExplicitTitle } from '../../entities/ExplicitTitle.js';
 import { FavoriteRatingGroup } from '../../entities/FavoriteRatingGroup.js';
-import { QueuePanelSkeleton } from '../../../components/Skeletons.js';
+import { QueuePanelSkeleton } from '../../shell/Skeletons.js';
 import { useNowPlaying, type NowPlayingTab } from '../stores/nowPlayingStore.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 import { useDominantColor } from '../../../hooks/useDominantColor.js';

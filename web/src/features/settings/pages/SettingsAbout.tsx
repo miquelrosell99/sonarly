@@ -1,6 +1,6 @@
 import { Settings } from '../components/Settings.js';
 import { SettingsCard } from '../components/SettingsCard.js';
-import { BrandMark } from '../../../components/BrandMark.js';
+import { BrandMark } from '../../shell/BrandMark.js';
 
 const REPO_URL = 'https://github.com/miquelrosell99/sonarly';
 const LICENSE_URL = 'https://www.gnu.org/licenses/agpl-3.0.html';

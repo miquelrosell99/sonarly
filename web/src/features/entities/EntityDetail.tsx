@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn } from '../../lib/cn.js';
 import { EntityHeader } from './EntityHeader.js';
-import { PageState } from '../../components/PageState.js';
+import { PageState } from '../shell/PageState.js';
 import { type MetadataItem } from './MetadataBreadcrumb.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 

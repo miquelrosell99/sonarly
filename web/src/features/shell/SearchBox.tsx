@@ -1,12 +1,12 @@
 import { useEffect, useId, useRef, useState, useMemo } from 'react';
 import { useLocation } from 'wouter';
-import { cn } from '../lib/cn.js';
-import { Icon } from './ui/Icon.js';
-import { Input } from './ui/input.js';
-import { useDebounce } from '../hooks/useDebounce.js';
-import { useLibraryStore } from '../stores/libraryStore.js';
-import { useSearchPreview } from '../hooks/useLibraryLists.js';
-import { FilterPanel, type FilterDefinition } from '../features/entities/FilterPanel.js';
+import { cn } from '../../lib/cn.js';
+import { Icon } from '../../components/ui/Icon.js';
+import { Input } from '../../components/ui/input.js';
+import { useDebounce } from '../../hooks/useDebounce.js';
+import { useLibraryStore } from '../../stores/libraryStore.js';
+import { useSearchPreview } from '../../hooks/useLibraryLists.js';
+import { FilterPanel, type FilterDefinition } from '../../features/entities/FilterPanel.js';
 
 interface ResultItem {
   id: string;

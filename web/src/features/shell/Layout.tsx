@@ -1,21 +1,21 @@
 import { useLocation, useSearch } from 'wouter';
 import { useCallback, useRef, useState } from 'react';
-import type { User } from '../types';
-import { api } from '../lib/api.js';
-import { ProfileModal } from '../features/profile/index.js';
-import { CreatePlaylistModal } from '../features/playlists/index.js';
-import { NowPlaying } from '../features/now-playing/index.js';
-import { usePreferences, useSyncThemePreferences } from '../hooks/usePreferences.js';
-import { useScrollRestoration } from '../hooks/useScrollRestoration.js';
-import { usePlaylists } from '../hooks/usePlaylists.js';
-import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
-import { usePlayer } from '../stores/playerStore.js';
-import { useDominantColor } from '../hooks/useDominantColor.js';
+import type { User } from '../../types';
+import { api } from '../../lib/api.js';
+import { ProfileModal } from '../../features/profile/index.js';
+import { CreatePlaylistModal } from '../../features/playlists/index.js';
+import { NowPlaying } from '../../features/now-playing/index.js';
+import { usePreferences, useSyncThemePreferences } from '../../hooks/usePreferences.js';
+import { useScrollRestoration } from '../../hooks/useScrollRestoration.js';
+import { usePlaylists } from '../../hooks/usePlaylists.js';
+import { useCreatePlaylistModal } from '../../hooks/useCreatePlaylistModal.js';
+import { usePlayer } from '../../stores/playerStore.js';
+import { useDominantColor } from '../../hooks/useDominantColor.js';
 import { TopBar } from './TopBar.js';
 import { Sidebar } from './Sidebar.js';
-import { PlayerBar } from '../features/player/PlayerBar.js';
-import { AudioController } from '../features/player/AudioController.js';
-import { NowPlayingAnnouncer } from '../features/player/NowPlayingAnnouncer.js';
+import { PlayerBar } from '../../features/player/PlayerBar.js';
+import { AudioController } from '../../features/player/AudioController.js';
+import { NowPlayingAnnouncer } from '../../features/player/NowPlayingAnnouncer.js';
 
 interface LayoutProps {
   user: User;

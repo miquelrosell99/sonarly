@@ -2,8 +2,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { Playlist } from '../types';
-import { api } from '../lib/api.js';
+import type { Playlist } from '../../types';
+import { api } from '../../lib/api.js';
 import { SidebarPlaylistItem } from './SidebarPlaylistItem.js';
 
 const playActions = vi.hoisted(() => ({
@@ -14,17 +14,17 @@ const playActions = vi.hoisted(() => ({
   addToQueue: vi.fn(),
 }));
 
-vi.mock('../hooks/usePlayActions.js', () => ({
+vi.mock('../../hooks/usePlayActions.js', () => ({
   usePlayActions: () => playActions,
 }));
 
 const mockNotify = vi.hoisted(() => ({ notify: vi.fn() }));
 
-vi.mock('../contexts/NotificationContext.js', () => ({
+vi.mock('../../contexts/NotificationContext.js', () => ({
   useNotification: () => mockNotify,
 }));
 
-vi.mock('../lib/api.js', () => ({
+vi.mock('../../lib/api.js', () => ({
   api: vi.fn(),
 }));
 

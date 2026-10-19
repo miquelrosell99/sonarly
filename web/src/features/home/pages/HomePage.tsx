@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Album, User } from '../../../types';
 import { api } from '../../../lib/api.js';
-import { PageState } from '../../../components/PageState.js';
+import { PageState } from '../../shell/PageState.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
 import { ScrollRow } from '../../entities/ScrollRow.js';
 import { AlbumCard, FeaturedAlbum, RecentSongCard, type HomeData } from '../components/home-cards/index.js';

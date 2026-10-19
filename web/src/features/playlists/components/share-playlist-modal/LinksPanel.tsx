@@ -2,7 +2,7 @@ import { Button } from '../../../../components/ui/button.js';
 import { Checkbox } from '../../../../components/ui/checkbox.js';
 import { Icon } from '../../../../components/ui/Icon.js';
 import { Input } from '../../../../components/ui/input.js';
-import { PageState } from '../../../../components/PageState.js';
+import { PageState } from '../../../shell/PageState.js';
 
 export interface LinksPanelProps {
   shareUrl: string | null;

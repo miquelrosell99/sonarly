@@ -1,5 +1,5 @@
 import { Icon } from '../../components/ui/Icon.js';
-import { PageState } from '../../components/PageState.js';
+import { PageState } from '../shell/PageState.js';
 import { useScrollParent } from '../../components/ui/useScrollParent.js';
 import { usePersistentViewMode } from '../../hooks/usePersistentViewMode.js';
 import {

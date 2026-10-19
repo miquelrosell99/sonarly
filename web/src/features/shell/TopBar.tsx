@@ -1,28 +1,28 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import type { User } from '../types';
-import { cn } from '../lib/cn.js';
-import { Icon } from './ui/Icon.js';
+import type { User } from '../../types';
+import { cn } from '../../lib/cn.js';
+import { Icon } from '../../components/ui/Icon.js';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu.js';
-import { api } from '../lib/api.js';
-import { Avatar } from '../features/entities/Avatar.js';
+} from '../../components/ui/dropdown-menu.js';
+import { api } from '../../lib/api.js';
+import { Avatar } from '../../features/entities/Avatar.js';
 import { SearchBox } from './SearchBox.js';
 import { BrandMark } from './BrandMark.js';
-import { LibrarySelector } from '../features/entities/LibrarySelector.js';
+import { LibrarySelector } from '../../features/entities/LibrarySelector.js';
 import { SponsorButton } from './SponsorButton.js';
-import { UploadModal, UploadResultsModal, type UploadSummary } from './UploadModal.js';
-import { useLibraryStore } from '../stores/libraryStore.js';
-import { usePlaylists } from '../hooks/usePlaylists.js';
-import { useAlbumsList, useLibraries, useSongsList } from '../hooks/useLibraryLists.js';
-import type { FilterDefinition } from '../features/entities/FilterPanel.js';
-import type { PlayerInfo } from '../types';
+import { UploadModal, UploadResultsModal, type UploadSummary } from '../../components/UploadModal.js';
+import { useLibraryStore } from '../../stores/libraryStore.js';
+import { usePlaylists } from '../../hooks/usePlaylists.js';
+import { useAlbumsList, useLibraries, useSongsList } from '../../hooks/useLibraryLists.js';
+import type { FilterDefinition } from '../../features/entities/FilterPanel.js';
+import type { PlayerInfo } from '../../types';
 
 interface TopBarProps {
   user: User;

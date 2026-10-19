@@ -10,7 +10,7 @@ import { Button } from '../../../../components/ui/button.js';
 import { Checkbox } from '../../../../components/ui/checkbox.js';
 import { Icon } from '../../../../components/ui/Icon.js';
 import { Avatar } from '../../../entities/Avatar.js';
-import { PageState } from '../../../../components/PageState.js';
+import { PageState } from '../../../shell/PageState.js';
 import { UserShareSearch } from './UserShareSearch.js';
 import type { LookupUser } from './types.js';
 

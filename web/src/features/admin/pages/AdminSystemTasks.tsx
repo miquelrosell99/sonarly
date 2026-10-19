@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/button.js';
-import { PageState } from '../../../components/PageState.js';
+import { PageState } from '../../shell/PageState.js';
 import { Table } from '../../../components/ui/Table.js';
 import type { TableColumn } from '../../../components/ui/Table.js';
 import { Icon } from '../../../components/ui/Icon.js';
