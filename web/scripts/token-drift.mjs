@@ -125,7 +125,7 @@ export const OFFGRID_VARIANT_RE = /(?:^|[\s"'`(])((?:min|max)-\[(\d+)px\]):/g;
 // CSS custom properties set from TS via inline style — allowed, but each
 // entry self-checks that its owner file still sets the property.
 export const JS_SET_VARS = {
-  '--stagger': ['MonthlyActivityChart.tsx', 'StatisticsView.tsx'],
+  '--stagger': ['MonthlyActivityChart.tsx', 'format.ts'],
   '--now-playing-color': ['Layout.tsx'],
   '--slider-fill': ['AutoDjTunePopover.tsx', 'SettingsPlayback.tsx', 'PlayerControls.tsx'],
 };
@@ -133,7 +133,7 @@ export const JS_SET_VARS = {
 // Off-grid breakpoint boundary → owner files (mirrors the register entry
 // "Off-grid breakpoint usages" in .agents/design-overrides.md).
 export const OFFGRID_ALLOWLIST = {
-  '420': ['TopBar.tsx', 'StatisticsView.tsx'],
+  '420': ['TopBar.tsx', 'HeroStats.tsx'],
   '640': ['TopBar.tsx', 'StatisticsView.tsx'],
   '1280': ['StatisticsView.tsx'],
 };
