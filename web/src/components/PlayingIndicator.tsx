@@ -16,7 +16,7 @@ export function PlayingIndicator({ size = 16, className }: PlayingIndicatorProps
       {[0, 0.2, 0.4].map((delay, i) => (
         <span
           key={i}
-          className="playing-indicator-bar h-full w-[2px] rounded-full bg-accent"
+          className="playing-indicator-bar h-full w-[2px] rounded-full bg-primary"
           style={{ animationDelay: `${delay}s` }}
         />
       ))}

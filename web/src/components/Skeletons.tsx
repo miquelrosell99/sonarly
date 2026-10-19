@@ -22,7 +22,7 @@ export function ListPageSkeleton({ rows = 12 }: { rows?: number }) {
       <SkeletonHeader />
       <div role="status" aria-label="Loading">
         {Array.from({ length: rows }, (_, i) => (
-          <div key={i} className="flex h-12 items-center gap-4 border-b border-rule px-2">
+          <div key={i} className="flex h-12 items-center gap-4 border-b border-outline px-2">
             <Skeleton className="h-4 w-6 shrink-0" />
             <Skeleton className="h-4 w-1/3 min-w-32" />
             <Skeleton className="h-4 w-1/4 min-w-24" />
@@ -74,7 +74,7 @@ export function EntityDetailSkeleton() {
       </div>
       <div>
         {Array.from({ length: 8 }, (_, i) => (
-          <div key={i} className="flex h-12 items-center gap-4 border-b border-rule px-2">
+          <div key={i} className="flex h-12 items-center gap-4 border-b border-outline px-2">
             <Skeleton className="h-4 w-6 shrink-0" />
             <Skeleton className="h-4 w-1/3 min-w-32" />
             <Skeleton className="h-4 w-1/4 min-w-24" />
@@ -111,7 +111,7 @@ export function QueuePanelSkeleton({ rows = 7 }: { rows?: number }) {
         <Skeleton className="h-8 w-28" />
       </div>
       {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="flex h-12 items-center gap-3 border-b border-rule px-2">
+        <div key={i} className="flex h-12 items-center gap-3 border-b border-outline px-2">
           <Skeleton className="h-8 w-8 shrink-0 rounded-item" />
           <Skeleton className="h-4 w-1/3 min-w-32" />
           <Skeleton className="h-4 ml-auto w-16" />

@@ -24,12 +24,12 @@ export function ArtistImage({
     return (
       <div
         className={cn(
-          'flex aspect-square items-center justify-center bg-surface-hover',
+          'flex aspect-square items-center justify-center bg-surface-container-high',
           shape === 'circle' ? 'rounded-full' : 'rounded-card',
           className,
         )}
       >
-        <Icon name="mdi-account-music" size={iconSize} className="text-fg-secondary" />
+        <Icon name="mdi-account-music" size={iconSize} className="text-on-surface-variant" />
       </div>
     );
   }
@@ -37,7 +37,7 @@ export function ArtistImage({
   return (
     <div
       className={cn(
-        'aspect-square overflow-hidden bg-surface-hover',
+        'aspect-square overflow-hidden bg-surface-container-high',
         shape === 'circle' ? 'rounded-full' : 'rounded-card',
         className,
       )}

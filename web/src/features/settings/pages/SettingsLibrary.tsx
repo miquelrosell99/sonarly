@@ -81,16 +81,16 @@ function LibrarySettings() {
         title="Default views"
         description="How each library page opens by default. Picking a view with the list/grid toggle on a page still overrides its default."
       >
-        <ul className="divide-y divide-rule">
+        <ul className="divide-y divide-outline">
             {viewModePages.map((page) => {
               const value = draft[page.key] ?? '';
               return (
                 <li key={page.key} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
-                  <span className="text-sm font-medium text-fg-primary">{page.label}</span>
+                  <span className="text-sm font-medium text-on-surface">{page.label}</span>
                   <div
                     role="group"
                     aria-label={`${page.label} default view`}
-                    className="inline-flex overflow-hidden rounded-item border border-rule"
+                    className="inline-flex overflow-hidden rounded-item border border-outline"
                   >
                     {viewModeOptions.map((option) => {
                       const selected = value === option.value;
@@ -100,10 +100,10 @@ function LibrarySettings() {
                           type="button"
                           onClick={() => setPageMode(page.key, option.value)}
                           aria-pressed={selected}
-                          className={`min-h-[40px] px-4 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                          className={`min-h-[40px] px-4 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                             selected
-                              ? 'bg-surface-hover font-medium text-accent'
-                              : 'bg-bg-primary text-fg-secondary hover:bg-surface-hover hover:text-fg-primary'
+                              ? 'bg-surface-container-high font-medium text-primary'
+                              : 'bg-background text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
                           }`}
                         >
                           {option.label}

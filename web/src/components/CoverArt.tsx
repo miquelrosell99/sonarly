@@ -18,17 +18,17 @@ export function CoverArt({ coverArt, alt, iconSize = 32, className }: CoverArtPr
     return (
       <div
         className={cn(
-          'flex aspect-square items-center justify-center bg-surface-hover',
+          'flex aspect-square items-center justify-center bg-surface-container-high',
           className,
         )}
       >
-        <Icon name="mdi-album" size={iconSize} className="text-fg-secondary" />
+        <Icon name="mdi-album" size={iconSize} className="text-on-surface-variant" />
       </div>
     );
   }
 
   return (
-    <div className={cn('aspect-square overflow-hidden bg-surface-hover', className)}>
+    <div className={cn('aspect-square overflow-hidden bg-surface-container-high', className)}>
       <img
         src={withShareToken(`/api/cover-art/${coverArt}`, 'share')}
         alt={alt}

@@ -105,16 +105,16 @@ export function QueueModal({ user }: QueueModalProps) {
             aria-label="Queue"
             style={style}
             className={cn(
-              'fixed z-50 flex w-[min(20rem,calc(100vw-1rem))] max-h-[60vh] flex-col overflow-hidden rounded-popover border border-rule bg-surface shadow-2xl',
+              'fixed z-50 flex w-[min(20rem,calc(100vw-1rem))] max-h-[60vh] flex-col overflow-hidden rounded-popover border border-outline bg-surface shadow-2xl',
             )}
           >
-            <div className="flex items-center justify-between border-b border-rule px-3 py-2">
-              <span className="text-sm font-semibold text-fg-primary">Queue</span>
+            <div className="flex items-center justify-between border-b border-outline px-3 py-2">
+              <span className="text-sm font-semibold text-on-surface">Queue</span>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close queue"
-                className="-m-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="-m-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <Icon name="mdi-close" size={18} />
               </button>

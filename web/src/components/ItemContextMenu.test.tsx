@@ -71,7 +71,7 @@ describe('ItemContextMenu', () => {
       </ItemContextMenu>,
     );
     fireEvent.contextMenu(screen.getByTestId('target'));
-    expect(screen.getByText('Delete').className.includes('text-danger')).toBe(true);
+    expect(screen.getByText('Delete').className.includes('text-error')).toBe(true);
   });
 
   it('moves focus with printable-character typeahead', () => {

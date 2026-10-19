@@ -55,21 +55,21 @@ function SidebarNavLink({
       href={href}
       className={cn(
         'group relative flex items-center gap-3 rounded-item px-3 py-2 text-sm font-medium transition [@media(pointer:coarse)]:min-h-11',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
         active
-          ? 'bg-surface-hover text-accent'
-          : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
+          ? 'bg-surface-container-high text-primary'
+          : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
       )}
     >
       {active && (
-        <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-accent" />
+        <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
       )}
       <Icon
         name={icon}
         size={20}
         className={cn(
           'transition',
-          active ? 'text-accent' : 'text-fg-secondary group-hover:text-fg-primary',
+          active ? 'text-primary' : 'text-on-surface-variant group-hover:text-on-surface',
         )}
       />
       <span className="truncate">{label}</span>
@@ -173,7 +173,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
     <div className="flex flex-1 flex-col overflow-hidden p-3">
       {/* The top bar owns the library selector on desktop; in the drawer
           (mobile) the sidebar still carries it. */}
-      <div className="mb-2 shrink-0 border-b border-rule pb-3 md:hidden">
+      <div className="mb-2 shrink-0 border-b border-outline pb-3 md:hidden">
         <LibrarySelector
           libraries={librariesData?.libraries ?? []}
           selectedLibraryId={selectedLibraryId}
@@ -202,7 +202,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
               aria-label="Collapse playlists"
               title="Collapse playlists"
               onClick={toggleCollapsed}
-              className="-m-2.5 flex h-11 w-11 items-center justify-center rounded-item text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="-m-2.5 flex h-11 w-11 items-center justify-center rounded-item text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <Icon
                 name="mdi-chevron-down"
@@ -210,11 +210,11 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
                 className={cn('transition-transform', collapsed && '-rotate-90')}
               />
             </button>
-            <span className="text-xs font-semibold uppercase tracking-wider text-fg-secondary">
+            <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
               Playlists
             </span>
             {playlists && playlists.length > 0 && (
-              <span className="ml-1 rounded-full bg-surface-hover px-1.5 py-0.5 text-2xs font-medium text-fg-secondary">
+              <span className="ml-1 rounded-full bg-surface-container-high px-1.5 py-0.5 text-2xs font-medium text-on-surface-variant">
                 {playlists.length}
               </span>
             )}
@@ -225,10 +225,10 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
               aria-label="All playlists"
               title="All playlists"
               className={cn(
-                'rounded-item p-1.5 transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11',
+                'rounded-item p-1.5 transition hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11',
                 isActive(location, '/playlists')
-                  ? 'text-accent'
-                  : 'text-fg-secondary hover:text-fg-primary',
+                  ? 'text-primary'
+                  : 'text-on-surface-variant hover:text-on-surface',
               )}
             >
               <Icon name="mdi-playlist-music" size={18} />
@@ -238,7 +238,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
               aria-label="Create playlist"
               title="Create playlist"
               onClick={openCreatePlaylist}
-              className="rounded-item p-1.5 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
+              className="rounded-item p-1.5 text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
             >
               <Icon name="mdi-playlist-plus" size={18} />
             </button>
@@ -287,10 +287,10 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
               title={link.label}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex h-11 w-11 items-center justify-center rounded-item transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                'flex h-11 w-11 items-center justify-center rounded-item transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                 active
-                  ? 'bg-surface-hover text-accent'
-                  : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
+                  ? 'bg-surface-container-high text-primary'
+                  : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
               )}
             >
               <Icon name={link.icon} size={22} />
@@ -299,17 +299,17 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
         })}
       </nav>
       {playlistsVisible && (
-        <div className="mt-2 flex flex-col items-center gap-1 border-t border-rule pt-2">
+        <div className="mt-2 flex flex-col items-center gap-1 border-t border-outline pt-2">
           <Link
             href="/playlists"
             aria-label="All playlists"
             title="All playlists"
             aria-current={isActive(location, '/playlists') ? 'page' : undefined}
             className={cn(
-              'flex h-11 w-11 items-center justify-center rounded-item transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              'flex h-11 w-11 items-center justify-center rounded-item transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
               isActive(location, '/playlists')
-                ? 'bg-surface-hover text-accent'
-                : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
+                ? 'bg-surface-container-high text-primary'
+                : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
             )}
           >
             <Icon name="mdi-playlist-music" size={22} />
@@ -319,7 +319,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
             aria-label="Create playlist"
             title="Create playlist"
             onClick={openCreatePlaylist}
-            className="flex h-11 w-11 items-center justify-center rounded-item text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="flex h-11 w-11 items-center justify-center rounded-item text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <Icon name="mdi-playlist-plus" size={22} />
           </button>
@@ -333,7 +333,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
       <aside
         aria-label="Navigation"
         className={cn(
-          'hidden shrink-0 flex-col border-r border-rule bg-surface md:flex',
+          'hidden shrink-0 flex-col border-r border-outline bg-surface md:flex',
           rail ? 'w-[4.5rem]' : 'w-60',
         )}
       >
@@ -363,7 +363,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
                 aria-label="Close navigation"
                 title="Close navigation"
                 onClick={onMobileClose}
-                className="flex h-11 w-11 items-center justify-center rounded-item text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className="flex h-11 w-11 items-center justify-center rounded-item text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <Icon name="mdi-close" size={20} />
               </button>

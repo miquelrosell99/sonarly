@@ -85,7 +85,7 @@ function ShowMoreButton({ expanded, onClick, count }: { expanded: boolean; onCli
     <button
       type="button"
       onClick={onClick}
-      className="mt-3 flex h-11 w-full items-center justify-center rounded-item text-xs font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="mt-3 flex h-11 w-full items-center justify-center rounded-item text-xs font-medium text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       {expanded ? 'Show less' : `Show ${count - 5} more`}
     </button>
@@ -139,12 +139,12 @@ function SectionCard({
 }) {
   return (
     <section
-      className={cn('stat-reveal rounded-card border border-rule bg-surface p-4 sm:p-5', className)}
+      className={cn('stat-reveal rounded-card border border-outline bg-surface p-4 sm:p-5', className)}
       style={staggerStyle(stagger)}
     >
       <div className="mb-4 flex items-center gap-2">
-        <Icon name={icon} size={20} className="text-fg-secondary" />
-        <h3 className="font-display text-lg font-semibold tracking-tight text-fg-primary">{title}</h3>
+        <Icon name={icon} size={20} className="text-on-surface-variant" />
+        <h3 className="font-display text-lg font-semibold tracking-tight text-on-surface">{title}</h3>
       </div>
       {children}
     </section>
@@ -162,7 +162,7 @@ function RangeSelector({
     <div
       role="group"
       aria-label="Time range"
-      className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-input border border-rule bg-surface p-1 scrollbar-hide"
+      className="inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-input border border-outline bg-surface p-1 scrollbar-hide"
     >
       {RANGE_OPTIONS.map((option) => (
         <button
@@ -171,10 +171,10 @@ function RangeSelector({
           onClick={() => onRangeChange(option.value)}
           aria-pressed={range === option.value}
           className={cn(
-            'h-10 shrink-0 rounded-input px-4 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+            'h-10 shrink-0 rounded-input px-4 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
             range === option.value
-              ? 'bg-accent text-bg-primary'
-              : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
+              ? 'bg-primary text-on-primary'
+              : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
           )}
         >
           {option.label}
@@ -187,14 +187,14 @@ function RangeSelector({
 function HeroStat({ icon, label, value }: { icon: string; label: string; value: number }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card bg-surface-hover text-fg-secondary">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card bg-surface-container-high text-on-surface-variant">
         <Icon name={icon} size={20} />
       </div>
       <div className="min-w-0">
-        <p className="font-display text-2xl font-semibold tracking-tight text-fg-primary tabular-nums">
+        <p className="font-display text-2xl font-semibold tracking-tight text-on-surface tabular-nums">
           <AnimatedNumber value={value} />
         </p>
-        <p className="mt-0.5 truncate text-xs text-fg-secondary">{label}</p>
+        <p className="mt-0.5 truncate text-xs text-on-surface-variant">{label}</p>
       </div>
     </div>
   );
@@ -205,21 +205,21 @@ function HeroStats({ totals }: { totals: StatisticsTotals }) {
   return (
     <section
       aria-label="Listening summary"
-      className="stat-reveal relative overflow-hidden rounded-card border border-rule bg-surface p-6 sm:p-8"
+      className="stat-reveal relative overflow-hidden rounded-card border border-outline bg-surface p-6 sm:p-8"
       style={staggerStyle(0)}
     >
       <div className="relative">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-fg-secondary">Listening time</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-on-surface-variant">Listening time</p>
         {/* Solid foreground number — the app-wide rule is 600; this hero is
             the one deliberate 700 tier (design system exception). */}
-        <p className="mt-3 font-display text-5xl font-bold tracking-tight text-fg-primary tabular-nums sm:text-6xl">
+        <p className="mt-3 font-display text-5xl font-bold tracking-tight text-on-surface tabular-nums sm:text-6xl">
           <AnimatedNumber value={seconds} formatter={formatListenDuration} />
         </p>
-        <p className="mt-2 text-sm text-fg-secondary">
+        <p className="mt-2 text-sm text-on-surface-variant">
           {formatListenDurationLong(seconds)}
           {totals.totalPlays > 0 ? ` across ${formatNumber(totals.totalPlays)} plays` : ''}
         </p>
-        <div className="mt-8 grid grid-cols-1 gap-x-4 gap-y-5 border-t border-rule pt-6 min-[420px]:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid grid-cols-1 gap-x-4 gap-y-5 border-t border-outline pt-6 min-[420px]:grid-cols-2 lg:grid-cols-4">
           <HeroStat icon="mdi-play" label="Plays" value={totals.totalPlays} />
           <HeroStat icon="mdi-music" label="Favorite songs" value={totals.favoriteSongs} />
           <HeroStat icon="mdi-disc" label="Favorite albums" value={totals.favoriteAlbums} />
@@ -235,7 +235,7 @@ function RankBadge({ rank }: { rank: number }) {
     <span
       className={cn(
         'relative w-6 shrink-0 text-center font-mono text-sm font-semibold tabular-nums',
-        rank <= 3 ? 'text-fg-primary' : 'text-fg-secondary',
+        rank <= 3 ? 'text-on-surface' : 'text-on-surface-variant',
       )}
     >
       {rank}
@@ -263,20 +263,20 @@ function TopListRow({
   return (
     <Link
       href={href}
-      className="group/row relative flex items-center gap-3 overflow-hidden rounded-item p-2 transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="group/row relative flex items-center gap-3 overflow-hidden rounded-item p-2 transition hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       <span
         aria-hidden="true"
-        className="absolute inset-y-0 left-0 rounded-item bg-accent/[0.07]"
+        className="absolute inset-y-0 left-0 rounded-item bg-primary/[0.07]"
         style={{ width: `${Math.max(0, Math.min(100, proportion * 100))}%` }}
       />
       <RankBadge rank={rank} />
       {image}
       <div className="relative min-w-0 flex-1">
-        <p className="truncate font-medium text-fg-primary">{title}</p>
-        {subtitle && <p className="truncate text-xs text-fg-secondary">{subtitle}</p>}
+        <p className="truncate font-medium text-on-surface">{title}</p>
+        {subtitle && <p className="truncate text-xs text-on-surface-variant">{subtitle}</p>}
       </div>
-      <span className="relative font-mono text-sm font-semibold text-fg-secondary tabular-nums transition group-hover/row:text-fg-primary">
+      <span className="relative font-mono text-sm font-semibold text-on-surface-variant tabular-nums transition group-hover/row:text-on-surface">
         {value}
       </span>
     </Link>
@@ -328,8 +328,8 @@ function ArtistAvatar({ artistId, artistName }: { artistId?: string; artistName:
     );
   }
   return (
-    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-hover">
-      <Icon name="mdi-account-music" size={20} className="text-fg-secondary" />
+    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container-high">
+      <Icon name="mdi-account-music" size={20} className="text-on-surface-variant" />
     </div>
   );
 }
@@ -398,19 +398,19 @@ function GenreChart({ genres, stagger }: { genres: StatisticsTopLists['topGenres
     <SectionCard icon="mdi-chart-pie" title="Top Genres" stagger={stagger}>
       <div className="space-y-1">
         {genres.slice(0, limit).map((genre, index) => (
-          <div key={genre.genre} className="group -mx-2 space-y-1.5 rounded-item px-2 py-2 transition hover:bg-surface-hover">
+          <div key={genre.genre} className="group -mx-2 space-y-1.5 rounded-item px-2 py-2 transition hover:bg-surface-container-high">
             <div className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="truncate font-medium text-fg-primary">{genre.genre}</span>
-              <span className="font-mono text-fg-secondary tabular-nums transition group-hover:text-fg-primary">
+              <span className="truncate font-medium text-on-surface">{genre.genre}</span>
+              <span className="font-mono text-on-surface-variant tabular-nums transition group-hover:text-on-surface">
                 {formatNumber(genre.plays)}
               </span>
             </div>
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-surface-hover">
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-surface-container-high">
               <div
                 className="stat-grow-x h-full rounded-full transition group-hover:brightness-110"
                 style={{
                   width: `${max > 0 ? (genre.plays / max) * 100 : 0}%`,
-                  background: 'hsl(var(--accent))',
+                  background: 'hsl(var(--md-sys-color-primary))',
                   ...staggerStyle(index),
                 }}
               />
@@ -434,21 +434,21 @@ function TopPlayedYears({ years, stagger }: { years: TopYearItem[]; stagger: num
           <Link
             key={year.year}
             href={`/years/${year.year}`}
-            className="group flex items-center justify-between gap-3 rounded-item p-2 transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="group flex items-center justify-between gap-3 rounded-item p-2 transition hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <span className="font-mono font-medium text-fg-primary tabular-nums">{year.year}</span>
+            <span className="font-mono font-medium text-on-surface tabular-nums">{year.year}</span>
             <div className="flex items-center gap-3">
-              <div className="h-2.5 w-24 overflow-hidden rounded-full bg-surface-hover sm:w-32">
+              <div className="h-2.5 w-24 overflow-hidden rounded-full bg-surface-container-high sm:w-32">
                 <div
                   className="stat-grow-x h-full rounded-full transition group-hover:brightness-110"
                   style={{
                     width: `${max > 0 ? (year.plays / max) * 100 : 0}%`,
-                    background: 'hsl(var(--accent))',
+                    background: 'hsl(var(--md-sys-color-primary))',
                     ...staggerStyle(index),
                   }}
                 />
               </div>
-              <span className="w-10 text-right font-mono text-sm text-fg-secondary tabular-nums transition group-hover:text-fg-primary">
+              <span className="w-10 text-right font-mono text-sm text-on-surface-variant tabular-nums transition group-hover:text-on-surface">
                 {formatNumber(year.plays)}
               </span>
             </div>
@@ -467,7 +467,7 @@ const RATING_COLORS = [
   'hsl(var(--chart-4))',
   'hsl(var(--chart-2))',
 ];
-const UNRATED_COLOR = 'hsl(var(--fg-secondary))';
+const UNRATED_COLOR = 'hsl(var(--md-sys-color-on-surface-variant))';
 
 interface DonutSegment {
   key: string;
@@ -559,14 +559,14 @@ function DonutChart({ distribution, stagger }: { distribution: StatisticsCharts[
             })}
           </svg>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xs font-medium uppercase tracking-widest text-fg-secondary">
+            <span className="text-2xs font-medium uppercase tracking-widest text-on-surface-variant">
               {hovered?.rating ? `${hovered.rating}/5` : hovered?.key === 'unrated' ? 'Unrated' : 'Rated'}
             </span>
-            <span className="font-mono text-3xl font-semibold text-fg-primary tabular-nums">
+            <span className="font-mono text-3xl font-semibold text-on-surface tabular-nums">
               {formatNumber(hoveredInfo.count)}
             </span>
             {hoveredPercentage !== undefined && (
-              <span className="font-mono text-2xs text-fg-secondary tabular-nums">{hoveredPercentage}%</span>
+              <span className="font-mono text-2xs text-on-surface-variant tabular-nums">{hoveredPercentage}%</span>
             )}
           </div>
         </div>
@@ -579,13 +579,13 @@ function DonutChart({ distribution, stagger }: { distribution: StatisticsCharts[
               onMouseEnter={() => setHovered(segment)}
               onMouseLeave={() => setHovered(null)}
               className={cn(
-                'flex items-center gap-2 rounded-item px-2 py-1.5 text-sm transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                'flex items-center gap-2 rounded-item px-2 py-1.5 text-sm transition hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                 hovered && hovered.key !== segment.key ? 'opacity-60' : undefined,
               )}
             >
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: segment.color }} />
-              <span className="flex-1 text-fg-primary">{segment.label}</span>
-              <span className="font-mono text-fg-secondary tabular-nums">{formatNumber(segment.count)}</span>
+              <span className="flex-1 text-on-surface">{segment.label}</span>
+              <span className="font-mono text-on-surface-variant tabular-nums">{formatNumber(segment.count)}</span>
             </Link>
           </li>
         ))}
@@ -595,7 +595,7 @@ function DonutChart({ distribution, stagger }: { distribution: StatisticsCharts[
 }
 
 function EmptyHint({ children }: { children: ReactNode }) {
-  return <p className="text-sm text-fg-secondary">{children}</p>;
+  return <p className="text-sm text-on-surface-variant">{children}</p>;
 }
 
 function TopRatedArtists({ artists, stagger }: { artists: StatisticsRatedLists['topRatedArtists']; stagger: number }) {
@@ -647,8 +647,8 @@ function TopRatedGenres({ genres, stagger }: { genres: StatisticsRatedLists['top
                 title={genre.genre}
                 subtitle={`${formatNumber(genre.ratedSongs)} rated songs`}
                 image={
-                  <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-item bg-surface-hover">
-                    <Icon name="mdi-tag" size={20} className="text-fg-secondary" />
+                  <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-item bg-surface-container-high">
+                    <Icon name="mdi-tag" size={20} className="text-on-surface-variant" />
                   </span>
                 }
                 value={`${formatRating(genre.averageRating)}/5`}
@@ -678,8 +678,8 @@ function TopRatedYears({ years, stagger }: { years: StatisticsRatedLists['topRat
             title={String(year.year)}
             subtitle={`${formatNumber(year.ratedSongs)} rated songs`}
             image={
-              <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-item bg-surface-hover">
-                <Icon name="mdi-calendar-clock" size={20} className="text-fg-secondary" />
+              <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-item bg-surface-container-high">
+                <Icon name="mdi-calendar-clock" size={20} className="text-on-surface-variant" />
               </span>
             }
             value={`${formatRating(year.averageRating)}/5`}
@@ -737,7 +737,7 @@ export function StatisticsView({
 
   if (error || !data) {
     return (
-      <p className="text-sm text-danger">{error?.message ?? 'Statistics could not be loaded.'}</p>
+      <p className="text-sm text-error">{error?.message ?? 'Statistics could not be loaded.'}</p>
     );
   }
 
@@ -745,8 +745,8 @@ export function StatisticsView({
     <div className="space-y-6">
       <div className="stat-reveal flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" style={staggerStyle(0)}>
         <div>
-          {title && <h1 className="font-display text-2xl font-semibold tracking-tight text-fg-primary">{title}</h1>}
-          {subtitle && <p className="mt-1 text-sm text-fg-secondary">{subtitle}</p>}
+          {title && <h1 className="font-display text-2xl font-semibold tracking-tight text-on-surface">{title}</h1>}
+          {subtitle && <p className="mt-1 text-sm text-on-surface-variant">{subtitle}</p>}
         </div>
         <RangeSelector range={range} onRangeChange={onRangeChange} />
       </div>

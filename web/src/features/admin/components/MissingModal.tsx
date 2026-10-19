@@ -101,7 +101,7 @@ export function MissingModal({ open, onClose }: MissingModalProps) {
           variant="ghost"
           onClick={() => purge('songs', s.id)}
           disabled={purging[`songs-${s.id}`]}
-          className="text-danger"
+          className="text-error"
         >
           {purging[`songs-${s.id}`] ? '...' : 'Purge'}
         </Button>
@@ -121,7 +121,7 @@ export function MissingModal({ open, onClose }: MissingModalProps) {
           variant="ghost"
           onClick={() => purge('albums', a.id)}
           disabled={purging[`albums-${a.id}`]}
-          className="text-danger"
+          className="text-error"
         >
           {purging[`albums-${a.id}`] ? '...' : 'Purge'}
         </Button>
@@ -140,7 +140,7 @@ export function MissingModal({ open, onClose }: MissingModalProps) {
           variant="ghost"
           onClick={() => purge('artists', a.id)}
           disabled={purging[`artists-${a.id}`]}
-          className="text-danger"
+          className="text-error"
         >
           {purging[`artists-${a.id}`] ? '...' : 'Purge'}
         </Button>
@@ -164,16 +164,16 @@ export function MissingModal({ open, onClose }: MissingModalProps) {
     <>
       <Modal open={open} onClose={onClose} title="Missing items" className="max-w-5xl">
         <div className="space-y-4">
-          <p className="text-sm text-muted">
+          <p className="text-sm text-on-surface-variant">
             These songs, albums, or artists no longer have a matching file on disk. They are hidden from the rest of the app. You can purge them permanently here.
           </p>
 
-          {error && <p className="text-sm text-danger" role="alert">{error}</p>}
-          {loading && <p className="text-sm text-muted">Loading...</p>}
+          {error && <p className="text-sm text-error" role="alert">{error}</p>}
+          {loading && <p className="text-sm text-on-surface-variant">Loading...</p>}
 
           {!loading && (
             <>
-              <nav className="flex items-center justify-between gap-2 border-b border-rule">
+              <nav className="flex items-center justify-between gap-2 border-b border-outline">
                 <TabNav
                   items={tabs.map(({ key, label, count }) => ({ key, label: `${label} (${count})` }))}
                   activeKey={tab}

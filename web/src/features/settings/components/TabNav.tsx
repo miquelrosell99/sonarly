@@ -17,12 +17,12 @@ interface TabNavProps {
 
 function tabClass(active: boolean): string {
   return cn(
-    '-mb-px border-b-2 px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+    '-mb-px border-b-2 px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
     // No fill: the accent underline marks "you are here" (the sidebar's
     // language) without turning navigation into a button.
     active
-      ? 'border-accent font-medium text-fg-primary'
-      : 'border-transparent text-muted hover:text-fg-primary',
+      ? 'border-primary font-medium text-on-surface'
+      : 'border-transparent text-on-surface-variant hover:text-on-surface',
   );
 }
 

@@ -226,10 +226,10 @@ describe('LibraryView', () => {
   it('highlights the title cell of the currently playing item', () => {
     renderView({ playingId: '2' });
     const betaTitle = screen.getByText('Beta');
-    expect(betaTitle.className).toContain('text-accent');
+    expect(betaTitle.className).toContain('text-primary');
 
     const alphaTitle = screen.getByText('Alpha');
-    expect(alphaTitle.className).not.toContain('text-accent');
+    expect(alphaTitle.className).not.toContain('text-primary');
   });
 
   it('calls onShufflePlay with the full data array when the row play button is held', () => {

@@ -73,7 +73,7 @@ export function Playlists() {
       key: 'name',
       header: 'Name',
       render: (playlist) => (
-        <Link href={`/playlists/${playlist.id}`} className="hover:text-muted">
+        <Link href={`/playlists/${playlist.id}`} className="hover:text-on-surface-variant">
           {playlist.name}
         </Link>
       ),

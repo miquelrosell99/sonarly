@@ -530,12 +530,12 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
         role="dialog"
         aria-modal="true"
         aria-labelledby="synced-lyrics-title"
-        className="flex h-full w-full flex-col overflow-hidden bg-surface shadow-2xl outline-none sm:h-auto sm:max-h-[90vh] sm:max-w-3xl sm:rounded-sheet sm:border sm:border-rule"
+        className="flex h-full w-full flex-col overflow-hidden bg-surface shadow-2xl outline-none sm:h-auto sm:max-h-[90vh] sm:max-w-3xl sm:rounded-sheet sm:border sm:border-outline"
       >
-        <div className="flex items-center justify-between gap-2 border-b border-rule px-4 py-4 sm:px-6">
+        <div className="flex items-center justify-between gap-2 border-b border-outline px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h3 id="synced-lyrics-title" className="font-display text-lg font-semibold">Synced Lyrics</h3>
-            <p className="truncate text-sm text-fg-secondary">{title}{artistName ? ` • ${artistName}` : ''}</p>
+            <p className="truncate text-sm text-on-surface-variant">{title}{artistName ? ` • ${artistName}` : ''}</p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <button
@@ -544,7 +544,7 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
               disabled={fetching}
               aria-label="Fetch lyrics from LRCLIB"
               title="Fetch lyrics from LRCLIB"
-              className="flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
             >
               <Icon
                 name={fetching ? 'mdi-loading' : 'mdi-cloud-download-outline'}
@@ -556,7 +556,7 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <Icon name="mdi-close" size={20} />
             </button>
@@ -578,15 +578,15 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
               aria-valuetext={formatTime(currentTime)}
               onPointerDown={handleAreaPointerDown}
               onKeyDown={handleAreaKeyDown}
-              className="relative min-h-0 flex-1 touch-none select-none overflow-hidden bg-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+              className="relative min-h-0 flex-1 touch-none select-none overflow-hidden bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
             >
               <canvas ref={canvasRef} aria-hidden="true" className="absolute inset-0 h-full w-full" />
 
               {/* Pinned center line + mono time */}
-              <div aria-hidden="true" className="pointer-events-none absolute left-0 right-0 top-1/2 h-px bg-accent" />
+              <div aria-hidden="true" className="pointer-events-none absolute left-0 right-0 top-1/2 h-px bg-primary" />
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-item bg-surface/80 px-1.5 py-0.5 font-mono text-xs tabular-nums text-accent"
+                className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-item bg-surface/80 px-1.5 py-0.5 font-mono text-xs tabular-nums text-primary"
               >
                 {formatTime(currentTime)}
               </div>
@@ -594,7 +594,7 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
               {peaksLoading && (
                 <div
                   role="status"
-                  className="pointer-events-none absolute left-1/2 top-3 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-rule bg-surface px-3 py-1 text-xs text-fg-secondary"
+                  className="pointer-events-none absolute left-1/2 top-3 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-outline bg-surface px-3 py-1 text-xs text-on-surface-variant"
                 >
                   <Icon name="mdi-loading" size={14} className="animate-spin motion-reduce:animate-none" />
                   Analyzing waveform…
@@ -612,8 +612,8 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
                       className="pointer-events-auto absolute left-0 flex w-full items-center"
                       style={{ top: y, transform: 'translateY(-50%)' }}
                     >
-                      <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-accent" />
-                      <span aria-hidden="true" className="h-px w-3 shrink-0 bg-accent/60 sm:w-5" />
+                      <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-primary" />
+                      <span aria-hidden="true" className="h-px w-3 shrink-0 bg-primary/60 sm:w-5" />
                       <button
                         data-pill
                         type="button"
@@ -623,19 +623,19 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
                         aria-label={`Edit line: ${line.text || '(empty)'} at ${formatTime(line.time)}`}
                         title="Click to edit, drag to retime, arrow keys to nudge"
                         className={cn(
-                          'flex h-11 min-w-0 max-w-full cursor-ns-resize items-center rounded-full border bg-surface px-3 text-sm transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                          nearCenter ? 'border-accent' : 'border-rule hover:border-fg-secondary',
-                          draggingId === line.id && 'border-accent ring-2 ring-accent',
+                          'flex h-11 min-w-0 max-w-full cursor-ns-resize items-center rounded-full border bg-surface px-3 text-sm transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                          nearCenter ? 'border-primary' : 'border-outline hover:border-on-surface-variant',
+                          draggingId === line.id && 'border-primary ring-2 ring-primary',
                         )}
                       >
                         <span
                           className={cn(
                             'truncate',
                             draggingId === line.id
-                              ? 'font-mono text-xs tabular-nums text-accent'
+                              ? 'font-mono text-xs tabular-nums text-primary'
                               : line.text
-                                ? 'text-fg-primary'
-                                : 'italic text-fg-secondary',
+                                ? 'text-on-surface'
+                                : 'italic text-on-surface-variant',
                           )}
                         >
                           {draggingId === line.id ? formatTime(line.time) : line.text || '(empty)'}
@@ -648,18 +648,18 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
             </div>
 
             {actionError && (
-              <p role="alert" className="border-t border-rule px-4 py-2 text-sm text-danger sm:px-6">
+              <p role="alert" className="border-t border-outline px-4 py-2 text-sm text-error sm:px-6">
                 {actionError}
               </p>
             )}
 
             {/* Transport + insert, thumb-reachable at the bottom */}
-            <div className="flex items-center gap-3 border-t border-rule px-4 py-3 sm:px-6">
+            <div className="flex items-center gap-3 border-t border-outline px-4 py-3 sm:px-6">
               <button
                 type="button"
                 onClick={togglePlay}
                 aria-label={isPlaying ? 'Pause' : 'Play'}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent text-bg-primary transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               >
                 <Icon name={isPlaying ? 'mdi-pause' : 'mdi-play'} size={22} />
               </button>
@@ -669,7 +669,7 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
               </Button>
             </div>
 
-            <div className="flex items-center justify-end gap-2 border-t border-rule px-4 py-4 sm:px-6">
+            <div className="flex items-center justify-end gap-2 border-t border-outline px-4 py-4 sm:px-6">
               <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
               <Button onClick={handleSave} loading={saving}>Save</Button>
             </div>

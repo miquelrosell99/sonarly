@@ -80,7 +80,7 @@ const TrackInfo = memo(function TrackInfo({ song, blur }: TrackInfoProps) {
             type="button"
             onClick={handleOpenNowPlaying}
             aria-label="Open Now Playing"
-            className="h-14 w-14 shrink-0 overflow-hidden rounded-item transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="h-14 w-14 shrink-0 overflow-hidden rounded-item transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <CoverArt
               coverArt={song.albumCoverArt ?? song.coverArt}
@@ -89,7 +89,7 @@ const TrackInfo = memo(function TrackInfo({ song, blur }: TrackInfoProps) {
             />
           </button>
           <div className="min-w-0">
-            <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-fg-primary">
+            <div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-on-surface">
               <ExplicitTitle
                 explicit={song.explicit}
                 blur={blur}
@@ -98,14 +98,14 @@ const TrackInfo = memo(function TrackInfo({ song, blur }: TrackInfoProps) {
                 {song.title}
               </ExplicitTitle>
               {song.addedByAutoDj && (
-                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent/70">
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary/70">
                   <Icon name="mdi-robot" size={12} />
                   Auto DJ
                 </span>
               )}
             </div>
             {(song.albumName || song.year) && (
-              <div className="truncate text-xs text-fg-secondary">
+              <div className="truncate text-xs text-on-surface-variant">
                 {song.albumName && (
                   song.albumId ? (
                     <Link
@@ -133,7 +133,7 @@ const TrackInfo = memo(function TrackInfo({ song, blur }: TrackInfoProps) {
                 )}
               </div>
             )}
-            <div className="truncate text-xs text-fg-secondary">
+            <div className="truncate text-xs text-on-surface-variant">
               {song.artistEntries && song.artistEntries.length > 0 ? (
                 song.artistEntries.map((artist, index) => (
                   <span key={artist.id}>
@@ -161,12 +161,12 @@ const TrackInfo = memo(function TrackInfo({ song, blur }: TrackInfoProps) {
         </>
       ) : (
         <>
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-item bg-surface-hover">
-            <Icon name="mdi-music" size={20} className="text-fg-secondary" />
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-item bg-surface-container-high">
+            <Icon name="mdi-music" size={20} className="text-on-surface-variant" />
           </div>
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-fg-primary">Not playing</div>
-            <div className="text-xs text-fg-secondary">Select a track to start</div>
+            <div className="text-sm font-semibold text-on-surface">Not playing</div>
+            <div className="text-xs text-on-surface-variant">Select a track to start</div>
           </div>
         </>
       )}
@@ -188,7 +188,7 @@ function SeekProgress({ disabled }: { disabled: boolean }) {
 
   return (
     <div className="flex w-full max-w-md items-center gap-2">
-      <span className="w-9 text-right font-mono text-xs text-fg-secondary">
+      <span className="w-9 text-right font-mono text-xs text-on-surface-variant">
         {formatTime(displayTime)}
       </span>
       <Slider
@@ -201,7 +201,7 @@ function SeekProgress({ disabled }: { disabled: boolean }) {
         ariaLabel="Seek"
         ariaValueText={`${formatTime(displayTime)} of ${formatTime(displayDuration)}`}
       />
-      <span className="w-9 font-mono text-xs text-fg-secondary">
+      <span className="w-9 font-mono text-xs text-on-surface-variant">
         {formatTime(displayDuration)}
       </span>
     </div>
@@ -264,7 +264,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
   const autoDjAnchorRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <footer className="relative shrink-0 select-none overflow-hidden border-t border-rule bg-surface pb-[env(safe-area-inset-bottom)]">
+    <footer className="relative shrink-0 select-none overflow-hidden border-t border-outline bg-surface pb-[env(safe-area-inset-bottom)]">
       {/* Ambient wash from the currently playing cover art */}
       <div
         className="pointer-events-none absolute inset-0 opacity-20"

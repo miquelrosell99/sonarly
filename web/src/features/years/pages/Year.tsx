@@ -72,18 +72,18 @@ export function Year() {
       )}
     >
       <div>
-        <h2 className="mb-2 text-sm font-medium text-muted">Tracks</h2>
+        <h2 className="mb-2 text-sm font-medium text-on-surface-variant">Tracks</h2>
         <TrackList
           tracks={tracks}
-          empty={<p className="text-sm text-muted">No tracks for this year.</p>}
+          empty={<p className="text-sm text-on-surface-variant">No tracks for this year.</p>}
         />
       </div>
 
       <div>
-        <h2 className="mb-2 text-sm font-medium text-muted">Albums</h2>
+        <h2 className="mb-2 text-sm font-medium text-on-surface-variant">Albums</h2>
         <AlbumList
           albums={albums}
-          empty={<p className="text-sm text-muted">No albums for this year.</p>}
+          empty={<p className="text-sm text-on-surface-variant">No albums for this year.</p>}
         />
       </div>
     </EntityDetail>

@@ -19,7 +19,7 @@ const accentColors: { value: AccentColor; label: string; className: string }[] =
   { value: 'green', label: 'Green', className: 'bg-[hsl(var(--accent-green))]' },
   { value: 'purple', label: 'Purple', className: 'bg-[hsl(var(--accent-purple))]' },
   { value: 'blue', label: 'Blue', className: 'bg-[hsl(var(--accent-blue))]' },
-  { value: 'monochrome', label: 'Monochrome', className: 'bg-fg-primary' },
+  { value: 'monochrome', label: 'Monochrome', className: 'bg-on-surface' },
 ];
 
 // Live preview: theme and accent edits repaint the app immediately through
@@ -94,10 +94,10 @@ function AppearanceSettings() {
               onClick={() => update({ themeMode: mode.value })}
               aria-pressed={themeMode === mode.value}
               className={cn(
-                'rounded-item border px-4 py-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                'rounded-item border px-4 py-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                 themeMode === mode.value
-                  ? 'border-accent bg-surface-hover text-fg-primary'
-                  : 'border-rule bg-bg-primary text-fg-primary hover:bg-surface-hover',
+                  ? 'border-primary bg-surface-container-high text-on-surface'
+                  : 'border-outline bg-background text-on-surface hover:bg-surface-container-high',
               )}
             >
               {mode.label}
@@ -127,10 +127,10 @@ function AppearanceSettings() {
                 title={color.label}
                 onClick={() => update({ accentColor: color.value })}
                 className={cn(
-                  'h-10 w-10 rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
+                  'h-10 w-10 rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
                   color.className,
                   selected
-                    ? 'ring-2 ring-fg-primary ring-offset-2 ring-offset-bg-primary'
+                    ? 'ring-2 ring-on-surface ring-offset-2 ring-offset-background'
                     : 'hover:scale-105',
                 )}
               />

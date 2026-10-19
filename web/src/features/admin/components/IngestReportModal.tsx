@@ -101,35 +101,35 @@ export function IngestReportModal({ runId, open, onClose }: IngestReportModalPro
   return (
     <Modal open={open} onClose={onClose} title="Ingest report" className="max-w-4xl">
       <div className="space-y-5">
-        {error && <p className="text-sm text-danger" role="alert">{error}</p>}
-        {loading && <p className="text-sm text-muted">Loading...</p>}
+        {error && <p className="text-sm text-error" role="alert">{error}</p>}
+        {loading && <p className="text-sm text-on-surface-variant">Loading...</p>}
 
         {run && (
           <>
             <div className="flex flex-wrap items-center gap-3">
               <StatusPill status={run.status} />
-              <span className="text-sm text-muted">
+              <span className="text-sm text-on-surface-variant">
                 {formatDateTimeOrDash(run.startedAt)} — {run.finishedAt ? formatDateTime(run.finishedAt) : 'running'}
               </span>
               {run.finishedAt && (
-                <span className="text-sm text-muted">({getDuration(run)})</span>
+                <span className="text-sm text-on-surface-variant">({getDuration(run)})</span>
               )}
             </div>
 
             {run.error && (
-              <div className="rounded-item border border-danger/30 bg-danger/5 p-4">
+              <div className="rounded-item border border-error/30 bg-error/5 p-4">
                 <div className="flex items-start gap-2">
-                  <Icon name="mdi-alert-circle-outline" size={18} className="mt-0.5 shrink-0 text-danger" />
+                  <Icon name="mdi-alert-circle-outline" size={18} className="mt-0.5 shrink-0 text-error" />
                   <div>
-                    <p className="text-sm font-medium text-danger">Run failed</p>
-                    <p className="mt-1 whitespace-pre-wrap text-sm text-fg-primary">{run.error}</p>
+                    <p className="text-sm font-medium text-error">Run failed</p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-on-surface">{run.error}</p>
                   </div>
                 </div>
               </div>
             )}
 
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Filter</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-on-surface-variant">Filter</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {filterOptions.map((option) => (
                   <button
@@ -138,8 +138,8 @@ export function IngestReportModal({ runId, open, onClose }: IngestReportModalPro
                     onClick={() => setFilter(option.key)}
                     className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                       filter === option.key
-                        ? 'bg-accent text-bg-primary'
-                        : 'border border-rule bg-surface text-fg-secondary hover:bg-surface-hover'
+                        ? 'bg-primary text-on-primary'
+                        : 'border border-outline bg-surface text-on-surface-variant hover:bg-surface-container-high'
                     }`}
                   >
                     {option.label}
@@ -154,18 +154,18 @@ export function IngestReportModal({ runId, open, onClose }: IngestReportModalPro
             </div>
 
             {filteredJobs.length === 0 ? (
-              <p className="text-sm text-muted">
+              <p className="text-sm text-on-surface-variant">
                 {filter === 'all' ? 'No individual jobs recorded for this run.' : 'No jobs match the selected filter.'}
               </p>
             ) : (
-              <ul className="divide-y divide-rule rounded-item border border-rule">
+              <ul className="divide-y divide-outline rounded-item border border-outline">
                 {filteredJobs.map((j) => (
                   <li key={j.id} className="p-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 flex-1">
                         <p className="break-all text-sm font-medium">{j.sourcePath}</p>
                         {j.targetPath && (
-                          <p className="mt-1 break-all text-xs text-muted">→ {j.targetPath}</p>
+                          <p className="mt-1 break-all text-xs text-on-surface-variant">→ {j.targetPath}</p>
                         )}
                       </div>
                       <div className="shrink-0">
@@ -173,13 +173,13 @@ export function IngestReportModal({ runId, open, onClose }: IngestReportModalPro
                       </div>
                     </div>
                     {j.error && (
-                      <div className="mt-3 rounded-item border border-danger/20 bg-danger/5 p-3">
-                        <p className="text-xs font-medium text-danger">Failure reason</p>
-                        <p className="mt-1 whitespace-pre-wrap text-sm text-fg-primary">{j.error}</p>
+                      <div className="mt-3 rounded-item border border-error/20 bg-error/5 p-3">
+                        <p className="text-xs font-medium text-error">Failure reason</p>
+                        <p className="mt-1 whitespace-pre-wrap text-sm text-on-surface">{j.error}</p>
                       </div>
                     )}
                     {j.duplicate && (
-                      <p className="mt-2 text-xs text-muted">
+                      <p className="mt-2 text-xs text-on-surface-variant">
                         Duplicate — {j.duplicateStrategy ? j.duplicateStrategy.replace(/_/g, ' ') : 'default strategy'}
                       </p>
                     )}

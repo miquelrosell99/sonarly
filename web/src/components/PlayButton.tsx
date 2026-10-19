@@ -35,7 +35,7 @@ function ProgressRing({ isHolding, size = 40 }: { isHolding: boolean; size?: num
         strokeLinecap="round"
         strokeDasharray={circumference}
         strokeDashoffset={isHolding ? 0 : circumference}
-        className={cn('text-accent', isHolding && 'transition-[stroke-dashoffset] duration-500 ease-linear')}
+        className={cn('text-primary', isHolding && 'transition-[stroke-dashoffset] duration-500 ease-linear')}
       />
     </svg>
   );
@@ -115,7 +115,7 @@ function PlayButtonContent({
       <button
         {...baseProps}
         className={cn(
-          'group icon-btn relative flex h-11 w-11 items-center justify-center rounded-full bg-accent text-bg-primary transition-all duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-40',
+          'group icon-btn relative flex h-11 w-11 items-center justify-center rounded-full bg-primary text-on-primary transition-all duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40',
           className,
         )}
         onClick={handleClick}
@@ -124,7 +124,7 @@ function PlayButtonContent({
         <ProgressRing isHolding={isHolding} size={44} />
         <Icon name="mdi-play" size={22} className="relative z-10" />
         {handlers && (
-          <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-item bg-bg-primary px-2 py-1 text-xs text-fg-primary opacity-0 shadow ring-1 ring-rule transition-opacity delay-700 duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+          <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-item bg-background px-2 py-1 text-xs text-on-surface opacity-0 shadow ring-1 ring-outline transition-opacity delay-700 duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
             Hold to shuffle
           </span>
         )}
@@ -137,7 +137,7 @@ function PlayButtonContent({
       <button
         {...baseProps}
         className={cn(
-          'group relative inline-flex h-6 w-6 items-center justify-center text-accent transition hover:text-accent/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-40 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
+          'group relative inline-flex h-6 w-6 items-center justify-center text-primary transition hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
           className,
         )}
         onClick={handleClick}
@@ -146,7 +146,7 @@ function PlayButtonContent({
         <ProgressRing isHolding={isHolding} size={24} />
         <Icon name="mdi-play" size={16} className="relative z-10" />
         {handlers && (
-          <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-item bg-bg-primary px-2 py-1 text-xs text-fg-primary opacity-0 shadow ring-1 ring-rule transition-opacity delay-700 duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+          <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-item bg-background px-2 py-1 text-xs text-on-surface opacity-0 shadow ring-1 ring-outline transition-opacity delay-700 duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
             Hold to shuffle
           </span>
         )}
@@ -170,7 +170,7 @@ function PlayButtonContent({
       </span>
       {children}
       {handlers && (
-        <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-item bg-bg-primary px-2 py-1 text-xs text-fg-primary opacity-0 shadow ring-1 ring-rule transition-opacity delay-700 duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+        <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-item bg-background px-2 py-1 text-xs text-on-surface opacity-0 shadow ring-1 ring-outline transition-opacity delay-700 duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
           Hold to shuffle
         </span>
       )}

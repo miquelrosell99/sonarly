@@ -31,11 +31,11 @@ export const ControlButton = forwardRef<HTMLButtonElement, {
       {...rest}
       className={cn(
         'icon-btn -m-1 inline-flex h-11 w-11 items-center justify-center rounded-full transition',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background',
         'disabled:cursor-not-allowed disabled:opacity-40',
         active
-          ? 'bg-accent/15 text-accent hover:bg-accent/25'
-          : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
+          ? 'bg-primary/15 text-primary hover:bg-primary/25'
+          : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
         className,
       )}
     >
@@ -66,9 +66,9 @@ export function PlayPauseButton({
       disabled={disabled}
       aria-label={isPlaying ? 'Pause' : 'Play'}
       className={cn(
-        'icon-btn mx-1 flex h-11 w-11 items-center justify-center rounded-full bg-accent text-bg-primary transition',
+        'icon-btn mx-1 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-on-primary transition',
         'hover:scale-105 hover:brightness-110',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background',
         'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100',
         className,
       )}

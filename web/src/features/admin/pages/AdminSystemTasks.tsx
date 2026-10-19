@@ -80,7 +80,7 @@ function formatStats(stats: Record<string, unknown> | undefined): ReactNode {
       : `${failures.length} failures`;
     const tooltip = failures.map((f) => `${f.path}\n${f.error}`).join('\n\n');
     return (
-      <span title={tooltip} className="cursor-help text-danger">
+      <span title={tooltip} className="cursor-help text-error">
         {summary}
       </span>
     );
@@ -186,7 +186,7 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
     { key: 'started', header: 'Started', render: (row) => <span className="font-mono">{formatLastRun(row.startedAt)}</span> },
     { key: 'finished', header: 'Finished', render: (row) => <span className="font-mono">{formatLastRun(row.finishedAt)}</span> },
     { key: 'duration', header: 'Duration', render: (row) => <span className="font-mono">{formatDuration(row.startedAt, row.finishedAt)}</span> },
-    { key: 'details', header: 'Details', render: (row) => <span className="text-muted">{formatStats(row.stats)}</span> },
+    { key: 'details', header: 'Details', render: (row) => <span className="text-on-surface-variant">{formatStats(row.stats)}</span> },
   ];
 
   return (
@@ -194,7 +194,7 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
       <div className="w-full space-y-6">
         <div className="space-y-4">
           <h3 className="text-base font-medium">System tasks</h3>
-          <p className="text-sm text-muted">
+          <p className="text-sm text-on-surface-variant">
             Background maintenance tasks run automatically on a schedule. You can also queue them manually.
           </p>
 
@@ -203,15 +203,15 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
               {tasks.map((task) => (
                 <div
                   key={task.id}
-                  className="flex flex-col gap-3 rounded-item border border-rule bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 rounded-item border border-outline bg-surface p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="font-medium">{task.name}</h4>
                       {task.status && <StatusPill status={task.status} />}
                     </div>
-                    <p className="mt-1 text-sm text-muted">{task.description}</p>
-                    <p className="mt-1 text-xs text-muted">
+                    <p className="mt-1 text-sm text-on-surface-variant">{task.description}</p>
+                    <p className="mt-1 text-xs text-on-surface-variant">
                       Interval: {formatInterval(task.intervalMinutes)} · Last run: {formatLastRun(task.lastRunAt)}
                     </p>
                   </div>
@@ -232,16 +232,16 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
           <button
             type="button"
             onClick={() => setHistoryOpen((open) => !open)}
-            className="flex w-full items-center justify-between rounded-item border border-rule bg-surface p-4 text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="flex w-full items-center justify-between rounded-item border border-outline bg-surface p-4 text-left transition-colors hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <div>
               <h3 className="text-base font-medium">History</h3>
-              <p className="text-sm text-muted">Recent system task runs.</p>
+              <p className="text-sm text-on-surface-variant">Recent system task runs.</p>
             </div>
             <Icon
               name={historyOpen ? 'mdi-chevron-up' : 'mdi-chevron-down'}
               size={24}
-              className="text-fg-secondary"
+              className="text-on-surface-variant"
             />
           </button>
 
@@ -252,12 +252,12 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
                 isEmpty={history.length === 0}
                 emptyMessage="No task history yet."
               >
-                <div className="rounded-item border border-rule">
+                <div className="rounded-item border border-outline">
                   <Table
                     columns={historyColumns}
                     rows={history}
                     rowKey={(row) => row.id}
-                    empty={<p className="text-sm text-muted">No task history yet.</p>}
+                    empty={<p className="text-sm text-on-surface-variant">No task history yet.</p>}
                   />
                 </div>
               </PageState>
@@ -272,7 +272,7 @@ export function AdminSystemTasks({ user }: AdminSystemTasksProps) {
                   >
                     Previous
                   </Button>
-                  <span className="text-sm text-muted">
+                  <span className="text-sm text-on-surface-variant">
                     Page {page} of {totalPages}
                   </span>
                   <Button

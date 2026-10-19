@@ -75,7 +75,7 @@ export function VirtualList<T>({
       : 0;
 
   return (
-    <tbody ref={ref} className={className ?? 'divide-y divide-rule'}>
+    <tbody ref={ref} className={className ?? 'divide-y divide-outline'}>
       {paddingTop > 0 && (
         <tr aria-hidden="true" style={{ height: paddingTop }}>
           <td colSpan={spacerColSpan} style={{ padding: 0, border: 0 }} />

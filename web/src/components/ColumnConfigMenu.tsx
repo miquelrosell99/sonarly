@@ -13,7 +13,7 @@ interface ColumnConfigMenuProps {
 }
 
 const MOVE_BUTTON_CLASS =
-  'rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-fg-secondary';
+  'rounded-item p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-on-surface-variant';
 
 /**
  * Gear-affordance popover listing a list view's columns with show/hide
@@ -61,7 +61,7 @@ export function ColumnConfigMenu({ entries, actionsLabel, onToggle, onMove }: Co
     total: number,
     reorderable: boolean,
   ) => (
-    <li key={entry.key} className="flex items-center gap-1 rounded-item px-1 py-0.5 hover:bg-surface-hover">
+    <li key={entry.key} className="flex items-center gap-1 rounded-item px-1 py-0.5 hover:bg-surface-container-high">
       {reorderable ? (
         <>
           <button
@@ -86,7 +86,7 @@ export function ColumnConfigMenu({ entries, actionsLabel, onToggle, onMove }: Co
           </button>
         </>
       ) : (
-        <span className="flex w-16 items-center justify-center text-fg-secondary" aria-hidden>
+        <span className="flex w-16 items-center justify-center text-on-surface-variant" aria-hidden>
           <Icon name="mdi-lock" size={14} />
         </span>
       )}
@@ -98,8 +98,8 @@ export function ColumnConfigMenu({ entries, actionsLabel, onToggle, onMove }: Co
         aria-label={`${entry.label} column`}
         onClick={() => onToggle(entry.key)}
         className={cn(
-          'flex min-w-0 flex-1 items-center justify-between gap-2 rounded-item px-2 py-1 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-          entry.locked ? 'cursor-not-allowed text-fg-secondary' : 'text-fg-primary hover:bg-surface-hover',
+          'flex min-w-0 flex-1 items-center justify-between gap-2 rounded-item px-2 py-1 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+          entry.locked ? 'cursor-not-allowed text-on-surface-variant' : 'text-on-surface hover:bg-surface-container-high',
         )}
       >
         <span className="truncate">{entry.label}</span>
@@ -108,7 +108,7 @@ export function ColumnConfigMenu({ entries, actionsLabel, onToggle, onMove }: Co
           <Icon
             name="mdi-check"
             size={14}
-            className={cn('shrink-0', entry.visible ? 'text-accent' : 'text-transparent')}
+            className={cn('shrink-0', entry.visible ? 'text-primary' : 'text-transparent')}
           />
         )}
       </button>
@@ -126,7 +126,7 @@ export function ColumnConfigMenu({ entries, actionsLabel, onToggle, onMove }: Co
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center rounded-item border border-rule bg-surface p-2 text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="inline-flex items-center rounded-item border border-outline bg-surface p-2 text-on-surface transition hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <Icon name="mdi-cog" size={20} />
       </button>
@@ -135,7 +135,7 @@ export function ColumnConfigMenu({ entries, actionsLabel, onToggle, onMove }: Co
           ref={panelRef}
           role="group"
           aria-label="Column settings"
-          className="absolute right-0 top-full z-50 mt-2 w-60 rounded-popover border border-rule bg-surface p-2 shadow-lg"
+          className="absolute right-0 top-full z-50 mt-2 w-60 rounded-popover border border-outline bg-surface p-2 shadow-lg"
         >
           <ul className="max-h-72 overflow-y-auto">
             {entries.map((entry, index) => renderRow(entry, index, entries.length, true))}

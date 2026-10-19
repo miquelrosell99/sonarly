@@ -41,7 +41,7 @@ export function EntityHeader({
   ) : null;
 
   const titleElement = (
-    <h1 className="font-display text-2xl font-semibold tracking-tight text-fg-primary sm:text-3xl">
+    <h1 className="font-display text-2xl font-semibold tracking-tight text-on-surface sm:text-3xl">
       {title}
     </h1>
   );
@@ -50,7 +50,7 @@ export function EntityHeader({
     <div className={cn('mb-6 flex flex-col gap-6 sm:flex-row sm:items-start', className)}>
       {coverElement && (wrapContextTarget ? wrapContextTarget(coverElement) : coverElement)}
       <div className="flex min-w-0 flex-col gap-2">
-        <span className="text-xs font-medium uppercase tracking-wider text-fg-secondary">{type}</span>
+        <span className="text-xs font-medium uppercase tracking-wider text-on-surface-variant">{type}</span>
         {wrapContextTarget ? wrapContextTarget(titleElement) : titleElement}
         {metadata && metadata.length > 0 && <MetadataBreadcrumb items={metadata} />}
         {secondaryActions && <div className="flex flex-wrap items-center gap-3">{secondaryActions}</div>}

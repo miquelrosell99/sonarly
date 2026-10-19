@@ -136,18 +136,18 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
       role="dialog"
       aria-label="Auto DJ settings"
       style={style}
-      className="fixed z-50 flex w-[min(19rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-popover border border-rule bg-surface shadow-2xl"
+      className="fixed z-50 flex w-[min(19rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-popover border border-outline bg-surface shadow-2xl"
     >
-      <div className="flex items-center justify-between border-b border-rule px-3 py-2">
-        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-fg-primary">
-          <Icon name="mdi-record-player" size={14} className="text-accent" />
+      <div className="flex items-center justify-between border-b border-outline px-3 py-2">
+        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-on-surface">
+          <Icon name="mdi-record-player" size={14} className="text-primary" />
           Auto DJ
         </span>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close Auto DJ settings"
-          className="-m-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="-m-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Icon name="mdi-close" size={18} />
         </button>
@@ -155,8 +155,8 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
 
       <div className="max-h-[60vh] space-y-4 overflow-y-auto p-3">
         <div>
-          <span className="mb-1.5 block text-xs font-medium text-fg-secondary">Mode</span>
-          <div className="inline-flex w-full overflow-hidden rounded-input border border-rule" role="group" aria-label="Auto DJ mode">
+          <span className="mb-1.5 block text-xs font-medium text-on-surface-variant">Mode</span>
+          <div className="inline-flex w-full overflow-hidden rounded-input border border-outline" role="group" aria-label="Auto DJ mode">
             {modeOptions.map((option) => {
               const selected = mode === option.value;
               return (
@@ -166,10 +166,10 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
                   onClick={() => updatePreferences.mutate({ autoDjMode: option.value })}
                   aria-pressed={selected}
                   className={cn(
-                    'inline-flex min-h-[36px] flex-1 items-center justify-center gap-1 px-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:min-h-11',
+                    'inline-flex min-h-[36px] flex-1 items-center justify-center gap-1 px-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [@media(pointer:coarse)]:min-h-11',
                     selected
-                      ? 'bg-surface-hover font-medium text-accent'
-                      : 'bg-surface text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
+                      ? 'bg-surface-container-high font-medium text-primary'
+                      : 'bg-surface text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
                   )}
                 >
                   <Icon name={option.icon} size={13} />
@@ -181,7 +181,7 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
         </div>
 
         <div>
-          <label htmlFor="autodj-tune-discovery" className="mb-1 block text-xs font-medium text-fg-secondary">
+          <label htmlFor="autodj-tune-discovery" className="mb-1 block text-xs font-medium text-on-surface-variant">
             Discovery
           </label>
           <input
@@ -196,7 +196,7 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
             className="slider w-full cursor-pointer transition"
             style={{ '--slider-fill': `${discoveryInput}%` } as React.CSSProperties}
           />
-          <div className="mt-1 flex justify-between text-3xs text-muted">
+          <div className="mt-1 flex justify-between text-3xs text-on-surface-variant">
             <span>Familiar</span>
             <span aria-hidden="true">{discoveryLabel}</span>
             <span>Adventurous</span>
@@ -204,8 +204,8 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
         </div>
 
         <div>
-          <span className="mb-1.5 block text-xs font-medium text-fg-secondary">Exclude recently played</span>
-          <div className="inline-flex w-full overflow-hidden rounded-input border border-rule" role="group" aria-label="Exclude recently played window">
+          <span className="mb-1.5 block text-xs font-medium text-on-surface-variant">Exclude recently played</span>
+          <div className="inline-flex w-full overflow-hidden rounded-input border border-outline" role="group" aria-label="Exclude recently played window">
             {AUTO_DJ_EXCLUDE_WINDOWS.map((window) => {
               const selected = excludeWindow === window;
               return (
@@ -215,10 +215,10 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
                   onClick={() => updatePreferences.mutate({ autoDjExcludeWindow: window })}
                   aria-pressed={selected}
                   className={cn(
-                    'min-h-[36px] flex-1 px-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:min-h-11',
+                    'min-h-[36px] flex-1 px-2 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [@media(pointer:coarse)]:min-h-11',
                     selected
-                      ? 'bg-surface-hover font-medium text-accent'
-                      : 'bg-surface text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
+                      ? 'bg-surface-container-high font-medium text-primary'
+                      : 'bg-surface text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
                   )}
                 >
                   {excludeWindowLabels[window]}
@@ -236,7 +236,7 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
         />
 
         <div>
-          <label htmlFor="autodj-tune-batch" className="mb-1 block text-xs font-medium text-fg-secondary">
+          <label htmlFor="autodj-tune-batch" className="mb-1 block text-xs font-medium text-on-surface-variant">
             Batch size
           </label>
           <Input
@@ -249,7 +249,7 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
             onBlur={commitBatchSize}
             className="w-full"
           />
-          <p className="mt-1 text-3xs text-muted">How many tracks each refill adds.</p>
+          <p className="mt-1 text-3xs text-on-surface-variant">How many tracks each refill adds.</p>
         </div>
       </div>
     </div>,

@@ -227,7 +227,7 @@ export function Artist({ user }: { user: User }) {
       header: 'Title',
       render: (track) => (
         <ExplicitTitle explicit={track.explicit} blur={blurExplicitTitles}>
-          <Link href={`/tracks/${track.id}`} className="hover:text-muted">
+          <Link href={`/tracks/${track.id}`} className="hover:text-on-surface-variant">
             {track.title}
           </Link>
         </ExplicitTitle>
@@ -239,7 +239,7 @@ export function Artist({ user }: { user: User }) {
       render: (track) =>
         track.albumName ? (
           track.albumId ? (
-            <Link href={`/albums/${track.albumId}`} className="hover:text-muted">
+            <Link href={`/albums/${track.albumId}`} className="hover:text-on-surface-variant">
               {track.albumName}
             </Link>
           ) : (
@@ -342,7 +342,7 @@ export function Artist({ user }: { user: User }) {
                   fields={[
                     {
                       content: album.year !== undefined && album.year !== null && (
-                        <Link href={`/years/${album.year}`} className="hover:text-muted">
+                        <Link href={`/years/${album.year}`} className="hover:text-on-surface-variant">
                           {album.year}
                         </Link>
                       ),
@@ -370,8 +370,8 @@ export function Artist({ user }: { user: User }) {
         </ScrollRow>
       ) : (
         <>
-          <h2 className="mb-3 text-sm font-medium text-fg-secondary">Albums</h2>
-          <p className="py-4 text-sm text-muted">No albums found.</p>
+          <h2 className="mb-3 text-sm font-medium text-on-surface-variant">Albums</h2>
+          <p className="py-4 text-sm text-on-surface-variant">No albums found.</p>
         </>
       )}
 

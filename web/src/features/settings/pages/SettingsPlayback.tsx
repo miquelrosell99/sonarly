@@ -134,10 +134,10 @@ function PlaybackSettings() {
                 type="button"
                 onClick={() => update({ autoDjMode: option.value })}
                 aria-pressed={selected}
-                className={`flex flex-col items-center gap-2 rounded-item border px-4 py-4 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                className={`flex flex-col items-center gap-2 rounded-item border px-4 py-4 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                   selected
-                    ? 'border-accent bg-surface-hover text-accent'
-                    : 'border-rule bg-bg-primary text-fg-secondary hover:bg-surface-hover hover:text-fg-primary'
+                    ? 'border-primary bg-surface-container-high text-primary'
+                    : 'border-outline bg-background text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
                 }`}
               >
                 <Icon name={option.icon} size={24} />
@@ -161,13 +161,13 @@ function PlaybackSettings() {
             <span id="auto-dj-exclude-window-label" className="mb-1 block text-sm font-medium">
               Exclude recently played
             </span>
-            <p className="mb-2 text-xs text-muted">
+            <p className="mb-2 text-xs text-on-surface-variant">
               Tracks you heard within this window are never queued.
             </p>
             <div
               role="group"
               aria-labelledby="auto-dj-exclude-window-label"
-              className="inline-flex overflow-hidden rounded-item border border-rule"
+              className="inline-flex overflow-hidden rounded-item border border-outline"
             >
               {excludeWindowOptions.map((option) => {
                 const selected = excludeWindow === option.value;
@@ -177,10 +177,10 @@ function PlaybackSettings() {
                     type="button"
                     onClick={() => setExcludeWindow(option.value)}
                     aria-pressed={selected}
-                    className={`min-h-[44px] px-4 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                    className={`min-h-[44px] px-4 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                       selected
-                        ? 'bg-surface-hover font-medium text-accent'
-                        : 'bg-bg-primary text-fg-secondary hover:bg-surface-hover hover:text-fg-primary'
+                        ? 'bg-surface-container-high font-medium text-primary'
+                        : 'bg-background text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
                     }`}
                   >
                     {option.label}
@@ -202,7 +202,7 @@ function PlaybackSettings() {
             <label htmlFor="auto-dj-discovery" className="mb-1 block text-sm font-medium">
               Discovery
             </label>
-            <p className="mb-2 text-xs text-muted">
+            <p className="mb-2 text-xs text-on-surface-variant">
               Lean on tracks you already love, or dig for deep cuts.
             </p>
             <input
@@ -217,7 +217,7 @@ function PlaybackSettings() {
               className="slider w-full cursor-pointer transition"
               style={{ '--slider-fill': `${discovery}%` } as React.CSSProperties}
             />
-            <div className="mt-1 flex justify-between text-xs text-muted">
+            <div className="mt-1 flex justify-between text-xs text-on-surface-variant">
               <span>Familiar</span>
               <span aria-hidden="true">{discoveryLabel}</span>
               <span>Adventurous</span>
@@ -234,7 +234,7 @@ function PlaybackSettings() {
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
             <label htmlFor="auto-dj-threshold" className="mb-1 block text-sm font-medium">Top-up threshold</label>
-            <p className="mb-2 text-xs text-muted">Fetch more tracks when this many remain.</p>
+            <p className="mb-2 text-xs text-on-surface-variant">Fetch more tracks when this many remain.</p>
             <Input
               id="auto-dj-threshold"
               type="number"
@@ -248,7 +248,7 @@ function PlaybackSettings() {
           </div>
           <div>
             <label htmlFor="auto-dj-batch-size" className="mb-1 block text-sm font-medium">Batch size</label>
-            <p className="mb-2 text-xs text-muted">How many tracks to fetch at once.</p>
+            <p className="mb-2 text-xs text-on-surface-variant">How many tracks to fetch at once.</p>
             <Input
               id="auto-dj-batch-size"
               type="number"

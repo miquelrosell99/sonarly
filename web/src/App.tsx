@@ -316,10 +316,10 @@ export default function App() {
     return (
       <div
         role="alert"
-        className="flex h-screen items-center justify-center bg-bg-primary text-fg-secondary"
+        className="flex h-screen items-center justify-center bg-background text-on-surface-variant"
       >
         <div className="flex flex-col items-center gap-3">
-          <span className="font-display text-xl font-semibold text-fg-primary">Sonarly</span>
+          <span className="font-display text-xl font-semibold text-on-surface">Sonarly</span>
           <span className="text-sm">Could not reach the server.</span>
           <Button type="button" onClick={() => setBootAttempt((n) => n + 1)}>
             Try again
@@ -333,10 +333,10 @@ export default function App() {
     return (
       <div
         role="status"
-        className="flex h-screen items-center justify-center bg-bg-primary text-fg-secondary"
+        className="flex h-screen items-center justify-center bg-background text-on-surface-variant"
       >
         <div className="flex items-center gap-3">
-          <span className="font-display text-xl font-semibold text-fg-primary">Sonarly</span>
+          <span className="font-display text-xl font-semibold text-on-surface">Sonarly</span>
           <span className="text-sm">Loading…</span>
         </div>
       </div>

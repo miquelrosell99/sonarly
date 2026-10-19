@@ -98,7 +98,7 @@ export function Ingest() {
       className: 'w-24',
       render: (j) =>
         j.duplicate ? (
-          <span className="inline-flex items-center rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
             Existing
           </span>
         ) : null,
@@ -107,7 +107,7 @@ export function Ingest() {
     {
       key: 'error',
       header: 'Error',
-      render: (j) => <span className={j.error ? 'text-danger' : ''}>{j.error || '-'}</span>,
+      render: (j) => <span className={j.error ? 'text-error' : ''}>{j.error || '-'}</span>,
     },
     {
       key: 'created',
@@ -140,11 +140,11 @@ export function Ingest() {
           </Button>
         </div>
       </div>
-      {error && <p className="mb-4 text-sm text-danger" role="alert">{error}</p>}
+      {error && <p className="mb-4 text-sm text-error" role="alert">{error}</p>}
       {hasActiveJobs && (
         <div className="mb-4 space-y-2">
           <ProgressBar value={progress} aria-label="Ingest progress" />
-          <p className="text-sm text-muted" aria-live="polite">
+          <p className="text-sm text-on-surface-variant" aria-live="polite">
             Processing ingest queue: {doneCount} of {jobs.length} files done
           </p>
         </div>

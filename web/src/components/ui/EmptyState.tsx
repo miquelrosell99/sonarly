@@ -28,9 +28,9 @@ export function EmptyState({
     <div
       className={cn('flex flex-col items-center justify-center gap-2 py-8 text-center text-sm', className)}
     >
-      <Icon name={icon} size={44} className="text-fg-secondary" />
-      <h2 className="font-semibold text-fg-primary">{title}</h2>
-      {description && <p className="max-w-sm text-muted">{description}</p>}
+      <Icon name={icon} size={44} className="text-on-surface-variant" />
+      <h2 className="font-semibold text-on-surface">{title}</h2>
+      {description && <p className="max-w-sm text-on-surface-variant">{description}</p>}
       {actionLabel && (
         <Button className="mt-2" onClick={onAction}>
           {actionLabel}

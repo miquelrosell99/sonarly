@@ -159,7 +159,7 @@ export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputP
         <ul
           id={listboxId}
           role="listbox"
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-popover border border-rule bg-surface shadow-lg"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-popover border border-outline bg-surface shadow-lg"
           onMouseDown={() => {
             ignoreBlurRef.current = true;
           }}
@@ -168,7 +168,7 @@ export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputP
           }}
         >
           {options.length === 0 && !loading && (
-            <li className="px-3 py-2 text-sm text-fg-secondary">No matches</li>
+            <li className="px-3 py-2 text-sm text-on-surface-variant">No matches</li>
           )}
           {options.map((option, i) => {
             const isCreateOption = option === createOption;
@@ -180,9 +180,9 @@ export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputP
                 aria-selected={i === highlighted}
                 onClick={() => selectOption(option)}
                 className={cn(
-                  'cursor-pointer px-3 py-2 text-sm hover:bg-surface-hover',
-                  i === highlighted && 'bg-surface-hover',
-                  isCreateOption && 'font-medium text-accent',
+                  'cursor-pointer px-3 py-2 text-sm hover:bg-surface-container-high',
+                  i === highlighted && 'bg-surface-container-high',
+                  isCreateOption && 'font-medium text-primary',
                 )}
               >
                 {option}
@@ -192,7 +192,7 @@ export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputP
         </ul>
       )}
       {loading && (
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted">
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
           <Icon name="mdi-loading" size={16} className="animate-spin motion-reduce:animate-none" />
         </span>
       )}

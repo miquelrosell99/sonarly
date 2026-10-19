@@ -9,9 +9,9 @@ interface ProgressBarProps {
 export function ProgressBar({ value, className, 'aria-label': ariaLabel }: ProgressBarProps) {
   const clamped = Math.max(0, Math.min(100, value));
   return (
-    <div className={cn('h-2 w-full overflow-hidden rounded-full bg-surface-hover', className)}>
+    <div className={cn('h-2 w-full overflow-hidden rounded-full bg-surface-container-high', className)}>
       <div
-        className="h-full rounded-full bg-accent transition-all duration-300 ease-out"
+        className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
         style={{ width: `${clamped}%` }}
         role="progressbar"
         aria-label={ariaLabel}

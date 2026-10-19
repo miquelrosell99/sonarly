@@ -60,9 +60,9 @@ export function SponsorButton() {
         title="Support Sonarly"
         aria-label="Support Sonarly"
         className={cn(
-          'flex h-9 w-9 items-center justify-center rounded-full text-accent transition',
-          'hover:bg-surface-hover',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+          'flex h-9 w-9 items-center justify-center rounded-full text-primary transition',
+          'hover:bg-surface-container-high',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
           '[@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
         )}
       >
@@ -95,7 +95,7 @@ export function SponsorButton() {
           </div>
         }
       >
-        <p className="text-sm text-fg-secondary">
+        <p className="text-sm text-on-surface-variant">
           If Sonarly is useful to you, consider sponsoring the project on GitHub.
           Your support helps keep development going.
         </p>

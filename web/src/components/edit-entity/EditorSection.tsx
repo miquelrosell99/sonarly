@@ -22,7 +22,7 @@ export function EditorSection({
     <section aria-labelledby={headingId} className={cn('min-w-0', className)}>
       <h4
         id={headingId}
-        className="mb-3 text-xs font-medium uppercase tracking-wider text-fg-secondary"
+        className="mb-3 text-xs font-medium uppercase tracking-wider text-on-surface-variant"
       >
         {title}
       </h4>

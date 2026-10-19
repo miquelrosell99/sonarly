@@ -14,29 +14,29 @@ export function SettingsAbout() {
           <BrandMark className="h-12 w-12 shrink-0" />
           <div className="min-w-0">
             <p className="font-display text-xl font-semibold">Sonarly</p>
-            <p className="text-sm text-muted">Self-hosted music streaming for your own library.</p>
+            <p className="text-sm text-on-surface-variant">Self-hosted music streaming for your own library.</p>
           </div>
         </div>
         <dl className="mt-6 space-y-3 text-sm">
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-fg-secondary">Source</dt>
+            <dt className="text-on-surface-variant">Source</dt>
             <dd>
-              <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="text-fg-primary">
+              <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="text-on-surface">
                 github.com/miquelrosell99/sonarly
               </a>
             </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-fg-secondary">License</dt>
+            <dt className="text-on-surface-variant">License</dt>
             <dd>
-              <a href={LICENSE_URL} target="_blank" rel="noopener noreferrer" className="text-fg-primary">
+              <a href={LICENSE_URL} target="_blank" rel="noopener noreferrer" className="text-on-surface">
                 GNU AGPL v3.0
               </a>
             </dd>
           </div>
           <div className="flex items-center justify-between gap-4">
-            <dt className="text-fg-secondary">Copyright</dt>
-            <dd className="text-fg-primary">© {year} Miquel Rosell Tarragó</dd>
+            <dt className="text-on-surface-variant">Copyright</dt>
+            <dd className="text-on-surface">© {year} Miquel Rosell Tarragó</dd>
           </div>
         </dl>
       </SettingsCard>

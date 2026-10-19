@@ -116,9 +116,9 @@ export function IngestModal({ open, onClose, onSelectRun }: IngestModalProps) {
                 Clear history
               </Button>
             </div>
-            {runsError && <p className="text-sm text-danger" role="alert">{runsError}</p>}
+            {runsError && <p className="text-sm text-error" role="alert">{runsError}</p>}
             {runsLoading ? (
-              <p className="text-sm text-muted">Loading...</p>
+              <p className="text-sm text-on-surface-variant">Loading...</p>
             ) : (
               <Table<IngestRun>
                 columns={[
@@ -144,7 +144,7 @@ export function IngestModal({ open, onClose, onSelectRun }: IngestModalProps) {
                   {
                     key: 'summary',
                     header: 'Summary',
-                    render: (r) => <span className="font-mono text-muted">{formatRunStats(r.stats)}</span>,
+                    render: (r) => <span className="font-mono text-on-surface-variant">{formatRunStats(r.stats)}</span>,
                   },
                   {
                     key: 'actions',
@@ -157,7 +157,7 @@ export function IngestModal({ open, onClose, onSelectRun }: IngestModalProps) {
                           e.stopPropagation();
                           setRunToDelete(r.id);
                         }}
-                        className="rounded-item p-3 text-fg-secondary transition-colors hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+                        className="rounded-item p-3 text-on-surface-variant transition-colors hover:bg-error/10 hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
                         aria-label="Delete ingest run"
                         title="Delete"
                       >
@@ -179,7 +179,7 @@ export function IngestModal({ open, onClose, onSelectRun }: IngestModalProps) {
                         onSelectRun?.(run.id);
                       }
                     },
-                    className: `${(element as ReactElement<{ className?: string }>).props.className ?? ''} cursor-pointer hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent`,
+                    className: `${(element as ReactElement<{ className?: string }>).props.className ?? ''} cursor-pointer hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary`,
                   })
                 }
               />

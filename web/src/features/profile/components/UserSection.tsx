@@ -38,27 +38,27 @@ export function UserSection({ user, onSettings, onAdmin, onLogout }: UserSection
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-3 rounded-item p-2 text-left transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="flex w-full items-center gap-3 rounded-item p-2 text-left transition hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         aria-haspopup="menu"
         aria-expanded={open}
       >
         <Avatar user={user} variant="surface" className="h-8 w-8 shrink-0" />
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-fg-primary">{displayName}</p>
-          {user.email && <p className="truncate text-xs text-muted">{user.email}</p>}
+          <p className="truncate text-sm font-medium text-on-surface">{displayName}</p>
+          {user.email && <p className="truncate text-xs text-on-surface-variant">{user.email}</p>}
         </div>
       </button>
 
       {open && (
         <div
           role="menu"
-          className="absolute bottom-full left-0 mb-2 w-48 rounded-popover border border-rule bg-surface py-1 shadow-sm"
+          className="absolute bottom-full left-0 mb-2 w-48 rounded-popover border border-outline bg-surface py-1 shadow-sm"
         >
           <button
             type="button"
             role="menuitem"
             onClick={() => { setOpen(false); onSettings(); }}
-            className="block w-full px-4 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+            className="block w-full px-4 py-2 text-left text-sm text-on-surface transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none"
           >
             Settings
           </button>
@@ -67,17 +67,17 @@ export function UserSection({ user, onSettings, onAdmin, onLogout }: UserSection
               type="button"
               role="menuitem"
               onClick={() => { setOpen(false); onAdmin(); }}
-              className="block w-full px-4 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+              className="block w-full px-4 py-2 text-left text-sm text-on-surface transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none"
             >
               Admin panel
             </button>
           )}
-          <div className="my-1 border-t border-rule" />
+          <div className="my-1 border-t border-outline" />
           <button
             type="button"
             role="menuitem"
             onClick={() => { setOpen(false); onLogout(); }}
-            className="block w-full px-4 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+            className="block w-full px-4 py-2 text-left text-sm text-on-surface transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none"
           >
             Log out
           </button>

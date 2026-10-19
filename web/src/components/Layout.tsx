@@ -102,7 +102,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
 
   return (
     <div
-      className="relative flex h-screen flex-col overflow-hidden bg-bg-primary text-fg-primary"
+      className="relative flex h-screen flex-col overflow-hidden bg-background text-on-surface"
       style={
         dominantColor
           ? ({ '--now-playing-color': dominantColor } as React.CSSProperties)
@@ -111,7 +111,7 @@ export function Layout({ user, onUserChange, children }: LayoutProps) {
     >
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-item focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-bg-primary"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-item focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-on-primary"
       >
         Skip to content
       </a>

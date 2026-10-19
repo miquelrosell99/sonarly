@@ -211,7 +211,7 @@ export function Albums({ user }: { user: User }) {
       header: 'Title',
       render: (album) => (
         <ExplicitTitle explicit={album.explicit} blur={blurExplicitTitles}>
-          <Link href={`/albums/${album.id}`} className="hover:text-muted">
+          <Link href={`/albums/${album.id}`} className="hover:text-on-surface-variant">
             {album.name}
           </Link>
         </ExplicitTitle>
@@ -229,7 +229,7 @@ export function Albums({ user }: { user: User }) {
       render: (album) => (
         <span>
           {album.artistId ? (
-            <Link href={`/artists/${album.artistId}`} className="hover:text-muted">
+            <Link href={`/artists/${album.artistId}`} className="hover:text-on-surface-variant">
               {album.artistName ?? 'Unknown artist'}
             </Link>
           ) : (
@@ -238,7 +238,7 @@ export function Albums({ user }: { user: User }) {
           {album.year !== undefined && album.year !== null && (
             <>
               {' • '}
-              <Link href={`/years/${album.year}`} className="hover:text-muted">
+              <Link href={`/years/${album.year}`} className="hover:text-on-surface-variant">
                 {album.year}
               </Link>
             </>
@@ -250,7 +250,7 @@ export function Albums({ user }: { user: User }) {
       key: 'genre',
       render: (album) =>
         album.genre ? (
-          <Link href={`/genres/${encodeURIComponent(album.genre)}`} className="hover:text-muted">
+          <Link href={`/genres/${encodeURIComponent(album.genre)}`} className="hover:text-on-surface-variant">
             {album.genre}
           </Link>
         ) : (

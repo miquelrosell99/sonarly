@@ -56,7 +56,7 @@ export function TransportControls() {
         </ControlButton>
       </div>
       <div className={cn('flex w-full items-center gap-3')}>
-        <span className="w-11 shrink-0 text-right text-xs font-mono tabular-nums text-fg-secondary">{formatTime(displayTime)}</span>
+        <span className="w-11 shrink-0 text-right text-xs font-mono tabular-nums text-on-surface-variant">{formatTime(displayTime)}</span>
         <Slider
           min={0}
           max={displayDuration || 1}
@@ -66,7 +66,7 @@ export function TransportControls() {
           disabled={!hasTrack}
           ariaLabel="Progress"
         />
-        <span className="w-11 shrink-0 text-xs font-mono tabular-nums text-fg-secondary">{formatTime(displayDuration)}</span>
+        <span className="w-11 shrink-0 text-xs font-mono tabular-nums text-on-surface-variant">{formatTime(displayDuration)}</span>
       </div>
       <div className={cn('flex items-center justify-center gap-1')}>
         <ControlButton

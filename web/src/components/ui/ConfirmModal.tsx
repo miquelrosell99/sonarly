@@ -39,7 +39,7 @@ export function ConfirmModal({
         </div>
       }
     >
-      <p className="text-sm text-fg-secondary">{message}</p>
+      <p className="text-sm text-on-surface-variant">{message}</p>
     </Modal>
   );
 }

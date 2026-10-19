@@ -2,11 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-// Audit F10: the semantic danger/success text colors must meet WCAG AA
+// Audit F10: the semantic error/success text colors must meet WCAG AA
 // (>= 4.5:1) for the 14px text they render as, on every surface they appear
 // on, in all three themes. The audit's figures were computed from these same
 // token HSL values; this test recomputes the ratios from index.css so the
-// tokens cannot silently regress.
+// tokens cannot silently regress. Tokens are canonical Material You roles
+// (--md-sys-color-*, law/spec.md §2) since the 2026-10-19 single-track
+// migration.
 
 const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
 
@@ -15,6 +17,14 @@ type Hsl = [number, number, number];
 function themeBlock(name: string): string {
   const start = css.indexOf(`.${name} {`);
   if (start === -1) throw new Error(`theme block .${name} not found in index.css`);
+  const end = css.indexOf('}', start);
+  return css.slice(start, end);
+}
+
+// Light rides the shared `:root, .theme-light` block.
+function lightBlock(): string {
+  const start = css.indexOf('.theme-light {');
+  if (start === -1) throw new Error('theme block .theme-light not found in index.css');
   const end = css.indexOf('}', start);
   return css.slice(start, end);
 }
@@ -52,34 +62,40 @@ function contrast(a: Hsl, b: Hsl): number {
 
 const AA_TEXT = 4.5;
 
-for (const theme of ['theme-light', 'theme-dark', 'theme-oled']) {
-  describe(`${theme} semantic token contrast`, () => {
-    const block = themeBlock(theme);
-    const danger = token(block, 'danger');
-    const success = token(block, 'success');
-    const surface = token(block, 'surface');
-    const bgPrimary = token(block, 'bg-primary');
+const THEMES: [string, () => string][] = [
+  ['light', lightBlock],
+  ['dark', () => themeBlock('theme-dark')],
+  ['oled', () => themeBlock('theme-oled')],
+];
 
-    // text-danger / text-success bodies: toasts, .btn-danger labels,
+for (const [theme, blockFor] of THEMES) {
+  describe(`${theme} semantic token contrast`, () => {
+    const block = blockFor();
+    const error = token(block, 'md-sys-color-error');
+    const success = token(block, 'md-sys-color-success');
+    const surface = token(block, 'md-sys-color-surface');
+    const background = token(block, 'md-sys-color-background');
+
+    // text-error / text-success bodies: toasts, .btn-danger labels,
     // role="alert" paragraphs, on both card and page backgrounds.
     it.each([
-      ['danger', danger],
+      ['error', error],
       ['success', success],
-    ] as const)('%s text on --surface meets AA for 14px text', (_name, fg) => {
+    ] as const)('%s text on --md-sys-color-surface meets AA for 14px text', (_name, fg) => {
       expect(contrast(fg, surface)).toBeGreaterThanOrEqual(AA_TEXT);
     });
 
     it.each([
-      ['danger', danger],
+      ['error', error],
       ['success', success],
-    ] as const)('%s text on --bg-primary meets AA for 14px text', (_name, fg) => {
-      expect(contrast(fg, bgPrimary)).toBeGreaterThanOrEqual(AA_TEXT);
+    ] as const)('%s text on --md-sys-color-background meets AA for 14px text', (_name, fg) => {
+      expect(contrast(fg, background)).toBeGreaterThanOrEqual(AA_TEXT);
     });
 
-    // The .btn-danger hover inversion paints the button --danger and the
-    // label --bg-primary.
-    it('--bg-primary text on --danger (btn-danger hover inversion) meets AA', () => {
-      expect(contrast(bgPrimary, danger)).toBeGreaterThanOrEqual(AA_TEXT);
+    // The .btn-danger hover inversion paints the button --md-sys-color-error
+    // and the label --md-sys-color-on-primary (bound to the background role).
+    it('--md-sys-color-background text on --md-sys-color-error (btn-danger hover inversion) meets AA', () => {
+      expect(contrast(background, error)).toBeGreaterThanOrEqual(AA_TEXT);
     });
   });
 }

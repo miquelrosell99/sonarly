@@ -66,7 +66,7 @@ export function Genres() {
       key: 'name',
       header: 'Genre',
       render: (genre) => (
-        <Link href={`/genres/${encodeURIComponent(genre.name)}`} className="hover:text-muted">
+        <Link href={`/genres/${encodeURIComponent(genre.name)}`} className="hover:text-on-surface-variant">
           {genre.name}
         </Link>
       ),

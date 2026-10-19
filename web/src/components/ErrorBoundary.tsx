@@ -50,10 +50,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div
           role="alert"
-          className="flex h-full min-h-[16rem] items-center justify-center p-6 text-fg-secondary"
+          className="flex h-full min-h-[16rem] items-center justify-center p-6 text-on-surface-variant"
         >
           <div className="flex flex-col items-center gap-3 text-center">
-            <span className="text-base font-medium text-fg-primary">Something went wrong</span>
+            <span className="text-base font-medium text-on-surface">Something went wrong</span>
             <span className="text-sm">This view crashed unexpectedly.</span>
             <Button type="button" onClick={() => window.location.reload()}>
               Reload

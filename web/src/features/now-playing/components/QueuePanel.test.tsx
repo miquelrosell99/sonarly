@@ -198,9 +198,9 @@ describe('QueuePanel', () => {
     const futureRow = screen.getByText('Future').closest('tr');
 
     expect(pastRow?.className).toContain('opacity-50');
-    expect(screen.getByText('Current').className).toContain('text-accent');
+    expect(screen.getByText('Current').className).toContain('text-primary');
     expect(futureRow?.className).not.toContain('opacity-50');
-    expect(futureRow?.className).not.toContain('bg-accent/10');
+    expect(futureRow?.className).not.toContain('bg-primary/10');
   });
 
   it('displays songs in shuffled order when shuffle is enabled', () => {

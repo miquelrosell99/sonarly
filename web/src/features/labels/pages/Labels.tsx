@@ -19,7 +19,7 @@ export function Labels() {
       key: 'name',
       header: 'Label',
       render: (label) => (
-        <Link href={`/labels/${encodeURIComponent(label)}`} className="hover:text-muted">
+        <Link href={`/labels/${encodeURIComponent(label)}`} className="hover:text-on-surface-variant">
           {label}
         </Link>
       ),

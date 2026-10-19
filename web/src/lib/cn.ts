@@ -3,7 +3,7 @@ import { extendTailwindMerge } from 'tailwind-merge';
 
 // tailwind-merge drops UNKNOWN utility names when resolving conflicts
 // (fleet production hit 2026-10-19, notees migration): the app's custom
-// token names must be registered or `text-bg-primary` gets eaten next to
+// token names must be registered or `text-on-primary` gets eaten next to
 // `text-sm`. Registration covers the app role tokens, the shadcn catalog
 // alias keys (tailwind.config.js colors), the radius token family, and the
 // custom font sizes/families.

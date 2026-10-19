@@ -80,9 +80,9 @@ export function SaveQueueAsPlaylistModal({ open, onClose, songIds }: SaveQueueAs
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && <p className="text-sm text-error">{error}</p>}
         <div>
-          <label htmlFor="save-queue-playlist-name" className="mb-1.5 block text-sm font-medium text-fg-secondary">
+          <label htmlFor="save-queue-playlist-name" className="mb-1.5 block text-sm font-medium text-on-surface-variant">
             Name
           </label>
           <Input
@@ -94,7 +94,7 @@ export function SaveQueueAsPlaylistModal({ open, onClose, songIds }: SaveQueueAs
             autoFocus
           />
         </div>
-        <p className="text-xs text-fg-secondary">
+        <p className="text-xs text-on-surface-variant">
           {songIds.length} {songIds.length === 1 ? 'track' : 'tracks'} will be added in queue order.
         </p>
       </form>

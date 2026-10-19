@@ -11,7 +11,7 @@ export function Field({
 }) {
   return (
     <div className={className}>
-      <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-fg-secondary">
+      <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-on-surface-variant">
         {label}
       </label>
       {children}
@@ -21,7 +21,7 @@ export function Field({
 
 export function ReadOnlyValue({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-10 items-center rounded-input border border-rule bg-surface px-3 text-sm text-fg-primary">
+    <div className="flex h-10 items-center rounded-input border border-outline bg-surface px-3 text-sm text-on-surface">
       {children}
     </div>
   );

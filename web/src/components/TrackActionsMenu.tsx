@@ -110,7 +110,7 @@ export function TrackActionsMenu({ song }: TrackActionsMenuProps) {
       ref={menu.menuRef}
       {...menu.menuProps}
       aria-label={view === 'main' ? 'Track actions' : 'Sleep timer'}
-      className="fixed z-50 min-w-[12rem] rounded-popover border border-rule bg-surface py-1 shadow-lg"
+      className="fixed z-50 min-w-[12rem] rounded-popover border border-outline bg-surface py-1 shadow-lg"
     >
       {items.map((item) => (
         <button
@@ -127,13 +127,13 @@ export function TrackActionsMenu({ song }: TrackActionsMenuProps) {
             menu.closeMenu(true);
           }}
           className={cn(
-            'flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none',
-            item.active && 'text-accent',
+            'flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-on-surface transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none',
+            item.active && 'text-primary',
           )}
         >
-          <Icon name={item.icon} size={18} className={cn('text-fg-secondary', item.active && 'text-accent')} />
+          <Icon name={item.icon} size={18} className={cn('text-on-surface-variant', item.active && 'text-primary')} />
           {item.label}
-          {item.active && <Icon name="mdi-check" size={16} className="ml-auto text-accent" />}
+          {item.active && <Icon name="mdi-check" size={16} className="ml-auto text-primary" />}
         </button>
       ))}
     </div>
@@ -149,8 +149,8 @@ export function TrackActionsMenu({ song }: TrackActionsMenuProps) {
         title={timerActive ? 'More actions (sleep timer active)' : 'More actions'}
         disabled={!song}
         className={cn(
-          '-m-1 inline-flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-40',
-          timerActive ? 'text-accent' : 'text-fg-secondary',
+          '-m-1 inline-flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-40',
+          timerActive ? 'text-primary' : 'text-on-surface-variant',
         )}
       >
         <Icon name={timerActive ? 'mdi-timer-outline' : 'mdi-dots-horizontal'} size={18} />

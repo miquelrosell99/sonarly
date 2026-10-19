@@ -477,7 +477,7 @@ export function LibraryView<T>({
 
     const table = (
       <table className="w-full text-left text-sm">
-        <thead className="border-b border-rule text-muted">
+        <thead className="border-b border-outline text-on-surface-variant">
           <tr>
             {sortable && <th className="w-8 py-2 pr-2 font-medium" aria-label="Reorder" />}
             <th className="w-12 py-2 px-2 text-center font-medium">#</th>
@@ -499,14 +499,14 @@ export function LibraryView<T>({
             renderItem={renderItemRow}
           />
         ) : (
-          <tbody className="divide-y divide-rule">
+          <tbody className="divide-y divide-outline">
             {groups.map((group, groupIndex) => (
               <Fragment key={group.key ?? `group-${groupIndex}`}>
                 {group.key !== undefined && group.key !== '' && (
-                  <tr className="border-t border-rule first:border-t-0">
+                  <tr className="border-t border-outline first:border-t-0">
                     <th
                       colSpan={groupHeaderColSpan}
-                      className="py-2 pr-4 text-left text-xs font-semibold uppercase tracking-wider text-muted"
+                      className="py-2 pr-4 text-left text-xs font-semibold uppercase tracking-wider text-on-surface-variant"
                       scope="rowgroup"
                     >
                       {renderGroupHeader ? renderGroupHeader(group.key, group.items) : group.key}
@@ -613,21 +613,21 @@ export function LibraryView<T>({
                 aria-label="Shuffle play"
                 onClick={() => onShufflePlay(data)}
                 disabled={data.length === 0}
-                className="inline-flex items-center rounded-item border border-rule bg-surface p-2 text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50"
+                className="inline-flex items-center rounded-item border border-outline bg-surface p-2 text-on-surface transition hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
               >
                 <Icon name="mdi-shuffle" size={20} />
               </button>
             )}
             {availableViews.length > 1 && (
-              <div className="flex items-center rounded-item border border-rule bg-surface p-1">
+              <div className="flex items-center rounded-item border border-outline bg-surface p-1">
                 {availableViews.includes('list') && (
                   <button
                     type="button"
                     aria-label="List view"
                     onClick={() => setViewMode('list')}
                     className={cn(
-                      'rounded-item p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                      viewMode === 'list' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
+                      'rounded-item p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                      viewMode === 'list' ? 'bg-surface-container-high text-primary' : 'text-on-surface-variant hover:text-on-surface',
                     )}
                   >
                     <Icon name="mdi-format-list-bulleted" size={20} />
@@ -639,8 +639,8 @@ export function LibraryView<T>({
                     aria-label="Grid view"
                     onClick={() => setViewMode('grid')}
                     className={cn(
-                      'rounded-item p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-                      viewMode === 'grid' ? 'bg-surface-hover text-accent' : 'text-muted hover:text-fg-primary',
+                      'rounded-item p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                      viewMode === 'grid' ? 'bg-surface-container-high text-primary' : 'text-on-surface-variant hover:text-on-surface',
                     )}
                   >
                     <Icon name="mdi-view-grid-outline" size={20} />

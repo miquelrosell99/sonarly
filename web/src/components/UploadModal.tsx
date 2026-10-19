@@ -201,7 +201,7 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
         key: 'name',
         header: 'File name',
         render: ({ relativePath }) => (
-          <span className="truncate text-fg-primary" title={relativePath}>
+          <span className="truncate text-on-surface" title={relativePath}>
             {relativePath}
           </span>
         ),
@@ -212,13 +212,13 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
         className: 'w-24 text-right',
         render: ({ file, relativePath }) => (
           <div className="flex items-center justify-end gap-2">
-            <span className="text-xs text-fg-secondary">{formatBytes(file.size)}</span>
+            <span className="text-xs text-on-surface-variant">{formatBytes(file.size)}</span>
             <button
               type="button"
               onClick={() => removeFile(relativePath)}
               disabled={isUploading}
               aria-label="Remove file"
-              className="shrink-0 rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-danger disabled:opacity-50"
+              className="shrink-0 rounded-item p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-error disabled:opacity-50"
             >
               <Icon name="mdi-close" size={16} />
             </button>
@@ -231,7 +231,7 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
 
   const footer = (
     <div className="flex items-center justify-between gap-4">
-      <div className="text-xs text-fg-secondary">
+      <div className="text-xs text-on-surface-variant">
         {isUploading ? (
           <span>
             Uploading {progress.completedFiles} of {progress.totalFiles} file{progress.totalFiles === 1 ? '' : 's'}…
@@ -266,16 +266,16 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
       <div className="space-y-4">
         {isUploading ? (
           <div className="flex flex-col items-center justify-center gap-5 py-8 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Icon name="mdi-cloud-upload-outline" size={28} className="animate-pulse" />
             </div>
             <div className="w-full max-w-md space-y-1">
-              <div className="flex justify-between gap-2 text-xs text-fg-secondary">
+              <div className="flex justify-between gap-2 text-xs text-on-surface-variant">
                 <span className="min-w-0 flex-1 truncate" title={progress.currentFile}>{progress.currentFile}</span>
                 <span className="shrink-0">{Math.round(totalProgress)}%</span>
               </div>
               <div
-                className="h-2 w-full overflow-hidden rounded-full bg-surface-hover"
+                className="h-2 w-full overflow-hidden rounded-full bg-surface-container-high"
                 role="progressbar"
                 aria-valuemin={0}
                 aria-valuemax={100}
@@ -283,18 +283,18 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
                 aria-label="Upload progress"
               >
                 <div
-                  className="h-full bg-accent transition-all"
+                  className="h-full bg-primary transition-all"
                   style={{ width: `${totalProgress}%` }}
                 />
               </div>
-              <p className="text-xs text-fg-secondary">Uploading… use Cancel in the footer to stop.</p>
+              <p className="text-xs text-on-surface-variant">Uploading… use Cancel in the footer to stop.</p>
             </div>
           </div>
         ) : (
           <>
         <div className="space-y-1">
-          <label htmlFor="upload-library" className="block text-sm font-medium text-fg-secondary">
-            Library <span className="text-danger">*</span>
+          <label htmlFor="upload-library" className="block text-sm font-medium text-on-surface-variant">
+            Library <span className="text-error">*</span>
           </label>
           <select
             id="upload-library"
@@ -311,15 +311,15 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
             ))}
           </select>
           {isUsingDefaultLibrary && (
-            <p className="text-xs text-fg-secondary">
+            <p className="text-xs text-on-surface-variant">
               No library selected in the UI; files will be uploaded to the default library.
             </p>
           )}
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="upload-duplicate-strategy" className="block text-sm font-medium text-fg-secondary">
-            Duplicate strategy <span className="text-danger">*</span>
+          <label htmlFor="upload-duplicate-strategy" className="block text-sm font-medium text-on-surface-variant">
+            Duplicate strategy <span className="text-error">*</span>
           </label>
           <select
             id="upload-duplicate-strategy"
@@ -333,11 +333,11 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
               <option key={value} value={value}>{label}</option>
             ))}
           </select>
-          <p className="text-xs text-fg-secondary">
+          <p className="text-xs text-on-surface-variant">
             Used when an uploaded song matches an existing song by title, album, and artists.
           </p>
           {settingsError && (
-            <p className="text-xs text-danger" role="alert">
+            <p className="text-xs text-error" role="alert">
               Upload settings could not be loaded, so uploading is unavailable. Close and reopen this dialog to retry.
             </p>
           )}
@@ -351,16 +351,16 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
           className={cn(
             'relative flex flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed p-8 text-center transition',
             isDragging
-              ? 'border-accent bg-surface-hover'
-              : 'border-rule bg-surface hover:border-fg-secondary/40',
+              ? 'border-primary bg-surface-container-high'
+              : 'border-outline bg-surface hover:border-on-surface-variant/40',
           )}
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-hover text-accent">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-container-high text-primary">
             <Icon name="mdi-cloud-upload-outline" size={24} />
           </div>
           <div>
-            <p className="text-sm font-medium text-fg-primary">Drop files or folders here</p>
-            <p className="text-xs text-fg-secondary">or click to browse</p>
+            <p className="text-sm font-medium text-on-surface">Drop files or folders here</p>
+            <p className="text-xs text-on-surface-variant">or click to browse</p>
           </div>
           <input
             ref={inputRef}
@@ -374,19 +374,19 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
           />
         </div>
 
-        {error && <p className="text-sm text-danger" role="alert">{error}</p>}
+        {error && <p className="text-sm text-error" role="alert">{error}</p>}
 
         {files.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium text-fg-primary">
-                Files to upload <span className="text-fg-secondary">({files.length})</span>
+              <h4 className="text-sm font-medium text-on-surface">
+                Files to upload <span className="text-on-surface-variant">({files.length})</span>
               </h4>
               <Button variant="ghost" onClick={clearFiles} disabled={isUploading} className="h-auto px-2 py-1 text-xs">
                 Clear
               </Button>
             </div>
-            <div className="max-h-48 overflow-y-auto rounded-item border border-rule">
+            <div className="max-h-48 overflow-y-auto rounded-item border border-outline">
               <Table
                 columns={fileColumns}
                 rows={files}
@@ -425,18 +425,18 @@ export function UploadResultsModal({ open, onClose, summary }: UploadResultsModa
           <span className="font-medium">Upload successful</span>
         </div>
         {summary && (
-          <div className="rounded-item border border-rule bg-surface p-3 text-sm">
-            <p className="text-fg-primary">
+          <div className="rounded-item border border-outline bg-surface p-3 text-sm">
+            <p className="text-on-surface">
               <span className="font-medium">{summary.fileCount}</span> file
               {summary.fileCount === 1 ? '' : 's'} uploaded
               {summary.libraryName && (
                 <span> to <span className="font-medium">{summary.libraryName}</span></span>
               )}
             </p>
-            <p className="text-fg-secondary">Total size: {formatBytes(summary.totalSize)}</p>
+            <p className="text-on-surface-variant">Total size: {formatBytes(summary.totalSize)}</p>
           </div>
         )}
-        <p className="text-sm text-fg-secondary">
+        <p className="text-sm text-on-surface-variant">
           Files will be processed and appear in the library shortly. Duplicates will be handled according to the selected strategy.
         </p>
       </div>

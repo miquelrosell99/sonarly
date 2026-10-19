@@ -89,8 +89,8 @@ export function SongEditor({
             />
           </Field>
 
-          <div className="flex items-center justify-between rounded-item border border-rule bg-surface px-4 py-3">
-            <span className="text-sm text-fg-secondary">
+          <div className="flex items-center justify-between rounded-item border border-outline bg-surface px-4 py-3">
+            <span className="text-sm text-on-surface-variant">
               {syncedLinesCount} synced lines
             </span>
             {!readOnly && !isMulti && (

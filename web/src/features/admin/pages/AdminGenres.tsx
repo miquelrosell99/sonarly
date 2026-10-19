@@ -218,14 +218,14 @@ export function AdminGenres({ user }: AdminGenresProps) {
     <AdminShell user={user}>
       <div className="space-y-4">
         {error && (
-          <p className="text-sm text-danger" role="alert">
+          <p className="text-sm text-error" role="alert">
             {error}
           </p>
         )}
 
-        <div className="flex items-end gap-2 rounded-item border border-rule bg-surface p-4">
+        <div className="flex items-end gap-2 rounded-item border border-outline bg-surface p-4">
           <div className="flex-1">
-            <label htmlFor="new-root-genre" className="mb-1.5 block text-sm font-medium text-fg-secondary">
+            <label htmlFor="new-root-genre" className="mb-1.5 block text-sm font-medium text-on-surface-variant">
               New root genre
             </label>
             <Input
@@ -245,13 +245,13 @@ export function AdminGenres({ user }: AdminGenresProps) {
         </div>
 
         {loading && flat.length === 0 && tree.length === 0 ? (
-          <p className="text-sm text-fg-secondary">Loading genres…</p>
+          <p className="text-sm text-on-surface-variant">Loading genres…</p>
         ) : (
-          <div className="rounded-item border border-rule">
+          <div className="rounded-item border border-outline">
             {tree.length === 0 ? (
-              <p className="p-4 text-sm text-fg-secondary">No genres yet.</p>
+              <p className="p-4 text-sm text-on-surface-variant">No genres yet.</p>
             ) : (
-              <ul className="divide-y divide-rule">
+              <ul className="divide-y divide-outline">
                 {tree.map((node) => (
                   <GenreTreeItem
                     key={node.id}
@@ -384,9 +384,9 @@ function GenreTreeItem({
             </div>
           ) : (
             <div>
-              <span className="block text-sm font-medium text-fg-primary">{node.name}</span>
+              <span className="block text-sm font-medium text-on-surface">{node.name}</span>
               {node.path !== node.name && (
-                <span className="block text-xs text-fg-secondary">{node.path}</span>
+                <span className="block text-xs text-on-surface-variant">{node.path}</span>
               )}
             </div>
           )}
@@ -464,7 +464,7 @@ function GenreTreeItem({
       </div>
 
       {isAdding && (
-        <div className="mx-3 mb-3 flex items-center gap-2 rounded-item border border-rule bg-surface p-2">
+        <div className="mx-3 mb-3 flex items-center gap-2 rounded-item border border-outline bg-surface p-2">
           <Input
             placeholder="Child genre name"
             value={inlineAdd.name}
@@ -498,7 +498,7 @@ function GenreTreeItem({
       )}
 
       {node.children.length > 0 && (
-        <ul className="divide-y divide-rule border-t border-rule">
+        <ul className="divide-y divide-outline border-t border-outline">
           {node.children.map((child) => (
             <GenreTreeItem
               key={child.id}

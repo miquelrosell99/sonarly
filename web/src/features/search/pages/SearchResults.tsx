@@ -233,7 +233,7 @@ export function SearchResults({ user }: SearchResultsProps) {
         header: 'Title',
         render: (song) => (
           <ExplicitTitle explicit={song.explicit} blur={blurExplicitTitles}>
-            <Link href={`/tracks/${song.id}`} className="hover:text-muted">
+            <Link href={`/tracks/${song.id}`} className="hover:text-on-surface-variant">
               {song.title}
             </Link>
           </ExplicitTitle>
@@ -307,7 +307,7 @@ export function SearchResults({ user }: SearchResultsProps) {
         header: 'Title',
         render: (album) => (
           <ExplicitTitle explicit={album.explicit} blur={blurExplicitTitles}>
-            <Link href={`/albums/${album.id}`} className="hover:text-muted">
+            <Link href={`/albums/${album.id}`} className="hover:text-on-surface-variant">
               {album.name}
             </Link>
           </ExplicitTitle>
@@ -359,7 +359,7 @@ export function SearchResults({ user }: SearchResultsProps) {
         key: 'name',
         header: 'Name',
         render: (artist) => (
-          <Link href={`/artists/${artist.id}`} className="hover:text-muted">
+          <Link href={`/artists/${artist.id}`} className="hover:text-on-surface-variant">
             {artist.name}
           </Link>
         ),
@@ -399,7 +399,7 @@ export function SearchResults({ user }: SearchResultsProps) {
         key: 'name',
         header: 'Name',
         render: (playlist) => (
-          <Link href={`/playlists/${playlist.id}`} className="hover:text-muted">
+          <Link href={`/playlists/${playlist.id}`} className="hover:text-on-surface-variant">
             {playlist.name}
           </Link>
         ),
