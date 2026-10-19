@@ -30,9 +30,11 @@ export default {
       },
       borderRadius: {
         // Radius tokens (design system): surfaces, sheets, controls, rows.
+        // Buttons are corner-full (9999px) fleet-wide — owner ruling
+        // 2026-10-19 (M3 corner-full at every size), applied 2026-10-19.
         card: '20px',
         sheet: '28px',
-        button: '16px',
+        button: '9999px',
         input: '12px',
         item: '8px',
         popover: '8px',

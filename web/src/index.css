@@ -301,11 +301,9 @@
   --md-sys-color-primary: var(--md-sys-color-on-surface);
 }
 
-/* Deliberate brand moment: the Login sign-in button stays a full pill over
-   the app-wide 16px .btn radius. Unlayered on purpose so it beats .btn. */
-.btn-pill {
-  border-radius: 9999px;
-}
+/* Button radius is corner-full (9999px) fleet-wide via the rounded-button
+   token (owner ruling 2026-10-19); the old .btn-pill override was removed
+   when the ruling superseded the 16px register — nothing left to beat. */
 
 @keyframes ds-dialog-enter {
   from {

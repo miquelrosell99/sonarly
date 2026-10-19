@@ -112,8 +112,8 @@ Implementation: `web/src/hooks/useDominantColor.ts` samples cover art via an off
 
 ### Buttons
 
-- **Primary:** `.btn` — 16px radius (`rounded-button` token), accent background, contrasting text. Full-pill (`9999px`) is reserved for the Login sign-in brand moment (`.btn-pill`).
-- **Secondary:** `.btn-ghost` — 16px radius, rule border, surface background.
+- **Primary:** `.btn` — corner-full pill radius (`rounded-button` token, 9999px fleet-wide per the 2026-10-19 owner ruling), accent background, contrasting text.
+- **Secondary:** `.btn-ghost` — corner-full pill radius, rule border, surface background.
 
 ### Cards
 

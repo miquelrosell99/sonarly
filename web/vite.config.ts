@@ -20,8 +20,10 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       allowedHosts,
       proxy: {
-        '/api': 'http://localhost:3000',
-        '/rest': 'http://localhost:3000',
+        // SONARLY_DEV_API overrides the API target for hosts where :3000 is
+        // already taken by another service (e.g. open-archiver on atlas).
+        '/api': env.SONARLY_DEV_API ?? 'http://localhost:3000',
+        '/rest': env.SONARLY_DEV_API ?? 'http://localhost:3000',
       },
     },
     build: {
