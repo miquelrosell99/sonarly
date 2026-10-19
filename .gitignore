@@ -15,3 +15,5 @@ compose.yaml
 # Local backup drop zone (large binaries, operator-managed — never commit)
 /backups/
 brand-identity.work/
+web/test-results/
+web/playwright-report/

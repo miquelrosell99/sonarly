@@ -20,6 +20,7 @@ import { useDelayedVisible } from './hooks/useDelayedVisible.js';
 import { AddToPlaylistModal } from './components/AddToPlaylistModal.js';
 import { api } from './lib/api.js';
 import { getShareToken } from './lib/shareToken.js';
+import DesignBridgeFixture from './pages/DesignBridgeFixture.js';
 
 // FF2: every route is lazy so first paint only downloads the shell + the
 // current page. Login/Setup stay static — they are the first paint for
@@ -196,7 +197,23 @@ function Redirect({ to }: { to: string }) {
   return null;
 }
 
+// Design-bridge fixture (components/shadcn-bridge.md "CI fixture"): mounted
+// BEFORE the boot/auth gates so the Playwright computed-style spec can run
+// without credentials — and without the API, since an unreachable backend
+// otherwise parks the app on the boot-error screen. The branch lives in this
+// wrapper so the full app's hooks never run conditionally.
 export default function App() {
+  if (typeof window !== 'undefined' && window.location.pathname === '/__design-bridge-fixture') {
+    return (
+      <Router>
+        <Route path="/__design-bridge-fixture" component={DesignBridgeFixture} />
+      </Router>
+    );
+  }
+  return <AppInner />;
+}
+
+function AppInner() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [needsSetup, setNeedsSetup] = useState<boolean | undefined>(undefined);
   const [signupEnabled, setSignupEnabled] = useState(false);
