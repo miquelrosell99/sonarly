@@ -3,7 +3,7 @@ import { Link, useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Album, Song, User } from '../../../types';
 import { api } from '../../../lib/api.js';
-import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
+import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../library-view/index.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';

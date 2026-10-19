@@ -1,6 +1,6 @@
 import { Link } from 'wouter';
 import type { Song } from '../../../types';
-import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
+import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../library-view/index.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useLibraryStore } from '../../../stores/libraryStore.js';
 import { useSongsList } from '../../../hooks/useLibraryLists.js';

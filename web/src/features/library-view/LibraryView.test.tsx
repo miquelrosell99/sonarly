@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import { Router, Link, useLocation } from 'wouter';
-import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from './LibraryView.js';
+import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from './index.js';
 
 interface Item {
   id: string;

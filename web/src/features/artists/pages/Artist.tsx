@@ -9,7 +9,7 @@ import { EntityDetail } from '../../../components/EntityDetail.js';
 import { FavoriteRatingGroup } from '../../../components/FavoriteRatingGroup.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { ScrollRow } from '../../../components/ScrollRow.js';
-import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
+import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../library-view/index.js';
 import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';

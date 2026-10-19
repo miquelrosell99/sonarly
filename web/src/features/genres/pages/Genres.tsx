@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { Link } from 'wouter';
 import type { Song } from '../../../types';
-import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
+import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../library-view/index.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useGenreContextMenu } from '../../../hooks/useGenreContextMenu.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';

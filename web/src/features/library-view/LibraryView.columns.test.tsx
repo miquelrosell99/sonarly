@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { Router } from 'wouter';
-import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from './LibraryView.js';
-import { COLUMN_CONFIG_STORAGE_KEY } from '../hooks/useColumnConfig.js';
+import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from './index.js';
+import { COLUMN_CONFIG_STORAGE_KEY } from '../../hooks/useColumnConfig.js';
 
 interface Item {
   id: string;

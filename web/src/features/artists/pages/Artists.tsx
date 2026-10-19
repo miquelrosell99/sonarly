@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
 import type { Artist } from '../../../types';
-import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../components/LibraryView.js';
+import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../library-view/index.js';
 import { ArtistImage } from '../../../components/ArtistImage.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
