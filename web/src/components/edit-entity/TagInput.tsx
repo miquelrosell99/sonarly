@@ -1,5 +1,5 @@
 import { cn } from '../../lib/cn.js';
-import { Input } from '../ui/Input.js';
+import { Input } from '../ui/input.js';
 import { AutocompleteInput, type AutocompleteField } from '../ui/AutocompleteInput.js';
 
 export function TagInput({

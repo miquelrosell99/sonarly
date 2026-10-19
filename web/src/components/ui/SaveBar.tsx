@@ -17,7 +17,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Button } from './Button.js';
+import { Button } from './button.js';
 
 export interface SaveBarController {
   dirty: boolean;

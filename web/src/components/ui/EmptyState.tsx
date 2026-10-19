@@ -1,5 +1,5 @@
 import { cn } from '../../lib/cn.js';
-import { Button } from './Button.js';
+import { Button } from './button.js';
 import { Icon } from './Icon.js';
 
 interface EmptyStateProps {

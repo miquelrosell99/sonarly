@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useParams, useLocation } from 'wouter';
 import type { Song, User } from '../../../types';
-import { Button } from '../../../components/ui/Button.js';
+import { Button } from '../../../components/ui/button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { CoverArt } from '../../../components/CoverArt.js';

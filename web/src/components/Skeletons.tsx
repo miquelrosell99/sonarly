@@ -1,4 +1,4 @@
-import { Skeleton } from './ui/Skeleton.js';
+import { Skeleton } from './ui/skeleton.js';
 
 // Suspense fallbacks for lazy routes. Each mirrors the shape of the real
 // page it stands in for (same spacing rhythm as LibraryView / EntityDetail)

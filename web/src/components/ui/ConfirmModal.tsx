@@ -1,5 +1,5 @@
 import { Modal } from './Modal.js';
-import { Button } from './Button.js';
+import { Button } from './button.js';
 
 interface ConfirmModalProps {
   open: boolean;

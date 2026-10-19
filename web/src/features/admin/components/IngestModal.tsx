@@ -1,6 +1,6 @@
 import { useEffect, useState, cloneElement, type ReactElement } from 'react';
 import { api } from '../../../lib/api.js';
-import { Button } from '../../../components/ui/Button.js';
+import { Button } from '../../../components/ui/button.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { Table } from '../../../components/ui/Table.js';
 import { StatusPill } from './StatusPill.js';

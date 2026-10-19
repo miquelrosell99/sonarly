@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Library } from '../../../types';
 import { api } from '../../../lib/api.js';
-import { Button } from '../../../components/ui/Button.js';
+import { Button } from '../../../components/ui/button.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
 import { PageState } from '../../../components/PageState.js';
 import { ProgressBar } from '../../../components/ui/ProgressBar.js';

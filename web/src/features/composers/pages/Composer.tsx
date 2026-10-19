@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useParams } from 'wouter';
 
-import { Button } from '../../../components/ui/Button.js';
+import { Button } from '../../../components/ui/button.js';
 import { EntityDetail } from '../../../components/EntityDetail.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { PlayButton } from '../../../components/PlayButton.js';

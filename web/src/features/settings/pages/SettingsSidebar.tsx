@@ -3,7 +3,7 @@ import { useSettingsDraft, useSettingsSaveBar } from '../hooks/useSettingsDraft.
 import { Settings } from '../components/Settings.js';
 import { SettingsCard } from '../components/SettingsCard.js';
 import { Icon } from '../../../components/ui/Icon.js';
-import { Checkbox } from '../../../components/ui/Checkbox.js';
+import { Checkbox } from '../../../components/ui/checkbox.js';
 import { DEFAULT_SIDEBAR_ITEMS, SIDEBAR_LABELS } from '../../../lib/sidebar.js';
 import { cn } from '../../../lib/cn.js';
 

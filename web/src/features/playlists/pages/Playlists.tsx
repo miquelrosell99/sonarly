@@ -1,7 +1,7 @@
 import { Link } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Playlist } from '../../../types';
-import { Button } from '../../../components/ui/Button.js';
+import { Button } from '../../../components/ui/button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';

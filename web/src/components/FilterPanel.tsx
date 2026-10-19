@@ -1,6 +1,6 @@
 import { useFilterParams } from '../hooks/useFilterParams.js';
 import { cn } from '../lib/cn.js';
-import { Checkbox } from './ui/Checkbox.js';
+import { Checkbox } from './ui/checkbox.js';
 import { Icon } from './ui/Icon.js';
 
 export type FilterType = 'text' | 'number' | 'select' | 'boolean';

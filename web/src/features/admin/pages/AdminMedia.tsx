@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { User, DuplicateStrategy } from '../../../types';
 import { DUPLICATE_STRATEGY_LABELS } from '../../../types';
 import { api } from '../../../lib/api.js';
-import { Button } from '../../../components/ui/Button.js';
+import { Button } from '../../../components/ui/button.js';
 import { PageState } from '../../../components/PageState.js';
 import { AdminShell } from '../components/AdminShell.js';
 import { SettingsCard } from '../../settings/index.js';
