@@ -25,7 +25,7 @@ export function TagInput({
   hint?: string;
   className?: string;
 }) {
-  const lockedClass = locked ? 'border-transparent bg-transparent text-fg-primary cursor-default' : '';
+  const lockedClass = locked ? 'border-transparent bg-transparent text-on-surface cursor-default' : '';
   const input = autocomplete ? (
     <AutocompleteInput
       id={id}
@@ -52,7 +52,7 @@ export function TagInput({
   return (
     <div className="space-y-1">
       {input}
-      <p className="text-xs text-fg-secondary">{hint}</p>
+      <p className="text-xs text-on-surface-variant">{hint}</p>
     </div>
   );
 }

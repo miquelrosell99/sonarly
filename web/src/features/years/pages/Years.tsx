@@ -39,7 +39,7 @@ export function Years() {
       key: 'year',
       header: 'Year',
       render: (entry) => (
-        <Link href={`/years/${entry.year}`} className="hover:text-muted">
+        <Link href={`/years/${entry.year}`} className="hover:text-on-surface-variant">
           {entry.year}
         </Link>
       ),

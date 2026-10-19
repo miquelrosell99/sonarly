@@ -10,12 +10,12 @@ import type { UnderlayParams } from '../../../lib/types.js';
 // wouter params don't reach the detail page there (see lib/types.ts).
 export function GuestPlaylist({ underlay }: { underlay?: UnderlayParams }) {
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-bg-primary text-fg-primary">
+    <div className="flex h-screen flex-col overflow-hidden bg-background text-on-surface">
       <header className="flex shrink-0 items-center justify-between px-6 py-3">
-        <span className="font-display text-lg font-semibold text-fg-primary">Sonarly</span>
+        <span className="font-display text-lg font-semibold text-on-surface">Sonarly</span>
         <Link
           href="/login"
-          className="rounded-item px-3 py-1.5 text-sm font-medium text-fg-secondary transition hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded-item px-3 py-1.5 text-sm font-medium text-on-surface-variant transition hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Sign in
         </Link>

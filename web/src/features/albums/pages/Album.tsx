@@ -336,7 +336,7 @@ export function Album({ user, underlay }: { user: User; underlay?: UnderlayParam
       }
       headerChildren={
         hiddenSongCount > 0 && (
-          <span className="text-sm text-fg-secondary">
+          <span className="text-sm text-on-surface-variant">
             {hiddenSongCount} hidden
           </span>
         )

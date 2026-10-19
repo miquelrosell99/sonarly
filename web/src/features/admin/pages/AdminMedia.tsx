@@ -231,7 +231,7 @@ function AdminMediaBody({
             <label htmlFor="duplicate-strategy" className="mb-1 block text-sm font-medium">
               Default duplicate strategy
             </label>
-            <p className="mb-2 text-xs text-muted">
+            <p className="mb-2 text-xs text-on-surface-variant">
               When an uploaded song matches an existing song by title, album, and artists.
             </p>
             <select
@@ -250,7 +250,7 @@ function AdminMediaBody({
             <label htmlFor="review-retention" className="mb-1 block text-sm font-medium">
               Review folder cleanup
             </label>
-            <p className="mb-2 text-xs text-muted">
+            <p className="mb-2 text-xs text-on-surface-variant">
               Files moved to the ingest review folder are deleted after this many days.
             </p>
             <select

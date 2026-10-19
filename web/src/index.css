@@ -6,18 +6,83 @@
   :root,
   .theme-light {
     color-scheme: light;
-    /* Signal Archive light theme: archival paper ground, ink text, Echo
-       Copper signal. Hex values from brand-identity/sonarly/kit/B/tokens/tokens.css. */
-    --bg-primary: 45 19% 92%;
-    --fg-primary: 30 35% 10%;
-    --fg-secondary: 30 5% 33%;
-    --surface: 0 0% 100%;
-    --surface-hover: 45 13% 88%;
-    --rule: 43 13% 78%;
-    --muted: 30 5% 33%;
-    --accent: 26 69% 36%;
+    /* Signal Archive light theme expressed as canonical Material You color
+       roles (rosellramos-design-system law/spec.md §2; owner ruling
+       2026-10-19: full single-track alignment, no legacy-name aliases).
+       Values are the Signal Archive identity, byte-identical to the
+       pre-migration tokens (register: .agents/design-overrides.md; canonical
+       doc: docs/design-language.md). Triplets: consumed as
+       hsl(var(--md-sys-color-*) / <alpha-value>) via tailwind.config.js.
+       Hex provenance: brand-identity/sonarly/kit/B/tokens/tokens.css. */
+    --md-sys-color-background: 45 19% 92%;
+    --md-sys-color-on-background: 30 35% 10%;
+    --md-sys-color-surface: 0 0% 100%;
+    --md-sys-color-on-surface: 30 35% 10%;
+    --md-sys-color-surface-variant: 45 13% 88%;
+    --md-sys-color-on-surface-variant: 30 5% 33%;
+    /* Container ladder (§2): the app's single neutral step-up surface owns
+       the -high rung; -container rides the card surface (popover/menus). */
+    --md-sys-color-surface-container: 0 0% 100%;
+    --md-sys-color-surface-container-high: 45 13% 88%;
 
-    /* Data palette */
+    /* Rules (hairlines). The Signal Archive identity uses ONE rule register
+       for hairlines and interactive borders, so outline and outline-variant
+       intentionally carry the same value (registered decision). */
+    --md-sys-color-outline: 43 13% 78%;
+    --md-sys-color-outline-variant: 43 13% 78%;
+
+    /* Primary — the active seed. [data-accent]/.accent-* blocks below
+       override only --md-sys-color-primary; every derived primary role
+       re-evaluates through the color-mix expressions, which hold FULL
+       colors (consume raw, never hsl-wrapped). on-primary is bound to the
+       ground: the .btn contract is an accent fill with a ground-colored
+       label, in every theme and accent (identity decision, registered). */
+    --md-sys-color-primary: 26 69% 36%;
+    --md-sys-color-on-primary: var(--md-sys-color-background);
+    --md-sys-color-primary-container: color-mix(
+      in srgb,
+      var(--md-sys-color-primary) 22%,
+      hsl(var(--md-sys-color-surface))
+    );
+    --md-sys-color-on-primary-container: color-mix(
+      in srgb,
+      var(--md-sys-color-primary) 72%,
+      hsl(var(--md-sys-color-on-surface))
+    );
+    --md-sys-color-primary-hover: color-mix(in srgb, var(--md-sys-color-primary) 85%, white);
+    --md-sys-color-primary-pressed: color-mix(in srgb, var(--md-sys-color-primary) 68%, white);
+
+    /* Secondary — quiet accents. The single-hue identity has no second
+       accent family: secondary rides the same neutral ramp. */
+    --md-sys-color-secondary: 30 5% 33%;
+    --md-sys-color-on-secondary: 0 0% 100%;
+    --md-sys-color-secondary-container: 45 13% 88%;
+    --md-sys-color-on-secondary-container: 30 35% 10%;
+
+    /* Error — fixed palette, NEVER derived from the seed (§2). on-error
+       carries the same ground-colored-label contract as on-primary. */
+    --md-sys-color-error: 4 61% 44%;
+    --md-sys-color-on-error: var(--md-sys-color-background);
+    --md-sys-color-error-container: color-mix(
+      in srgb,
+      var(--md-sys-color-error) 30%,
+      hsl(var(--md-sys-color-surface))
+    );
+    --md-sys-color-on-error-container: var(--md-sys-color-on-surface);
+
+    /* Semantic — fixed palettes, never derived from the seed. Lightness set
+       so 14px text meets WCAG AA (>= 4.5:1) on surface and background
+       (audit F10; verified in theme-contrast.test). Hues follow the spec
+       values: error #ef5550 (~h4), warning #f28b3f (~h28), success #29b672
+       (~h152). Registered extension to the --md-sys-color-* namespace
+       (law/spec.md §1): the fleet semantic trio beyond M3's error family. */
+    --md-sys-color-success: 152 87% 25%;
+    --md-sys-color-warning: 28 92% 28%;
+    --md-sys-color-info: 208 75% 39%;
+
+    /* Data palette — registered extension (namespace hygiene, law/spec.md
+       §1): categorical chart hues, consumed directly by the statistics
+       canvas paints as hsl(var(--chart-N)). */
     --chart-1: 217 91% 60%;
     --chart-2: 160 84% 39%;
     --chart-3: 38 92% 50%;
@@ -29,14 +94,17 @@
     --chart-9: 25 95% 53%;
     --chart-10: 210 80% 60%;
 
-    /* Semantic palette — lightness set so 14px text meets WCAG AA (>= 4.5:1)
-       on --surface and --bg-primary (audit F10; verified in theme-contrast.test).
-       Hues follow the spec values: danger #ef5550 (~h4), warning #f28b3f
-       (~h28), success #29b672 (~h152). */
-    --danger: 4 61% 44%;
-    --success: 152 87% 25%;
-    --warning: 28 92% 28%;
-    --info: 208 75% 39%;
+    /* Elevation tint + shadow + scrim (triplets; alpha rides the use site). */
+    --md-sys-color-surface-tint: var(--md-sys-color-primary);
+    --md-sys-color-shadow: 0 0% 0%;
+    --md-sys-color-scrim: 0 0% 0%;
+
+    /* State overlays — M3 state layers (law/spec.md §4). Triplets holding
+       the overlay INK (light theme: black, dark theme: white); the opacity
+       rides the use site per the §4 table (hover 8 / focus 10 / pressed 10). */
+    --md-sys-color-hover-overlay: 0 0% 0%;
+    --md-sys-color-focus-overlay: 0 0% 0%;
+    --md-sys-color-pressed-overlay: 0 0% 0%;
   }
 
   .theme-dark {
@@ -44,14 +112,25 @@
     /* Signal Archive dark theme: Archive Ink ground, lightened copper.
        Surfaces stay near-neutral so any user accent (not just copper)
        reads clean against them. */
-    --bg-primary: 30 10% 8%;
-    --fg-primary: 40 12% 95%;
-    --fg-secondary: 30 6% 65%;
-    --surface: 30 7% 14%;
-    --surface-hover: 30 7% 20%;
-    --rule: 30 6% 30%;
-    --muted: 30 6% 65%;
-    --accent: 25 68% 56%;
+    --md-sys-color-background: 30 10% 8%;
+    --md-sys-color-on-background: 40 12% 95%;
+    --md-sys-color-surface: 30 7% 14%;
+    --md-sys-color-on-surface: 40 12% 95%;
+    --md-sys-color-surface-variant: 30 7% 20%;
+    --md-sys-color-on-surface-variant: 30 6% 65%;
+    --md-sys-color-surface-container: 30 7% 14%;
+    --md-sys-color-surface-container-high: 30 7% 20%;
+    --md-sys-color-outline: 30 6% 30%;
+    --md-sys-color-outline-variant: 30 6% 30%;
+    --md-sys-color-primary: 25 68% 56%;
+    --md-sys-color-secondary: 30 6% 65%;
+    --md-sys-color-on-secondary: 30 10% 8%;
+    --md-sys-color-secondary-container: 30 7% 20%;
+    --md-sys-color-on-secondary-container: 40 12% 95%;
+    --md-sys-color-error: 4 98% 73%;
+    --md-sys-color-success: 152 54% 51%;
+    --md-sys-color-warning: 28 57% 50%;
+    --md-sys-color-info: 210 97% 70%;
 
     /* Data palette */
     --chart-1: 217 91% 60%;
@@ -65,25 +144,35 @@
     --chart-9: 25 95% 58%;
     --chart-10: 210 80% 65%;
 
-    /* Semantic palette */
-    --danger: 4 98% 73%;
-    --success: 152 54% 51%;
-    --warning: 28 57% 50%;
-    --info: 210 97% 70%;
+    /* State overlays: white ink on dark grounds (§4). */
+    --md-sys-color-hover-overlay: 0 0% 100%;
+    --md-sys-color-focus-overlay: 0 0% 100%;
+    --md-sys-color-pressed-overlay: 0 0% 100%;
   }
 
   .theme-oled {
     color-scheme: dark;
     /* OLED keeps a pure-black ground; surfaces neutral-warm so accents
        stay clean, per the dark theme. */
-    --bg-primary: 0 0% 0%;
-    --fg-primary: 40 11% 97%;
-    --fg-secondary: 30 6% 65%;
-    --surface: 30 6% 7%;
-    --surface-hover: 30 6% 11%;
-    --rule: 30 5% 18%;
-    --muted: 30 6% 65%;
-    --accent: 25 68% 56%;
+    --md-sys-color-background: 0 0% 0%;
+    --md-sys-color-on-background: 40 11% 97%;
+    --md-sys-color-surface: 30 6% 7%;
+    --md-sys-color-on-surface: 40 11% 97%;
+    --md-sys-color-surface-variant: 30 6% 11%;
+    --md-sys-color-on-surface-variant: 30 6% 65%;
+    --md-sys-color-surface-container: 30 6% 7%;
+    --md-sys-color-surface-container-high: 30 6% 11%;
+    --md-sys-color-outline: 30 5% 18%;
+    --md-sys-color-outline-variant: 30 5% 18%;
+    --md-sys-color-primary: 25 68% 56%;
+    --md-sys-color-secondary: 30 6% 65%;
+    --md-sys-color-on-secondary: 0 0% 0%;
+    --md-sys-color-secondary-container: 30 6% 11%;
+    --md-sys-color-on-secondary-container: 40 11% 97%;
+    --md-sys-color-error: 4 98% 73%;
+    --md-sys-color-success: 152 54% 51%;
+    --md-sys-color-warning: 28 57% 50%;
+    --md-sys-color-info: 210 97% 70%;
 
     /* Data palette */
     --chart-1: 217 91% 60%;
@@ -97,66 +186,50 @@
     --chart-9: 25 95% 58%;
     --chart-10: 210 80% 65%;
 
-    /* Semantic palette */
-    --danger: 4 98% 73%;
-    --success: 152 54% 51%;
-    --warning: 28 57% 50%;
-    --info: 210 97% 70%;
+    /* State overlays: white ink (inherits dark). */
+    --md-sys-color-hover-overlay: 0 0% 100%;
+    --md-sys-color-focus-overlay: 0 0% 100%;
+    --md-sys-color-pressed-overlay: 0 0% 100%;
   }
 
-  /* shadcn catalog alias layer (prep for the catalog migration; mapping per
-     rosellramos-design-system/components/shadcn-bridge.md "The alias
-     mapping"). Aliases only — every value still lives in the theme blocks
-     above, so theme and accent swaps propagate through var() resolution at
-     use time with zero component edits. The app predates the md-sys role
-     names, so the aliases point at this file's role tokens instead.
-
-     Two shadcn key names are deliberately NOT emitted because this token
-     file already owns them with different meanings:
-       --accent — here it is the brand SEED (consumed as hsl(var(--accent)));
-         shadcn's --accent is a hover surface, served by --surface-hover.
-         Catalog hover refs are rewritten to var(--surface-hover) during
-         normalization (bridge checklist #3). Registered in
-         .agents/design-overrides.md.
-       --muted — here it is the muted TEXT color (same values as
-         --fg-secondary, used via text-muted); shadcn's --muted is a
-         container, also served by --surface-hover. Catalog refs are
-         rewritten at normalization. --muted-foreground below maps the
-         catalog's muted-text role to --fg-secondary. */
+  /* shadcn catalog alias layer — the 20 theme keys as var() aliases of the
+     canonical roles above (rosellramos-design-system rulings.mjs ALIAS_LAYER,
+     components/shadcn-bridge.md). Per the bridge: --accent is shadcn's HOVER
+     surface (not the fleet accent — the seed is --primary) and maps to the
+     hover overlay; --muted is a container (surface-container), muted TEXT is
+     --muted-foreground → on-surface-variant. Catalog components added later
+     resolve through these with zero edits on theme/accent swaps. */
   :root {
-    --background: var(--bg-primary);
-    --foreground: var(--fg-primary);
-    --card: var(--surface);
-    --card-foreground: var(--fg-primary);
-    --popover: var(--surface);
-    --popover-foreground: var(--fg-primary);
-    --primary: var(--accent);
-    /* .btn contract: accent background, ground-colored label. Holds for the
-       monochrome accent too (accent = --fg-primary), by construction. */
-    --primary-foreground: var(--bg-primary);
-    --secondary: var(--surface-hover);
-    --secondary-foreground: var(--fg-primary);
-    --muted-foreground: var(--fg-secondary);
-    --accent-foreground: var(--fg-primary);
-    --destructive: var(--danger);
-    /* .btn-danger hover contract: danger background, ground-colored label. */
-    --destructive-foreground: var(--bg-primary);
-    /* Hairlines and interactive borders both ride the --rule register. */
-    --border: var(--rule);
-    --input: var(--rule);
-    /* Focus ring follows the accent — never suppress (bridge checklist #4). */
-    --ring: var(--accent);
+    --background: var(--md-sys-color-background);
+    --foreground: var(--md-sys-color-on-surface);
+    --card: var(--md-sys-color-surface);
+    --card-foreground: var(--md-sys-color-on-surface);
+    --popover: var(--md-sys-color-surface-container);
+    --popover-foreground: var(--md-sys-color-on-surface);
+    --primary: var(--md-sys-color-primary);
+    --primary-foreground: var(--md-sys-color-on-primary);
+    --secondary: var(--md-sys-color-secondary-container);
+    --secondary-foreground: var(--md-sys-color-on-secondary-container);
+    --muted: var(--md-sys-color-surface-container);
+    --muted-foreground: var(--md-sys-color-on-surface-variant);
+    --accent: var(--md-sys-color-hover-overlay);
+    --accent-foreground: var(--md-sys-color-on-surface);
+    --destructive: var(--md-sys-color-error);
+    --destructive-foreground: var(--md-sys-color-on-error);
+    --border: var(--md-sys-color-outline-variant);
+    --input: var(--md-sys-color-outline);
+    --ring: var(--md-sys-color-primary);
     /* The fleet card radius (tailwind rounded-card); shadcn internals read
        --radius. */
     --radius: 20px;
   }
 
   body {
-    @apply bg-bg-primary font-sans text-fg-primary antialiased;
+    @apply bg-background font-sans text-on-surface antialiased;
   }
 
   a {
-    @apply text-fg-primary transition hover:text-accent;
+    @apply text-on-surface transition hover:text-primary;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -175,10 +248,11 @@
    CSS passes through untouched and, per the cascade, beats @layer base —
    which is exactly what an override wants.
    Five accents only (owner decision 2026-10-08): Copper (brand default),
-   Green, Purple, Blue, Monochrome. Saturated hues lighten on dark/OLED
-   grounds (copper precedent) so the near-black --bg-primary button label
-   keeps WCAG AA; light-mode values are tuned down so text-bg-primary on the
-   accent also meets AA (verified against the theme math). */
+   Green, Purple, Blue, Monochrome. Each block sets ONLY
+   --md-sys-color-primary; saturated hues lighten on dark/OLED grounds
+   (copper precedent) so the ground-colored on-primary label keeps WCAG AA;
+   light-mode values are tuned down so on-primary on the accent also meets
+   AA (verified against the theme math). */
 :root {
   --accent-copper: 26 69% 36%;
   --accent-green: 142 71% 27%;
@@ -186,30 +260,40 @@
   --accent-blue: 217 100% 47%;
 }
 
-.accent-copper { --accent: var(--accent-copper); }
+.accent-copper {
+  --md-sys-color-primary: var(--accent-copper);
+}
 /* Echo Copper lightens on dark grounds so signals stay visible (kit tones). */
 .theme-dark.accent-copper,
 .theme-oled.accent-copper {
-  --accent: 25 68% 56%;
+  --md-sys-color-primary: 25 68% 56%;
 }
-.accent-green { --accent: var(--accent-green); }
+.accent-green {
+  --md-sys-color-primary: var(--accent-green);
+}
 .theme-dark.accent-green,
 .theme-oled.accent-green {
-  --accent: 142 71% 47%;
+  --md-sys-color-primary: 142 71% 47%;
 }
-.accent-purple { --accent: var(--accent-purple); }
+.accent-purple {
+  --md-sys-color-primary: var(--accent-purple);
+}
 .theme-dark.accent-purple,
 .theme-oled.accent-purple {
-  --accent: 270 60% 72%;
+  --md-sys-color-primary: 270 60% 72%;
 }
-.accent-blue { --accent: var(--accent-blue); }
+.accent-blue {
+  --md-sys-color-primary: var(--accent-blue);
+}
 .theme-dark.accent-blue,
 .theme-oled.accent-blue {
-  --accent: 217 100% 67%;
+  --md-sys-color-primary: 217 100% 67%;
 }
-/* Monochrome: the accent IS the foreground, so on-accent text is
-   --bg-primary in every theme — contrast holds by construction. */
-.accent-monochrome { --accent: var(--fg-primary); }
+/* Monochrome: the accent IS the foreground, so on-primary text is
+   --md-sys-color-background in every theme — contrast holds by construction. */
+.accent-monochrome {
+  --md-sys-color-primary: var(--md-sys-color-on-surface);
+}
 
 /* Deliberate brand moment: the Login sign-in button stays a full pill over
    the app-wide 16px .btn radius. Unlayered on purpose so it beats .btn. */
@@ -230,7 +314,7 @@
 
 @layer components {
   .btn {
-    @apply inline-flex h-10 items-center justify-center gap-2 rounded-button border border-accent bg-accent px-5 text-sm font-semibold text-bg-primary transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-button border border-primary bg-primary px-5 text-sm font-semibold text-on-primary transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50;
   }
   /* Tactile press (design system): hover darkens subtly, active compresses
      and darkens harder. filter overrides the hover filter while pressed. */
@@ -239,17 +323,17 @@
     filter: brightness(0.9);
   }
   .btn-ghost {
-    @apply inline-flex h-10 items-center justify-center gap-2 rounded-button border border-rule bg-surface px-5 text-sm font-semibold text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-button border border-outline bg-surface px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-ghost:hover {
-    border-color: hsl(var(--fg-secondary));
+    border-color: hsl(var(--md-sys-color-on-surface-variant));
   }
   .btn-ghost:active {
     transform: scale(0.97);
     filter: brightness(0.95);
   }
   .btn-danger {
-    @apply inline-flex h-10 items-center justify-center gap-2 rounded-button border border-rule bg-surface px-5 text-sm font-semibold text-danger transition hover:border-danger hover:bg-danger hover:text-bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-10 items-center justify-center gap-2 rounded-button border border-outline bg-surface px-5 text-sm font-semibold text-error transition hover:border-error hover:bg-error hover:text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-danger:active {
     transform: scale(0.97);
@@ -258,7 +342,9 @@
   /* Touch floor: text buttons bump to 44px on coarse pointers (JSX icon
    * buttons carry the per-instance [@media(pointer:coarse)] override). */
   @media (pointer: coarse) {
-    .btn, .btn-ghost, .btn-danger {
+    .btn,
+    .btn-ghost,
+    .btn-danger {
       height: 44px;
     }
   }
@@ -273,7 +359,7 @@
     }
   }
   .input {
-    @apply block h-10 w-full rounded-input border border-rule bg-surface px-3 text-sm text-fg-primary transition focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-60;
+    @apply block h-10 w-full rounded-input border border-outline bg-surface px-3 text-sm text-on-surface transition focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60;
   }
 
   /* Shared tactile press for the app's icon-button bases (PlayerControls
@@ -284,7 +370,7 @@
     filter: brightness(0.9);
   }
   .input::placeholder {
-    color: hsl(var(--fg-secondary));
+    color: hsl(var(--md-sys-color-on-surface-variant));
   }
 
   /* Remove number input spinners */
@@ -316,33 +402,33 @@
   }
 
   .slider:focus-visible {
-    @apply ring-2 ring-accent ring-offset-2 ring-offset-bg-primary;
+    @apply ring-2 ring-primary ring-offset-2 ring-offset-background;
   }
 
   .slider::-webkit-slider-runnable-track {
     height: 3px;
     border-radius: 9999px;
-    /* Filled portion follows --accent; the Slider component sets the
+    /* Filled portion follows the seed; the Slider component sets the
        --slider-fill cutoff inline. */
     background: linear-gradient(
       to right,
-      hsl(var(--accent)) 0%,
-      hsl(var(--accent)) var(--slider-fill, 0%),
-      hsl(var(--fg-primary) / 0.1) var(--slider-fill, 0%),
-      hsl(var(--fg-primary) / 0.1) 100%
+      hsl(var(--md-sys-color-primary)) 0%,
+      hsl(var(--md-sys-color-primary)) var(--slider-fill, 0%),
+      hsl(var(--md-sys-color-on-surface) / 0.1) var(--slider-fill, 0%),
+      hsl(var(--md-sys-color-on-surface) / 0.1) 100%
     );
   }
 
   .slider::-moz-range-track {
     height: 3px;
     border-radius: 9999px;
-    background-color: hsl(var(--fg-primary) / 0.1);
+    background-color: hsl(var(--md-sys-color-on-surface) / 0.1);
   }
 
   .slider::-moz-range-progress {
     height: 3px;
     border-radius: 9999px;
-    background-color: hsl(var(--accent));
+    background-color: hsl(var(--md-sys-color-primary));
   }
 
   .slider::-webkit-slider-thumb {
@@ -352,7 +438,7 @@
     width: 12px;
     border: none;
     border-radius: 9999px;
-    background: hsl(var(--fg-primary));
+    background: hsl(var(--md-sys-color-on-surface));
     /* Center the 12px thumb on the 3px track. */
     margin-top: -4.5px;
     transition: transform 0.15s ease, opacity 0.15s ease;
@@ -363,7 +449,7 @@
     width: 12px;
     border: none;
     border-radius: 9999px;
-    background: hsl(var(--fg-primary));
+    background: hsl(var(--md-sys-color-on-surface));
     transition: transform 0.15s ease, opacity 0.15s ease;
   }
 

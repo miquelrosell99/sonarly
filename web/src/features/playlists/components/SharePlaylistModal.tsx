@@ -53,10 +53,10 @@ function TabButton({
       tabIndex={active ? 0 : -1}
       className={cn(
         'inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
         active
-          ? 'bg-accent text-bg-primary'
-          : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
+          ? 'bg-primary text-on-primary'
+          : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
       )}
     >
       <Icon name={icon} size={16} />
@@ -171,7 +171,7 @@ function UserShareSearch({
           id={listboxId}
           role="listbox"
           aria-label="Matching users"
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-popover border border-rule bg-surface shadow-lg"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-popover border border-outline bg-surface shadow-lg"
           onMouseDown={() => {
             ignoreBlurRef.current = true;
           }}
@@ -180,7 +180,7 @@ function UserShareSearch({
           }}
         >
           {results.length === 0 && !loading && (
-            <li className="px-3 py-2 text-sm text-fg-secondary">No matches</li>
+            <li className="px-3 py-2 text-sm text-on-surface-variant">No matches</li>
           )}
           {results.map((user, i) => (
             <li
@@ -190,8 +190,8 @@ function UserShareSearch({
               aria-selected={i === highlighted}
               onClick={() => selectUser(user)}
               className={cn(
-                'cursor-pointer px-3 py-2 text-sm hover:bg-surface-hover',
-                i === highlighted && 'bg-surface-hover',
+                'cursor-pointer px-3 py-2 text-sm hover:bg-surface-container-high',
+                i === highlighted && 'bg-surface-container-high',
               )}
             >
               {user.username}
@@ -200,7 +200,7 @@ function UserShareSearch({
         </ul>
       )}
       {loading && (
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted">
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
           <Icon name="mdi-loading" size={16} className="animate-spin motion-reduce:animate-none" />
         </span>
       )}
@@ -406,7 +406,7 @@ export function SharePlaylistModal({
         role="tablist"
         aria-label="Playlist sharing"
         onKeyDown={handleTabListKeyDown}
-        className="mb-5 flex items-center gap-1 rounded-full border border-rule bg-bg-primary/60 p-1"
+        className="mb-5 flex items-center gap-1 rounded-full border border-outline bg-background/60 p-1"
       >
         {SHARE_TABS.map((tab) => (
           <TabButton
@@ -428,7 +428,7 @@ export function SharePlaylistModal({
       >
         {activeTab === 'members' ? (
           <div className="space-y-4">
-            <div className="rounded-item border border-rule bg-surface px-3 py-1">
+            <div className="rounded-item border border-outline bg-surface px-3 py-1">
               <Checkbox
                 id="share-playlist-public"
                 label="Public"
@@ -455,7 +455,7 @@ export function SharePlaylistModal({
                   return (
                     <li
                       key={share.userId}
-                      className="flex flex-wrap items-center gap-3 rounded-item border border-rule bg-surface px-3 py-2"
+                      className="flex flex-wrap items-center gap-3 rounded-item border border-outline bg-surface px-3 py-2"
                     >
                       <Avatar user={avatarUser} variant="surface" className="h-8 w-8" />
                       <span className="min-w-0 flex-1 truncate text-sm">{share.username}</span>
@@ -474,7 +474,7 @@ export function SharePlaylistModal({
                         onClick={() => setConfirmRemoveShare(share)}
                         disabled={busy}
                         aria-label={`Remove ${share.username}`}
-                        className="flex h-11 w-11 items-center justify-center rounded-item text-fg-secondary transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                        className="flex h-11 w-11 items-center justify-center rounded-item text-on-surface-variant transition hover:bg-surface-container-high hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       >
                         <Icon name="mdi-close" size={18} />
                       </button>
@@ -485,7 +485,7 @@ export function SharePlaylistModal({
             </PageState>
 
             {addOpen ? (
-              <div className="space-y-2 rounded-item border border-rule bg-surface p-3">
+              <div className="space-y-2 rounded-item border border-outline bg-surface p-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <UserShareSearch
                     excludeIds={new Set(shares.map((s) => s.userId))}
@@ -529,7 +529,7 @@ export function SharePlaylistModal({
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-xs text-muted">
+            <p className="text-xs text-on-surface-variant">
               Anyone with the link can view this playlist, even without an account.
             </p>
             {shareUrl ? (
@@ -547,7 +547,7 @@ export function SharePlaylistModal({
                     {copied ? 'Copied' : 'Copy'}
                   </Button>
                 </div>
-                <div className="rounded-item border border-rule bg-surface px-3 py-1">
+                <div className="rounded-item border border-outline bg-surface px-3 py-1">
                   <Checkbox
                     id="share-playlist-allow-download"
                     label="Allow download"

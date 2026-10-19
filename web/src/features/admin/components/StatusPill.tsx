@@ -12,10 +12,10 @@ const config: Record<
   pending: { label: 'Pending', icon: 'mdi-clock-outline', className: 'bg-warning/10 text-warning' },
   running: { label: 'Running', icon: 'mdi-refresh', className: 'bg-info/10 text-info' },
   completed: { label: 'Completed', icon: 'mdi-check-circle-outline', className: 'bg-success/10 text-success' },
-  failed: { label: 'Failed', icon: 'mdi-alert-circle-outline', className: 'bg-danger/10 text-danger' },
+  failed: { label: 'Failed', icon: 'mdi-alert-circle-outline', className: 'bg-error/10 text-error' },
   // Ingest job statuses
   imported: { label: 'Imported', icon: 'mdi-check-circle-outline', className: 'bg-success/10 text-success' },
-  skipped: { label: 'Skipped', icon: 'mdi-skip-next', className: 'bg-surface text-muted' },
+  skipped: { label: 'Skipped', icon: 'mdi-skip-next', className: 'bg-surface text-on-surface-variant' },
   needs_review: { label: 'Needs review', icon: 'mdi-alert-circle-outline', className: 'bg-warning/10 text-warning' },
 };
 
@@ -23,7 +23,7 @@ export function StatusPill({ status }: StatusPillProps) {
   const resolved = config[status] ?? {
     label: status,
     icon: 'mdi-help-circle-outline',
-    className: 'bg-surface text-muted',
+    className: 'bg-surface text-on-surface-variant',
   };
 
   return (

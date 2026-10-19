@@ -38,7 +38,7 @@ export function Composers() {
       key: 'name',
       header: 'Composer',
       render: (composer) => (
-        <Link href={`/composers/${encodeURIComponent(composer)}`} className="hover:text-muted">
+        <Link href={`/composers/${encodeURIComponent(composer)}`} className="hover:text-on-surface-variant">
           {composer}
         </Link>
       ),

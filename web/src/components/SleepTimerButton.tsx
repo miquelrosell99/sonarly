@@ -74,7 +74,7 @@ export function SleepTimerButton() {
       ref={menu.menuRef}
       {...menu.menuProps}
       aria-label="Sleep timer"
-      className="fixed z-50 min-w-[10rem] rounded-popover border border-rule bg-surface py-1 shadow-lg"
+      className="fixed z-50 min-w-[10rem] rounded-popover border border-outline bg-surface py-1 shadow-lg"
     >
       {items.map((item) => (
         <button
@@ -83,12 +83,12 @@ export function SleepTimerButton() {
           role="menuitem"
           onClick={() => select(item)}
           className={cn(
-            'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none',
-            item.active && 'text-accent',
+            'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none',
+            item.active && 'text-primary',
           )}
         >
           {item.label}
-          {item.active && <Icon name="mdi-check" size={16} className="ml-auto text-accent" />}
+          {item.active && <Icon name="mdi-check" size={16} className="ml-auto text-primary" />}
         </button>
       ))}
     </div>
@@ -104,10 +104,10 @@ export function SleepTimerButton() {
         title={label}
         className={cn(
           '-m-1 inline-flex h-11 min-w-[2.75rem] items-center justify-center gap-1 rounded-full px-1 transition',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background',
           active
-            ? 'bg-accent/15 text-accent hover:bg-accent/25'
-            : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
+            ? 'bg-primary/15 text-primary hover:bg-primary/25'
+            : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
         )}
       >
         <Icon

@@ -33,8 +33,8 @@ function GradientBackground({ coverArtUrl }: { coverArtUrl?: string }) {
       className="absolute inset-0 transition-colors duration-700"
       style={{
         background: dominantColor
-          ? `radial-gradient(circle at 30% 40%, ${dominantColor} 0%, transparent 50%), radial-gradient(circle at 80% 20%, ${dominantColor} 0%, transparent 40%), hsl(var(--bg-primary))`
-          : 'hsl(var(--bg-primary))',
+          ? `radial-gradient(circle at 30% 40%, ${dominantColor} 0%, transparent 50%), radial-gradient(circle at 80% 20%, ${dominantColor} 0%, transparent 40%), hsl(var(--md-sys-color-background))`
+          : 'hsl(var(--md-sys-color-background))',
       }}
     />
   );
@@ -66,10 +66,10 @@ function TabButton({
       tabIndex={active ? 0 : -1}
       className={cn(
         'inline-flex min-h-11 items-center gap-2 rounded-input px-4 py-1.5 text-sm font-medium transition',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
         active
-          ? 'bg-accent text-bg-primary'
-          : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary'
+          ? 'bg-primary text-on-primary'
+          : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
       )}
     >
       <Icon name={icon} size={16} />
@@ -221,14 +221,14 @@ export function NowPlaying({ user }: NowPlayingProps) {
     >
       {/* Gradient background */}
       <GradientBackground coverArtUrl={coverArtUrl} />
-      <div className="absolute inset-0 bg-bg-primary/90 backdrop-blur-xl" />
+      <div className="absolute inset-0 bg-background/90 backdrop-blur-xl" />
 
       {/* Close button */}
       <button
         type="button"
         onClick={close}
         aria-label="Close Now Playing"
-        className="absolute left-6 top-6 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="absolute left-6 top-6 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <Icon name="mdi-chevron-down" size={24} />
       </button>
@@ -250,7 +250,7 @@ export function NowPlaying({ user }: NowPlayingProps) {
             />
             <div className="w-full min-w-0 space-y-1.5">
               <h2
-                className="line-clamp-2 break-words font-display text-2xl font-semibold leading-tight text-fg-primary sm:text-3xl"
+                className="line-clamp-2 break-words font-display text-2xl font-semibold leading-tight text-on-surface sm:text-3xl"
                 title={currentSong.title}
               >
                 <ExplicitTitle
@@ -260,18 +260,18 @@ export function NowPlaying({ user }: NowPlayingProps) {
                   <Link
                     href={`/tracks/${currentSong.id}`}
                     onClick={() => close()}
-                    className="transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    className="transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     {currentSong.title}
                   </Link>
                 </ExplicitTitle>
               </h2>
-              <p className="truncate text-lg text-fg-secondary" title={currentSong.artistName || 'Unknown artist'}>
+              <p className="truncate text-lg text-on-surface-variant" title={currentSong.artistName || 'Unknown artist'}>
                 {currentSong.artistId ? (
                   <Link
                     href={`/artists/${currentSong.artistId}`}
                     onClick={() => close()}
-                    className="transition hover:text-fg-primary hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    className="transition hover:text-on-surface hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     {currentSong.artistName || 'Unknown artist'}
                   </Link>
@@ -281,14 +281,14 @@ export function NowPlaying({ user }: NowPlayingProps) {
               </p>
               {(currentSong.albumName || currentSong.year) && (
                 <p
-                  className="truncate text-sm text-fg-secondary/70"
+                  className="truncate text-sm text-on-surface-variant/70"
                   title={[currentSong.albumName, currentSong.year].filter(Boolean).join(' · ')}
                 >
                   {currentSong.albumId && currentSong.albumName ? (
                     <Link
                       href={`/albums/${currentSong.albumId}`}
                       onClick={() => close()}
-                      className="transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      className="transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       {currentSong.albumName}
                     </Link>
@@ -304,7 +304,7 @@ export function NowPlaying({ user }: NowPlayingProps) {
                     <Link
                       href={`/years/${currentSong.year}`}
                       onClick={() => close()}
-                      className="transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      className="transition hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       {currentSong.year}
                     </Link>
@@ -322,10 +322,10 @@ export function NowPlaying({ user }: NowPlayingProps) {
           </div>
 
           {/* Right: card with tabs */}
-          <div className="flex h-[58vh] min-h-[320px] min-w-0 flex-col overflow-hidden rounded-card border border-rule/50 bg-surface/80 backdrop-blur-xl md:h-full md:min-h-0">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rule/50 px-3 py-2.5 sm:px-4">
+          <div className="flex h-[58vh] min-h-[320px] min-w-0 flex-col overflow-hidden rounded-card border border-outline/50 bg-surface/80 backdrop-blur-xl md:h-full md:min-h-0">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline/50 px-3 py-2.5 sm:px-4">
               <div
-                className="flex items-center gap-1 rounded-input border border-rule/50 bg-bg-primary/60 p-1"
+                className="flex items-center gap-1 rounded-input border border-outline/50 bg-background/60 p-1"
                 role="tablist"
                 aria-label="Now playing panels"
                 onKeyDown={handleTabListKeyDown}

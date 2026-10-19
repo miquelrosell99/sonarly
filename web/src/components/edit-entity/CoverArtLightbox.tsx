@@ -40,7 +40,7 @@ export function CoverArtLightbox({
         type="button"
         onClick={onClose}
         aria-label="Close preview"
-        className="absolute right-4 top-4 rounded-full bg-surface/80 p-2 text-fg-primary transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="absolute right-4 top-4 rounded-full bg-surface/80 p-2 text-on-surface transition hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <Icon name="mdi-close" size={24} />
       </button>
@@ -53,7 +53,7 @@ export function CoverArtLightbox({
           />
         ) : (
           <div className="flex h-64 w-64 items-center justify-center rounded-popover bg-surface shadow-2xl">
-            <Icon name="mdi-album" size={64} className="text-fg-secondary" />
+            <Icon name="mdi-album" size={64} className="text-on-surface-variant" />
           </div>
         )}
       </div>

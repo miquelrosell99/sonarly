@@ -23,7 +23,7 @@ export function AdminShell({ user, children }: AdminShellProps) {
     return (
       <div className="w-full">
         <h2 className="font-display text-lg font-semibold">Admin panel</h2>
-        <p className="mt-2 text-sm text-muted">You do not have permission to view this page.</p>
+        <p className="mt-2 text-sm text-on-surface-variant">You do not have permission to view this page.</p>
       </div>
     );
   }
@@ -43,7 +43,7 @@ function AdminChrome({ children }: { children: React.ReactNode }) {
         <h2 className="font-display text-lg font-semibold">Admin panel</h2>
         {controller && <SaveBar controller={controller} />}
       </div>
-      <TabNav items={tabs} className="mb-6 border-b border-rule" />
+      <TabNav items={tabs} className="mb-6 border-b border-outline" />
       {children}
     </div>
   );

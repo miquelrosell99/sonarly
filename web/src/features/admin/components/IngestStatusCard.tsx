@@ -60,7 +60,7 @@ function StatCard({
 }) {
   const label = statLabels[statKey] ?? statKey;
   const className =
-    'rounded-item border border-rule bg-bg-primary p-3 text-center transition-colors hover:bg-surface-hover';
+    'rounded-item border border-outline bg-background p-3 text-center transition-colors hover:bg-surface-container-high';
 
   let onClick: (() => void) | undefined;
   if (ingestStatKeys.has(statKey)) onClick = onOpenIngest;
@@ -72,10 +72,10 @@ function StatCard({
       <button
         type="button"
         onClick={onClick}
-        className={`${className} w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent`}
+        className={`${className} w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary`}
       >
         <p className="font-mono text-2xl font-semibold">{value}</p>
-        <p className="text-xs text-muted">{label}</p>
+        <p className="text-xs text-on-surface-variant">{label}</p>
       </button>
     );
   }
@@ -83,7 +83,7 @@ function StatCard({
   return (
     <div className={className}>
       <p className="font-mono text-2xl font-semibold">{value}</p>
-      <p className="text-xs text-muted">{label}</p>
+      <p className="text-xs text-on-surface-variant">{label}</p>
     </div>
   );
 }
@@ -99,7 +99,7 @@ export function IngestStatusCard({
   const timestamp = ingest.finishedAt ?? ingest.startedAt;
 
   return (
-    <div className="w-full rounded-card border border-rule bg-surface p-4 text-left">
+    <div className="w-full rounded-card border border-outline bg-surface p-4 text-left">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-base font-semibold">Latest ingest</h3>
@@ -110,7 +110,7 @@ export function IngestStatusCard({
             <button
               type="button"
               onClick={onOpenReport}
-              className="inline-flex items-center gap-1.5 rounded-item border border-rule px-3 py-1.5 text-xs font-medium text-fg-secondary transition-colors hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="inline-flex items-center gap-1.5 rounded-item border border-outline px-3 py-1.5 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <Icon name="mdi-information-outline" size={14} />
               View report
@@ -119,7 +119,7 @@ export function IngestStatusCard({
           <button
             type="button"
             onClick={() => onOpenHistory?.()}
-            className="inline-flex items-center gap-1.5 rounded-item border border-rule px-3 py-1.5 text-xs font-medium text-fg-secondary transition-colors hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="inline-flex items-center gap-1.5 rounded-item border border-outline px-3 py-1.5 text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <Icon name="mdi-history" size={14} />
             History
@@ -128,10 +128,10 @@ export function IngestStatusCard({
       </div>
 
       {timestamp && (
-        <div className="mt-3 flex items-center gap-2 text-sm text-muted">
+        <div className="mt-3 flex items-center gap-2 text-sm text-on-surface-variant">
           <Icon name="mdi-clock-check-outline" size={16} />
           <span>{ingest.finishedAt ? 'Finished' : 'Started'}:</span>
-          <span className="font-mono text-fg-primary">{formatDateTime(timestamp)}</span>
+          <span className="font-mono text-on-surface">{formatDateTime(timestamp)}</span>
         </div>
       )}
 

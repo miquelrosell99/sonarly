@@ -315,15 +315,15 @@ export function PlaylistDetail({ user, underlay }: PlaylistDetailProps) {
         playlist && (
           <>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-item bg-surface-hover px-2 py-0.5 text-xs font-medium text-fg-secondary capitalize">
+              <span className="rounded-item bg-surface-container-high px-2 py-0.5 text-xs font-medium text-on-surface-variant capitalize">
                 {playlist.visibility}
               </span>
               {playlist.isSmart && (
-                <span className="rounded-item bg-surface-hover px-2 py-0.5 text-xs font-medium text-fg-secondary">Smart</span>
+                <span className="rounded-item bg-surface-container-high px-2 py-0.5 text-xs font-medium text-on-surface-variant">Smart</span>
               )}
             </div>
             {playlist.description && (
-              <p className="max-w-prose whitespace-pre-line text-sm text-fg-secondary">{playlist.description}</p>
+              <p className="max-w-prose whitespace-pre-line text-sm text-on-surface-variant">{playlist.description}</p>
             )}
           </>
         )

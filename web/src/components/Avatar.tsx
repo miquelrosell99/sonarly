@@ -30,8 +30,8 @@ export function Avatar({ user, className, variant = 'default' }: AvatarProps) {
       className={cn(
         'flex items-center justify-center rounded-full text-xs font-semibold',
         variant === 'default'
-          ? 'bg-surface-hover text-fg-primary'
-          : 'bg-surface text-muted',
+          ? 'bg-surface-container-high text-on-surface'
+          : 'bg-surface text-on-surface-variant',
         className,
       )}
     >

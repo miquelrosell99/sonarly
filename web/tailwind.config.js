@@ -38,24 +38,14 @@ export default {
         popover: '8px',
       },
       colors: {
-        'bg-primary': 'hsl(var(--bg-primary) / <alpha-value>)',
-        'fg-primary': 'hsl(var(--fg-primary) / <alpha-value>)',
-        'fg-secondary': 'hsl(var(--fg-secondary) / <alpha-value>)',
-        surface: 'hsl(var(--surface) / <alpha-value>)',
-        'surface-hover': 'hsl(var(--surface-hover) / <alpha-value>)',
-        rule: 'hsl(var(--rule) / <alpha-value>)',
-        muted: 'hsl(var(--muted) / <alpha-value>)',
-        accent: 'hsl(var(--accent) / <alpha-value>)',
-        danger: 'hsl(var(--danger) / <alpha-value>)',
-        success: 'hsl(var(--success) / <alpha-value>)',
-        warning: 'hsl(var(--warning) / <alpha-value>)',
-        info: 'hsl(var(--info) / <alpha-value>)',
-        /* shadcn catalog theme keys — aliases defined in src/index.css; the
-           catalog reads these (bg-background, text-muted-foreground, …).
-           Deliberately absent, because the names already own app meanings:
-           `muted` (muted TEXT here, not a container) and `accent` (the brand
-           SEED here, not shadcn's hover surface — use surface-hover for
-           that). See the alias-layer comment in index.css. */
+        /* Canonical Material You roles (rosellramos-design-system law/spec.md
+           §2; owner ruling 2026-10-19 single-track alignment). Values are
+           HSL triplets in src/index.css, consumed as hsl(var(--role) /
+           <alpha-value>). Cite the role, never a hue.
+           ⚠ --accent is NOT the seed — per the shadcn bridge it is the HOVER
+           surface (--md-sys-color-hover-overlay); the seed is `primary`.
+           ⚠ `muted` is a CONTAINER (surface-container); muted TEXT is
+           muted-foreground (on-surface-variant). */
         background: 'hsl(var(--background) / <alpha-value>)',
         foreground: 'hsl(var(--foreground) / <alpha-value>)',
         card: 'hsl(var(--card) / <alpha-value>)',
@@ -66,7 +56,9 @@ export default {
         'primary-foreground': 'hsl(var(--primary-foreground) / <alpha-value>)',
         secondary: 'hsl(var(--secondary) / <alpha-value>)',
         'secondary-foreground': 'hsl(var(--secondary-foreground) / <alpha-value>)',
+        muted: 'hsl(var(--muted) / <alpha-value>)',
         'muted-foreground': 'hsl(var(--muted-foreground) / <alpha-value>)',
+        accent: 'hsl(var(--accent) / <alpha-value>)',
         'accent-foreground': 'hsl(var(--accent-foreground) / <alpha-value>)',
         destructive: 'hsl(var(--destructive) / <alpha-value>)',
         'destructive-foreground':
@@ -74,6 +66,19 @@ export default {
         border: 'hsl(var(--border) / <alpha-value>)',
         input: 'hsl(var(--input) / <alpha-value>)',
         ring: 'hsl(var(--ring) / <alpha-value>)',
+        /* Roles the app cites directly (beyond the alias layer above). */
+        surface: 'hsl(var(--md-sys-color-surface) / <alpha-value>)',
+        'on-primary': 'hsl(var(--md-sys-color-on-primary) / <alpha-value>)',
+        'on-surface': 'hsl(var(--md-sys-color-on-surface) / <alpha-value>)',
+        'on-surface-variant':
+          'hsl(var(--md-sys-color-on-surface-variant) / <alpha-value>)',
+        'surface-container-high':
+          'hsl(var(--md-sys-color-surface-container-high) / <alpha-value>)',
+        outline: 'hsl(var(--md-sys-color-outline) / <alpha-value>)',
+        error: 'hsl(var(--md-sys-color-error) / <alpha-value>)',
+        success: 'hsl(var(--md-sys-color-success) / <alpha-value>)',
+        warning: 'hsl(var(--md-sys-color-warning) / <alpha-value>)',
+        info: 'hsl(var(--md-sys-color-info) / <alpha-value>)',
       },
     },
   },

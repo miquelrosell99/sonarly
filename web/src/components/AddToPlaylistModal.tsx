@@ -82,8 +82,8 @@ export function AddToPlaylistModal() {
     <Modal open={target !== null} onClose={close} title="Add to playlist" className="max-w-md">
       {target && (
         <div className="space-y-4">
-          <p className="text-sm text-fg-secondary">
-            Adding <span className="font-medium text-fg-primary">{target.label}</span> to:
+          <p className="text-sm text-on-surface-variant">
+            Adding <span className="font-medium text-on-surface">{target.label}</span> to:
           </p>
 
           {staticPlaylists.length > 5 && (
@@ -98,12 +98,12 @@ export function AddToPlaylistModal() {
 
           {isLoading ? (
             showLoading ? (
-              <p className="py-6 text-center text-sm text-fg-secondary">Loading playlists…</p>
+              <p className="py-6 text-center text-sm text-on-surface-variant">Loading playlists…</p>
             ) : (
               <div className="py-6" aria-hidden="true" />
             )
           ) : isError ? (
-            <p className="py-6 text-center text-sm text-danger" role="alert">
+            <p className="py-6 text-center text-sm text-error" role="alert">
               Could not load playlists.
             </p>
           ) : staticPlaylists.length === 0 ? (
@@ -115,14 +115,14 @@ export function AddToPlaylistModal() {
               onAction={openCreatePlaylist}
             />
           ) : visible.length === 0 ? (
-            <p className="py-6 text-center text-sm text-fg-secondary">No playlists match "{filter.trim()}".</p>
+            <p className="py-6 text-center text-sm text-on-surface-variant">No playlists match "{filter.trim()}".</p>
           ) : (
             <div className="max-h-64 space-y-1 overflow-y-auto pr-1">
               {visible.map((playlist) => (
                 <Checkbox
                   key={playlist.id}
                   id={`add-to-playlist-${playlist.id}`}
-                  className="rounded-item hover:bg-surface-hover"
+                  className="rounded-item hover:bg-surface-container-high"
                   label={playlist.name}
                   description={
                     playlist.songCount > 0

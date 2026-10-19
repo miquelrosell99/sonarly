@@ -72,7 +72,7 @@ export function AdminStatus({ user }: AdminStatusProps) {
   return (
     <AdminShell user={user}>
       <div className="space-y-4">
-        {error && <p className="text-sm text-danger" role="alert">{error}</p>}
+        {error && <p className="text-sm text-error" role="alert">{error}</p>}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <StatCard icon="mdi-account-group" label="Users" value={status?.counts.users ?? 0} />
           <StatCard icon="mdi-music" label="Songs" value={status?.counts.songs ?? 0} />
@@ -106,7 +106,7 @@ export function AdminStatus({ user }: AdminStatusProps) {
             onOpenMissing={() => setActiveModal('missing')}
           />
         ) : status ? (
-          <div className="rounded-item border border-rule bg-surface p-4 text-sm text-muted">
+          <div className="rounded-item border border-outline bg-surface p-4 text-sm text-on-surface-variant">
             No ingest jobs yet. Use the Media page to trigger one.
           </div>
         ) : null}

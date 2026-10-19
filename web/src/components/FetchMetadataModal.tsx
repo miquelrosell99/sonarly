@@ -138,14 +138,14 @@ function buildSearchQuery(entityType: EntityType, entity: Record<string, unknown
 }
 
 function ValuePills({ values }: { values: string | string[] | undefined }) {
-  if (!hasValue(values)) return <span className="text-sm text-fg-secondary">—</span>;
+  if (!hasValue(values)) return <span className="text-sm text-on-surface-variant">—</span>;
   const arr = Array.isArray(values) ? values : [values];
   return (
     <div className="flex flex-wrap gap-1">
       {arr.map((value, index) => (
         <span
           key={`${value}-${index}`}
-          className="inline-block rounded-full bg-surface-hover px-2 py-0.5 text-sm text-fg-primary"
+          className="inline-block rounded-full bg-surface-container-high px-2 py-0.5 text-sm text-on-surface"
         >
           {value}
         </span>
@@ -303,14 +303,14 @@ export function FetchMetadataModal({
     >
       <div className="space-y-4">
         {loading && matches.length === 0 && (
-          <div className="flex items-center gap-2 text-fg-secondary">
+          <div className="flex items-center gap-2 text-on-surface-variant">
             <Icon name="mdi-loading" className="animate-spin" size={20} />
             Searching MusicBrainz...
           </div>
         )}
 
         {error && (
-          <div className="rounded-item border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+          <div className="rounded-item border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
             {error}
           </div>
         )}
@@ -332,7 +332,7 @@ export function FetchMetadataModal({
 
         {matches.length > 0 && (
           <div className="space-y-2">
-            <label className="text-sm font-medium text-fg-secondary">Matches</label>
+            <label className="text-sm font-medium text-on-surface-variant">Matches</label>
             <select
               value={selectedIndex}
               onChange={(e) => setSelectedIndex(Number(e.target.value))}
@@ -351,7 +351,7 @@ export function FetchMetadataModal({
         )}
 
         {!loading && matches.length === 0 && !error && (
-          <div className="rounded-item border border-rule bg-surface px-4 py-6 text-center text-sm text-fg-secondary">
+          <div className="rounded-item border border-outline bg-surface px-4 py-6 text-center text-sm text-on-surface-variant">
             No MusicBrainz matches found.
           </div>
         )}
@@ -362,7 +362,7 @@ export function FetchMetadataModal({
               'rounded-item px-4 py-3 text-sm',
               coverArtMessage.type === 'success'
                 ? 'border border-success/30 bg-success/10 text-success'
-                : 'border border-danger/30 bg-danger/10 text-danger',
+                : 'border border-error/30 bg-error/10 text-error',
             )}
           >
             {coverArtMessage.text}
@@ -371,7 +371,7 @@ export function FetchMetadataModal({
 
         {selectedMatch && (
           <div className="space-y-3">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-sm font-medium text-fg-secondary">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-sm font-medium text-on-surface-variant">
               <span>MusicBrainz</span>
               <span />
               <span>Internal</span>
@@ -388,12 +388,12 @@ export function FetchMetadataModal({
                 <div
                   key={key}
                   className={cn(
-                    'grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-item border border-rule p-3',
-                    transferred && 'border-accent/50 bg-accent/5',
+                    'grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-item border border-outline p-3',
+                    transferred && 'border-primary/50 bg-primary/5',
                   )}
                 >
                   <div className="min-w-0">
-                    <div className="text-xs text-fg-secondary">{label}</div>
+                    <div className="text-xs text-on-surface-variant">{label}</div>
                     {isCoverArt ? (
                       mbValue ? (
                         <img
@@ -402,12 +402,12 @@ export function FetchMetadataModal({
                           className="mt-1 h-20 w-20 rounded-item object-cover"
                         />
                       ) : (
-                        <span className="text-sm text-fg-secondary">No cover art</span>
+                        <span className="text-sm text-on-surface-variant">No cover art</span>
                       )
                     ) : multi ? (
                       <ValuePills values={mbValue} />
                     ) : (
-                      <div className="truncate text-sm text-fg-primary">{mbHasValue ? valueToString(mbValue) : '—'}</div>
+                      <div className="truncate text-sm text-on-surface">{mbHasValue ? valueToString(mbValue) : '—'}</div>
                     )}
                   </div>
 
@@ -419,7 +419,7 @@ export function FetchMetadataModal({
                         disabled={!mbValue || applyingCoverArt || entityType === 'artist'}
                         title="Apply cover art"
                         aria-label="Apply cover art"
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-fg-primary transition hover:bg-surface-hover hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-on-surface transition hover:bg-surface-container-high hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {applyingCoverArt ? (
                           <Icon name="mdi-loading" className="animate-spin" size={16} />
@@ -434,7 +434,7 @@ export function FetchMetadataModal({
                         disabled={!mbHasValue}
                         title="Transfer value"
                         aria-label="Transfer value"
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-fg-primary transition hover:bg-surface-hover hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-on-surface transition hover:bg-surface-container-high hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <Icon name="mdi-arrow-right" size={16} />
                       </button>
@@ -445,7 +445,7 @@ export function FetchMetadataModal({
                         onClick={() => revertValue(key)}
                         title="Revert"
                         aria-label="Revert"
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-fg-primary transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-on-surface transition hover:bg-surface-container-high hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       >
                         <Icon name="mdi-undo" size={16} />
                       </button>
@@ -453,19 +453,19 @@ export function FetchMetadataModal({
                   </div>
 
                   <div className="min-w-0">
-                    <div className="text-xs text-fg-secondary">{label}</div>
+                    <div className="text-xs text-on-surface-variant">{label}</div>
                     {isCoverArt ? (
                       internalValue ? (
                         <CoverArt coverArt={String(internalValue)} alt="Current cover art" className="mt-1 h-20 w-20 rounded-item" iconSize={24} />
                       ) : (
-                        <span className="text-sm text-fg-secondary">No cover art</span>
+                        <span className="text-sm text-on-surface-variant">No cover art</span>
                       )
                     ) : multi ? (
-                      <div className={transferred ? 'text-accent' : 'text-fg-primary'}>
+                      <div className={transferred ? 'text-primary' : 'text-on-surface'}>
                         <ValuePills values={internalValue} />
                       </div>
                     ) : (
-                      <div className={cn('truncate text-sm', transferred ? 'text-accent' : 'text-fg-primary')}>
+                      <div className={cn('truncate text-sm', transferred ? 'text-primary' : 'text-on-surface')}>
                         {valueToString(internalValue) || '—'}
                       </div>
                     )}

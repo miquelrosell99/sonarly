@@ -76,8 +76,8 @@ function buildDisplayItems(
 function AutoDjLiveDot() {
   return (
     <span className="relative flex h-2 w-2 shrink-0" aria-hidden="true">
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60 motion-reduce:hidden" />
-      <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60 motion-reduce:hidden" />
+      <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
     </span>
   );
 }
@@ -153,19 +153,19 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
         <span className="flex min-w-0 items-center gap-2">
           <span className="min-w-0">
             <span
-              className={cn('block truncate', item.status === 'current' && 'font-medium text-accent')}
+              className={cn('block truncate', item.status === 'current' && 'font-medium text-primary')}
               title={item.song.title}
             >
               {item.song.title}
             </span>
             {item.song.addedByAutoDj && item.song.autoDjReason && (
-              <span className="block truncate text-xs text-muted" title={item.song.autoDjReason}>
+              <span className="block truncate text-xs text-on-surface-variant" title={item.song.autoDjReason}>
                 {item.song.autoDjReason}
               </span>
             )}
           </span>
           {item.song.addedByAutoDj && !djSectionIds.has(item.id) && (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent/70">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary/70">
               <Icon name="mdi-robot" size={12} />
               Auto DJ
             </span>
@@ -176,13 +176,13 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
     {
       key: 'artist',
       header: 'Artist',
-      render: (item) => <span className="truncate text-fg-secondary">{item.song.artistName || 'Unknown artist'}</span>,
+      render: (item) => <span className="truncate text-on-surface-variant">{item.song.artistName || 'Unknown artist'}</span>,
     },
     {
       key: 'duration',
       header: '',
       className: 'w-16 text-right',
-      render: (item) => <span className="font-mono tabular-nums text-fg-secondary">{formatTime(item.song.duration ?? 0)}</span>,
+      render: (item) => <span className="font-mono tabular-nums text-on-surface-variant">{formatTime(item.song.duration ?? 0)}</span>,
     },
   ];
 
@@ -324,10 +324,10 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
 
   const renderDjControls = (count: number) => (
     <span className="flex items-center justify-between gap-2 py-1">
-      <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent">
+      <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
         <AutoDjLiveDot />
         Up next — Auto-DJ
-        <span className="text-muted">· {count}</span>
+        <span className="text-on-surface-variant">· {count}</span>
       </span>
       <span className="flex items-center gap-1">
         <button
@@ -336,7 +336,7 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
           disabled={isFetching}
           aria-label="Refresh Auto-DJ suggestions"
           title="Fresh suggestions"
-          className="inline-flex h-6 w-6 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-50 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
         >
           <Icon name="mdi-refresh" size={14} className={cn(isFetching && 'animate-spin')} />
         </button>
@@ -346,7 +346,7 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
           onClick={() => setTuneOpen((v) => !v)}
           aria-label="Auto DJ settings"
           title="Tune Auto DJ"
-          className="inline-flex h-6 w-6 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
         >
           <Icon name="mdi-cog" size={14} />
         </button>
@@ -359,7 +359,7 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
 
   if (queue.length === 0) {
     return (
-      <div className={`flex h-full flex-col items-center justify-center gap-2 text-fg-secondary ${className ?? ''}`}>
+      <div className={`flex h-full flex-col items-center justify-center gap-2 text-on-surface-variant ${className ?? ''}`}>
         <Icon name="mdi-playlist-music" size={48} />
         <p className="text-sm">The queue is empty.</p>
       </div>
@@ -391,10 +391,10 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
             aria-pressed={autoDjEnabled}
             title="Auto DJ (right-click for mode)"
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
               autoDjEnabled
-                ? 'bg-accent/15 text-accent hover:bg-accent/25'
-                : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary',
+                ? 'bg-primary/15 text-primary hover:bg-primary/25'
+                : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
             )}
           >
             <Icon name="mdi-record-player" size={14} />
@@ -404,7 +404,7 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
         <button
           type="button"
           onClick={() => setSaveModalOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Icon name="mdi-playlist-plus" size={14} />
           Save as playlist
@@ -416,7 +416,7 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
               clearQueue();
               notify('Queue cleared', 'info');
             }}
-            className="rounded-full px-3 py-2 text-xs font-medium text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="rounded-full px-3 py-2 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Clear queue
           </button>
@@ -424,7 +424,7 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
       </div>
       <div className="min-h-0 flex-1">
         {windowed && autoDjEnabled && djPickCount > 0 && (
-          <div className="shrink-0 border-b border-rule px-1">{renderDjControls(djPickCount)}</div>
+          <div className="shrink-0 border-b border-outline px-1">{renderDjControls(djPickCount)}</div>
         )}
         <LibraryView<QueueDisplayItem>
           title={showHeader ? (title ?? 'Up next') : undefined}
@@ -448,20 +448,20 @@ export function QueueList({ title, showHeader = true, className }: QueueListProp
         />
       </div>
       {futureCount === 0 && autoDjEnabled && (
-        <div className="flex shrink-0 items-center gap-2 rounded-item border border-rule bg-surface px-3 py-2 text-xs text-fg-secondary">
+        <div className="flex shrink-0 items-center gap-2 rounded-item border border-outline bg-surface px-3 py-2 text-xs text-on-surface-variant">
           <AutoDjLiveDot />
           <span className="flex-1">Queue's end — Auto-DJ will keep it going</span>
-          {isFetching && <span className="text-muted">Fetching…</span>}
+          {isFetching && <span className="text-on-surface-variant">Fetching…</span>}
         </div>
       )}
       {futureCount === 0 && !autoDjEnabled && (
-        <div className="flex shrink-0 items-center gap-2 rounded-item border border-rule bg-surface px-3 py-2 text-xs text-fg-secondary">
-          <Icon name="mdi-record-player" size={14} className="text-muted" />
+        <div className="flex shrink-0 items-center gap-2 rounded-item border border-outline bg-surface px-3 py-2 text-xs text-on-surface-variant">
+          <Icon name="mdi-record-player" size={14} className="text-on-surface-variant" />
           <span className="flex-1">Queue's end — turn on Auto DJ to keep listening</span>
           <button
             type="button"
             onClick={() => updatePreferences.mutate({ autoDjEnabled: true })}
-            className="rounded-full bg-accent/15 px-2.5 py-1 font-medium text-accent transition hover:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="rounded-full bg-primary/15 px-2.5 py-1 font-medium text-primary transition hover:bg-primary/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Turn on Auto DJ
           </button>

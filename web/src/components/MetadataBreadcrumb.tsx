@@ -16,18 +16,18 @@ export function MetadataBreadcrumb({ items, className }: MetadataBreadcrumbProps
   if (visible.length === 0) return null;
 
   return (
-    <p className={cn('text-sm text-fg-secondary', className)}>
+    <p className={cn('text-sm text-on-surface-variant', className)}>
       {visible.map((item, index) => {
         const isLast = index === visible.length - 1;
         const content = item.href ? (
           <Link
             href={item.href}
-            className={cn('transition hover:opacity-70', index === 0 && 'font-medium text-fg-primary')}
+            className={cn('transition hover:opacity-70', index === 0 && 'font-medium text-on-surface')}
           >
             {item.label}
           </Link>
         ) : (
-          <span className={cn(index === 0 && 'font-medium text-fg-primary')}>{item.label}</span>
+          <span className={cn(index === 0 && 'font-medium text-on-surface')}>{item.label}</span>
         );
         return (
           <span key={`${item.label}-${index}`}>

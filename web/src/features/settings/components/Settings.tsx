@@ -59,14 +59,14 @@ function SettingsChrome({ children }: SettingsProps) {
                 className={cn(
                   // Accent bar on the active item — the sidebar's language —
                   // a real element, with no layout shift.
-                  'relative rounded-item px-3 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                  'relative rounded-item px-3 py-2 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                   active
-                    ? 'bg-surface-hover font-medium text-fg-primary'
-                    : 'text-muted hover:bg-surface-hover hover:text-fg-primary',
+                    ? 'bg-surface-container-high font-medium text-on-surface'
+                    : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
                 )}
               >
                 {active && (
-                  <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-accent" />
+                  <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
                 )}
                 {section.label}
               </Link>
@@ -75,7 +75,7 @@ function SettingsChrome({ children }: SettingsProps) {
         </nav>
         <TabNav
           items={sections}
-          className="border-b border-rule md:hidden"
+          className="border-b border-outline md:hidden"
         />
         <div className="min-w-0 flex-1">{children}</div>
       </div>

@@ -319,10 +319,10 @@ export function AdminUsers({ user }: AdminUsersProps) {
   return (
     <AdminShell user={user}>
       <div className="space-y-4">
-        {error && !createOpen && !editingUser && <p className="text-sm text-danger" role="alert">{error}</p>}
+        {error && !createOpen && !editingUser && <p className="text-sm text-error" role="alert">{error}</p>}
 
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-fg-secondary">
+          <h3 className="text-sm font-medium text-on-surface-variant">
             {users.length} user{users.length === 1 ? '' : 's'}
           </h3>
           <Button onClick={openCreate}>Add User</Button>
@@ -330,9 +330,9 @@ export function AdminUsers({ user }: AdminUsersProps) {
 
         <Modal open={createOpen} onClose={closeCreate} title="Add User" footer={createFooter}>
           <div className="space-y-4">
-            {error && <p className="text-sm text-danger" role="alert">{error}</p>}
+            {error && <p className="text-sm text-error" role="alert">{error}</p>}
             <div className="space-y-1">
-              <label htmlFor="user-username" className="block text-sm font-medium text-fg-secondary">Username</label>
+              <label htmlFor="user-username" className="block text-sm font-medium text-on-surface-variant">Username</label>
               <Input
                 id="user-username"
                 placeholder="Username"
@@ -341,7 +341,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
               />
             </div>
             <div className="space-y-1">
-              <label htmlFor="user-password" className="block text-sm font-medium text-fg-secondary">Password</label>
+              <label htmlFor="user-password" className="block text-sm font-medium text-on-surface-variant">Password</label>
               <Input
                 id="user-password"
                 placeholder="Password"
@@ -352,7 +352,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1">
-                <label htmlFor="user-name" className="block text-sm font-medium text-fg-secondary">Name</label>
+                <label htmlFor="user-name" className="block text-sm font-medium text-on-surface-variant">Name</label>
                 <Input
                   id="user-name"
                   placeholder="Name"
@@ -361,7 +361,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
                 />
               </div>
               <div className="space-y-1">
-                <label htmlFor="user-surname" className="block text-sm font-medium text-fg-secondary">Surname</label>
+                <label htmlFor="user-surname" className="block text-sm font-medium text-on-surface-variant">Surname</label>
                 <Input
                   id="user-surname"
                   placeholder="Surname"
@@ -371,7 +371,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
               </div>
             </div>
             <div className="space-y-1">
-              <label htmlFor="user-email" className="block text-sm font-medium text-fg-secondary">Email</label>
+              <label htmlFor="user-email" className="block text-sm font-medium text-on-surface-variant">Email</label>
               <Input
                 id="user-email"
                 type="email"
@@ -381,7 +381,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
               />
             </div>
             <div className="space-y-1">
-              <label htmlFor="user-role" className="block text-sm font-medium text-fg-secondary">Role</label>
+              <label htmlFor="user-role" className="block text-sm font-medium text-on-surface-variant">Role</label>
               <select
                 id="user-role"
                 className="input w-full"
@@ -394,7 +394,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <label htmlFor="user-format" className="block text-sm font-medium text-fg-secondary">Transcode format</label>
+                <label htmlFor="user-format" className="block text-sm font-medium text-on-surface-variant">Transcode format</label>
                 <select
                   id="user-format"
                   aria-label="Transcode format"
@@ -409,7 +409,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
                 </select>
               </div>
               <div className="space-y-1">
-                <label htmlFor="user-bitrate" className="block text-sm font-medium text-fg-secondary">Max bitrate</label>
+                <label htmlFor="user-bitrate" className="block text-sm font-medium text-on-surface-variant">Max bitrate</label>
                 <Input
                   id="user-bitrate"
                   type="number"
@@ -432,10 +432,10 @@ export function AdminUsers({ user }: AdminUsersProps) {
           footer={editFooter}
         >
           <div className="space-y-4">
-            {error && <p className="text-sm text-danger" role="alert">{error}</p>}
+            {error && <p className="text-sm text-error" role="alert">{error}</p>}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1">
-                <label htmlFor="edit-name" className="block text-sm font-medium text-fg-secondary">Name</label>
+                <label htmlFor="edit-name" className="block text-sm font-medium text-on-surface-variant">Name</label>
                 <Input
                   id="edit-name"
                   placeholder="Name"
@@ -444,7 +444,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
                 />
               </div>
               <div className="space-y-1">
-                <label htmlFor="edit-surname" className="block text-sm font-medium text-fg-secondary">Surname</label>
+                <label htmlFor="edit-surname" className="block text-sm font-medium text-on-surface-variant">Surname</label>
                 <Input
                   id="edit-surname"
                   placeholder="Surname"
@@ -454,7 +454,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
               </div>
             </div>
             <div className="space-y-1">
-              <label htmlFor="edit-email" className="block text-sm font-medium text-fg-secondary">Email</label>
+              <label htmlFor="edit-email" className="block text-sm font-medium text-on-surface-variant">Email</label>
               <Input
                 id="edit-email"
                 type="email"
@@ -464,7 +464,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
               />
             </div>
             <div className="space-y-1">
-              <label htmlFor="edit-password" className="block text-sm font-medium text-fg-secondary">New password</label>
+              <label htmlFor="edit-password" className="block text-sm font-medium text-on-surface-variant">New password</label>
               <Input
                 id="edit-password"
                 type="password"
@@ -474,7 +474,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
               />
             </div>
             <div className="space-y-1">
-              <label htmlFor="edit-role" className="block text-sm font-medium text-fg-secondary">Role</label>
+              <label htmlFor="edit-role" className="block text-sm font-medium text-on-surface-variant">Role</label>
               <select
                 id="edit-role"
                 className="input w-full"
@@ -488,7 +488,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <label htmlFor="edit-format" className="block text-sm font-medium text-fg-secondary">Transcode format</label>
+                <label htmlFor="edit-format" className="block text-sm font-medium text-on-surface-variant">Transcode format</label>
                 <select
                   id="edit-format"
                   aria-label="Transcode format"
@@ -503,7 +503,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
                 </select>
               </div>
               <div className="space-y-1">
-                <label htmlFor="edit-bitrate" className="block text-sm font-medium text-fg-secondary">Max bitrate</label>
+                <label htmlFor="edit-bitrate" className="block text-sm font-medium text-on-surface-variant">Max bitrate</label>
                 <Input
                   id="edit-bitrate"
                   type="number"
@@ -553,7 +553,7 @@ export function AdminUsers({ user }: AdminUsersProps) {
           />
         </Modal>
 
-        <div className="rounded-item border border-rule">
+        <div className="rounded-item border border-outline">
           <Table columns={columns} rows={users} rowKey={(u) => u.id} empty="No users found." />
         </div>
       </div>
@@ -616,16 +616,16 @@ function UserLibrariesSection({ userId }: { userId: string }) {
   }, [libraries]);
 
   return (
-    <div className="space-y-3 border-t border-rule pt-4">
-      <h4 className="text-sm font-medium text-fg-secondary">Libraries</h4>
+    <div className="space-y-3 border-t border-outline pt-4">
+      <h4 className="text-sm font-medium text-on-surface-variant">Libraries</h4>
       {!libraries || libraries.length === 0 ? (
-        <p className="text-sm text-muted">No libraries found.</p>
+        <p className="text-sm text-on-surface-variant">No libraries found.</p>
       ) : (
         <ul className="space-y-2">
           {sortedLibraries.map((library) => (
             <li
               key={library.id}
-              className="flex items-center justify-between rounded-item border border-rule bg-bg-primary px-4 py-3"
+              className="flex items-center justify-between rounded-item border border-outline bg-background px-4 py-3"
             >
               <Checkbox
                 id={`edit-user-library-${userId}-${library.id}`}

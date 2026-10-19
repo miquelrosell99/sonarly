@@ -15,7 +15,7 @@ export function BrandMark({ className }: { className?: string }) {
         fillRule="evenodd"
         d="M 88.1 28 A 44 44 0 1 0 88.1 72 L 82.9 69 A 38 38 0 1 1 82.9 31 Z"
       />
-      <circle cx="85.5" cy="70.5" r="8.5" fill="hsl(var(--accent))" />
+      <circle cx="85.5" cy="70.5" r="8.5" fill="hsl(var(--md-sys-color-primary))" />
     </svg>
   );
 }

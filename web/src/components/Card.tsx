@@ -64,11 +64,11 @@ export function Card({
             e.stopPropagation();
             onContextMenu?.(e);
           }}
-          className="relative block overflow-hidden rounded-card outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
+          className="relative block overflow-hidden rounded-card outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <div className="transition duration-300 group-hover/card:scale-105">{cover}</div>
           {isPlaying && (
-            <div className="pointer-events-none absolute bottom-2 right-2 z-20 rounded-full bg-bg-primary/80 p-1.5 text-accent opacity-100 transition-opacity duration-200 group-hover/card:opacity-0">
+            <div className="pointer-events-none absolute bottom-2 right-2 z-20 rounded-full bg-background/80 p-1.5 text-primary opacity-100 transition-opacity duration-200 group-hover/card:opacity-0">
               <PlayingIndicator size={16} />
             </div>
           )}
@@ -102,16 +102,16 @@ export function Card({
           </div>
         </Link>
       ) : null}
-      <div className={cn('space-y-0.5 px-1', !cover && 'rounded-card border border-rule bg-surface p-3')}>
-        <Link href={href} className="line-clamp-2 break-words text-sm font-semibold text-fg-primary hover:text-muted">
+      <div className={cn('space-y-0.5 px-1', !cover && 'rounded-card border border-outline bg-surface p-3')}>
+        <Link href={href} className="line-clamp-2 break-words text-sm font-semibold text-on-surface hover:text-on-surface-variant">
           {title}
         </Link>
         {fields?.map((field, idx) => {
           if (field.content == null) return null;
           return (
-            <div key={idx} className="line-clamp-1 text-sm text-fg-secondary">
+            <div key={idx} className="line-clamp-1 text-sm text-on-surface-variant">
               {field.href ? (
-                <Link href={field.href} className="hover:text-muted">
+                <Link href={field.href} className="hover:text-on-surface-variant">
                   {field.content}
                 </Link>
               ) : (

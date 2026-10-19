@@ -29,7 +29,7 @@ export function AlbumArtists() {
       key: 'name',
       header: 'Name',
       render: (artist) => (
-        <Link href={`/album-artists/${artist.id}`} className="hover:text-muted">
+        <Link href={`/album-artists/${artist.id}`} className="hover:text-on-surface-variant">
           {artist.name}
         </Link>
       ),

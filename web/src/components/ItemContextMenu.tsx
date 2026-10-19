@@ -295,12 +295,12 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
       style={{ top: pos.y, left: pos.x }}
       onKeyDown={handleMenuKeyDown}
       className={cn(
-        'fixed z-50 min-w-[10rem] rounded-popover border border-rule bg-surface py-1 shadow-lg',
+        'fixed z-50 min-w-[10rem] rounded-popover border border-outline bg-surface py-1 shadow-lg',
       )}
     >
       {visibleSections.map((section, sIdx) => (
         <div key={sIdx}>
-          {section.title && <div className="px-3 py-1 text-xs font-medium text-muted">{section.title}</div>}
+          {section.title && <div className="px-3 py-1 text-xs font-medium text-on-surface-variant">{section.title}</div>}
           {section.items.map((item) => (
             <button
               key={item.id}
@@ -313,10 +313,10 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
                 childRef.current?.focus();
               }}
               className={cn(
-                'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none',
+                'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none',
                 item.disabled && 'opacity-50 cursor-not-allowed',
-                item.variant === 'danger' && 'text-danger',
-                item.active && 'text-accent',
+                item.variant === 'danger' && 'text-error',
+                item.active && 'text-primary',
               )}
             >
               {item.loading ? (
@@ -325,10 +325,10 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
                 item.icon && <Icon name={item.icon} size={18} />
               )}
               {item.label}
-              {item.active && <Icon name="mdi-check" size={16} className="ml-auto text-accent" />}
+              {item.active && <Icon name="mdi-check" size={16} className="ml-auto text-primary" />}
             </button>
           ))}
-          {sIdx < visibleSections.length - 1 && <hr role="separator" className="my-1 border-rule" />}
+          {sIdx < visibleSections.length - 1 && <hr role="separator" className="my-1 border-outline" />}
         </div>
       ))}
     </div>

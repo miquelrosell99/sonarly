@@ -147,16 +147,16 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
       }
     >
       {isEditing && loadingPlaylist && (
-        <p className="text-sm text-muted">Loading playlist…</p>
+        <p className="text-sm text-on-surface-variant">Loading playlist…</p>
       )}
       {isEditing && playlistError && (
-        <p className="text-sm text-danger">{playlistError instanceof Error ? playlistError.message : 'Failed to load playlist'}</p>
+        <p className="text-sm text-error">{playlistError instanceof Error ? playlistError.message : 'Failed to load playlist'}</p>
       )}
       {(!isEditing || playlist) && (
         <form id="create-playlist-form" onSubmit={handleSubmit} className="space-y-4">
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {error && <p className="text-sm text-error">{error}</p>}
           <div>
-            <label htmlFor="create-playlist-name" className="mb-1.5 block text-sm font-medium text-fg-secondary">
+            <label htmlFor="create-playlist-name" className="mb-1.5 block text-sm font-medium text-on-surface-variant">
               Name
             </label>
             <Input
@@ -169,7 +169,7 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
             />
           </div>
           <div>
-            <label htmlFor="create-playlist-description" className="mb-1.5 block text-sm font-medium text-fg-secondary">
+            <label htmlFor="create-playlist-description" className="mb-1.5 block text-sm font-medium text-on-surface-variant">
               Description
             </label>
             <textarea
@@ -183,8 +183,8 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
             />
           </div>
           <div>
-            <span className="mb-1.5 block text-sm font-medium text-fg-secondary">Playlist type</span>
-            <div role="group" aria-label="Playlist type" className="inline-flex rounded-input border border-rule bg-surface p-1">
+            <span className="mb-1.5 block text-sm font-medium text-on-surface-variant">Playlist type</span>
+            <div role="group" aria-label="Playlist type" className="inline-flex rounded-input border border-outline bg-surface p-1">
               {(['standard', 'smart'] as const).map((mode) => (
                 <button
                   key={mode}
@@ -193,17 +193,17 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
                   onClick={() => requestModeSwitch(mode)}
                   disabled={save.isPending || loadingPlaylist}
                   className={cn(
-                    'rounded-input px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50',
+                    'rounded-input px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50',
                     isSmart === (mode === 'smart')
-                      ? 'bg-accent text-bg-primary'
-                      : 'text-fg-secondary hover:text-fg-primary',
+                      ? 'bg-primary text-on-primary'
+                      : 'text-on-surface-variant hover:text-on-surface',
                   )}
                 >
                   {mode === 'smart' ? 'Smart' : 'Standard'}
                 </button>
               ))}
             </div>
-            <p className="mt-1.5 text-xs text-fg-secondary">
+            <p className="mt-1.5 text-xs text-on-surface-variant">
               {isSmart
                 ? 'Automatically populated based on rules.'
                 : 'You choose which tracks belong to this playlist.'}
@@ -211,8 +211,8 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
           </div>
           {isSmart && (
             <div>
-              <span className="mb-1.5 block text-sm font-medium text-fg-secondary">Smart resolution</span>
-              <div role="group" aria-label="Smart resolution" className="inline-flex rounded-input border border-rule bg-surface p-1">
+              <span className="mb-1.5 block text-sm font-medium text-on-surface-variant">Smart resolution</span>
+              <div role="group" aria-label="Smart resolution" className="inline-flex rounded-input border border-outline bg-surface p-1">
                 {(['tracks', 'query'] as const).map((mode) => (
                   <button
                     key={mode}
@@ -221,17 +221,17 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
                     onClick={() => setResolveMode(mode)}
                     disabled={save.isPending || loadingPlaylist}
                     className={cn(
-                      'rounded-input px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50',
+                      'rounded-input px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50',
                       resolveMode === mode
-                        ? 'bg-accent text-bg-primary'
-                        : 'text-fg-secondary hover:text-fg-primary',
+                        ? 'bg-primary text-on-primary'
+                        : 'text-on-surface-variant hover:text-on-surface',
                     )}
                   >
                     {mode === 'tracks' ? 'Shared track list' : 'Live query'}
                   </button>
                 ))}
               </div>
-              <p className="mt-1.5 text-xs text-fg-secondary">
+              <p className="mt-1.5 text-xs text-on-surface-variant">
                 {resolveMode === 'tracks'
                   ? 'Everyone sees the same tracks, selected from the owner\'s ratings and listening history.'
                   : 'Each user sees the tracks selected by their own ratings and listening history.'}

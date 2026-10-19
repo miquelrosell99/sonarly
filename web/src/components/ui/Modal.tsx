@@ -112,18 +112,18 @@ export function Modal({ open, onClose, title, children, footer, className, close
         ref={dialogRef}
         tabIndex={-1}
         className={cn(
-          'dialog-enter flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-sheet border border-rule bg-surface shadow-2xl outline-none',
+          'dialog-enter flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-sheet border border-outline bg-surface shadow-2xl outline-none',
           className,
         )}
       >
-        <div className="flex items-center justify-between border-b border-rule px-6 py-4">
+        <div className="flex items-center justify-between border-b border-outline px-6 py-4">
           <h3 id={titleId} className="text-lg font-semibold">{title}</h3>
           <button
             type="button"
             onClick={onClose}
             disabled={closeDisabled}
             aria-label="Close"
-            className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-item p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Icon name="mdi-close" size={20} />
           </button>
@@ -134,7 +134,7 @@ export function Modal({ open, onClose, title, children, footer, className, close
         </div>
 
         {footer && (
-          <div className="border-t border-rule px-6 py-4">
+          <div className="border-t border-outline px-6 py-4">
             {footer}
           </div>
         )}

@@ -182,7 +182,7 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
   return (
     <div ref={containerRef} className="relative w-full">
       <div className="relative">
-        <Icon name="mdi-magnify" size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+        <Icon name="mdi-magnify" size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
         <input
           ref={inputRef}
           type="text"
@@ -208,17 +208,17 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
             aria-label={filtersOpen ? 'Hide filters' : 'Show filters'}
             title="Filters"
             className={cn(
-              'absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+              'absolute right-1.5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
               filtersOpen
-                ? 'bg-surface-hover text-fg-primary'
-                : 'text-muted hover:bg-surface-hover hover:text-fg-primary',
+                ? 'bg-surface-container-high text-on-surface'
+                : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
             )}
           >
             <Icon name="mdi-filter-variant" size={18} />
           </button>
         )}
         {!hasFilters && (
-          <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-item border border-rule bg-surface px-1.5 py-0.5 text-2xs text-muted sm:block">
+          <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-item border border-outline bg-surface px-1.5 py-0.5 text-2xs text-on-surface-variant sm:block">
             Ctrl+K
           </kbd>
         )}
@@ -227,23 +227,23 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
       {(isOpen || filtersOpen) && (
         <div
           className={cn(
-            'absolute left-0 right-0 top-full z-50 mt-2 overflow-auto rounded-popover border border-rule bg-bg-primary py-2 shadow-lg',
+            'absolute left-0 right-0 top-full z-50 mt-2 overflow-auto rounded-popover border border-outline bg-background py-2 shadow-lg',
             filtersOpen ? 'max-h-[36rem]' : 'max-h-[24rem]',
           )}
         >
           {filtersOpen && hasFilters && (
-            <div className="border-b border-rule px-4 pb-4 pt-2">
+            <div className="border-b border-outline px-4 pb-4 pt-2">
               <FilterPanel filters={filters} className="border-0 bg-transparent p-0 shadow-none" />
             </div>
           )}
           {(items.length > 0 || debouncedQuery.length > 0) && (
             <div role="listbox" id={listboxId}>
               {items.length === 0 ? (
-                <p className="px-4 py-2 text-sm text-muted">No results found.</p>
+                <p className="px-4 py-2 text-sm text-on-surface-variant">No results found.</p>
               ) : (
                 grouped.map(({ groupLabel, groupItems, startIndex }) => (
                   <div key={groupLabel} role="group" aria-label={groupLabel}>
-                    <p className="px-4 py-1 text-xs font-semibold uppercase tracking-wider text-muted">
+                    <p className="px-4 py-1 text-xs font-semibold uppercase tracking-wider text-on-surface-variant">
                       {groupLabel}
                     </p>
                     <ul>
@@ -261,10 +261,10 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
                               className={cn(
                                 'w-full px-4 py-2 text-left text-sm transition focus-visible:outline-none',
                                 item.isMore
-                                  ? 'text-muted hover:bg-surface-hover hover:text-fg-primary'
+                                  ? 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
                                   : isHighlighted
-                                    ? 'bg-surface-hover text-fg-primary'
-                                    : 'text-fg-primary hover:bg-surface-hover',
+                                    ? 'bg-surface-container-high text-on-surface'
+                                    : 'text-on-surface hover:bg-surface-container-high',
                               )}
                               role="option"
                               aria-selected={isHighlighted}

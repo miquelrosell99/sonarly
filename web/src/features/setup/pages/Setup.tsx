@@ -44,22 +44,22 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg-primary p-6">
+    <div className="flex min-h-screen items-center justify-center bg-background p-6">
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-        <h1 className="text-2xl font-semibold tracking-tight text-fg-primary">Welcome to Sonarly</h1>
-        <p className="text-sm text-muted">
+        <h1 className="text-2xl font-semibold tracking-tight text-on-surface">Welcome to Sonarly</h1>
+        <p className="text-sm text-on-surface-variant">
           Create the admin account to get started.
         </p>
         {error && (
           <div
-            className="rounded-item border border-danger/30 bg-danger/10 p-3 text-sm text-danger"
+            className="rounded-item border border-error/30 bg-error/10 p-3 text-sm text-error"
             role="alert"
           >
             {error}
           </div>
         )}
         <div>
-          <label htmlFor="username" className="mb-1 block text-sm font-medium text-fg-primary">
+          <label htmlFor="username" className="mb-1 block text-sm font-medium text-on-surface">
             Username
           </label>
           <Input
@@ -74,7 +74,7 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="name" className="mb-1 block text-sm font-medium text-fg-primary">
+            <label htmlFor="name" className="mb-1 block text-sm font-medium text-on-surface">
               Name
             </label>
             <Input
@@ -85,7 +85,7 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
             />
           </div>
           <div>
-            <label htmlFor="surname" className="mb-1 block text-sm font-medium text-fg-primary">
+            <label htmlFor="surname" className="mb-1 block text-sm font-medium text-on-surface">
               Surname
             </label>
             <Input
@@ -97,7 +97,7 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
           </div>
         </div>
         <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-medium text-fg-primary">
+          <label htmlFor="email" className="mb-1 block text-sm font-medium text-on-surface">
             Email
           </label>
           <Input
@@ -108,7 +108,7 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
           />
         </div>
         <div>
-          <label htmlFor="password" className="mb-1 block text-sm font-medium text-fg-primary">
+          <label htmlFor="password" className="mb-1 block text-sm font-medium text-on-surface">
             Password
           </label>
           <Input
@@ -121,7 +121,7 @@ export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
           />
         </div>
         <div>
-          <label htmlFor="confirmPassword" className="mb-1 block text-sm font-medium text-fg-primary">
+          <label htmlFor="confirmPassword" className="mb-1 block text-sm font-medium text-on-surface">
             Confirm password
           </label>
           <Input

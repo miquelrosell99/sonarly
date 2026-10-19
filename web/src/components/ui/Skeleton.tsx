@@ -7,7 +7,7 @@ export function Skeleton({ className }: { className?: string }) {
   return (
     <div
       aria-hidden="true"
-      className={cn('animate-pulse motion-reduce:animate-none rounded-item bg-surface-hover', className)}
+      className={cn('animate-pulse motion-reduce:animate-none rounded-item bg-surface-container-high', className)}
     />
   );
 }

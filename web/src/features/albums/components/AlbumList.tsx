@@ -23,15 +23,15 @@ export function AlbumList({
   }
 
   return (
-    <ul className="divide-y divide-rule">
+    <ul className="divide-y divide-outline">
       {albums.map((album) => (
         <li key={album.id}>
           <Link
             href={`/albums/${album.id}`}
-            className="flex min-h-11 items-center justify-between rounded-item px-2 py-2 text-sm hover:bg-surface-hover"
+            className="flex min-h-11 items-center justify-between rounded-item px-2 py-2 text-sm hover:bg-surface-container-high"
           >
             <span>{album.name}</span>
-            <span className="text-muted">
+            <span className="text-on-surface-variant">
               {showArtist && (album.artistName ?? '-')}
               {showYear && album.year !== undefined && album.year !== null && (
                 <>

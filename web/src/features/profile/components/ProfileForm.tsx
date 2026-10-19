@@ -104,19 +104,19 @@ export function ProfileForm({ user, onUserChange }: ProfileFormProps) {
           >
             {uploading ? 'Uploading…' : 'Change avatar'}
           </Button>
-          <p className="mt-1 text-xs text-muted">PNG, JPG, WebP or GIF up to 2 MB.</p>
+          <p className="mt-1 text-xs text-on-surface-variant">PNG, JPG, WebP or GIF up to 2 MB.</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor="name" className="mb-1 block text-sm font-medium text-fg-primary">
+          <label htmlFor="name" className="mb-1 block text-sm font-medium text-on-surface">
             Name
           </label>
           <Input id="name" value={form.name} onChange={(e) => updateForm({ name: e.target.value })} />
         </div>
         <div>
-          <label htmlFor="surname" className="mb-1 block text-sm font-medium text-fg-primary">
+          <label htmlFor="surname" className="mb-1 block text-sm font-medium text-on-surface">
             Surname
           </label>
           <Input id="surname" value={form.surname} onChange={(e) => updateForm({ surname: e.target.value })} />
@@ -124,7 +124,7 @@ export function ProfileForm({ user, onUserChange }: ProfileFormProps) {
       </div>
 
       <div>
-        <label htmlFor="email" className="mb-1 block text-sm font-medium text-fg-primary">
+        <label htmlFor="email" className="mb-1 block text-sm font-medium text-on-surface">
           Email
         </label>
         <Input
@@ -135,8 +135,8 @@ export function ProfileForm({ user, onUserChange }: ProfileFormProps) {
         />
       </div>
 
-      {error && <p className="text-sm text-danger" role="alert">{error}</p>}
-      {success && <p className="text-sm text-fg-primary">Profile saved.</p>}
+      {error && <p className="text-sm text-error" role="alert">{error}</p>}
+      {success && <p className="text-sm text-on-surface">Profile saved.</p>}
 
       <Button type="submit" disabled={saving}>
         {saving ? 'Saving…' : 'Save profile'}

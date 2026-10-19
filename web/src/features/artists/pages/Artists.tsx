@@ -78,7 +78,7 @@ export function Artists() {
       key: 'name',
       header: 'Name',
       render: (artist) => (
-        <Link href={`/artists/${artist.id}`} className="hover:text-muted">
+        <Link href={`/artists/${artist.id}`} className="hover:text-on-surface-variant">
           {artist.name}
         </Link>
       ),

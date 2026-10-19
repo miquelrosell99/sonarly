@@ -47,14 +47,14 @@ export function Organize() {
     <div>
       <h2 className="mb-4 text-lg font-semibold">Organize Library</h2>
       <PageState loading={loading}>
-        <p className="mb-4 text-sm text-muted">
+        <p className="mb-4 text-sm text-on-surface-variant">
           Current pattern: <code className="rounded-item bg-surface px-1 py-0.5 font-mono">{pattern}</code>
         </p>
         <Button onClick={run} disabled={starting || jobId !== null}>
           {starting ? 'Starting…' : jobId !== null ? 'Reorganizing…' : 'Reorganize existing library'}
         </Button>
       </PageState>
-      {error && <p className="mt-4 text-sm text-danger" role="alert">{error}</p>}
+      {error && <p className="mt-4 text-sm text-error" role="alert">{error}</p>}
       {summary && (
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <StatCard icon="mdi-check-circle-outline" label="Moved" value={summary.moved} />

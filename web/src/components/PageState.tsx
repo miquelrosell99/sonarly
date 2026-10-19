@@ -40,7 +40,7 @@ export function PageState({
     return (
       <div
         role="status"
-        className={cn('flex flex-col items-center justify-center gap-2 py-8 text-sm text-muted', className)}
+        className={cn('flex flex-col items-center justify-center gap-2 py-8 text-sm text-on-surface-variant', className)}
       >
         {showSpinner && (
           <>
@@ -57,7 +57,7 @@ export function PageState({
     return (
       <div
         role="alert"
-        className={cn('flex flex-col items-center justify-center gap-3 py-8 text-sm text-danger', className)}
+        className={cn('flex flex-col items-center justify-center gap-3 py-8 text-sm text-error', className)}
       >
         <Icon name="mdi-alert-circle-outline" size={24} />
         <p>{errorText}</p>

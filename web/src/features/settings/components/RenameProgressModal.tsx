@@ -102,7 +102,7 @@ export function RenameProgressModal({ jobId, onClose, onComplete }: RenameProgre
     <Modal open onClose={onClose} title="Renaming library…" className="max-w-md">
       {error ? (
         <div className="space-y-4">
-          <p className="text-sm text-danger" role="alert">{error}</p>
+          <p className="text-sm text-error" role="alert">{error}</p>
           <div className="flex justify-end">
             <Button onClick={onClose}>Close</Button>
           </div>
@@ -113,7 +113,7 @@ export function RenameProgressModal({ jobId, onClose, onComplete }: RenameProgre
             value={isRunning && total === 0 ? 0 : percent}
             aria-label="Rename progress"
           />
-          <p className="text-sm text-fg-primary" aria-live="polite">
+          <p className="text-sm text-on-surface" aria-live="polite">
             {status?.status === 'completed' && total === 0
               ? 'Nothing to rename'
               : total === 0
@@ -121,21 +121,21 @@ export function RenameProgressModal({ jobId, onClose, onComplete }: RenameProgre
                 : `${done} of ${total} files renamed (${percent}%)`}
           </p>
           {status?.stats?.currentPath && (
-            <p className="break-all text-xs text-muted" title={status.stats.currentPath}>
+            <p className="break-all text-xs text-on-surface-variant" title={status.stats.currentPath}>
               {status.stats.currentPath}
             </p>
           )}
           {isFailed && (
-            <p className="text-sm text-danger">
+            <p className="text-sm text-error">
               {status.stats?.error || 'Rename failed'}
             </p>
           )}
           {showFailures && (
-            <div className="rounded-item border border-danger/30 bg-danger/10 p-3">
-              <p className="text-sm font-medium text-danger">
+            <div className="rounded-item border border-error/30 bg-error/10 p-3">
+              <p className="text-sm font-medium text-error">
                 {failed} file{failed === 1 ? '' : 's'} failed
               </p>
-              <ul className="mt-2 max-h-32 overflow-y-auto text-xs text-muted">
+              <ul className="mt-2 max-h-32 overflow-y-auto text-xs text-on-surface-variant">
                 {failedPaths.map((path) => (
                   <li key={path} className="break-all py-0.5" title={path}>
                     {path}

@@ -111,7 +111,7 @@ export function ListRow({
           // after font-medium, so this deterministically wins over a
           // column-level font-medium.
           'font-semibold',
-          isPlaying && 'text-accent',
+          isPlaying && 'text-primary',
         ),
       })
     : titleCell;
@@ -123,8 +123,8 @@ export function ListRow({
       tabIndex={0}
       aria-selected={isSelected}
       className={cn(
-        'group h-12 cursor-pointer select-none transition outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
-        isSelected ? 'bg-surface-hover' : 'hover:bg-surface-hover',
+        'group h-12 cursor-pointer select-none transition outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
+        isSelected ? 'bg-surface-container-high' : 'hover:bg-surface-container-high',
         isDragging && 'z-10 scale-[1.02] shadow-lg',
         draggable && 'cursor-grab active:cursor-grabbing',
         className,
@@ -143,7 +143,7 @@ export function ListRow({
             type="button"
             {...dragHandleProps}
             aria-label="Drag to reorder"
-            className="flex h-6 w-6 cursor-grab items-center justify-center text-fg-secondary opacity-0 transition hover:text-fg-primary group-hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing"
+            className="flex h-6 w-6 cursor-grab items-center justify-center text-on-surface-variant opacity-0 transition hover:text-on-surface group-hover:opacity-100 focus-visible:opacity-100 active:cursor-grabbing"
           >
             <Icon name="mdi-drag-vertical" size={18} />
           </button>
@@ -153,9 +153,9 @@ export function ListRow({
         {/* Playing rows signal with a left accent bar (sidebar idiom), never a
             full-row accent fill. */}
         {isPlaying && (
-          <span className="absolute left-0 top-1/2 h-5 w-[2.5px] -translate-y-1/2 rounded-full bg-accent" />
+          <span className="absolute left-0 top-1/2 h-5 w-[2.5px] -translate-y-1/2 rounded-full bg-primary" />
         )}
-        <span className="group/play relative inline-flex h-6 w-6 items-center justify-center text-muted">
+        <span className="group/play relative inline-flex h-6 w-6 items-center justify-center text-on-surface-variant">
           <span className="transition group-hover/play:opacity-0">
             {isPlaying ? (
               <PlayingIndicator size={14} />

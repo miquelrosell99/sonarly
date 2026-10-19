@@ -27,7 +27,7 @@ export function TrackList({
   }
 
   return (
-    <ul className="divide-y divide-rule">
+    <ul className="divide-y divide-outline">
       {tracks.map((track) => {
         const artistName = 'artistName' in track ? track.artistName : undefined;
         const albumName = 'albumName' in track ? track.albumName : undefined;
@@ -39,7 +39,7 @@ export function TrackList({
           <>
             <span>{track.title}</span>
             {(details.length > 0 || (showDuration && track.duration)) && (
-              <span className="text-muted">
+              <span className="text-on-surface-variant">
                 {details.join(' • ')}
                 {showDuration && track.duration !== undefined && (
                   <>
@@ -58,14 +58,14 @@ export function TrackList({
               <button
                 type="button"
                 onClick={() => onItemClick(track)}
-                className="flex min-h-11 w-full items-center justify-between rounded-item px-2 py-2 text-left text-sm hover:bg-surface-hover"
+                className="flex min-h-11 w-full items-center justify-between rounded-item px-2 py-2 text-left text-sm hover:bg-surface-container-high"
               >
                 {content}
               </button>
             ) : (
               <Link
                 href={`/tracks/${track.id}`}
-                className="flex min-h-11 items-center justify-between rounded-item px-2 py-2 text-sm hover:bg-surface-hover"
+                className="flex min-h-11 items-center justify-between rounded-item px-2 py-2 text-sm hover:bg-surface-container-high"
               >
                 {content}
               </Link>

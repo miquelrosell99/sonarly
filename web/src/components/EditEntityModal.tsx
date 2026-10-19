@@ -192,13 +192,13 @@ export function EditEntityModal({
           </Button>
         )}
         {!readOnly && !isMulti && (entityType === 'song' || entityType === 'album' || entityType === 'artist') && (
-          <Button variant="ghost" onClick={() => setFetchOpen(true)} disabled={saving || deleting} className="border border-rule">
+          <Button variant="ghost" onClick={() => setFetchOpen(true)} disabled={saving || deleting} className="border border-outline">
             <Icon name="mdi-music-box-outline" size={18} className="mr-1.5" />
             MusicBrainz
           </Button>
         )}
         {!readOnly && !isMulti && entityType === 'song' && (
-          <Button variant="ghost" onClick={() => setFetchLyricsOpen(true)} disabled={saving || deleting} className="border border-rule">
+          <Button variant="ghost" onClick={() => setFetchLyricsOpen(true)} disabled={saving || deleting} className="border border-outline">
             <Icon name="mdi-cloud-download-outline" size={18} className="mr-1.5" />
             Fetch lyrics
           </Button>

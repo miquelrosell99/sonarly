@@ -102,10 +102,10 @@ function NotificationItem({
 
   const cardClass =
     notification.type === 'error'
-      ? 'bg-surface text-danger border-danger/30'
+      ? 'bg-surface text-error border-error/30'
       : notification.type === 'success'
         ? 'bg-surface text-success border-success/30'
-        : 'bg-surface text-fg-primary border-rule';
+        : 'bg-surface text-on-surface border-outline';
 
   const iconName =
     notification.type === 'error'
@@ -123,8 +123,8 @@ function NotificationItem({
       role={notification.type === 'error' ? 'alert' : 'status'}
       style={reducedMotion.current ? undefined : { opacity: 0 }}
     >
-      <div className="h-1 w-full overflow-hidden rounded-t-item bg-rule">
-        <div ref={progressRef} className="h-full w-full bg-accent" />
+      <div className="h-1 w-full overflow-hidden rounded-t-item bg-outline">
+        <div ref={progressRef} className="h-full w-full bg-primary" />
       </div>
       <div className="flex items-start gap-3 px-4 py-3">
         <Icon name={iconName} size={20} className="mt-0.5" />
@@ -133,7 +133,7 @@ function NotificationItem({
           type="button"
           onClick={() => setExiting(true)}
           aria-label="Dismiss"
-          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-item text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-item text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Icon name="mdi-close" size={14} />
         </button>

@@ -25,7 +25,7 @@ export function EntityActionsMenu({ sections, label = 'More actions' }: EntityAc
         {...menu.triggerProps}
         aria-label={label}
         title={label}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background"
       >
         <Icon name="mdi-dots-horizontal" size={18} />
       </button>
@@ -35,11 +35,11 @@ export function EntityActionsMenu({ sections, label = 'More actions' }: EntityAc
             ref={menu.menuRef}
             {...menu.menuProps}
             aria-label={label}
-            className="fixed z-50 min-w-[12rem] rounded-popover border border-rule bg-surface py-1 shadow-lg"
+            className="fixed z-50 min-w-[12rem] rounded-popover border border-outline bg-surface py-1 shadow-lg"
           >
             {visibleSections.map((section, sIdx) => (
               <div key={sIdx}>
-                {section.title && <div className="px-3 py-1 text-xs font-medium text-muted">{section.title}</div>}
+                {section.title && <div className="px-3 py-1 text-xs font-medium text-on-surface-variant">{section.title}</div>}
                 {section.items.map((item) => (
                   <button
                     key={item.id}
@@ -51,10 +51,10 @@ export function EntityActionsMenu({ sections, label = 'More actions' }: EntityAc
                       menu.closeMenu(true);
                     }}
                     className={cn(
-                      'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none',
+                      'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none',
                       item.disabled && 'cursor-not-allowed opacity-50',
-                      item.variant === 'danger' && 'text-danger',
-                      item.active && 'text-accent',
+                      item.variant === 'danger' && 'text-error',
+                      item.active && 'text-primary',
                     )}
                   >
                     {item.loading ? (
@@ -63,10 +63,10 @@ export function EntityActionsMenu({ sections, label = 'More actions' }: EntityAc
                       item.icon && <Icon name={item.icon} size={18} />
                     )}
                     {item.label}
-                    {item.active && <Icon name="mdi-check" size={16} className="ml-auto text-accent" />}
+                    {item.active && <Icon name="mdi-check" size={16} className="ml-auto text-primary" />}
                   </button>
                 ))}
-                {sIdx < visibleSections.length - 1 && <hr role="separator" className="my-1 border-rule" />}
+                {sIdx < visibleSections.length - 1 && <hr role="separator" className="my-1 border-outline" />}
               </div>
             ))}
           </div>,

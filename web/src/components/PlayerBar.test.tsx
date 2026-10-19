@@ -167,9 +167,9 @@ describe('PlayerBar', () => {
     renderPlayerBar();
     const djButton = screen.getByRole('button', { name: /auto dj/i });
     expect(djButton).toBeTruthy();
-    expect(djButton.className).toContain('text-fg-secondary');
-    expect(djButton.className).not.toContain('text-accent');
-    expect(djButton.className).not.toContain('bg-accent/15');
+    expect(djButton.className).toContain('text-on-surface-variant');
+    expect(djButton.className).not.toContain('text-primary');
+    expect(djButton.className).not.toContain('bg-primary/15');
 
     fireEvent.click(djButton);
     expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjEnabled: true });
@@ -178,8 +178,8 @@ describe('PlayerBar', () => {
     cleanup();
     renderPlayerBar();
     const activeDjButton = screen.getByRole('button', { name: /auto dj/i });
-    expect(activeDjButton.className).toContain('text-accent');
-    expect(activeDjButton.className).toContain('bg-accent/15');
+    expect(activeDjButton.className).toContain('text-primary');
+    expect(activeDjButton.className).toContain('bg-primary/15');
 
     fireEvent.click(activeDjButton);
     expect(mockUpdatePreferencesMutate).toHaveBeenCalledWith({ autoDjEnabled: false });
@@ -361,8 +361,8 @@ describe('PlayerBar', () => {
 
     renderPlayerBar();
     const shuffleButton = screen.getByRole('button', { name: 'Shuffle' });
-    expect(shuffleButton.className).not.toContain('text-accent');
-    expect(shuffleButton.className).not.toContain('bg-accent/15');
+    expect(shuffleButton.className).not.toContain('text-primary');
+    expect(shuffleButton.className).not.toContain('bg-primary/15');
 
     fireEvent.click(shuffleButton);
     expect(usePlayer.getState().shuffle).toBe(true);
@@ -370,8 +370,8 @@ describe('PlayerBar', () => {
     cleanup();
     renderPlayerBar();
     const activeShuffleButton = screen.getByRole('button', { name: 'Shuffle' });
-    expect(activeShuffleButton.className).toContain('text-accent');
-    expect(activeShuffleButton.className).toContain('bg-accent/15');
+    expect(activeShuffleButton.className).toContain('text-primary');
+    expect(activeShuffleButton.className).toContain('bg-primary/15');
   });
 
   it('cycles repeat mode and updates its icon and visual state', () => {
@@ -382,8 +382,8 @@ describe('PlayerBar', () => {
     renderPlayerBar();
     const repeatButton = screen.getByRole('button', { name: /Repeat:/i });
     const repeatUse = repeatButton.querySelector('use');
-    expect(repeatButton.className).not.toContain('text-accent');
-    expect(repeatButton.className).not.toContain('bg-accent/15');
+    expect(repeatButton.className).not.toContain('text-primary');
+    expect(repeatButton.className).not.toContain('bg-primary/15');
     expect(repeatUse?.getAttribute('href')).toBe('/mdi-sprite.svg?v=2#mdi-repeat');
 
     fireEvent.click(repeatButton);
@@ -393,8 +393,8 @@ describe('PlayerBar', () => {
     renderPlayerBar();
     const allRepeatButton = screen.getByRole('button', { name: /Repeat: all/i });
     const allRepeatUse = allRepeatButton.querySelector('use');
-    expect(allRepeatButton.className).toContain('text-accent');
-    expect(allRepeatButton.className).toContain('bg-accent/15');
+    expect(allRepeatButton.className).toContain('text-primary');
+    expect(allRepeatButton.className).toContain('bg-primary/15');
     expect(allRepeatUse?.getAttribute('href')).toBe('/mdi-sprite.svg?v=2#mdi-repeat');
 
     fireEvent.click(allRepeatButton);
@@ -404,8 +404,8 @@ describe('PlayerBar', () => {
     renderPlayerBar();
     const oneRepeatButton = screen.getByRole('button', { name: /Repeat: one/i });
     const oneRepeatUse = oneRepeatButton.querySelector('use');
-    expect(oneRepeatButton.className).toContain('text-accent');
-    expect(oneRepeatButton.className).toContain('bg-accent/15');
+    expect(oneRepeatButton.className).toContain('text-primary');
+    expect(oneRepeatButton.className).toContain('bg-primary/15');
     expect(oneRepeatUse?.getAttribute('href')).toBe('/mdi-sprite.svg?v=2#mdi-repeat-once');
   });
 });

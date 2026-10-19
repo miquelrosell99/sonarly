@@ -38,7 +38,7 @@ export function YearCoverGrid({ year }: YearCoverGridProps) {
   const covers = loading ? [] : fillCoverAlbums(albums, 4);
 
   return (
-    <div className="aspect-square grid grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden rounded-card bg-surface-hover">
+    <div className="aspect-square grid grid-cols-2 grid-rows-2 gap-0.5 overflow-hidden rounded-card bg-surface-container-high">
       {[0, 1, 2, 3].map((index) => {
         const album = covers[index];
         return (

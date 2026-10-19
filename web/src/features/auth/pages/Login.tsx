@@ -36,24 +36,24 @@ export function Login({ onLogin, signupEnabled = false }: { onLogin: (user: User
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg-primary p-6">
+    <div className="flex min-h-screen items-center justify-center bg-background p-6">
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
         <div className="flex flex-col items-center gap-3 pb-4 text-center">
           <BrandMark className="h-14 w-14" />
-          <h1 className="font-display text-3xl font-semibold tracking-tight text-fg-primary">
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-on-surface">
             Sonarly
           </h1>
         </div>
         {error && (
           <div
-            className="rounded-item border border-danger/30 bg-danger/10 p-3 text-sm text-danger"
+            className="rounded-item border border-error/30 bg-error/10 p-3 text-sm text-error"
             role="alert"
           >
             {error}
           </div>
         )}
         <div>
-          <label htmlFor="username" className="mb-1 block text-sm font-medium text-fg-primary">
+          <label htmlFor="username" className="mb-1 block text-sm font-medium text-on-surface">
             Username
           </label>
           <Input
@@ -67,7 +67,7 @@ export function Login({ onLogin, signupEnabled = false }: { onLogin: (user: User
           />
         </div>
         <div>
-          <label htmlFor="password" className="mb-1 block text-sm font-medium text-fg-primary">
+          <label htmlFor="password" className="mb-1 block text-sm font-medium text-on-surface">
             Password
           </label>
           <Input
@@ -85,9 +85,9 @@ export function Login({ onLogin, signupEnabled = false }: { onLogin: (user: User
           {submitting ? 'Signing in…' : 'Sign in'}
         </Button>
         {signupEnabled && (
-          <p className="text-center text-sm text-fg-secondary">
+          <p className="text-center text-sm text-on-surface-variant">
             No account yet?{' '}
-            <Link href="/signup" className="text-accent hover:underline">
+            <Link href="/signup" className="text-primary hover:underline">
               Create one
             </Link>
           </p>

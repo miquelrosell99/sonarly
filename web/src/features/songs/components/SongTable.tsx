@@ -116,7 +116,7 @@ export function SongTable<T extends SongListItem>({
             {entries.map((artist, index) => (
               <span key={artist.id ?? `artist-${index}`}>
                 {artist.id ? (
-                  <Link href={`/artists/${artist.id}`} className="hover:text-muted">
+                  <Link href={`/artists/${artist.id}`} className="hover:text-on-surface-variant">
                     {artist.name}
                   </Link>
                 ) : (
@@ -138,7 +138,7 @@ export function SongTable<T extends SongListItem>({
       render: (s) =>
         s.albumName ? (
           s.albumId ? (
-            <Link href={`/albums/${s.albumId}`} className="hover:text-muted">
+            <Link href={`/albums/${s.albumId}`} className="hover:text-on-surface-variant">
               {s.albumName}
             </Link>
           ) : (

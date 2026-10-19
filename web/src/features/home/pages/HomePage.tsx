@@ -177,7 +177,7 @@ function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) 
             content: (
               <span>
                 {album.artistId ? (
-                  <Link href={`/artists/${album.artistId}`} className="hover:text-muted">
+                  <Link href={`/artists/${album.artistId}`} className="hover:text-on-surface-variant">
                     {album.artistName ?? 'Unknown artist'}
                   </Link>
                 ) : (
@@ -186,7 +186,7 @@ function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) 
                 {album.year !== undefined && album.year !== null && (
                   <>
                     {' • '}
-                    <Link href={`/years/${album.year}`} className="hover:text-muted">
+                    <Link href={`/years/${album.year}`} className="hover:text-on-surface-variant">
                       {album.year}
                     </Link>
                   </>
@@ -219,7 +219,7 @@ function AlbumCard({ album: initialAlbum, user }: { album: Album; user: User }) 
         isPlaying={currentAlbumId === album.id}
       />
       </ItemContextMenu>
-      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
+      {error && <p className="mt-1 text-xs text-error">{error}</p>}
       {editEntity && (
         <EditEntityModal
           open
@@ -333,7 +333,7 @@ function RecentSongCard({
           fields={[
             {
               content: song.artistId ? (
-                <Link href={`/artists/${song.artistId}`} className="hover:text-muted">
+                <Link href={`/artists/${song.artistId}`} className="hover:text-on-surface-variant">
                   {song.artistName ?? 'Unknown artist'}
                 </Link>
               ) : (
@@ -342,7 +342,7 @@ function RecentSongCard({
             },
             {
               content: song.albumId ? (
-                <Link href={`/albums/${song.albumId}`} className="hover:text-muted">
+                <Link href={`/albums/${song.albumId}`} className="hover:text-on-surface-variant">
                   {song.albumName ?? '-'}
                 </Link>
               ) : (
@@ -374,7 +374,7 @@ function RecentSongCard({
           isPlaying={currentSongId === song.id}
         />
       </ItemContextMenu>
-      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
+      {error && <p className="mt-1 text-xs text-error">{error}</p>}
       {editing && (
         <EditEntityModal
           open
@@ -441,16 +441,16 @@ function FeaturedAlbumSlide({ album, active }: FeaturedAlbumSlideProps) {
       </div>
       <div className="flex min-w-0 flex-col gap-3">
         <h3
-          className="line-clamp-2 break-words font-display text-2xl font-semibold tracking-tight text-fg-primary sm:text-4xl md:text-5xl lg:text-6xl"
+          className="line-clamp-2 break-words font-display text-2xl font-semibold tracking-tight text-on-surface sm:text-4xl md:text-5xl lg:text-6xl"
           title={album.name}
         >
-          <Link href={`/albums/${album.id}`} className="hover:text-muted">
+          <Link href={`/albums/${album.id}`} className="hover:text-on-surface-variant">
             {album.name}
           </Link>
         </h3>
-        <p className="truncate text-base text-fg-secondary sm:text-lg">
+        <p className="truncate text-base text-on-surface-variant sm:text-lg">
           {album.artistId ? (
-            <Link href={`/artists/${album.artistId}`} className="hover:text-muted">
+            <Link href={`/artists/${album.artistId}`} className="hover:text-on-surface-variant">
               {album.artistName ?? 'Unknown artist'}
             </Link>
           ) : (
@@ -459,7 +459,7 @@ function FeaturedAlbumSlide({ album, active }: FeaturedAlbumSlideProps) {
           {album.year !== undefined && album.year !== null && (
             <>
               {' • '}
-              <Link href={`/years/${album.year}`} className="hover:text-muted">
+              <Link href={`/years/${album.year}`} className="hover:text-on-surface-variant">
                 {album.year}
               </Link>
             </>
@@ -467,7 +467,7 @@ function FeaturedAlbumSlide({ album, active }: FeaturedAlbumSlideProps) {
           {album.genre && (
             <>
               {' • '}
-              <Link href={`/genres/${encodeURIComponent(album.genre)}`} className="hover:text-muted">
+              <Link href={`/genres/${encodeURIComponent(album.genre)}`} className="hover:text-on-surface-variant">
                 {album.genre}
               </Link>
             </>
@@ -485,7 +485,7 @@ function FeaturedAlbumSlide({ album, active }: FeaturedAlbumSlideProps) {
           </button>
           <Link
             href={`/albums/${album.id}`}
-            className="btn-ghost h-12 px-8 text-base hover:text-fg-primary"
+            className="btn-ghost h-12 px-8 text-base hover:text-on-surface"
           >
             View album
           </Link>
@@ -590,7 +590,7 @@ function FeaturedAlbum({ albums }: { albums: Album[] }) {
             >
               <span
                 className={`h-2 rounded-full transition-all ${
-                  i === activeDotIndex ? 'w-6 bg-accent' : 'w-2 bg-fg-secondary/40 group-hover:bg-fg-secondary/70'
+                  i === activeDotIndex ? 'w-6 bg-primary' : 'w-2 bg-on-surface-variant/40 group-hover:bg-on-surface-variant/70'
                 }`}
               />
             </button>
@@ -661,7 +661,7 @@ export function HomePage({ user }: { user: User }) {
 
       <ScrollRow title="Most played">
         {data.mostPlayed.length === 0 ? (
-          <p className="text-sm text-fg-secondary">No played albums yet.</p>
+          <p className="text-sm text-on-surface-variant">No played albums yet.</p>
         ) : (
           data.mostPlayed.map((album) => (
             <div key={album.id} className="w-40 flex-none sm:w-44">
@@ -673,7 +673,7 @@ export function HomePage({ user }: { user: User }) {
 
       <ScrollRow title="Random albums">
         {data.random.length === 0 ? (
-          <p className="text-sm text-fg-secondary">No albums found.</p>
+          <p className="text-sm text-on-surface-variant">No albums found.</p>
         ) : (
           data.random.map((album) => (
             <div key={album.id} className="w-40 flex-none sm:w-44">
@@ -685,7 +685,7 @@ export function HomePage({ user }: { user: User }) {
 
       <ScrollRow title="Recently added">
         {data.recentAdditions.length === 0 ? (
-          <p className="text-sm text-fg-secondary">No recently added albums.</p>
+          <p className="text-sm text-on-surface-variant">No recently added albums.</p>
         ) : (
           data.recentAdditions.map((album) => (
             <div key={album.id} className="w-40 flex-none sm:w-44">
@@ -697,7 +697,7 @@ export function HomePage({ user }: { user: User }) {
 
       <ScrollRow title="Recently played">
         {data.recentlyPlayed.length === 0 ? (
-          <p className="text-sm text-fg-secondary">No recently played songs.</p>
+          <p className="text-sm text-on-surface-variant">No recently played songs.</p>
         ) : (
           data.recentlyPlayed.map((song, index) => (
             <div key={song.id} className="w-40 flex-none sm:w-44">

@@ -26,12 +26,12 @@ export function FavoriteButton({ starred, onClick, label, className, variant = '
       aria-label={label ?? (starred ? 'Remove favorite' : 'Add favorite')}
       title={label ?? (starred ? 'Remove favorite' : 'Add favorite')}
       className={cn(
-        'icon-btn flex h-8 w-8 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-40 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
+        'icon-btn flex h-8 w-8 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
         starred
-          ? 'text-accent hover:bg-accent/10'
+          ? 'text-primary hover:bg-primary/10'
           : variant === 'overlay'
             ? 'text-white/80 hover:bg-white/20 hover:text-white'
-            : 'text-muted hover:bg-fg-primary/10 hover:text-accent',
+            : 'text-on-surface-variant hover:bg-on-surface/10 hover:text-primary',
         className,
       )}
     >
@@ -107,13 +107,13 @@ export function StarRating({ rating = 0, onRate, className, variant = 'default' 
             onMouseEnter={(e) => handleMove(e, value)}
             aria-label={label}
             className={cn(
-              'icon-btn inline-flex min-h-6 min-w-6 items-center justify-center rounded-item transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
+              'icon-btn inline-flex min-h-6 min-w-6 items-center justify-center rounded-item transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
               isOverlay ? 'p-0' : 'p-0.5',
               filled || half
-                ? 'text-accent'
+                ? 'text-primary'
                 : isOverlay
                   ? 'text-white/80 hover:text-white'
-                  : 'text-muted hover:text-accent/70',
+                  : 'text-on-surface-variant hover:text-primary/70',
             )}
           >
             <Icon

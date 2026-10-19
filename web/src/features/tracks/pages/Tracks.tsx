@@ -90,7 +90,7 @@ export function Tracks({ user }: TracksProps) {
       header: 'Title',
       render: (track) => (
         <ExplicitTitle explicit={track.explicit} blur={blurExplicitTitles}>
-          <Link href={`/tracks/${track.id}`} className="hover:text-muted">
+          <Link href={`/tracks/${track.id}`} className="hover:text-on-surface-variant">
             {track.title}
           </Link>
         </ExplicitTitle>

@@ -82,7 +82,7 @@ export function ConflictsModal({ open, onClose }: ConflictsModalProps) {
       <Modal open={open} onClose={onClose} title="Conflicting files" className="max-w-4xl">
         <div className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <p className="text-sm text-muted">
+            <p className="text-sm text-on-surface-variant">
               Files that were renamed with a collision suffix such as " (1)" because another file already occupied the target path.
             </p>
             {!loading && conflicts.length > 0 && (
@@ -96,16 +96,16 @@ export function ConflictsModal({ open, onClose }: ConflictsModalProps) {
             )}
           </div>
 
-          {loading && <p className="text-sm text-muted">Loading...</p>}
+          {loading && <p className="text-sm text-on-surface-variant">Loading...</p>}
 
           {!loading && conflicts.length === 0 && (
-            <p className="text-sm text-muted">No conflicts found.</p>
+            <p className="text-sm text-on-surface-variant">No conflicts found.</p>
           )}
 
           {conflicts.length > 0 && (
-            <div className="overflow-hidden rounded-item border border-rule">
+            <div className="overflow-hidden rounded-item border border-outline">
               <table className="min-w-full text-left text-sm">
-                <thead className="bg-surface text-fg-primary">
+                <thead className="bg-surface text-on-surface">
                   <tr>
                     <th className="px-4 py-2 font-medium">File path</th>
                     <th className="px-4 py-2 font-medium">Title</th>
@@ -114,13 +114,13 @@ export function ConflictsModal({ open, onClose }: ConflictsModalProps) {
                     <th className="px-4 py-2 font-medium">Action</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-rule">
+                <tbody className="divide-y divide-outline">
                   {conflicts.map((conflict) => (
                     <tr key={conflict.id}>
-                      <td className="px-4 py-2 break-all font-mono text-xs text-muted">{conflict.filePath}</td>
+                      <td className="px-4 py-2 break-all font-mono text-xs text-on-surface-variant">{conflict.filePath}</td>
                       <td className="px-4 py-2">{conflict.title}</td>
-                      <td className="px-4 py-2 text-muted">{conflict.artistName ?? '—'}</td>
-                      <td className="px-4 py-2 text-muted">{conflict.albumName ?? '—'}</td>
+                      <td className="px-4 py-2 text-on-surface-variant">{conflict.artistName ?? '—'}</td>
+                      <td className="px-4 py-2 text-on-surface-variant">{conflict.albumName ?? '—'}</td>
                       <td className="px-4 py-2">
                         <Button
                           onClick={() => setConflictToDelete(conflict.id)}

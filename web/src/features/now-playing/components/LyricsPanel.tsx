@@ -148,7 +148,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
 
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center text-fg-secondary">
+      <div className="flex h-full items-center justify-center text-on-surface-variant">
         <Icon name="mdi-loading" size={24} className="animate-spin motion-reduce:animate-none" />
       </div>
     );
@@ -156,7 +156,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
 
   if (error) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 text-fg-secondary">
+      <div className="flex h-full flex-col items-center justify-center gap-3 text-on-surface-variant">
         <p className="text-sm">Could not load lyrics.</p>
         <button
           type="button"
@@ -173,18 +173,18 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
 
   if (!hasLyrics) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-fg-secondary">
+      <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-on-surface-variant">
         <Icon name="mdi-text" size={48} />
         <p className="text-sm">No lyrics for this track.</p>
-        <p className="max-w-xs text-xs text-fg-secondary/70">
+        <p className="max-w-xs text-xs text-on-surface-variant/70">
           Once added, synced lyrics highlight in time with the music.
         </p>
         {user.isAdmin && (
           <div className="flex flex-wrap justify-center gap-3">
-            <button type="button" onClick={() => setEditorOpen(true)} className="text-sm text-accent hover:underline">
+            <button type="button" onClick={() => setEditorOpen(true)} className="text-sm text-primary hover:underline">
               Add lyrics
             </button>
-            <button type="button" onClick={() => setFetchOpen(true)} className="text-sm text-accent hover:underline">
+            <button type="button" onClick={() => setFetchOpen(true)} className="text-sm text-primary hover:underline">
               Fetch lyrics
             </button>
           </div>
@@ -205,7 +205,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
                 type="button"
                 onClick={() => setEditorOpen(true)}
                 aria-label="Edit lyrics"
-                className="inline-flex h-11 items-center gap-1 rounded-full px-3 text-xs font-medium text-fg-secondary transition hover:bg-surface-hover"
+                className="inline-flex h-11 items-center gap-1 rounded-full px-3 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container-high"
               >
                 <Icon name="mdi-pencil" size={14} />
                 Edit lyrics
@@ -214,7 +214,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
                 type="button"
                 onClick={() => setFetchOpen(true)}
                 aria-label="Fetch lyrics"
-                className="inline-flex h-11 items-center gap-1 rounded-full px-3 text-xs font-medium text-fg-secondary transition hover:bg-surface-hover"
+                className="inline-flex h-11 items-center gap-1 rounded-full px-3 text-xs font-medium text-on-surface-variant transition hover:bg-surface-container-high"
               >
                 <Icon name="mdi-cloud-download-outline" size={14} />
                 Fetch lyrics
@@ -229,17 +229,17 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
               aria-pressed={autoScroll}
               className={cn(
                 'inline-flex h-11 w-11 items-center justify-center rounded-full transition',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background',
                 autoScroll
-                  ? 'bg-accent/15 text-accent hover:bg-accent/25'
-                  : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary'
+                  ? 'bg-primary/15 text-primary hover:bg-primary/25'
+                  : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
               )}
             >
               <Icon name="mdi-arrow-collapse-vertical" size={14} />
             </button>
           )}
         </div>
-        <div className="flex items-center gap-1 rounded-full border border-rule p-1">
+        <div className="flex items-center gap-1 rounded-full border border-outline p-1">
           <button
             type="button"
             onClick={() => setMode('dynamic')}
@@ -247,8 +247,8 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
             aria-pressed={mode === 'dynamic'}
             className={cn(
               'inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-xs font-medium transition',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-              mode === 'dynamic' ? 'bg-accent text-bg-primary' : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary'
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+              mode === 'dynamic' ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
             )}
           >
             <Icon name="mdi-sync" size={14} />
@@ -261,8 +261,8 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
             aria-pressed={mode === 'static'}
             className={cn(
               'inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-xs font-medium transition',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
-              mode === 'static' ? 'bg-accent text-bg-primary' : 'text-fg-secondary hover:bg-surface-hover hover:text-fg-primary'
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+              mode === 'static' ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
             )}
           >
             <Icon name="mdi-text" size={14} />
@@ -286,16 +286,16 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
                   title="Seek to this line"
                   className={cn(
                     'mx-auto block w-full max-w-prose break-words px-2 text-center text-lg leading-relaxed transition duration-300',
-                    'cursor-pointer hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1 focus-visible:ring-offset-bg-primary',
+                    'cursor-pointer hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background',
                     isActive
-                      ? 'scale-105 font-semibold text-accent'
+                      ? 'scale-105 font-semibold text-primary'
                       : activeIndex < 0
-                        ? 'text-fg-secondary'
+                        ? 'text-on-surface-variant'
                         : distance === 1
-                          ? 'text-fg-secondary/80'
+                          ? 'text-on-surface-variant/80'
                           : distance === 2
-                            ? 'text-fg-secondary/60'
-                            : 'text-fg-secondary/40'
+                            ? 'text-on-surface-variant/60'
+                            : 'text-on-surface-variant/40'
                   )}
                 >
                   {line.text}
@@ -305,10 +305,10 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
           </div>
         </div>
       ) : mode === 'dynamic' && plainLyrics ? (
-        <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-fg-secondary">
+        <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-on-surface-variant">
           <p className="text-sm">This track has plain lyrics only.</p>
           {user.isAdmin && (
-            <button type="button" onClick={() => setEditorOpen(true)} className="text-sm text-accent hover:underline">
+            <button type="button" onClick={() => setEditorOpen(true)} className="text-sm text-primary hover:underline">
               Sync lyrics to enable dynamic mode
             </button>
           )}
@@ -317,7 +317,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
         </div>
       ) : (
         <div ref={containerRef} className="flex-1 overflow-y-auto overflow-x-hidden px-2" style={lyricsMaskStyle}>
-          <p className="mx-auto max-w-prose whitespace-pre-wrap break-words py-4 text-center leading-relaxed text-fg-primary">
+          <p className="mx-auto max-w-prose whitespace-pre-wrap break-words py-4 text-center leading-relaxed text-on-surface">
             {syncedLyrics ? syncedLyrics.map((line) => line.text).join('\n') : plainLyrics}
           </p>
         </div>

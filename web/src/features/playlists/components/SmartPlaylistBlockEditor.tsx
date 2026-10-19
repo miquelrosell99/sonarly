@@ -226,18 +226,18 @@ export function SmartPlaylistBlockEditor({ initialRules, onChange }: SmartPlayli
 
   return (
     <div className="space-y-4">
-      <div className="rounded-card border border-rule bg-surface p-4">
+      <div className="rounded-card border border-outline bg-surface p-4">
         <div className="mb-3 flex items-center gap-2 text-sm">
-          <span className="font-medium text-fg-primary">Match</span>
-          <div className="inline-flex rounded-item border border-rule bg-bg-primary p-0.5">
+          <span className="font-medium text-on-surface">Match</span>
+          <div className="inline-flex rounded-item border border-outline bg-background p-0.5">
             <button
               type="button"
               onClick={() => activeKey === 'any' && toggleMatchType()}
               className={cn(
                 'rounded-item px-2.5 py-1 text-xs font-medium transition',
                 activeKey === 'all'
-                  ? 'bg-accent text-bg-primary'
-                  : 'text-fg-secondary hover:text-fg-primary',
+                  ? 'bg-primary text-on-primary'
+                  : 'text-on-surface-variant hover:text-on-surface',
               )}
             >
               ALL
@@ -248,14 +248,14 @@ export function SmartPlaylistBlockEditor({ initialRules, onChange }: SmartPlayli
               className={cn(
                 'rounded-item px-2.5 py-1 text-xs font-medium transition',
                 activeKey === 'any'
-                  ? 'bg-accent text-bg-primary'
-                  : 'text-fg-secondary hover:text-fg-primary',
+                  ? 'bg-primary text-on-primary'
+                  : 'text-on-surface-variant hover:text-on-surface',
               )}
             >
               ANY
             </button>
           </div>
-          <span className="text-fg-secondary">of the following rules</span>
+          <span className="text-on-surface-variant">of the following rules</span>
         </div>
 
         <div className="space-y-2">
@@ -281,9 +281,9 @@ export function SmartPlaylistBlockEditor({ initialRules, onChange }: SmartPlayli
         </Button>
       </div>
 
-      <div className="rounded-card border border-rule bg-surface p-4">
+      <div className="rounded-card border border-outline bg-surface p-4">
         <div className="mb-3 flex items-center justify-between">
-          <span className="text-sm font-medium text-fg-primary">Sort</span>
+          <span className="text-sm font-medium text-on-surface">Sort</span>
           <Button variant="ghost" onClick={addSort} className="text-sm">
             <Icon name="mdi-plus" size={16} className="mr-1" />
             Add sort
@@ -306,9 +306,9 @@ export function SmartPlaylistBlockEditor({ initialRules, onChange }: SmartPlayli
         </div>
       </div>
 
-      <div className="rounded-card border border-rule bg-surface p-4">
+      <div className="rounded-card border border-outline bg-surface p-4">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-fg-primary">Limit</span>
+          <span className="text-sm font-medium text-on-surface">Limit</span>
           <Input
             type="number"
             min={1}
@@ -317,7 +317,7 @@ export function SmartPlaylistBlockEditor({ initialRules, onChange }: SmartPlayli
             placeholder="unlimited"
             className="w-32 py-1.5 text-sm"
           />
-          <span className="text-xs text-fg-secondary">Maximum number of songs</span>
+          <span className="text-xs text-on-surface-variant">Maximum number of songs</span>
         </div>
       </div>
     </div>
@@ -350,7 +350,7 @@ function RuleBlock({
   const showValue = rule.operator !== 'isMissing' && rule.operator !== 'isPresent';
 
   return (
-    <div className="flex items-center gap-2 rounded-item border border-rule bg-bg-primary p-3">
+    <div className="flex items-center gap-2 rounded-item border border-outline bg-background p-3">
       <select
         value={rule.field}
         onChange={(e) => onFieldChange(e.target.value)}
@@ -389,7 +389,7 @@ function RuleBlock({
           disabled={!canMoveUp}
           aria-label="Move rule up"
           title="Move rule up"
-          className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded-item p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Icon name="mdi-chevron-up" size={18} />
         </button>
@@ -399,7 +399,7 @@ function RuleBlock({
           disabled={!canMoveDown}
           aria-label="Move rule down"
           title="Move rule down"
-          className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded-item p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Icon name="mdi-chevron-down" size={18} />
         </button>
@@ -408,7 +408,7 @@ function RuleBlock({
           onClick={onRemove}
           aria-label="Remove rule"
           title="Remove rule"
-          className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded-item p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Icon name="mdi-delete" size={18} />
         </button>
@@ -560,7 +560,7 @@ function SortBlock({
   const sortItem = isRandom ? null : (sort as { field: string; direction: 'asc' | 'desc' });
 
   return (
-    <div className="flex items-center gap-2 rounded-item border border-rule bg-bg-primary p-3">
+    <div className="flex items-center gap-2 rounded-item border border-outline bg-background p-3">
       <select
         value={sortItem?.field ?? 'title'}
         onChange={(e) => onFieldChange(e.target.value)}
@@ -589,7 +589,7 @@ function SortBlock({
           disabled={!canMoveUp}
           aria-label="Move sort up"
           title="Move sort up"
-          className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded-item p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Icon name="mdi-chevron-up" size={18} />
         </button>
@@ -599,7 +599,7 @@ function SortBlock({
           disabled={!canMoveDown}
           aria-label="Move sort down"
           title="Move sort down"
-          className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded-item p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Icon name="mdi-chevron-down" size={18} />
         </button>
@@ -608,7 +608,7 @@ function SortBlock({
           onClick={onRemove}
           aria-label="Remove sort"
           title="Remove sort"
-          className="rounded-item p-1 text-fg-secondary transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          className="rounded-item p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Icon name="mdi-delete" size={18} />
         </button>

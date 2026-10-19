@@ -219,19 +219,19 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
     {
       key: 'name',
       header: 'Name',
-      render: (library) => <span className="font-medium text-fg-primary">{library.name}</span>,
+      render: (library) => <span className="font-medium text-on-surface">{library.name}</span>,
     },
     {
       key: 'path',
       header: 'Path',
-      render: (library) => <span className="font-mono text-xs text-fg-secondary">{library.path}</span>,
+      render: (library) => <span className="font-mono text-xs text-on-surface-variant">{library.path}</span>,
     },
     {
       key: 'default',
       header: 'Default',
       render: (library) =>
         library.isDefault ? (
-          <span className="inline-flex items-center rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+          <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
             Default
           </span>
         ) : null,
@@ -281,10 +281,10 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
   return (
     <AdminShell user={user}>
       <div className="space-y-4">
-        {error && !createOpen && !editingLibrary && <p className="text-sm text-danger" role="alert">{error}</p>}
+        {error && !createOpen && !editingLibrary && <p className="text-sm text-error" role="alert">{error}</p>}
 
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-fg-secondary">
+          <h3 className="text-sm font-medium text-on-surface-variant">
             {libraries.length} library{libraries.length === 1 ? '' : 'ies'}
           </h3>
           <Button onClick={openCreate}>Add Library</Button>
@@ -292,9 +292,9 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
 
         <Modal open={createOpen} onClose={closeCreate} title="Add Library" footer={createFooter}>
           <div className="space-y-4">
-            {error && <p className="text-sm text-danger" role="alert">{error}</p>}
+            {error && <p className="text-sm text-error" role="alert">{error}</p>}
             <div className="space-y-1">
-              <label htmlFor="lib-name" className="block text-sm font-medium text-fg-secondary">Name</label>
+              <label htmlFor="lib-name" className="block text-sm font-medium text-on-surface-variant">Name</label>
               <Input
                 id="lib-name"
                 placeholder="Library name"
@@ -303,7 +303,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
               />
             </div>
             <div className="space-y-1">
-              <label htmlFor="lib-path" className="block text-sm font-medium text-fg-secondary">Path</label>
+              <label htmlFor="lib-path" className="block text-sm font-medium text-on-surface-variant">Path</label>
               <Input
                 id="lib-path"
                 placeholder="Path inside container (e.g. /media/music)"
@@ -323,9 +323,9 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
 
         <Modal open={!!editingLibrary} onClose={closeEdit} title="Library Settings" footer={editFooter}>
           <div className="space-y-4">
-            {error && <p className="text-sm text-danger" role="alert">{error}</p>}
+            {error && <p className="text-sm text-error" role="alert">{error}</p>}
             <div className="space-y-1">
-              <label htmlFor="edit-lib-name" className="block text-sm font-medium text-fg-secondary">Name</label>
+              <label htmlFor="edit-lib-name" className="block text-sm font-medium text-on-surface-variant">Name</label>
               <Input
                 id="edit-lib-name"
                 placeholder="Library name"
@@ -334,7 +334,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
               />
             </div>
             <div className="space-y-1">
-              <label htmlFor="edit-lib-path" className="block text-sm font-medium text-fg-secondary">Path</label>
+              <label htmlFor="edit-lib-path" className="block text-sm font-medium text-on-surface-variant">Path</label>
               <Input
                 id="edit-lib-path"
                 placeholder="Path inside container (e.g. /media/music)"
@@ -344,7 +344,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="edit-lib-template" className="block text-sm font-medium text-fg-secondary">
+              <label htmlFor="edit-lib-template" className="block text-sm font-medium text-on-surface-variant">
                 Organization template
               </label>
               <select
@@ -361,7 +361,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="edit-lib-pattern" className="block text-sm font-medium text-fg-secondary">
+              <label htmlFor="edit-lib-pattern" className="block text-sm font-medium text-on-surface-variant">
                 Organization pattern
               </label>
               <Input
@@ -370,14 +370,14 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
                 onChange={(e) => setEditForm((prev) => ({ ...prev, organizePattern: e.target.value }))}
                 placeholder="{albumArtist}/({year}) {album}/{disc:00}{track:00} - {title}"
               />
-              <p className="text-xs text-muted">
+              <p className="text-xs text-on-surface-variant">
                 Available variables: artist, albumArtist, album, title, track, track:00, disc, disc:00, year, genre. The file extension is always appended.
               </p>
             </div>
 
-            <div className="rounded-item border border-rule bg-surface p-3">
-              <p className="text-xs font-medium text-muted">Preview</p>
-              <code className="mt-1 block break-all text-sm text-fg-primary">{previewPath}</code>
+            <div className="rounded-item border border-outline bg-surface p-3">
+              <p className="text-xs font-medium text-on-surface-variant">Preview</p>
+              <code className="mt-1 block break-all text-sm text-on-surface">{previewPath}</code>
             </div>
             <Checkbox
               id="edit-lib-is-default"
@@ -391,7 +391,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
           </div>
         </Modal>
 
-        <div className="rounded-item border border-rule">
+        <div className="rounded-item border border-outline">
           <Table
             columns={columns}
             rows={libraries}
@@ -459,16 +459,16 @@ function LibraryUsersSection({ libraryId }: { libraryId: string }) {
   }, [users]);
 
   return (
-    <div className="space-y-3 border-t border-rule pt-4">
-      <h4 className="text-sm font-medium text-fg-secondary">Users</h4>
+    <div className="space-y-3 border-t border-outline pt-4">
+      <h4 className="text-sm font-medium text-on-surface-variant">Users</h4>
       {!users || users.length === 0 ? (
-        <p className="text-sm text-muted">No users found.</p>
+        <p className="text-sm text-on-surface-variant">No users found.</p>
       ) : (
         <ul className="space-y-2">
           {sortedUsers.map((u) => (
             <li
               key={u.id}
-              className="flex items-center justify-between rounded-item border border-rule bg-bg-primary px-4 py-3"
+              className="flex items-center justify-between rounded-item border border-outline bg-background px-4 py-3"
             >
               <Checkbox
                 id={`edit-library-user-${libraryId}-${u.id}`}

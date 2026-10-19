@@ -158,10 +158,10 @@ describe('Table', () => {
   it('highlights the title cell of the currently playing row', () => {
     renderTable({ playingId: '2', onPlaySelection: vi.fn() });
     const betaTitle = screen.getByText('Beta');
-    expect(betaTitle.className).toContain('text-accent');
+    expect(betaTitle.className).toContain('text-primary');
 
     const alphaTitle = screen.getByText('Alpha');
-    expect(alphaTitle.className).not.toContain('text-accent');
+    expect(alphaTitle.className).not.toContain('text-primary');
   });
 
   it('renders custom index labels when getIndexLabel is provided', () => {

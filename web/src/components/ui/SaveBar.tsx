@@ -87,7 +87,7 @@ export function SaveBar({ controller }: { controller: SaveBarController }) {
 
   return (
     <div className="flex items-center gap-2" role="group" aria-label="Unsaved changes">
-      <span className="hidden text-xs text-muted sm:inline">Unsaved changes</span>
+      <span className="hidden text-xs text-on-surface-variant sm:inline">Unsaved changes</span>
       <Button variant="ghost" onClick={controller.onDiscard} disabled={controller.saving}>
         Discard
       </Button>

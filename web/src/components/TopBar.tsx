@@ -87,12 +87,12 @@ function PlayersDropdown({ user }: { user: User }) {
         aria-label={`Connected devices (${otherPlayers.length})`}
         title={`Connected devices (${otherPlayers.length})`}
         className={cn(
-          'relative flex h-9 w-9 items-center justify-center rounded-full text-fg-secondary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
-          open ? 'bg-surface-hover text-fg-primary' : 'hover:bg-surface-hover hover:text-fg-primary',
+          'relative flex h-9 w-9 items-center justify-center rounded-full text-on-surface-variant transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
+          open ? 'bg-surface-container-high text-on-surface' : 'hover:bg-surface-container-high hover:text-on-surface',
         )}
       >
         <Icon name="mdi-cast-audio" size={20} />
-        <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-2xs font-semibold text-bg-primary">
+        <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-2xs font-semibold text-on-primary">
           {otherPlayers.length}
         </span>
       </button>
@@ -101,12 +101,12 @@ function PlayersDropdown({ user }: { user: User }) {
         <div
           role="dialog"
           aria-label="Players"
-          className="absolute right-0 top-full z-40 mt-2 w-64 rounded-popover border border-rule bg-surface p-1 shadow-xl"
+          className="absolute right-0 top-full z-40 mt-2 w-64 rounded-popover border border-outline bg-surface p-1 shadow-xl"
         >
           {otherPlayers.map((player) => (
             <div key={player.id} className="px-3 py-2 text-sm">
-              <p className="font-medium text-fg-primary">{player.clientId}</p>
-              <p className="truncate text-xs text-fg-secondary">{player.songTitle}</p>
+              <p className="font-medium text-on-surface">{player.clientId}</p>
+              <p className="truncate text-xs text-on-surface-variant">{player.songTitle}</p>
             </div>
           ))}
         </div>
@@ -132,7 +132,7 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
         ref={menu.triggerRef}
         type="button"
         {...menu.triggerProps}
-        className="flex items-center gap-2 rounded-full p-1 pr-3 text-left transition hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="flex items-center gap-2 rounded-full p-1 pr-3 text-left transition hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <Avatar user={user} className="h-8 w-8" />
         <span className="hidden max-w-[8rem] truncate text-sm font-medium md:block">
@@ -141,7 +141,7 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
         <Icon
           name="mdi-chevron-down"
           size={16}
-          className={cn('hidden text-fg-secondary transition-transform md:block', menu.open && 'rotate-180')}
+          className={cn('hidden text-on-surface-variant transition-transform md:block', menu.open && 'rotate-180')}
         />
       </button>
 
@@ -149,15 +149,15 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
         <div
           ref={menu.menuRef}
           {...menu.menuProps}
-          className="absolute right-0 top-full z-40 mt-2 w-52 rounded-popover border border-rule bg-surface p-1 shadow-xl"
+          className="absolute right-0 top-full z-40 mt-2 w-52 rounded-popover border border-outline bg-surface p-1 shadow-xl"
         >
           <button
             type="button"
             role="menuitem"
             onClick={() => navigate('/statistics')}
-            className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+            className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-on-surface transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none"
           >
-            <Icon name="mdi-chart-bar" size={18} className="text-fg-secondary" />
+            <Icon name="mdi-chart-bar" size={18} className="text-on-surface-variant" />
             Statistics
           </button>
           {user.isAdmin && onUpload && (
@@ -165,9 +165,9 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
               type="button"
               role="menuitem"
               onClick={() => { menu.closeMenu(); onUpload(); }}
-              className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+              className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-on-surface transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none"
             >
-              <Icon name="mdi-upload" size={18} className="text-fg-secondary" />
+              <Icon name="mdi-upload" size={18} className="text-on-surface-variant" />
               Upload
             </button>
           )}
@@ -175,9 +175,9 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
             type="button"
             role="menuitem"
             onClick={() => navigate('/settings/profile')}
-            className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+            className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-on-surface transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none"
           >
-            <Icon name="mdi-cog" size={18} className="text-fg-secondary" />
+            <Icon name="mdi-cog" size={18} className="text-on-surface-variant" />
             Settings
           </button>
           {user.isAdmin && (
@@ -185,20 +185,20 @@ function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
               type="button"
               role="menuitem"
               onClick={() => navigate('/admin')}
-              className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+              className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-on-surface transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none"
             >
-              <Icon name="mdi-account-group" size={18} className="text-fg-secondary" />
+              <Icon name="mdi-account-group" size={18} className="text-on-surface-variant" />
               Admin
             </button>
           )}
-          <div className="my-1 border-t border-rule" />
+          <div className="my-1 border-t border-outline" />
           <button
             type="button"
             role="menuitem"
             onClick={() => { menu.closeMenu(); onLogout(); }}
-            className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-fg-primary transition hover:bg-surface-hover focus-visible:bg-surface-hover focus-visible:outline-none"
+            className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-on-surface transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none"
           >
-            <Icon name="mdi-logout" size={18} className="text-fg-secondary" />
+            <Icon name="mdi-logout" size={18} className="text-on-surface-variant" />
             Log out
           </button>
         </div>
@@ -308,25 +308,25 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
   const setSelectedLibraryId = useLibraryStore((state) => state.setSelectedLibraryId);
 
   return (
-    <header className="relative z-50 grid h-11 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-4 bg-bg-primary px-4 sm:grid-cols-[1fr_2fr_1fr] min-[640px]:px-6">
+    <header className="relative z-50 grid h-11 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-4 bg-background px-4 sm:grid-cols-[1fr_2fr_1fr] min-[640px]:px-6">
       <div className="flex min-w-0 items-center gap-2">
         <button
           type="button"
           onClick={onMenuClick}
           aria-label="Toggle navigation"
           title="Toggle navigation"
-          className="flex h-9 w-9 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
         >
           <Icon name="mdi-menu" size={20} />
         </button>
         <Link
           href="/home"
-          className="flex items-center gap-2 text-xl font-semibold tracking-tight text-fg-primary hover:text-fg-primary"
+          className="flex items-center gap-2 text-xl font-semibold tracking-tight text-on-surface hover:text-on-surface"
         >
           <BrandMark className="h-7 w-7" />
           <span className="hidden font-display min-[420px]:block">Sonarly</span>
         </Link>
-        <div className="ml-2 hidden w-44 shrink-0 border-l border-rule pl-2 md:block">
+        <div className="ml-2 hidden w-44 shrink-0 border-l border-outline pl-2 md:block">
           <LibrarySelector
             libraries={librariesData?.libraries ?? []}
             selectedLibraryId={selectedLibraryId}
@@ -349,7 +349,7 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
           href="/search"
           aria-label="Search"
           title="Search"
-          className="flex h-9 w-9 items-center justify-center rounded-full text-fg-secondary transition hover:bg-surface-hover hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent min-[640px]:hidden [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary min-[640px]:hidden [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11"
         >
           <Icon name="mdi-magnify" size={20} />
         </Link>

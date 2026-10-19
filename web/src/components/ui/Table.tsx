@@ -163,7 +163,7 @@ export function Table<T>({
   return (
     <div className="overflow-x-auto" onKeyDown={selectable ? handleContainerKeyDown : undefined}>
       <table className={cn('w-full text-left text-sm', className)}>
-        <thead className="border-b border-rule text-muted">
+        <thead className="border-b border-outline text-on-surface-variant">
           <tr>
             {onPlay && <th className="w-12 py-2 px-2 text-center font-medium" aria-hidden />}
             {columns.map((col) => (
@@ -173,14 +173,14 @@ export function Table<T>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-rule">
+        <tbody className="divide-y divide-outline">
           {groups.map((group, groupIndex) => (
             <Fragment key={group.key ?? `group-${groupIndex}`}>
               {group.key !== undefined && group.key !== '' && (
-                <tr className="border-t border-rule first:border-t-0">
+                <tr className="border-t border-outline first:border-t-0">
                   <th
                     colSpan={groupHeaderColSpan}
-                    className="py-2 pr-4 text-left text-xs font-semibold uppercase tracking-wider text-muted"
+                    className="py-2 pr-4 text-left text-xs font-semibold uppercase tracking-wider text-on-surface-variant"
                     scope="rowgroup"
                   >
                     {renderGroupHeader ? renderGroupHeader(group.key, group.rows) : group.key}
@@ -203,7 +203,7 @@ export function Table<T>({
                   ? cloneElement(titleCell as React.ReactElement<{ className?: string }>, {
                       className: cn(
                         (titleCell.props as { className?: string }).className,
-                        isPlayingTitle && 'text-accent',
+                        isPlayingTitle && 'text-primary',
                       ),
                     })
                   : titleCell;
@@ -233,8 +233,8 @@ export function Table<T>({
                     onDragStart={dragIds && dragIds.length > 0 ? (e) => startSongsDrag(e, dragIds) : undefined}
                     className={cn(
                       'transition',
-                      selectable && 'group cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent',
-                      isSelected ? 'bg-surface-hover' : selectable ? 'hover:bg-surface-hover' : '',
+                      selectable && 'group cursor-pointer select-none outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary',
+                      isSelected ? 'bg-surface-container-high' : selectable ? 'hover:bg-surface-container-high' : '',
                       dragIds !== undefined && dragIds.length > 0 && 'cursor-grab active:cursor-grabbing',
                     )}
                     onClick={selectable ? (e) => {
@@ -251,7 +251,7 @@ export function Table<T>({
                   >
                     {onPlay && (
                       <td className="w-12 py-2 px-2 text-center">
-                        <span className="group/play relative inline-flex h-5 w-6 items-center justify-center text-muted">
+                        <span className="group/play relative inline-flex h-5 w-6 items-center justify-center text-on-surface-variant">
                           <span className="transition group-hover/play:opacity-0">
                             {isPlayingTitle ? <PlayingIndicator size={14} /> : indexContent}
                           </span>
@@ -283,7 +283,7 @@ export function Table<T>({
         </tbody>
       </table>
       {rows.length === 0 && empty !== undefined && (
-        <div className="py-8 text-center text-sm text-muted">{empty}</div>
+        <div className="py-8 text-center text-sm text-on-surface-variant">{empty}</div>
       )}
     </div>
   );

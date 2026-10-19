@@ -182,14 +182,14 @@ export function FetchLyricsModal({
     >
       <div className="space-y-4">
         {loading && matches.length === 0 && (
-          <div className="flex items-center gap-2 text-fg-secondary">
+          <div className="flex items-center gap-2 text-on-surface-variant">
             <Icon name="mdi-loading" className="animate-spin" size={20} />
             Searching LRCLIB…
           </div>
         )}
 
         {error && (
-          <div className="rounded-item border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+          <div className="rounded-item border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
             {error}
           </div>
         )}
@@ -211,7 +211,7 @@ export function FetchLyricsModal({
 
         {matches.length > 0 && (
           <div className="space-y-2">
-            <label className="text-sm font-medium text-fg-secondary">Matches</label>
+            <label className="text-sm font-medium text-on-surface-variant">Matches</label>
             <select
               value={selectedIndex}
               onChange={(e) => setSelectedIndex(Number(e.target.value))}
@@ -231,14 +231,14 @@ export function FetchLyricsModal({
         )}
 
         {!loading && matches.length === 0 && !error && (
-          <div className="rounded-item border border-rule bg-surface px-4 py-6 text-center text-sm text-fg-secondary">
+          <div className="rounded-item border border-outline bg-surface px-4 py-6 text-center text-sm text-on-surface-variant">
             No LRCLIB matches found.
           </div>
         )}
 
         {selectedMatch && (
           <div className="space-y-3">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-sm font-medium text-fg-secondary">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-sm font-medium text-on-surface-variant">
               <span>LRCLIB</span>
               <span />
               <span>Current</span>
@@ -254,13 +254,13 @@ export function FetchLyricsModal({
                 <div
                   key={key}
                   className={cn(
-                    'grid grid-cols-[1fr_auto_1fr] items-start gap-3 rounded-item border border-rule p-3',
-                    transferred && 'border-accent/50 bg-accent/5',
+                    'grid grid-cols-[1fr_auto_1fr] items-start gap-3 rounded-item border border-outline p-3',
+                    transferred && 'border-primary/50 bg-primary/5',
                   )}
                 >
                   <div className="min-w-0">
-                    <div className="text-xs text-fg-secondary">{label}</div>
-                    <pre className="mt-1 whitespace-pre-wrap break-words text-sm text-fg-primary">{displayFetched}</pre>
+                    <div className="text-xs text-on-surface-variant">{label}</div>
+                    <pre className="mt-1 whitespace-pre-wrap break-words text-sm text-on-surface">{displayFetched}</pre>
                   </div>
 
                   <div className="flex flex-col gap-1 pt-4">
@@ -270,7 +270,7 @@ export function FetchLyricsModal({
                       disabled={!hasFetched}
                       title="Transfer value"
                       aria-label="Transfer value"
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-fg-primary transition hover:bg-surface-hover hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-on-surface transition hover:bg-surface-container-high hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Icon name="mdi-arrow-right" size={16} />
                     </button>
@@ -280,7 +280,7 @@ export function FetchLyricsModal({
                         onClick={() => revertValue(key)}
                         title="Revert"
                         aria-label="Revert"
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-fg-primary transition hover:bg-surface-hover hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-on-surface transition hover:bg-surface-container-high hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       >
                         <Icon name="mdi-undo" size={16} />
                       </button>
@@ -288,11 +288,11 @@ export function FetchLyricsModal({
                   </div>
 
                   <div className="min-w-0">
-                    <div className="text-xs text-fg-secondary">{label}</div>
+                    <div className="text-xs text-on-surface-variant">{label}</div>
                     <pre
                       className={cn(
                         'mt-1 whitespace-pre-wrap break-words text-sm',
-                        transferred ? 'text-accent' : 'text-fg-primary',
+                        transferred ? 'text-primary' : 'text-on-surface',
                       )}
                     >
                       {displayCurrent}

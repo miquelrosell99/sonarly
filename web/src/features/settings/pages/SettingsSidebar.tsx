@@ -65,7 +65,7 @@ function SidebarSettings() {
               key={item.id}
               className={cn(
                 'flex items-center justify-between rounded-item border p-3 transition',
-                item.visible ? 'border-rule bg-bg-primary' : 'border-rule bg-surface opacity-60',
+                item.visible ? 'border-outline bg-background' : 'border-outline bg-surface opacity-60',
               )}
             >
               <Checkbox
@@ -79,7 +79,7 @@ function SidebarSettings() {
                 {item.type === 'playlists' && item.visible && (
                   <button
                     onClick={() => toggleCollapsed(index)}
-                    className="rounded-item p-1.5 text-muted hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    className="rounded-item p-1.5 text-on-surface-variant hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     aria-label={item.collapsed ? 'Expand playlists by default' : 'Collapse playlists by default'}
                     title={item.collapsed ? 'Expand by default' : 'Collapse by default'}
                   >
@@ -89,7 +89,7 @@ function SidebarSettings() {
                 <button
                   onClick={() => move(index, -1)}
                   disabled={index === 0}
-                  className="rounded-item p-1.5 text-muted hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-30"
+                  className="rounded-item p-1.5 text-on-surface-variant hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-30"
                   aria-label="Move up"
                 >
                   <Icon name="mdi-chevron-up" size={18} />
@@ -97,7 +97,7 @@ function SidebarSettings() {
                 <button
                   onClick={() => move(index, 1)}
                   disabled={index === items.length - 1}
-                  className="rounded-item p-1.5 text-muted hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-30"
+                  className="rounded-item p-1.5 text-on-surface-variant hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-30"
                   aria-label="Move down"
                 >
                   <Icon name="mdi-chevron-down" size={18} />

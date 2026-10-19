@@ -64,7 +64,7 @@ describe('LyricsPanel', () => {
     render(<LyricsPanel user={mockUser} />, { wrapper: Wrapper });
     await waitFor(() => expect(screen.getByText('Line two')).toBeTruthy());
     const active = screen.getByText('Line two');
-    expect(active.className).toContain('text-accent');
+    expect(active.className).toContain('text-primary');
   });
 
   it('switches to static mode and shows plain lyrics', async () => {
