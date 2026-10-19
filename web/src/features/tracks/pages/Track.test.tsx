@@ -146,7 +146,8 @@ describe('Track detail (react-query, P5)', () => {
 
     // Non-admins get no Delete in the header menu; Edit opens the modal,
     // whose Delete drives the same confirm flow.
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    /* Radix menu triggers open on pointerdown (fireEvent.click alone won't). */
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'More actions' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
     fireEvent.click(screen.getAllByRole('button', { name: 'Delete' })[0]);
     fireEvent.click(screen.getAllByRole('button', { name: 'Delete' })[1]);
@@ -213,7 +214,8 @@ describe('Track detail header delete (admin)', () => {
 
     await screen.findByText('Song t1');
 
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    /* Radix menu triggers open on pointerdown (fireEvent.click alone won't). */
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'More actions' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
 
     // ConfirmModal asks first; no DELETE request until confirmed
@@ -239,7 +241,8 @@ describe('Track detail header delete (admin)', () => {
 
     await screen.findByText('Song t1');
 
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    /* Radix menu triggers open on pointerdown (fireEvent.click alone won't). */
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'More actions' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
 
@@ -302,7 +305,8 @@ describe('Track detail header action order', () => {
     ).toBeTruthy();
 
     // …and Edit precedes Delete inside the header "More actions" menu.
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    /* Radix menu triggers open on pointerdown (fireEvent.click alone won't). */
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'More actions' }));
     const edit = screen.getByRole('menuitem', { name: 'Edit' });
     const deleteItem = screen.getByRole('menuitem', { name: 'Delete' });
 
@@ -318,7 +322,8 @@ describe('Track detail header action order', () => {
 
     const favorite = screen.getByRole('button', { name: 'Add favorite' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    /* Radix menu triggers open on pointerdown (fireEvent.click alone won't). */
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'More actions' }));
     const edit = screen.getByRole('menuitem', { name: 'Edit' });
 
     expect(

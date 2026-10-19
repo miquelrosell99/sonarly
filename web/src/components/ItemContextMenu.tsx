@@ -45,8 +45,7 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
   // measures the menu and clamps/flips around it before paint.
   const pointerPosRef = useRef<Point | null>(null);
 
-  // APG typeahead (printable-character jump-to-item), shared with
-  // usePopoverMenu via lib/menuTypeahead.
+  // APG typeahead (printable-character jump-to-item) via lib/menuTypeahead.
   const typeahead = useMemo(
     () =>
       createMenuTypeahead(() =>

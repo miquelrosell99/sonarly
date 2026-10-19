@@ -86,7 +86,7 @@ describe('ColumnConfigMenu', () => {
 
     expect(screen.queryByRole('group', { name: 'Column settings' })).toBeNull();
     expect(bubbleSpy).not.toHaveBeenCalled();
-    // Focus returns to the trigger (same convention as usePopoverMenu).
+    // Focus returns to the trigger (app overlay-manager convention).
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Configure columns' }));
   });
 

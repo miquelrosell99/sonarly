@@ -20,8 +20,8 @@ const MOVE_BUTTON_CLASS =
  * toggles and up/down reorder buttons. Kept as a plain anchored group (not
  * an APG menu): rows mix checkboxes with move buttons, so natural Tab order
  * through the controls is the clearest keyboard flow. Escape closes the
- * popover before it reaches any enclosing modal (capture-phase swallow,
- * same convention as usePopoverMenu).
+ * popover before it reaches any enclosing modal (capture-phase swallow —
+ * the app overlay-manager convention).
  */
 export function ColumnConfigMenu({ entries, actionsLabel, onToggle, onMove }: ColumnConfigMenuProps) {
   const [open, setOpen] = useState(false);
