@@ -89,7 +89,7 @@ Recorded per `rosellramos-design-system/identity/procedure.md` — the palette's
 ### Chrome surface-step (sidebar, player bar on `--surface`)
 
 - **Rule**: SKILL.md default 3 — solid sidebar on the ground color; checklist §7 "Sidebar — solid ground color, hairline separator, never its own card".
-- **Decision**: The desktop sidebar (`web/src/components/Sidebar.tsx:335`) and the player bar (`web/src/components/PlayerBar.tsx:267`) sit on `--md-sys-color-surface`, one step up from the `--md-sys-color-background` ground. The mobile drawer keeps `bg-surface` as a `role="dialog"` overlay under the modal exception.
+- **Decision**: The desktop sidebar (`web/src/features/shell/Sidebar.tsx:335`) and the player bar (`web/src/features/player/PlayerBar.tsx:267`) sit on `--md-sys-color-surface`, one step up from the `--md-sys-color-background` ground. The mobile drawer keeps `bg-surface` as a `role="dialog"` overlay under the modal exception.
 - **Rationale**: Canonical project doc `docs/design-language.md:33` documents this in the token table ("`--surface` … Cards, sidebar, panels") — the Signal Archive identity frames content between two warm tonal steps; this entry registers what the canonical doc already says (same treatment the card-grid recipe got on 2026-10-15).
 - **Scope**: surface — desktop sidebar and player bar chrome only. No other chrome may step up to `--surface`.
 - **Ruled**: 2026-10-18 audit (documented in `docs/design-language.md` since pre-2.0).
@@ -169,7 +169,7 @@ Recorded per `rosellramos-design-system/identity/procedure.md` — the palette's
 ### Off-grid breakpoint usages (`min-[640px]` / `min-[1280px]` / `min-[420px]`)
 
 - **Rule**: `rosellramos-design-system/references/tokens.md` breakpoints — 480 / 768 / 1024 / 1440.
-- **Decision**: `web/tailwind.config.js` ships the spec grid (`sm 480 / md 768 / lg 1024 / xl 1440`). A finite set of usages keeps an explicit off-grid boundary instead: `min-[640px]`/`min-[1280px]` in `TopBar.tsx` and `StatisticsView.tsx` (documented in the config comment), and `min-[420px]` in `TopBar.tsx:305` (wordmark) + `web/src/features/statistics/components/statistics-view/HeroStats.tsx` (hero-stat grid; was StatisticsView.tsx before the 2026-10-19 monolith split) — 420px exists so large phones (~430px CSS width) get the wordmark and a two-stat row that `sm:` (480px) would deny them.
+- **Decision**: `web/tailwind.config.js` ships the spec grid (`sm 480 / md 768 / lg 1024 / xl 1440`). A finite set of usages keeps an explicit off-grid boundary instead: `min-[640px]`/`min-[1280px]` in `TopBar.tsx` and `StatisticsView.tsx` (documented in the config comment), and `min-[420px]` in `web/src/features/shell/TopBar.tsx:305` (wordmark) + `web/src/features/statistics/components/statistics-view/HeroStats.tsx` (hero-stat grid; was StatisticsView.tsx before the 2026-10-19 monolith split) — 420px exists so large phones (~430px CSS width) get the wordmark and a two-stat row that `sm:` (480px) would deny them.
 - **Rationale**: migrating the 640/1280 boundaries changes layout at 640–1024px / 1280–1440px widths and needs visual verification, not a blind find-replace; the 420px boundary is a deliberate large-phone floor below the spec's smallest step.
 - **Scope**: global, finite list — grep `min-\[640px\]|min-\[1280px\]|min-\[420px\]` before closing this entry.
 - **Ruled**: 2026-10-15 audit (640/1280); min-[420px] registered 2026-10-15 in the audit-fix pass.
