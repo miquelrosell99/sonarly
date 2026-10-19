@@ -3,7 +3,7 @@ import type { DuplicateStrategy, Library } from '../types';
 import { DUPLICATE_STRATEGY_LABELS } from '../types';
 import { cn } from '../lib/cn.js';
 import { api } from '../lib/api.js';
-import { Button } from './ui/Button.js';
+import { Button } from './ui/button.js';
 import { Icon } from './ui/Icon.js';
 import { Modal } from './ui/Modal.js';
 import { Table, type TableColumn } from './ui/Table.js';

@@ -1,4 +1,4 @@
-import { Button } from '../ui/Button.js';
+import { Button } from '../ui/button.js';
 import { CoverArtSection } from './CoverArtSection.js';
 import { EditorSection } from './EditorSection.js';
 import { Field } from './Field.js';

@@ -8,7 +8,7 @@ import {
   ListPageSkeleton,
   PageSkeleton,
 } from './Skeletons.js';
-import { Skeleton } from './ui/Skeleton.js';
+import { Skeleton } from './ui/skeleton.js';
 import { EmptyState } from './ui/EmptyState.js';
 import { PageState } from './PageState.js';
 

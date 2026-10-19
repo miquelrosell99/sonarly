@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import type { LrcLibMatch, LrcLibSearchResult, SyncedLyricLine } from '../types';
 import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
-import { Button } from './ui/Button.js';
-import { Input } from './ui/Input.js';
+import { Button } from './ui/button.js';
+import { Input } from './ui/input.js';
 import { Modal } from './ui/Modal.js';
 import { Icon } from './ui/Icon.js';
 

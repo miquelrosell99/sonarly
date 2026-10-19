@@ -1,5 +1,5 @@
 import type { SmartPlaylistRules } from '../../types';
-import { Input } from '../ui/Input.js';
+import { Input } from '../ui/input.js';
 import { Field } from './Field.js';
 import { SmartPlaylistBlockEditor } from '../../features/playlists/index.js';
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
-import { Button } from './ui/Button.js';
+import { Button } from './ui/button.js';
 import { Modal } from './ui/Modal.js';
 import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
 

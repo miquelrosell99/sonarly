@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { User } from '../../../types';
 import { api } from '../../../lib/api.js';
-import { Button } from '../../../components/ui/Button.js';
-import { Input } from '../../../components/ui/Input.js';
+import { Button } from '../../../components/ui/button.js';
+import { Input } from '../../../components/ui/input.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { AdminShell } from '../components/AdminShell.js';

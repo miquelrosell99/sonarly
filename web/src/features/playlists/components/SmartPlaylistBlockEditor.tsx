@@ -2,8 +2,8 @@ import { useState } from 'react';
 import type { SmartPlaylistRule, SmartPlaylistRules, SmartPlaylistRuleGroup, SmartPlaylistSort, SmartPlaylistFieldType } from '../../../types';
 import { SMART_PLAYLIST_FIELDS } from '../../../types';
 import { cn } from '../../../lib/cn.js';
-import { Button } from '../../../components/ui/Button.js';
-import { Input } from '../../../components/ui/Input.js';
+import { Button } from '../../../components/ui/button.js';
+import { Input } from '../../../components/ui/input.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { AutocompleteInput } from '../../../components/ui/AutocompleteInput.js';
 

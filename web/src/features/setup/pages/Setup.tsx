@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { User } from '../../../types';
 import { api } from '../../../lib/api.js';
-import { Button } from '../../../components/ui/Button.js';
-import { Input } from '../../../components/ui/Input.js';
+import { Button } from '../../../components/ui/button.js';
+import { Input } from '../../../components/ui/input.js';
 
 export function Setup({ onSetup }: { onSetup: (user: User) => void }) {
   const [username, setUsername] = useState('');

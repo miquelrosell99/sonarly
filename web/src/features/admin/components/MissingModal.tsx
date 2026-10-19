@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { components } from '../../../contract/schema.js';
 import { api } from '../../../lib/api.js';
-import { Button } from '../../../components/ui/Button.js';
+import { Button } from '../../../components/ui/button.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';

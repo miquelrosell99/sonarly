@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../lib/api.js';
 import { Modal } from '../../../components/ui/Modal.js';
-import { Button } from '../../../components/ui/Button.js';
-import { Input } from '../../../components/ui/Input.js';
+import { Button } from '../../../components/ui/button.js';
+import { Input } from '../../../components/ui/input.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { formatDateShortMonth } from '../../../lib/formatDate.js';
 

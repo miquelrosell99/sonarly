@@ -1,6 +1,6 @@
 import { cn } from '../lib/cn.js';
 import { useDelayedVisible } from '../hooks/useDelayedVisible.js';
-import { Button } from './ui/Button.js';
+import { Button } from './ui/button.js';
 import { EmptyState } from './ui/EmptyState.js';
 import { Icon } from './ui/Icon.js';
 

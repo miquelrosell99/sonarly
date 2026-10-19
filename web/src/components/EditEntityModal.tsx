@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { SmartPlaylistRules } from '../types';
 import { api } from '../lib/api.js';
-import { Button } from './ui/Button.js';
+import { Button } from './ui/button.js';
 import { Modal } from './ui/Modal.js';
 import { ConfirmModal } from './ui/ConfirmModal.js';
 import { Icon } from './ui/Icon.js';

@@ -4,8 +4,8 @@ import type { PlaylistResolveMode, SmartPlaylistRules } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
-import { Button } from '../../../components/ui/Button.js';
-import { Input } from '../../../components/ui/Input.js';
+import { Button } from '../../../components/ui/button.js';
+import { Input } from '../../../components/ui/input.js';
 import { cn } from '../../../lib/cn.js';
 
 import { SmartPlaylistBlockEditor } from './SmartPlaylistBlockEditor.js';

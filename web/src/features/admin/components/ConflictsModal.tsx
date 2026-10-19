@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../../lib/api.js';
-import { Button } from '../../../components/ui/Button.js';
+import { Button } from '../../../components/ui/button.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';

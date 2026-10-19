@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../../../lib/api.js';
 import { ProgressBar } from '../../../components/ui/ProgressBar.js';
-import { Button } from '../../../components/ui/Button.js';
+import { Button } from '../../../components/ui/button.js';
 import { Modal } from '../../../components/ui/Modal.js';
 
 interface OrganizeStatus {

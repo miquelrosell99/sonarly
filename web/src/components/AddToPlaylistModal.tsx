@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Modal } from './ui/Modal.js';
-import { Button } from './ui/Button.js';
-import { Checkbox } from './ui/Checkbox.js';
+import { Button } from './ui/button.js';
+import { Checkbox } from './ui/checkbox.js';
 import { EmptyState } from './ui/EmptyState.js';
-import { Input } from './ui/Input.js';
+import { Input } from './ui/input.js';
 import { usePlaylists } from '../hooks/usePlaylists.js';
 import { useAddSongsToPlaylist } from '../hooks/useAddSongsToPlaylist.js';
 import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';

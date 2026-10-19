@@ -15,7 +15,7 @@ import {
 import { AdminRefreshProvider } from './features/admin/contexts/AdminRefreshContext.js';
 import { useServerEvents } from './hooks/useServerEvents.js';
 import { ErrorBoundary, reportClientError } from './components/ErrorBoundary.js';
-import { Button } from './components/ui/Button.js';
+import { Button } from './components/ui/button.js';
 import { useDelayedVisible } from './hooks/useDelayedVisible.js';
 import { AddToPlaylistModal } from './components/AddToPlaylistModal.js';
 import { api } from './lib/api.js';
