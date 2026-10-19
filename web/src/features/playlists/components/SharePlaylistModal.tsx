@@ -6,6 +6,13 @@ import { cn } from '../../../lib/cn.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { Button } from '../../../components/ui/button.js';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../components/ui/select.js';
 import { Input } from '../../../components/ui/input.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { Checkbox } from '../../../components/ui/checkbox.js';
@@ -459,16 +466,22 @@ export function SharePlaylistModal({
                     >
                       <Avatar user={avatarUser} variant="surface" className="h-8 w-8" />
                       <span className="min-w-0 flex-1 truncate text-sm">{share.username}</span>
-                      <select
-                        aria-label={`Role for ${share.username}`}
+                      <Select
                         value={share.canEdit ? 'edit' : 'view'}
+                        onValueChange={(value) => void handleRoleChange(share, value === 'edit')}
                         disabled={busy}
-                        onChange={(e) => handleRoleChange(share, e.target.value === 'edit')}
-                        className="input min-h-[44px] w-auto text-sm"
                       >
-                        <option value="view">Can view</option>
-                        <option value="edit">Can edit</option>
-                      </select>
+                        <SelectTrigger
+                          aria-label={`Role for ${share.username}`}
+                          className="h-11 w-auto text-sm"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="view">Can view</SelectItem>
+                          <SelectItem value="edit">Can edit</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <button
                         type="button"
                         onClick={() => setConfirmRemoveShare(share)}
@@ -492,15 +505,18 @@ export function SharePlaylistModal({
                     resetKey={resetKey}
                     onSelect={setSelectedUser}
                   />
-                  <select
-                    aria-label="Role for new member"
+                  <Select
                     value={newRole}
-                    onChange={(e) => setNewRole(e.target.value as 'view' | 'edit')}
-                    className="input min-h-[44px] w-auto text-sm"
+                    onValueChange={(value) => setNewRole(value as 'view' | 'edit')}
                   >
-                    <option value="view">Can view</option>
-                    <option value="edit">Can edit</option>
-                  </select>
+                    <SelectTrigger aria-label="Role for new member" className="h-11 w-auto text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="view">Can view</SelectItem>
+                      <SelectItem value="edit">Can edit</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button

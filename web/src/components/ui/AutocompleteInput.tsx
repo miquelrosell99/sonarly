@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback, useId, forwardRef } from 'rea
 import { api } from '../../lib/api.js';
 import { cn } from '../../lib/cn.js';
 import { Icon } from './Icon.js';
+import { Input } from './input.js';
 
 export type AutocompleteField = 'artist' | 'album' | 'albumArtist' | 'genre' | 'releaseType';
 
@@ -133,7 +134,7 @@ export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputP
 
   return (
     <div className="relative">
-      <input
+      <Input
         {...props}
         ref={ref}
         type="text"
@@ -153,7 +154,7 @@ export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputP
           setTimeout(() => setOpen(false), 150);
           onBlur?.(e);
         }}
-        className={cn('input', className)}
+        className={className}
       />
       {open && (
         <ul

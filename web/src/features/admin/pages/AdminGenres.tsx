@@ -2,6 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import type { User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/button.js';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../components/ui/select.js';
 import { Input } from '../../../components/ui/input.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
@@ -395,20 +402,25 @@ function GenreTreeItem({
         <div className="flex flex-wrap items-center gap-2">
           {isMoving ? (
             <>
-              <select
-                value={node.parentId ?? ''}
-                onChange={(e) => onMove(node.id, e.target.value || null)}
+              /* Radix Select items can't carry an empty value, so "No parent"
+                 rides the '__root' sentinel and maps to null. */
+              <Select
+                value={node.parentId ?? '__root'}
+                onValueChange={(value) => onMove(node.id, value === '__root' ? null : value)}
                 disabled={isBusyNode}
-                className="input h-9 py-1 text-sm"
-                aria-label={`Move ${node.name} to parent`}
               >
-                <option value="">No parent (root)</option>
-                {moveTargets.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.path || g.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger aria-label={`Move ${node.name} to parent`} className="h-9 w-auto text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__root">No parent (root)</SelectItem>
+                  {moveTargets.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.path || g.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 variant="ghost"
                 onClick={() => onMove(node.id, node.parentId ?? null)}

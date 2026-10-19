@@ -4,6 +4,13 @@ import type { Library, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/button.js';
 import { Input } from '../../../components/ui/input.js';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../components/ui/select.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { Checkbox } from '../../../components/ui/checkbox.js';
@@ -347,17 +354,24 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
               <label htmlFor="edit-lib-template" className="block text-sm font-medium text-on-surface-variant">
                 Organization template
               </label>
-              <select
-                id="edit-lib-template"
-                value={selectedTemplate}
-                onChange={(e) => setEditForm((prev) => ({ ...prev, organizePattern: e.target.value }))}
-                className="input w-full"
+              /* Radix Select items can't carry an empty value, so "Custom"
+                 rides the '__custom' sentinel and maps to ''. */
+              <Select
+                value={selectedTemplate || '__custom'}
+                onValueChange={(value) => setEditForm((prev) => ({ ...prev, organizePattern: value === '__custom' ? '' : value }))}
               >
-                <option value="">Custom</option>
-                {templates.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
+                <SelectTrigger id="edit-lib-template" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__custom">Custom</SelectItem>
+                  {templates.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1">

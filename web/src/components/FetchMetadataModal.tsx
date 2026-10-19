@@ -4,6 +4,13 @@ import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
 import { Button } from './ui/button.js';
 import { Input } from './ui/input.js';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select.js';
 import { Modal } from './ui/Modal.js';
 import { Icon } from './ui/Icon.js';
 import { CoverArt } from './CoverArt.js';
@@ -330,23 +337,27 @@ export function FetchMetadataModal({
           </Button>
         </div>
 
-        {matches.length > 0 && (
+            {matches.length > 0 && (
           <div className="space-y-2">
             <label className="text-sm font-medium text-on-surface-variant">Matches</label>
-            <select
-              value={selectedIndex}
-              onChange={(e) => setSelectedIndex(Number(e.target.value))}
-              className="input w-full"
+            <Select
+              value={String(selectedIndex)}
+              onValueChange={(value) => setSelectedIndex(Number(value))}
               disabled={loading}
             >
-              {matches.map((match, index) => (
-                <option key={`${match.id}-${index}`} value={index}>
-                  {match.title}
-                  {match.artist ? ` — ${match.artist}` : ''}
-                  {match.disambiguation ? ` (${match.disambiguation})` : ''}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger aria-label="Matches" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {matches.map((match, index) => (
+                  <SelectItem key={`${match.id}-${index}`} value={String(index)}>
+                    {match.title}
+                    {match.artist ? ` — ${match.artist}` : ''}
+                    {match.disambiguation ? ` (${match.disambiguation})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
 

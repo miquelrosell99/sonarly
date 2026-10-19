@@ -317,41 +317,11 @@
 }
 
 @layer components {
-  .btn {
-    @apply inline-flex h-10 items-center justify-center gap-2 rounded-button border border-primary bg-primary px-5 text-sm font-semibold text-on-primary transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  /* Tactile press (design system): hover darkens subtly, active compresses
-     and darkens harder. filter overrides the hover filter while pressed. */
-  .btn:active {
-    transform: scale(0.97);
-    filter: brightness(0.9);
-  }
-  .btn-ghost {
-    @apply inline-flex h-10 items-center justify-center gap-2 rounded-button border border-outline bg-surface px-5 text-sm font-semibold text-on-surface transition hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  .btn-ghost:hover {
-    border-color: hsl(var(--md-sys-color-on-surface-variant));
-  }
-  .btn-ghost:active {
-    transform: scale(0.97);
-    filter: brightness(0.95);
-  }
-  .btn-danger {
-    @apply inline-flex h-10 items-center justify-center gap-2 rounded-button border border-outline bg-surface px-5 text-sm font-semibold text-error transition hover:border-error hover:bg-error hover:text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  .btn-danger:active {
-    transform: scale(0.97);
-    filter: brightness(0.9);
-  }
-  /* Touch floor: text buttons bump to 44px on coarse pointers (JSX icon
-   * buttons carry the per-instance [@media(pointer:coarse)] override). */
-  @media (pointer: coarse) {
-    .btn,
-    .btn-ghost,
-    .btn-danger {
-      height: 44px;
-    }
-  }
+  /* The button register lives entirely on the catalog Button primitive
+   * (components/ui/button.tsx); the old .btn/.btn-ghost/.btn-danger blocks
+   * and their coarse-pointer floor retired with the last raw call sites
+   * (migration 2026-10-19) — the primitive carries the tactile press, the
+   * focus ring, and the 44px coarse-pointer floor in utilities. */
   /* Dialog entrance (design system: ~400ms ease-out). Class applied by
    * ui/Modal on mount; keyframes at root so they survive layer ordering. */
   .dialog-enter {
@@ -362,9 +332,6 @@
       animation: none;
     }
   }
-  .input {
-    @apply block h-10 w-full rounded-input border border-outline bg-surface px-3 text-sm text-on-surface transition focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60;
-  }
 
   /* Shared tactile press for the app's icon-button bases (PlayerControls
      ControlButton/PlayPauseButton, PlayButton overlay). Centralized here so
@@ -373,17 +340,17 @@
     transform: scale(0.97);
     filter: brightness(0.9);
   }
-  .input::placeholder {
-    color: hsl(var(--md-sys-color-on-surface-variant));
-  }
 
-  /* Remove number input spinners */
-  input[type='number'].input::-webkit-outer-spin-button,
-  input[type='number'].input::-webkit-inner-spin-button {
+  /* Remove number input spinners. The Input primitive used to carry an
+     'input' marker class these rules keyed on; that class retired with the
+     raw call sites, so the rules are keyed on the type alone — every app
+     number input rides the flat field register. */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
-  input[type='number'].input {
+  input[type='number'] {
     -moz-appearance: textfield;
   }
 

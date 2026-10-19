@@ -4,6 +4,13 @@ import { SMART_PLAYLIST_FIELDS } from '../../../types';
 import { cn } from '../../../lib/cn.js';
 import { Button } from '../../../components/ui/button.js';
 import { Input } from '../../../components/ui/input.js';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../components/ui/select.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { AutocompleteInput } from '../../../components/ui/AutocompleteInput.js';
 
@@ -351,28 +358,33 @@ function RuleBlock({
 
   return (
     <div className="flex items-center gap-2 rounded-item border border-outline bg-background p-3">
-      <select
-        value={rule.field}
-        onChange={(e) => onFieldChange(e.target.value)}
-        className="input py-1.5 text-sm"
-      >
-        {SMART_PLAYLIST_FIELDS.map((f) => (
-          <option key={f.field} value={f.field}>
-            {f.label}
-          </option>
-        ))}
-      </select>
-      <select
+      <Select value={rule.field} onValueChange={onFieldChange}>
+        <SelectTrigger aria-label="Rule field" className="w-auto text-sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {SMART_PLAYLIST_FIELDS.map((f) => (
+            <SelectItem key={f.field} value={f.field}>
+              {f.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
         value={rule.operator}
-        onChange={(e) => onOperatorChange(e.target.value as SmartPlaylistRule['operator'])}
-        className="input py-1.5 text-sm"
+        onValueChange={(value) => onOperatorChange(value as SmartPlaylistRule['operator'])}
       >
-        {operators.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger aria-label="Rule operator" className="w-auto text-sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {operators.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       {showValue && (
         <RuleValueInput
           field={rule.field}
@@ -432,33 +444,48 @@ function RuleValueInput({
 }) {
   if (fieldType === 'boolean') {
     return (
-      <select
-        value={value === true ? 'true' : value === false ? 'false' : 'true'}
-        onChange={(e) => onChange(e.target.value === 'true')}
-        className="input py-1.5 text-sm"
+      <Select
+        value={value === true ? 'true' : 'false'}
+        onValueChange={(next) => onChange(next === 'true')}
       >
-        <option value="true">True</option>
-        <option value="false">False</option>
-      </select>
+        <SelectTrigger aria-label="Rule value" className="w-auto text-sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="true">True</SelectItem>
+          <SelectItem value="false">False</SelectItem>
+        </SelectContent>
+      </Select>
     );
   }
 
   if (field === 'rating') {
     return (
-      <select
-        value={value === undefined ? '' : String(value)}
-        onChange={(e) => {
-          const parsed = parseFloat(e.target.value);
+      /* Radix Select items can't carry an empty value, so "any rating" rides
+         the '__any' sentinel and maps back to undefined. */
+      <Select
+        value={value === undefined ? '__any' : String(value)}
+        onValueChange={(next) => {
+          if (next === '__any') {
+            onChange(undefined);
+            return;
+          }
+          const parsed = parseFloat(next);
           onChange(Number.isNaN(parsed) ? undefined : parsed);
         }}
-        className="input py-1.5 text-sm"
       >
-        {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((r) => (
-          <option key={r} value={r}>
-            {r} {r === 1 ? 'star' : 'stars'}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger aria-label="Rule value" className="w-auto text-sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__any">Any rating</SelectItem>
+          {[0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((r) => (
+            <SelectItem key={r} value={String(r)}>
+              {r} {r === 1 ? 'star' : 'stars'}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     );
   }
 
@@ -561,27 +588,35 @@ function SortBlock({
 
   return (
     <div className="flex items-center gap-2 rounded-item border border-outline bg-background p-3">
-      <select
+      <Select
         value={sortItem?.field ?? 'title'}
-        onChange={(e) => onFieldChange(e.target.value)}
+        onValueChange={onFieldChange}
         disabled={isRandom}
-        className={cn('input py-1.5 text-sm', isRandom && 'opacity-50')}
       >
-        {SMART_PLAYLIST_FIELDS.map((f) => (
-          <option key={f.field} value={f.field}>
-            {f.label}
-          </option>
-        ))}
-      </select>
-      <select
+        <SelectTrigger aria-label="Sort field" className={cn(isRandom && 'opacity-50')}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {SMART_PLAYLIST_FIELDS.map((f) => (
+            <SelectItem key={f.field} value={f.field}>
+              {f.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select
         value={isRandom ? 'random' : sortItem?.direction}
-        onChange={(e) => onDirectionChange(e.target.value as 'asc' | 'desc' | 'random')}
-        className="input py-1.5 text-sm"
+        onValueChange={(value) => onDirectionChange(value as 'asc' | 'desc' | 'random')}
       >
-        <option value="asc">Ascending</option>
-        <option value="desc">Descending</option>
-        <option value="random">Random</option>
-      </select>
+        <SelectTrigger aria-label="Sort direction">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="asc">Ascending</SelectItem>
+          <SelectItem value="desc">Descending</SelectItem>
+          <SelectItem value="random">Random</SelectItem>
+        </SelectContent>
+      </Select>
       <div className="ml-auto flex items-center gap-0.5">
         <button
           type="button"

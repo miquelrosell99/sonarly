@@ -1,7 +1,14 @@
 import { useFilterParams } from '../hooks/useFilterParams.js';
 import { cn } from '../lib/cn.js';
 import { Checkbox } from './ui/checkbox.js';
-import { Icon } from './ui/Icon.js';
+import { Input } from './ui/input.js';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select.js';
 
 export type FilterType = 'text' | 'number' | 'select' | 'boolean';
 
@@ -38,45 +45,40 @@ export function FilterPanel({ filters, className }: FilterPanelProps) {
                 </label>
               )}
               {filter.type === 'text' && (
-                <input
+                <Input
                   id={`filter-${filter.key}`}
                   type="text"
                   value={value}
                   onChange={(e) => set(filter.key, e.target.value)}
-                  className="input"
                 />
               )}
               {filter.type === 'number' && (
-                <input
+                <Input
                   id={`filter-${filter.key}`}
                   type="number"
                   value={value}
                   onChange={(e) => set(filter.key, e.target.value)}
-                  className="input"
                 />
               )}
               {filter.type === 'select' && (
-                <div className="relative">
-                  <select
-                    id={`filter-${filter.key}`}
-                    value={value}
-                    onChange={(e) => set(filter.key, e.target.value || null)}
-                    className={cn('input appearance-none', !value && 'text-on-surface-variant')}
-                  >
-                    <option value="">All</option>
+                /* Radix Select items can't carry an empty value, so "All"
+                   rides the '__all' sentinel and maps back to null. */
+                <Select
+                  value={value || '__all'}
+                  onValueChange={(next) => set(filter.key, next === '__all' ? null : next)}
+                >
+                  <SelectTrigger id={`filter-${filter.key}`} aria-label={filter.label}>
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all">All</SelectItem>
                     {filter.options?.map((option) => (
-                      <option key={option.value} value={option.value}>
+                      <SelectItem key={option.value} value={option.value}>
                         {option.label}
-                      </option>
+                      </SelectItem>
                     ))}
-                  </select>
-                  <Icon
-                    name="mdi-chevron-down"
-                    size={16}
-                    aria-hidden="true"
-                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant"
-                  />
-                </div>
+                  </SelectContent>
+                </Select>
               )}
               {filter.type === 'boolean' && (
                 <Checkbox

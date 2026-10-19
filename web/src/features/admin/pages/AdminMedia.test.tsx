@@ -4,7 +4,7 @@ import { Router } from 'wouter';
 import { AdminMedia } from './AdminMedia.js';
 import { AdminRefreshProvider } from '../contexts/AdminRefreshContext.js';
 import { NotificationProvider } from '../../../contexts/NotificationContext.js';
-import { renderWithQueryClient } from '../../../lib/testing.js';
+import { renderWithQueryClient, selectRadixOption } from '../../../lib/testing.js';
 import { api } from '../../../lib/api.js';
 
 vi.mock('../../../lib/api.js', () => ({
@@ -74,7 +74,7 @@ describe('AdminMedia', () => {
       expect(screen.getByLabelText('Default duplicate strategy')).toBeTruthy();
     });
 
-    fireEvent.change(screen.getByLabelText('Review folder cleanup'), { target: { value: '90' } });
+    selectRadixOption(screen.getByLabelText('Review folder cleanup'), '90 days');
 
     // Staged, not saved yet.
     expect(apiMock).not.toHaveBeenCalledWith(
@@ -102,13 +102,13 @@ describe('AdminMedia', () => {
       expect(screen.getByLabelText('Default duplicate strategy')).toBeTruthy();
     });
 
-    fireEvent.change(screen.getByLabelText('Review folder cleanup'), { target: { value: '60' } });
+    selectRadixOption(screen.getByLabelText('Review folder cleanup'), '60 days');
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
 
     expect(screen.queryByRole('button', { name: 'Save changes' })).toBeNull();
-    expect((screen.getByLabelText('Review folder cleanup') as HTMLSelectElement).value).toBe('30');
+    expect(screen.getByLabelText('Review folder cleanup').textContent).toContain('30 days');
     expect(apiMock).not.toHaveBeenCalledWith(
       '/settings/media',
       expect.objectContaining({ method: 'PATCH' }),

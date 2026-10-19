@@ -70,6 +70,7 @@ export default defineConfig(({ mode }) => {
       // Playwright owns e2e/ (bridge-fixture.spec.ts is a browser spec, not
       // a vitest one).
       exclude: ['e2e/**', '**/node_modules/**', '**/dist/**'],
+      setupFiles: ['./src/vitest-setup.ts'],
     },
   };
 });

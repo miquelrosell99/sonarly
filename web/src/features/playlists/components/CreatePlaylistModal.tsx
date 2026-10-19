@@ -6,6 +6,7 @@ import { Modal } from '../../../components/ui/Modal.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { Button } from '../../../components/ui/button.js';
 import { Input } from '../../../components/ui/input.js';
+import { Textarea } from '../../../components/ui/textarea.js';
 import { cn } from '../../../lib/cn.js';
 
 import { SmartPlaylistBlockEditor } from './SmartPlaylistBlockEditor.js';
@@ -172,14 +173,14 @@ export function CreatePlaylistModal({ open, onClose, editingPlaylistId }: Create
             <label htmlFor="create-playlist-description" className="mb-1.5 block text-sm font-medium text-on-surface-variant">
               Description
             </label>
-            <textarea
+            <Textarea
               id="create-playlist-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Optional description"
               rows={3}
               disabled={save.isPending || loadingPlaylist}
-              className="input min-h-[5rem] w-full py-2"
+              className="min-h-[5rem]"
             />
           </div>
           <div>

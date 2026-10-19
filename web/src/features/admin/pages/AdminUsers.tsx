@@ -4,6 +4,13 @@ import type { Library, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/button.js';
 import { Input } from '../../../components/ui/input.js';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../../components/ui/select.js';
 import { Checkbox } from '../../../components/ui/checkbox.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
@@ -382,31 +389,40 @@ export function AdminUsers({ user }: AdminUsersProps) {
             </div>
             <div className="space-y-1">
               <label htmlFor="user-role" className="block text-sm font-medium text-on-surface-variant">Role</label>
-              <select
-                id="user-role"
-                className="input w-full"
+              <Select
                 value={form.role}
-                onChange={(e) => updateForm({ role: e.target.value as UserRole })}
+                onValueChange={(value) => updateForm({ role: value as UserRole })}
               >
-                <option value="user">User</option>
-                <option value="administrator">Administrator</option>
-              </select>
+                <SelectTrigger id="user-role" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="administrator">Administrator</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <label htmlFor="user-format" className="block text-sm font-medium text-on-surface-variant">Transcode format</label>
-                <select
-                  id="user-format"
-                  aria-label="Transcode format"
-                  className="input w-full"
-                  value={form.transcodeFormat}
-                  onChange={(e) => updateForm({ transcodeFormat: e.target.value as User['transcodeFormat'] | '' })}
+                /* Radix Select items can't carry an empty value, so "Original
+                   format" rides the '__original' sentinel and maps to ''. */
+                <Select
+                  value={form.transcodeFormat || '__original'}
+                  onValueChange={(value) => updateForm({ transcodeFormat: (value === '__original' ? '' : value) as User['transcodeFormat'] | '' })}
                 >
-                  <option value="">Original format</option>
-                  {TRANSCODE_FORMATS.map((f) => (
-                    <option key={f} value={f}>{f.toUpperCase()}</option>
-                  ))}
-                </select>
+                  <SelectTrigger id="user-format" aria-label="Transcode format" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__original">Original format</SelectItem>
+                    {TRANSCODE_FORMATS.map((f) => (
+                      <SelectItem key={f} value={f}>
+                        {f.toUpperCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label htmlFor="user-bitrate" className="block text-sm font-medium text-on-surface-variant">Max bitrate</label>
@@ -475,32 +491,41 @@ export function AdminUsers({ user }: AdminUsersProps) {
             </div>
             <div className="space-y-1">
               <label htmlFor="edit-role" className="block text-sm font-medium text-on-surface-variant">Role</label>
-              <select
-                id="edit-role"
-                className="input w-full"
+              <Select
                 value={editForm.role}
+                onValueChange={(value) => setEditForm((prev) => ({ ...prev, role: value as UserRole }))}
                 disabled={editingUser?.id === user.id || (editingUser?.isAdmin === true && !canDemoteOrDeleteAdmin)}
-                onChange={(e) => setEditForm((prev) => ({ ...prev, role: e.target.value as UserRole }))}
               >
-                <option value="user">User</option>
-                <option value="administrator">Administrator</option>
-              </select>
+                <SelectTrigger id="edit-role" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="administrator">Administrator</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <label htmlFor="edit-format" className="block text-sm font-medium text-on-surface-variant">Transcode format</label>
-                <select
-                  id="edit-format"
-                  aria-label="Transcode format"
-                  className="input w-full"
-                  value={editForm.transcodeFormat}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, transcodeFormat: e.target.value as User['transcodeFormat'] | '' }))}
+                /* Radix Select items can't carry an empty value, so "Original
+                   format" rides the '__original' sentinel and maps to ''. */
+                <Select
+                  value={editForm.transcodeFormat || '__original'}
+                  onValueChange={(value) => setEditForm((prev) => ({ ...prev, transcodeFormat: (value === '__original' ? '' : value) as User['transcodeFormat'] | '' }))}
                 >
-                  <option value="">Original format</option>
-                  {TRANSCODE_FORMATS.map((f) => (
-                    <option key={f} value={f}>{f.toUpperCase()}</option>
-                  ))}
-                </select>
+                  <SelectTrigger id="edit-format" aria-label="Transcode format" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__original">Original format</SelectItem>
+                    {TRANSCODE_FORMATS.map((f) => (
+                      <SelectItem key={f} value={f}>
+                        {f.toUpperCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label htmlFor="edit-bitrate" className="block text-sm font-medium text-on-surface-variant">Max bitrate</label>

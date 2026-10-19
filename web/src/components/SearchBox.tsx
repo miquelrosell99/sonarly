@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
+import { Input } from './ui/input.js';
 import { useDebounce } from '../hooks/useDebounce.js';
 import { useLibraryStore } from '../stores/libraryStore.js';
 import { useSearchPreview } from '../hooks/useLibraryLists.js';
@@ -183,7 +184,7 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
     <div ref={containerRef} className="relative w-full">
       <div className="relative">
         <Icon name="mdi-magnify" size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
-        <input
+        <Input
           ref={inputRef}
           type="text"
           value={inputValue}
@@ -192,7 +193,7 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
             if (debouncedQuery.length > 0) setIsOpen(true);
           }}
           placeholder="Search…"
-          className={cn('input w-full pl-9 focus:ring-0 focus:ring-offset-0', hasFilters ? 'pr-10' : 'pr-9')}
+          className={cn('w-full pl-9 focus:ring-0 focus:ring-offset-0', hasFilters ? 'pr-10' : 'pr-9')}
           aria-label="Search"
           aria-expanded={listboxVisible}
           aria-autocomplete="list"

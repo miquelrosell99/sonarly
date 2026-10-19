@@ -4,6 +4,13 @@ import { DUPLICATE_STRATEGY_LABELS } from '../types';
 import { cn } from '../lib/cn.js';
 import { api } from '../lib/api.js';
 import { Button } from './ui/button.js';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select.js';
 import { Icon } from './ui/Icon.js';
 import { Modal } from './ui/Modal.js';
 import { Table, type TableColumn } from './ui/Table.js';
@@ -296,20 +303,22 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
           <label htmlFor="upload-library" className="block text-sm font-medium text-on-surface-variant">
             Library <span className="text-error">*</span>
           </label>
-          <select
-            id="upload-library"
+          <Select
             value={selectedLibraryId}
-            onChange={(e) => setSelectedLibraryId(e.target.value)}
+            onValueChange={setSelectedLibraryId}
             disabled={isUploading}
-            className="input w-full"
           >
-            <option value="">Select a library</option>
-            {libraries.map((library) => (
-              <option key={library.id} value={library.id}>
-                {library.name} {library.isDefault ? '(default)' : ''}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger id="upload-library" className="w-full">
+              <SelectValue placeholder="Select a library" />
+            </SelectTrigger>
+            <SelectContent>
+              {libraries.map((library) => (
+                <SelectItem key={library.id} value={library.id}>
+                  {library.name} {library.isDefault ? '(default)' : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {isUsingDefaultLibrary && (
             <p className="text-xs text-on-surface-variant">
               No library selected in the UI; files will be uploaded to the default library.
@@ -321,18 +330,22 @@ export function UploadModal({ open, onClose, libraries, currentLibraryId, onComp
           <label htmlFor="upload-duplicate-strategy" className="block text-sm font-medium text-on-surface-variant">
             Duplicate strategy <span className="text-error">*</span>
           </label>
-          <select
-            id="upload-duplicate-strategy"
+          <Select
             value={duplicateStrategy}
-            onChange={(e) => setDuplicateStrategy(e.target.value as DuplicateStrategy)}
+            onValueChange={(value) => setDuplicateStrategy(value as DuplicateStrategy)}
             disabled={isUploading}
-            className="input w-full"
           >
-            <option value="">Select a strategy</option>
-            {Object.entries(DUPLICATE_STRATEGY_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
+            <SelectTrigger id="upload-duplicate-strategy" className="w-full">
+              <SelectValue placeholder="Select a strategy" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(DUPLICATE_STRATEGY_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <p className="text-xs text-on-surface-variant">
             Used when an uploaded song matches an existing song by title, album, and artists.
           </p>
