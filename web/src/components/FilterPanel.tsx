@@ -85,7 +85,7 @@ export function FilterPanel({ filters, className }: FilterPanelProps) {
                   id={`filter-${filter.key}`}
                   label={filter.label}
                   checked={value === 'true'}
-                  onChange={(e) => set(filter.key, e.target.checked ? 'true' : null)}
+                  onCheckedChange={(checked) => set(filter.key, checked ? 'true' : null)}
                 />
               )}
             </div>

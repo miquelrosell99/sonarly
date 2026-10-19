@@ -71,7 +71,7 @@ function SidebarSettings() {
               <Checkbox
                 id={`sidebar-item-${item.id}`}
                 checked={item.visible}
-                onChange={() => toggleVisible(index)}
+                onCheckedChange={() => toggleVisible(index)}
                 label={itemLabel(item)}
               />
 

@@ -442,7 +442,7 @@ export function SharePlaylistModal({
                 description="Anyone with an account can view this playlist."
                 checked={isPublic}
                 disabled={busy}
-                onChange={(e) => handleTogglePublic(e.target.checked)}
+                onCheckedChange={(checked) => handleTogglePublic(checked)}
               />
             </div>
 
@@ -570,7 +570,7 @@ export function SharePlaylistModal({
                     description="Anyone with the link can download the playlist's tracks (ZIP packs and single files)."
                     checked={playlist.shareDownload === true}
                     disabled={busy}
-                    onChange={(e) => void handleToggleDownload(e.target.checked)}
+                    onCheckedChange={(checked) => void handleToggleDownload(checked)}
                   />
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">

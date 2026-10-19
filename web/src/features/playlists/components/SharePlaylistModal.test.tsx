@@ -59,8 +59,8 @@ describe('SharePlaylistModal allow-download switch', () => {
     renderModal(makePlaylist({ shareDownload: true }));
     await openLinksTab();
 
-    const toggle = screen.getByRole('checkbox', { name: /allow download/i }) as HTMLInputElement;
-    expect(toggle.checked).toBe(true);
+    const toggle = screen.getByRole('checkbox', { name: /allow download/i });
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
   });
 
   it('PATCHes the flag without rotating the token and refreshes', async () => {

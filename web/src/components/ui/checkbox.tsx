@@ -4,17 +4,13 @@
 // corners, no default shadow, focus ring ring-2/offset-1 from --ring; the
 // chrome check icon rides the fleet Icon primitive (mdi sprite), not lucide.
 //
-// Checkbox is the APP's labeled primitive (the old components/ui/Checkbox):
-// a native <input type="checkbox"> with label/description/indeterminate
-// and the full InputHTMLAttributes contract — call sites rely on the native
-// onChange event (e.target.checked) and form participation, which Radix's
-// checked/onCheckedChange model does not preserve without churn, so it stays
-// a native input. New code that needs a bare control composes
-// CheckboxControl; migrating the labeled wrapper to it is a touch-point
-// follow-up.
+// Checkbox is the APP's labeled primitive, composed on CheckboxControl since
+// the 2026-10-19 migration (it was a native <input type="checkbox">): the
+// label/description anatomy and the indeterminate convenience prop stay, but
+// the checked/onCheckedChange contract is Radix's (boolean delta, no native
+// event) — call sites migrated in the same pass.
 "use client"
 
-import { useRef, useEffect } from 'react';
 import * as React from "react"
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
 
@@ -24,7 +20,7 @@ import { Icon } from './Icon.js';
 const CheckboxControl = React.forwardRef<
   React.ElementRef<typeof CheckboxPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => (
   <CheckboxPrimitive.Root
     ref={ref}
     className={cn(
@@ -36,61 +32,59 @@ const CheckboxControl = React.forwardRef<
     <CheckboxPrimitive.Indicator
       className={cn("grid place-content-center text-current")}
     >
-      <Icon name="mdi-check" size={12} />
+      {children ?? <Icon name="mdi-check" size={12} />}
     </CheckboxPrimitive.Indicator>
   </CheckboxPrimitive.Root>
 ))
 CheckboxControl.displayName = CheckboxPrimitive.Root.displayName
 
-interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
+interface CheckboxProps
+  extends Omit<
+    React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>,
+    'checked' | 'onCheckedChange'
+  > {
   label?: React.ReactNode;
   description?: React.ReactNode;
   indeterminate?: boolean;
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
 }
 
-export function Checkbox({ label, description, className, id, indeterminate, ...props }: CheckboxProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.indeterminate = indeterminate ?? false;
-    }
-  }, [indeterminate]);
-
+export function Checkbox({
+  label,
+  description,
+  className,
+  id,
+  indeterminate,
+  checked,
+  onCheckedChange,
+  disabled,
+  ...props
+}: CheckboxProps) {
+  // The labeled wrapper keeps the app's checkbox register (20px box,
+  // outline border until checked); CheckboxControl's own catalog look is
+  // for bare controls.
   return (
     <label
       htmlFor={id}
       className={cn(
         'group -m-3 flex cursor-pointer items-start gap-3 p-3',
-        props.disabled && 'cursor-not-allowed opacity-60',
+        disabled && 'cursor-not-allowed opacity-60',
         className,
       )}
     >
-      <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
-        <input
-          ref={inputRef}
-          id={id}
-          type="checkbox"
-          className="peer sr-only"
-          {...props}
-        />
-        <span
-          className={cn(
-            'absolute inset-0 rounded-input border border-outline bg-surface transition',
-            'peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-background',
-            'peer-checked:border-primary peer-checked:bg-primary',
-            indeterminate && 'border-primary bg-primary',
-          )}
-        />
-        <Icon
-          name="mdi-check"
-          size={14}
-          className={cn(
-            'relative z-10 text-on-primary opacity-0 transition peer-checked:opacity-100',
-            indeterminate && 'opacity-100',
-          )}
-        />
-      </div>
+      <CheckboxControl
+        id={id}
+        disabled={disabled}
+        checked={indeterminate ? 'indeterminate' : (checked ?? false)}
+        onCheckedChange={(state) => onCheckedChange?.(state === true)}
+        className="h-5 w-5 rounded-input border-outline bg-surface data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary"
+        {...props}
+      >
+        <CheckboxPrimitive.Indicator className="grid place-content-center text-current">
+          <Icon name="mdi-check" size={14} className="text-on-primary" />
+        </CheckboxPrimitive.Indicator>
+      </CheckboxControl>
       {(label || description) && (
         <div className="flex flex-col">
           {label && <span className="text-sm font-medium text-on-surface">{label}</span>}

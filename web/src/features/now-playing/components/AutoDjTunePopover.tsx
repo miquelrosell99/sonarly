@@ -231,7 +231,7 @@ export function AutoDjTunePopover({ anchorRef, open, onClose }: AutoDjTunePopove
         <Checkbox
           id="autodj-tune-favorites"
           checked={preferFavorites}
-          onChange={(e) => updatePreferences.mutate({ autoDjPreferFavorites: e.target.checked })}
+          onCheckedChange={(checked) => updatePreferences.mutate({ autoDjPreferFavorites: checked })}
           label="Prefer favorites"
         />
 

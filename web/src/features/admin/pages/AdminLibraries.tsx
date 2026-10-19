@@ -321,7 +321,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
             <Checkbox
               id="lib-is-default"
               checked={form.isDefault}
-              onChange={(e) => updateForm({ isDefault: e.target.checked })}
+              onCheckedChange={(checked) => updateForm({ isDefault: checked })}
               label="Default library"
               description="Used when no library is selected for ingest or upload."
             />
@@ -396,7 +396,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
             <Checkbox
               id="edit-lib-is-default"
               checked={editForm.isDefault}
-              onChange={(e) => setEditForm((prev) => ({ ...prev, isDefault: e.target.checked }))}
+              onCheckedChange={(checked) => setEditForm((prev) => ({ ...prev, isDefault: checked }))}
               label="Default library"
               description="Used when no library is selected for ingest or upload."
             />
@@ -489,7 +489,7 @@ function LibraryUsersSection({ libraryId }: { libraryId: string }) {
                 label={u.username}
                 description={u.isAdmin ? 'Administrator' : 'User'}
                 checked={assignedSet.has(u.id)}
-                onChange={(e) => toggle(u.id, e.target.checked)}
+                onCheckedChange={(checked) => toggle(u.id, checked)}
                 disabled={busy}
               />
             </li>
