@@ -14,19 +14,17 @@ const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8');
 
 type Hsl = [number, number, number];
 
-function themeBlock(name: string): string {
-  const start = css.indexOf(`.${name} {`);
-  if (start === -1) throw new Error(`theme block .${name} not found in index.css`);
+function themeBlock(selector: string): string {
+  const start = css.indexOf(`${selector} {`);
+  if (start === -1) throw new Error(`theme block ${selector} not found in index.css`);
   const end = css.indexOf('}', start);
   return css.slice(start, end);
 }
 
-// Light rides the shared `:root, .theme-light` block.
+// Light rides :root (the first theme block; the alias-layer and picker-ramp
+// :root blocks come later and carry no theme roles).
 function lightBlock(): string {
-  const start = css.indexOf('.theme-light {');
-  if (start === -1) throw new Error('theme block .theme-light not found in index.css');
-  const end = css.indexOf('}', start);
-  return css.slice(start, end);
+  return themeBlock(':root');
 }
 
 function token(block: string, name: string): Hsl {
@@ -64,8 +62,8 @@ const AA_TEXT = 4.5;
 
 const THEMES: [string, () => string][] = [
   ['light', lightBlock],
-  ['dark', () => themeBlock('theme-dark')],
-  ['oled', () => themeBlock('theme-oled')],
+  ['dark', () => themeBlock("[data-theme='dark']")],
+  ['oled', () => themeBlock("[data-oled='true']")],
 ];
 
 for (const [theme, blockFor] of THEMES) {

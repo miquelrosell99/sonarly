@@ -3,8 +3,7 @@
 @tailwind utilities;
 
 @layer base {
-  :root,
-  .theme-light {
+  :root {
     color-scheme: light;
     /* Signal Archive light theme expressed as canonical Material You color
        roles (rosellramos-design-system law/spec.md §2; owner ruling
@@ -13,7 +12,11 @@
        pre-migration tokens (register: .agents/design-overrides.md; canonical
        doc: docs/design-language.md). Triplets: consumed as
        hsl(var(--md-sys-color-*) / <alpha-value>) via tailwind.config.js.
-       Hex provenance: brand-identity/sonarly/kit/B/tokens/tokens.css. */
+       Hex provenance: brand-identity/sonarly/kit/B/tokens/tokens.css.
+       The appearance seam is the canonical data-attribute trio
+       (constitution default 1): :root carries light (the no-JS fallback),
+       [data-theme='dark'] / [data-oled='true'] override, and the
+       [data-accent] blocks swap the seed. */
     --md-sys-color-background: 45 19% 92%;
     --md-sys-color-on-background: 30 35% 10%;
     --md-sys-color-surface: 0 0% 100%;
@@ -107,7 +110,7 @@
     --md-sys-color-pressed-overlay: 0 0% 0%;
   }
 
-  .theme-dark {
+  [data-theme='dark'] {
     color-scheme: dark;
     /* Signal Archive dark theme: Archive Ink ground, lightened copper.
        Surfaces stay near-neutral so any user accent (not just copper)
@@ -150,8 +153,9 @@
     --md-sys-color-pressed-overlay: 0 0% 100%;
   }
 
-  .theme-oled {
-    color-scheme: dark;
+  /* OLED re-blacks the ground on top of dark (data-oled='true' is only ever
+     painted alongside data-theme='dark'; the resolver guarantees it). */
+  [data-oled='true'] {
     /* OLED keeps a pure-black ground; surfaces neutral-warm so accents
        stay clean, per the dark theme. */
     --md-sys-color-background: 0 0% 0%;
@@ -243,16 +247,22 @@
   }
 }
 
-/* Accent palette overrides. DELIBERATELY outside @layer base: Tailwind 3.4
+/* Accent palette — the canonical [data-accent] seam (constitution default 1:
+   ONE writer, themeStore.apply(), plus the pre-paint bootstrap mirror;
+   owner ruling 2026-10-19). DELIBERATELY outside @layer base: Tailwind 3.4
    intermittently drops small hand-written rule runs inside layers; unlayered
    CSS passes through untouched and, per the cascade, beats @layer base —
    which is exactly what an override wants.
    Five accents only (owner decision 2026-10-08): Copper (brand default),
    Green, Purple, Blue, Monochrome. Each block sets ONLY
-   --md-sys-color-primary; saturated hues lighten on dark/OLED grounds
-   (copper precedent) so the ground-colored on-primary label keeps WCAG AA;
+   --md-sys-color-primary (law/spec.md §3: one seed, no accent track — every
+   derived primary role re-evaluates through the color-mix expressions);
+   on-primary is bound to the background role, so the ground-colored label
+   contract needs no per-preset pair. Saturated hues lighten on dark/OLED
+   grounds (copper precedent) so the on-primary label keeps WCAG AA;
    light-mode values are tuned down so on-primary on the accent also meets
-   AA (verified against the theme math). */
+   AA (verified against the theme math). The --accent-* vars hold the
+   curated picker ramp (identity values, registered). */
 :root {
   --accent-copper: 26 69% 36%;
   --accent-green: 142 71% 27%;
@@ -260,38 +270,34 @@
   --accent-blue: 217 100% 47%;
 }
 
-.accent-copper {
+[data-accent='copper'] {
   --md-sys-color-primary: var(--accent-copper);
 }
 /* Echo Copper lightens on dark grounds so signals stay visible (kit tones). */
-.theme-dark.accent-copper,
-.theme-oled.accent-copper {
+[data-theme='dark'][data-accent='copper'] {
   --md-sys-color-primary: 25 68% 56%;
 }
-.accent-green {
+[data-accent='green'] {
   --md-sys-color-primary: var(--accent-green);
 }
-.theme-dark.accent-green,
-.theme-oled.accent-green {
+[data-theme='dark'][data-accent='green'] {
   --md-sys-color-primary: 142 71% 47%;
 }
-.accent-purple {
+[data-accent='purple'] {
   --md-sys-color-primary: var(--accent-purple);
 }
-.theme-dark.accent-purple,
-.theme-oled.accent-purple {
+[data-theme='dark'][data-accent='purple'] {
   --md-sys-color-primary: 270 60% 72%;
 }
-.accent-blue {
+[data-accent='blue'] {
   --md-sys-color-primary: var(--accent-blue);
 }
-.theme-dark.accent-blue,
-.theme-oled.accent-blue {
+[data-theme='dark'][data-accent='blue'] {
   --md-sys-color-primary: 217 100% 67%;
 }
 /* Monochrome: the accent IS the foreground, so on-primary text is
    --md-sys-color-background in every theme — contrast holds by construction. */
-.accent-monochrome {
+[data-accent='monochrome'] {
   --md-sys-color-primary: var(--md-sys-color-on-surface);
 }
 

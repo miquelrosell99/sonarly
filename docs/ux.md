@@ -16,7 +16,7 @@ The app is a full-height shell with four regions:
 - **Modes.** Light (archival paper), dark (Archive Ink), and OLED themes (Settings → Appearance). OLED keeps a pure-black ground with warm-tinted surfaces. The default accent is Echo Copper, the Signal Archive brand signal; nine other palette accents are user-overridable.
 - **Ambient color.** The player chrome tints itself from a muted dominant color sampled from the current album art — a gradient line above the player bar and a soft background wash. It is subtle by design; it never competes with the artwork.
 - **Typography.** Bricolage Grotesque for display and UI text (page titles, the player track title, labels, buttons), IBM Plex Mono for durations, counters, timestamps, and catalogue metadata.
-- **Surfaces.** Rounded cards with soft shadows for artwork; muted text for navigation; a thin accent indicator on the active sidebar item. Components use the design tokens (`--bg-primary`, `--surface`, `--accent`, …), not raw colors.
+- **Surfaces.** Rounded cards with soft shadows for artwork; muted text for navigation; a thin accent indicator on the active sidebar item. Components use the design tokens (`--md-sys-color-background`, `--md-sys-color-surface`, `--md-sys-color-primary`, …), not raw colors.
 
 | Home (dark) | Now Playing (dark) |
 |---|---|

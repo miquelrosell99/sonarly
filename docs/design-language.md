@@ -25,27 +25,29 @@ The warm ground is specific to music apps: the user's album artwork is the actua
 
 ## Color tokens
 
-Semantic CSS custom properties in HSL. All components should use these tokens, not raw hex values.
+Semantic CSS custom properties in HSL, named as canonical Material You roles (`--md-sys-color-*`, RosellRamos design system law/spec.md §2; single-track migration owner ruling 2026-10-19). All components use these tokens (or the Tailwind utilities mapped to them), not raw hex values.
 
 | Token | Light | Dark | OLED | Usage |
 |---|---|---|---|---|
-| `--bg-primary` | `#EEECE6` | `#171513` | `#000000` | App background (archival paper / archive ink) |
-| `--surface` | `#FFFFFF` | `#322920` | `#17130E`-ish | Cards, sidebar, panels |
-| `--surface-hover` | `#E4E2DC` | `#493F35` | warmer step | Hover states |
-| `--rule` | `#CFCBC1` | `#5D534A` | warmer step | Borders, dividers |
-| `--fg-primary` | `#231A11` | `#F4F3F1` | near-white | Primary text |
-| `--fg-secondary` | `#5D534A` | `#D7D3CF` | muted step | Muted/caption text |
-| `--muted` | `#5D534A` | `#D7D3CF` | muted step | Same values as `--fg-secondary` |
-| `--accent` | `#9B541C` | `#DB8342` | `#DB8342` | Active links, play buttons, focus rings. Default accent is Echo Copper (see Configurable accent) |
+| `--md-sys-color-background` | `#EEECE6` | `#171513` | `#000000` | App background (archival paper / archive ink) |
+| `--md-sys-color-surface` | `#FFFFFF` | `#322920` | `#17130E`-ish | Cards, sidebar, panels |
+| `--md-sys-color-surface-container-high` | `#E4E2DC` | `#493F35` | warmer step | Hover states (the app's one step-up surface) |
+| `--md-sys-color-outline` / `-outline-variant` | `#CFCBC1` | `#5D534A` | warmer step | Borders, dividers (one rule register, both roles) |
+| `--md-sys-color-on-surface` | `#231A11` | `#F4F3F1` | near-white | Primary text |
+| `--md-sys-color-on-surface-variant` | `#5D534A` | `#D7D3CF` | muted step | Muted/caption text |
+| `--md-sys-color-primary` | `#9B541C` | `#DB8342` | `#DB8342` | Active links, play buttons, focus rings. Default accent is Echo Copper (see Configurable accent). Labels on primary use `--md-sys-color-on-primary`, bound to the background role (the ground-colored-label contract) |
+| `--md-sys-color-on-primary` | = background | = background | = background | Text/icons on accent fills |
+
+Legacy mapping (pre-2026-10-19 names, for git-history archaeology): `--bg-primary` → `--md-sys-color-background`, `--surface` → `--md-sys-color-surface`, `--surface-hover` → `--md-sys-color-surface-container-high`, `--rule` → `--md-sys-color-outline(-variant)`, `--fg-primary` → `--md-sys-color-on-surface`, `--fg-secondary`/`--muted` → `--md-sys-color-on-surface-variant`, `--accent` → `--md-sys-color-primary`, `--danger` → `--md-sys-color-error`.
 
 Semantic palette (lightness set so 14px text meets WCAG AA on surfaces; verified in `web/src/theme-contrast.test.ts`):
 
 | Token | Light | Dark/OLED | Usage |
 |---|---|---|---|
-| `--danger` | `#B4312B` | `#FE8477` | Errors, destructive actions |
-| `--success` | `#08795E` | `#3FC6A0` | Confirmations |
-| `--warning` | `#895D06` | `#C9AA37` | Cautions |
-| `--info` | `#196AAF` | `#66B2FD` | Informational |
+| `--md-sys-color-error` | `#B4312B` | `#FE8477` | Errors, destructive actions |
+| `--md-sys-color-success` | `#08795E` | `#3FC6A0` | Confirmations |
+| `--md-sys-color-warning` | `#895D06` | `#C9AA37` | Cautions |
+| `--md-sys-color-info` | `#196AAF` | `#66B2FD` | Informational |
 
 Data (chart) palette, consumed by the statistics pages via `var(--chart-1)`…`var(--chart-10)` (unchanged by the brand — dataviz hues stay distinguishable):
 
@@ -64,15 +66,15 @@ Data (chart) palette, consumed by the statistics pages via `var(--chart-1)`…`v
 
 ### Configurable accent
 
-The default accent is **Echo Copper** — the brand's single signal (owner decision 2026-10-07, superseding the launch-day monochrome default). Settings → Appearance offers the RosellRamos-curated five (owner trim 2026-10-15, commit `65b154d`): the brand accent plus **Monochrome** (`--accent` follows `--fg-primary`) and three curated hues.
+The default accent is **Echo Copper** — the brand's single signal (owner decision 2026-10-07, superseding the launch-day monochrome default). Settings → Appearance offers the RosellRamos-curated five (owner trim 2026-10-15, commit `65b154d`): the brand accent plus **Monochrome** (the seed follows `--md-sys-color-on-surface`) and three curated hues.
 
 | Accent | Token | Sample |
 |---|---|---|
-| Copper | `--accent-copper` | `#9B541C` (light) / `#DB8342` (dark) |
-| Green | `--accent-green` | `#21C45D` |
-| Purple | `--accent-purple` | `#8C40D9` |
-| Blue | `--accent-blue` | `#0066FF` |
-| Monochrome | `--fg-primary` | — |
+| Copper | `--accent-copper` → `[data-accent='copper']` | `#9B541C` (light) / `#DB8342` (dark) |
+| Green | `--accent-green` → `[data-accent='green']` | `#21C45D` |
+| Purple | `--accent-purple` → `[data-accent='purple']` | `#8C40D9` |
+| Blue | `--accent-blue` → `[data-accent='blue']` | `#0066FF` |
+| Monochrome | follows `--md-sys-color-on-surface` | — |
 
 Users can override the accent through Settings → Appearance. Always test a custom accent against all three modes.
 
@@ -131,7 +133,7 @@ Implementation: `web/src/hooks/useDominantColor.ts` samples cover art via an off
 
 ## Modes
 
-Light, dark, and OLED modes are supported via `theme-light`, `theme-dark`, and `theme-oled` classes on `<html>`. Dark is Archive Ink (`#171513`); OLED keeps a pure-black ground (`#000000`) for battery life, with warm-tinted surfaces so it still belongs to the brand.
+Light, dark, and OLED modes are supported via the canonical appearance seam — `data-theme` (light/dark), `data-oled="true"`, and `data-accent` attributes on `<html>`, written by the one runtime writer (`useTheme.apply()`) and mirrored by the pre-paint bootstrap in `index.html` (parity-tested). Dark is Archive Ink (`#171513`); OLED keeps a pure-black ground (`#000000`) for battery life, with warm-tinted surfaces so it still belongs to the brand.
 
 ## Rejected alternatives
 

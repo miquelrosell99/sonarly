@@ -12,6 +12,10 @@ import {
   CANVAS_PAINT_RE,
   HEX_RE,
   VAR_FALLBACK_RE,
+  MD_SYS_COLOR_ROLES,
+  LEGACY_VAR_RE,
+  LEGACY_CLASS_RE,
+  LEGACY_THEME_CLASS_RE,
 } from './token-drift.mjs';
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -36,13 +40,40 @@ describe('token-drift detectors', () => {
     ).toEqual([]);
   });
 
-  it('flags default palette hues but not Sonarly token colors', () => {
+  it('flags default palette hues but not canonical role colors', () => {
     expect(matches(PALETTE_RE, 'bg-slate-900 text-red-500 ring-blue-200')).toEqual([
       'bg-slate-900',
       'text-red-500',
       'ring-blue-200',
     ]);
-    expect(matches(PALETTE_RE, 'bg-surface text-fg-primary border-rule bg-accent text-danger')).toEqual([]);
+    expect(
+      matches(PALETTE_RE, 'bg-surface text-on-surface border-outline bg-primary text-error'),
+    ).toEqual([]);
+  });
+
+  it('enforces the canonical md-sys role family', () => {
+    expect(MD_SYS_COLOR_ROLES.has('surface-container-high')).toBe(true);
+    expect(MD_SYS_COLOR_ROLES.has('hover-overlay')).toBe(true);
+    expect(MD_SYS_COLOR_ROLES.has('sidebar-card')).toBe(false);
+  });
+
+  it('flags legacy pre-migration names but spares the picker ramp vars', () => {
+    expect(matches(LEGACY_VAR_RE, '--bg-primary: 1 2% 3%; --rule: 1 2% 3%; --accent-copper: 1 2% 3%;'))
+      .toEqual(['--bg-primary', '--rule']);
+    expect(
+      matches(LEGACY_CLASS_RE, 'bg-bg-primary text-muted border-rule bg-accent text-danger'),
+    ).toEqual(['bg-bg-primary', 'text-muted', 'border-rule', 'bg-accent', 'text-danger']);
+    expect(matches(LEGACY_CLASS_RE, 'bg-background text-on-surface border-outline bg-primary')).toEqual(
+      [],
+    );
+    expect(matches(LEGACY_THEME_CLASS_RE, 'theme-dark accent-purple .theme-oled .accent-cyan')).toEqual([
+      'theme-dark',
+      'accent-purple',
+      'theme-oled',
+      'accent-cyan',
+    ]);
+    // The curated picker ramp vars are registered identity values, not classes.
+    expect(matches(LEGACY_THEME_CLASS_RE, '--accent-copper hsl(var(--accent-green))')).toEqual([]);
   });
 
   it('flags arbitrary px/rem/em font sizes', () => {
@@ -112,6 +143,10 @@ describe('token-drift on a fixture tree', () => {
         '.bad { color: #db8243; font-size: 13px; border-radius: 6px; }',
         '.fallback { color: var(--accent, #fff); }',
         '.unknown { color: var(--does-not-exist); }',
+        '.legacy { color: hsl(var(--bg-primary)); }',
+        '.legacy-class { color: hsl(var(--accent)); } .legacy-class.border { border-color: hsl(var(--rule)); }',
+        '.theme-dark { color: red; } .accent-purple { color: red; }',
+        ':root { --md-sys-color-sidebar-card: 1 2% 3%; }',
       ].join('\n'),
       tsx: {
         'App.tsx': [
@@ -119,6 +154,8 @@ describe('token-drift on a fixture tree', () => {
           'const b = "bg-slate-900";', // line 2
           'const c = "text-[11px]";', // line 3
           'const d = "min-[500px]:";', // line 4 — off-grid, unregistered owner
+          'const e = "bg-bg-primary text-muted border-rule";', // line 5 — legacy stems
+          'const f = "theme-dark accent-purple";', // line 6 — legacy class seam
         ].join('\n'),
       },
     });
@@ -129,13 +166,19 @@ describe('token-drift on a fixture tree', () => {
     expect(rules).toContain('css/px-border-radius');
     expect(rules).toContain('css/color-literal-in-fallback');
     expect(rules).toContain('css/unresolved-var');
+    expect(rules).toContain('css/legacy-token');
+    expect(rules).toContain('css/legacy-class');
+    expect(rules).toContain('css/md-sys-namespace');
     expect(rules).toContain('tsx/raw-radius');
     expect(rules).toContain('tsx/default-palette');
     expect(rules).toContain('tsx/arbitrary-font-size');
     expect(rules).toContain('tsx/off-grid-breakpoint');
+    expect(rules).toContain('tsx/legacy-class');
     const offGrid = result.violations.find((v) => v.rule === 'tsx/off-grid-breakpoint');
     expect(offGrid.file).toBe('src/App.tsx');
     expect(offGrid.line).toBe(4);
+    const mdSys = result.violations.find((v) => v.rule === 'css/md-sys-namespace');
+    expect(mdSys.snippet).toBe('--md-sys-color-sidebar-card');
     expect(result.ok).toBe(false);
   });
 
