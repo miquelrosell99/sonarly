@@ -16,6 +16,7 @@ import {
   LEGACY_VAR_RE,
   LEGACY_CLASS_RE,
   LEGACY_THEME_CLASS_RE,
+  LEGACY_TOKEN_READ_RE,
 } from './token-drift.mjs';
 
 const webRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -74,6 +75,13 @@ describe('token-drift detectors', () => {
     ]);
     // The curated picker ramp vars are registered identity values, not classes.
     expect(matches(LEGACY_THEME_CLASS_RE, '--accent-copper hsl(var(--accent-green))')).toEqual([]);
+    // Runtime token reads must cite canonical roles.
+    expect(
+      matches(
+        LEGACY_TOKEN_READ_RE,
+        "getPropertyValue('--fg-primary') getPropertyValue(\"--rule\") getPropertyValue('--md-sys-color-on-surface')",
+      ),
+    ).toEqual(["getPropertyValue('--fg-primary')", 'getPropertyValue("--rule")']);
   });
 
   it('flags arbitrary px/rem/em font sizes', () => {
@@ -156,6 +164,7 @@ describe('token-drift on a fixture tree', () => {
           'const d = "min-[500px]:";', // line 4 — off-grid, unregistered owner
           'const e = "bg-bg-primary text-muted border-rule";', // line 5 — legacy stems
           'const f = "theme-dark accent-purple";', // line 6 — legacy class seam
+          "const g = getPropertyValue('--fg-primary');", // line 7 — legacy runtime read
         ].join('\n'),
       },
     });
@@ -174,6 +183,7 @@ describe('token-drift on a fixture tree', () => {
     expect(rules).toContain('tsx/arbitrary-font-size');
     expect(rules).toContain('tsx/off-grid-breakpoint');
     expect(rules).toContain('tsx/legacy-class');
+    expect(rules).toContain('tsx/legacy-token-read');
     const offGrid = result.violations.find((v) => v.rule === 'tsx/off-grid-breakpoint');
     expect(offGrid.file).toBe('src/App.tsx');
     expect(offGrid.line).toBe(4);
