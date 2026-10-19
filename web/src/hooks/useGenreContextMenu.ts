@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import type { Song } from '../types';
-import type { ContextMenuSection } from '../components/ItemContextMenu.js';
+import type { ContextMenuSection } from '../features/entities/ItemContextMenu.js';
 import { api } from '../lib/api.js';
 import { downloadSongs } from '../lib/download.js';
 import { getShareToken } from '../lib/shareToken.js';

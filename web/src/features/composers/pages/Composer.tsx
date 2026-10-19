@@ -2,8 +2,8 @@ import type { ReactNode } from 'react';
 import { useParams } from 'wouter';
 
 import { Button } from '../../../components/ui/button.js';
-import { EntityDetail } from '../../../components/EntityDetail.js';
-import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
+import { EntityDetail } from '../../entities/EntityDetail.js';
+import { ItemContextMenu } from '../../entities/ItemContextMenu.js';
 import { PlayButton } from '../../../components/PlayButton.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { usePlayShuffleMenuSections } from '../../../hooks/usePlayShuffleMenuSections.js';

@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import type { AutoDjMode, User } from '../../../types';
 import { LibraryView, type LibraryViewColumn } from '../../library-view/index.js';
 import { Icon } from '../../../components/ui/Icon.js';
-import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
+import { ItemContextMenu } from '../../entities/ItemContextMenu.js';
 import { cn } from '../../../lib/cn.js';
 import { usePlayer, type PlayerSong } from '../../../stores/playerStore.js';
 import { useAutoDjUi } from '../../../stores/autoDjStore.js';

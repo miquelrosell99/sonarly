@@ -13,7 +13,7 @@ import {
 } from './ui/select.js';
 import { Modal } from './ui/Modal.js';
 import { Icon } from './ui/Icon.js';
-import { CoverArt } from './CoverArt.js';
+import { CoverArt } from '../features/entities/CoverArt.js';
 
 type EntityType = 'song' | 'album' | 'artist';
 

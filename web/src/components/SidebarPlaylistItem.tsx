@@ -5,7 +5,7 @@ import type { Playlist } from '../types';
 import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
-import { ItemContextMenu } from './ItemContextMenu.js';
+import { ItemContextMenu } from '../features/entities/ItemContextMenu.js';
 import { ConfirmModal } from './ui/ConfirmModal.js';
 import { SharePlaylistModal } from '../features/playlists/index.js';
 import { usePlaylistContextMenu } from '../hooks/usePlaylistContextMenu.js';

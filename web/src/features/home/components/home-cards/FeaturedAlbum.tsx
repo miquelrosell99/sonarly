@@ -4,7 +4,7 @@ import type { Album } from '../../../../types';
 import { api } from '../../../../lib/api.js';
 import { Icon } from '../../../../components/ui/Icon.js';
 import { Button } from '../../../../components/ui/button.js';
-import { CoverArt } from '../../../../components/CoverArt.js';
+import { CoverArt } from '../../../entities/CoverArt.js';
 import { usePlayActions } from '../../../../hooks/usePlayActions.js';
 import { useDominantColor } from '../../../../hooks/useDominantColor.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../../stores/libraryStore.js';

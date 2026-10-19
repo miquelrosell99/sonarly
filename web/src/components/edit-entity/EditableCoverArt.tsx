@@ -1,5 +1,5 @@
 import { cn } from '../../lib/cn.js';
-import { CoverArt } from '../CoverArt.js';
+import { CoverArt } from '../../features/entities/CoverArt.js';
 import { Icon } from '../ui/Icon.js';
 
 export function EditableCoverArt({

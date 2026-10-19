@@ -3,7 +3,7 @@ import type { User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/button.js';
 import { Input } from '../../../components/ui/input.js';
-import { Avatar } from '../../../components/Avatar.js';
+import { Avatar } from '../../entities/Avatar.js';
 
 interface ProfileFormProps {
   user: User;

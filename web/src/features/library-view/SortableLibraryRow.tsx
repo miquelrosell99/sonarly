@@ -2,7 +2,7 @@ import type { MouseEvent, ReactNode } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cn } from '../../lib/cn.js';
-import { ListRow } from '../../components/ListRow.js';
+import { ListRow } from '../entities/ListRow.js';
 import type { LibraryViewColumn } from './types.js';
 
 interface SortableLibraryRowProps<T> {

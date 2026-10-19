@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
-import { cn } from '../lib/cn.js';
+import { cn } from '../../lib/cn.js';
 import { EntityHeader } from './EntityHeader.js';
-import { PageState } from './PageState.js';
+import { PageState } from '../../components/PageState.js';
 import { type MetadataItem } from './MetadataBreadcrumb.js';
-import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 
 export interface EntityDetailProps {
   isLoading?: boolean;

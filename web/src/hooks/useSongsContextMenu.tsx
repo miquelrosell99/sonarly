@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import type { Song } from '../types';
 import { useLocation } from 'wouter';
-import type { ContextMenuSection } from '../components/ItemContextMenu.js';
+import type { ContextMenuSection } from '../features/entities/ItemContextMenu.js';
 import { ConfirmModal } from '../components/ui/ConfirmModal.js';
 import { api } from '../lib/api.js';
 import { downloadSongs } from '../lib/download.js';

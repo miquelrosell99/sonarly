@@ -10,7 +10,7 @@ import { useCreatePlaylistModal } from '../../../hooks/useCreatePlaylistModal.js
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../library-view/index.js';
 import { usePlaylistContextMenu } from '../../../hooks/usePlaylistContextMenu.js';
-import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
+import { ItemContextMenu } from '../../entities/ItemContextMenu.js';
 import { PlaylistCoverGrid } from '../components/PlaylistCoverGrid.js';
 
 function PlaylistContextMenu({

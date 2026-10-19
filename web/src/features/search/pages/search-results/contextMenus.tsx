@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Artist, Playlist, Song } from '../../../../types';
-import { ItemContextMenu } from '../../../../components/ItemContextMenu.js';
+import { ItemContextMenu } from '../../../entities/ItemContextMenu.js';
 import { useAlbumContextMenu, type AlbumMenuTarget } from '../../../../hooks/useAlbumContextMenu.js';
 import { useArtistContextMenu } from '../../../../hooks/useArtistContextMenu.js';
 import { usePlaylistContextMenu } from '../../../../hooks/usePlaylistContextMenu.js';

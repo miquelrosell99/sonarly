@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import { cn } from '../lib/cn.js';
+import { cn } from '../../lib/cn.js';
 
 export interface MetadataItem {
   label: string;

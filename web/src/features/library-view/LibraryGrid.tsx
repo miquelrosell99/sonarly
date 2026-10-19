@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
-import { Card } from '../../components/Card.js';
-import { CoverArt } from '../../components/CoverArt.js';
+import { Card } from '../entities/Card.js';
+import { CoverArt } from '../entities/CoverArt.js';
 import { VirtualGrid } from '../../components/ui/VirtualGrid.js';
 import type { LibraryViewCardField } from './types.js';
 

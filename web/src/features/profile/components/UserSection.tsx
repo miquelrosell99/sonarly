@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { User } from '../../../types';
-import { Avatar } from '../../../components/Avatar.js';
+import { Avatar } from '../../entities/Avatar.js';
 
 interface UserSectionProps {
   user: User;

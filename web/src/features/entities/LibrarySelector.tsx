@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Library } from '../types';
-import { cn } from '../lib/cn.js';
-import { Icon } from './ui/Icon.js';
+import type { Library } from '../../types';
+import { cn } from '../../lib/cn.js';
+import { Icon } from '../../components/ui/Icon.js';
 
 interface LibrarySelectorProps {
   libraries: Library[];

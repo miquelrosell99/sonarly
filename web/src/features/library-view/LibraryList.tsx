@@ -10,7 +10,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { cn } from '../../lib/cn.js';
-import { ListRow } from '../../components/ListRow.js';
+import { ListRow } from '../entities/ListRow.js';
 import { startSongsDrag } from '../../lib/dragSongs.js';
 import { VirtualList } from '../../components/ui/VirtualList.js';
 import { SortableLibraryRow } from './SortableLibraryRow.js';

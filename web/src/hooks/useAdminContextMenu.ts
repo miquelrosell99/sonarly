@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { ContextMenuSection } from '../components/ItemContextMenu.js';
+import type { ContextMenuSection } from '../features/entities/ItemContextMenu.js';
 
 export function useAdminContextMenu(sections: ContextMenuSection[], isAdmin: boolean): ContextMenuSection[] {
   return useMemo(() => {

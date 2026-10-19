@@ -1,10 +1,10 @@
 import { useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
-import { Icon } from './ui/Icon.js';
-import { api } from '../lib/api.js';
-import { cn } from '../lib/cn.js';
-import { usePlayer, type PlayerSong } from '../stores/playerStore.js';
-import { useNotification } from '../contexts/NotificationContext.js';
+import { Icon } from '../../components/ui/Icon.js';
+import { api } from '../../lib/api.js';
+import { cn } from '../../lib/cn.js';
+import { usePlayer, type PlayerSong } from '../../stores/playerStore.js';
+import { useNotification } from '../../contexts/NotificationContext.js';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,8 +13,8 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu.js';
-import { formatDateShortMonth } from '../lib/formatDate.js';
+} from '../../components/ui/dropdown-menu.js';
+import { formatDateShortMonth } from '../../lib/formatDate.js';
 
 interface TrackActionsMenuProps {
   song: PlayerSong | null;

@@ -1,14 +1,14 @@
-import { useFilterParams } from '../hooks/useFilterParams.js';
-import { cn } from '../lib/cn.js';
-import { Checkbox } from './ui/checkbox.js';
-import { Input } from './ui/input.js';
+import { useFilterParams } from '../../hooks/useFilterParams.js';
+import { cn } from '../../lib/cn.js';
+import { Checkbox } from '../../components/ui/checkbox.js';
+import { Input } from '../../components/ui/input.js';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from './ui/select.js';
+} from '../../components/ui/select.js';
 
 export type FilterType = 'text' | 'number' | 'select' | 'boolean';
 

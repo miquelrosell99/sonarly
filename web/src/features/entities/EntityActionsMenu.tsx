@@ -1,5 +1,5 @@
-import { cn } from '../lib/cn.js';
-import { Icon } from './ui/Icon.js';
+import { cn } from '../../lib/cn.js';
+import { Icon } from '../../components/ui/Icon.js';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,7 +7,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu.js';
+} from '../../components/ui/dropdown-menu.js';
 import type { ContextMenuSection } from './ItemContextMenu.js';
 
 interface EntityActionsMenuProps {
