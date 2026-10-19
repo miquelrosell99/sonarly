@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Album } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { withShareToken } from '../../../lib/shareToken.js';
-import { CoverArt } from '../../../components/CoverArt.js';
+import { CoverArt } from '../../entities/CoverArt.js';
 import { fillCoverAlbums } from '../../../lib/coverGrid.js';
 
 interface PlaylistCoverGridProps {

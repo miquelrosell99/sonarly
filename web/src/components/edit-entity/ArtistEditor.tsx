@@ -1,4 +1,4 @@
-import { ArtistImage } from '../ArtistImage.js';
+import { ArtistImage } from '../../features/entities/ArtistImage.js';
 import { Input } from '../ui/input.js';
 import { Field, ReadOnlyValue } from './Field.js';
 

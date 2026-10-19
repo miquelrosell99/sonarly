@@ -1,5 +1,5 @@
 import { FavoriteButton, StarRating } from './ActionButtons.js';
-import { cn } from '../lib/cn.js';
+import { cn } from '../../lib/cn.js';
 
 interface FavoriteRatingGroupProps {
   starred?: boolean;

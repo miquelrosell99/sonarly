@@ -12,16 +12,16 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu.js';
 import { api } from '../lib/api.js';
-import { Avatar } from './Avatar.js';
+import { Avatar } from '../features/entities/Avatar.js';
 import { SearchBox } from './SearchBox.js';
 import { BrandMark } from './BrandMark.js';
-import { LibrarySelector } from './LibrarySelector.js';
+import { LibrarySelector } from '../features/entities/LibrarySelector.js';
 import { SponsorButton } from './SponsorButton.js';
 import { UploadModal, UploadResultsModal, type UploadSummary } from './UploadModal.js';
 import { useLibraryStore } from '../stores/libraryStore.js';
 import { usePlaylists } from '../hooks/usePlaylists.js';
 import { useAlbumsList, useLibraries, useSongsList } from '../hooks/useLibraryLists.js';
-import type { FilterDefinition } from './FilterPanel.js';
+import type { FilterDefinition } from '../features/entities/FilterPanel.js';
 import type { PlayerInfo } from '../types';
 
 interface TopBarProps {

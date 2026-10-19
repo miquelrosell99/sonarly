@@ -1,6 +1,6 @@
 import { Link } from 'wouter';
 import type { Song } from '../../../../types';
-import { ExplicitTitle } from '../../../../components/ExplicitTitle.js';
+import { ExplicitTitle } from '../../../entities/ExplicitTitle.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../library-view/index.js';
 import { SONG_COLUMN_CONFIG_KEY } from '../../../songs/components/SongTable.js';
 import { SongContextMenu } from './contextMenus.js';

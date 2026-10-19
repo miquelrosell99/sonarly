@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'wouter';
 import type { Song, User } from '../../../types';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../library-view/index.js';
-import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
+import { ExplicitTitle } from '../../entities/ExplicitTitle.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';

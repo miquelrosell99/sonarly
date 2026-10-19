@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { cn } from '../lib/cn.js';
-import { withShareToken } from '../lib/shareToken.js';
-import { Icon } from './ui/Icon.js';
+import { cn } from '../../lib/cn.js';
+import { withShareToken } from '../../lib/shareToken.js';
+import { Icon } from '../../components/ui/Icon.js';
 
 interface CoverArtProps {
   coverArt?: string;

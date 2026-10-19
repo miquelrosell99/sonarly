@@ -1,4 +1,4 @@
-import { cn } from '../lib/cn.js';
+import { cn } from '../../lib/cn.js';
 import { MetadataBreadcrumb, type MetadataItem } from './MetadataBreadcrumb.js';
 
 interface EntityHeaderProps {

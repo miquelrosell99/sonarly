@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Icon } from './ui/Icon.js';
+import { Icon } from '../../components/ui/Icon.js';
 
 interface ScrollRowProps {
   title: string;

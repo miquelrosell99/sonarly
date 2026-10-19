@@ -6,7 +6,7 @@ import { Input } from './ui/input.js';
 import { useDebounce } from '../hooks/useDebounce.js';
 import { useLibraryStore } from '../stores/libraryStore.js';
 import { useSearchPreview } from '../hooks/useLibraryLists.js';
-import { FilterPanel, type FilterDefinition } from './FilterPanel.js';
+import { FilterPanel, type FilterDefinition } from '../features/entities/FilterPanel.js';
 
 interface ResultItem {
   id: string;

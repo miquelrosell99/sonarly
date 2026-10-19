@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { cn } from '../../../lib/cn.js';
-import { CoverArt } from '../../../components/CoverArt.js';
+import { CoverArt } from '../../entities/CoverArt.js';
 
 interface NowPlayingCoverProps {
   coverArt?: string;

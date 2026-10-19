@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Album } from '../../../types';
 import { api } from '../../../lib/api.js';
-import { CoverArt } from '../../../components/CoverArt.js';
+import { CoverArt } from '../../entities/CoverArt.js';
 import { fillCoverAlbums } from '../../../lib/coverGrid.js';
 import { useLibraryStore } from '../../../stores/libraryStore.js';
 

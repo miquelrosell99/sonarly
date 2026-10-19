@@ -4,7 +4,7 @@ import type { Song } from '../../../types';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../library-view/index.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { useGenreContextMenu } from '../../../hooks/useGenreContextMenu.js';
-import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
+import { ItemContextMenu } from '../../entities/ItemContextMenu.js';
 import { GenreCoverGrid } from '../components/GenreCoverGrid.js';
 import { useLibraryStore } from '../../../stores/libraryStore.js';
 import { useGenresList, useSongsList } from '../../../hooks/useLibraryLists.js';

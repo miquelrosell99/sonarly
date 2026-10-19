@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import { ExplicitTitle } from '../../../../components/ExplicitTitle.js';
+import { ExplicitTitle } from '../../../entities/ExplicitTitle.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../../library-view/index.js';
 import { AlbumContextMenu } from './contextMenus.js';
 import type { SearchAlbumItem } from './searchModel.js';

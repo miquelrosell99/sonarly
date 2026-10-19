@@ -8,7 +8,7 @@ import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
 import { useLibraryStore } from '../stores/libraryStore.js';
 import { useLibraries } from '../hooks/useLibraryLists.js';
 import { mergeSidebarItems } from '../lib/sidebar.js';
-import { LibrarySelector } from './LibrarySelector.js';
+import { LibrarySelector } from '../features/entities/LibrarySelector.js';
 import { SidebarPlaylistItem } from './SidebarPlaylistItem.js';
 
 interface SidebarProps {

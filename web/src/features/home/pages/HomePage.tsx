@@ -3,7 +3,7 @@ import type { Album, User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { PageState } from '../../../components/PageState.js';
 import { useLibraryStore, buildLibraryQuery } from '../../../stores/libraryStore.js';
-import { ScrollRow } from '../../../components/ScrollRow.js';
+import { ScrollRow } from '../../entities/ScrollRow.js';
 import { AlbumCard, FeaturedAlbum, RecentSongCard, type HomeData } from '../components/home-cards/index.js';
 
 export function HomePage({ user }: { user: User }) {

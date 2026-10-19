@@ -1,6 +1,6 @@
 import type { Song } from '../types';
 import { useLocation } from 'wouter';
-import type { ContextMenuSection } from '../components/ItemContextMenu.js';
+import type { ContextMenuSection } from '../features/entities/ItemContextMenu.js';
 import { downloadTrackUrl, saveUrl } from '../lib/download.js';
 import { getShareToken } from '../lib/shareToken.js';
 import { usePlayActions } from './usePlayActions.js';

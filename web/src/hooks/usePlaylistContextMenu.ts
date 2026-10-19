@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { Playlist, Song } from '../types';
 import type { components } from '../contract/schema.js';
-import type { ContextMenuSection } from '../components/ItemContextMenu.js';
+import type { ContextMenuSection } from '../features/entities/ItemContextMenu.js';
 import { api } from '../lib/api.js';
 import { downloadSongs } from '../lib/download.js';
 import { songFromPlaylistEntry } from '../lib/entityMappers.js';

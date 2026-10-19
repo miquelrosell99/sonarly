@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'wouter';
 import type { SyncedLyricLine } from '../../../types';
 import { Table, type TableColumn } from '../../../components/ui/Table.js';
-import { ExplicitTitle } from '../../../components/ExplicitTitle.js';
+import { ExplicitTitle } from '../../entities/ExplicitTitle.js';
 import { ColumnConfigMenu } from '../../../components/ColumnConfigMenu.js';
 import {
   useColumnConfig,

@@ -1,9 +1,9 @@
 import { Children, cloneElement, isValidElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { cn } from '../lib/cn.js';
-import { computeAnchoredMenuPosition, computePointerMenuPosition, type MenuPlacement, type Point } from '../lib/menuPosition.js';
-import { createMenuTypeahead } from '../lib/menuTypeahead.js';
-import { Icon } from './ui/Icon.js';
+import { cn } from '../../lib/cn.js';
+import { computeAnchoredMenuPosition, computePointerMenuPosition, type MenuPlacement, type Point } from '../../lib/menuPosition.js';
+import { createMenuTypeahead } from '../../lib/menuTypeahead.js';
+import { Icon } from '../../components/ui/Icon.js';
 
 export interface ContextMenuItem {
   id: string;

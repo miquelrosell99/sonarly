@@ -1,5 +1,5 @@
 import type { Song } from '../types';
-import type { ContextMenuSection } from '../components/ItemContextMenu.js';
+import type { ContextMenuSection } from '../features/entities/ItemContextMenu.js';
 import { downloadSongs } from '../lib/download.js';
 import { getShareToken } from '../lib/shareToken.js';
 import { usePlayActions } from './usePlayActions.js';
