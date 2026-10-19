@@ -3,7 +3,7 @@ import { Link } from 'wouter';
 import type { SyncedLyricLine } from '../../../types';
 import { Table, type TableColumn } from '../../../components/ui/Table.js';
 import { ExplicitTitle } from '../../entities/ExplicitTitle.js';
-import { ColumnConfigMenu } from '../../../components/ColumnConfigMenu.js';
+import { ColumnConfigMenu } from '../../library-view/ColumnConfigMenu.js';
 import {
   useColumnConfig,
   resolveColumns,

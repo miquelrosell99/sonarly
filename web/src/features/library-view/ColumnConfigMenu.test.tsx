@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { ColumnConfigMenu } from './ColumnConfigMenu.js';
-import type { ColumnConfigEntry } from '../hooks/useColumnConfig.js';
+import type { ColumnConfigEntry } from '../../hooks/useColumnConfig.js';
 
 const ENTRIES: ColumnConfigEntry[] = [
   { key: 'title', label: 'Title', visible: true, locked: true },

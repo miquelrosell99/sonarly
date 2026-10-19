@@ -4,3 +4,4 @@ export { GuestPlaylist } from './pages/GuestPlaylist.js';
 export { SmartPlaylistBlockEditor } from './components/SmartPlaylistBlockEditor.js';
 export { CreatePlaylistModal } from './components/CreatePlaylistModal.js';
 export { SharePlaylistModal } from './components/SharePlaylistModal.js';
+export { AddToPlaylistModal } from './components/AddToPlaylistModal.js';

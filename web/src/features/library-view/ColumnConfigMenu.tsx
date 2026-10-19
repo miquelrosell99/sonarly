@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { cn } from '../lib/cn.js';
-import { Icon } from './ui/Icon.js';
-import type { ColumnConfigEntry } from '../hooks/useColumnConfig.js';
+import { cn } from '../../lib/cn.js';
+import { Icon } from '../../components/ui/Icon.js';
+import type { ColumnConfigEntry } from '../../hooks/useColumnConfig.js';
 
 interface ColumnConfigMenuProps {
   /** Every data column in display order, including hidden ones. */
