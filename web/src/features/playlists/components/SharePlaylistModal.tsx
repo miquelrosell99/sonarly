@@ -1,219 +1,11 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import type { PlaylistShareEntry, PlaylistVisibility, User } from '../../../types';
-import { api } from '../../../lib/api.js';
-import { cn } from '../../../lib/cn.js';
 import { Modal } from '../../../components/ui/Modal.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
-import { Button } from '../../../components/ui/button.js';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../../components/ui/select.js';
-import { Input } from '../../../components/ui/input.js';
-import { Icon } from '../../../components/ui/Icon.js';
-import { Checkbox } from '../../../components/ui/checkbox.js';
-import { Avatar } from '../../../components/Avatar.js';
-import { PageState } from '../../../components/PageState.js';
-import { useNotification } from '../../../contexts/NotificationContext.js';
 import type { PlaylistDetail } from '../../../hooks/usePlaylist.js';
-
-interface LookupUser {
-  id: string;
-  username: string;
-  name: string | null;
-}
-
-type ShareTab = 'members' | 'links';
-
-const SHARE_TABS: { key: ShareTab; label: string; icon: string }[] = [
-  { key: 'members', label: 'Members', icon: 'mdi-account-multiple-outline' },
-  { key: 'links', label: 'Share links', icon: 'mdi-link-variant' },
-];
-
-function TabButton({
-  active,
-  onClick,
-  label,
-  icon,
-  id,
-  ariaControls,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  icon: string;
-  id: string;
-  ariaControls: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      id={id}
-      onClick={onClick}
-      aria-selected={active}
-      aria-controls={ariaControls}
-      tabIndex={active ? 0 : -1}
-      className={cn(
-        'inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-        active
-          ? 'bg-primary text-on-primary'
-          : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
-      )}
-    >
-      <Icon name={icon} size={16} />
-      {label}
-    </button>
-  );
-}
-
-function UserShareSearch({
-  excludeIds,
-  resetKey,
-  onSelect,
-}: {
-  excludeIds: Set<string>;
-  resetKey: number;
-  onSelect: (user: LookupUser | null) => void;
-}) {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<LookupUser[]>([]);
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [highlighted, setHighlighted] = useState(0);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const ignoreBlurRef = useRef(false);
-  const listboxId = useId();
-
-  useEffect(() => {
-    setQuery('');
-    setResults([]);
-    setOpen(false);
-    onSelect(null);
-  }, [resetKey, onSelect]);
-
-  useEffect(() => () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-  }, []);
-
-  const fetchUsers = useCallback(
-    async (input: string) => {
-      setLoading(true);
-      try {
-        const res = await api<{ users: LookupUser[] }>(`/users/lookup?q=${encodeURIComponent(input)}`);
-        setResults(res.users.filter((u) => !excludeIds.has(u.id)));
-        setHighlighted(0);
-        setOpen(true);
-      } catch {
-        setResults([]);
-        setOpen(false);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [excludeIds],
-  );
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setQuery(value);
-    onSelect(null);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchUsers(value), 200);
-  };
-
-  const selectUser = (user: LookupUser) => {
-    setQuery(user.username);
-    setOpen(false);
-    setResults([]);
-    onSelect(user);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!open) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (results.length > 0) setHighlighted((prev) => (prev + 1) % results.length);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (results.length > 0) setHighlighted((prev) => (prev - 1 + results.length) % results.length);
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (results[highlighted]) selectUser(results[highlighted]);
-    } else if (e.key === 'Escape') {
-      // Keep the containing modal open; only dismiss the suggestion list.
-      e.stopPropagation();
-      setOpen(false);
-    }
-  };
-
-  return (
-    <div className="relative flex-1">
-      <Input
-        type="text"
-        role="combobox"
-        aria-autocomplete="list"
-        aria-expanded={open}
-        aria-controls={listboxId}
-        aria-activedescendant={open && results.length > 0 ? `${listboxId}-option-${highlighted}` : undefined}
-        aria-label="Search users"
-        placeholder="Search users…"
-        value={query}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        onFocus={() => setOpen(results.length > 0)}
-        onBlur={() => {
-          if (ignoreBlurRef.current) return;
-          setTimeout(() => setOpen(false), 150);
-        }}
-        className="w-full"
-      />
-      {open && (
-        <ul
-          id={listboxId}
-          role="listbox"
-          aria-label="Matching users"
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-popover border border-outline bg-surface shadow-lg"
-          onMouseDown={() => {
-            ignoreBlurRef.current = true;
-          }}
-          onMouseUp={() => {
-            ignoreBlurRef.current = false;
-          }}
-        >
-          {results.length === 0 && !loading && (
-            <li className="px-3 py-2 text-sm text-on-surface-variant">No matches</li>
-          )}
-          {results.map((user, i) => (
-            <li
-              key={user.id}
-              id={`${listboxId}-option-${i}`}
-              role="option"
-              aria-selected={i === highlighted}
-              onClick={() => selectUser(user)}
-              className={cn(
-                'cursor-pointer px-3 py-2 text-sm hover:bg-surface-container-high',
-                i === highlighted && 'bg-surface-container-high',
-              )}
-            >
-              {user.username}
-            </li>
-          ))}
-        </ul>
-      )}
-      {loading && (
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
-          <Icon name="mdi-loading" size={16} className="animate-spin motion-reduce:animate-none" />
-        </span>
-      )}
-    </div>
-  );
-}
+import { TabButton } from './share-playlist-modal/TabButton.js';
+import { MembersPanel } from './share-playlist-modal/MembersPanel.js';
+import { LinksPanel } from './share-playlist-modal/LinksPanel.js';
+import { useSharePlaylist } from './share-playlist-modal/useSharePlaylist.js';
+import { SHARE_TABS } from './share-playlist-modal/types.js';
 
 export function SharePlaylistModal({
   open,
@@ -224,203 +16,22 @@ export function SharePlaylistModal({
   onClose: () => void;
   playlist: PlaylistDetail;
 }) {
-  const queryClient = useQueryClient();
-  const { notify } = useNotification();
-
-  const [activeTab, setActiveTab] = useState<ShareTab>('members');
-  const [isPublic, setIsPublic] = useState(playlist.visibility === 'public');
-  const [addOpen, setAddOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<LookupUser | null>(null);
-  const [newRole, setNewRole] = useState<'view' | 'edit'>('view');
-  const [resetKey, setResetKey] = useState(0);
-  const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [confirmRemoveShare, setConfirmRemoveShare] = useState<PlaylistShareEntry | null>(null);
-  const [confirmRevokeLink, setConfirmRevokeLink] = useState(false);
-  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (open) {
-      setActiveTab('members');
-      setIsPublic(playlist.visibility === 'public');
-      setAddOpen(false);
-      setSelectedUser(null);
-    }
-  }, [open, playlist.visibility]);
-
-  useEffect(() => () => {
-    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-  }, []);
-
-  const shares = playlist.shares ?? [];
-  const shareUrl = playlist.shareToken
-    ? `${window.location.origin}/playlists/${playlist.id}?shareToken=${playlist.shareToken}`
-    : null;
-
-  const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['playlist', playlist.id] });
-    queryClient.invalidateQueries({ queryKey: ['playlists'] });
-  };
-
-  const handleTabListKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    e.preventDefault();
-    const currentIndex = SHARE_TABS.findIndex((tab) => tab.key === activeTab);
-    const nextIndex =
-      e.key === 'ArrowRight'
-        ? (currentIndex + 1) % SHARE_TABS.length
-        : (currentIndex - 1 + SHARE_TABS.length) % SHARE_TABS.length;
-    const nextTab = SHARE_TABS[nextIndex].key;
-    setActiveTab(nextTab);
-    document.getElementById(`share-playlist-tab-${nextTab}`)?.focus();
-  };
-
-  const handleTogglePublic = async (next: boolean) => {
-    if (busy) return;
-    const previous = isPublic;
-    setIsPublic(next);
-    setBusy(true);
-    const visibility: PlaylistVisibility = next ? 'public' : shares.length > 0 ? 'shared' : 'private';
-    try {
-      await api(`/playlists/${playlist.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ visibility }),
-      });
-      refresh();
-    } catch (err) {
-      setIsPublic(previous);
-      notify(err instanceof Error ? err.message : 'Failed to update visibility', 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleAddShare = async () => {
-    if (!selectedUser || busy) return;
-    setBusy(true);
-    try {
-      await api(`/playlists/${playlist.id}/share`, {
-        method: 'POST',
-        body: JSON.stringify({ userId: selectedUser.id, canEdit: newRole === 'edit' }),
-      });
-      notify(`Shared with ${selectedUser.username}`, 'success');
-      setSelectedUser(null);
-      setNewRole('view');
-      setAddOpen(false);
-      setResetKey((n) => n + 1);
-      refresh();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to share playlist', 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleRoleChange = async (share: PlaylistShareEntry, canEdit: boolean) => {
-    if (busy || canEdit === share.canEdit) return;
-    setBusy(true);
-    try {
-      await api(`/playlists/${playlist.id}/share`, {
-        method: 'POST',
-        body: JSON.stringify({ userId: share.userId, canEdit }),
-      });
-      refresh();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to update permission', 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleRemoveShare = async (share: PlaylistShareEntry) => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await api(`/playlists/${playlist.id}/share/${share.userId}`, { method: 'DELETE' });
-      notify(`Removed ${share.username}`, 'success');
-      refresh();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to remove share', 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleCopy = async () => {
-    if (!shareUrl) return;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
-    } catch {
-      notify('Failed to copy link', 'error');
-    }
-  };
-
-  const handleGenerateLink = async () => {
-    if (busy) return;
-    setBusy(true);
-    const hadLink = Boolean(playlist.shareToken);
-    try {
-      await api(`/playlists/${playlist.id}/share-link`, { method: 'POST' });
-      notify(hadLink ? 'Share link regenerated' : 'Share link created', 'success');
-      refresh();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to create share link', 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleRevokeLink = async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await api(`/playlists/${playlist.id}/share-link`, { method: 'DELETE' });
-      notify('Share link revoked', 'success');
-      refresh();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to revoke share link', 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // Allow download: PATCHes the link's permission without rotating the
-  // token; the checkbox reflects the detail DTO's shareDownload flag, so a
-  // failed PATCH simply never changes the checked state (no local revert).
-  const handleToggleDownload = async (next: boolean) => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await api(`/playlists/${playlist.id}/share-link`, {
-        method: 'PATCH',
-        body: JSON.stringify({ allowDownload: next }),
-      });
-      notify(next ? 'Downloads enabled for this link' : 'Downloads disabled for this link', 'success');
-      refresh();
-    } catch (err) {
-      notify(err instanceof Error ? err.message : 'Failed to update download permission', 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
+  const share = useSharePlaylist(open, playlist);
 
   return (
     <Modal open={open} onClose={onClose} title={`Share "${playlist.name}"`} className="max-w-xl">
       <div
         role="tablist"
         aria-label="Playlist sharing"
-        onKeyDown={handleTabListKeyDown}
+        onKeyDown={share.handleTabListKeyDown}
         className="mb-5 flex items-center gap-1 rounded-full border border-outline bg-background/60 p-1"
       >
         {SHARE_TABS.map((tab) => (
           <TabButton
             key={tab.key}
             id={`share-playlist-tab-${tab.key}`}
-            active={activeTab === tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            active={share.activeTab === tab.key}
+            onClick={() => share.setActiveTab(tab.key)}
             label={tab.label}
             icon={tab.icon}
             ariaControls={`share-playlist-panel-${tab.key}`}
@@ -429,199 +40,65 @@ export function SharePlaylistModal({
       </div>
 
       <div
-        id={`share-playlist-panel-${activeTab}`}
+        id={`share-playlist-panel-${share.activeTab}`}
         role="tabpanel"
-        aria-labelledby={`share-playlist-tab-${activeTab}`}
+        aria-labelledby={`share-playlist-tab-${share.activeTab}`}
       >
-        {activeTab === 'members' ? (
-          <div className="space-y-4">
-            <div className="rounded-item border border-outline bg-surface px-3 py-1">
-              <Checkbox
-                id="share-playlist-public"
-                label="Public"
-                description="Anyone with an account can view this playlist."
-                checked={isPublic}
-                disabled={busy}
-                onCheckedChange={(checked) => handleTogglePublic(checked)}
-              />
-            </div>
-
-            <PageState
-              isEmpty={shares.length === 0}
-              emptyMessage="Not shared with anyone yet."
-              emptyIcon="mdi-account-multiple-outline"
-            >
-              <ul className="space-y-2">
-                {shares.map((share) => {
-                  const avatarUser: User = {
-                    id: share.userId,
-                    username: share.username,
-                    isAdmin: false,
-                    createdAt: '',
-                  };
-                  return (
-                    <li
-                      key={share.userId}
-                      className="flex flex-wrap items-center gap-3 rounded-item border border-outline bg-surface px-3 py-2"
-                    >
-                      <Avatar user={avatarUser} variant="surface" className="h-8 w-8" />
-                      <span className="min-w-0 flex-1 truncate text-sm">{share.username}</span>
-                      <Select
-                        value={share.canEdit ? 'edit' : 'view'}
-                        onValueChange={(value) => void handleRoleChange(share, value === 'edit')}
-                        disabled={busy}
-                      >
-                        <SelectTrigger
-                          aria-label={`Role for ${share.username}`}
-                          className="h-11 w-auto text-sm"
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="view">Can view</SelectItem>
-                          <SelectItem value="edit">Can edit</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmRemoveShare(share)}
-                        disabled={busy}
-                        aria-label={`Remove ${share.username}`}
-                        className="flex h-11 w-11 items-center justify-center rounded-item text-on-surface-variant transition hover:bg-surface-container-high hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                      >
-                        <Icon name="mdi-close" size={18} />
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </PageState>
-
-            {addOpen ? (
-              <div className="space-y-2 rounded-item border border-outline bg-surface p-3">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <UserShareSearch
-                    excludeIds={new Set(shares.map((s) => s.userId))}
-                    resetKey={resetKey}
-                    onSelect={setSelectedUser}
-                  />
-                  <Select
-                    value={newRole}
-                    onValueChange={(value) => setNewRole(value as 'view' | 'edit')}
-                  >
-                    <SelectTrigger aria-label="Role for new member" className="h-11 w-auto text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="view">Can view</SelectItem>
-                      <SelectItem value="edit">Can edit</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      setAddOpen(false);
-                      setSelectedUser(null);
-                      setResetKey((n) => n + 1);
-                    }}
-                    disabled={busy}
-                    className="min-h-[44px]"
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={handleAddShare} disabled={!selectedUser || busy} className="min-h-[44px]">
-                    Add
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <Button variant="ghost" onClick={() => setAddOpen(true)} className="min-h-[44px] w-full">
-                <Icon name="mdi-account-plus-outline" size={18} className="mr-1.5" />
-                Add user
-              </Button>
-            )}
-          </div>
+        {share.activeTab === 'members' ? (
+          <MembersPanel
+            shares={share.shares}
+            isPublic={share.isPublic}
+            busy={share.busy}
+            addOpen={share.addOpen}
+            selectedUser={share.selectedUser}
+            newRole={share.newRole}
+            resetKey={share.resetKey}
+            onTogglePublic={(next) => void share.handleTogglePublic(next)}
+            onRoleChange={(entry, canEdit) => void share.handleRoleChange(entry, canEdit)}
+            onRemove={(entry) => share.setConfirmRemoveShare(entry)}
+            onOpenAdd={() => share.setAddOpen(true)}
+            onCancelAdd={share.cancelAdd}
+            onSelectUser={share.setSelectedUser}
+            onNewRoleChange={share.setNewRole}
+            onAdd={() => void share.handleAddShare()}
+          />
         ) : (
-          <div className="space-y-4">
-            <p className="text-xs text-on-surface-variant">
-              Anyone with the link can view this playlist, even without an account.
-            </p>
-            {shareUrl ? (
-              <>
-                <div className="flex items-center gap-2">
-                  <Input
-                    readOnly
-                    value={shareUrl}
-                    aria-label="Share link"
-                    onFocus={(e) => e.target.select()}
-                    className="min-w-0 flex-1 font-mono text-xs"
-                  />
-                  <Button variant="ghost" onClick={handleCopy} className="min-h-[44px] shrink-0">
-                    <Icon name={copied ? 'mdi-check' : 'mdi-content-copy'} size={16} className="mr-1.5" />
-                    {copied ? 'Copied' : 'Copy'}
-                  </Button>
-                </div>
-                <div className="rounded-item border border-outline bg-surface px-3 py-1">
-                  <Checkbox
-                    id="share-playlist-allow-download"
-                    label="Allow download"
-                    description="Anyone with the link can download the playlist's tracks (ZIP packs and single files)."
-                    checked={playlist.shareDownload === true}
-                    disabled={busy}
-                    onCheckedChange={(checked) => void handleToggleDownload(checked)}
-                  />
-                </div>
-                <div className="flex flex-wrap justify-end gap-2">
-                  <Button variant="ghost" onClick={handleGenerateLink} disabled={busy} className="min-h-[44px]">
-                    <Icon name="mdi-refresh" size={16} className="mr-1.5" />
-                    Regenerate
-                  </Button>
-                  <Button variant="danger" onClick={() => setConfirmRevokeLink(true)} disabled={busy} className="min-h-[44px]">
-                    <Icon name="mdi-link-variant-off" size={16} className="mr-1.5" />
-                    Revoke
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <PageState isEmpty emptyMessage="No share link yet." emptyIcon="mdi-link-variant-off">
-                  {null}
-                </PageState>
-                <Button onClick={handleGenerateLink} disabled={busy} className="min-h-[44px] w-full">
-                  <Icon name="mdi-link-variant" size={16} className="mr-1.5" />
-                  Generate link
-                </Button>
-              </>
-            )}
-          </div>
+          <LinksPanel
+            shareUrl={share.shareUrl}
+            shareDownload={playlist.shareDownload}
+            busy={share.busy}
+            copied={share.copied}
+            onCopy={() => void share.handleCopy()}
+            onToggleDownload={(next) => void share.handleToggleDownload(next)}
+            onGenerate={() => void share.handleGenerateLink()}
+            onRevoke={() => share.setConfirmRevokeLink(true)}
+          />
         )}
       </div>
 
       <ConfirmModal
-        open={confirmRemoveShare !== null}
-        onClose={() => setConfirmRemoveShare(null)}
+        open={share.confirmRemoveShare !== null}
+        onClose={() => share.setConfirmRemoveShare(null)}
         title="Remove member"
-        message={`Remove ${confirmRemoveShare?.username}'s access to this playlist?`}
+        message={`Remove ${share.confirmRemoveShare?.username}'s access to this playlist?`}
         confirmLabel="Remove"
         danger
         onConfirm={() => {
-          const share = confirmRemoveShare;
-          setConfirmRemoveShare(null);
-          if (share) void handleRemoveShare(share);
+          const entry = share.confirmRemoveShare;
+          share.setConfirmRemoveShare(null);
+          if (entry) void share.handleRemoveShare(entry);
         }}
       />
       <ConfirmModal
-        open={confirmRevokeLink}
-        onClose={() => setConfirmRevokeLink(false)}
+        open={share.confirmRevokeLink}
+        onClose={() => share.setConfirmRevokeLink(false)}
         title="Revoke share link"
         message="Revoke this share link? Everyone using it will lose access."
         confirmLabel="Revoke"
         danger
         onConfirm={() => {
-          setConfirmRevokeLink(false);
-          void handleRevokeLink();
+          share.setConfirmRevokeLink(false);
+          void share.handleRevokeLink();
         }}
       />
     </Modal>
