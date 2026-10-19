@@ -11,18 +11,18 @@ const twMerge = extendTailwindMerge({
   extend: {
     theme: {
       color: [
-        'bg-primary',
-        'fg-primary',
-        'fg-secondary',
+        /* canonical roles the app cites directly */
         'surface',
-        'surface-hover',
-        'rule',
-        'muted',
-        'accent',
-        'danger',
+        'on-primary',
+        'on-surface',
+        'on-surface-variant',
+        'surface-container-high',
+        'outline',
+        'error',
         'success',
         'warning',
         'info',
+        /* the 20-key shadcn alias layer (tailwind.config.js colors) */
         'background',
         'foreground',
         'card',
@@ -33,7 +33,9 @@ const twMerge = extendTailwindMerge({
         'primary-foreground',
         'secondary',
         'secondary-foreground',
+        'muted',
         'muted-foreground',
+        'accent',
         'accent-foreground',
         'destructive',
         'destructive-foreground',
