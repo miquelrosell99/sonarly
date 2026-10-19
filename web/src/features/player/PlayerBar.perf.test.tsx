@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, cleanup, act } from '@testing-library/react';
-import type { User } from '../types';
+import type { User } from '../../types';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PlayerBar } from './PlayerBar.js';
-import { usePlayer, resetPlayer } from '../stores/playerStore.js';
-import { resetNowPlaying } from '../features/now-playing/index.js';
-import { NotificationProvider } from '../contexts/NotificationContext.js';
+import { usePlayer, resetPlayer } from '../../stores/playerStore.js';
+import { resetNowPlaying } from '../../features/now-playing/index.js';
+import { NotificationProvider } from '../../contexts/NotificationContext.js';
 
 const trackActionsProbe = vi.hoisted(() => vi.fn());
 const mockSetFavorite = vi.hoisted(() => vi.fn());
@@ -25,14 +25,14 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false 
 
 // Render-count probe: TrackActionsMenu sits in the PlayerBar chrome, outside
 // the SeekProgress leaf — it only re-renders if the whole footer reconciles.
-vi.mock('./TrackActionsMenu.js', () => ({
+vi.mock('../entities/TrackActionsMenu.js', () => ({
   TrackActionsMenu: () => {
     trackActionsProbe();
     return null;
   },
 }));
 
-vi.mock('../hooks/useSongInteraction.js', () => ({
+vi.mock('../../hooks/useSongInteraction.js', () => ({
   useSongInteraction: (_songId: string | undefined, fallback: { starred?: boolean; rating?: number }) => ({
     starred: fallback?.starred ?? false,
     rating: fallback?.rating ?? 0,
@@ -41,7 +41,7 @@ vi.mock('../hooks/useSongInteraction.js', () => ({
   }),
 }));
 
-vi.mock('../hooks/usePreferences.js', () => ({
+vi.mock('../../hooks/usePreferences.js', () => ({
   usePreferences: () => ({ data: mockPreferences }),
   useUpdatePreferences: () => ({ mutate: mockUpdatePreferencesMutate }),
 }));

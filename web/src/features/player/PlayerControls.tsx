@@ -1,6 +1,6 @@
 import { forwardRef } from 'react';
-import { Icon } from './ui/Icon.js';
-import { cn } from '../lib/cn.js';
+import { Icon } from '../../components/ui/Icon.js';
+import { cn } from '../../lib/cn.js';
 
 export const ControlButton = forwardRef<HTMLButtonElement, {
   children: React.ReactNode;

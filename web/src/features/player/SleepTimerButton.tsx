@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Icon } from './ui/Icon.js';
-import { cn } from '../lib/cn.js';
-import { usePlayer } from '../stores/playerStore.js';
+import { Icon } from '../../components/ui/Icon.js';
+import { cn } from '../../lib/cn.js';
+import { usePlayer } from '../../stores/playerStore.js';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu.js';
+} from '../../components/ui/dropdown-menu.js';
 
 const MINUTE_OPTIONS = [5, 10, 15, 30, 45, 60];
 

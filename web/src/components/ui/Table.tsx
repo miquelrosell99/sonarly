@@ -1,8 +1,8 @@
 import { Fragment, useState, type MouseEvent, type KeyboardEvent, type ReactNode, cloneElement, isValidElement } from 'react';
 import { cn } from '../../lib/cn.js';
 import { startSongsDrag } from '../../lib/dragSongs.js';
-import { PlayButton } from '../PlayButton.js';
-import { PlayingIndicator } from '../PlayingIndicator.js';
+import { PlayButton } from '../../features/player/PlayButton.js';
+import { PlayingIndicator } from '../../features/player/PlayingIndicator.js';
 
 export interface TableColumn<T> {
   key: string;

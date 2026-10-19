@@ -1,20 +1,20 @@
 import { lazy, memo, Suspense, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import type { AutoDjMode, User } from '../types';
-import { Icon } from './ui/Icon.js';
-import { CoverArt } from '../features/entities/CoverArt.js';
-import { FavoriteButton, StarRating } from '../features/entities/ActionButtons.js';
-import { ItemContextMenu } from '../features/entities/ItemContextMenu.js';
+import type { AutoDjMode, User } from '../../types';
+import { Icon } from '../../components/ui/Icon.js';
+import { CoverArt } from '../../features/entities/CoverArt.js';
+import { FavoriteButton, StarRating } from '../../features/entities/ActionButtons.js';
+import { ItemContextMenu } from '../../features/entities/ItemContextMenu.js';
 import { ControlButton, PlayPauseButton, Slider } from './PlayerControls.js';
-import { ExplicitTitle } from '../features/entities/ExplicitTitle.js';
-import { TrackActionsMenu } from '../features/entities/TrackActionsMenu.js';
-import { usePlayer, type PlayerSong } from '../stores/playerStore.js';
-import { useSongInteraction } from '../hooks/useSongInteraction.js';
-import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
-import { useNowPlaying } from '../features/now-playing/stores/nowPlayingStore.js';
-import { getShareToken } from '../lib/shareToken.js';
-import { PLAYER_BAR_HEIGHT } from '../lib/playerBarHeight.js';
-import { AutoDjTunePopover } from '../features/now-playing/components/AutoDjTunePopover.js';
+import { ExplicitTitle } from '../../features/entities/ExplicitTitle.js';
+import { TrackActionsMenu } from '../../features/entities/TrackActionsMenu.js';
+import { usePlayer, type PlayerSong } from '../../stores/playerStore.js';
+import { useSongInteraction } from '../../hooks/useSongInteraction.js';
+import { usePreferences, useUpdatePreferences } from '../../hooks/usePreferences.js';
+import { useNowPlaying } from '../../features/now-playing/stores/nowPlayingStore.js';
+import { getShareToken } from '../../lib/shareToken.js';
+import { PLAYER_BAR_HEIGHT } from '../../lib/playerBarHeight.js';
+import { AutoDjTunePopover } from '../../features/now-playing/components/AutoDjTunePopover.js';
 
 // Audit F19 (plan P8): importing QueueModal through the now-playing barrel
 // drags QueueList → LibraryView → @dnd-kit into the entry chunk (first paint,
@@ -23,7 +23,7 @@ import { AutoDjTunePopover } from '../features/now-playing/components/AutoDjTune
 // chunk-graph check in scripts/bundle-budget.mjs fails the build if the
 // eager edge ever comes back.
 const QueueModal = lazy(() =>
-  import('../features/now-playing/components/QueueModal.js').then((m) => ({ default: m.QueueModal })),
+  import('../now-playing/components/QueueModal.js').then((m) => ({ default: m.QueueModal })),
 );
 
 function formatTime(seconds: number): string {

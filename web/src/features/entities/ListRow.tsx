@@ -1,9 +1,9 @@
 import { Children, type MouseEvent, type KeyboardEvent, type ReactNode, cloneElement, isValidElement } from 'react';
 import { cn } from '../../lib/cn.js';
 import { Icon } from '../../components/ui/Icon.js';
-import { PlayButton } from '../../components/PlayButton.js';
+import { PlayButton } from '../player/PlayButton.js';
 import { FavoriteButton, StarRating } from './ActionButtons.js';
-import { PlayingIndicator } from '../../components/PlayingIndicator.js';
+import { PlayingIndicator } from '../player/PlayingIndicator.js';
 
 export interface ListRowActionFavorite {
   starred?: boolean;

@@ -10,22 +10,22 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { render, cleanup, fireEvent, act } from '@testing-library/react';
 import { AudioController } from './AudioController.js';
-import { usePlayer, resetPlayer, type PlayerSong } from '../stores/playerStore.js';
-import { api } from '../lib/api.js';
+import { usePlayer, resetPlayer, type PlayerSong } from '../../stores/playerStore.js';
+import { api } from '../../lib/api.js';
 
 const mockNotify = vi.hoisted(() => vi.fn());
 
-vi.mock('../lib/api.js', () => ({
+vi.mock('../../lib/api.js', () => ({
   api: vi.fn(),
 }));
 
-vi.mock('../contexts/NotificationContext.js', () => ({
+vi.mock('../../contexts/NotificationContext.js', () => ({
   useNotification: () => ({ notify: mockNotify }),
 }));
 
 // useAutoDj pulls react-query preferences; its logic has its own suite, so
 // keep this harness focused on the controller itself.
-vi.mock('../hooks/useAutoDj.js', () => ({
+vi.mock('../../hooks/useAutoDj.js', () => ({
   useAutoDj: vi.fn(),
 }));
 

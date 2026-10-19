@@ -4,7 +4,7 @@ import { useParams } from 'wouter';
 import { Button } from '../../../components/ui/button.js';
 import { EntityDetail } from '../../entities/EntityDetail.js';
 import { ItemContextMenu } from '../../entities/ItemContextMenu.js';
-import { PlayButton } from '../../../components/PlayButton.js';
+import { PlayButton } from '../../player/PlayButton.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { usePlayShuffleMenuSections } from '../../../hooks/usePlayShuffleMenuSections.js';
 import { useLibraryStore } from '../../../stores/libraryStore.js';

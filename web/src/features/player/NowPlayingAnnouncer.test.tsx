@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, act } from '@testing-library/react';
 import { NowPlayingAnnouncer } from './NowPlayingAnnouncer.js';
-import { usePlayer, resetPlayer } from '../stores/playerStore.js';
+import { usePlayer, resetPlayer } from '../../stores/playerStore.js';
 
 beforeEach(() => {
   resetPlayer();

@@ -7,7 +7,7 @@ import { CoverArt } from '../../entities/CoverArt.js';
 import { ArtistImage } from '../../entities/ArtistImage.js';
 import { EntityDetail } from '../../entities/EntityDetail.js';
 import { FavoriteRatingGroup } from '../../entities/FavoriteRatingGroup.js';
-import { PlayButton } from '../../../components/PlayButton.js';
+import { PlayButton } from '../../player/PlayButton.js';
 import { ScrollRow } from '../../entities/ScrollRow.js';
 import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from '../../library-view/index.js';
 import { ExplicitTitle } from '../../entities/ExplicitTitle.js';

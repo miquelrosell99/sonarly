@@ -7,7 +7,7 @@ import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { CoverArt } from '../../entities/CoverArt.js';
 import { EntityDetail } from '../../entities/EntityDetail.js';
 import { ExplicitTitle } from '../../entities/ExplicitTitle.js';
-import { PlayButton } from '../../../components/PlayButton.js';
+import { PlayButton } from '../../player/PlayButton.js';
 import { EntityActionsMenu } from '../../entities/EntityActionsMenu.js';
 import { FavoriteRatingGroup } from '../../entities/FavoriteRatingGroup.js';
 import { EditEntityModal } from '../../../components/EditEntityModal.js';

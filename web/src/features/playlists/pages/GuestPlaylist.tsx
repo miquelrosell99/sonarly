@@ -1,7 +1,7 @@
 import { Link } from 'wouter';
 import { PlaylistDetail } from './PlaylistDetail.js';
-import { PlayerBar } from '../../../components/PlayerBar.js';
-import { AudioController } from '../../../components/AudioController.js';
+import { PlayerBar } from '../../player/PlayerBar.js';
+import { AudioController } from '../../player/AudioController.js';
 import type { UnderlayParams } from '../../../lib/types.js';
 
 // Minimal shell for anonymous share-link visitors: no sidebar, no account
