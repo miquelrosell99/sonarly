@@ -5,6 +5,14 @@ const THEME_STORAGE_KEY = 'sonarly-theme';
 
 let darkPreference = false;
 
+function appliedDataset(): Record<string, string> {
+  const dataset: Record<string, string> = {};
+  for (const [key, value] of Object.entries(document.documentElement.dataset)) {
+    if (value !== undefined) dataset[key] = value;
+  }
+  return dataset;
+}
+
 beforeAll(() => {
   // jsdom does not implement matchMedia; the store only queries
   // prefers-color-scheme. darkPreference toggles the result per test.
@@ -22,7 +30,9 @@ beforeAll(() => {
 
 beforeEach(() => {
   window.localStorage.clear();
-  document.documentElement.className = '';
+  for (const attr of ['theme', 'oled', 'accent']) {
+    delete document.documentElement.dataset[attr as 'theme'];
+  }
   darkPreference = false;
   useTheme.setState({ themeMode: 'auto', accentColor: 'auto' });
 });
@@ -32,18 +42,21 @@ describe('themeStore accent resolution', () => {
     for (const mode of ['light', 'dark', 'oled'] as const) {
       useTheme.setState({ themeMode: mode, accentColor: 'auto' });
       useTheme.getState().apply();
-      const applied = document.documentElement.className;
-      expect(applied).toContain(`theme-${mode}`);
-      expect(applied).toContain('accent-copper');
-      expect(applied).not.toContain('accent-blue');
-      expect(applied).not.toContain('accent-cyan');
+      const applied = appliedDataset();
+      expect(applied.accent).toBe('copper');
+      expect(applied.theme).toBe(mode === 'oled' ? 'dark' : mode);
+      if (mode === 'oled') {
+        expect(applied.oled).toBe('true');
+      } else {
+        expect(applied.oled).toBeUndefined();
+      }
     }
   });
 
   it('an explicit accent choice is applied unchanged', () => {
     useTheme.setState({ themeMode: 'dark' });
     useTheme.getState().setAccentColor('green');
-    expect(document.documentElement.className).toContain('accent-green');
+    expect(appliedDataset().accent).toBe('green');
   });
 });
 
@@ -64,8 +77,9 @@ describe('themeStore persistence (sonarly-theme)', () => {
     expect(useTheme.getState().accentColor).toBe('green');
 
     useTheme.getState().apply();
-    expect(document.documentElement.className).toContain('theme-dark');
-    expect(document.documentElement.className).toContain('accent-green');
+    const applied = appliedDataset();
+    expect(applied.theme).toBe('dark');
+    expect(applied.accent).toBe('green');
   });
 
   it('accepts the legacy bare-mode string written by older clients', () => {
@@ -77,8 +91,10 @@ describe('themeStore persistence (sonarly-theme)', () => {
     expect(useTheme.getState().themeMode).toBe('oled');
     expect(useTheme.getState().accentColor).toBe('auto');
     useTheme.getState().apply();
-    expect(document.documentElement.className).toContain('theme-oled');
-    expect(document.documentElement.className).toContain('accent-copper');
+    const applied = appliedDataset();
+    expect(applied.theme).toBe('dark');
+    expect(applied.oled).toBe('true');
+    expect(applied.accent).toBe('copper');
     // The read upgrades the snapshot to the JSON form on the next write.
     expect(JSON.parse(window.localStorage.getItem(THEME_STORAGE_KEY)!)).toEqual({
       mode: 'oled',
@@ -116,53 +132,72 @@ describe('themeStore persistence (sonarly-theme)', () => {
 });
 
 describe('cold boot (inline bootstrap → hydration)', () => {
-  it('keeps the classes the inline bootstrap painted: dark + stored accent, no flip', () => {
+  it('keeps the attributes the inline bootstrap painted: dark + stored accent, no flip', () => {
     // Previous session persisted dark + purple.
     window.localStorage.setItem(
       THEME_STORAGE_KEY,
       JSON.stringify({ mode: 'dark', accent: 'purple' }),
     );
-    // index.html ran pre-hydration and painted exactly these classes.
-    document.documentElement.className = 'theme-dark accent-purple';
+    // index.html ran pre-hydration and painted exactly these attributes.
+    document.documentElement.dataset.theme = 'dark';
+    document.documentElement.dataset.accent = 'purple';
 
     // main.tsx: seed from the snapshot, then apply.
     useTheme.getState().loadPersisted();
     useTheme.getState().apply();
 
-    const applied = document.documentElement.className;
-    expect(applied).toContain('theme-dark');
-    expect(applied).toContain('accent-purple');
-    expect(applied).not.toContain('accent-copper');
-    expect(applied).not.toContain('accent-blue');
-    expect(applied).not.toContain('accent-cyan');
+    const applied = appliedDataset();
+    expect(applied.theme).toBe('dark');
+    expect(applied.accent).toBe('purple');
+    expect(applied.oled).toBeUndefined();
     expect(useTheme.getState().themeMode).toBe('dark');
     expect(useTheme.getState().accentColor).toBe('purple');
   });
 
   it('agrees with the bootstrap for a legacy stored mode and no stored accent', () => {
     window.localStorage.setItem(THEME_STORAGE_KEY, 'light');
-    document.documentElement.className = 'theme-light accent-copper';
+    document.documentElement.dataset.theme = 'light';
+    document.documentElement.dataset.accent = 'copper';
 
     useTheme.getState().loadPersisted();
     useTheme.getState().apply();
 
-    const applied = document.documentElement.className;
-    expect(applied).toContain('theme-light');
-    expect(applied).toContain('accent-copper');
+    const applied = appliedDataset();
+    expect(applied.theme).toBe('light');
+    expect(applied.accent).toBe('copper');
   });
 
   it('agrees with the bootstrap on a first visit (auto resolves via matchMedia on both sides)', () => {
     darkPreference = true;
     // Nothing stored: index.html resolved matchMedia and fell back to the
     // copper brand default.
-    document.documentElement.className = 'theme-dark accent-copper';
+    document.documentElement.dataset.theme = 'dark';
+    document.documentElement.dataset.accent = 'copper';
 
     useTheme.getState().loadPersisted();
     useTheme.getState().apply();
 
-    const applied = document.documentElement.className;
-    expect(applied).toContain('theme-dark');
-    expect(applied).toContain('accent-copper');
+    const applied = appliedDataset();
+    expect(applied.theme).toBe('dark');
+    expect(applied.accent).toBe('copper');
     expect(useTheme.getState().themeMode).toBe('auto');
+  });
+
+  it('agrees with the bootstrap for OLED: dark theme + the oled flag', () => {
+    window.localStorage.setItem(
+      THEME_STORAGE_KEY,
+      JSON.stringify({ mode: 'oled', accent: 'blue' }),
+    );
+    document.documentElement.dataset.theme = 'dark';
+    document.documentElement.dataset.oled = 'true';
+    document.documentElement.dataset.accent = 'blue';
+
+    useTheme.getState().loadPersisted();
+    useTheme.getState().apply();
+
+    const applied = appliedDataset();
+    expect(applied.theme).toBe('dark');
+    expect(applied.oled).toBe('true');
+    expect(applied.accent).toBe('blue');
   });
 });

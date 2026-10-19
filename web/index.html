@@ -24,11 +24,14 @@
       rel="stylesheet"
     />
     <script>
-      // Pre-hydration theme bootstrap. Must agree with readPersistedTheme in
-      // web/src/stores/themeStore.ts: same key, same accepted values, same
-      // defaults, so the first paint matches what the store applies at
-      // hydration (no accent/mode flip).
+      // Pre-hydration appearance bootstrap. Must agree with
+      // resolveAppearanceAttributes in web/src/lib/appearance.ts: same key,
+      // same accepted values, same defaults, so the first paint matches what
+      // the store applies at hydration (no accent/mode flip). The parity
+      // test (src/appearance-bootstrap-parity.test.ts) executes both
+      // implementations against a scenario matrix and fails on drift.
       (function () {
+        var ACCENTS = ['copper', 'green', 'purple', 'blue', 'monochrome'];
         var mode = 'auto';
         var accent = 'copper';
         try {
@@ -39,14 +42,15 @@
             try {
               var parsed = JSON.parse(stored);
               if (parsed && typeof parsed === 'object') {
-                if (parsed.mode === 'auto' || parsed.mode === 'light' || parsed.mode === 'dark' || parsed.mode === 'oled') {
+                if (
+                  parsed.mode === 'auto' ||
+                  parsed.mode === 'light' ||
+                  parsed.mode === 'dark' ||
+                  parsed.mode === 'oled'
+                ) {
                   mode = parsed.mode;
                 }
-                if (
-                  ['copper', 'green', 'purple', 'blue', 'monochrome'].indexOf(
-                    parsed.accent,
-                  ) !== -1
-                ) {
+                if (ACCENTS.indexOf(parsed.accent) !== -1) {
                   accent = parsed.accent;
                 }
               }
@@ -59,7 +63,10 @@
               ? 'dark'
               : 'light'
             : mode;
-        document.documentElement.classList.add('theme-' + resolved, 'accent-' + accent);
+        var root = document.documentElement;
+        root.dataset.theme = resolved === 'oled' ? 'dark' : resolved;
+        if (resolved === 'oled') root.dataset.oled = 'true';
+        root.dataset.accent = accent;
       })();
     </script>
   </head>

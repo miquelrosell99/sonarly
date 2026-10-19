@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// Design-token drift gate (RosellRamos DS audit 2026-10-15). Zero baseline —
-// any drift fails immediately, no grandfathering. The web UI is class-driven
-// (Tailwind tokens in tailwind.config.js + web/src/index.css), so the gate has
-// two halves:
+// Design-token drift gate (RosellRamos DS audit 2026-10-15; namespace
+// checks recast for the canonical --md-sys-color-* architecture in the
+// 2026-10-19 single-track migration). Zero baseline — any
+// drift fails immediately, no grandfathering. The web UI is class-driven
+// (Tailwind tokens in tailwind.config.js + web/src/index.css), so the gate
+// has two halves:
 //
 //   CSS (web/src/**/*.css):
 //     1. every var(--token) resolves to a custom property defined in a stylesheet
@@ -13,19 +15,29 @@
 //     3. no px font-size;
 //     4. no px border-radius except the 9999px full pill;
 //     5. no color literal inside a var() fallback (var(--x, 0%) is honest;
-//        var(--x, #fff) is a hardcoded color).
+//        var(--x, #fff) is a hardcoded color);
+//     6. every --md-sys-color-* definition is a canonical Material You role
+//        (law/spec.md §2 family + the registered fleet semantic trio) —
+//        namespace hygiene per law/spec.md §1;
+//     7. no legacy pre-migration token names survive (full alignment, no legacy-name aliases): the old role
+//        vars (--bg-primary, --fg-primary/--fg-secondary, --surface-hover,
+//        --rule, --danger), the old class stems (bg-bg-primary, text-muted,
+//        border-rule, bg-accent, …), and the .theme-*/.accent-* class seam.
+//        --accent/--muted themselves are canonical now (the shadcn alias
+//        layer: hover surface / container).
 //
 //   TS/TSX (web/src/**/*.{ts,tsx}):
-//     6. no raw Tailwind radii (rounded-sm/md/lg/xl/2xl/3xl and bare rounded,
+//     8. no raw Tailwind radii (rounded-sm/md/lg/xl/2xl/3xl and bare rounded,
 //        directional variants included) — the rounded-* token family owns corners;
-//     7. no default Tailwind palette hues (bg-slate-900, text-red-500, …);
-//     8. no arbitrary color literals in class values (bg-[#fff]), no arbitrary
+//     9. no default Tailwind palette hues (bg-slate-900, text-red-500, …);
+//    10. no arbitrary color literals in class values (bg-[#fff]), no arbitrary
 //        px/rem/em font sizes (text-[11px]);
-//     9. no hardcoded canvas paint: fillStyle/strokeStyle assigned a plain
+//    11. no hardcoded canvas paint: fillStyle/strokeStyle assigned a plain
 //        string literal (template literals interpolating token-derived values
 //        are allowed — see SyncedLyricsEditor);
-//    10. off-grid breakpoint variants (min-[640px]:) only at registered owner
-//        files — the register entry must still exist (self-check).
+//    12. off-grid breakpoint variants (min-[640px]:) only at registered owner
+//        files — the register entry must still exist (self-check);
+//    13. the legacy class stems and theme/accent class seam from rule 7.
 //
 // The gate is CSS/class-only by construction: it cannot judge elevation
 // (shadow on static vs floating layers) — that stays an audit-checklist duty.
@@ -44,15 +56,50 @@ export const PX_FONT_SIZE_RE = /font-size\s*:\s*-?[\d.]+px\b/i;
 export const PX_BORDER_RADIUS_RE = /border-radius\s*:\s*([^;]*?)(-?[\d.]+px)\b/i;
 export const VAR_FALLBACK_RE = /var\(([^)]*)\)/g;
 
+// The canonical --md-sys-color-* role family (law/spec.md §2) plus the
+// registered fleet semantic trio (success/warning/info — a documented
+// namespace extension; the app's register records the decision). Definitions
+// outside this set fail the gate (rule 6).
+export const MD_SYS_COLOR_ROLES = new Set([
+  'background', 'on-background', 'surface', 'on-surface',
+  'surface-variant', 'on-surface-variant',
+  'surface-dim', 'surface-bright',
+  'surface-container-lowest', 'surface-container-low', 'surface-container',
+  'surface-container-high', 'surface-container-highest',
+  'inverse-surface', 'inverse-on-surface', 'inverse-primary',
+  'primary', 'on-primary', 'primary-container', 'on-primary-container',
+  'primary-hover', 'primary-pressed', 'primary-fixed', 'primary-fixed-dim',
+  'on-primary-fixed', 'on-primary-fixed-variant',
+  'secondary', 'on-secondary', 'secondary-container', 'on-secondary-container',
+  'tertiary', 'on-tertiary', 'tertiary-container', 'on-tertiary-container',
+  'error', 'on-error', 'error-container', 'on-error-container',
+  'outline', 'outline-variant', 'scrim', 'shadow', 'surface-tint',
+  'hover-overlay', 'focus-overlay', 'pressed-overlay',
+  'success', 'warning', 'info',
+]);
+
+// Legacy pre-migration names — banned by the 2026-10-19 single-track
+// migration (rule 7/13). The old role vars…
+export const LEGACY_VAR_RE =
+  /--(?:bg-primary|fg-primary|fg-secondary|surface-hover|rule|danger)\b/;
+// …the old Tailwind class stems (bg-bg-primary, text-muted, border-rule,
+// bg-accent, …)…
+export const LEGACY_CLASS_RE =
+  /\b(?:bg|text|border|ring|fill|stroke|divide|ring-offset)-(?:bg-primary|fg-primary|fg-secondary|surface-hover|rule|muted|accent|danger)\b/;
+// …and the .theme-*/.accent-* class seam. The (?<!-) lookbehind spares the
+// curated picker ramp vars (--accent-copper, registered identity values).
+export const LEGACY_THEME_CLASS_RE =
+  /(?<!-)\b(?:theme-(?:light|dark|oled)|accent-(?:copper|green|purple|blue|monochrome|cyan))\b/g;
+
 // Raw Tailwind radii outside the token family (rounded-card/sheet/button/
 // input/item/popover/full/none are the allowed vocabulary). Bare `rounded`
 // (4px) is forbidden too — the item token is the smallest step.
 export const RAW_RADIUS_RE =
   /(?<![\w/-])rounded(?:(?:-(?:t|b|l|r|s|e|tl|tr|bl|br))?-(?:sm|md|lg|xl|2xl|3xl))(?![\w/-])|(?<![\w/-])rounded(?![\w/-])/g;
 
-// Default Tailwind palette hues with a numeric step. Sonarly token names
-// (bg-primary, fg-secondary, surface, rule, muted, accent, danger, success,
-// warning, info) deliberately do not collide with these.
+// Default Tailwind palette hues with a numeric step. Canonical role names
+// (background, surface, on-surface, outline, primary, error, …) deliberately
+// do not collide with these.
 export const PALETTE_RE =
   /\b(?:bg|text|border|ring|fill|stroke|from|to|via|divide|outline|decoration|placeholder|caret|accent|shadow)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}(?:\.\d)?\b/g;
 
@@ -148,6 +195,47 @@ export function collectDrift(webRoot, options = {}) {
       }
     }
 
+    // Rule 6: --md-sys-color-* definitions must be canonical roles.
+    for (const match of source.matchAll(CSS_VAR_DEF_RE)) {
+      const name = match[1];
+      if (!name.startsWith('--md-sys-color-')) continue;
+      const role = name.slice('--md-sys-color-'.length);
+      if (!MD_SYS_COLOR_ROLES.has(role)) {
+        violations.push({
+          rule: 'css/md-sys-namespace',
+          file: fileRel,
+          line: lineNumberAt(source, match.index),
+          snippet: name,
+        });
+      }
+    }
+
+    // Rule 7: legacy pre-migration names must not survive in CSS.
+    for (const match of source.matchAll(new RegExp(LEGACY_VAR_RE.source, 'g'))) {
+      violations.push({
+        rule: 'css/legacy-token',
+        file: fileRel,
+        line: lineNumberAt(source, match.index),
+        snippet: match[0],
+      });
+    }
+    for (const match of source.matchAll(new RegExp(LEGACY_CLASS_RE.source, 'g'))) {
+      violations.push({
+        rule: 'css/legacy-class',
+        file: fileRel,
+        line: lineNumberAt(source, match.index),
+        snippet: match[0],
+      });
+    }
+    for (const match of source.matchAll(LEGACY_THEME_CLASS_RE)) {
+      violations.push({
+        rule: 'css/legacy-class',
+        file: fileRel,
+        line: lineNumberAt(source, match.index),
+        snippet: match[0],
+      });
+    }
+
     eachLine(file, source, (line, lineNo) => {
       if (HEX_RE.test(line) || RGB_FN_RE.test(line) || HSL_LITERAL_RE.test(line)) {
         violations.push({ rule: 'css/color-literal', file: fileRel, line: lineNo, snippet: line });
@@ -202,6 +290,14 @@ export function collectDrift(webRoot, options = {}) {
       if (!allowed) {
         violations.push({ rule: 'tsx/off-grid-breakpoint', file: fileRel, line: lineNumberAt(source, match.index), snippet: variant });
       }
+    }
+
+    // Rule 13: legacy class stems and the .theme-*/.accent-* class seam.
+    for (const match of source.matchAll(new RegExp(LEGACY_CLASS_RE.source, 'g'))) {
+      violations.push({ rule: 'tsx/legacy-class', file: fileRel, line: lineNumberAt(source, match.index), snippet: match[0] });
+    }
+    for (const match of source.matchAll(LEGACY_THEME_CLASS_RE)) {
+      violations.push({ rule: 'tsx/legacy-class', file: fileRel, line: lineNumberAt(source, match.index), snippet: match[0] });
     }
   }
 

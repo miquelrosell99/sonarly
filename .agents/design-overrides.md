@@ -9,7 +9,7 @@ Recorded per `rosellramos-design-system/identity/procedure.md` — the palette's
 ### Identity — palette: warm
 
 - **Rule**: `rosellramos-design-system/law/constitution.md` default 2 "Monochrome surfaces on a deliberate ground" — surfaces and text derive from ONE hue direction (warm / cold / neutral), chosen per app at adoption and recorded here.
-- **Decision**: **Warm.** Ground `--bg-primary` `#EEECE6` (light, archival paper) / `#171513` (dark, Archive Ink) / `#000000` (OLED); text `--fg-primary` `#231A11` / `#F4F3F1`; surfaces `--surface` `#FFFFFF` / `#322920` near-neutral-warm; hover `--surface-hover` `#E4E2DC` / `#493F35`; hairline `--rule` `#CFCBC1` / `#5D534A` (exact values in `web/src/index.css`, theme blocks, and `docs/design-language.md` "Color tokens").
+- **Decision**: **Warm.** Ground `--md-sys-color-background` (legacy `--bg-primary`) `#EEECE6` (light, archival paper) / `#171513` (dark, Archive Ink) / `#000000` (OLED); text `--md-sys-color-on-surface` `#231A11` / `#F4F3F1`; surfaces `--md-sys-color-surface` `#FFFFFF` / `#322920` near-neutral-warm; hover `--md-sys-color-surface-container-high` `#E4E2DC` / `#493F35`; hairline `--md-sys-color-outline(-variant)` `#CFCBC1` / `#5D534A` (exact values in `web/src/index.css` theme blocks and `docs/design-language.md` "Color tokens").
 - **Rationale**: The Signal Archive identity — a warm archival paper stage by day, a warm ink dark room by night, so album artwork (the actual content) stays the hero. Canonical doc: `docs/design-language.md` (aesthetic recipe + color-token table).
 - **Scope**: global — all three theme modes.
 - **Ruled**: 2026-10-19 agent session, registering the adoption decision made with the brand identity on 2026-10-07.
@@ -27,9 +27,9 @@ Recorded per `rosellramos-design-system/identity/procedure.md` — the palette's
 ### Identity — brand accent: Echo Copper
 
 - **Rule**: `rosellramos-design-system/law/constitution.md` default 4 "One functional accent active at a time, from a small curated picker" — the brand accent is a per-app identity decision made at adoption; there is no fleet default hue.
-- **Decision**: **Echo Copper**, the brand's single signal: seed pair `#9B541C` (light, `--accent-copper: 26 69% 36%`) / `#DB8342` (dark + OLED, `25 68% 56%`). Picker ships the curated five(commit `65b154d`): Copper (default), Monochrome (`--accent` follows `--fg-primary`), Green, Purple, Blue. Saturated hues lighten on dark/OLED grounds so `--bg-primary` on-accent text keeps WCAG AA.
+- **Decision**: **Echo Copper**, the brand's single signal: seed pair `#9B541C` (light, `--accent-copper: 26 69% 36%` → `[data-accent='copper']`) / `#DB8342` (dark + OLED, `25 68% 56%`). Picker ships the curated five(commit `65b154d`): Copper (default), Monochrome (the seed follows `--md-sys-color-on-surface`), Green, Purple, Blue. Saturated hues lighten on dark/OLED grounds so the ground-colored `--md-sys-color-on-primary` label keeps WCAG AA.
 - **Rationale**: "One stamp of colour" on the archival paper — Echo Copper is the signal nobody on the streaming shelf owns (rejected alternative: blue-family category code; `docs/design-language.md` "Rejected alternatives"). Superseding the launch-day monochrome default.
-- **Scope**: global — the accent seam (`--accent` + `.accent-*` classes, `web/src/index.css`).
+- **Scope**: global — the accent seam (`[data-accent]` blocks + the `--accent-*` picker ramp vars, `web/src/index.css`).
 - **Ruled**: 2026-10-19 agent session.
 - **Review trigger**: brand refresh; accent-picker rework; a constitution change to default 4.
 
@@ -44,20 +44,28 @@ Recorded per `rosellramos-design-system/identity/procedure.md` — the palette's
 
 ## Deviations
 
-### shadcn alias layer — `--accent` / `--muted` name collisions
+### Single-track canonical token architecture (2026-10-19 migration)
+
+- **Rule**: `rosellramos-design-system/law/spec.md` §1 (three-tier token architecture: one token file owns every value; color system tokens carry `--md-sys-color-*` and the §2 role names), §2 (the complete color-role map), §3 (the seed model: `[data-accent]` presets set only the seed, everything else derives) — FULL alignment, no shortcuts, no legacy-name aliases.
+- **Decision**: Sonarly's web token file (`web/src/index.css`) was rebuilt on the canonical architecture in one single-track migration (commits `55e545b` tokens + rename, seam migration same day; the notees 2026-10-14 precedent). Every legacy role was re-expressed as a canonical role carrying the app's exact pre-migration values (byte-identical rendering; a rename, not a reskin): `--bg-primary` → `--md-sys-color-background`; `--fg-primary` → `--md-sys-color-on-surface` (+ `on-background`, same values); `--fg-secondary` and `--muted` → `--md-sys-color-on-surface-variant`; `--surface` → `--md-sys-color-surface`; `--surface-hover` → `--md-sys-color-surface-container-high` (the app's one neutral step-up surface owns the `-high` rung; `surface-container` rides the card surface for popovers/menus); `--rule` → `--md-sys-color-outline` AND `--md-sys-color-outline-variant` (one rule register for hairlines and interactive borders, both roles intentionally share the value); `--accent` (seed) → `--md-sys-color-primary`; `--danger` → `--md-sys-color-error`; `success`/`warning`/`info` keep their names as registered fleet semantic extensions. The 18-key prep alias layer was replaced by the canonical 20-key shadcn alias layer (`rulings.mjs` ALIAS_LAYER) — `--accent` is now the HOVER surface (`hover-overlay`) and `--muted` a container, the old name-collision deviation is resolved below. The derived primary family (`primary-container`/`on-primary-container`/`primary-hover`/`primary-pressed`, `error-container` pair) derives via `color-mix` per §3 and holds full colors (consumed raw, never `hsl()`-wrapped); state-layer overlays (`hover/focus/pressed-overlay`), `scrim`/`shadow`/`surface-tint` ship per §2/§4. The chart palette (`--chart-1…10`) stays a registered `--md-sys`-adjacent data extension consumed directly by canvas paints.
+- **Identity decisions recorded alongside the architecture** (values unchanged by the migration): the ground-colored-label contract — `--md-sys-color-on-primary` and `--md-sys-color-on-error` are bound to the `background` role via a `var()` chain, so accent/destructive fills carry ground-colored labels in every theme and accent; and the single-hue identity has no second accent family, so `secondary` rides the neutral ramp (`secondary-container` shares the `-high` step). The appearance seam is the canonical `data-theme` / `data-oled` / `data-accent` attribute trio (constitution default 1, ONE writer): `useTheme.apply()` in `web/src/stores/themeStore.ts` resolves through the one pure resolver `web/src/lib/appearance.ts::resolveAppearanceAttributes`, and the pre-paint inline bootstrap in `web/index.html` mirrors it verbatim — `web/src/appearance-bootstrap-parity.test.ts` executes both against a scenario matrix and fails the gate on drift (constitution ruling 2026-10-15 closure). The `.theme-*` / `.accent-*` class seam was removed entirely.
+- **Rationale**: the skill is the single structural source of truth; one architecture across the fleet, per-app identity only in values. Byte-identical output was the acceptance criterion: the warm ground (`#EEECE6`/`#171513`/`#000000`), Echo Copper accent, radii, elevation, and type stack are unchanged in computed values.
+- **Scope**: global — the whole web token file, tailwind color mapping (`web/tailwind.config.js`), every component reference (136 files), the appearance seam, and the drift gate (`web/scripts/token-drift.mjs` now enforces the canonical `--md-sys-color-*` definition family and bans the legacy names).
+- **Ruled**: 2026-10-19 agent session.
+- **Review trigger**: a law revision to §1–§4; a palette rework; the shadcn catalog migration landing derived-role consumers (tailwind keys for the color-mix full-color roles).
+
+### shadcn alias layer — `--accent` / `--muted` name collisions (RESOLVED 2026-10-19)
 
 - **Rule**: `rosellramos-design-system/components/shadcn-bridge.md` "The alias mapping (what the generator emits)" — the alias layer defines all 20 shadcn theme keys as `var()` aliases of the role tokens, including `--accent` → hover overlay and `--muted` → surface container.
-- **Decision**: The prep pass (2026-10-19) emits 18 of the 20 keys in `web/src/index.css` and deliberately does NOT redefine `--accent` or `--muted`: this token file already owns both names — `--accent` is the brand **seed** (consumed as `hsl(var(--accent))` app-wide) and `--muted` is the muted **text** color (same values as `--fg-secondary`, used via `text-muted`). shadcn's two colliding roles are both served by the app's `--surface-hover` (hover surface / subtle container), and catalog `var(--accent)` / `var(--muted)` references are rewritten to `var(--surface-hover)` during per-component normalization (bridge checklist #3, which rewrites hover styles anyway). `--muted-foreground` maps the catalog's muted-text role to `--fg-secondary`. Also recorded in the alias-layer comment in `index.css`.
-- **Rationale**: Redefining either name would repaint the entire existing app (every `hsl(var(--accent))` seed use, every `text-muted` caption). The fleet-collision resolution (shadcn `--accent` = hover surface, seed = `--primary`) survives via `--primary: var(--accent)`.
-- **Scope**: global token file + every catalog component added later (each goes through the normalization checklist, which owns the two rewrites).
-- **Ruled**: 2026-10-19, shadcn adoption prep.
-- **Review trigger**: a catalog component that cannot be normalized without a live `--accent`/`--muted` reference; an app-wide token rename; a bridge-mapping revision upstream.
+- **Original decision** (2026-10-19 prep pass): the app predated the md-sys role names, so the prep layer emitted 18 of 20 keys and deliberately did NOT redefine `--accent` (the brand seed app-wide) or `--muted` (the muted TEXT color); catalog refs were to be rewritten during per-component normalization.
+- **Resolution**: the single-track canonical migration (entry above) renamed every seed use to `--md-sys-color-primary` and every muted-text use to `--md-sys-color-on-surface-variant`, freeing both names. The canonical 20-key alias layer is now emitted verbatim: `--accent` = `--md-sys-color-hover-overlay` (shadcn's hover surface), `--muted` = `--md-sys-color-surface-container`, `--muted-foreground` = `--md-sys-color-on-surface-variant`. No catalog rewrites needed for these two keys.
+- **Review trigger**: a catalog component that cannot be normalized without a live reference to the old meanings (none expected).
 
 ### Now-playing panel translucency and hairlines (exception)
 
-- **Rule**: SKILL.md default 6 "Zero visual noise" — no tinted overlays or translucency on persistent chrome; hairlines render at the `--rule` token's own opacity.
+- **Rule**: SKILL.md default 6 "Zero visual noise" — no tinted overlays or translucency on persistent chrome; hairlines render at the `--md-sys-color-outline` token's own opacity.
 - **Decision**: The NowPlaying queue/lyrics panel (`web/src/features/now-playing/components/NowPlaying.tsx:325-328`) stays on `bg-surface/80 backdrop-blur-xl` over the page — including when no dominant color is set — and keeps its hairlines at `border-rule/50`. The now-playing background is an exception; the solid-fallback idea is not applied here.
-- **Rationale**: The panel floats over the (registered) ambient dominant-color wash; a fixed translucent scrim + backdrop blur is what keeps the queue/lyrics readable over a *changing* artwork-driven background, which a solid fill cannot do once the wash appears. The wash and the scrim are one immersive treatment. All other app chrome standardizes on solid surfaces and full-opacity `--rule` hairlines (done 2026-10-18).
+- **Rationale**: The panel floats over the (registered) ambient dominant-color wash; a fixed translucent scrim + backdrop blur is what keeps the queue/lyrics readable over a *changing* artwork-driven background, which a solid fill cannot do once the wash appears. The wash and the scrim are one immersive treatment. All other app chrome standardizes on solid surfaces and full-opacity `--md-sys-color-outline` hairlines (done 2026-10-18).
 - **Scope**: surface — the NowPlaying queue/lyrics panel only. No other panel may use translucency over chrome.
 - **Ruled**: 2026-10-18 audit; owner exception same day.
 - **Review trigger**: now-playing redesign; removal of the ambient wash; a ruling against translucent chrome.
@@ -65,7 +73,7 @@ Recorded per `rosellramos-design-system/identity/procedure.md` — the palette's
 ### Chrome surface-step (sidebar, player bar on `--surface`)
 
 - **Rule**: SKILL.md default 3 — solid sidebar on the ground color; checklist §7 "Sidebar — solid ground color, hairline separator, never its own card".
-- **Decision**: The desktop sidebar (`web/src/components/Sidebar.tsx:335`) and the player bar (`web/src/components/PlayerBar.tsx:267`) sit on `--surface`, one step up from the `--bg-primary` ground. The mobile drawer keeps `bg-surface` as a `role="dialog"` overlay under the modal exception.
+- **Decision**: The desktop sidebar (`web/src/components/Sidebar.tsx:335`) and the player bar (`web/src/components/PlayerBar.tsx:267`) sit on `--md-sys-color-surface`, one step up from the `--md-sys-color-background` ground. The mobile drawer keeps `bg-surface` as a `role="dialog"` overlay under the modal exception.
 - **Rationale**: Canonical project doc `docs/design-language.md:33` documents this in the token table ("`--surface` … Cards, sidebar, panels") — the Signal Archive identity frames content between two warm tonal steps; this entry registers what the canonical doc already says (same treatment the card-grid recipe got on 2026-10-15).
 - **Scope**: surface — desktop sidebar and player bar chrome only. No other chrome may step up to `--surface`.
 - **Ruled**: 2026-10-18 audit (documented in `docs/design-language.md` since pre-2.0).
@@ -136,11 +144,11 @@ Recorded per `rosellramos-design-system/identity/procedure.md` — the palette's
 
 ### Unlayered accent-override block in index.css
 
-- **Rule**: `rosellramos-design-system/references/foundations.md` token architecture (layered cascade).
-- **Decision**: The `[class*="accent-"]` override rules in `web/src/index.css` are deliberately outside `@layer base` (comment in the file explains).
+- **Rule**: `rosellramos-design-system/law/spec.md` §1 token architecture (layered cascade).
+- **Decision**: The `[data-accent]` accent-override rules in `web/src/index.css` are deliberately outside `@layer base` (comment in the file explains).
 - **Rationale**: Tailwind 3.4 intermittently drops small hand-written rule runs inside layers; unlayered CSS passes through untouched and beats `@layer base` in the cascade — exactly what an override wants.
 - **Scope**: global token file.
-- **Ruled**: code comment at `web/src/index.css` (pre-2026-10-08); registered 2026-10-15.
+- **Ruled**: code comment at `web/src/index.css` (pre-2026-10-08, class-based `.accent-*` at the time); selectors migrated to `[data-accent]` with the 2026-10-19 seam migration; registered 2026-10-15.
 - **Review trigger**: Tailwind upgrade past 3.4; move to CSS-first theming.
 
 ### Off-grid breakpoint usages (`min-[640px]` / `min-[1280px]` / `min-[420px]`)

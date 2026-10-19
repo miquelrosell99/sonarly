@@ -38,6 +38,18 @@ describe('useUpdatePreferences (FF8 single writer)', () => {
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     useTheme.setState({ themeMode: 'auto', accentColor: 'auto' });
     apiMock.mockResolvedValue({ preferences: serverPreferences } as never);
+    // jsdom does not implement matchMedia; apply() resolves the system
+    // preference through it on every call (appearance seam resolver).
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      onchange: null,
+      dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia;
   });
 
   afterEach(() => {
@@ -113,7 +125,21 @@ describe('useSyncThemePreferences (boot seed, F3)', () => {
     __resetThemeSyncForTests();
     apiMock.mockReset();
     window.localStorage.clear();
-    document.documentElement.className = '';
+    for (const attr of ['theme', 'oled', 'accent']) {
+      delete document.documentElement.dataset[attr as 'theme'];
+    }
+    // jsdom does not implement matchMedia; apply() resolves the system
+    // preference through it on every call (appearance seam resolver).
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      onchange: null,
+      dispatchEvent: vi.fn(),
+    })) as unknown as typeof window.matchMedia;
     useTheme.setState({ themeMode: 'auto', accentColor: 'auto' });
   });
 
@@ -134,8 +160,8 @@ describe('useSyncThemePreferences (boot seed, F3)', () => {
       mode: 'dark',
       accent: 'purple',
     });
-    expect(document.documentElement.className).toContain('theme-dark');
-    expect(document.documentElement.className).toContain('accent-purple');
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(document.documentElement.dataset.accent).toBe('purple');
   });
 
   it('leaves the local snapshot alone when the server has no theme keys (fresh account)', async () => {
