@@ -2,6 +2,48 @@
 
 Documented deviations from the [RosellRamos design system](/root/.agents/skills/rosellramos-design-system/SKILL.md). Contract: `rosellramos-design-system/references/overrides.md` — an undocumented deviation is drift; a documented one is a decision. Newest first; write the entry in the same pass as the deviation it records.
 
+## Identity (adoption decisions)
+
+Recorded per `rosellramos-design-system/identity/procedure.md` — the palette's hue direction, default theme, brand accent, and type stack are decided once at adoption. They are decisions, not deviations: the audit treats a registered identity as PASS-with-note. Full documentation lives in `docs/design-language.md` (the Signal Archive identity, adopted 2026-10-07; kit at `brand-identity/sonarly/kit/B/`).
+
+### Identity — palette: warm
+
+- **Rule**: `rosellramos-design-system/law/constitution.md` default 2 "Monochrome surfaces on a deliberate ground" — surfaces and text derive from ONE hue direction (warm / cold / neutral), chosen per app at adoption and recorded here.
+- **Decision**: **Warm.** Ground `--bg-primary` `#EEECE6` (light, archival paper) / `#171513` (dark, Archive Ink) / `#000000` (OLED); text `--fg-primary` `#231A11` / `#F4F3F1`; surfaces `--surface` `#FFFFFF` / `#322920` near-neutral-warm; hover `--surface-hover` `#E4E2DC` / `#493F35`; hairline `--rule` `#CFCBC1` / `#5D534A` (exact values in `web/src/index.css`, theme blocks, and `docs/design-language.md` "Color tokens").
+- **Rationale**: The Signal Archive identity — a warm archival paper stage by day, a warm ink dark room by night, so album artwork (the actual content) stays the hero. Canonical doc: `docs/design-language.md` (aesthetic recipe + color-token table).
+- **Scope**: global — all three theme modes.
+- **Ruled**: 2026-10-19 agent session, registering the adoption decision made with the brand identity on 2026-10-07.
+- **Review trigger**: brand refresh; a palette rework; a constitution change to default 2.
+
+### Identity — default theme: Auto (follow system)
+
+- **Rule**: `rosellramos-design-system/law/constitution.md` default 1 "Themes ship complete" — "Which theme is the default is a per-app identity decision — dark-first is common in the fleet, not law."
+- **Decision**: **Auto.** `web/src/stores/themeStore.ts` boots with `themeMode: 'auto'` and resolves against `prefers-color-scheme` (light/dark), persisting the resolved value; OLED is opt-in only. The `index.html` pre-paint bootstrap mirrors the same defaults.
+- **Rationale**: A music library is used around the clock; matching the system respects the user's environment without a first-run forced choice. Owner never ruled dark-first for sonarly.
+- **Scope**: global — the appearance seam default (Settings → Appearance can still pin light/dark/OLED per user).
+- **Ruled**: 2026-10-19 agent session, registering the behavior shipped since pre-2.0.
+- **Review trigger**: a ruling for dark-first; onboarding/first-run redesign; a constitution change to default 1.
+
+### Identity — brand accent: Echo Copper
+
+- **Rule**: `rosellramos-design-system/law/constitution.md` default 4 "One functional accent active at a time, from a small curated picker" — the brand accent is a per-app identity decision made at adoption; there is no fleet default hue.
+- **Decision**: **Echo Copper**, the brand's single signal: seed pair `#9B541C` (light, `--accent-copper: 26 69% 36%`) / `#DB8342` (dark + OLED, `25 68% 56%`). Picker ships the curated five(commit `65b154d`): Copper (default), Monochrome (`--accent` follows `--fg-primary`), Green, Purple, Blue. Saturated hues lighten on dark/OLED grounds so `--bg-primary` on-accent text keeps WCAG AA.
+- **Rationale**: "One stamp of colour" on the archival paper — Echo Copper is the signal nobody on the streaming shelf owns (rejected alternative: blue-family category code; `docs/design-language.md` "Rejected alternatives"). Superseding the launch-day monochrome default.
+- **Scope**: global — the accent seam (`--accent` + `.accent-*` classes, `web/src/index.css`).
+- **Ruled**: 2026-10-19 agent session.
+- **Review trigger**: brand refresh; accent-picker rework; a constitution change to default 4.
+
+### Identity — type stack: Bricolage Grotesque + IBM Plex Mono
+
+- **Rule**: `rosellramos-design-system/law/constitution.md` default 5 "Typography: sans for chrome" — UI chrome in a grotesque sans (Instrument Sans or Bricolage Grotesque); monospace only for code/data.
+- **Decision**: **Bricolage Grotesque** (variable, opsz `10..96`) for display + body/UI — 600 display/headings/wordmark, 400/500 labels/lists/captions; **IBM Plex Mono** (400/500) for data — durations, counters, timestamps, catalogue metadata. Tailwind: `font-display` / `font-sans` / `font-mono` (`web/tailwind.config.js`).
+- **Rationale**: A catalogue's typographic discipline is half the Signal Archive identity; Bricolage's optical-size axis gives headings and the wordmark the same voice. Canonical doc: `docs/design-language.md` "Typography".
+- **Scope**: global.
+- **Ruled**: 2026-10-19 agent session, registering the adoption decision made with the brand identity on 2026-10-07.
+- **Review trigger**: brand refresh; formal type-scale work; a constitution change to default 5.
+
+## Deviations
+
 ### Now-playing panel translucency and hairlines (exception)
 
 - **Rule**: SKILL.md default 6 "Zero visual noise" — no tinted overlays or translucency on persistent chrome; hairlines render at the `--rule` token's own opacity.
