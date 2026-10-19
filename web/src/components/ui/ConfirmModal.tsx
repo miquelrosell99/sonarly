@@ -1,6 +1,13 @@
 import { Modal } from './Modal.js';
 import { Button } from './button.js';
 
+// Confirm dialog composed on the app Modal — NOT the Radix alert-dialog.
+// The overlay-authority register (.agents/design-overrides.md) keeps the app
+// Modal as the dialog authority: ConfirmModal legitimately stacks as a
+// sibling over edit Modals (FF11) and must keep the underneath layer
+// accessible, which Radix modal semantics (topmost-only a11y tree) cannot
+// express. The catalog alert-dialog is for new surfaces that never stack.
+
 interface ConfirmModalProps {
   open: boolean;
   onClose: () => void;
