@@ -545,17 +545,17 @@ export function AdminUsers({ user }: AdminUsersProps) {
               <Checkbox
                 label="Hide explicit"
                 checked={editForm.hideExplicit}
-                onChange={(e) => setEditForm((prev) => ({ ...prev, hideExplicit: e.target.checked }))}
+                onCheckedChange={(checked) => setEditForm((prev) => ({ ...prev, hideExplicit: checked }))}
               />
               <Checkbox
                 label="Blur titles"
                 checked={editForm.blurExplicitTitles}
-                onChange={(e) => setEditForm((prev) => ({ ...prev, blurExplicitTitles: e.target.checked }))}
+                onCheckedChange={(checked) => setEditForm((prev) => ({ ...prev, blurExplicitTitles: checked }))}
               />
               <Checkbox
                 label="Blur covers"
                 checked={editForm.blurExplicitCovers}
-                onChange={(e) => setEditForm((prev) => ({ ...prev, blurExplicitCovers: e.target.checked }))}
+                onCheckedChange={(checked) => setEditForm((prev) => ({ ...prev, blurExplicitCovers: checked }))}
               />
             </div>
 
@@ -657,7 +657,7 @@ function UserLibrariesSection({ userId }: { userId: string }) {
                 label={library.name}
                 description={library.path}
                 checked={assignedSet.has(library.id)}
-                onChange={(e) => toggle(library.id, e.target.checked)}
+                onCheckedChange={(checked) => toggle(library.id, checked)}
                 disabled={busy}
               />
             </li>

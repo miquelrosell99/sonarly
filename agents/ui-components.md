@@ -64,7 +64,7 @@ Small UI patterns that should be reused instead of reimplemented:
 
 | Widget | Path | Use for |
 |--------|------|---------|
-| `Checkbox` | `components/ui/Checkbox.tsx` | All boolean settings. Replace native `<input type="checkbox">` with this styled control. |
+| `Checkbox` | `components/ui/checkbox.tsx` | The labeled app checkbox, composed on the catalog `CheckboxControl` since 2026-10-19: label/description anatomy, `indeterminate` convenience prop, and the Radix `checked`/`onCheckedChange` contract (boolean delta, no native event). All boolean settings use it — never a native `<input type="checkbox">`. `CheckboxControl` is the bare catalog control for custom compositions. |
 | `ItemContextMenu` | `components/ItemContextMenu.tsx` | Right-click or long-press menus. It portals the menu to `document.body` so it is not clipped by ancestor `overflow` rules. |
 | Card selector | `features/settings/pages/SettingsPlayback.tsx` | Mutually exclusive choices with an icon, title, and short description. Use as a horizontal row of cards that stack vertically on small screens. |
 | Settings draft | `features/settings/hooks/useSettingsDraft.ts` | Draft-based editing for preference-backed settings: `useSettingsDraft()` stages edits into the module-level `settingsDraftStore` (survives tab switches, prunes values reverted to the saved ones), and `useSettingsSaveBar()` registers the save bar with the shell. The PATCH response stays the single writer of the preferences cache and theme store (FF8); a failed save keeps the draft. |

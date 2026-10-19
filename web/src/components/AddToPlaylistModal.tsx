@@ -130,7 +130,7 @@ export function AddToPlaylistModal() {
                       : undefined
                   }
                   checked={selected.has(playlist.id)}
-                  onChange={() => toggle(playlist.id)}
+                  onCheckedChange={() => toggle(playlist.id)}
                   disabled={submitting}
                 />
               ))}

@@ -63,7 +63,7 @@ export function TagFieldsGrid({
                   label="Explicit"
                   checked={explicit ?? false}
                   indeterminate={explicit === null}
-                  onChange={(e) => onExplicitChange(e.target.checked)}
+                  onCheckedChange={(checked) => onExplicitChange(checked)}
                   disabled={readOnly}
                 />
               </div>

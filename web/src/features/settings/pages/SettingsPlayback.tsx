@@ -115,7 +115,7 @@ function PlaybackSettings() {
         <Checkbox
           id="auto-dj-enabled"
           checked={enabled}
-          onChange={(e) => update({ autoDjEnabled: e.target.checked })}
+          onCheckedChange={(checked) => update({ autoDjEnabled: checked })}
           label="Automatically add songs when the queue runs low"
         />
       </SettingsCard>
@@ -193,7 +193,7 @@ function PlaybackSettings() {
           <Checkbox
             id="auto-dj-prefer-favorites"
             checked={preferFavorites}
-            onChange={(e) => update({ autoDjPreferFavorites: e.target.checked })}
+            onCheckedChange={(checked) => update({ autoDjPreferFavorites: checked })}
             label="Prefer favorites"
             description="Starred tracks are ranked ahead of everything else."
           />
