@@ -21,7 +21,7 @@
 
 The production build is code-split (audit FF2 fix, 2026-09-26):
 
-- Every route in `App.tsx` is a `React.lazy` component via the `lazyRoute()` helper, with a route-shaped skeleton from `components/Skeletons.tsx` as its Suspense fallback. `Login`/`Setup` stay static (first paint for unauthenticated visitors); shared chrome (Layout, TopBar, Sidebar, PlayerBar, AudioController, NowPlaying overlay) stays in the entry chunk.
+- Every route in `App.tsx` is a `React.lazy` component via the `lazyRoute()` helper, with a route-shaped skeleton from `features/shell/Skeletons.tsx` as its Suspense fallback. `Login`/`Setup` stay static (first paint for unauthenticated visitors); shared chrome (Layout, TopBar, Sidebar, PlayerBar, AudioController, NowPlaying overlay) stays in the entry chunk.
 - `vite.config.ts` `manualChunks` splits vendors by independent release cadence: `react` (react/react-dom/scheduler), `tanstack` (react-query + react-virtual), `dnd-kit`, `wouter`, `zustand`.
 - `scripts/bundle-budget.mjs` runs as the final `pnpm build` step and rejects the build when: entry chunk > 250 KiB raw, any single lazy chunk > 350 KiB raw, or total JS > 900 KiB raw. It prints a full chunk table plus the offenders.
 
