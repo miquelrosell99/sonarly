@@ -44,6 +44,15 @@ Recorded per `rosellramos-design-system/identity/procedure.md` — the palette's
 
 ## Deviations
 
+### shadcn alias layer — `--accent` / `--muted` name collisions
+
+- **Rule**: `rosellramos-design-system/components/shadcn-bridge.md` "The alias mapping (what the generator emits)" — the alias layer defines all 20 shadcn theme keys as `var()` aliases of the role tokens, including `--accent` → hover overlay and `--muted` → surface container.
+- **Decision**: The prep pass (2026-10-19) emits 18 of the 20 keys in `web/src/index.css` and deliberately does NOT redefine `--accent` or `--muted`: this token file already owns both names — `--accent` is the brand **seed** (consumed as `hsl(var(--accent))` app-wide) and `--muted` is the muted **text** color (same values as `--fg-secondary`, used via `text-muted`). shadcn's two colliding roles are both served by the app's `--surface-hover` (hover surface / subtle container), and catalog `var(--accent)` / `var(--muted)` references are rewritten to `var(--surface-hover)` during per-component normalization (bridge checklist #3, which rewrites hover styles anyway). `--muted-foreground` maps the catalog's muted-text role to `--fg-secondary`. Also recorded in the alias-layer comment in `index.css`.
+- **Rationale**: Redefining either name would repaint the entire existing app (every `hsl(var(--accent))` seed use, every `text-muted` caption). The fleet-collision resolution (shadcn `--accent` = hover surface, seed = `--primary`) survives via `--primary: var(--accent)`.
+- **Scope**: global token file + every catalog component added later (each goes through the normalization checklist, which owns the two rewrites).
+- **Ruled**: 2026-10-19, shadcn adoption prep.
+- **Review trigger**: a catalog component that cannot be normalized without a live `--accent`/`--muted` reference; an app-wide token rename; a bridge-mapping revision upstream.
+
 ### Now-playing panel translucency and hairlines (exception)
 
 - **Rule**: SKILL.md default 6 "Zero visual noise" — no tinted overlays or translucency on persistent chrome; hairlines render at the `--rule` token's own opacity.

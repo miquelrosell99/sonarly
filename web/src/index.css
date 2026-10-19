@@ -104,6 +104,53 @@
     --info: 210 97% 70%;
   }
 
+  /* shadcn catalog alias layer (prep for the catalog migration; mapping per
+     rosellramos-design-system/components/shadcn-bridge.md "The alias
+     mapping"). Aliases only — every value still lives in the theme blocks
+     above, so theme and accent swaps propagate through var() resolution at
+     use time with zero component edits. The app predates the md-sys role
+     names, so the aliases point at this file's role tokens instead.
+
+     Two shadcn key names are deliberately NOT emitted because this token
+     file already owns them with different meanings:
+       --accent — here it is the brand SEED (consumed as hsl(var(--accent)));
+         shadcn's --accent is a hover surface, served by --surface-hover.
+         Catalog hover refs are rewritten to var(--surface-hover) during
+         normalization (bridge checklist #3). Registered in
+         .agents/design-overrides.md.
+       --muted — here it is the muted TEXT color (same values as
+         --fg-secondary, used via text-muted); shadcn's --muted is a
+         container, also served by --surface-hover. Catalog refs are
+         rewritten at normalization. --muted-foreground below maps the
+         catalog's muted-text role to --fg-secondary. */
+  :root {
+    --background: var(--bg-primary);
+    --foreground: var(--fg-primary);
+    --card: var(--surface);
+    --card-foreground: var(--fg-primary);
+    --popover: var(--surface);
+    --popover-foreground: var(--fg-primary);
+    --primary: var(--accent);
+    /* .btn contract: accent background, ground-colored label. Holds for the
+       monochrome accent too (accent = --fg-primary), by construction. */
+    --primary-foreground: var(--bg-primary);
+    --secondary: var(--surface-hover);
+    --secondary-foreground: var(--fg-primary);
+    --muted-foreground: var(--fg-secondary);
+    --accent-foreground: var(--fg-primary);
+    --destructive: var(--danger);
+    /* .btn-danger hover contract: danger background, ground-colored label. */
+    --destructive-foreground: var(--bg-primary);
+    /* Hairlines and interactive borders both ride the --rule register. */
+    --border: var(--rule);
+    --input: var(--rule);
+    /* Focus ring follows the accent — never suppress (bridge checklist #4). */
+    --ring: var(--accent);
+    /* The fleet card radius (tailwind rounded-card); shadcn internals read
+       --radius. */
+    --radius: 20px;
+  }
+
   body {
     @apply bg-bg-primary font-sans text-fg-primary antialiased;
   }
