@@ -131,7 +131,7 @@ describe('token-drift on a fixture tree', () => {
         'App.tsx': 'export const App = () => <div className="rounded-card bg-surface" />;\n',
         // Minimal stand-ins so the JS-set-var allowlist self-checks pass.
         'MonthlyActivityChart.tsx': "style={{ '--stagger': 0 }} as CSSProperties",
-        'StatisticsView.tsx': "return { '--stagger': index } as CSSProperties",
+        'format.ts': "return { '--stagger': index } as CSSProperties",
         'Layout.tsx': "({ '--now-playing-color': color } as React.CSSProperties)",
         'AutoDjTunePopover.tsx': "style={{ '--slider-fill': '0%' }} as React.CSSProperties",
         'SettingsPlayback.tsx': "style={{ '--slider-fill': '0%' }} as React.CSSProperties",
