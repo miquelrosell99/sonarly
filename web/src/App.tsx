@@ -17,7 +17,7 @@ import { useServerEvents } from './hooks/useServerEvents.js';
 import { ErrorBoundary, reportClientError } from './features/shell/ErrorBoundary.js';
 import { Button } from './components/ui/button.js';
 import { useDelayedVisible } from './hooks/useDelayedVisible.js';
-import { AddToPlaylistModal } from './components/AddToPlaylistModal.js';
+import { AddToPlaylistModal } from './features/playlists/index.js';
 import { api } from './lib/api.js';
 import { getShareToken } from './lib/shareToken.js';
 // Lazy so the Radix dialog chain the fixture mounts stays out of the entry

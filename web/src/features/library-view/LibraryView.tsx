@@ -8,7 +8,7 @@ import {
   DEFAULT_LOCKED_COLUMN_KEYS,
   type ColumnConfigColumn,
 } from '../../hooks/useColumnConfig.js';
-import { ColumnConfigMenu } from '../../components/ColumnConfigMenu.js';
+import { ColumnConfigMenu } from './ColumnConfigMenu.js';
 import { cn } from '../../lib/cn.js';
 import { LibraryList } from './LibraryList.js';
 import { LibraryGrid } from './LibraryGrid.js';

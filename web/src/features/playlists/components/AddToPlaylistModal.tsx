@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Modal } from './ui/Modal.js';
-import { Button } from './ui/button.js';
-import { Checkbox } from './ui/checkbox.js';
-import { EmptyState } from './ui/EmptyState.js';
-import { Input } from './ui/input.js';
-import { usePlaylists } from '../hooks/usePlaylists.js';
-import { useAddSongsToPlaylist } from '../hooks/useAddSongsToPlaylist.js';
-import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
-import { useDelayedVisible } from '../hooks/useDelayedVisible.js';
-import { useAddToPlaylistStore } from '../stores/addToPlaylistStore.js';
+import { Modal } from '../../../components/ui/Modal.js';
+import { Button } from '../../../components/ui/button.js';
+import { Checkbox } from '../../../components/ui/checkbox.js';
+import { EmptyState } from '../../../components/ui/EmptyState.js';
+import { Input } from '../../../components/ui/input.js';
+import { usePlaylists } from '../../../hooks/usePlaylists.js';
+import { useAddSongsToPlaylist } from '../../../hooks/useAddSongsToPlaylist.js';
+import { useCreatePlaylistModal } from '../../../hooks/useCreatePlaylistModal.js';
+import { useDelayedVisible } from '../../../hooks/useDelayedVisible.js';
+import { useAddToPlaylistStore } from '../../../stores/addToPlaylistStore.js';
 
 /**
  * The global "Add to playlist" picker: one modal, opened from any context
