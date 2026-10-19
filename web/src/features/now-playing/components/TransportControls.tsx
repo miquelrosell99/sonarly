@@ -1,5 +1,5 @@
 import { Icon } from '../../../components/ui/Icon.js';
-import { ControlButton, PlayPauseButton, Slider } from '../../../components/PlayerControls.js';
+import { ControlButton, PlayPauseButton, Slider } from '../../player/PlayerControls.js';
 import { cn } from '../../../lib/cn.js';
 import { usePlayer } from '../../../stores/playerStore.js';
 

@@ -13,9 +13,9 @@ import { usePlayer } from '../stores/playerStore.js';
 import { useDominantColor } from '../hooks/useDominantColor.js';
 import { TopBar } from './TopBar.js';
 import { Sidebar } from './Sidebar.js';
-import { PlayerBar } from './PlayerBar.js';
-import { AudioController } from './AudioController.js';
-import { NowPlayingAnnouncer } from './NowPlayingAnnouncer.js';
+import { PlayerBar } from '../features/player/PlayerBar.js';
+import { AudioController } from '../features/player/AudioController.js';
+import { NowPlayingAnnouncer } from '../features/player/NowPlayingAnnouncer.js';
 
 interface LayoutProps {
   user: User;

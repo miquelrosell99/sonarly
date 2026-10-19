@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import type { User } from '../../../types';
 import { cn } from '../../../lib/cn.js';
 import { Icon } from '../../../components/ui/Icon.js';
-import { ControlButton } from '../../../components/PlayerControls.js';
+import { ControlButton } from '../../player/PlayerControls.js';
 import { QueueList } from './QueueList.js';
 import { PLAYER_BAR_HEIGHT } from '../../../lib/playerBarHeight.js';
 

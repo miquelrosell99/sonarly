@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { Link } from 'wouter';
 import { cn } from '../../lib/cn.js';
-import { PlayButton } from '../../components/PlayButton.js';
+import { PlayButton } from '../player/PlayButton.js';
 import { FavoriteButton, StarRating } from './ActionButtons.js';
-import { PlayingIndicator } from '../../components/PlayingIndicator.js';
+import { PlayingIndicator } from '../player/PlayingIndicator.js';
 
 export interface CardActionFavorite {
   starred?: boolean;

@@ -1,4 +1,4 @@
-import { usePlayer } from '../stores/playerStore.js';
+import { usePlayer } from '../../stores/playerStore.js';
 
 // Audit F26: track changes update the player chrome silently. A polite live
 // region announces each new track so screen-reader users pressing Next get

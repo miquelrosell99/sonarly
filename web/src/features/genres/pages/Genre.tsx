@@ -9,7 +9,7 @@ import { Modal } from '../../../components/ui/Modal.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { EntityDetail } from '../../entities/EntityDetail.js';
 import { ItemContextMenu, type ContextMenuSection } from '../../entities/ItemContextMenu.js';
-import { PlayButton } from '../../../components/PlayButton.js';
+import { PlayButton } from '../../player/PlayButton.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';
 import { usePlayShuffleMenuSections } from '../../../hooks/usePlayShuffleMenuSections.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';

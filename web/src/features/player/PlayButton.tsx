@@ -1,7 +1,7 @@
 import { type PointerEvent, type MouseEvent } from 'react';
-import { cn } from '../lib/cn.js';
-import { Icon } from './ui/Icon.js';
-import { useClickAndHold } from '../hooks/useClickAndHold.js';
+import { cn } from '../../lib/cn.js';
+import { Icon } from '../../components/ui/Icon.js';
+import { useClickAndHold } from '../../hooks/useClickAndHold.js';
 
 export interface PlayButtonProps {
   onPlay: () => void;

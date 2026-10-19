@@ -8,7 +8,7 @@ import { songFromPlaylistEntry } from '../../../lib/entityMappers.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { EntityDetail } from '../../entities/EntityDetail.js';
 import { EmptyState } from '../../../components/ui/EmptyState.js';
-import { PlayButton } from '../../../components/PlayButton.js';
+import { PlayButton } from '../../player/PlayButton.js';
 import { PlaylistCoverGrid } from '../components/PlaylistCoverGrid.js';
 import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { usePlayActions } from '../../../hooks/usePlayActions.js';

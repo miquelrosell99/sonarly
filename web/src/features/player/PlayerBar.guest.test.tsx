@@ -2,11 +2,11 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PlayerBar } from './PlayerBar.js';
-import { usePlayer, resetPlayer } from '../stores/playerStore.js';
-import { resetNowPlaying } from '../features/now-playing/index.js';
-import { NotificationProvider } from '../contexts/NotificationContext.js';
+import { usePlayer, resetPlayer } from '../../stores/playerStore.js';
+import { resetNowPlaying } from '../../features/now-playing/index.js';
+import { NotificationProvider } from '../../contexts/NotificationContext.js';
 
-vi.mock('../hooks/useSongInteraction.js', () => ({
+vi.mock('../../hooks/useSongInteraction.js', () => ({
   useSongInteraction: () => ({
     starred: false,
     rating: 0,
@@ -15,7 +15,7 @@ vi.mock('../hooks/useSongInteraction.js', () => ({
   }),
 }));
 
-vi.mock('../hooks/usePreferences.js', () => ({
+vi.mock('../../hooks/usePreferences.js', () => ({
   usePreferences: () => ({
     data: { autoDjEnabled: false, autoDjMode: 'smart', autoDjTopUpThreshold: 5, autoDjBatchSize: 10 },
   }),

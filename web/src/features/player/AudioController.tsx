@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { api } from '../lib/api.js';
-import { withShareToken } from '../lib/shareToken.js';
-import { streamUrl } from '../lib/streamUrl.js';
-import { useNotification } from '../contexts/NotificationContext.js';
-import { usePlayer, getNextSong } from '../stores/playerStore.js';
-import { useAutoDj } from '../hooks/useAutoDj.js';
-import { useSleepTimer, SLEEP_TIMER_ENDED_MESSAGE } from '../hooks/useSleepTimer.js';
+import { api } from '../../lib/api.js';
+import { withShareToken } from '../../lib/shareToken.js';
+import { streamUrl } from '../../lib/streamUrl.js';
+import { useNotification } from '../../contexts/NotificationContext.js';
+import { usePlayer, getNextSong } from '../../stores/playerStore.js';
+import { useAutoDj } from '../../hooks/useAutoDj.js';
+import { useSleepTimer, SLEEP_TIMER_ENDED_MESSAGE } from '../../hooks/useSleepTimer.js';
 
 // Subsonic-style scrobble rule: 50% of the track or 4 minutes, whichever
 // comes first.
