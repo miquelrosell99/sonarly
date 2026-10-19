@@ -315,7 +315,7 @@ export function SyncedLyricsEditor({ songId, title, artistName, duration, onClos
 
     const columnWidth = width < 640 ? 64 : 96;
     const centerY = height / 2;
-    const fg = getComputedStyle(document.documentElement).getPropertyValue('--fg-primary').trim() || '0 0% 100%';
+    const fg = getComputedStyle(document.documentElement).getPropertyValue('--md-sys-color-on-surface').trim() || '0 0% 100%';
 
     if (peaks && effectiveDuration > 0) {
       const buckets = peaks.length;

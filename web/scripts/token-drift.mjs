@@ -91,6 +91,11 @@ export const LEGACY_CLASS_RE =
 export const LEGACY_THEME_CLASS_RE =
   /(?<!-)\b(?:theme-(?:light|dark|oled)|accent-(?:copper|green|purple|blue|monochrome|cyan))\b/g;
 
+// …and runtime token reads via getComputedStyle(...).getPropertyValue():
+// the read string must cite a canonical role, not a legacy name.
+export const LEGACY_TOKEN_READ_RE =
+  /getPropertyValue\(\s*['"]--(?:bg-primary|fg-primary|fg-secondary|surface-hover|rule|danger)\b['"]\)/g;
+
 // Raw Tailwind radii outside the token family (rounded-card/sheet/button/
 // input/item/popover/full/none are the allowed vocabulary). Bare `rounded`
 // (4px) is forbidden too — the item token is the smallest step.
@@ -298,6 +303,10 @@ export function collectDrift(webRoot, options = {}) {
     }
     for (const match of source.matchAll(LEGACY_THEME_CLASS_RE)) {
       violations.push({ rule: 'tsx/legacy-class', file: fileRel, line: lineNumberAt(source, match.index), snippet: match[0] });
+    }
+    // Rule 13: runtime getPropertyValue reads must cite canonical roles.
+    for (const match of source.matchAll(LEGACY_TOKEN_READ_RE)) {
+      violations.push({ rule: 'tsx/legacy-token-read', file: fileRel, line: lineNumberAt(source, match.index), snippet: match[0] });
     }
   }
 
