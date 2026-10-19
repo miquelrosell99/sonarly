@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import type { AutoDjMode, User } from '../../../types';
-import { LibraryView, type LibraryViewColumn } from '../../../components/LibraryView.js';
+import { LibraryView, type LibraryViewColumn } from '../../library-view/index.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { ItemContextMenu } from '../../../components/ItemContextMenu.js';
 import { cn } from '../../../lib/cn.js';

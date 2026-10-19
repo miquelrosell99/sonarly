@@ -3,8 +3,8 @@ import { render, cleanup, fireEvent, act, screen } from '@testing-library/react'
 import { Router, Route } from 'wouter';
 import { memoryLocation } from 'wouter/memory-location';
 import { useRef } from 'react';
-import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from './LibraryView.js';
-import { useScrollRestoration, resetScrollRestoration } from '../hooks/useScrollRestoration.js';
+import { LibraryView, type LibraryViewColumn, type LibraryViewCardField } from './index.js';
+import { useScrollRestoration, resetScrollRestoration } from '../../hooks/useScrollRestoration.js';
 
 interface Item {
   id: string;
