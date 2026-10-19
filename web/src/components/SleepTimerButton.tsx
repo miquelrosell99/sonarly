@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { Icon } from './ui/Icon.js';
 import { cn } from '../lib/cn.js';
 import { usePlayer } from '../stores/playerStore.js';
-import { usePopoverMenu } from './ui/usePopoverMenu.js';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu.js';
 
 const MINUTE_OPTIONS = [5, 10, 15, 30, 45, 60];
 
@@ -24,7 +28,6 @@ export function SleepTimerButton() {
   const sleepTimer = usePlayer((state) => state.sleepTimer);
   const setSleepTimer = usePlayer((state) => state.setSleepTimer);
   const clearSleepTimer = usePlayer((state) => state.clearSleepTimer);
-  const menu = usePopoverMenu<HTMLButtonElement>();
 
   const [now, setNow] = useState(() => Date.now());
 
@@ -48,11 +51,6 @@ export function SleepTimerButton() {
       ? 'Sleep timer: end of track'
       : 'Sleep timer';
 
-  const select = (item: SleepTimerItem) => {
-    item.onSelect();
-    menu.closeMenu(true);
-  };
-
   const items: SleepTimerItem[] = [
     { id: 'off', label: 'Off', active: sleepTimer.mode === 'off', onSelect: clearSleepTimer },
     ...MINUTE_OPTIONS.map((minutes): SleepTimerItem => ({
@@ -69,56 +67,42 @@ export function SleepTimerButton() {
     },
   ];
 
-  const menuEl = menu.open ? (
-    <div
-      ref={menu.menuRef}
-      {...menu.menuProps}
-      aria-label="Sleep timer"
-      className="fixed z-50 min-w-[10rem] rounded-popover border border-outline bg-surface py-1 shadow-lg"
-    >
-      {items.map((item) => (
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <button
-          key={item.id}
           type="button"
-          role="menuitem"
-          onClick={() => select(item)}
+          aria-label={label}
+          title={label}
           className={cn(
-            'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none',
-            item.active && 'text-primary',
+            '-m-1 inline-flex h-11 min-w-[2.75rem] items-center justify-center gap-1 rounded-full px-1 transition',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background',
+            active
+              ? 'bg-primary/15 text-primary hover:bg-primary/25'
+              : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
           )}
         >
-          {item.label}
-          {item.active && <Icon name="mdi-check" size={16} className="ml-auto text-primary" />}
+          <Icon
+            name={sleepTimer.mode === 'endOfTrack' ? 'mdi-timer-sand' : 'mdi-timer-outline'}
+            size={18}
+          />
+          {remainingSeconds !== null && (
+            <span className="font-mono text-xs">{formatRemaining(remainingSeconds)}</span>
+          )}
         </button>
-      ))}
-    </div>
-  ) : null;
-
-  return (
-    <>
-      <button
-        ref={menu.triggerRef}
-        type="button"
-        {...menu.triggerProps}
-        aria-label={label}
-        title={label}
-        className={cn(
-          '-m-1 inline-flex h-11 min-w-[2.75rem] items-center justify-center gap-1 rounded-full px-1 transition',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background',
-          active
-            ? 'bg-primary/15 text-primary hover:bg-primary/25'
-            : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
-        )}
-      >
-        <Icon
-          name={sleepTimer.mode === 'endOfTrack' ? 'mdi-timer-sand' : 'mdi-timer-outline'}
-          size={18}
-        />
-        {remainingSeconds !== null && (
-          <span className="font-mono text-xs">{formatRemaining(remainingSeconds)}</span>
-        )}
-      </button>
-      {menuEl && createPortal(menuEl, document.body)}
-    </>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="end" aria-label="Sleep timer">
+        {items.map((item) => (
+          <DropdownMenuItem
+            key={item.id}
+            onSelect={item.onSelect}
+            className={cn(item.active && 'text-primary')}
+          >
+            {item.label}
+            {item.active && <Icon name="mdi-check" size={16} className="ml-auto text-primary" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -12,6 +12,22 @@ import { Icon } from "@/components/ui/Icon"
 
 const DropdownMenu = DropdownMenuPrimitive.Root
 
+// App overlay-authority convention (design-overrides register): the open
+// menu takes the first Escape — the app Modal stack listens on document
+// keydown bubble, and Radix dismisses the menu without stopping the event,
+// so an unstopped Escape would close the enclosing modal too (the retired
+// usePopoverMenu swallowed it in the capture phase; this is the Radix
+// equivalent). stopPropagation leaves defaultPrevented alone, so Radix
+// still dismisses the menu.
+const composeEscapeSwallow = (
+  userHandler:
+    | ((event: KeyboardEvent) => void)
+    | undefined
+) => (event: KeyboardEvent) => {
+  userHandler?.(event)
+  event.stopPropagation()
+}
+
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger
 
 const DropdownMenuGroup = DropdownMenuPrimitive.Group
@@ -47,9 +63,10 @@ DropdownMenuSubTrigger.displayName =
 const DropdownMenuSubContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.SubContent>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent>
->(({ className, ...props }, ref) => (
+>(({ className, onEscapeKeyDown, ...props }, ref) => (
   <DropdownMenuPrimitive.SubContent
     ref={ref}
+    onEscapeKeyDown={composeEscapeSwallow(onEscapeKeyDown)}
     className={cn(
       "z-50 min-w-[8rem] overflow-hidden rounded-popover border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-dropdown-menu-content-transform-origin]",
       className
@@ -63,11 +80,12 @@ DropdownMenuSubContent.displayName =
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
+>(({ className, sideOffset = 4, onEscapeKeyDown, ...props }, ref) => (
   <DropdownMenuPrimitive.Portal>
     <DropdownMenuPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}
+      onEscapeKeyDown={composeEscapeSwallow(onEscapeKeyDown)}
       className={cn(
         "z-50 max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-[8rem] overflow-y-auto overflow-x-hidden rounded-popover border bg-popover p-1 text-popover-foreground shadow-md",
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-dropdown-menu-content-transform-origin]",

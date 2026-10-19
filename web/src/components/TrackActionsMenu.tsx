@@ -1,13 +1,19 @@
-import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
-import { createPortal } from 'react-dom';
 import { Icon } from './ui/Icon.js';
 import { api } from '../lib/api.js';
 import { cn } from '../lib/cn.js';
 import { usePlayer, type PlayerSong } from '../stores/playerStore.js';
 import { useNotification } from '../contexts/NotificationContext.js';
-import { usePopoverMenu } from './ui/usePopoverMenu.js';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu.js';
 import { formatDateShortMonth } from '../lib/formatDate.js';
 
 interface TrackActionsMenuProps {
@@ -25,24 +31,19 @@ interface MenuItem {
 const SLEEP_MINUTE_OPTIONS = [5, 10, 15, 30, 45, 60];
 
 // "More actions" popover for the currently playing track in the player bar:
-// track navigation and save-queue live here, and the sleep timer sits one
-// level deeper — the bar is too scarce on icon slots for a dedicated timer
-// button. While a timer runs, the trigger swaps to a timer icon so the state
-// stays visible without spending an extra slot.
+// track navigation and save-queue live here, and the sleep timer is a
+// catalog submenu (the bar is too scarce on icon slots for a dedicated
+// timer button). While a timer runs, the trigger swaps to a timer icon so
+// the state stays visible without spending an extra slot. Composed on the
+// normalized catalog dropdown-menu (migration 2026-10-19, retiring
+// usePopoverMenu).
 export function TrackActionsMenu({ song }: TrackActionsMenuProps) {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { notify } = useNotification();
-  const menu = usePopoverMenu<HTMLButtonElement>();
   const sleepTimer = usePlayer((state) => state.sleepTimer);
   const setSleepTimer = usePlayer((state) => state.setSleepTimer);
   const clearSleepTimer = usePlayer((state) => state.clearSleepTimer);
-  const [view, setView] = useState<'main' | 'timer'>('main');
-
-  // An outside-click close leaves the stale view behind; always reopen on main.
-  useEffect(() => {
-    if (!menu.open) setView('main');
-  }, [menu.open]);
 
   const timerActive = sleepTimer.mode !== 'off';
 
@@ -83,7 +84,6 @@ export function TrackActionsMenu({ song }: TrackActionsMenuProps) {
   const mainItems: MenuItem[] = [
     ...navigationItems,
     { id: 'save-queue', label: 'Save queue as playlist', icon: 'mdi-playlist-plus', onSelect: () => { void saveQueueAsPlaylist(); } },
-    { id: 'sleep-timer', label: 'Sleep timer…', icon: 'mdi-timer-outline', onSelect: () => setView('timer') },
   ];
 
   const timerItems: MenuItem[] = [
@@ -103,59 +103,49 @@ export function TrackActionsMenu({ song }: TrackActionsMenuProps) {
     },
   ];
 
-  const items = view === 'main' ? mainItems : timerItems;
-
-  const menuEl = menu.open && items.length > 0 ? (
-    <div
-      ref={menu.menuRef}
-      {...menu.menuProps}
-      aria-label={view === 'main' ? 'Track actions' : 'Sleep timer'}
-      className="fixed z-50 min-w-[12rem] rounded-popover border border-outline bg-surface py-1 shadow-lg"
-    >
-      {items.map((item) => (
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <button
-          key={item.id}
           type="button"
-          role="menuitem"
-          onClick={() => {
-            if (item.id === 'sleep-timer') {
-              setView('timer');
-              return;
-            }
-            item.onSelect();
-            setView('main');
-            menu.closeMenu(true);
-          }}
+          aria-label={timerActive ? 'More actions (sleep timer active)' : 'More actions'}
+          title={timerActive ? 'More actions (sleep timer active)' : 'More actions'}
+          disabled={!song}
           className={cn(
-            'flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-on-surface transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none',
-            item.active && 'text-primary',
+            '-m-1 inline-flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-40',
+            timerActive ? 'text-primary' : 'text-on-surface-variant',
           )}
         >
-          <Icon name={item.icon} size={18} className={cn('text-on-surface-variant', item.active && 'text-primary')} />
-          {item.label}
-          {item.active && <Icon name="mdi-check" size={16} className="ml-auto text-primary" />}
+          <Icon name={timerActive ? 'mdi-timer-outline' : 'mdi-dots-horizontal'} size={18} />
         </button>
-      ))}
-    </div>
-  ) : null;
-
-  return (
-    <>
-      <button
-        ref={menu.triggerRef}
-        type="button"
-        {...menu.triggerProps}
-        aria-label={timerActive ? 'More actions (sleep timer active)' : 'More actions'}
-        title={timerActive ? 'More actions (sleep timer active)' : 'More actions'}
-        disabled={!song}
-        className={cn(
-          '-m-1 inline-flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-40',
-          timerActive ? 'text-primary' : 'text-on-surface-variant',
-        )}
-      >
-        <Icon name={timerActive ? 'mdi-timer-outline' : 'mdi-dots-horizontal'} size={18} />
-      </button>
-      {menuEl && createPortal(menuEl, document.body)}
-    </>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="end" aria-label="Track actions">
+        {mainItems.map((item) => (
+          <DropdownMenuItem key={item.id} onSelect={item.onSelect}>
+            <Icon name={item.icon} size={18} className="text-on-surface-variant" />
+            {item.label}
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Icon name="mdi-timer-outline" size={18} className="text-on-surface-variant" />
+            Sleep timer
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent aria-label="Sleep timer">
+            {timerItems.map((item) => (
+              <DropdownMenuItem
+                key={item.id}
+                onSelect={item.onSelect}
+                className={cn(item.active && 'text-primary')}
+              >
+                <Icon name={item.icon} size={18} className={cn('text-on-surface-variant', item.active && 'text-primary')} />
+                {item.label}
+                {item.active && <Icon name="mdi-check" size={16} className="ml-auto text-primary" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

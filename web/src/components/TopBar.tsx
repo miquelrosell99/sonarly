@@ -4,7 +4,13 @@ import { useQuery } from '@tanstack/react-query';
 import type { User } from '../types';
 import { cn } from '../lib/cn.js';
 import { Icon } from './ui/Icon.js';
-import { usePopoverMenu } from './ui/usePopoverMenu.js';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu.js';
 import { api } from '../lib/api.js';
 import { Avatar } from './Avatar.js';
 import { SearchBox } from './SearchBox.js';
@@ -116,94 +122,58 @@ function PlayersDropdown({ user }: { user: User }) {
 }
 
 function UserMenu({ user, onLogout, onUpload }: TopBarProps) {
-  const menu = usePopoverMenu<HTMLButtonElement>({ portal: false });
+  const [open, setOpen] = useState(false);
   const [, setLocation] = useLocation();
 
   const displayName = [user.name, user.surname].filter(Boolean).join(' ') || user.username;
 
-  const navigate = (to: string) => {
-    menu.closeMenu();
-    setLocation(to);
-  };
-
   return (
-    <div className="relative">
-      <button
-        ref={menu.triggerRef}
-        type="button"
-        {...menu.triggerProps}
-        className="flex items-center gap-2 rounded-full p-1 pr-3 text-left transition hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-      >
-        <Avatar user={user} className="h-8 w-8" />
-        <span className="hidden max-w-[8rem] truncate text-sm font-medium md:block">
-          {displayName}
-        </span>
-        <Icon
-          name="mdi-chevron-down"
-          size={16}
-          className={cn('hidden text-on-surface-variant transition-transform md:block', menu.open && 'rotate-180')}
-        />
-      </button>
-
-      {menu.open && (
-        <div
-          ref={menu.menuRef}
-          {...menu.menuProps}
-          className="absolute right-0 top-full z-40 mt-2 w-52 rounded-popover border border-outline bg-surface p-1 shadow-xl"
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="flex items-center gap-2 rounded-full p-1 pr-3 text-left transition hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => navigate('/statistics')}
-            className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-on-surface transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none"
-          >
-            <Icon name="mdi-chart-bar" size={18} className="text-on-surface-variant" />
-            Statistics
-          </button>
-          {user.isAdmin && onUpload && (
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => { menu.closeMenu(); onUpload(); }}
-              className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-on-surface transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none"
-            >
-              <Icon name="mdi-upload" size={18} className="text-on-surface-variant" />
-              Upload
-            </button>
-          )}
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => navigate('/settings/profile')}
-            className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-on-surface transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none"
-          >
-            <Icon name="mdi-cog" size={18} className="text-on-surface-variant" />
-            Settings
-          </button>
-          {user.isAdmin && (
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => navigate('/admin')}
-              className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-on-surface transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none"
-            >
-              <Icon name="mdi-account-group" size={18} className="text-on-surface-variant" />
-              Admin
-            </button>
-          )}
-          <div className="my-1 border-t border-outline" />
-          <button
-            type="button"
-            role="menuitem"
-            onClick={() => { menu.closeMenu(); onLogout(); }}
-            className="flex w-full items-center gap-3 rounded-item px-3 py-2 text-left text-sm text-on-surface transition hover:bg-surface-container-high focus-visible:bg-surface-container-high focus-visible:outline-none"
-          >
-            <Icon name="mdi-logout" size={18} className="text-on-surface-variant" />
-            Log out
-          </button>
-        </div>
-      )}
-    </div>
+          <Avatar user={user} className="h-8 w-8" />
+          <span className="hidden max-w-[8rem] truncate text-sm font-medium md:block">
+            {displayName}
+          </span>
+          <Icon
+            name="mdi-chevron-down"
+            size={16}
+            className={cn('hidden text-on-surface-variant transition-transform md:block', open && 'rotate-180')}
+          />
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuItem onSelect={() => setLocation('/statistics')}>
+          <Icon name="mdi-chart-bar" size={18} className="text-on-surface-variant" />
+          Statistics
+        </DropdownMenuItem>
+        {user.isAdmin && onUpload && (
+          <DropdownMenuItem onSelect={onUpload}>
+            <Icon name="mdi-upload" size={18} className="text-on-surface-variant" />
+            Upload
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem onSelect={() => setLocation('/settings/profile')}>
+          <Icon name="mdi-cog" size={18} className="text-on-surface-variant" />
+          Settings
+        </DropdownMenuItem>
+        {user.isAdmin && (
+          <DropdownMenuItem onSelect={() => setLocation('/admin')}>
+            <Icon name="mdi-account-group" size={18} className="text-on-surface-variant" />
+            Admin
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={onLogout}>
+          <Icon name="mdi-logout" size={18} className="text-on-surface-variant" />
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

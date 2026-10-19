@@ -209,7 +209,8 @@ describe('PlaylistDetail', () => {
       expect(screen.getByText('Track One')).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    /* Radix menu triggers open on pointerdown (fireEvent.click alone won't). */
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'More actions' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
 
     // ConfirmModal asks first; no DELETE request until confirmed
@@ -237,7 +238,8 @@ describe('PlaylistDetail', () => {
       expect(screen.getByText('Track One')).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    /* Radix menu triggers open on pointerdown (fireEvent.click alone won't). */
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'More actions' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
 

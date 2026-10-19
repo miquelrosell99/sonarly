@@ -190,7 +190,8 @@ describe('Album detail header delete (admin)', () => {
 
     await waitFor(() => expect(screen.getAllByText('The Album').length).toBeGreaterThan(0));
 
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    /* Radix menu triggers open on pointerdown (fireEvent.click alone won't). */
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'More actions' }));
     expect(screen.queryByRole('menuitem', { name: 'Delete' })).toBeNull();
   });
 
@@ -204,7 +205,8 @@ describe('Album detail header delete (admin)', () => {
 
     await waitFor(() => expect(screen.getAllByText('The Album').length).toBeGreaterThan(0));
 
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    /* Radix menu triggers open on pointerdown (fireEvent.click alone won't). */
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'More actions' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
 
     // ConfirmModal asks first; no DELETE request until confirmed
@@ -228,7 +230,8 @@ describe('Album detail header delete (admin)', () => {
 
     await waitFor(() => expect(screen.getAllByText('The Album').length).toBeGreaterThan(0));
 
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    /* Radix menu triggers open on pointerdown (fireEvent.click alone won't). */
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'More actions' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }));
 
@@ -279,7 +282,8 @@ describe('Album detail header delete (admin)', () => {
     ).toBeTruthy();
 
     // Edit and Delete now live in the header "More actions" menu, Edit first.
-    fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+    /* Radix menu triggers open on pointerdown (fireEvent.click alone won't). */
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'More actions' }));
     const edit = screen.getByRole('menuitem', { name: 'Edit' });
     const deleteItem = screen.getByRole('menuitem', { name: 'Delete' });
 

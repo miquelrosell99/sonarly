@@ -2,7 +2,7 @@
  * accumulate into a buffer (reset after `RESET_MS` of inactivity) and focus
  * jumps to the next enabled menuitem whose trimmed label starts with the
  * buffer, cycling forward from the currently focused item. Shared by
- * ItemContextMenu and usePopoverMenu. */
+ * ItemContextMenu. */
 export interface MenuTypeahead {
   /** Feed a printable key; returns false when the key is not typeahead-able. */
   handleKey(key: string): boolean;
