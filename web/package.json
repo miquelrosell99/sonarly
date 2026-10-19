@@ -8,7 +8,8 @@
     "preview": "vite preview",
     "test": "vitest --passWithNoTests --run",
     "contract:gen": "node scripts/contract-gen.mjs",
-    "token-drift": "node scripts/token-drift.mjs"
+    "token-drift": "node scripts/token-drift.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -43,6 +44,7 @@
   },
   "devDependencies": {
     "@mdi/svg": "^7.4.47",
+    "@playwright/test": "^1.64.1",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
