@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Buttons are now full pills (corner-full 9999px)**: the fleet-wide ruling (M3 corner-full buttons at every size) supersedes sonarly's registered 16px button shape — every button, including the Login sign-in, now wears the corner-full radius via the shared `rounded-button` token.
+
 ## [3.1.11] - 2026-10-18
 
 ### Fixed

@@ -44,13 +44,13 @@ Recorded per `rosellramos-design-system/identity/procedure.md` — the palette's
 
 ## Deviations
 
-### shadcn catalog adoption — button radius stays at the registered 16px
+### shadcn catalog adoption — button radius (SUPERSEDED 2026-10-19: fleet corner-full ruling applied)
 
 - **Rule**: `rosellramos-design-system/law/spec.md` shape scale (M3 values refresh): **buttons are corner-full (9999px)** across the fleet.
-- **Decision**: The normalized shadcn catalog (commit `b01253a`) keeps sonarly's **registered 16px button shape** (`rounded-button` in `web/tailwind.config.js`; the `.btn` register in `web/src/index.css`) instead of the fleet's corner-full ruling. The ruling postdates sonarly's registered shape standard (this register's "Full-pill Login button" entry: "the rest of the app is uniformly 16px", ruled 2026-10-18; the shape tokens predate it further) — a wholesale button-shape change is a visible identity move that needs the owner's eye, so it is flagged here rather than applied silently. The catalog button encodes the app's interaction contracts (brightness hover, tactile press, 44px coarse-pointer floor); only the radius differs from the fleet default.
-- **Rationale**: Per-app identity decisions at adoption stand until the owner revisits them; the ruling's "no grandfather" applies to catalog alignment (done — every component normalized), not to flipping a registered brand-shape decision.
-- **Scope**: global — every catalog/app button wears `rounded-button` (16px). The two registered pill exceptions (`.btn-pill` Login button; the `rounded-full` circular-controls convention) are unchanged.
-- **Ruled**: 2026-10-19 catalog migration; Noted as postdating. **Review trigger**: owner decides sonarly moves to corner-full buttons (then: change the `button` radius token once, every button follows).
+- **Original decision** (2026-10-19 catalog migration): the normalized shadcn catalog (commit `b01253a`) kept sonarly's **registered 16px button shape** (`rounded-button` in `web/tailwind.config.js`; the `.btn` register in `web/src/index.css`) instead of the fleet's corner-full ruling, flagging it for the owner rather than applying it silently.
+- **Supersession** (same day, owner order "full alignment, no shortcuts"): the owner ordered the ruling applied — sonarly's buttons flipped to corner-full in one token change (`rounded-button` 16px → 9999px, commit `30e8ba8`); the `.btn-pill` Login exception was absorbed (its pill is now the fleet default, class removed). Login surface and bridge-fixture captures at 1440/390 verified: every catalog button computes 9999px, no component assumed 16px, no scoped exception was needed. The bridge spec (`web/e2e/bridge-fixture.spec.ts`) now asserts the corner-full radius computed-behaviorally. The `rounded-full` circular-controls convention entry below is unchanged (it already was 9999px).
+- **Ruled**: 2026-10-19 catalog migration (original entry); superseded by the fleet ruling the same day on the owner's order.
+- **Review trigger**: a ruling against corner-full buttons; a DS shape-scale revision.
 
 ### Overlay authority — the app Modal stack owns dialogs; Radix catalog overlays for new surfaces
 
@@ -95,14 +95,13 @@ Recorded per `rosellramos-design-system/identity/procedure.md` — the palette's
 - **Ruled**: 2026-10-18 audit (documented in `docs/design-language.md` since pre-2.0).
 - **Review trigger**: shell redesign; brand refresh; a DS ruling that sidebars must sit on the ground.
 
-### Full-pill Login button (`.btn-pill`)
+### Full-pill Login button (`.btn-pill`) (SUPERSEDED 2026-10-19: absorbed by the fleet corner-full ruling)
 
 - **Rule**: Checklist §4 shape scale — buttons 16px (`rounded-button`); the DS shape table tops out at 16px.
-- **Decision**: The Login page sign-in button keeps a full pill (`border-radius: 9999px`) via the `.btn-pill` class (`web/src/index.css:169-171`), over the app-wide 16px `.btn` radius.
-- **Rationale**: Deliberate brand moment, documented by its in-code comment; the rest of the app is uniformly 16px.
-- **Scope**: component — the Login sign-in button only.
-- **Ruled**: code comment pre-2026-10-08; registered 2026-10-18.
-- **Review trigger**: auth-page redesign; formal shape-scale work.
+- **Original decision**: The Login page sign-in button kept a full pill (`border-radius: 9999px`) via the `.btn-pill` class (`web/src/index.css`), over the app-wide 16px `.btn` radius — a deliberate brand moment documented by its in-code comment; the rest of the app was uniformly 16px.
+- **Supersession**: Made corner-full the fleet-wide button shape, so the pill stopped being an exception. `.btn-pill` and its unlayered override block were removed (commit `30e8ba8`); the Login button now renders corner-full through the shared `rounded-button` token like every other button.
+- **Ruled**: code comment pre-2026-10-08; registered 2026-10-18; superseded 2026-10-19.
+- **Review trigger**: none — the exception is gone; auth-page redesign follows the standard button register.
 
 ### `rounded-full` pill convention (icon buttons, avatars, chips)
 
