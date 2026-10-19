@@ -79,9 +79,7 @@ export function Login({ onLogin, signupEnabled = false }: { onLogin: (user: User
             required
           />
         </div>
-        {/* Full-pill is a deliberate brand moment on the sign-in button —
-          the app-wide .btn radius is 16px, this instance keeps the pill. */}
-        <Button type="submit" className="btn-pill w-full" disabled={submitting}>
+        <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? 'Signing in…' : 'Sign in'}
         </Button>
         {signupEnabled && (

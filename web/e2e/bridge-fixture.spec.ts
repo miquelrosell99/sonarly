@@ -79,6 +79,12 @@ async function runAssertions(page, label: string) {
   const hoverSurface = await token(page, '--md-sys-color-surface-container-high');
 
   // 1. computed values resolve to tokens — a library default fails here
+  // 1a. shape: buttons are corner-full fleet-wide (M3 corner-full at every size) — a 16px regression fails here
+  const btnRadius = await page
+    .locator('[data-fix="btn-primary"]')
+    .evaluate((el) => getComputedStyle(el).borderRadius);
+  expect(btnRadius, `${label}: button radius is corner-full (9999px)`).toBe('9999px');
+
   const btnBg = await page
     .locator('[data-fix="btn-primary"]')
     .evaluate((el) => getComputedStyle(el).backgroundColor);

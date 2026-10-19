@@ -4,9 +4,9 @@
 //     class stems, so hover/highlight refs cite the app's verified hover
 //     register (bg-surface-container-high) and containers cite
 //     bg-surface-container / text-on-surface-variant directly
-//   - radius tokens (rounded-button — sonarly's REGISTERED 16px button
-//     shape; the fleet 2026-10-19 corner-full ruling postdates the register
-//     and is flagged there, not applied silently); no default shadows on
+//   - radius tokens (rounded-button — corner-full 9999px fleet-wide; supersedes sonarly's
+//     registered 16px button shape recorded in .agents/design-overrides.md);
+//     no default shadows on
 //     non-floating layers; focus ring ring-2/--ring/offset-1 (never
 //     suppressed); the app's tactile press (brightness + scale) and the
 //     coarse-pointer 44px touch floor live in the base.
