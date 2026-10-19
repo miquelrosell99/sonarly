@@ -1,580 +1,72 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { Library, User } from '../../../types';
-import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/button.js';
-import { Input } from '../../../components/ui/input.js';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../../components/ui/select.js';
-import { Checkbox } from '../../../components/ui/checkbox.js';
-import { Modal } from '../../../components/ui/Modal.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
-import { Table, TableColumn } from '../../../components/ui/Table.js';
-import { useNotification } from '../../../contexts/NotificationContext.js';
+import { Modal } from '../../../components/ui/Modal.js';
+import { Table } from '../../../components/ui/Table.js';
 import { AdminShell } from '../components/AdminShell.js';
-import { useStatistics, StatisticsView } from '../../statistics/index.js';
+import { StatisticsView } from '../../statistics/index.js';
+import type { User } from '../../../types';
+import { useAdminUsers } from './admin-users/useAdminUsers.js';
+import { CreateUserModal } from './admin-users/CreateUserModal.js';
+import { EditUserModal } from './admin-users/EditUserModal.js';
 
-interface AdminUsersProps {
-  user: User;
-}
-
-const TRANSCODE_FORMATS: Array<NonNullable<User['transcodeFormat']>> = ['mp3', 'aac', 'opus'];
-type UserRole = 'user' | 'administrator';
-
-interface CreateForm {
-  username: string;
-  password: string;
-  name: string;
-  surname: string;
-  email: string;
-  role: UserRole;
-  maxBitrateKbps: string;
-  transcodeFormat: User['transcodeFormat'] | '';
-}
-
-interface EditForm {
-  role: UserRole;
-  name: string;
-  surname: string;
-  email: string;
-  password: string;
-  maxBitrateKbps: string;
-  transcodeFormat: User['transcodeFormat'] | '';
-  hideExplicit: boolean;
-  blurExplicitTitles: boolean;
-  blurExplicitCovers: boolean;
-}
-
-function parseBitrate(value: string): number | null | undefined {
-  const trimmed = value.trim();
-  if (trimmed === '') return null;
-  const n = parseInt(trimmed, 10);
-  if (Number.isNaN(n)) return undefined;
-  return n;
-}
-
-function roleFromUser(isAdmin: boolean): UserRole {
-  return isAdmin ? 'administrator' : 'user';
-}
-
-const emptyCreateForm: CreateForm = {
-  username: '',
-  password: '',
-  name: '',
-  surname: '',
-  email: '',
-  role: 'user',
-  maxBitrateKbps: '',
-  transcodeFormat: '',
-};
-
-const emptyEditForm: EditForm = {
-  role: 'user',
-  name: '',
-  surname: '',
-  email: '',
-  password: '',
-  maxBitrateKbps: '',
-  transcodeFormat: '',
-  hideExplicit: false,
-  blurExplicitTitles: false,
-  blurExplicitCovers: false,
-};
-
-export function AdminUsers({ user }: AdminUsersProps) {
-  const { notify } = useNotification();
-  const [users, setUsers] = useState<User[]>([]);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [form, setForm] = useState<CreateForm>(emptyCreateForm);
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [editForm, setEditForm] = useState<EditForm>(emptyEditForm);
-  const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [userToDelete, setUserToDelete] = useState<string | null>(null);
-  const [statsUser, setStatsUser] = useState<User | null>(null);
-  const [statsRange, setStatsRange] = useState<'7d' | '30d' | '90d' | '1y' | 'all'>('all');
-  const { data: statsData, isLoading: statsLoading, error: statsError } = useStatistics(
-    'user',
-    statsUser?.id,
-    statsRange,
-    !!statsUser,
-  );
-
-  const updateForm = (patch: Partial<CreateForm>) => {
-    setForm((prev) => ({ ...prev, ...patch }));
-  };
-
-  const load = async () => {
-    try {
-      const { users: list } = await api<{ users: User[] }>('/admin/users');
-      setUsers(list);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load users');
-    }
-  };
-
-  useEffect(() => {
-    if (!user.isAdmin) return;
-    load();
-  }, [user.isAdmin]);
-
-  const openCreate = () => {
-    setForm(emptyCreateForm);
-    setError(null);
-    setCreateOpen(true);
-  };
-
-  const closeCreate = () => {
-    if (creating) return;
-    setCreateOpen(false);
-  };
-
-  const create = async () => {
-    if (!form.username.trim() || !form.password) return;
-    setCreating(true);
-    setError(null);
-    try {
-      const body: Record<string, unknown> = {
-        username: form.username.trim(),
-        password: form.password,
-        isAdmin: form.role === 'administrator',
-        name: form.name.trim() || null,
-        surname: form.surname.trim() || null,
-        email: form.email.trim() || null,
-      };
-      if (form.transcodeFormat) body.transcodeFormat = form.transcodeFormat;
-      const bitrate = parseBitrate(form.maxBitrateKbps);
-      if (bitrate !== null) body.maxBitrateKbps = bitrate;
-
-      await api('/admin/users', {
-        method: 'POST',
-        body: JSON.stringify(body),
-      });
-      setCreateOpen(false);
-      notify('User created.', 'success');
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create user');
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const startEdit = (u: User) => {
-    setEditingUser(u);
-    setEditForm({
-      role: roleFromUser(u.isAdmin),
-      name: u.name ?? '',
-      surname: u.surname ?? '',
-      email: u.email ?? '',
-      password: '',
-      maxBitrateKbps: u.maxBitrateKbps?.toString() ?? '',
-      transcodeFormat: u.transcodeFormat ?? '',
-      hideExplicit: u.hideExplicit ?? false,
-      blurExplicitTitles: u.blurExplicitTitles ?? false,
-      blurExplicitCovers: u.blurExplicitCovers ?? false,
-    });
-    setError(null);
-  };
-
-  const closeEdit = () => {
-    if (saving) return;
-    setEditingUser(null);
-    setEditForm(emptyEditForm);
-  };
-
-  const saveEdit = async () => {
-    if (!editingUser) return;
-    const bitrate = parseBitrate(editForm.maxBitrateKbps);
-    if (bitrate === undefined) {
-      setError('Max bitrate must be a number');
-      return;
-    }
-    setSaving(true);
-    setError(null);
-    try {
-      const body: Record<string, unknown> = {
-        isAdmin: editForm.role === 'administrator',
-        maxBitrateKbps: bitrate,
-        transcodeFormat: editForm.transcodeFormat || null,
-        name: editForm.name.trim() || null,
-        surname: editForm.surname.trim() || null,
-        email: editForm.email.trim() || null,
-        hideExplicit: editForm.hideExplicit,
-        blurExplicitTitles: editForm.blurExplicitTitles,
-        blurExplicitCovers: editForm.blurExplicitCovers,
-      };
-      const password = editForm.password.trim();
-      if (password) body.password = password;
-
-      await api(`/admin/users/${editingUser.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(body),
-      });
-      notify('User updated.', 'success');
-      setEditingUser(null);
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update user');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const promptDelete = (id: string) => {
-    if (id === user.id) {
-      setError('You cannot delete your own account');
-      return;
-    }
-    const target = users.find((u) => u.id === id);
-    if (!target) return;
-    const adminCount = users.filter((u) => u.isAdmin).length;
-    if (target.isAdmin && adminCount <= 1) {
-      setError('Cannot delete the last admin');
-      return;
-    }
-    setUserToDelete(id);
-  };
-
-  const remove = async (id: string) => {
-    setDeletingId(id);
-    setError(null);
-    try {
-      await api(`/admin/users/${id}`, { method: 'DELETE' });
-      setUserToDelete(null);
-      notify('User deleted.', 'success');
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete user');
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const formatLabel = (f?: User['transcodeFormat']) => f?.toUpperCase() ?? 'Original';
-  const formatRole = (isAdmin: boolean) => (isAdmin ? 'Administrator' : 'User');
-
-  const canDemoteOrDeleteAdmin = useMemo(() => {
-    return users.filter((u) => u.isAdmin).length > 1;
-  }, [users]);
-
-  const columns: TableColumn<User>[] = [
-    { key: 'username', header: 'Username', render: (u) => u.username },
-    { key: 'name', header: 'Name', render: (u) => [u.name, u.surname].filter(Boolean).join(' ') || '-' },
-    { key: 'role', header: 'Role', render: (u) => formatRole(u.isAdmin) },
-    { key: 'format', header: 'Format', render: (u) => formatLabel(u.transcodeFormat) },
-    {
-      key: 'bitrate',
-      header: 'Max bitrate',
-      render: (u) => (u.maxBitrateKbps ? `${u.maxBitrateKbps} kbps` : 'Unlimited'),
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (u) => {
-        const isSelf = u.id === user.id;
-        return (
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => setStatsUser(u)}>
-              Stats
-            </Button>
-            <Button variant="ghost" onClick={() => startEdit(u)}>
-              Edit
-            </Button>
-            <Button
-              variant="danger"
-              onClick={() => promptDelete(u.id)}
-              disabled={deletingId === u.id || isSelf || (u.isAdmin && !canDemoteOrDeleteAdmin)}
-            >
-              Delete
-            </Button>
-          </div>
-        );
-      },
-    },
-  ];
-
-  const createFooter = (
-    <div className="flex justify-end gap-2">
-      <Button variant="ghost" onClick={closeCreate} disabled={creating}>
-        Cancel
-      </Button>
-      <Button onClick={create} disabled={creating || !form.username.trim() || !form.password}>
-        Create User
-      </Button>
-    </div>
-  );
-
-  const editFooter = (
-    <div className="flex justify-end gap-2">
-      <Button variant="ghost" onClick={closeEdit} disabled={saving}>
-        Cancel
-      </Button>
-      <Button onClick={saveEdit} disabled={saving}>
-        Save Changes
-      </Button>
-    </div>
-  );
+export function AdminUsers({ user }: { user: User }) {
+  const {
+    users,
+    error,
+    columns,
+    canDemoteOrDeleteAdmin,
+    create,
+    edit,
+    remove,
+    stats,
+  } = useAdminUsers(user);
 
   return (
     <AdminShell user={user}>
       <div className="space-y-4">
-        {error && !createOpen && !editingUser && <p className="text-sm text-error" role="alert">{error}</p>}
+        {error && !create.open && !edit.editingUser && <p className="text-sm text-error" role="alert">{error}</p>}
 
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium text-on-surface-variant">
             {users.length} user{users.length === 1 ? '' : 's'}
           </h3>
-          <Button onClick={openCreate}>Add User</Button>
+          <Button onClick={create.openCreate}>Add User</Button>
         </div>
 
-        <Modal open={createOpen} onClose={closeCreate} title="Add User" footer={createFooter}>
-          <div className="space-y-4">
-            {error && <p className="text-sm text-error" role="alert">{error}</p>}
-            <div className="space-y-1">
-              <label htmlFor="user-username" className="block text-sm font-medium text-on-surface-variant">Username</label>
-              <Input
-                id="user-username"
-                placeholder="Username"
-                value={form.username}
-                onChange={(e) => updateForm({ username: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="user-password" className="block text-sm font-medium text-on-surface-variant">Password</label>
-              <Input
-                id="user-password"
-                placeholder="Password"
-                type="password"
-                value={form.password}
-                onChange={(e) => updateForm({ password: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label htmlFor="user-name" className="block text-sm font-medium text-on-surface-variant">Name</label>
-                <Input
-                  id="user-name"
-                  placeholder="Name"
-                  value={form.name}
-                  onChange={(e) => updateForm({ name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1">
-                <label htmlFor="user-surname" className="block text-sm font-medium text-on-surface-variant">Surname</label>
-                <Input
-                  id="user-surname"
-                  placeholder="Surname"
-                  value={form.surname}
-                  onChange={(e) => updateForm({ surname: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="user-email" className="block text-sm font-medium text-on-surface-variant">Email</label>
-              <Input
-                id="user-email"
-                type="email"
-                placeholder="Email"
-                value={form.email}
-                onChange={(e) => updateForm({ email: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="user-role" className="block text-sm font-medium text-on-surface-variant">Role</label>
-              <Select
-                value={form.role}
-                onValueChange={(value) => updateForm({ role: value as UserRole })}
-              >
-                <SelectTrigger id="user-role" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="administrator">Administrator</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label htmlFor="user-format" className="block text-sm font-medium text-on-surface-variant">Transcode format</label>
-                /* Radix Select items can't carry an empty value, so "Original
-                   format" rides the '__original' sentinel and maps to ''. */
-                <Select
-                  value={form.transcodeFormat || '__original'}
-                  onValueChange={(value) => updateForm({ transcodeFormat: (value === '__original' ? '' : value) as User['transcodeFormat'] | '' })}
-                >
-                  <SelectTrigger id="user-format" aria-label="Transcode format" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__original">Original format</SelectItem>
-                    {TRANSCODE_FORMATS.map((f) => (
-                      <SelectItem key={f} value={f}>
-                        {f.toUpperCase()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label htmlFor="user-bitrate" className="block text-sm font-medium text-on-surface-variant">Max bitrate</label>
-                <Input
-                  id="user-bitrate"
-                  type="number"
-                  min={64}
-                  max={320}
-                  step={1}
-                  placeholder="Max bitrate (kbps) — optional"
-                  value={form.maxBitrateKbps}
-                  onChange={(e) => updateForm({ maxBitrateKbps: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-        </Modal>
+        <CreateUserModal
+          open={create.open}
+          form={create.form}
+          creating={create.creating}
+          error={error}
+          onClose={create.closeCreate}
+          onChange={create.updateForm}
+          onCreate={create.submitCreate}
+        />
+
+        <EditUserModal
+          editingUser={edit.editingUser}
+          editForm={edit.editForm}
+          saving={edit.saving}
+          error={error}
+          canDemoteOrDeleteAdmin={canDemoteOrDeleteAdmin}
+          selfId={user.id}
+          onClose={edit.closeEdit}
+          onChange={edit.setEditForm}
+          onSave={edit.saveEdit}
+        />
 
         <Modal
-          open={!!editingUser}
-          onClose={closeEdit}
-          title={editingUser ? `Edit ${editingUser.username}` : 'Edit User'}
-          footer={editFooter}
-        >
-          <div className="space-y-4">
-            {error && <p className="text-sm text-error" role="alert">{error}</p>}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label htmlFor="edit-name" className="block text-sm font-medium text-on-surface-variant">Name</label>
-                <Input
-                  id="edit-name"
-                  placeholder="Name"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-1">
-                <label htmlFor="edit-surname" className="block text-sm font-medium text-on-surface-variant">Surname</label>
-                <Input
-                  id="edit-surname"
-                  placeholder="Surname"
-                  value={editForm.surname}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, surname: e.target.value }))}
-                />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="edit-email" className="block text-sm font-medium text-on-surface-variant">Email</label>
-              <Input
-                id="edit-email"
-                type="email"
-                placeholder="Email"
-                value={editForm.email}
-                onChange={(e) => setEditForm((prev) => ({ ...prev, email: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="edit-password" className="block text-sm font-medium text-on-surface-variant">New password</label>
-              <Input
-                id="edit-password"
-                type="password"
-                placeholder="Leave blank to keep current"
-                value={editForm.password}
-                onChange={(e) => setEditForm((prev) => ({ ...prev, password: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="edit-role" className="block text-sm font-medium text-on-surface-variant">Role</label>
-              <Select
-                value={editForm.role}
-                onValueChange={(value) => setEditForm((prev) => ({ ...prev, role: value as UserRole }))}
-                disabled={editingUser?.id === user.id || (editingUser?.isAdmin === true && !canDemoteOrDeleteAdmin)}
-              >
-                <SelectTrigger id="edit-role" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="administrator">Administrator</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label htmlFor="edit-format" className="block text-sm font-medium text-on-surface-variant">Transcode format</label>
-                /* Radix Select items can't carry an empty value, so "Original
-                   format" rides the '__original' sentinel and maps to ''. */
-                <Select
-                  value={editForm.transcodeFormat || '__original'}
-                  onValueChange={(value) => setEditForm((prev) => ({ ...prev, transcodeFormat: (value === '__original' ? '' : value) as User['transcodeFormat'] | '' }))}
-                >
-                  <SelectTrigger id="edit-format" aria-label="Transcode format" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__original">Original format</SelectItem>
-                    {TRANSCODE_FORMATS.map((f) => (
-                      <SelectItem key={f} value={f}>
-                        {f.toUpperCase()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label htmlFor="edit-bitrate" className="block text-sm font-medium text-on-surface-variant">Max bitrate</label>
-                <Input
-                  id="edit-bitrate"
-                  type="number"
-                  min={64}
-                  max={320}
-                  step={1}
-                  placeholder="Max bitrate (kbps) — optional"
-                  value={editForm.maxBitrateKbps}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, maxBitrateKbps: e.target.value }))}
-                />
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-4">
-              <Checkbox
-                label="Hide explicit"
-                checked={editForm.hideExplicit}
-                onCheckedChange={(checked) => setEditForm((prev) => ({ ...prev, hideExplicit: checked }))}
-              />
-              <Checkbox
-                label="Blur titles"
-                checked={editForm.blurExplicitTitles}
-                onCheckedChange={(checked) => setEditForm((prev) => ({ ...prev, blurExplicitTitles: checked }))}
-              />
-              <Checkbox
-                label="Blur covers"
-                checked={editForm.blurExplicitCovers}
-                onCheckedChange={(checked) => setEditForm((prev) => ({ ...prev, blurExplicitCovers: checked }))}
-              />
-            </div>
-
-            {editingUser && <UserLibrariesSection userId={editingUser.id} />}
-          </div>
-        </Modal>
-
-        <Modal
-          open={!!statsUser}
-          onClose={() => setStatsUser(null)}
-          title={statsUser ? `Statistics for ${statsUser.username}` : 'User Statistics'}
+          open={!!stats.statsUser}
+          onClose={() => stats.setStatsUser(null)}
+          title={stats.statsUser ? `Statistics for ${stats.statsUser.username}` : 'User Statistics'}
           className="max-w-7xl"
         >
           <StatisticsView
-            data={statsData}
-            range={statsRange}
-            onRangeChange={setStatsRange}
-            isLoading={statsLoading}
-            error={statsError}
+            data={stats.statsData}
+            range={stats.statsRange}
+            onRangeChange={stats.setStatsRange}
+            isLoading={stats.statsLoading}
+            error={stats.statsError}
           />
         </Modal>
 
@@ -584,86 +76,14 @@ export function AdminUsers({ user }: AdminUsersProps) {
       </div>
 
       <ConfirmModal
-        open={userToDelete !== null}
-        onClose={() => setUserToDelete(null)}
+        open={remove.userToDelete !== null}
+        onClose={() => remove.setUserToDelete(null)}
         title="Delete user"
-        message={`Delete user "${users.find((u) => u.id === userToDelete)?.username ?? ''}"? This cannot be undone.`}
+        message={`Delete user "${users.find((u) => u.id === remove.userToDelete)?.username ?? ''}"? This cannot be undone.`}
         confirmLabel="Delete"
         danger
-        onConfirm={() => userToDelete && remove(userToDelete)}
+        onConfirm={() => remove.userToDelete && remove.submitRemove(remove.userToDelete)}
       />
     </AdminShell>
-  );
-}
-
-function UserLibrariesSection({ userId }: { userId: string }) {
-  const qc = useQueryClient();
-  const { notify } = useNotification();
-
-  const { data: libraries } = useQuery({
-    queryKey: ['admin-libraries'],
-    queryFn: async () => (await api<{ libraries: Library[] }>('/admin/libraries')).libraries,
-  });
-
-  const { data: assigned } = useQuery({
-    queryKey: ['admin-user-libraries', userId],
-    queryFn: async () => (await api<{ libraries: string[] }>(`/admin/users/${userId}/libraries`)).libraries,
-    enabled: !!userId,
-  });
-
-  const assign = useMutation({
-    mutationFn: async (libraryIds: string[]) =>
-      api(`/admin/users/${userId}/libraries`, { method: 'POST', body: JSON.stringify({ libraryIds }) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-user-libraries', userId] }),
-    onError: (err) => notify(err instanceof Error ? err.message : 'Failed to assign library', 'error'),
-  });
-
-  const remove = useMutation({
-    mutationFn: async (libraryId: string) =>
-      api(`/admin/users/${userId}/libraries/${libraryId}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-user-libraries', userId] }),
-    onError: (err) => notify(err instanceof Error ? err.message : 'Failed to remove library', 'error'),
-  });
-
-  const assignedSet = new Set(assigned ?? []);
-  const busy = assign.isPending || remove.isPending;
-
-  const toggle = (libraryId: string, checked: boolean) => {
-    if (checked) {
-      assign.mutate([libraryId]);
-    } else {
-      remove.mutate(libraryId);
-    }
-  };
-
-  const sortedLibraries = useMemo(() => {
-    return [...(libraries ?? [])].sort((a, b) => a.name.localeCompare(b.name));
-  }, [libraries]);
-
-  return (
-    <div className="space-y-3 border-t border-outline pt-4">
-      <h4 className="text-sm font-medium text-on-surface-variant">Libraries</h4>
-      {!libraries || libraries.length === 0 ? (
-        <p className="text-sm text-on-surface-variant">No libraries found.</p>
-      ) : (
-        <ul className="space-y-2">
-          {sortedLibraries.map((library) => (
-            <li
-              key={library.id}
-              className="flex items-center justify-between rounded-item border border-outline bg-background px-4 py-3"
-            >
-              <Checkbox
-                id={`edit-user-library-${userId}-${library.id}`}
-                label={library.name}
-                description={library.path}
-                checked={assignedSet.has(library.id)}
-                onCheckedChange={(checked) => toggle(library.id, checked)}
-                disabled={busy}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   );
 }
