@@ -1,5 +1,5 @@
-import { Button } from '../ui/button.js';
-import { Textarea } from '../ui/textarea.js';
+import { Button } from '../../../components/ui/button.js';
+import { Textarea } from '../../../components/ui/textarea.js';
 import { CoverArtSection } from './CoverArtSection.js';
 import { EditorSection } from './EditorSection.js';
 import { Field } from './Field.js';

@@ -10,7 +10,7 @@ import { usePlayer } from '../../../../stores/playerStore.js';
 import { Card } from '../../../entities/Card.js';
 import { CoverArt } from '../../../entities/CoverArt.js';
 import { ItemContextMenu } from '../../../entities/ItemContextMenu.js';
-import { EditEntityModal } from '../../../../components/EditEntityModal.js';
+import { EditEntityModal } from '../../../edit-entity/EditEntityModal.js';
 import { useAlbumContextMenu } from '../../../../hooks/useAlbumContextMenu.js';
 import type { AlbumDetail } from './types.js';
 

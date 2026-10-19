@@ -1,5 +1,5 @@
-import { cn } from '../../lib/cn.js';
-import { Checkbox } from '../ui/checkbox.js';
+import { cn } from '../../../lib/cn.js';
+import { Checkbox } from '../../../components/ui/checkbox.js';
 import { Field } from './Field.js';
 import { EditorSection } from './EditorSection.js';
 import { TagInput } from './TagInput.js';

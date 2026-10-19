@@ -1,5 +1,5 @@
 import { PageState } from '../../shell/PageState.js';
-import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { EditEntityModal } from '../../edit-entity/EditEntityModal.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 import { invalidateLibraryEntity } from '../../../hooks/useLibraryMutation.js';
 import { songFromSearchSong, playlistFromSearchPlaylist } from '../../../lib/entityMappers.js';

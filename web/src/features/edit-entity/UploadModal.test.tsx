@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { UploadModal } from './UploadModal.js';
-import type { Library } from '../types';
+import type { Library } from '../../types';
 
 const mockApi = vi.hoisted(() => vi.fn());
 const mockNotify = vi.hoisted(() => vi.fn());
 
-vi.mock('../lib/api.js', () => ({
+vi.mock('../../lib/api.js', () => ({
   api: (...args: unknown[]) => mockApi(...args),
 }));
 
-vi.mock('../contexts/NotificationContext.js', () => ({
+vi.mock('../../contexts/NotificationContext.js', () => ({
   useNotification: () => ({ notify: mockNotify }),
 }));
 

@@ -1,7 +1,7 @@
-import type { SmartPlaylistRules } from '../../types';
-import { Input } from '../ui/input.js';
+import type { SmartPlaylistRules } from '../../../types';
+import { Input } from '../../../components/ui/input.js';
 import { Field } from './Field.js';
-import { SmartPlaylistBlockEditor } from '../../features/playlists/index.js';
+import { SmartPlaylistBlockEditor } from '../../../features/playlists/index.js';
 
 interface PlaylistEditorProps {
   readOnly?: boolean;

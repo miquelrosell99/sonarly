@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Icon } from '../ui/Icon.js';
+import { Icon } from '../../../components/ui/Icon.js';
 
 export function CoverArtLightbox({
   coverArt,

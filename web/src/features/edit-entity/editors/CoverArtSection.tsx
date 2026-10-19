@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ConfirmModal } from '../ui/ConfirmModal.js';
+import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { EditableCoverArt } from './EditableCoverArt.js';
 import { CoverArtLightbox } from './CoverArtLightbox.js';
 import { getCommonValue } from './tagValues.js';

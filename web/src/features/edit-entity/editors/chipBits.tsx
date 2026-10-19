@@ -1,5 +1,5 @@
-import { cn } from '../../lib/cn.js';
-import { Icon } from '../ui/Icon.js';
+import { cn } from '../../../lib/cn.js';
+import { Icon } from '../../../components/ui/Icon.js';
 
 export const CHIP_BUTTON_CLASS =
   'rounded-input p-0.5 text-on-surface-variant transition hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-on-surface-variant';

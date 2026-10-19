@@ -7,7 +7,7 @@ import { useFavoriteActions } from '../../../hooks/useFavoriteActions.js';
 import { useFilterParams } from '../../../hooks/useFilterParams.js';
 import { useArtistContextMenu } from '../../../hooks/useArtistContextMenu.js';
 import { ItemContextMenu } from '../../entities/ItemContextMenu.js';
-import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { EditEntityModal } from '../../edit-entity/EditEntityModal.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
 import { useLibraryStore } from '../../../stores/libraryStore.js';
 import { useArtistsList, useSongsList } from '../../../hooks/useLibraryLists.js';

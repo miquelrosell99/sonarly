@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import type { EntityType } from '../EditEntityModal.js';
-import { api } from '../../lib/api.js';
-import { normalizeSyncedLyrics } from '../../lib/syncedLyrics.js';
+import { api } from '../../../lib/api.js';
+import { normalizeSyncedLyrics } from '../../../lib/syncedLyrics.js';
 import { FetchMetadataModal } from '../FetchMetadataModal.js';
 import { FetchLyricsModal } from '../FetchLyricsModal.js';
 

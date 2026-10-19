@@ -18,7 +18,7 @@ import { useLibraryMutation } from '../../../hooks/useLibraryMutation.js';
 import { useSongContextMenu } from '../../../hooks/useSongContextMenu.js';
 import { useSongDetail } from '../../../hooks/useEntityDetails.js';
 import { useNotification } from '../../../contexts/NotificationContext.js';
-import { EditEntityModal } from '../../../components/EditEntityModal.js';
+import { EditEntityModal } from '../../edit-entity/EditEntityModal.js';
 import { SyncedLyricsEditor } from '../../songs/index.js';
 import type { SongWithNames } from '../../../lib/types.js';
 import { usePlayer } from '../../../stores/playerStore.js';

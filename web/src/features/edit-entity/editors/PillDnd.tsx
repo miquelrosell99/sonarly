@@ -14,8 +14,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { cn } from '../../lib/cn.js';
-import { Icon } from '../ui/Icon.js';
+import { cn } from '../../../lib/cn.js';
+import { Icon } from '../../../components/ui/Icon.js';
 import {
   CHIP_BUTTON_CLASS,
   ChipMoveButtons,
