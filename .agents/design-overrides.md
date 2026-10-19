@@ -44,6 +44,22 @@ Recorded per `rosellramos-design-system/identity/procedure.md` — the palette's
 
 ## Deviations
 
+### shadcn catalog adoption — button radius stays at the registered 16px
+
+- **Rule**: `rosellramos-design-system/law/spec.md` shape scale + owner ruling 2026-10-19 (M3 values refresh): **buttons are corner-full (9999px)** across the fleet.
+- **Decision**: The normalized shadcn catalog (commit `b01253a`) keeps sonarly's **registered 16px button shape** (`rounded-button` in `web/tailwind.config.js`; the `.btn` register in `web/src/index.css`) instead of the fleet's corner-full ruling. The ruling postdates sonarly's registered shape standard (this register's "Full-pill Login button" entry: "the rest of the app is uniformly 16px", ruled 2026-10-18; the shape tokens predate it further) — a wholesale button-shape change is a visible identity move that needs the owner's eye, so it is flagged here rather than applied silently. The catalog button encodes the app's interaction contracts (brightness hover, tactile press, 44px coarse-pointer floor); only the radius differs from the fleet default.
+- **Rationale**: Per-app identity decisions at adoption stand until the owner revisits them; the ruling's "no grandfather" applies to catalog alignment (done — every component normalized), not to flipping a registered brand-shape decision.
+- **Scope**: global — every catalog/app button wears `rounded-button` (16px). The two registered pill exceptions (`.btn-pill` Login button; the `rounded-full` circular-controls convention) are unchanged.
+- **Ruled**: 2026-10-19 catalog migration; fleet ruling 2026-10-19 noted as postdating. **Review trigger**: owner decides sonarly moves to corner-full buttons (then: change the `button` radius token once, every button follows).
+
+### Overlay authority — the app Modal stack owns dialogs; Radix catalog overlays for new surfaces
+
+- **Rule**: `rosellramos-design-system/components/shadcn-bridge.md` checklist #8 "ONE overlay/Escape authority": reconcile the app's overlay manager with Radix's built-in overlay/focus-trap/Escape — pick one authority.
+- **Decision**: The migration attempted porting `web/src/components/ui/Modal.tsx` onto the Radix Dialog primitives; it surfaced an unbridgeable contract conflict and was **reverted with the app implementation kept** (same-day attempt, not committed). The conflict: sonarly legitimately stacks INDEPENDENT sibling modals (a `ConfirmModal` over an edit `Modal` — the FF11 scenario) and its contract keeps the underneath layer fully accessible while the top is open (see `SyncedLyricsEditor.test.tsx` "Not applied before confirming"); Radix modal semantics hide everything outside the topmost dialog from the accessibility tree, and two sibling modal roots each hide the other — no stacking arrangement preserves the contract. Per the notees precedent (app overlay stack owns Escape; Radix's built-in disabled), **the app's Modal remains the dialog authority**; the normalized catalog `dialog`/`alert-dialog` (and the menu/popover/select/tooltip/command overlays, which carry no conflicting contract) are available for new surfaces. Migrating Modal to Radix remains possible only with a nested-dialog conversion of every sibling-stack call site.
+- **Scope**: dialog-class overlays only. The catalog's non-dialog overlays (dropdown/popover/select/tooltip/command) are live and canonical.
+- **Ruled**: 2026-10-19 catalog migration (attempt + reversion same session).
+- **Review trigger**: a modal redesign; a decision to adopt Radix modal semantics (topmost-only accessibility) as the app contract.
+
 ### Single-track canonical token architecture (2026-10-19 migration)
 
 - **Rule**: `rosellramos-design-system/law/spec.md` §1 (three-tier token architecture: one token file owns every value; color system tokens carry `--md-sys-color-*` and the §2 role names), §2 (the complete color-role map), §3 (the seed model: `[data-accent]` presets set only the seed, everything else derives) — and owner ruling 2026-10-19: FULL alignment, no shortcuts, no legacy-name aliases.
