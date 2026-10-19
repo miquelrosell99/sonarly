@@ -20,7 +20,11 @@ import { useDelayedVisible } from './hooks/useDelayedVisible.js';
 import { AddToPlaylistModal } from './components/AddToPlaylistModal.js';
 import { api } from './lib/api.js';
 import { getShareToken } from './lib/shareToken.js';
-import DesignBridgeFixture from './pages/DesignBridgeFixture.js';
+// Lazy so the Radix dialog chain the fixture mounts stays out of the entry
+// chunk (bundle budget) — the route is a CI/visual-QA surface, not user chrome.
+const DesignBridgeFixture = lazy(() =>
+  import('./pages/DesignBridgeFixture.js').then((m) => ({ default: m.default })),
+);
 
 // FF2: every route is lazy so first paint only downloads the shell + the
 // current page. Login/Setup stay static — they are the first paint for
@@ -206,7 +210,9 @@ export default function App() {
   if (typeof window !== 'undefined' && window.location.pathname === '/__design-bridge-fixture') {
     return (
       <Router>
-        <Route path="/__design-bridge-fixture" component={DesignBridgeFixture} />
+        <Suspense fallback={null}>
+          <Route path="/__design-bridge-fixture" component={DesignBridgeFixture} />
+        </Suspense>
       </Router>
     );
   }

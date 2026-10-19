@@ -14,7 +14,12 @@ import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export const LIMITS = {
-  entry: 250 * 1024,
+  // 250 → 260 KiB (2026-10-19, shadcn catalog adoption): the normalized
+  // catalog Button now serves the shell (AddToPlaylistModal via App, the
+  // SponsorButton in the TopBar, the boot-error retry), bringing
+  // @radix-ui/react-slot + cva into the entry. Deliberate, ~4 KiB; revisit
+  // by lazy-loading the playlist modal, not by de-cataloging the shell.
+  entry: 260 * 1024,
   lazyChunk: 350 * 1024,
   total: 900 * 1024,
 };
