@@ -3,17 +3,17 @@ import { render, cleanup, waitFor } from '@testing-library/react';
 import { Router } from 'wouter';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TopBar } from './TopBar.js';
-import { useSongsList } from '../hooks/useLibraryLists.js';
+import { useSongsList } from '../../hooks/useLibraryLists.js';
 
 const mockApi = vi.hoisted(() => vi.fn());
 
-vi.mock('../lib/api.js', () => ({
+vi.mock('../../lib/api.js', () => ({
   api: (...args: unknown[]) => mockApi(...args),
 }));
 
 const mockNotify = vi.hoisted(() => ({ notify: vi.fn() }));
 
-vi.mock('../contexts/NotificationContext.js', () => ({
+vi.mock('../../contexts/NotificationContext.js', () => ({
   useNotification: () => mockNotify,
   NotificationProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/button.js';
-import { PageState } from '../../../components/PageState.js';
+import { PageState } from '../../shell/PageState.js';
 import { RenameProgressModal } from '../../settings/index.js';
 import { StatCard } from '../../admin/components/StatCard.js';
 

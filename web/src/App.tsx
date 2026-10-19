@@ -2,7 +2,7 @@ import { Router, Route, Switch, useLocation } from 'wouter';
 import { Suspense, lazy, useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { User } from './types';
-import { Layout } from './components/Layout.js';
+import { Layout } from './features/shell/Layout.js';
 import { Login } from './features/auth/index.js';
 import { Signup } from './features/auth/pages/Signup.js';
 import { Setup } from './features/setup/index.js';
@@ -11,10 +11,10 @@ import {
   GridPageSkeleton,
   ListPageSkeleton,
   PageSkeleton,
-} from './components/Skeletons.js';
+} from './features/shell/Skeletons.js';
 import { AdminRefreshProvider } from './features/admin/contexts/AdminRefreshContext.js';
 import { useServerEvents } from './hooks/useServerEvents.js';
-import { ErrorBoundary, reportClientError } from './components/ErrorBoundary.js';
+import { ErrorBoundary, reportClientError } from './features/shell/ErrorBoundary.js';
 import { Button } from './components/ui/button.js';
 import { useDelayedVisible } from './hooks/useDelayedVisible.js';
 import { AddToPlaylistModal } from './components/AddToPlaylistModal.js';

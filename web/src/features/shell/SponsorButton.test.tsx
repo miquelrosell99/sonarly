@@ -8,7 +8,7 @@ const mockPreferencesState = vi.hoisted(() => ({
   data: { supportHidden: false } as { supportHidden?: boolean } | undefined,
 }));
 
-vi.mock('../hooks/usePreferences.js', () => ({
+vi.mock('../../hooks/usePreferences.js', () => ({
   usePreferences: () => ({ data: mockPreferencesState.data }),
   useUpdatePreferences: () => ({ mutate: mockUpdatePreferencesMutate }),
 }));

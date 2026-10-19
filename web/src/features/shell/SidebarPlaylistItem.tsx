@@ -1,19 +1,19 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
-import type { Playlist } from '../types';
-import { api } from '../lib/api.js';
-import { cn } from '../lib/cn.js';
-import { Icon } from './ui/Icon.js';
-import { ItemContextMenu } from '../features/entities/ItemContextMenu.js';
-import { ConfirmModal } from './ui/ConfirmModal.js';
-import { SharePlaylistModal } from '../features/playlists/index.js';
-import { usePlaylistContextMenu } from '../hooks/usePlaylistContextMenu.js';
-import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
-import { usePlaylist } from '../hooks/usePlaylist.js';
-import { useNotification } from '../contexts/NotificationContext.js';
-import { useAddSongsToPlaylist } from '../hooks/useAddSongsToPlaylist.js';
-import { hasSongsDragData, readSongsDragData } from '../lib/dragSongs.js';
+import type { Playlist } from '../../types';
+import { api } from '../../lib/api.js';
+import { cn } from '../../lib/cn.js';
+import { Icon } from '../../components/ui/Icon.js';
+import { ItemContextMenu } from '../../features/entities/ItemContextMenu.js';
+import { ConfirmModal } from '../../components/ui/ConfirmModal.js';
+import { SharePlaylistModal } from '../../features/playlists/index.js';
+import { usePlaylistContextMenu } from '../../hooks/usePlaylistContextMenu.js';
+import { useCreatePlaylistModal } from '../../hooks/useCreatePlaylistModal.js';
+import { usePlaylist } from '../../hooks/usePlaylist.js';
+import { useNotification } from '../../contexts/NotificationContext.js';
+import { useAddSongsToPlaylist } from '../../hooks/useAddSongsToPlaylist.js';
+import { hasSongsDragData, readSongsDragData } from '../../lib/dragSongs.js';
 
 interface SidebarPlaylistItemProps {
   playlist: Playlist;

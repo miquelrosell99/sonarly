@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
-import type { Playlist, User, UserPreferences, SidebarItem } from '../types';
-import { cn } from '../lib/cn.js';
-import { Icon } from './ui/Icon.js';
-import { usePreferences, useUpdatePreferences } from '../hooks/usePreferences.js';
-import { useCreatePlaylistModal } from '../hooks/useCreatePlaylistModal.js';
-import { useLibraryStore } from '../stores/libraryStore.js';
-import { useLibraries } from '../hooks/useLibraryLists.js';
-import { mergeSidebarItems } from '../lib/sidebar.js';
-import { LibrarySelector } from '../features/entities/LibrarySelector.js';
+import type { Playlist, User, UserPreferences, SidebarItem } from '../../types';
+import { cn } from '../../lib/cn.js';
+import { Icon } from '../../components/ui/Icon.js';
+import { usePreferences, useUpdatePreferences } from '../../hooks/usePreferences.js';
+import { useCreatePlaylistModal } from '../../hooks/useCreatePlaylistModal.js';
+import { useLibraryStore } from '../../stores/libraryStore.js';
+import { useLibraries } from '../../hooks/useLibraryLists.js';
+import { mergeSidebarItems } from '../../lib/sidebar.js';
+import { LibrarySelector } from '../../features/entities/LibrarySelector.js';
 import { SidebarPlaylistItem } from './SidebarPlaylistItem.js';
 
 interface SidebarProps {

@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, cleanup } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { Playlist, User } from '../types';
+import type { Playlist, User } from '../../types';
 import { Sidebar } from './Sidebar.js';
 
-vi.mock('../hooks/usePreferences.js', () => ({
+vi.mock('../../hooks/usePreferences.js', () => ({
   usePreferences: () => ({ data: undefined }),
   useUpdatePreferences: () => ({ mutate: vi.fn() }),
 }));
 
-vi.mock('../hooks/useLibraryLists.js', () => ({
+vi.mock('../../hooks/useLibraryLists.js', () => ({
   useLibraries: () => ({ data: { libraries: [] }, error: null }),
 }));
 
@@ -21,7 +21,7 @@ vi.mock('./SidebarPlaylistItem.js', () => ({
   ),
 }));
 
-vi.mock('./LibrarySelector.js', () => ({
+vi.mock('../../entities/LibrarySelector.js', () => ({
   LibrarySelector: () => <div />,
 }));
 

@@ -3,7 +3,7 @@ import { Button } from '../../../components/ui/button.js';
 import { Icon } from '../../../components/ui/Icon.js';
 import { Input } from '../../../components/ui/input.js';
 import { Modal } from '../../../components/ui/Modal.js';
-import { PageState } from '../../../components/PageState.js';
+import { PageState } from '../../shell/PageState.js';
 import { ConfirmModal } from '../../../components/ui/ConfirmModal.js';
 import { cn } from '../../../lib/cn.js';
 import { useSyncedLyricsEditor, type SyncedLyricsEditorProps } from './synced-lyrics-editor/useSyncedLyricsEditor.js';

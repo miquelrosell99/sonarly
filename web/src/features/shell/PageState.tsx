@@ -1,8 +1,8 @@
-import { cn } from '../lib/cn.js';
-import { useDelayedVisible } from '../hooks/useDelayedVisible.js';
-import { Button } from './ui/button.js';
-import { EmptyState } from './ui/EmptyState.js';
-import { Icon } from './ui/Icon.js';
+import { cn } from '../../lib/cn.js';
+import { useDelayedVisible } from '../../hooks/useDelayedVisible.js';
+import { Button } from '../../components/ui/button.js';
+import { EmptyState } from '../../components/ui/EmptyState.js';
+import { Icon } from '../../components/ui/Icon.js';
 
 interface PageStateProps {
   loading?: boolean;

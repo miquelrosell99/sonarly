@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '../../../components/ui/select.js';
 import { Table, TableColumn } from '../../../components/ui/Table.js';
-import { PageState } from '../../../components/PageState.js';
+import { PageState } from '../../shell/PageState.js';
 import { ProgressBar } from '../../../components/ui/ProgressBar.js';
 import { StatusPill } from '../../admin/components/StatusPill.js';
 import { formatDateTime } from '../../../lib/formatDate.js';

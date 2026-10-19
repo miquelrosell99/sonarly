@@ -8,8 +8,8 @@ import {
   ListPageSkeleton,
   PageSkeleton,
 } from './Skeletons.js';
-import { Skeleton } from './ui/skeleton.js';
-import { EmptyState } from './ui/EmptyState.js';
+import { Skeleton } from '../../components/ui/skeleton.js';
+import { EmptyState } from '../../components/ui/EmptyState.js';
 import { PageState } from './PageState.js';
 
 describe('skeletons (route Suspense fallbacks)', () => {
@@ -24,7 +24,7 @@ describe('skeletons (route Suspense fallbacks)', () => {
   });
 
   it('index.css has a global prefers-reduced-motion guard', () => {
-    const css = readFileSync(join(__dirname, '../index.css'), 'utf8');
+    const css = readFileSync(join(__dirname, '../../index.css'), 'utf8');
     expect(css).toContain('prefers-reduced-motion: reduce');
   });
 

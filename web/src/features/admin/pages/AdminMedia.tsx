@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../../components/ui/select.js';
-import { PageState } from '../../../components/PageState.js';
+import { PageState } from '../../shell/PageState.js';
 import { AdminShell } from '../components/AdminShell.js';
 import { SettingsCard } from '../../settings/index.js';
 import { StatCard } from '../components/StatCard.js';

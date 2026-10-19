@@ -4,7 +4,7 @@ import type { User } from '../../../types';
 import { api } from '../../../lib/api.js';
 import { Button } from '../../../components/ui/button.js';
 import { Input } from '../../../components/ui/input.js';
-import { BrandMark } from '../../../components/BrandMark.js';
+import { BrandMark } from '../../shell/BrandMark.js';
 
 export function Login({ onLogin, signupEnabled = false }: { onLogin: (user: User) => void; signupEnabled?: boolean }) {
   const [username, setUsername] = useState('');

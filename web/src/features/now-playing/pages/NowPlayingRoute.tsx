@@ -3,7 +3,7 @@ import { useLocation, useParams } from 'wouter';
 import type { User } from '../../../types';
 import { getShareToken, withShareToken } from '../../../lib/shareToken.js';
 import { songFromPlaylistEntry } from '../../../lib/entityMappers.js';
-import { PageState } from '../../../components/PageState.js';
+import { PageState } from '../../shell/PageState.js';
 import { usePlaylist } from '../../../hooks/usePlaylist.js';
 import { useSongsList } from '../../../hooks/useLibraryLists.js';
 import { useAlbumDetail, useSongDetail } from '../../../hooks/useEntityDetails.js';
