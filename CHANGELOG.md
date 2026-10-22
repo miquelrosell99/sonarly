@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Git history rewritten — every live compose file scrubbed** (owner directive 2026-10-22, same cleanup as notees): `compose.dev.yaml` and `docker/docker-compose.yml` were removed from all commits, branches, and tags with `git filter-repo`; the tracked examples (`docker/compose.yaml.example`, `docker/compose.dev.yaml.example`) carry forward. **All commit SHAs changed** (release tags re-pointed) — clones and SHA citations must re-fetch. Verified: no real secret ever left the repo (the only `SESSION_SECRET=` literals in history are the `.env.example` placeholders; `.env` was never tracked); merged-and-stale `feat/go-rewrite` pruned. No branch protection to recreate (sonarly's `main` is unprotected — unlike notees, no ruleset needed).
+
 - **The live deployment collapsed into the checkout** (owner ruling 2026-10-22, same change as notees; the 2026-10-19 source/stack split retires): the live `compose.yaml` + `.env` are gitignored host-local artifacts at the repo root, operated from there (or Komodo Redeploy — the Komodo stack's run directory is now the repo root, periphery reaches it through a same-path `/root/projects` volume). The DB bind is parameterized — `${SONARLY_DATA_DIR:-./config/sonarly/data}` — so the live database stays at the fleet stacks location (`/etc/periphery/stacks/sonarly/config`, absolute `SONARLY_DATA_DIR`/`SONARLY_INGEST_PATH` in `.env`) outside the checkout. `docker/compose.yaml.example` and `.env.example` updated accordingly; AGENTS.md ship step 4 and the operations skill's deployment law rewritten.
 
 ### Fixed
