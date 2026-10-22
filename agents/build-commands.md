@@ -78,7 +78,7 @@ docker compose -f compose.yaml up -d
 2. Commit (`chore(release): vX.Y.Z`) and push `main`.
 3. `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`.
 4. Watch the workflow (`gh run list --workflow=release-docker.yml`); it publishes `:latest` plus semver tags to GHCR.
-5. On the server: `docker compose -f compose.yaml pull && docker compose -f compose.yaml up -d`.
+5. Redeploy the live stack (source/stack split, same pattern as notees): on the fleet host the running stack is the thin Komodo-managed deployment at `/etc/periphery/stacks/sonarly/` (compose copy + `.env` + `config/`), NOT the repo checkout. Redeploy via Komodo's **Redeploy** on the `sonarly` stack, which pulls `:latest`. Only if Komodo is unreachable, run compose **from that folder** (`cd /etc/periphery/stacks/sonarly && docker compose pull && docker compose up -d`) — never from the checkout, whose gitignored root `compose.yaml` is only the fresh-deployment template.
 
 Database migrations run automatically on container start (ledger-tracked, idempotent DDL). Rollback = restore the pre-update DB backup + the previous image tag (see docs/deployment.md).
 
