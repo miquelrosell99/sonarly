@@ -415,6 +415,63 @@ func TestGetCoverArtMissIs70(t *testing.T) {
 	assertFailed(t, rec, CodeForbidden)
 }
 
+func TestGetCoverArtPlaylistTier(t *testing.T) {
+	app := newTestApp(t)
+	app.seedUser(t, testUserID, testUser, testPass, false)
+	c := app.seedCatalog(t, "")
+	// R7 v2 delta: a playlist id resolves to the first album art behind its
+	// visible songs — clients advertise coverArt=playlist.id and used to
+	// hit 70 on every playlist (Feishin, Music Assistant).
+	app.seedPlaylist(t, "pl-art", "Art Mix", testUserID, "private", c.SAbbey1)
+
+	rec := app.get(t, authedURL("/rest/getCoverArt.view", "&id=pl-art"), nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("playlist tier status = %d", rec.Code)
+	}
+	if rec.Body.String() != "fake-jpeg-bytes" {
+		t.Fatalf("playlist tier body = %q", rec.Body.String())
+	}
+	if cc := rec.Header().Get("Cache-Control"); cc != coverArtCacheControl {
+		t.Fatalf("playlist tier cache-control = %q", cc)
+	}
+}
+
+func TestGetCoverArtPlaylistTierFallsThroughAlbums(t *testing.T) {
+	app := newTestApp(t)
+	app.seedUser(t, testUserID, testUser, testPass, false)
+	c := app.seedCatalog(t, "")
+	// The first album has no art of its own and its song file is gone
+	// (synthetic path) → the tier must try the next distinct album.
+	app.seedPlaylist(t, "pl-mixed", "Mixed", testUserID, "private", c.SLow1, c.SAbbey1)
+
+	rec := app.get(t, authedURL("/rest/getCoverArt.view", "&id=pl-mixed"), nil)
+	if rec.Code != http.StatusOK || rec.Body.String() != "fake-jpeg-bytes" {
+		t.Fatalf("playlist fall-through: %d %q", rec.Code, rec.Body.String())
+	}
+}
+
+func TestGetCoverArtPlaylistNoAccessIs70(t *testing.T) {
+	app := newTestApp(t)
+	app.seedUser(t, testUserID, testUser, testPass, false)
+	c := app.seedCatalog(t, "")
+	// Root's private playlist: alice must get the same 70 as any unknown
+	// id — CoverAlbums answers ErrNotFound and the tier falls through.
+	app.seedPlaylist(t, "pl-secret", "Secret", c.Admin, "private", c.SAbbey1)
+
+	rec := app.get(t, authedURL("/rest/getCoverArt.view", "&id=pl-secret"), nil)
+	assertFailed(t, rec, CodeForbidden)
+}
+
+func TestGetCoverArtPlaylistEmptyIs70(t *testing.T) {
+	app := newTestApp(t)
+	app.seedUser(t, testUserID, testUser, testPass, false)
+	app.seedCatalog(t, "")
+	app.seedPlaylist(t, "pl-empty", "Empty", testUserID, "private")
+
+	rec := app.get(t, authedURL("/rest/getCoverArt.view", "&id=pl-empty"), nil)
+	assertFailed(t, rec, CodeForbidden)
+}
+
 func TestGetCoverArtOutOfScopeSongIs70(t *testing.T) {
 	app := newTestApp(t)
 	app.seedUser(t, testUserID, testUser, testPass, false)

@@ -186,10 +186,11 @@ func imageContentType(filePath string) string {
 
 // getCoverArt ports the old multi-tier resolution (retrieval.ts:156-253, R7):
 // cached blob (scope-checked) → song → song's art → embedded picture →
-// album → album's art → album's first song's embedded picture → artist
-// image file on disk → 302 redirect to the external artist_image_url →
-// enveloped 70 "Cover art not found". Every hit carries the private
-// day-long cache header.
+// album → album's art → album's first song's embedded picture → playlist →
+// the first distinct album behind the playlist's visible songs (v2 delta,
+// see serveAlbumArt/QUIRKS R7) → artist image file on disk → 302 redirect
+// to the external artist_image_url → enveloped 70 "Cover art not found".
+// Every hit carries the private day-long cache header.
 func (h *Handler) getCoverArt(w http.ResponseWriter, r *http.Request) {
 	id, _ := auth.IdentityFrom(r.Context())
 	ctx := r.Context()
@@ -249,12 +250,10 @@ func (h *Handler) getCoverArt(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Tier 3: the id is an album → its art, then its first song's picture.
-	var albumID string
 	var albumFound bool
-	var albumCover sql.NullString
 	err = h.db.QueryRowContext(ctx,
-		`SELECT id, cover_art_id FROM albums WHERE id = ?`, artID).
-		Scan(&albumID, &albumCover)
+		`SELECT id FROM albums WHERE id = ?`, artID).
+		Scan(&artID)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 	case err != nil:
@@ -264,33 +263,33 @@ func (h *Handler) getCoverArt(w http.ResponseWriter, r *http.Request) {
 		albumFound = true
 	}
 	if albumFound {
-		if ok, err := libraries.IsAlbumInScope(ctx, h.db, scope, albumID); err != nil {
+		handled, err := h.serveAlbumArt(w, r, ctx, scope, artID)
+		if err != nil {
 			Error(w, r, CodeGeneric, "internal error")
 			return
-		} else if !ok {
-			Error(w, r, CodeForbidden, "Cover art not found")
+		}
+		if handled {
 			return
 		}
-		if albumCover.Valid && albumCover.String != "" {
-			if format, data, found := h.coverArtBlob(ctx, albumCover.String); found {
-				coverArtHit(w, format, data)
+	}
+
+	// Tier 4: the id is a playlist → the first distinct album behind its
+	// visible songs. v2 delta over R7: v1 advertised coverArt=playlist.id
+	// but never served it (clients answered 70), so the playlist tier goes
+	// through the playlists service's CoverAlbums — ONE access policy,
+	// viewer scope filter, hideExplicit, and the share-token grant all
+	// mirror Get. Albums without resolvable art fall through to the next
+	// candidate; no access or no art continues to the artist tiers.
+	if list, err := h.playlists.CoverAlbums(ctx, id, artID, r.URL.Query().Get("shareToken"), 4); err == nil {
+		for _, a := range list {
+			handled, err := h.serveAlbumArt(w, r, ctx, scope, a.ID)
+			if err != nil {
+				Error(w, r, CodeGeneric, "internal error")
 				return
 			}
-		}
-		var firstSongFile string
-		err := h.db.QueryRowContext(ctx,
-			`SELECT s.file_path FROM songs s
-			WHERE s.album_id = ? AND s.active = 1
-			ORDER BY s.disc_number, s.track_number LIMIT 1`, albumID).
-			Scan(&firstSongFile)
-		if err == nil {
-			if picture := embeddedPicture(firstSongFile); picture != nil {
-				coverArtHit(w, picture.MIMEType, picture.Data)
+			if handled {
 				return
 			}
-		} else if !errors.Is(err, sql.ErrNoRows) {
-			Error(w, r, CodeGeneric, "internal error")
-			return
 		}
 	}
 
@@ -330,6 +329,52 @@ func (h *Handler) getCoverArt(w http.ResponseWriter, r *http.Request) {
 	}
 
 	Error(w, r, CodeForbidden, "Cover art not found")
+}
+
+// serveAlbumArt is the R7 album branch shared by the album tier and the
+// playlist tier: album cover blob (scope-checked) → the album's first
+// active song's embedded picture. handled is true when a response was
+// written — either a hit or the out-of-scope enveloped 70, which must not
+// fall through to the artist tiers (B4 wire parity). A nonexistent album
+// (or one with no resolvable art) returns handled=false so the caller can
+// continue its own fall-through.
+func (h *Handler) serveAlbumArt(w http.ResponseWriter, r *http.Request, ctx context.Context, scope libraries.Scope, albumID string) (handled bool, err error) {
+	var albumCover sql.NullString
+	err = h.db.QueryRowContext(ctx,
+		`SELECT cover_art_id FROM albums WHERE id = ?`, albumID).Scan(&albumCover)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if ok, err := libraries.IsAlbumInScope(ctx, h.db, scope, albumID); err != nil {
+		return false, err
+	} else if !ok {
+		Error(w, r, CodeForbidden, "Cover art not found")
+		return true, nil
+	}
+	if albumCover.Valid && albumCover.String != "" {
+		if format, data, found := h.coverArtBlob(ctx, albumCover.String); found {
+			coverArtHit(w, format, data)
+			return true, nil
+		}
+	}
+	var firstSongFile string
+	err = h.db.QueryRowContext(ctx,
+		`SELECT s.file_path FROM songs s
+		WHERE s.album_id = ? AND s.active = 1
+		ORDER BY s.disc_number, s.track_number LIMIT 1`, albumID).
+		Scan(&firstSongFile)
+	if err == nil {
+		if picture := embeddedPicture(firstSongFile); picture != nil {
+			coverArtHit(w, picture.MIMEType, picture.Data)
+			return true, nil
+		}
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return false, err
+	}
+	return false, nil
 }
 
 // coverArtBlob loads a cover_arts row (retired getCoverArtById).

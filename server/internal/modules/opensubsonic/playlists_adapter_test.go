@@ -165,7 +165,8 @@ func TestGetPlaylistDetailWireShape(t *testing.T) {
 	if !ok || len(entries) != 2 {
 		t.Fatalf("entry list = %v", p["entry"])
 	}
-	// the old reduced child: display names, no ids, type/isDir/created.
+	// v2 delta (QUIRKS P1): entries are FULL Song children — clients like
+	// Feishin crash without contentType/parent/size/suffix on every Child.
 	first := entries[0].(map[string]any)
 	if first["id"] != c.SAbbey1 || first["title"] != "Come Together" ||
 		first["album"] != "Abbey Road" || first["artist"] != "The Beatles" {
@@ -177,8 +178,15 @@ func TestGetPlaylistDetailWireShape(t *testing.T) {
 	if first["track"] != float64(1) {
 		t.Fatalf("track = %v", first["track"])
 	}
-	if _, hasAlbumID := first["albumId"]; hasAlbumID {
-		t.Fatalf("the old playlist child has no albumId: %v", first)
+	if first["albumId"] != c.AlAbbey || first["artistId"] != c.ArBeatles {
+		t.Fatalf("full child carries albumId/artistId: %v", first)
+	}
+	if first["contentType"] != "audio/mpeg" || first["suffix"] != "mp3" ||
+		first["parent"] != c.AlAbbey || first["path"] != "01-ComeTogether.mp3" {
+		t.Fatalf("full child carries contentType/suffix/parent/path: %v", first)
+	}
+	if _, hasSize := first["size"]; !hasSize {
+		t.Fatalf("size must render (0 when the file is gone, X9): %v", first)
 	}
 	if first["genre"] != "Rock" {
 		t.Fatalf("genre = %v", first["genre"])
@@ -186,8 +194,8 @@ func TestGetPlaylistDetailWireShape(t *testing.T) {
 	if first["year"] != float64(1969) {
 		t.Fatalf("year = %v", first["year"])
 	}
-	if _, hasExplicit := first["explicit"]; !hasExplicit {
-		t.Fatalf("explicit must render (false, not omitted): %v", first)
+	if _, hasExplicit := first["explicit"]; hasExplicit {
+		t.Fatalf("the full Child has no explicit flag (v2 delta): %v", first)
 	}
 }
 
@@ -561,9 +569,10 @@ func TestPlaylistEndpointsXML(t *testing.T) {
 		`title="Come Together"`,
 		`album="Abbey Road"`,
 		`artist="The Beatles"`,
+		`albumId="al-abbey"`,
+		`contentType="audio/mpeg"`,
 		`type="music"`,
 		`isDir="false"`,
-		`explicit="false"`,
 	} {
 		if !strings.Contains(body, check) {
 			t.Fatalf("getPlaylist XML missing %q:\n%s", check, body)

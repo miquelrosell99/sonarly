@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **OpenSubsonic playlist covers load in external clients**: `getCoverArt` now resolves a playlist id (the `coverArt` value playlist payloads advertise) to the first album art behind the playlist's visible songs — Feishin and Music Assistant previously got 70 "Cover art not found" on every playlist cover. Access, viewer scope, explicit-content filtering, and share tokens all follow the playlist policy; a playlist without art falls through to the usual miss.
+- **OpenSubsonic playlists load in Feishin**: `getPlaylist`/`createPlaylist` entries are now full song Children (`contentType`, `parent`, `path`, `size`, `suffix`, `albumId`, `artistId`, …) instead of the retired server's reduced shape — Feishin's normalizer crashed on the missing `contentType`, taking down the whole playlist. Entry order (including duplicate tracks) is preserved.
+
 ### Changed
 
 - **Buttons are now full pills (corner-full 9999px)**: the fleet-wide 2026-10-19 owner ruling (M3 corner-full buttons at every size) supersedes sonarly's registered 16px button shape — every button, including the Login sign-in, now wears the corner-full radius via the shared `rounded-button` token.
