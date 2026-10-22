@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Tag spellings that resolve to one artist/genre/composer row no longer fail the import**: the junction insert is keyed on (song_id, artist_id), so a file whose ARTIST parts collapse to a single row after the NOCASE ensure — a featured-artist string like "…feat. Niño De Elche, …; Niño de Elche; …" differing only by case — hit UNIQUE constraint failed and the whole file stayed out of the catalog (one live Macaco track, surfaced by the deep scan). IDs are now deduplicated at collection time, preserving first-occurrence order, for song artists, album artists, composers, and genres.
 - **Files with an empty GENRE tag field import again**: a file whose tags carry `GENRE ['']` (an empty string, common in the wild — distinct from a missing genre) failed every scan with "genre name cannot be empty" and sat permanently outside the catalog (930 rows in the live library, all inactive; surfaced by the first deep scan). Empty/whitespace genre entries are now skipped — an empty tag field is the absence of a genre, not a genre — in both `PersistSong` and the scanner's transaction path (regression test pins the import and the zero junction rows).
 
 ### Added

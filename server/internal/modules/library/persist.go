@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -135,7 +136,11 @@ func persistSongTx(ctx context.Context, ex execer, in PersistInput) (string, err
 		if err != nil {
 			return "", err
 		}
-		artistIDs = append(artistIDs, id)
+		// Tag spellings that resolve to one artist row (NOCASE variants of the
+		// same name) must not double-insert the junction row.
+		if !slices.Contains(artistIDs, id) {
+			artistIDs = append(artistIDs, id)
+		}
 	}
 	var primaryArtistID *string
 	if len(artistIDs) > 0 {
@@ -149,7 +154,9 @@ func persistSongTx(ctx context.Context, ex execer, in PersistInput) (string, err
 		if err != nil {
 			return "", err
 		}
-		albumArtistIDs = append(albumArtistIDs, id)
+		if !slices.Contains(albumArtistIDs, id) {
+			albumArtistIDs = append(albumArtistIDs, id)
+		}
 	}
 
 	var composerIDs []string
@@ -158,7 +165,9 @@ func persistSongTx(ctx context.Context, ex execer, in PersistInput) (string, err
 		if err != nil {
 			return "", err
 		}
-		composerIDs = append(composerIDs, id)
+		if !slices.Contains(composerIDs, id) {
+			composerIDs = append(composerIDs, id)
+		}
 	}
 
 	var genreIDs []string
@@ -170,7 +179,9 @@ func persistSongTx(ctx context.Context, ex execer, in PersistInput) (string, err
 		if err != nil {
 			return "", err
 		}
-		genreIDs = append(genreIDs, id)
+		if !slices.Contains(genreIDs, id) {
+			genreIDs = append(genreIDs, id)
+		}
 	}
 
 	var albumID *string

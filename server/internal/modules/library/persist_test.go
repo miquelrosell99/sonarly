@@ -70,6 +70,31 @@ func TestPersistSkipsEmptyGenreNames(t *testing.T) {
 	}
 }
 
+// Artist spellings that resolve to one artist row (the tag reader splits a
+// featured-artist string whose parts differ only by case, e.g. "Niño De
+// Elche" vs "Niño de Elche") must not double-insert the junction row — the
+// (song_id, artist_id) UNIQUE fails the whole import (one live Macaco track
+// sat unimportable for exactly this).
+func TestPersistDeduplicatesResolvedArtistRows(t *testing.T) {
+	database := openDB(t)
+	ctx := context.Background()
+	libID := "lib-dedupe-artists"
+	addLibrary(t, database, libID, t.TempDir())
+
+	meta := &audio.Metadata{
+		Title: "Song", Album: "Album", AlbumArtists: []string{"Macaco"},
+		Artists: []string{"Niño De Elche", "Niño de Elche", "Macaco"},
+	}
+	if _, err := library.PersistSong(ctx, database, library.PersistInput{
+		Path: "/lib/dedupe.flac", Meta: meta, Mtime: 1, Checksum: "sum", LibraryID: &libID,
+	}); err != nil {
+		t.Fatalf("persist with case-variant duplicate artists: %v", err)
+	}
+	if got := countRows(t, database, `SELECT COUNT(1) FROM song_artists WHERE song_id = (SELECT id FROM songs WHERE file_path = '/lib/dedupe.flac')`); got != 2 {
+		t.Fatalf("song_artists rows = %d, want 2 (Niño de Elche once + Macaco)", got)
+	}
+}
+
 // The cached albums.genre column is written on album creation only; a later
 // persist of a tagged file of an existing genreless album must backfill it
 // (tags are the source of truth), while a user-set genre is never overwritten.
