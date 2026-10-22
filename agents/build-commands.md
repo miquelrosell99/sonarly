@@ -22,8 +22,9 @@ go run ./cmd/sonarly  # run the server (env config required)
 # song artist -> album artist -> album name). Dry-run by default; writes go
 # through the audio.TagWriter + library.PersistSong path (same as the tag-edit
 # API, minus re-organize — backfilling a genre never moves files).
+# Inside the all-in-one container the binary is /app/sonarly (not on PATH):
 sonarly tag-genres -db /data/db/sonarly.db -map genres.json            # dry-run
-sonarly tag-genres -db /data/db/sonarly.db -map genres.json -apply
+sonarly tag-genres -db /data/db/sonarly.db -map genres.json -apply    # write
 
 # Regenerate the web contract from the OpenAPI spec
 pnpm --filter @sonarly/web contract:gen
