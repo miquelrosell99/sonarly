@@ -21,8 +21,11 @@ services:
       - "${SONARLY_PORT:-4533}:3000"
     volumes:
       # SQLite DB + server state (artist images, uploads). Same host path as
-      # the database file lives directly inside and is opened in place
-      - ./config/sonarly/data:/data/db
+      # the database file lives directly inside and is opened in place.
+      # Parameterized so a host can keep the live DB outside the checkout
+      # (fleet hosts point it at the stacks folder via .env — owner ruling
+      # 2026-10-22, same collapse as notees); fresh hosts default repo-local.
+      - ${SONARLY_DATA_DIR:-./config/sonarly/data}:/data/db
       # Drop folder for ingest.
       - ${SONARLY_INGEST_PATH:-./config/sonarly/ingest}:/data/ingest
       # The music library. Read-only is sufficient for scanning/streaming;

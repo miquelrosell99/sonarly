@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The live deployment collapsed into the checkout** (owner ruling 2026-10-22, same change as notees; the 2026-10-19 source/stack split retires): the live `compose.yaml` + `.env` are gitignored host-local artifacts at the repo root, operated from there (or Komodo Redeploy — the Komodo stack's run directory is now the repo root, periphery reaches it through a same-path `/root/projects` volume). The DB bind is parameterized — `${SONARLY_DATA_DIR:-./config/sonarly/data}` — so the live database stays at the fleet stacks location (`/etc/periphery/stacks/sonarly/config`, absolute `SONARLY_DATA_DIR`/`SONARLY_INGEST_PATH` in `.env`) outside the checkout. `docker/compose.yaml.example` and `.env.example` updated accordingly; AGENTS.md ship step 4 and the operations skill's deployment law rewritten.
+
 ### Fixed
 
 - **OpenSubsonic playlist covers render as the 2x2 grid**: `getCoverArt` for a playlist id now composites up to 4 distinct album covers into one square mosaic JPEG (512px, tiles cycled to fill with fewer than 4 — the same layout the web UI renders), instead of serving the first album's cover. Covers decode via `golang.org/x/image` (jpeg/png/webp/gif); undecodable or out-of-scope covers are skipped in favor of the next album.
