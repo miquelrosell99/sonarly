@@ -8,6 +8,7 @@ package audio
 
 import (
 	"encoding/binary"
+	"os"
 	"path/filepath"
 	"testing"
 )
@@ -213,6 +214,69 @@ func TestReadMetadataCodecCorpus(t *testing.T) {
 			}
 			if md.Properties.Atmos || md.Atmos {
 				t.Error("corpus files are not Atmos")
+			}
+		})
+	}
+}
+
+// mp4MvhdV0 builds an mvhd v0 payload: version/flags, creation, modification,
+// timescale, duration, plus filler to a full header.
+func mp4MvhdV0(timescale, duration uint32) []byte {
+	b := make([]byte, 24)
+	binary.BigEndian.PutUint32(b[12:16], timescale)
+	binary.BigEndian.PutUint32(b[16:20], duration)
+	return mp4Atom("mvhd", b)
+}
+
+// mp4MdhdV0 builds an mdhd v0 payload the way the mp4Properties reader
+// consumes it (timescale at [12:16], duration at [16:20]).
+func mp4MdhdV0(timescale, duration uint32) []byte {
+	b := make([]byte, 24)
+	binary.BigEndian.PutUint32(b[12:16], timescale)
+	binary.BigEndian.PutUint32(b[16:20], duration)
+	return mp4Atom("mdhd", b)
+}
+
+// mp4StszFixed builds an stsz atom with a fixed sample size.
+func mp4StszFixed(sampleSize, count uint32) []byte {
+	b := make([]byte, 16)
+	binary.BigEndian.PutUint32(b[4:8], sampleSize)
+	binary.BigEndian.PutUint32(b[8:12], count)
+	return mp4Atom("stsz", b)
+}
+
+// mvhd fallback: ffmpeg in some Atmos muxes writes the track mdhd duration as
+// 0 while the movie header mvhd carries the real duration (the live library's
+// one true Atmos file: mdhd 0, mvhd 208544/1000 = 208.544 s per ffprobe). The
+// probe must fall back; a valid mdhd still wins over mvhd.
+func TestMp4MvhdFallbackDuration(t *testing.T) {
+	cases := []struct {
+		name         string
+		mdhdDuration uint32
+		mvhdDuration uint32
+		wantDuration float64
+	}{
+		{"mdhd 0 falls back to mvhd", 0, 208544, 208.544},
+		{"mdhd present wins over mvhd", 5000, 208544, 5.0},
+		{"mdhd 0 and mvhd 0 stays 0", 0, 0, 0},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			stblPayload := append(mp4Atom("stsd", mp4StsdPayload(mp4AudioEntry("mp4a", mp4EsdsAtom(0x40, 768000)))), mp4StszFixed(48000, 100)...)
+			stbl := mp4Atom("stbl", stblPayload)
+			mdia := mp4Atom("mdia", append(mp4MdhdV0(1000, tc.mdhdDuration), mp4Atom("minf", stbl)...))
+			moov := mp4Atom("moov", append(mp4MvhdV0(1000, tc.mvhdDuration), mp4Atom("trak", mdia)...))
+			ftyp := mp4Atom("ftyp", []byte("M4A \x00\x00\x00\x00M4A "))
+			path := filepath.Join(t.TempDir(), "mvhd-fallback.m4a")
+			if err := os.WriteFile(path, append(ftyp, moov...), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			p, err := readProperties(path)
+			if err != nil {
+				t.Fatalf("readProperties: %v", err)
+			}
+			if p.Duration != tc.wantDuration {
+				t.Fatalf("Duration = %v, want %v", p.Duration, tc.wantDuration)
 			}
 		})
 	}
