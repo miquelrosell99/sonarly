@@ -617,35 +617,50 @@ func (s *Service) CoverAlbums(ctx context.Context, id auth.Identity, playlistID,
 		return nil, err
 	}
 
-	// Distinct album ids in first-seen (playlist) order.
-	seen := map[string]bool{}
-	albumIDs := []string{}
+	// Distinct album ids in playlist order. The query result order is
+	// planner-dependent (an album_id index walk returns alphabetical order,
+	// not playlist order), so order is re-derived from the member list
+	// itself: map song id → album id, then walk the ordered ids.
+	albumBySong := map[string]string{}
 	const chunk = 400
-	for start := 0; start < len(ids) && len(albumIDs) < limit; start += chunk {
+	for start := 0; start < len(ids); start += chunk {
 		end := start + chunk
 		if end > len(ids) {
 			end = len(ids)
 		}
 		placeholders := placeholders(len(ids[start:end]))
 		rows, err := s.db.QueryContext(ctx,
-			`SELECT album_id FROM songs WHERE id IN (`+placeholders+`) AND album_id IS NOT NULL`, strAny(ids[start:end])...)
+			`SELECT id, album_id FROM songs WHERE id IN (`+placeholders+`) AND album_id IS NOT NULL`, strAny(ids[start:end])...)
 		if err != nil {
 			return nil, fmt.Errorf("load playlist album ids: %w", err)
 		}
 		for rows.Next() {
+			var sid string
 			var a sql.NullString
-			if err := rows.Scan(&a); err != nil {
+			if err := rows.Scan(&sid, &a); err != nil {
 				rows.Close()
 				return nil, fmt.Errorf("load playlist album ids: %w", err)
 			}
-			if a.Valid && !seen[a.String] {
-				seen[a.String] = true
-				albumIDs = append(albumIDs, a.String)
+			if a.Valid {
+				albumBySong[sid] = a.String
 			}
 		}
 		rows.Close()
 		if err := rows.Err(); err != nil {
 			return nil, fmt.Errorf("load playlist album ids: %w", err)
+		}
+	}
+	seen := map[string]bool{}
+	albumIDs := []string{}
+	for _, sid := range ids {
+		aID, ok := albumBySong[sid]
+		if !ok || seen[aID] {
+			continue
+		}
+		seen[aID] = true
+		albumIDs = append(albumIDs, aID)
+		if len(albumIDs) >= limit {
+			break
 		}
 	}
 	if len(albumIDs) == 0 {

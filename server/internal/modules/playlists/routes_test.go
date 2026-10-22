@@ -1,11 +1,14 @@
 package playlists
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/miquelrosell99/sonarly/server/internal/modules/auth"
 )
 
 func entryIDs(d Detail) []string {
@@ -710,6 +713,34 @@ func TestCoverAlbums(t *testing.T) {
 	res, _ = env.do(t, "GET", "/api/playlists/pl-smart/albums", outsider, nil)
 	if res.StatusCode != 404 {
 		t.Fatalf("outsider: want 404, got %d", res.StatusCode)
+	}
+}
+
+// CoverAlbumsOrderRegression: playlist order must be authoritative even
+// when it contradicts alphabetical/rowid order — the album lookup queries
+// have no ORDER BY, and an album_id-index walk returns alphabetical order
+// (this made the OpenSubsonic mosaic scramble quadrants until the ordering
+// was re-derived from the member list).
+func TestCoverAlbumsOrderRegression(t *testing.T) {
+	env := newEnv(t)
+	ctx := context.Background()
+	owner := auth.Identity{UserID: "u-owner", Username: "owner"}
+
+	// Members in reverse-alphabetical album order: s-b1 (al-b1) then
+	// s-a1 (al-a1). Raw INSERT: service Create validates song ids against
+	// the creator's library scope, and u-owner cannot reference lib-b's
+	// s-b1 — but CoverAlbums itself must still order by the member list.
+	exec := env.mustExec
+	exec(t, `INSERT INTO playlists (id, name, owner_id, visibility, is_smart, resolve_mode)
+		VALUES ('pl-order', 'Order', 'u-owner', 'private', 0, 'tracks')`)
+	exec(t, `INSERT INTO playlist_songs (playlist_id, song_id, position) VALUES
+		('pl-order', 's-b1', 0), ('pl-order', 's-a1', 1)`)
+	albums, err := env.svc.CoverAlbums(ctx, owner, "pl-order", "", 4)
+	if err != nil {
+		t.Fatalf("cover albums: %v", err)
+	}
+	if len(albums) != 2 || albums[0].ID != "al-b1" || albums[1].ID != "al-a1" {
+		t.Fatalf("cover albums = %v, want [al-b1 al-a1] in playlist order", albums)
 	}
 }
 

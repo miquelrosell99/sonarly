@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **OpenSubsonic playlist covers render as the 2x2 grid**: `getCoverArt` for a playlist id now composites up to 4 distinct album covers into one square mosaic JPEG (512px, tiles cycled to fill with fewer than 4 — the same layout the web UI renders), instead of serving the first album's cover. Covers decode via `golang.org/x/image` (jpeg/png/webp/gif); undecodable or out-of-scope covers are skipped in favor of the next album.
+- **Playlist cover mosaic order was unstable**: `CoverAlbums` derived its order from unordered SQL results — an album_id-index walk returned alphabetical order, scrambling both the web mosaic and the OpenSubsonic grid. Order is now re-derived from the playlist's member list (regression test pins reverse-alphabetical playlist order).
+
 ## [3.1.12] - 2026-10-22
 
 ### Fixed
