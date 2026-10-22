@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.12] - 2026-10-22
+
 ### Fixed
 
 - **OpenSubsonic playlist covers load in external clients**: `getCoverArt` now resolves a playlist id (the `coverArt` value playlist payloads advertise) to the first album art behind the playlist's visible songs — Feishin and Music Assistant previously got 70 "Cover art not found" on every playlist cover. Access, viewer scope, explicit-content filtering, and share tokens all follow the playlist policy; a playlist without art falls through to the usual miss.
@@ -425,7 +427,8 @@ Complete server rewrite in Go and production cutover. The TypeScript server (`pa
 - Duplicate detection and resolution.
 - Settings for retention, artist image sync, and organization pattern.
 
-[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.11...HEAD
+[Unreleased]: https://github.com/miquelrosell99/sonarly/compare/v3.1.12...HEAD
+[3.1.12]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.12
 [3.1.11]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.11
 [3.1.10]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.10
 [3.1.9]: https://github.com/miquelrosell99/sonarly/releases/tag/v3.1.9
