@@ -125,6 +125,29 @@ func TestScanImportsLibrary(t *testing.T) {
 		t.Fatalf("library attribution: want 4, got %d", got)
 	}
 
+	// Codec/Atmos: every probed file carries its display codec; no corpus
+	// file is Atmos (the flag defaults to 0).
+	wantCodecs := map[string]string{
+		flac:                               "FLAC",
+		filepath.Join(dir, "02-spike.mp3"): "MP3",
+		filepath.Join(dir, "03-spike.ogg"): "Vorbis",
+		filepath.Join(dir, "04-spike.m4a"): "AAC",
+	}
+	for path, want := range wantCodecs {
+		var codec string
+		var atmos int
+		if err := database.QueryRow(`SELECT codec, atmos FROM songs WHERE file_path = ?`, path).
+			Scan(&codec, &atmos); err != nil {
+			t.Fatalf("codec row %s: %v", path, err)
+		}
+		if codec != want {
+			t.Errorf("codec %s = %q, want %q", filepath.Base(path), codec, want)
+		}
+		if atmos != 0 {
+			t.Errorf("atmos %s = %d, want 0", filepath.Base(path), atmos)
+		}
+	}
+
 	// Idempotency: a rescan with no changes imports nothing (the mtime fast
 	// path), and the cover links are stable (no needsCoverSync churn).
 	stats, err = scanner.Scan(context.Background(), library.ScanPayload{}, nil)
@@ -456,5 +479,68 @@ func TestScanReusesInactiveRowForReplacedFile(t *testing.T) {
 	}
 	if rating != 5 {
 		t.Fatalf("user rating lost across replace: %v", rating)
+	}
+}
+
+// Deep scans re-read untouched files: the mtime fast path would skip them,
+// but rows imported before the probe learned a codec (the live library's
+// FLAC-in-MP4 NULL-property rows are exactly that) backfill on a deep scan.
+func TestDeepScanBackfillsCodec(t *testing.T) {
+	database := openDB(t)
+	dir := libraryFixture(t, database, "lib-main")
+	corpusCopy(t, dir, "spike.flac", "song.flac")
+
+	scanner := newScanner(t, database)
+	if _, err := scanner.Scan(context.Background(), library.ScanPayload{}, nil); err != nil {
+		t.Fatalf("scan: %v", err)
+	}
+	var codecBefore string
+	if err := database.QueryRow(`SELECT codec FROM songs`).Scan(&codecBefore); err != nil {
+		t.Fatalf("codec: %v", err)
+	}
+	if codecBefore != "FLAC" {
+		t.Fatalf("fixture codec = %q, want FLAC", codecBefore)
+	}
+
+	// Simulate a pre-codec row: codec NULL, atmos stale.
+	if _, err := database.Exec(`UPDATE songs SET codec = NULL, atmos = 1`); err != nil {
+		t.Fatalf("null codec: %v", err)
+	}
+
+	// Plain rescan: the mtime fast path skips the untouched file, so the
+	// NULL stays (mirrors the idempotency test above).
+	stats, err := scanner.Scan(context.Background(), library.ScanPayload{}, nil)
+	if err != nil {
+		t.Fatalf("rescan: %v", err)
+	}
+	if stats.Updated != 0 {
+		t.Fatalf("plain rescan must be a no-op: %+v", stats)
+	}
+	var codec sql.NullString
+	var atmos int
+	if err := database.QueryRow(`SELECT codec, atmos FROM songs`).Scan(&codec, &atmos); err != nil {
+		t.Fatalf("codec: %v", err)
+	}
+	if codec.Valid || atmos != 1 {
+		t.Fatalf("plain rescan must not touch codec/atmos: %v %d", codec, atmos)
+	}
+
+	// Deep rescan: the file is re-read and the probe values return.
+	stats, err = scanner.Scan(context.Background(), library.ScanPayload{Deep: true}, nil)
+	if err != nil {
+		t.Fatalf("deep rescan: %v", err)
+	}
+	if stats.Updated != 1 || stats.Added != 0 {
+		t.Fatalf("deep rescan stats: %+v", stats)
+	}
+	var backfilled sql.NullString
+	if err := database.QueryRow(`SELECT codec, atmos FROM songs`).Scan(&backfilled, &atmos); err != nil {
+		t.Fatalf("codec: %v", err)
+	}
+	if !backfilled.Valid || backfilled.String != "FLAC" {
+		t.Fatalf("deep rescan must backfill codec, got %v", backfilled)
+	}
+	if atmos != 0 {
+		t.Fatalf("deep rescan must clear the stale atmos flag, got %d", atmos)
 	}
 }

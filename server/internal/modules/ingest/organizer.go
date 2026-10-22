@@ -16,9 +16,10 @@ import (
 )
 
 // Pattern tokens (old organizer.ts): {artist} {albumArtist} {album} {title}
-// {track} {track:00} {disc} {disc:00} {year} {genre}. Unknown tokens expand
-// to "" — the retired server deliberately lets custom patterns carry tokens a file's tags
-// don't fill.
+// {track} {track:00} {disc} {disc:00} {year} {genre}, plus the probe-derived
+// {codec} and {atmos} (exactly " (Dolby Atmos)" on Atmos streams, else "").
+// Unknown tokens expand to "" — the retired server deliberately lets custom
+// patterns carry tokens a file's tags don't fill.
 var patternTokenRe = regexp.MustCompile(`\{([a-zA-Z0-9:]+)\}`)
 
 var forbiddenCharRe = regexp.MustCompile(`[\\/:*?"<>|]`)
@@ -100,6 +101,14 @@ func buildVariables(meta *audio.Metadata) map[string]string {
 		"disc":        disc,
 		"year":        year,
 		"genre":       Sanitize(genre),
+		// Probe-derived, not tags: the values describe the stream itself, so a
+		// pattern can keep FLAC-in-MP4 files apart from true Atmos rips.
+		// {atmos} is a suffix by design (it pads the title, not a folder).
+		"codec": Sanitize(meta.Codec),
+		"atmos": "",
+	}
+	if meta.Atmos {
+		variables["atmos"] = " (Dolby Atmos)"
 	}
 	if track != "" {
 		variables["track:00"] = fmt.Sprintf("%02d", meta.TrackNo)

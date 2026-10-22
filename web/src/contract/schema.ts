@@ -2206,6 +2206,10 @@ export interface components {
             bitsPerSample?: number;
             sampleRate?: number;
             channels?: number;
+            /** @description Display codec the probe derived from the stream (FLAC/Vorbis/ Opus/MP3, ALAC/AC-3/E-AC-3/PCM for MP4 entries); null when the probe could not identify it. */
+            codec?: string | null;
+            /** @description True Dolby Atmos: E-AC-3 with the JOC configuration (dec3 num_dep_sub > 0). False for ordinary surround and for FLAC-in-MP4 files sold in "Atmos" releases. */
+            atmos?: boolean;
             bpm?: number;
             musicBrainzId?: string;
             musicBrainzTrackId?: string;
@@ -4738,7 +4742,14 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description Re-read every file through the probe instead of trusting the mtime fast path, backfilling stream properties (codec/Atmos flag, duration, bitrate) on rows imported before the probe learned to read them. Absent/false keeps the mtime-gated incremental scan. */
+                    deep?: boolean;
+                };
+            };
+        };
         responses: {
             /** @description Scan enqueued. */
             200: {

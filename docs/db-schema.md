@@ -2,7 +2,7 @@
 
 Sonarly uses **SQLite** via `modernc.org/sqlite` (pure Go). The database file defaults to `${SONARLY_DATA_DIR}/sonarly.db` (`/data/db/sonarly.db` in the image). Migrations run automatically on startup from the embedded files in `server/internal/db/migrations/`.
 
-This document reflects the schema produced by migrations **0001–0006**:
+This document reflects the schema produced by migrations **0001–0007**:
 
 | Migration | What it does |
 |---|---|
@@ -12,6 +12,7 @@ This document reflects the schema produced by migrations **0001–0006**:
 | `0004_search_fts_backfill_fix.sql` | Idempotent full-corpus FTS re-backfill (re-asserts index↔corpus invariant on every database) |
 | `0005_normalize_legacy_numerics.sql` | Truncates fractional REAL numerics written by the retired server (mtimes, durations, bitrates, listening-history completion) to the integer semantics the Go server writes; typeof() guards make it a no-op on fresh databases |
 | `0006_share_download.sql` | `playlists.share_download` (link-share download permission, NOT NULL DEFAULT 0 — existing links stay stream-only) |
+| `0007_song_codec.sql` | `songs.codec` (TEXT, NULL = not yet probed) + `songs.atmos` (INTEGER NOT NULL DEFAULT 0 — true Dolby Atmos, E-AC-3 JOC) |
 
 ## Conventions
 
@@ -83,7 +84,7 @@ The central table. Highlights:
 
 - **Files**: `file_path` (UNIQUE), `mtime` (Unix ms), `checksum` (indexed), `library_id` → `libraries` (indexed).
 - **Identity**: `title` (`COLLATE NOCASE`), `track_number`, `disc_number`, `artist_id` → `artists`, `album_id` → `albums`, `genre`/`genre_id`, `year`.
-- **Technical**: `duration`, `bit_rate`, `bits_per_sample`, `sample_rate`, `channels`, `bpm`, `replay_gain` (REAL), `media_type`, `gapless`.
+- **Technical**: `duration`, `bit_rate`, `bits_per_sample`, `sample_rate`, `channels`, `bpm`, `replay_gain` (REAL), `media_type`, `gapless`, `codec` (TEXT, NULL = probe could not identify the stream), `atmos` (INTEGER — true Dolby Atmos: E-AC-3 with the JOC configuration, `dec3` `num_dep_sub > 0`).
 - **Display**: `display_artist`, `display_album_artist`, `sort_name`, `comment`, `mood`, `explicit`, `cover_art_missing`.
 - **MusicBrainz**: `music_brainz_id`, `musicbrainz_track_id`, `musicbrainz_work_id`, `musicbrainz_disc_id`.
 - **Dates**: `original_release_date`, `release_date`, `original_year`.

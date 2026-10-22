@@ -1600,6 +1600,21 @@ paths:
       operationId: enqueueScan
       tags: [library]
       summary: Enqueue a library scan (admin)
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deep:
+                  type: boolean
+                  description: >
+                    Re-read every file through the probe instead of trusting
+                    the mtime fast path, backfilling stream properties
+                    (codec/Atmos flag, duration, bitrate) on rows imported
+                    before the probe learned to read them. Absent/false keeps
+                    the mtime-gated incremental scan.
       responses:
         '200':
           description: Scan enqueued.
@@ -3805,6 +3820,18 @@ components:
         bitsPerSample: { type: integer }
         sampleRate: { type: integer }
         channels: { type: integer }
+        codec:
+          type: [string, 'null']
+          description: >
+            Display codec the probe derived from the stream (FLAC/Vorbis/
+            Opus/MP3, ALAC/AC-3/E-AC-3/PCM for MP4 entries); null when the
+            probe could not identify it.
+        atmos:
+          type: boolean
+          description: >
+            True Dolby Atmos: E-AC-3 with the JOC configuration (dec3
+            num_dep_sub > 0). False for ordinary surround and for
+            FLAC-in-MP4 files sold in "Atmos" releases.
         bpm: { type: integer }
         musicBrainzId: { type: string }
         musicBrainzTrackId: { type: string }

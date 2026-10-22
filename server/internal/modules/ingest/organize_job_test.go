@@ -173,3 +173,27 @@ func TestRunOrganizeFailedPaths(t *testing.T) {
 	}
 	_ = good
 }
+
+// Probe-derived tokens end to end: RunOrganize re-reads each file, so a
+// {codec}/{atmos} pattern routes it by the probed stream, not the DB row.
+func TestRunOrganizeCodecTokens(t *testing.T) {
+	e := newEnv(t, false)
+	ctx := context.Background()
+
+	root := t.TempDir()
+	addLibrary(t, e.db, "lib-codec", root, "{codec}/{title}{atmos}")
+	corpusCopy(t, root, "spike.mp3", "flat-spike.mp3")
+
+	stats, err := e.svc.RunOrganize(ctx, library.OrganizePayload{LibraryID: "lib-codec"}, nil)
+	if err != nil {
+		t.Fatalf("RunOrganize: %v", err)
+	}
+	if stats.Moved != 1 || stats.Failed != 0 {
+		t.Fatalf("stats = %+v, want moved=1", *stats)
+	}
+	// spike.mp3 probes as MP3 and is not Atmos: {atmos} expands to "".
+	want := filepath.Join(root, "MP3", "Spike Song (feat. Test).mp3")
+	if !fileExists(want) {
+		t.Errorf("file not organized to %s", want)
+	}
+}

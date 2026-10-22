@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -198,5 +199,43 @@ func TestStatusEmptyQueue(t *testing.T) {
 	body := decodeBody(t, rec)
 	if body["job"] != nil {
 		t.Fatalf("empty queue: want null job, got %v", body["job"])
+	}
+}
+
+// The request body is optional but decoded when present: {"deep": true}
+// must reach the typed ScanPayload stored in scan_jobs so the worker's
+// deep-scan re-read actually runs.
+func TestEnqueueScanDeepPassesThrough(t *testing.T) {
+	database := openDB(t)
+	s := newScanServer(t, database)
+	admin := s.session(t, "user-admin", "root", true)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/scans", strings.NewReader(`{"deep":true}`))
+	req.AddCookie(admin)
+	rec := httptest.NewRecorder()
+	s.router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var payload string
+	if err := database.QueryRow(`SELECT payload FROM scan_jobs`).Scan(&payload); err != nil {
+		t.Fatalf("job payload: %v", err)
+	}
+	if !strings.Contains(payload, `"deep":true`) {
+		t.Fatalf("payload must carry deep=true: %s", payload)
+	}
+
+	// A deep and a plain scan are different coalescing targets: the queue
+	// keys on the full payload JSON, so a pending deep scan never absorbs a
+	// plain one (and vice versa).
+	req = httptest.NewRequest(http.MethodPost, "/api/scans", nil)
+	req.AddCookie(admin)
+	rec = httptest.NewRecorder()
+	s.router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("plain scan: want 200, got %d", rec.Code)
+	}
+	if got := countRows(t, database, `SELECT COUNT(1) FROM scan_jobs WHERE status = 'pending'`); got != 2 {
+		t.Fatalf("deep and plain scans must not coalesce: %d pending jobs", got)
 	}
 }

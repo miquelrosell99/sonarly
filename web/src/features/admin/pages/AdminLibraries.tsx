@@ -58,6 +58,8 @@ const sampleTags: Record<string, string> = {
   'disc:00': '01',
   year: '1969',
   genre: 'Rock',
+  codec: 'FLAC',
+  atmos: ' (Dolby Atmos)',
 };
 
 function sanitize(name: string): string {
@@ -385,7 +387,7 @@ export function AdminLibraries({ user }: AdminLibrariesProps) {
                 placeholder="{albumArtist}/({year}) {album}/{disc:00}{track:00} - {title}"
               />
               <p className="text-xs text-on-surface-variant">
-                Available variables: artist, albumArtist, album, title, track, track:00, disc, disc:00, year, genre. The file extension is always appended.
+                Available variables: artist, albumArtist, album, title, track, track:00, disc, disc:00, year, genre, codec (the probed stream codec), atmos (" (Dolby Atmos)" on Atmos streams, else empty). The file extension is always appended.
               </p>
             </div>
 

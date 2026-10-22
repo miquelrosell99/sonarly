@@ -194,7 +194,7 @@ func (s *Scanner) Scan(ctx context.Context, payload ScanPayload, onProgress func
 		walkedRoots = append(walkedRoots, root)
 
 		if err := s.walkFiles(ctx, root.path, func(path string) error {
-			return s.processFile(ctx, path, foundPaths, movedFromPaths, stats, onProgress)
+			return s.processFile(ctx, path, payload, foundPaths, movedFromPaths, stats, onProgress)
 		}); err != nil {
 			return stats, err
 		}
@@ -247,14 +247,14 @@ func (s *Scanner) walkFiles(ctx context.Context, root string, visit func(path st
 // isolated: they increment Failed and (below the cap) land in Failures, and
 // the walk continues. Context cancellation is NOT swallowed — it aborts the
 // walk so the worker can fail the job.
-func (s *Scanner) processFile(ctx context.Context, path string, foundPaths, movedFromPaths map[string]struct{}, stats *ScanStats, onProgress func(*ScanStats)) error {
+func (s *Scanner) processFile(ctx context.Context, path string, payload ScanPayload, foundPaths, movedFromPaths map[string]struct{}, stats *ScanStats, onProgress func(*ScanStats)) error {
 	stats.Scanned++
 	foundPaths[path] = struct{}{}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 
-	err := s.processFileInner(ctx, path, foundPaths, movedFromPaths, stats)
+	err := s.processFileInner(ctx, path, payload, foundPaths, movedFromPaths, stats)
 	if err == nil {
 		if onProgress != nil && stats.Scanned%progressEvery == 0 {
 			onProgress(stats)
@@ -272,7 +272,7 @@ func (s *Scanner) processFile(ctx context.Context, path string, foundPaths, move
 	return nil
 }
 
-func (s *Scanner) processFileInner(ctx context.Context, path string, foundPaths, movedFromPaths map[string]struct{}, stats *ScanStats) error {
+func (s *Scanner) processFileInner(ctx context.Context, path string, payload ScanPayload, foundPaths, movedFromPaths map[string]struct{}, stats *ScanStats) error {
 	existing, err := songByPath(ctx, s.db, path)
 	if err != nil {
 		return err
@@ -283,7 +283,11 @@ func (s *Scanner) processFileInner(ctx context.Context, path string, foundPaths,
 		return err
 	}
 	mtime := info.ModTime().UnixMilli()
-	unchanged := existing != nil && existing.active && existing.mtime == mtime
+	// Deep scans re-read everything: a codec/atmos backfill must not wait for
+	// an mtime change on files the probe failed before it learned new entries
+	// (the flac-in-MP4 rows in the live library carry NULL properties for
+	// exactly that reason).
+	unchanged := existing != nil && existing.active && existing.mtime == mtime && !payload.Deep
 	needsCover := false
 	if unchanged {
 		needsCover, err = needsCoverSync(ctx, s.db, existing)

@@ -290,6 +290,8 @@ func persistSongTx(ctx context.Context, ex execer, in PersistInput) (string, err
 		displayAlbumArtist: emptyNil(firstOf(meta.AlbumArtists, meta.AlbumArtist)),
 		totalTracks:        countText(meta.TrackTotal),
 		totalDiscs:         countText(meta.DiscTotal),
+		codec:              emptyNil(meta.Codec),
+		atmos:              meta.Atmos,
 	}
 
 	var finalArtistIDs, finalGenreIDs, finalComposerIDs []string
@@ -388,6 +390,11 @@ func mergeSongData(next, existing songData, meta *audio.Metadata, m PersistMerge
 	next.displayAlbumArtist = orPtr(next.displayAlbumArtist, existing.displayAlbumArtist)
 	next.totalTracks = orPtr(next.totalTracks, existing.totalTracks)
 	next.totalDiscs = orPtr(next.totalDiscs, existing.totalDiscs)
+	next.codec = orPtr(next.codec, existing.codec)
+	// Atmos is only ever set on a genuine Atmos stream, so false stays false.
+	if !next.atmos {
+		next.atmos = existing.atmos
+	}
 	if next.title == "" {
 		next.title = existing.title
 	}
@@ -547,6 +554,8 @@ type songData struct {
 	displayAlbumArtist *string
 	totalTracks        *string
 	totalDiscs         *string
+	codec              *string
+	atmos              bool
 }
 
 // songDataColumns mirrors the songData field order for SELECT and UPSERT.
@@ -554,7 +563,7 @@ const songDataColumns = `id, file_path, title, track_number, disc_number, durati
 	genre, genre_id, library_id, year, explicit, cover_art_id, cover_art_missing, mtime, checksum,
 	bit_rate, bits_per_sample, sample_rate, channels, bpm, music_brainz_id, replay_gain,
 	comment, media_type, lyrics, synced_lyrics, producers, isrcs,
-	display_artist, display_album_artist, total_tracks, total_discs`
+	display_artist, display_album_artist, total_tracks, total_discs, codec, atmos`
 
 func scanSongData(row interface{ Scan(...any) error }) (*songData, error) {
 	var s songData
@@ -565,11 +574,13 @@ func scanSongData(row interface{ Scan(...any) error }) (*songData, error) {
 	var trackNo, discNo, duration, year db.NullInt64
 	var bitRate, bitsPerSample, sampleRate, channels, bpm db.NullInt64
 	var syncedLyrics, producers, isrcs *string
+	var codec sql.NullString
+	var atmos int
 	if err := row.Scan(&s.id, &s.filePath, &s.title, &trackNo, &discNo, &duration, &s.artistID, &s.albumID,
 		&s.genre, &s.genreID, &s.libraryID, &year, &explicit, &s.coverArtID, &coverMissing, &mtime, &s.checksum,
 		&bitRate, &bitsPerSample, &sampleRate, &channels, &bpm, &s.mbid, &s.replayGain,
 		&s.comment, &s.mediaType, &s.lyrics, &syncedLyrics, &producers, &isrcs,
-		&s.displayArtist, &s.displayAlbumArtist, &s.totalTracks, &s.totalDiscs); err != nil {
+		&s.displayArtist, &s.displayAlbumArtist, &s.totalTracks, &s.totalDiscs, &codec, &atmos); err != nil {
 		return nil, err
 	}
 	s.mtime = int64(mtime)
@@ -591,6 +602,10 @@ func scanSongData(row interface{ Scan(...any) error }) (*songData, error) {
 	s.bpm = intPtr(bpm)
 	s.explicit = explicit == 1
 	s.coverArtMissing = coverMissing == 1
+	s.atmos = atmos == 1
+	if codec.Valid {
+		s.codec = &codec.String
+	}
 	if syncedLyrics != nil {
 		_ = json.Unmarshal([]byte(*syncedLyrics), &s.syncedLyrics)
 	}
@@ -625,7 +640,11 @@ func upsertSong(ctx context.Context, ex execer, s songData) error {
 	if s.coverArtMissing {
 		coverMissing = 1
 	}
-	values := `?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?`
+	atmos := 0
+	if s.atmos {
+		atmos = 1
+	}
+	values := `?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?`
 	assignments := `file_path = excluded.file_path, title = excluded.title,
 		track_number = excluded.track_number, disc_number = excluded.disc_number, duration = excluded.duration,
 		artist_id = excluded.artist_id, album_id = excluded.album_id, genre = excluded.genre, genre_id = excluded.genre_id,
@@ -637,7 +656,8 @@ func upsertSong(ctx context.Context, ex execer, s songData) error {
 		replay_gain = excluded.replay_gain, comment = excluded.comment, media_type = excluded.media_type,
 		lyrics = excluded.lyrics, synced_lyrics = excluded.synced_lyrics, producers = excluded.producers,
 		isrcs = excluded.isrcs, display_artist = excluded.display_artist, display_album_artist = excluded.display_album_artist,
-		total_tracks = excluded.total_tracks, total_discs = excluded.total_discs`
+		total_tracks = excluded.total_tracks, total_discs = excluded.total_discs,
+		codec = excluded.codec, atmos = excluded.atmos`
 	query := fmt.Sprintf(`INSERT INTO songs (%s) VALUES (%s)
 		ON CONFLICT(id) DO UPDATE SET %s`, songDataColumns, values, assignments)
 	_, err := ex.ExecContext(ctx, query,
@@ -645,7 +665,7 @@ func upsertSong(ctx context.Context, ex execer, s songData) error {
 		val(s.genre), val(s.genreID), val(s.libraryID), val(s.year), explicit, val(s.coverArtID), coverMissing, s.mtime, s.checksum,
 		val(s.bitRate), val(s.bitsPerSample), val(s.sampleRate), val(s.channels), val(s.bpm), val(s.mbid), val(s.replayGain),
 		val(s.comment), val(s.mediaType), val(s.lyrics), marshalNil(s.syncedLyrics), marshalNil(s.producers), marshalNil(s.isrcs),
-		val(s.displayArtist), val(s.displayAlbumArtist), val(s.totalTracks), val(s.totalDiscs))
+		val(s.displayArtist), val(s.displayAlbumArtist), val(s.totalTracks), val(s.totalDiscs), val(s.codec), atmos)
 	if err != nil {
 		return fmt.Errorf("upsert song: %w", err)
 	}
