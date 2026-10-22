@@ -569,6 +569,9 @@ func (s *Scanner) persistCoverOnly(ctx context.Context, path string, meta *audio
 	albumArtistNames := AlbumArtistNames(meta, artistNames)
 	var genreIDs []string
 	for _, name := range meta.Genres {
+		if strings.TrimSpace(name) == "" {
+			continue // an empty GENRE tag field (common in the wild) is no genre at all
+		}
 		id, err := ensureGenre(ctx, tx, name)
 		if err != nil {
 			return err
