@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/xml"
 	"errors"
+	"image"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"github.com/miquelrosell99/sonarly/server/internal/modules/auth"
 	"github.com/miquelrosell99/sonarly/server/internal/modules/libraries"
 	"github.com/miquelrosell99/sonarly/server/internal/modules/playback"
+	"github.com/miquelrosell99/sonarly/server/internal/modules/playlists"
 )
 
 // Retrieval group payloads (retired routes/retrieval.ts, quirks doc R group).
@@ -187,10 +189,10 @@ func imageContentType(filePath string) string {
 // getCoverArt ports the old multi-tier resolution (retrieval.ts:156-253, R7):
 // cached blob (scope-checked) → song → song's art → embedded picture →
 // album → album's art → album's first song's embedded picture → playlist →
-// the first distinct album behind the playlist's visible songs (v2 delta,
-// see serveAlbumArt/QUIRKS R7) → artist image file on disk → 302 redirect
-// to the external artist_image_url → enveloped 70 "Cover art not found".
-// Every hit carries the private day-long cache header.
+// a server-rendered 2x2 mosaic of the covers behind the playlist's visible
+// songs (v2 delta, see mosaic.go/QUIRKS R7) → artist image file on disk →
+// 302 redirect to the external artist_image_url → enveloped 70 "Cover art
+// not found". Every hit carries the private day-long cache header.
 func (h *Handler) getCoverArt(w http.ResponseWriter, r *http.Request) {
 	id, _ := auth.IdentityFrom(r.Context())
 	ctx := r.Context()
@@ -273,15 +275,56 @@ func (h *Handler) getCoverArt(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Tier 4: the id is a playlist → the first distinct album behind its
-	// visible songs. v2 delta over R7: v1 advertised coverArt=playlist.id
-	// but never served it (clients answered 70), so the playlist tier goes
-	// through the playlists service's CoverAlbums — ONE access policy,
-	// viewer scope filter, hideExplicit, and the share-token grant all
-	// mirror Get. Albums without resolvable art fall through to the next
-	// candidate; no access or no art continues to the artist tiers.
+	// Tier 4: the id is a playlist → a 2x2 mosaic of up to 4 distinct album
+	// covers behind its visible songs. v2 delta over R7: v1 advertised
+	// coverArt=playlist.id but never served it (clients answered 70), so
+	// the playlist tier goes through the playlists service's CoverAlbums —
+	// ONE access policy, viewer scope filter, hideExplicit, and the
+	// share-token grant all mirror Get. Decodable cached covers render as
+	// the mosaic (mirroring the web UI grid); albums without a usable blob
+	// fall through to the per-album embedded-picture chain, then the next
+	// candidate, then the artist tiers.
 	if list, err := h.playlists.CoverAlbums(ctx, id, artID, r.URL.Query().Get("shareToken"), 4); err == nil {
+		var tiles []image.Image
+		var fallback []playlists.CoverAlbum
 		for _, a := range list {
+			if a.CoverArt != nil {
+				if ok, err := libraries.IsCoverArtInScope(ctx, h.db, scope, *a.CoverArt); err != nil {
+					Error(w, r, CodeGeneric, "internal error")
+					return
+				} else if ok {
+					if format, data, found := h.coverArtBlob(ctx, *a.CoverArt); found {
+						if img, err := decodeCover(format, data); err == nil {
+							tiles = append(tiles, img)
+							continue
+						}
+					}
+				}
+			}
+			fallback = append(fallback, a)
+		}
+		if len(tiles) > 0 {
+			jpegData, err := renderMosaic(tiles)
+			if err != nil {
+				Error(w, r, CodeGeneric, "internal error")
+				return
+			}
+			coverArtHit(w, "image/jpeg", jpegData)
+			return
+		}
+		for _, a := range fallback {
+			// Playlist tier: out-of-scope albums are skipped like
+			// out-of-scope cover blobs above (tier-1 parity applies to
+			// direct art ids, not to playlist membership) — an
+			// out-of-scope album must not 70 the whole playlist.
+			ok, err := libraries.IsAlbumInScope(ctx, h.db, scope, a.ID)
+			if err != nil {
+				Error(w, r, CodeGeneric, "internal error")
+				return
+			}
+			if !ok {
+				continue
+			}
 			handled, err := h.serveAlbumArt(w, r, ctx, scope, a.ID)
 			if err != nil {
 				Error(w, r, CodeGeneric, "internal error")

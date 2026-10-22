@@ -1,7 +1,11 @@
 package opensubsonic
 
 import (
+	"bytes"
 	"fmt"
+	"image"
+	"image/color"
+	"image/jpeg"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -470,6 +474,132 @@ func TestGetCoverArtPlaylistEmptyIs70(t *testing.T) {
 
 	rec := app.get(t, authedURL("/rest/getCoverArt.view", "&id=pl-empty"), nil)
 	assertFailed(t, rec, CodeForbidden)
+}
+
+// colorClose reports whether two channel values are within tolerance.
+func colorClose(a, b uint32, tolerance int) bool {
+	d := int(a) - int(b)
+	return d <= tolerance && d >= -tolerance
+}
+
+// solidJPEG renders a solid-color JPEG the mosaic tests can decode back.
+func solidJPEG(t *testing.T, c color.Color) []byte {	t.Helper()
+	img := image.NewRGBA(image.Rect(0, 0, 64, 64))
+	for y := 0; y < 64; y++ {
+		for x := 0; x < 64; x++ {
+			img.Set(x, y, c)
+		}
+	}
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, img, nil); err != nil {
+		t.Fatalf("encode fixture jpeg: %v", err)
+	}
+	return buf.Bytes()
+}
+
+// quadrantColor decodes a mosaic JPEG and samples the center of one 256px
+// quadrant: 0=TL, 1=TR, 2=BL, 3=BR. The sample is normalized to RGBA — a
+// decoded JPEG reports color.YCbCr, which prints confusingly raw.
+func quadrantColor(t *testing.T, data []byte, quadrant int) color.RGBA {
+	t.Helper()
+	img, err := jpeg.Decode(bytes.NewReader(data))
+	if err != nil {
+		t.Fatalf("mosaic is not a decodable JPEG: %v", err)
+	}
+	if img.Bounds().Dx() != mosaicTile*2 || img.Bounds().Dy() != mosaicTile*2 {
+		t.Fatalf("mosaic size = %dx%d, want %dx%d", img.Bounds().Dx(), img.Bounds().Dy(), mosaicTile*2, mosaicTile*2)
+	}
+	offset := [2]int{(quadrant % 2) * mosaicTile, (quadrant / 2) * mosaicTile}
+	r, g, b, _ := img.At(offset[0]+mosaicTile/2, offset[1]+mosaicTile/2).RGBA()
+	return color.RGBA{uint8(r >> 8), uint8(g >> 8), uint8(b >> 8), 255}
+}
+
+func TestGetCoverArtPlaylistMosaic(t *testing.T) {
+	app := newTestApp(t)
+	// Admin: the fixture albums span lib-a and lib-b, and per-cover scope
+	// checks (tier-1 parity) would drop the lib-b covers for a scoped user.
+	app.seedUser(t, testUserID, testUser, testPass, true)
+	c := app.seedCatalog(t, "")
+
+	// Four albums with distinct solid covers; playlist order drives the grid.
+	colors := []color.Color{
+		color.RGBA{200, 30, 30, 255},  // TL
+		color.RGBA{30, 180, 30, 255},  // TR
+		color.RGBA{40, 60, 210, 255},  // BL
+		color.RGBA{220, 200, 40, 255}, // BR
+	}
+	// The catalog ships three albums — seed a fourth so all four quadrants
+	// are distinct covers.
+	app.seedAlbum(t, "al-m4", "Fourth", c.ArBeatles, 2001)
+	app.seedSong(t, songSeed{ID: "s-m4", Title: "Fourth", AlbumID: "al-m4",
+		ArtistID: c.ArBeatles, LibraryID: c.LibA, Track: 1, Disc: 1, Duration: 100,
+		Mtime: 1700000004000, FilePath: "/x/fourth.mp3"})
+	songs := []string{c.SAbbey1, c.SLow1, c.SZiggy1, "s-m4"}
+	albums := []string{c.AlAbbey, c.AlLow, c.AlZiggy, "al-m4"}
+	// al-abbey ships with ca-abbey ("fake-jpeg-bytes", undecodable) — give it
+	// a real one so all four quadrants come from the mosaic path.
+	app.seedCoverArt(t, "ca-m-real", "image/jpeg", solidJPEG(t, colors[0]))
+	app.exec(t, `UPDATE albums SET cover_art_id = 'ca-m-real' WHERE id = ?`, c.AlAbbey)
+	for i := 1; i < 4; i++ {
+		id := fmt.Sprintf("ca-m-%d", i)
+		app.seedCoverArt(t, id, "image/jpeg", solidJPEG(t, colors[i]))
+		app.exec(t, `UPDATE albums SET cover_art_id = ? WHERE id = ?`, id, albums[i])
+	}
+	app.seedPlaylist(t, "pl-mosaic", "Mosaic", testUserID, "private", songs...)
+
+	rec := app.get(t, authedURL("/rest/getCoverArt.view", "&id=pl-mosaic"), nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("mosaic status = %d", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); ct != "image/jpeg" {
+		t.Fatalf("mosaic content-type = %q", ct)
+	}
+	if cc := rec.Header().Get("Cache-Control"); cc != coverArtCacheControl {
+		t.Fatalf("mosaic cache-control = %q", cc)
+	}
+	for q, want := range colors {
+		got := quadrantColor(t, rec.Body.Bytes(), q)
+		wr, wg, wb, _ := want.RGBA()
+		if !colorClose(wr, uint32(got.R)<<8, 24<<8) || !colorClose(wg, uint32(got.G)<<8, 24<<8) || !colorClose(wb, uint32(got.B)<<8, 24<<8) {
+			t.Fatalf("quadrant %d color = %v, want ~%v", q, got, want)
+		}
+	}
+}
+
+func TestGetCoverArtPlaylistMosaicTwoCoversFill(t *testing.T) {
+	app := newTestApp(t)
+	// Admin — the two fixture albums span lib-a and lib-b (see the
+	// four-cover test above).
+	app.seedUser(t, testUserID, testUser, testPass, true)
+	c := app.seedCatalog(t, "")
+
+	red := solidJPEG(t, color.RGBA{200, 30, 30, 255})
+	green := solidJPEG(t, color.RGBA{30, 180, 30, 255})
+	app.seedCoverArt(t, "ca-2a", "image/jpeg", red)
+	app.seedCoverArt(t, "ca-2b", "image/jpeg", green)
+	app.exec(t, `UPDATE albums SET cover_art_id = 'ca-2a' WHERE id = ?`, c.AlAbbey)
+	app.exec(t, `UPDATE albums SET cover_art_id = 'ca-2b' WHERE id = ?`, c.AlLow)
+	app.seedPlaylist(t, "pl-two", "Two", testUserID, "private", c.SAbbey1, c.SLow1)
+
+	rec := app.get(t, authedURL("/rest/getCoverArt.view", "&id=pl-two"), nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("two-cover mosaic status = %d", rec.Code)
+	}
+	// SPA fillCoverAlbums cycles 2 covers into all four quadrants (ABAB).
+	redWant := color.RGBA{200, 30, 30, 255}
+	greenWant := color.RGBA{30, 180, 30, 255}
+	for _, tc := range []struct {
+		quadrant int
+		want     color.RGBA
+	}{
+		{0, redWant}, {1, greenWant}, {2, redWant}, {3, greenWant},
+	} {
+		got := quadrantColor(t, rec.Body.Bytes(), tc.quadrant)
+		wr, wg, wb, _ := tc.want.RGBA()
+		if !colorClose(wr, uint32(got.R)<<8, 24<<8) || !colorClose(wg, uint32(got.G)<<8, 24<<8) || !colorClose(wb, uint32(got.B)<<8, 24<<8) {
+			t.Fatalf("quadrant %d = %v, want ~%v (ABAB fill)", tc.quadrant, got, tc.want)
+		}
+	}
 }
 
 func TestGetCoverArtOutOfScopeSongIs70(t *testing.T) {
