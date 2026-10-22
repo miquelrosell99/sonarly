@@ -7,7 +7,10 @@ whenToUse: When deploying or upgrading the Sonarly stack, or when it is unhealth
 
 # Sonarly operations
 
-Production stack = one all-in-one container (`compose.yaml`):
+Production stack = one all-in-one container. On the fleet host the live
+stack is the thin deployment at `/etc/periphery/stacks/sonarly/`
+(source/stack split — see law 5); on a fresh host it is a `compose.yaml`
+copied from `docker/compose.yaml.example`:
 
 - image `ghcr.io/miquelrosell99/sonarly:latest` — host port
   `${SONARLY_PORT:-4533}` → app `:3000`
@@ -37,11 +40,7 @@ by rescan (playlists/ratings are NOT — they live in the DB).
    `users.subscript_password_encrypted` (AES-256-GCM) and signs cookies;
    rotation logs everyone out and breaks every Subsonic client's stored
    password.
-5. **The live root `compose.yaml` is gitignored** and tracks `:latest` (no
-   `build:` section; redeploys are `pull && up -d`, rollbacks pin an explicit
-   older tag); the tracked template is `docker/compose.yaml.example`. Never
-   tag a local build with a registry tag — it shadows the registry image until
-   the next pull.
+5. **The live stack is a thin deployment, separate from the source** (source/stack split, owner 2026-10-19, same pattern as notees). On the fleet host the running stack lives OUTSIDE the checkout at `/etc/periphery/stacks/sonarly/` — a compose copy + gitignored `.env` + `config/` + `backups/`, managed by Komodo (stack `sonarly`, run_directory = that folder). It tracks `:latest` (no `build:` section; redeploys are `pull && up -d`, rollbacks pin an explicit older tag); the tracked template is `docker/compose.yaml.example`. Deploy from the live stack folder (or Komodo Redeploy) — never run compose against the repo checkout on a split host. Never tag a local build with a registry tag — it shadows the registry image until the next pull.
 6. **Never re-tag; same-day fix = next patch.** Tags are immutable releases.
 7. **Fleet-agnostic artifacts** — never hardcode host names, IPs, or tailnet
    names; write `<host>`, `<tailnet>`, `<lan-ip>` or "the fleet host". Real
