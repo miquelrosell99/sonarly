@@ -5,6 +5,8 @@ package library
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -37,7 +39,18 @@ func (h *Handler) Routes(r chi.Router) {
 }
 
 func (h *Handler) enqueueScan(w http.ResponseWriter, r *http.Request) {
-	id, err := h.queue.Push(r.Context(), JobTypeScan, ScanPayload{})
+	// The body is optional: an empty body (or none at all) is the plain scan
+	// the route always was; {"deep": true} re-reads every file through the
+	// probe so rows imported before a codec/Atmos-aware reader exist get
+	// backfilled without an mtime change.
+	var payload ScanPayload
+	if r.Body != nil {
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil && !errors.Is(err, io.EOF) {
+			httpserver.Error(w, http.StatusBadRequest, "Invalid scan request")
+			return
+		}
+	}
+	id, err := h.queue.Push(r.Context(), JobTypeScan, payload)
 	if err != nil {
 		httpserver.Error(w, http.StatusInternalServerError, "Internal Server Error")
 		return

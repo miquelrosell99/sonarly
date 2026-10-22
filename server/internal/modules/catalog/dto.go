@@ -33,6 +33,8 @@ type Song struct {
 	BitsPerSample       *int     `json:"bitsPerSample,omitempty"`
 	SampleRate          *int     `json:"sampleRate,omitempty"`
 	Channels            *int     `json:"channels,omitempty"`
+	Codec               *string  `json:"codec,omitempty"`
+	Atmos               bool     `json:"atmos"`
 	BPM                 *int     `json:"bpm,omitempty"`
 	MusicBrainzID       *string  `json:"musicBrainzId,omitempty"`
 	MusicBrainzTrackID  *string  `json:"musicBrainzTrackId,omitempty"`

@@ -112,6 +112,34 @@ func TestBuildTargetPathAbsentValues(t *testing.T) {
 	}
 }
 
+// Probe-derived tokens: {codec} carries the probed stream codec, {atmos} is
+// exactly " (Dolby Atmos)" on Atmos streams and "" otherwise (a suffix by
+// design, so it pads the file name rather than making folders).
+func TestBuildTargetPathCodecAtmosTokens(t *testing.T) {
+	m := meta("The Artist", "The Album", "The Title", 3, 1, 2021, "Jazz")
+
+	// Not probed: both tokens are empty, the codec segment sanitizes to "_".
+	got := ingest.BuildTargetPath("{codec}/{title}", "/lib", m, "/src/file.mp3")
+	if want := filepath.Join("/lib", "_/The Title.mp3"); got != want {
+		t.Errorf("unprobed:\n got %s\nwant %s", got, want)
+	}
+
+	m.Codec = "FLAC"
+	got = ingest.BuildTargetPath("{codec}/{title}", "/lib", m, "/src/file.flac")
+	if want := filepath.Join("/lib", "FLAC/The Title.flac"); got != want {
+		t.Errorf("codec:\n got %s\nwant %s", got, want)
+	}
+
+	// Atmos suffix on a plain file name: E-AC-3 JOC streams read as
+	// "... - Title (Dolby Atmos).m4a".
+	m.Codec = "E-AC-3"
+	m.Atmos = true
+	got = ingest.BuildTargetPath("{title}{atmos}", "/lib", m, "/src/file.m4a")
+	if want := filepath.Join("/lib", "The Title (Dolby Atmos).m4a"); got != want {
+		t.Errorf("atmos:\n got %s\nwant %s", got, want)
+	}
+}
+
 func TestSanitize(t *testing.T) {
 	cases := []struct {
 		in   string

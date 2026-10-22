@@ -30,7 +30,9 @@ type Properties struct {
 	Bitrate       int     // bits per second; 0 for lossless FLAC (parity — mm reports 0)
 	SampleRate    int     // Hz
 	Channels      int
-	BitsPerSample int // 0 when unknown (e.g. lossy codecs)
+	BitsPerSample int    // 0 when unknown (e.g. lossy codecs)
+	Codec         string // display codec: FLAC/Vorbis/Opus/MP3, or the MP4 mapping in mp4Codec; "" when unknown
+	Atmos         bool   // true Dolby Atmos (E-AC-3 JOC: dec3 num_dep_sub > 0)
 }
 
 // readProperties detects the audio container by magic and reads its stream
@@ -67,6 +69,7 @@ func readProperties(path string) (Properties, error) {
 
 func flacProperties(f *os.File) (Properties, error) {
 	var p Properties
+	p.Codec = "FLAC"
 	if _, err := f.Seek(4, io.SeekStart); err != nil { // skip "fLaC"
 		return p, err
 	}
@@ -158,6 +161,7 @@ func oggProperties(f *os.File) (Properties, error) {
 
 	switch {
 	case len(payload) >= 30 && string(payload[0:7]) == "\x01vorbis":
+		p.Codec = "Vorbis"
 		p.Channels = int(payload[11])
 		p.SampleRate = int(binary.LittleEndian.Uint32(payload[12:16]))
 		bitrateNominal := int(int32(binary.LittleEndian.Uint32(payload[20:24])))
@@ -173,6 +177,7 @@ func oggProperties(f *os.File) (Properties, error) {
 			p.Duration = float64(lastGranule) / float64(p.SampleRate)
 		}
 	case len(payload) >= 19 && string(payload[0:8]) == "OpusHead":
+		p.Codec = "Opus"
 		p.Channels = int(payload[9])
 		p.SampleRate = 48000 // Opus decodes at 48 kHz regardless of the input rate field
 		lastGranule, granuleSeen, err = oggLastGranule(f, h.Serial)
@@ -260,22 +265,24 @@ func mp4Properties(f *os.File) (Properties, error) {
 				return fmt.Errorf("mp4: unsupported mdhd version %d", version)
 			}
 		case path == "moov/trak/mdia/minf/stbl/stsd":
-			ch, sr, bits, avg, err := parseStsd(data)
+			info, err := parseStsd(data)
 			if err != nil {
 				return err
 			}
-			if ch > 0 {
-				p.Channels = ch
+			if info.channels > 0 {
+				p.Channels = info.channels
 			}
-			if sr > 0 {
-				p.SampleRate = sr
+			if info.sampleRate > 0 {
+				p.SampleRate = info.sampleRate
 			}
-			if bits > 0 {
-				p.BitsPerSample = bits
+			if info.bitsPerSample > 0 {
+				p.BitsPerSample = info.bitsPerSample
 			}
-			if avg > 0 {
-				avgBitrate = avg
+			if info.avgBitrate > 0 {
+				avgBitrate = info.avgBitrate
 			}
+			p.Codec = info.codec
+			p.Atmos = info.atmos
 		case path == "moov/trak/mdia/minf/stbl/stsz":
 			// music-metadata's MP4 bitrate is audio-sample-bytes*8/duration
 			// (from stsz), NOT the esds avgBitrate field — for the synthetic
@@ -409,89 +416,185 @@ func mp4Walk(f *os.File, prefix string, depth int, limit int64, fn func(path str
 	return found, nil
 }
 
+// stsdInfo is the decoded first audio sample entry: the v0 layout fields the
+// old reader used, plus the codec identity derived from the entry 4CC and its
+// esds/dec3 children.
+type stsdInfo struct {
+	channels      int
+	sampleRate    int
+	bitsPerSample int
+	avgBitrate    int
+	codec         string
+	atmos         bool
+}
+
 // parseStsd parses a stsd (sample description) full atom payload: entry
-// count, then the first audio sample entry (mp4a/alac/enca/...), from which
-// channels/sampleSize/sampleRate and the esds avg bitrate are extracted.
-func parseStsd(b []byte) (channels, sampleRate, bitsPerSample, avgBitrate int, err error) {
+// count, then the first audio sample entry, from which channels/sampleSize/
+// sampleRate, the esds avg bitrate, and the codec identity are extracted.
+// Sample entries: the v0 AudioSampleEntry layout (36-byte header then child
+// atoms) is identical for every codec registered in MP4, so accepting a new
+// entry is only a 4CC change — that is how FLAC-in-MP4 files (sample entry
+// 'fLaC' per the Xiph mapping, the Atmos-classical batch the live library
+// carries) and Dolby Atmos (E-AC-3 'ec-3') get probed instead of failing.
+func parseStsd(b []byte) (stsdInfo, error) {
 	if len(b) < 8 {
-		return 0, 0, 0, 0, errors.New("mp4: short stsd")
+		return stsdInfo{}, errors.New("mp4: short stsd")
 	}
 	count := int(binary.BigEndian.Uint32(b[4:8]))
 	if count < 1 {
-		return 0, 0, 0, 0, errors.New("mp4: stsd with no entries")
+		return stsdInfo{}, errors.New("mp4: stsd with no entries")
 	}
 	pos := 8
 	for i := 0; i < count; i++ {
 		if pos+36 > len(b) {
-			return 0, 0, 0, 0, errors.New("mp4: short stsd entry")
+			return stsdInfo{}, errors.New("mp4: short stsd entry")
 		}
 		size := int(binary.BigEndian.Uint32(b[pos : pos+4]))
 		if size < 36 || pos+size > len(b) {
-			return 0, 0, 0, 0, errors.New("mp4: invalid stsd entry size")
+			return stsdInfo{}, errors.New("mp4: invalid stsd entry size")
 		}
 		entry := b[pos : pos+size]
 		format := string(entry[4:8])
-		if format == "mp4a" || format == "alac" || format == "enca" || format == "raw " || format == "sowt" || format == "twos" {
-			// AudioSampleEntry v0: 6 reserved + dataRef(2) + version(2) +
-			// revision(2) + vendor(4) + channels(2) + sampleSize(2) +
-			// compression(2) + packetSize(2) + sampleRate(16.16 fixed).
-			if binary.BigEndian.Uint16(entry[16:18]) != 0 {
-				return 0, 0, 0, 0, errors.New("mp4: unsupported sample entry version")
-			}
-			channels = int(binary.BigEndian.Uint16(entry[24:26]))
-			bitsPerSample = int(binary.BigEndian.Uint16(entry[26:28]))
-			sampleRate = int(binary.BigEndian.Uint32(entry[32:36]) >> 16)
-			// Walk child atoms for esds.
-			avgBitrate = parseEsdsBitrate(entry[36:])
-			return channels, sampleRate, bitsPerSample, avgBitrate, nil
+		if !mp4AudioEntries[format] {
+			pos += size
+			continue
 		}
-		pos += size
+		var info stsdInfo
+		// AudioSampleEntry v0: 6 reserved + dataRef(2) + version(2) +
+		// revision(2) + vendor(4) + channels(2) + sampleSize(2) +
+		// compression(2) + packetSize(2) + sampleRate(16.16 fixed).
+		if binary.BigEndian.Uint16(entry[16:18]) != 0 {
+			return stsdInfo{}, errors.New("mp4: unsupported sample entry version")
+		}
+		info.channels = int(binary.BigEndian.Uint16(entry[24:26]))
+		info.bitsPerSample = int(binary.BigEndian.Uint16(entry[26:28]))
+		info.sampleRate = int(binary.BigEndian.Uint32(entry[32:36]) >> 16)
+		// Walk child atoms for esds (avg bitrate + mp4a objectTypeIndication)
+		// and, for ec-3, the dec3 configuration atom that flags Atmos.
+		var oti byte
+		info.avgBitrate, oti = parseEsds(entry[36:])
+		info.codec = mp4Codec(format, oti)
+		if format == "ec-3" {
+			info.atmos = dec3Atmos(entry[36:])
+		}
+		return info, nil
 	}
-	return 0, 0, 0, 0, errors.New("mp4: no audio sample entry")
+	return stsdInfo{}, errors.New("mp4: no audio sample entry")
 }
 
-// parseEsdsBitrate scans esds child atoms of a sample entry for the average
-// bitrate in the DecoderConfigDescriptor (tag 0x04).
-func parseEsdsBitrate(b []byte) int {
+// mp4AudioEntries is the sample-entry 4CC set whose v0 layout parseStsd
+// understands. 'raw '/'sowt'/'twos' are the fixed-endian PCM entries the old
+// reader accepted; 'fLaC' (FLAC-in-MP4 per the Xiph mapping; some muxers
+// lowercase it), 'ec-3'/'ac-3' (Dolby) and 'Opus' share that layout — that
+// is what unlocks probing them.
+var mp4AudioEntries = map[string]bool{
+	"mp4a": true, "alac": true, "enca": true,
+	"raw ": true, "sowt": true, "twos": true,
+	"fLaC": true, "flac": true, "ec-3": true, "ac-3": true, "Opus": true,
+}
+
+// mp4Codec maps the stsd sample entry 4CC (plus the mp4a esds
+// objectTypeIndication) to the display codec. mp4a 0x40 is MPEG-4 AAC;
+// 0x6B/0x69 are the MPEG-1/2 audio OTIs (MP3 in MP4); any other OTI still
+// rides the mp4a entry, so AAC is the honest fallback. enca is encrypted —
+// the codec inside is unknown until decrypted — and the raw/sowt/twos
+// entries are uncompressed PCM.
+func mp4Codec(format string, oti byte) string {
+	switch format {
+	case "fLaC", "flac":
+		return "FLAC"
+	case "alac":
+		return "ALAC"
+	case "ec-3":
+		return "E-AC-3"
+	case "ac-3":
+		return "AC-3"
+	case "Opus":
+		return "Opus"
+	case "mp4a":
+		if oti == 0x6B || oti == 0x69 {
+			return "MP3"
+		}
+		return "AAC"
+	case "enca":
+		return ""
+	default:
+		return "PCM"
+	}
+}
+
+// dec3Atmos scans a sample entry's child atoms for the dec3 (E-AC-3 decoder
+// configuration) atom and reports Dolby Atmos: the JOC (Joint Object Coding)
+// profile is signalled by num_dep_sub > 0 (ETSI TS 102 366 Annex E). dec3 is
+// MSB-first, payload at least 3 bytes: byte0 fscod(2) bsid(5) reserved(1);
+// byte1 acmod(3) lfeon(1) reserved(1) then the top bit of num_dep_sub; byte2
+// carries num_dep_sub bits 2..0 in its top three bits — so
+// num_dep_sub = b[1]&1 << 3 | b[2]>>5 (a 4-bit field, not byte-aligned; the
+// live Atmos batch writes e.g. 18 00 20 → num_dep_sub 1). A missing or short
+// dec3 means a plain E-AC-3 stream.
+func dec3Atmos(b []byte) bool {
 	pos := 0
 	for pos+8 <= len(b) {
 		size := int(binary.BigEndian.Uint32(b[pos : pos+4]))
 		if size < 8 || pos+size > len(b) {
-			return 0
+			return false
+		}
+		if string(b[pos+4:pos+8]) == "dec3" {
+			payload := b[pos+8 : pos+size]
+			if len(payload) < 3 {
+				return false
+			}
+			numDepSub := int(payload[1]&0x01)<<3 | int(payload[2]&0xE0)>>5
+			return numDepSub > 0
+		}
+		pos += size
+	}
+	return false
+}
+
+// parseEsds scans esds child atoms of a sample entry and returns the average
+// bitrate from the DecoderConfigDescriptor (tag 0x04) plus its
+// objectTypeIndication (the mp4a codec discriminator).
+func parseEsds(b []byte) (avgBitrate int, oti byte) {
+	pos := 0
+	for pos+8 <= len(b) {
+		size := int(binary.BigEndian.Uint32(b[pos : pos+4]))
+		if size < 8 || pos+size > len(b) {
+			return 0, 0
 		}
 		if string(b[pos+4:pos+8]) == "esds" {
 			payload := b[pos+8 : pos+size]
 			if len(payload) < 4 {
-				return 0
+				return 0, 0
 			}
-			return esdsAvgBitrate(payload[4:]) // skip version/flags
+			return esdsInfo(payload[4:]) // skip version/flags
 		}
 		pos += size
 	}
-	return 0
+	return 0, 0
 }
 
-// esdsAvgBitrate walks the ES descriptor (tag 0x03 → DecoderConfigDescriptor
-// tag 0x04) and returns its avgBitrate field.
-func esdsAvgBitrate(b []byte) int {
+// esdsInfo walks the ES descriptor (tag 0x03 → DecoderConfigDescriptor
+// tag 0x04) and returns its avgBitrate field and objectTypeIndication.
+func esdsInfo(b []byte) (int, byte) {
 	tag, body, ok := readDescriptor(b)
 	if !ok || tag != 0x03 || len(body) < 3 {
-		return 0
+		return 0, 0
 	}
 	// ES_ID(2) + flags(1), then nested descriptors.
 	rest := body[3:]
 	for len(rest) > 0 {
 		tag, body, ok = readDescriptor(rest)
 		if !ok {
-			return 0
+			return 0, 0
 		}
 		if tag == 0x04 && len(body) >= 13 {
-			return int(binary.BigEndian.Uint32(body[9:13]))
+			return int(binary.BigEndian.Uint32(body[9:13])), body[0]
 		}
 		// Skip this descriptor's body (plus SLConfig etc. follow).
 		rest = rest[descriptorLen(rest):]
 	}
-	return 0
+	return 0, 0
 }
 
 // readDescriptor reads a DES tag and length (7-bit continuation encoding)
@@ -642,6 +745,7 @@ func parseMP3FrameHeader(b []byte) (fi mp3FrameInfo, ok bool) {
 // duration.
 func mp3Properties(f *os.File) (Properties, error) {
 	var p Properties
+	p.Codec = "MP3"
 
 	end, err := f.Seek(0, io.SeekEnd)
 	if err != nil {

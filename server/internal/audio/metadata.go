@@ -81,6 +81,12 @@ type Metadata struct {
 	HasCoverArt bool
 	Picture     *Picture
 
+	// Codec/Atmos are the stream identity the probe derived alongside the
+	// numeric properties (see Properties); surfaced separately because the
+	// organizer tokens and the songs table read them without the rest.
+	Codec string
+	Atmos bool
+
 	Properties Properties
 }
 
@@ -117,6 +123,8 @@ func ReadMetadata(path string) (md *Metadata, err error) {
 	}
 
 	md.Properties, err = readProperties(path)
+	md.Codec = md.Properties.Codec
+	md.Atmos = md.Properties.Atmos
 	if err != nil && tagErr != nil {
 		return nil, fmt.Errorf("audio: %s: tags: %v; properties: %w", filepath.Base(path), tagErr, err)
 	}

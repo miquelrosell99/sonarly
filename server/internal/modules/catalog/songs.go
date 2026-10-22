@@ -25,7 +25,8 @@ const songColumns = `s.id, s.title, s.track_number, s.disc_number, s.duration,
 	s.remix_of, s.display_artist, s.display_album_artist,
 	s.producers, s.isrcs, s.musicbrainz_track_id,
 	s.musicbrainz_work_id, s.musicbrainz_disc_id, s.original_year,
-	s.original_artist, s.gapless, s.total_tracks, s.total_discs`
+	s.original_artist, s.gapless, s.total_tracks, s.total_discs,
+	s.codec, s.atmos`
 
 const songJoins = `FROM songs s
 	LEFT JOIN artists ar ON ar.id = s.artist_id
@@ -68,6 +69,8 @@ func scanSong(s interface{ Scan(...any) error }) (*Song, error) {
 	var trackNo, discNo, duration, year db.NullInt64
 	var bitRate, bitsPerSample, sampleRate, channels, bpm db.NullInt64
 	var active int
+	var codec sql.NullString
+	var atmos sql.NullInt64
 	var starred sql.NullInt64
 	var rating sql.NullFloat64
 	err := s.Scan(
@@ -81,6 +84,7 @@ func scanSong(s interface{ Scan(...any) error }) (*Song, error) {
 		&producers, &isrcs, &song.MusicBrainzTrackID,
 		&song.MusicBrainzWorkID, &song.MusicBrainzDiscID, &song.OriginalYear,
 		&song.OriginalArtist, &gapless, &song.TotalTracks, &song.TotalDiscs,
+		&codec, &atmos,
 		&song.ArtistName, &song.AlbumName, &song.AlbumArtistName, &song.AlbumCoverArt,
 		&starred, &rating,
 	)
@@ -103,6 +107,10 @@ func scanSong(s interface{ Scan(...any) error }) (*Song, error) {
 	song.SampleRate = intPtr(sampleRate)
 	song.Channels = intPtr(channels)
 	song.BPM = intPtr(bpm)
+	song.Atmos = atmos.Valid && atmos.Int64 == 1
+	if codec.Valid {
+		song.Codec = &codec.String
+	}
 	song.Explicit = explicit.Valid && explicit.Int64 == 1
 	song.CoverArtMissing = coverArtMissing.Valid && coverArtMissing.Int64 == 1
 	song.Active = active == 1

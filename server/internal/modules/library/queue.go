@@ -47,9 +47,12 @@ var ErrNotImplemented = errors.New("job type not implemented")
 // source path belongs.
 
 // ScanPayload is the payload for scan and resync jobs. An empty LibraryID
-// scans every configured library root.
+// scans every configured library root. Deep re-reads every file instead of
+// trusting the mtime fast path — the way pre-codec rows (or any property the
+// probe learned later) backfill without an mtime change.
 type ScanPayload struct {
 	LibraryID string `json:"libraryId,omitempty"`
+	Deep      bool   `json:"deep,omitempty"`
 }
 
 // IngestPayload is the payload for ingest jobs (handler: ingest module).
