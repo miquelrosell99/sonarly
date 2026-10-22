@@ -25,6 +25,7 @@ whenToUse: When working on library scanning, file ingestion, the ingest/review p
 ## Operational commands
 
 - Trigger a scan: `POST /api/scans` (session cookie or API key) or from the web UI (admin → system tasks). Ingest sweep: `POST /api/ingest/trigger`.
+- Bulk genre backfill: `sonarly tag-genres -db <db> -map <json> [-apply]` (same binary; dry-run default). Mapping is curated JSON `{"artists": {…}, "albums": {…}}`, case-insensitive, cascade song artist → album artist → album name. Writes go through the audio.TagWriter + PersistSong path like the tag-edit API but never re-organize files. In the all-in-one container: `docker exec sonarly sonarly tag-genres -db /data/db/sonarly.db …`.
 - Watch scan state: `sqlite3 <data>/sonarly.db "select id,type,status,started_at,finished_at from scan_jobs order by rowid desc limit 10"` — pending jobs have NULL `started_at`; status orders by `COALESCE(started_at, created_at)` (migration 0002), so queued work is visible.
 - Ingest drop dir: `SONARLY_INGEST_PATH`; per-library subdir `<ingest>/<libraryId>/`; quarantine at `<library>/review/` (retention default `SONARLY_REVIEW_RETENTION_DAYS` = 30, overridable by the `review_retention_days` settings key, clamped 1–365, daily cleanup).
 - Organize pattern: default `{albumArtist}/({year}) {album}/{disc:00}{track:00} - {title}`; tokens `artist, albumArtist, album, title, track, track:00, disc, disc:00, year, genre`; stored per library (`libraries.organize_pattern`) and globally (`settings`).
