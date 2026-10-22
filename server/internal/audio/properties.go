@@ -234,15 +234,42 @@ func oggLastGranule(f *os.File, serial uint32) (granule uint64, ok bool, err err
 
 // ---------------------------------------------------------------------- MP4
 
-// mp4Properties walks the atom tree (moov/trak/mdia → mdhd; minf/stbl →
-// stsd → audio sample entry → esds) of a QuickTime/MP4 file.
+// mp4Properties walks the atom tree (moov/mvhd + moov/trak/mdia → mdhd;
+// minf/stbl → stsd → audio sample entry → esds) of a QuickTime/MP4 file.
 func mp4Properties(f *os.File) (Properties, error) {
 	var p Properties
 	var timescale, duration, sampleBytes uint64
+	var mvhdTimescale, mvhdDuration uint64
 	var avgBitrate int
 
 	found, err := mp4Walk(f, "", 0, -1, func(path string, data []byte) error {
 		switch {
+		case path == "moov/mvhd":
+			// Movie-wide duration: the fallback when a muxer (ffmpeg in some
+			// Atmos muxes) writes the track mdhd duration as 0 — the live
+			// library's one true Atmos file reports its 208 s only here.
+			// Multi-track files: mvhd spans all tracks; music releases are
+			// effectively single-track, same assumption the stsz sum below
+			// already makes.
+			if len(data) < 4 {
+				return errors.New("mp4: short mvhd")
+			}
+			switch data[0] {
+			case 0:
+				if len(data) < 20 {
+					return errors.New("mp4: short mvhd v0")
+				}
+				mvhdTimescale = uint64(binary.BigEndian.Uint32(data[12:16]))
+				mvhdDuration = uint64(binary.BigEndian.Uint32(data[16:20]))
+			case 1:
+				if len(data) < 32 {
+					return errors.New("mp4: short mvhd v1")
+				}
+				mvhdTimescale = uint64(binary.BigEndian.Uint32(data[20:24]))
+				mvhdDuration = uint64(binary.BigEndian.Uint64(data[24:32]))
+			default:
+				return fmt.Errorf("mp4: unsupported mvhd version %d", data[0])
+			}
 		case path == "moov/trak/mdia/mdhd":
 			if len(data) < 4 {
 				return errors.New("mp4: short mdhd")
@@ -316,6 +343,10 @@ func mp4Properties(f *os.File) (Properties, error) {
 	}
 	if timescale > 0 {
 		p.Duration = float64(duration) / float64(timescale)
+	}
+	if p.Duration == 0 && mvhdTimescale > 0 {
+		// mdhd carried no duration (muxer quirk) — fall back to the movie header.
+		p.Duration = float64(mvhdDuration) / float64(mvhdTimescale)
 	}
 	if sampleBytes > 0 && p.Duration > 0 {
 		p.Bitrate = int(float64(sampleBytes*8) / p.Duration)
@@ -399,7 +430,7 @@ func mp4Walk(f *os.File, prefix string, depth int, limit int64, fn func(path str
 			if err != nil {
 				return found, err
 			}
-		case name == "mdhd" || name == "stsd" || name == "stsz":
+		case name == "mdhd" || name == "mvhd" || name == "stsd" || name == "stsz":
 			b := make([]byte, payload)
 			if _, err := io.ReadFull(f, b); err != nil {
 				return found, err
