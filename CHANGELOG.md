@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Album genre cache backfills when a tagged file arrives**: `ensureAlbum` only wrote the cached `albums.genre`/`genre_id` columns at album creation, so an album imported from untagged files kept a NULL genre even after its files gained genres (and a rescan re-persisted them) — the Atmos-classical batch exposed this as song-genre-fixed-but-album-still-genreless. A persist now fills the cached columns when they are empty, mirroring the existing `release_type` fill: tags are the source of truth, a user-set album genre is never overwritten (regression test pins both directions).
 - **OpenSubsonic playlist covers render as the 2x2 grid**: `getCoverArt` for a playlist id now composites up to 4 distinct album covers into one square mosaic JPEG (512px, tiles cycled to fill with fewer than 4 — the same layout the web UI renders), instead of serving the first album's cover. Covers decode via `golang.org/x/image` (jpeg/png/webp/gif); undecodable or out-of-scope covers are skipped in favor of the next album.
 - **Playlist cover mosaic order was unstable**: `CoverAlbums` derived its order from unordered SQL results — an album_id-index walk returned alphabetical order, scrambling both the web mosaic and the OpenSubsonic grid. Order is now re-derived from the playlist's member list (regression test pins reverse-alphabetical playlist order).
 

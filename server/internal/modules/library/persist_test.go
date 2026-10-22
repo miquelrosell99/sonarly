@@ -1,6 +1,7 @@
 package library_test
 
 import (
+	"context"
 	"slices"
 	"testing"
 
@@ -35,5 +36,58 @@ func TestAlbumArtistNames(t *testing.T) {
 				t.Fatalf("AlbumArtistNames = %v, want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+// The cached albums.genre column is written on album creation only; a later
+// persist of a tagged file of an existing genreless album must backfill it
+// (tags are the source of truth), while a user-set genre is never overwritten.
+func TestPersistBackfillsAlbumGenre(t *testing.T) {
+	database := openDB(t)
+	ctx := context.Background()
+	libID := "lib-genre-backfill"
+	addLibrary(t, database, libID, t.TempDir())
+
+	meta := func(genres ...string) *audio.Metadata {
+		return &audio.Metadata{
+			Title: "Track", Artists: []string{"Artist"}, Album: "Album",
+			AlbumArtists: []string{"Artist"}, Genres: genres, Year: 2025,
+		}
+	}
+	persist := func(path string, m *audio.Metadata) {
+		t.Helper()
+		if _, err := library.PersistSong(ctx, database, library.PersistInput{
+			Path: path, Meta: m, Mtime: 1, Checksum: path, LibraryID: &libID,
+		}); err != nil {
+			t.Fatalf("persist %s: %v", path, err)
+		}
+	}
+	albumGenre := func() string {
+		t.Helper()
+		var genre string
+		if err := database.QueryRow(`SELECT genre FROM albums`).Scan(&genre); err != nil {
+			t.Fatalf("album genre: %v", err)
+		}
+		return genre
+	}
+
+	persist("/lib/01-song.flac", meta())
+	if got := countRows(t, database, `SELECT COUNT(1) FROM albums WHERE genre IS NULL`); got != 1 {
+		t.Fatalf("album should start genreless, got %d genreless albums", got)
+	}
+
+	// A later-tagged file of the same album backfills the cached genre.
+	persist("/lib/02-song.flac", meta("Jazz"))
+	if got := albumGenre(); got != "Jazz" {
+		t.Fatalf("album genre = %q, want backfilled Jazz", got)
+	}
+
+	// A user edit wins over tag values on subsequent persists.
+	if _, err := database.Exec(`UPDATE albums SET genre = 'Rock' WHERE name = 'Album'`); err != nil {
+		t.Fatalf("user edit: %v", err)
+	}
+	persist("/lib/03-song.flac", meta("Jazz"))
+	if got := albumGenre(); got != "Rock" {
+		t.Fatalf("album genre = %q, want user edit Rock preserved", got)
 	}
 }
