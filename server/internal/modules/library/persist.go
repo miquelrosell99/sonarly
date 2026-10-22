@@ -769,6 +769,16 @@ func ensureAlbum(ctx context.Context, ex execer, name string, artistNames []stri
 				return "", err
 			}
 		}
+		if len(genreIDs) > 0 && len(genreNames) > 0 {
+			// Fill in from tags but never overwrite a user edit: an album
+			// imported genreless stays cached-NULL until a tagged file of it
+			// is persisted (or the user edits the album).
+			if _, err := ex.ExecContext(ctx,
+				`UPDATE albums SET genre = ?, genre_id = ? WHERE id = ? AND (genre IS NULL OR genre = '')`,
+				genreNames[0], genreIDs[0], id); err != nil {
+				return "", fmt.Errorf("fill album genre: %w", err)
+			}
+		}
 		if meta.releaseType != "" {
 			// Fill in from tags but never overwrite a user edit.
 			if _, err := ex.ExecContext(ctx,
