@@ -39,6 +39,37 @@ func TestAlbumArtistNames(t *testing.T) {
 	}
 }
 
+// An empty GENRE tag field ("" in the file's tag list) must not fail the
+// import: it is the absence of a genre, not a genre. Files carrying one were
+// permanently unimportable before the deep-scan backfill surfaced it (930 live
+// rows, all inactive for exactly this reason).
+func TestPersistSkipsEmptyGenreNames(t *testing.T) {
+	database := openDB(t)
+	ctx := context.Background()
+	libID := "lib-empty-genre"
+	addLibrary(t, database, libID, t.TempDir())
+
+	meta := &audio.Metadata{
+		Title: "Song", Artists: []string{"Artist"}, Album: "Album",
+		AlbumArtists: []string{"Artist"}, Genres: []string{""}, Year: 2025,
+	}
+	if _, err := library.PersistSong(ctx, database, library.PersistInput{
+		Path: "/lib/empty-genre.flac", Meta: meta, Mtime: 1, Checksum: "sum", LibraryID: &libID,
+	}); err != nil {
+		t.Fatalf("persist with empty genre tag: %v", err)
+	}
+	var genre *string
+	if err := database.QueryRow(`SELECT genre FROM songs WHERE file_path = '/lib/empty-genre.flac'`).Scan(&genre); err != nil {
+		t.Fatalf("song row: %v", err)
+	}
+	if genre != nil && *genre != "" {
+		t.Fatalf("genre = %q, want NULL", *genre)
+	}
+	if got := countRows(t, database, `SELECT COUNT(1) FROM song_genres WHERE song_id = (SELECT id FROM songs WHERE file_path = '/lib/empty-genre.flac')`); got != 0 {
+		t.Fatalf("song_genres rows = %d, want 0", got)
+	}
+}
+
 // The cached albums.genre column is written on album creation only; a later
 // persist of a tagged file of an existing genreless album must backfill it
 // (tags are the source of truth), while a user-set genre is never overwritten.

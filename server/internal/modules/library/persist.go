@@ -163,6 +163,9 @@ func persistSongTx(ctx context.Context, ex execer, in PersistInput) (string, err
 
 	var genreIDs []string
 	for _, name := range meta.Genres {
+		if strings.TrimSpace(name) == "" {
+			continue // an empty GENRE tag field (common in the wild) is no genre at all
+		}
 		id, err := ensureGenre(ctx, ex, name)
 		if err != nil {
 			return "", err
