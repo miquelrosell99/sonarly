@@ -16,6 +16,15 @@ go vet ./...          # static analysis
 go test ./... -count=1  # full test suite
 go run ./cmd/sonarly  # run the server (env config required)
 
+# CLI subcommands (same binary; run inside the container or from a build):
+# Bulk-backfill genres for genreless catalog songs from a curated mapping
+# ({"artists": {"Name": "Genre"}, "albums": {...}}; case-insensitive, cascade
+# song artist -> album artist -> album name). Dry-run by default; writes go
+# through the audio.TagWriter + library.PersistSong path (same as the tag-edit
+# API, minus re-organize — backfilling a genre never moves files).
+sonarly tag-genres -db /data/db/sonarly.db -map genres.json            # dry-run
+sonarly tag-genres -db /data/db/sonarly.db -map genres.json -apply
+
 # Regenerate the web contract from the OpenAPI spec
 pnpm --filter @sonarly/web contract:gen
 

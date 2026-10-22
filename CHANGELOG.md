@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`sonarly tag-genres` CLI subcommand**: bulk-backfill genres for genreless catalog songs from an operator-curated mapping (`{"artists": {"Name": "Genre"}, "albums": {…}}`), case-insensitive, cascade song artist → album artist → album name. Dry-run by default (`-apply` writes). Each write goes through the audio.TagWriter (mutagen, atomic) and then `library.PersistSong` re-reads the file — the same write→persist contract as the tag-edit API, minus re-organize, so backfilling a genre never moves files; song rows, genre junctions, FTS, and the cached album genre (via the ensureAlbum backfill) all stay consistent. Unresolved songs are listed per artist so the mapping can be extended. Built to backfill the ~660 genreless tracks the scan can't infer (untagged rips), where in-library artist inference has no signal by construction.
+
 ### Changed
 
 - **Git history rewritten — every live compose file scrubbed** (owner directive 2026-10-22, same cleanup as notees): `compose.dev.yaml` and `docker/docker-compose.yml` were removed from all commits, branches, and tags with `git filter-repo`; the tracked examples (`docker/compose.yaml.example`, `docker/compose.dev.yaml.example`) carry forward. **All commit SHAs changed** (release tags re-pointed) — clones and SHA citations must re-fetch. Verified: no real secret ever left the repo (the only `SESSION_SECRET=` literals in history are the `.env.example` placeholders; `.env` was never tracked); merged-and-stale `feat/go-rewrite` pruned. No branch protection to recreate (sonarly's `main` is unprotected — unlike notees, no ruleset needed).
