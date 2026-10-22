@@ -173,6 +173,18 @@ func (a *testApp) seedCoverArt(t *testing.T, id, format string, data []byte) {
 		id, format, data, "h-"+id)
 }
 
+// seedPlaylist inserts a static playlist (owner + ordered members) for the
+// cover-art playlist tier.
+func (a *testApp) seedPlaylist(t *testing.T, id, name, ownerID, visibility string, songIDs ...string) {
+	t.Helper()
+	a.exec(t, `INSERT INTO playlists (id, name, owner_id, visibility, is_smart, resolve_mode)
+		VALUES (?, ?, ?, ?, 0, 'tracks')`, id, name, ownerID, visibility)
+	for i, sid := range songIDs {
+		a.exec(t, `INSERT INTO playlist_songs (playlist_id, song_id, position) VALUES (?, ?, ?)`,
+			id, sid, i)
+	}
+}
+
 func (a *testApp) seedUserSong(t *testing.T, userID, songID string, starred int, rating sql.NullFloat64, playCount int) {
 	t.Helper()
 	a.exec(t, `INSERT INTO user_songs (user_id, song_id, starred, rating, play_count) VALUES (?, ?, ?, ?, ?)`,

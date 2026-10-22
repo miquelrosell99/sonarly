@@ -1,6 +1,7 @@
 package opensubsonic
 
 import (
+	"context"
 	"encoding/xml"
 	"errors"
 	"math"
@@ -18,42 +19,26 @@ import (
 // (playlists.Resolve) and all reads/writes through its service — the
 // adapter never runs its own playlist SQL beyond what the module exports.
 
-// playlistEntry is the reduced song child the old fetchPlaylistSongs built for
-// playlist payloads (NOT the full browsing Child): album/artist display
-// names, no ids. the retired server emitted JSON nulls for absent track/discNumber/genre/
-// year/duration while XML omitted them (xml-js dropped nulls) — the Go tags
-// reproduce exactly that split: no json omitempty, xml omitempty.
-type playlistEntry struct {
-	ID         string  `xml:"id,attr" json:"id"`
-	Title      string  `xml:"title,attr" json:"title"`
-	Album      string  `xml:"album,attr" json:"album"`
-	Artist     string  `xml:"artist,attr" json:"artist"`
-	Track      *int    `xml:"track,attr,omitempty" json:"track"`
-	DiscNumber *int    `xml:"discNumber,attr,omitempty" json:"discNumber"`
-	Genre      *string `xml:"genre,attr,omitempty" json:"genre"`
-	Year       *int    `xml:"year,attr,omitempty" json:"year"`
-	Explicit   bool    `xml:"explicit,attr" json:"explicit"`
-	Duration   *int    `xml:"duration,attr,omitempty" json:"duration"`
-	Type       string  `xml:"type,attr" json:"type"`
-	IsDir      bool    `xml:"isDir,attr" json:"isDir"`
-	Created    string  `xml:"created,attr" json:"created"`
-}
-
 // subsonicPlaylist is the old toOpenSubsonicPlaylist: the fields Subsonic
 // clients read, with `entry` present only on detail responses. coverArt is
-// the playlist's own id (self-reference placeholder; playlist art does not
-// exist yet — getCoverArt answers 70 for it, same as any unknown id).
+// the playlist's own id; getCoverArt resolves it through the playlist tier
+// (retrieval.go, QUIRKS R7) to the first album art behind the playlist's
+// visible songs.
 type subsonicPlaylist struct {
-	ID        string          `xml:"id,attr" json:"id"`
-	Name      string          `xml:"name,attr" json:"name"`
-	Owner     string          `xml:"owner,attr" json:"owner"`
-	Public    bool            `xml:"public,attr" json:"public"`
-	SongCount int             `xml:"songCount,attr" json:"songCount"`
-	Duration  int             `xml:"duration,attr" json:"duration"`
-	CoverArt  string          `xml:"coverArt,attr" json:"coverArt"`
-	Created   string          `xml:"created,attr" json:"created"`
-	Changed   string          `xml:"changed,attr" json:"changed"`
-	Entry     []playlistEntry `xml:"entry" json:"entry,omitempty"`
+	ID        string `xml:"id,attr" json:"id"`
+	Name      string `xml:"name,attr" json:"name"`
+	Owner     string `xml:"owner,attr" json:"owner"`
+	Public    bool   `xml:"public,attr" json:"public"`
+	SongCount int    `xml:"songCount,attr" json:"songCount"`
+	Duration  int    `xml:"duration,attr" json:"duration"`
+	CoverArt  string `xml:"coverArt,attr" json:"coverArt"`
+	Created   string `xml:"created,attr" json:"created"`
+	Changed   string `xml:"changed,attr" json:"changed"`
+	// Entry children are FULL Song children (v2 delta over the retired
+	// server's reduced fetchPlaylistSongs shape, QUIRKS P1): clients like
+	// Feishin require contentType/parent/size/suffix on every Child and
+	// crash on the reduced shape.
+	Entry []Song `xml:"entry" json:"entry,omitempty"`
 }
 
 type playlistsBody struct {
@@ -102,28 +87,16 @@ func listItemToPlaylist(item playlists.SubsonicListItem) subsonicPlaylist {
 // hideExplicit applied, owner's shares/token stripped for non-owners) onto
 // the wire shape. Duration follows the old includeEntries math: the rounded
 // sum of the visible entry durations.
-func mapDetailToPlaylist(d *playlists.Detail) subsonicPlaylist {
+func (h *Handler) mapDetailToPlaylist(ctx context.Context, id auth.Identity, d *playlists.Detail) (subsonicPlaylist, error) {
 	duration := 0
-	entries := make([]playlistEntry, 0, len(d.Entries))
 	for _, e := range d.Entries {
 		if e.Duration != nil {
 			duration += *e.Duration
 		}
-		entries = append(entries, playlistEntry{
-			ID:         e.ID,
-			Title:      e.Title,
-			Album:      e.Album,
-			Artist:     e.Artist,
-			Track:      e.Track,
-			DiscNumber: e.DiscNumber,
-			Genre:      e.Genre,
-			Year:       e.Year,
-			Explicit:   e.Explicit,
-			Duration:   e.Duration,
-			Type:       "music",
-			IsDir:      false,
-			Created:    e.Created,
-		})
+	}
+	entries, err := h.playlistEntries(ctx, id, d)
+	if err != nil {
+		return subsonicPlaylist{}, err
 	}
 	return subsonicPlaylist{
 		ID:        d.ID,
@@ -136,7 +109,34 @@ func mapDetailToPlaylist(d *playlists.Detail) subsonicPlaylist {
 		Created:   dbTimeToISO(d.CreatedAt),
 		Changed:   dbTimeToISO(d.UpdatedAt),
 		Entry:     entries,
+	}, nil
+}
+
+// playlistEntries renders the detail's visible entries as full Song
+// children. The detail already applied the ONE policy, viewer scope filter,
+// and hideExplicit, so songsByIDs runs WITHOUT a library filter (nil scope)
+// and re-sequencing by the detail's entry order is the only ordering step —
+// the detail's list is authoritative, so duplicate song ids repeat.
+func (h *Handler) playlistEntries(ctx context.Context, id auth.Identity, d *playlists.Detail) ([]Song, error) {
+	ids := make([]string, len(d.Entries))
+	for i, e := range d.Entries {
+		ids[i] = e.ID
 	}
+	songs, err := h.songsByIDs(ctx, id.UserID, ids, nil)
+	if err != nil {
+		return nil, err
+	}
+	byID := make(map[string]Song, len(songs))
+	for _, s := range songs {
+		byID[s.ID] = s
+	}
+	entries := make([]Song, 0, len(ids))
+	for _, sid := range ids {
+		if s, ok := byID[sid]; ok {
+			entries = append(entries, s)
+		}
+	}
+	return entries, nil
 }
 
 // writePlaylistServiceError maps playlists-module sentinel errors onto the
@@ -236,7 +236,12 @@ func (h *Handler) getPlaylist(w http.ResponseWriter, r *http.Request) {
 	if writePlaylistServiceError(w, r, err) {
 		return
 	}
-	respond(w, r, playlistPayload{Envelope: okEnvelope(), Playlist: mapDetailToPlaylist(detail)})
+	mapped, err := h.mapDetailToPlaylist(ctx, authIdentity(r), detail)
+	if err != nil {
+		Error(w, r, CodeGeneric, "internal error")
+		return
+	}
+	respond(w, r, playlistPayload{Envelope: okEnvelope(), Playlist: mapped})
 }
 
 // firstParam is the old asName: the first value of a maybe-repeated param, ""
@@ -273,7 +278,12 @@ func (h *Handler) createPlaylist(w http.ResponseWriter, r *http.Request) {
 		if writePlaylistServiceError(w, r, err) {
 			return
 		}
-		respond(w, r, playlistPayload{Envelope: okEnvelope(), Playlist: mapDetailToPlaylist(detail)})
+		mapped, err := h.mapDetailToPlaylist(ctx, id, detail)
+		if err != nil {
+			Error(w, r, CodeGeneric, "internal error")
+			return
+		}
+		respond(w, r, playlistPayload{Envelope: okEnvelope(), Playlist: mapped})
 		return
 	}
 
@@ -293,7 +303,12 @@ func (h *Handler) createPlaylist(w http.ResponseWriter, r *http.Request) {
 	if writePlaylistServiceError(w, r, err) {
 		return
 	}
-	respond(w, r, playlistPayload{Envelope: okEnvelope(), Playlist: mapDetailToPlaylist(detail)})
+	mapped, err := h.mapDetailToPlaylist(ctx, id, detail)
+	if err != nil {
+		Error(w, r, CodeGeneric, "internal error")
+		return
+	}
+	respond(w, r, playlistPayload{Envelope: okEnvelope(), Playlist: mapped})
 }
 
 // updatePlaylist implements updatePlaylist.view: songId replaces the member
