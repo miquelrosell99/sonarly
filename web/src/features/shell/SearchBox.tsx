@@ -187,6 +187,7 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
         <Input
           ref={inputRef}
           type="text"
+          variant="boxed"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onFocus={() => {

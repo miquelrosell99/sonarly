@@ -139,6 +139,7 @@ export const AutocompleteInput = forwardRef<HTMLInputElement, AutocompleteInputP
         ref={ref}
         type="text"
         role="combobox"
+        variant="boxed"
         aria-autocomplete="list"
         aria-expanded={open}
         aria-controls={listboxId}

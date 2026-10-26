@@ -96,7 +96,12 @@ function AppearanceSettings() {
               className={cn(
                 'rounded-item border px-4 py-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                 themeMode === mode.value
-                  ? 'border-primary bg-surface-container-high text-on-surface'
+                  ? // Selected chrome is the container register (rulings
+                    // v2.0.7: primary-container
+                    // fill + on-primary-container text, never a solid accent
+                    // box or an accent-bordered tile. The transparent border
+                    // keeps box size stable against the unselected state.
+                    'border-transparent bg-primary-container text-on-primary-container'
                   : 'border-outline bg-background text-on-surface hover:bg-surface-container-high',
               )}
             >

@@ -264,7 +264,7 @@ export function PlayerBar({ user }: PlayerBarProps) {
   const autoDjAnchorRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <footer className="relative shrink-0 select-none overflow-hidden border-t border-outline bg-surface pb-[env(safe-area-inset-bottom)]">
+    <footer className="relative shrink-0 select-none overflow-hidden border-t border-outline bg-background pb-[env(safe-area-inset-bottom)]">
       {/* Ambient wash from the currently playing cover art */}
       <div
         className="pointer-events-none absolute inset-0 opacity-20"

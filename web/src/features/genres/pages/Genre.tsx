@@ -99,6 +99,7 @@ function RenameGenreModal({
     >
       <Input
         aria-label="Genre name"
+        variant="boxed"
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => {

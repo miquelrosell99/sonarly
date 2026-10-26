@@ -138,7 +138,7 @@ export function IngestReportModal({ runId, open, onClose }: IngestReportModalPro
                     onClick={() => setFilter(option.key)}
                     className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                       filter === option.key
-                        ? 'bg-primary text-on-primary'
+                        ? 'bg-primary-container text-on-primary-container'
                         : 'border border-outline bg-surface text-on-surface-variant hover:bg-surface-container-high'
                     }`}
                   >

@@ -1,7 +1,9 @@
 // shadcn catalog copy, NORMALIZED per components/shadcn-bridge.md: the
 // app dialog register rides the Modal contract — scrim at black/60 (the
-// app scrim convention; no --scrim utility exists yet), rounded-sheet
-// (28px), shadow-2xl elevation, focus ring ring-2/offset-1 from --ring;
+// app scrim convention; no --scrim utility exists yet), rounded-dialog
+// (16px — centered dialogs ride
+// 16px, 28px sheet rounding is edge-anchored only), shadow-2xl elevation,
+// focus ring ring-2/offset-1 from --ring;
 // the close button's highlight state cites the app hover register
 // (surface-container-high); the chrome X rides the fleet Icon primitive.
 import * as React from "react"
@@ -42,7 +44,7 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-sheet border bg-background p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
+        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-dialog border bg-background p-6 shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]",
         className
       )}
       {...props}

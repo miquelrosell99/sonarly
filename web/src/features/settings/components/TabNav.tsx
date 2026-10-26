@@ -17,12 +17,15 @@ interface TabNavProps {
 
 function tabClass(active: boolean): string {
   return cn(
-    '-mb-px border-b-2 px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-    // No fill: the accent underline marks "you are here" (the sidebar's
-    // language) without turning navigation into a button.
+    'relative px-3 py-2.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+    // The fleet tab idiom (rulings v2.0.9: the
+    // active tab keeps INK text — a 16px centered accent bar below carries
+    // the accent signal; painting the label accent or a full-width
+    // underline double-signals. Hover on an inactive tab is an ink shift,
+    // not a background layer.
     active
-      ? 'border-primary font-medium text-on-surface'
-      : 'border-transparent text-on-surface-variant hover:text-on-surface',
+      ? "font-medium text-on-surface after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-4 after:-translate-x-1/2 after:rounded-full after:bg-primary after:content-['']"
+      : 'text-on-surface-variant hover:text-on-surface',
   );
 }
 

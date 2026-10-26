@@ -30,7 +30,7 @@ Semantic CSS custom properties in HSL, named as canonical Material You roles (`-
 | Token | Light | Dark | OLED | Usage |
 |---|---|---|---|---|
 | `--md-sys-color-background` | `#EEECE6` | `#171513` | `#000000` | App background (archival paper / archive ink) |
-| `--md-sys-color-surface` | `#FFFFFF` | `#322920` | `#17130E`-ish | Cards, sidebar, panels |
+| `--md-sys-color-surface` | `#FFFFFF` | `#322920` | `#17130E`-ish | Cards, panels, dialog overlays (persistent chrome — sidebar, top bar, player bar — sits on the ground |
 | `--md-sys-color-surface-container-high` | `#E4E2DC` | `#493F35` | warmer step | Hover states (the app's one step-up surface) |
 | `--md-sys-color-outline` / `-outline-variant` | `#CFCBC1` | `#5D534A` | warmer step | Borders, dividers (one rule register, both roles) |
 | `--md-sys-color-on-surface` | `#231A11` | `#F4F3F1` | near-white | Primary text |
@@ -112,8 +112,8 @@ Implementation: `web/src/hooks/useDominantColor.ts` samples cover art via an off
 
 ### Buttons
 
-- **Primary:** `.btn` — corner-full pill radius (`rounded-button` token, 9999px fleet-wide per the ruling), accent background, contrasting text.
-- **Secondary:** `.btn-ghost` — corner-full pill radius, rule border, surface background.
+- **Primary:** the catalog `Button` (`web/src/components/ui/button.tsx`) — corner-full pill radius (`rounded-button` token, 9999px fleet-wide per the ruling), accent background, ground-colored label.
+- **Register:** a borderless weight ladder: no visible border on any variant — accent fill > neutral fills > ghost > soft-danger wash. Danger rests on the translucent `error-soft` wash with error text and escalates to the solid error fill on hover. An invisible 48px hit-area overlay rides every button (the M3 touch floor without stretching compact rows).
 
 ### Cards
 
@@ -123,7 +123,8 @@ Implementation: `web/src/hooks/useDominantColor.ts` samples cover art via an off
 
 ### Inputs
 
-- `.input` — 12px radius (`rounded-input` token), surface background, rule border, accent focus ring.
+- **Underline register is the default**: transparent, no box, straight bottom hairline at rest; focus paints a 2px accent underline — the underline is the focus indicator (no focus ring on fields).
+- **Boxed variant** (`variant="boxed"`) is reserved for dense toolbar rows (search) and compact in-row edits — the TopBar search box, comboboxes, filter panel, and inline rename/edit fields.
 
 ### Interaction conventions
 

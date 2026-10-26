@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **UI aligned with the RosellRamos design system's rulings** (rulings v2.0.4–v2.0.9): buttons are now a borderless weight ladder — no visible borders on any variant, danger is a soft register (translucent error wash + error text, solid fill on hover), and every button carries an invisible 48px hit-area floor; selected segments (statistics range picker, share-dialog tabs, appearance theme tiles, playlist-type/match/mode toggles, lyrics mode pills, ingest-report filter chips) use the `primary-container` register instead of solid accent fills; centered dialogs ride a new 16px `rounded-dialog` token (28px is bottom-sheets only); tab strips mark the active tab with a short centered accent bar instead of a full-width underline; text fields default to the underline register (box reserved for search/toolbar and inline-edit inputs); all persistent chrome — sidebar, top bar, player bar — sits on the ground color as one continuous frame (the 2026-10-18 surface-step deviation retires). Registered in `.agents/design-overrides.md`; user-visible surfaces only, no API or data changes.
+
 ### Fixed
 
 - **MP4 probe falls back to the mvhd duration when the track mdhd carries none**: some muxers (ffmpeg in certain Dolby Atmos muxes) write the track `mdhd` duration as 0 while the movie header `mvhd` has the real value — the probe now parses `mvhd` (v0 and v1) and uses it when the mdhd-derived duration is 0; a valid mdhd still wins. (The live library's one true Atmos file turned out to have *both* at 0 — its duration exists only at E-AC-3 frame level, which a container probe deliberately never decodes; frame-level DD+ duration would be a separate, explicit feature.)

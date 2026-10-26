@@ -6,10 +6,19 @@
 //     bg-surface-container / text-on-surface-variant directly
 //   - radius tokens (rounded-button — corner-full 9999px fleet-wide; supersedes sonarly's
 //     registered 16px button shape recorded in .agents/design-overrides.md);
-//     no default shadows on
-//     non-floating layers; focus ring ring-2/--ring/offset-1 (never
-//     suppressed); the app's tactile press (brightness + scale) and the
-//     coarse-pointer 44px touch floor live in the base.
+//     no default shadows on non-floating layers; focus ring ring-2/--ring/
+//     offset-1 (never suppressed); the app's tactile press (brightness +
+//     scale) stays.
+//   - THE REGISTER IS A BORDERLESS WEIGHT LADDER (rulings v2.0.4–v2.0.6): no visible border on any
+//     variant — accent fill > neutral fills > ghost > soft-danger wash.
+//     Danger rests on the translucent error-soft wash with error text and
+//     escalates to the solid error fill on hover (never a naked outline —
+//     the retired same-day detour "read broken"). An invisible 48px
+//     hit-area overlay (::after, centered) rides EVERY button — the 48px
+//     M3 touch floor without stretching compact rows; the visible box
+//     rides the size token, so the old coarse-pointer h-11 override went
+//     with it. App hover register kept: the solid surface-container-high
+//     step (the bridge fixture pins it), not the starter's overlay ink.
 //   - THE APP PRIMITIVE: this file also hosts the sonarly Button contract
 //     (the old components/ui/Button.tsx): primary/ghost/danger variants,
 //     the loading register (spinner + aria-busy + disabled). The old
@@ -24,30 +33,36 @@ import { cn } from "@/lib/cn"
 import { Icon } from "@/components/ui/Icon"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-button px-5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [@media(pointer:coarse)]:h-11",
+  "relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-button px-5 text-sm font-semibold transition after:absolute after:left-1/2 after:top-1/2 after:h-12 after:w-12 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         // Accent fill, ground-colored label (the .btn contract): hover
         // darkens subtly, press compresses and darkens harder.
         default:
-          "border border-primary bg-primary text-primary-foreground hover:brightness-95 active:scale-[0.97] active:brightness-90",
+          "bg-primary text-primary-foreground hover:brightness-95 active:scale-[0.97] active:brightness-90",
         primary:
-          "border border-primary bg-primary text-primary-foreground hover:brightness-95 active:scale-[0.97] active:brightness-90",
-        // App danger contract: surface button, error text, hover fills.
+          "bg-primary text-primary-foreground hover:brightness-95 active:scale-[0.97] active:brightness-90",
+        // Soft danger: translucent error wash at
+        // rest with error text, escalating to the solid error fill (and the
+        // ground-colored on-error label) on hover.
         danger:
-          "border border-outline bg-surface text-error hover:border-error hover:bg-error hover:text-on-primary active:scale-[0.97] active:brightness-90",
-        // Catalog destructive: solid error fill.
+          "bg-error-soft text-error hover:bg-error hover:text-on-error active:scale-[0.97] active:brightness-90",
+        // Catalog destructive: solid error fill (app-side register per the
+        // ruling's fleet/app split — confirmed destructive action).
         destructive:
-          "border border-destructive bg-destructive text-destructive-foreground hover:brightness-95 active:scale-[0.97] active:brightness-90",
+          "bg-destructive text-destructive-foreground hover:brightness-95 active:scale-[0.97] active:brightness-90",
+        // The quiet accent step: no fill at rest; hover rides the app's
+        // verified hover register (the solid -high step, per the bridge
+        // fixture — not the overlay ink).
         outline:
-          "border border-input bg-surface hover:bg-surface-container-high hover:text-on-surface active:scale-[0.97]",
+          "text-primary hover:bg-surface-container-high active:scale-[0.97]",
         secondary:
-          "border border-secondary bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-[0.97]",
-        // App ghost contract keeps the hover border raise.
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-[0.97]",
+        // The quiet neutral step: no fill at rest, same hover register.
         ghost:
-          "border border-outline bg-surface text-on-surface hover:border-on-surface-variant hover:bg-surface-container-high active:scale-[0.97] active:brightness-[0.95]",
-        link: "border-transparent text-primary underline-offset-4 hover:underline",
+          "text-on-surface hover:bg-surface-container-high active:scale-[0.97] active:brightness-[0.95]",
+        link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10",

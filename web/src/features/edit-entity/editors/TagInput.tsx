@@ -40,6 +40,7 @@ export function TagInput({
     <Input
       id={id}
       type={type ?? 'text'}
+      variant="boxed"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}

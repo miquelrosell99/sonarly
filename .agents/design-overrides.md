@@ -86,15 +86,6 @@ Recorded per `rosellramos-design-system/identity/procedure.md` — the palette's
 - **Ruled**: 2026-10-18 audit; owner exception same day.
 - **Review trigger**: now-playing redesign; removal of the ambient wash; a ruling against translucent chrome.
 
-### Chrome surface-step (sidebar, player bar on `--surface`)
-
-- **Rule**: SKILL.md default 3 — solid sidebar on the ground color; checklist §7 "Sidebar — solid ground color, hairline separator, never its own card".
-- **Decision**: The desktop sidebar (`web/src/features/shell/Sidebar.tsx:335`) and the player bar (`web/src/features/player/PlayerBar.tsx:267`) sit on `--md-sys-color-surface`, one step up from the `--md-sys-color-background` ground. The mobile drawer keeps `bg-surface` as a `role="dialog"` overlay under the modal exception.
-- **Rationale**: Canonical project doc `docs/design-language.md:33` documents this in the token table ("`--surface` … Cards, sidebar, panels") — the Signal Archive identity frames content between two warm tonal steps; this entry registers what the canonical doc already says (same treatment the card-grid recipe got on 2026-10-15).
-- **Scope**: surface — desktop sidebar and player bar chrome only. No other chrome may step up to `--surface`.
-- **Ruled**: 2026-10-18 audit (documented in `docs/design-language.md` since pre-2.0).
-- **Review trigger**: shell redesign; brand refresh; a DS ruling that sidebars must sit on the ground.
-
 ### Full-pill Login button (`.btn-pill`) (SUPERSEDED 2026-10-19: absorbed by the fleet corner-full ruling)
 
 - **Rule**: Checklist §4 shape scale — buttons 16px (`rounded-button`); the DS shape table tops out at 16px.
@@ -175,7 +166,50 @@ Recorded per `rosellramos-design-system/identity/procedure.md` — the palette's
 - **Ruled**: 2026-10-15 audit (640/1280); min-[420px] registered 2026-10-15 in the audit-fix pass.
 - **Review trigger**: any redesign touching TopBar or Statistics; a dedicated responsive pass.
 
+## Fleet-alignment pass — rulings v2.0.4–v2.0.9 (applied 2026-10-26)
+
+A batch of rulings landed in the skill on 2026-10-26 (plus the 2026-10-21 action-row criterion and two docs annotations). Sonarly's catalog had drifted into the retired registers; the owner's decision (this session) was full alignment, not new deviations. None of the items below is a deviation — this section records the alignment and the fleet/app split the rulings themselves draw.
+
+### Button register — the borderless weight ladder (rulings v2.0.4–v2.0.6)
+
+- **What changed**: every visible border retired from `web/src/components/ui/button.tsx` (accent fill > neutral fills > ghost > soft-danger wash); `danger` moved off the naked outline-to-fill style (retired same-day by the owner as "read broken") onto the soft register — translucent `error-soft` wash + error text at rest, solid error fill on hover; an invisible 48px `::after` hit-area overlay now rides EVERY button (the old coarse-pointer `h-11` visible-box override went with it — the visible box rides the size token, the floor lives in the overlay). New tokens: the `--md-sys-color-{error,success,warning,info}-soft` family (12% color-mix washes, generated per theme — drift-gate role set updated to admit them).
+- **App-side registers kept** (the ruling's explicit fleet/app split): the solid `destructive` variant (confirmed destructive), the app's hover register on the neutral variants — the solid `surface-container-high` step the bridge fixture pins, not the starter's overlay ink — the brightness hover/press tactile register, the loading register (spinner + `aria-busy`), the `link` variant, and the `default` = accent-fill naming (the fleet's neutral `default`-on-`surface-container` rest is a no-op here: sonarly's `surface-container` == `surface`).
+- **Ruled**: 2026-10-26 agent session.
+- **Review trigger**: a DS revision to the button register; a danger-variant redesign.
+
+### Selected chrome — the container register (ruling v2.0.7)
+
+- **What changed**: solid-accent selected states converted to `primary-container` + `on-primary-container` ("never a solid accent box" stands; container != solid): statistics `RangeSelector`, the share-playlist `TabButton`, and the appearance page theme tiles (which also lose the accent border — `border-transparent` keeps box-size parity with the unselected tiles). New tailwind keys `primary-container` / `on-primary-container` (full-color color-mix roles, consumed raw, no alpha modifiers).
+- **Ruled**: 2026-10-26 agent session.
+- **Review trigger**: a DS revision to the selected-chrome register.
+
+### Dialog radius — 16px centered dialogs (ruling v2.0.8)
+
+- **What changed**: new `rounded-dialog` tailwind token (16px); `Modal`, the catalog `dialog`/`alert-dialog`, and the desktop `SyncedLyricsEditor` dialog moved off `rounded-sheet` (28px). `rounded-sheet` keeps 28px for edge-anchored bottom sheets only — the mobile full-screen lyrics surface included.
+- **Ruled**: 2026-10-26 agent session.
+- **Review trigger**: a DS shape-scale revision.
+
+### Tab indicator — the short centered sliding bar (ruling v2.0.9)
+
+- **What changed**: `TabNav` retired the full-width 2px accent underline (the old recipe) for the fleet idiom — ink text (weight 500) + a 16px centered accent bar. Text was already ink; only the indicator changed. The sidebar's active item (accent text + left accent bar) is nav chrome, not a tab strip, and is untouched.
+- **Ruled**: 2026-10-26 agent session.
+- **Review trigger**: a tab-strip redesign.
+
+### Text fields — the underline register (law/spec.md
+
+- **What changed**: the `Input` primitive's default became the underline register (transparent, no box, straight bottom hairline; focus paints the 2px accent underline and the field opts out of the app-global focus ring — the underline IS the focus indicator). Labeled form fields across login/signup/setup, profile, admin user/library modals, playlist create/rename, settings, and smart-playlist editors ride it with no call-site change. `variant="boxed"` retains the old register (12px radius, surface fill, accent focus border + ring) for the ruling's own reservation — dense toolbar rows and compact in-row edits: TopBar `SearchBox`, `AutocompleteInput`/comboboxes, the library `FilterPanel`, inline genre rename/add, the share-link copy row, playlist-filter and user-share searches, the lyrics line editor, and `TagInput`.
+- **Noted gap**: the ruling's "accent-colored label on focus" presumes coupled floating labels; sonarly's forms use static labels, so only the underline carries the accent. Recorded so a future floating-label pass knows the label half is unimplemented.
+- **Ruled**: 2026-10-26 agent session.
+- **Review trigger**: a form-design pass; floating labels.
+
 ## Resolved entries (kept for history)
+
+### Chrome surface-step (sidebar, player bar on `--surface`) (RESOLVED 2026-10-26: deviation retired, all chrome on the ground)
+
+- **Rule**: SKILL.md default 3 — solid sidebar on the ground color; checklist §7 "Sidebar — solid ground color, hairline separator, never its own card".
+- **Original decision** (2026-10-18 audit): the desktop sidebar and the player bar sat on `--md-sys-color-surface`, one step up from the `--md-sys-color-background` ground, while the top bar stayed on the ground — the "two warm tonal steps" framing of the Signal Archive identity (canonical doc: `docs/design-language.md` token table).
+- **Resolution**: the split two-tone chrome read wrong in practice (paper top bar against white sidebar/player bar). All persistent chrome — sidebar, player bar, top bar — now sits on the ground: one continuous paper chrome frame, the fleet default, and the deviation retires. The mobile drawer keeps `bg-surface` as a `role="dialog"` overlay (the app dialog register, not persistent chrome). The v2.0.9 SidebarNav "chrome-on-canvas" exception class never applied (sonarly's shell is solid).
+- **Ruled**: 2026-10-18 audit; resolved.
 
 ### Multi-hue accent picker (nine accents)
 

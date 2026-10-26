@@ -71,6 +71,14 @@
       hsl(var(--md-sys-color-surface))
     );
     --md-sys-color-on-error-container: var(--md-sys-color-on-surface);
+    /* Soft status washes (rulings v2.0.4: the
+       translucent rest fill of the soft-danger register. Full colors via
+       color-mix, consumed raw (never hsl()-wrapped). */
+    --md-sys-color-error-soft: color-mix(
+      in srgb,
+      var(--md-sys-color-error) 12%,
+      transparent
+    );
 
     /* Semantic — fixed palettes, never derived from the seed. Lightness set
        so 14px text meets WCAG AA (>= 4.5:1) on surface and background
@@ -81,6 +89,22 @@
     --md-sys-color-success: 152 87% 25%;
     --md-sys-color-warning: 28 92% 28%;
     --md-sys-color-info: 208 75% 39%;
+    /* Soft status washes — same 12% register as error-soft above. */
+    --md-sys-color-success-soft: color-mix(
+      in srgb,
+      var(--md-sys-color-success) 12%,
+      transparent
+    );
+    --md-sys-color-warning-soft: color-mix(
+      in srgb,
+      var(--md-sys-color-warning) 12%,
+      transparent
+    );
+    --md-sys-color-info-soft: color-mix(
+      in srgb,
+      var(--md-sys-color-info) 12%,
+      transparent
+    );
 
     /* Data palette — registered extension (namespace hygiene, law/spec.md
        §1): categorical chart hues, consumed directly by the statistics
@@ -130,9 +154,29 @@
     --md-sys-color-secondary-container: 30 7% 20%;
     --md-sys-color-on-secondary-container: 40 12% 95%;
     --md-sys-color-error: 4 98% 73%;
+    --md-sys-color-error-soft: color-mix(
+      in srgb,
+      var(--md-sys-color-error) 12%,
+      transparent
+    );
     --md-sys-color-success: 152 54% 51%;
+    --md-sys-color-success-soft: color-mix(
+      in srgb,
+      var(--md-sys-color-success) 12%,
+      transparent
+    );
     --md-sys-color-warning: 28 57% 50%;
+    --md-sys-color-warning-soft: color-mix(
+      in srgb,
+      var(--md-sys-color-warning) 12%,
+      transparent
+    );
     --md-sys-color-info: 210 97% 70%;
+    --md-sys-color-info-soft: color-mix(
+      in srgb,
+      var(--md-sys-color-info) 12%,
+      transparent
+    );
 
     /* Data palette */
     --chart-1: 217 91% 60%;
@@ -173,9 +217,29 @@
     --md-sys-color-secondary-container: 30 6% 11%;
     --md-sys-color-on-secondary-container: 40 11% 97%;
     --md-sys-color-error: 4 98% 73%;
+    --md-sys-color-error-soft: color-mix(
+      in srgb,
+      var(--md-sys-color-error) 12%,
+      transparent
+    );
     --md-sys-color-success: 152 54% 51%;
+    --md-sys-color-success-soft: color-mix(
+      in srgb,
+      var(--md-sys-color-success) 12%,
+      transparent
+    );
     --md-sys-color-warning: 28 57% 50%;
+    --md-sys-color-warning-soft: color-mix(
+      in srgb,
+      var(--md-sys-color-warning) 12%,
+      transparent
+    );
     --md-sys-color-info: 210 97% 70%;
+    --md-sys-color-info-soft: color-mix(
+      in srgb,
+      var(--md-sys-color-info) 12%,
+      transparent
+    );
 
     /* Data palette */
     --chart-1: 217 91% 60%;

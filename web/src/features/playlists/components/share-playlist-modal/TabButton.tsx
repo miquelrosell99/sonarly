@@ -29,7 +29,7 @@ export function TabButton({
         'inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
         active
-          ? 'bg-primary text-on-primary'
+          ? 'bg-primary-container text-on-primary-container'
           : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
       )}
     >

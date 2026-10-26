@@ -89,6 +89,7 @@ export function AddToPlaylistModal() {
           {staticPlaylists.length > 5 && (
             <Input
               type="search"
+              variant="boxed"
               aria-label="Filter playlists"
               placeholder="Filter playlists…"
               value={filter}

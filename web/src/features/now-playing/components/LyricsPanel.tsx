@@ -245,7 +245,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
             className={cn(
               'inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-xs font-medium transition',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-              mode === 'dynamic' ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+              mode === 'dynamic' ? 'bg-primary-container text-on-primary-container' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
             )}
           >
             <Icon name="mdi-sync" size={14} />
@@ -259,7 +259,7 @@ export function LyricsPanel({ user, activeTab = 'lyrics' }: LyricsPanelProps) {
             className={cn(
               'inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-xs font-medium transition',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
-              mode === 'static' ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+              mode === 'static' ? 'bg-primary-container text-on-primary-container' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
             )}
           >
             <Icon name="mdi-text" size={14} />

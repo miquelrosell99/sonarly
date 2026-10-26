@@ -112,7 +112,7 @@ export function Modal({ open, onClose, title, children, footer, className, close
         ref={dialogRef}
         tabIndex={-1}
         className={cn(
-          'dialog-enter flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-sheet border border-outline bg-surface shadow-2xl outline-none',
+          'dialog-enter flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-dialog border border-outline bg-surface shadow-2xl outline-none',
           className,
         )}
       >

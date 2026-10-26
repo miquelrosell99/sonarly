@@ -48,6 +48,7 @@ export function FilterPanel({ filters, className }: FilterPanelProps) {
                 <Input
                   id={`filter-${filter.key}`}
                   type="text"
+                  variant="boxed"
                   value={value}
                   onChange={(e) => set(filter.key, e.target.value)}
                 />
@@ -56,6 +57,7 @@ export function FilterPanel({ filters, className }: FilterPanelProps) {
                 <Input
                   id={`filter-${filter.key}`}
                   type="number"
+                  variant="boxed"
                   value={value}
                   onChange={(e) => set(filter.key, e.target.value)}
                 />

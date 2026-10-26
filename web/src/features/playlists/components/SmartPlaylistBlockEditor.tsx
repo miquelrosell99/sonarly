@@ -32,7 +32,7 @@ export function SmartPlaylistBlockEditor({ initialRules, onChange }: SmartPlayli
               className={cn(
                 'rounded-item px-2.5 py-1 text-xs font-medium transition',
                 activeKey === 'all'
-                  ? 'bg-primary text-on-primary'
+                  ? 'bg-primary-container text-on-primary-container'
                   : 'text-on-surface-variant hover:text-on-surface',
               )}
             >
@@ -44,7 +44,7 @@ export function SmartPlaylistBlockEditor({ initialRules, onChange }: SmartPlayli
               className={cn(
                 'rounded-item px-2.5 py-1 text-xs font-medium transition',
                 activeKey === 'any'
-                  ? 'bg-primary text-on-primary'
+                  ? 'bg-primary-container text-on-primary-container'
                   : 'text-on-surface-variant hover:text-on-surface',
               )}
             >

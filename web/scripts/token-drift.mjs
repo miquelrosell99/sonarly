@@ -58,8 +58,10 @@ export const VAR_FALLBACK_RE = /var\(([^)]*)\)/g;
 
 // The canonical --md-sys-color-* role family (law/spec.md §2) plus the
 // registered fleet semantic trio (success/warning/info — a documented
-// namespace extension; the app's register records the decision). Definitions
-// outside this set fail the gate (rule 6).
+// namespace extension; the app's register records the decision) and the
+// soft status-wash family added by rulings v2.0.4 (: {error,warning,success,info}-soft, the translucent rest fill
+// of the soft-danger register. Definitions outside this set fail the gate
+// (rule 6).
 export const MD_SYS_COLOR_ROLES = new Set([
   'background', 'on-background', 'surface', 'on-surface',
   'surface-variant', 'on-surface-variant',
@@ -73,6 +75,7 @@ export const MD_SYS_COLOR_ROLES = new Set([
   'secondary', 'on-secondary', 'secondary-container', 'on-secondary-container',
   'tertiary', 'on-tertiary', 'tertiary-container', 'on-tertiary-container',
   'error', 'on-error', 'error-container', 'on-error-container',
+  'error-soft', 'success-soft', 'warning-soft', 'info-soft',
   'outline', 'outline-variant', 'scrim', 'shadow', 'surface-tint',
   'hover-overlay', 'focus-overlay', 'pressed-overlay',
   'success', 'warning', 'info',

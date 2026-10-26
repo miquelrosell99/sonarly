@@ -35,6 +35,7 @@ export function LinksPanel({
           <div className="flex items-center gap-2">
             <Input
               readOnly
+              variant="boxed"
               value={shareUrl}
               aria-label="Share link"
               onFocus={(e) => e.target.select()}

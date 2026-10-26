@@ -31,7 +31,7 @@ export function RangeSelector({
           className={cn(
             'h-10 shrink-0 rounded-input px-4 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
             range === option.value
-              ? 'bg-primary text-on-primary'
+              ? 'bg-primary-container text-on-primary-container'
               : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface',
           )}
         >

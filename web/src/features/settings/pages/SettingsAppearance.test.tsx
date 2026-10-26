@@ -86,7 +86,7 @@ describe('SettingsAppearance', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Auto' }).className).toContain(
-        'border-primary bg-surface-container-high',
+        'bg-primary-container text-on-primary-container',
       );
     });
     expect(screen.getByRole('radio', { name: 'Copper' }).getAttribute('aria-checked')).toBe('true');

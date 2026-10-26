@@ -70,6 +70,7 @@ export function GenreTreeItem({
             <div className="flex items-center gap-2">
               <Input
                 value={inlineEdit.name}
+                variant="boxed"
                 onChange={(e) => onInlineEditChange(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') onRename(node.id);
@@ -187,6 +188,7 @@ export function GenreTreeItem({
         <div className="mx-3 mb-3 flex items-center gap-2 rounded-item border border-outline bg-surface p-2">
           <Input
             placeholder="Child genre name"
+            variant="boxed"
             value={inlineAdd.name}
             onChange={(e) => onInlineAddChange(e.target.value)}
             onKeyDown={(e) => {

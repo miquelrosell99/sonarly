@@ -31,8 +31,10 @@ export default {
       borderRadius: {
         // Radius tokens (design system): surfaces, sheets, controls, rows.
         // Buttons are corner-full (9999px) fleet-wide (M3 corner-full at every size).
+        // Centered dialogs ride 16px — 28px is reserved for edge-anchored bottom sheets.
         card: '20px',
         sheet: '28px',
+        dialog: '16px',
         button: '9999px',
         input: '12px',
         item: '8px',
@@ -67,7 +69,10 @@ export default {
         border: 'hsl(var(--border) / <alpha-value>)',
         input: 'hsl(var(--input) / <alpha-value>)',
         ring: 'hsl(var(--ring) / <alpha-value>)',
-        /* Roles the app cites directly (beyond the alias layer above). */
+        /* Roles the app cites directly (beyond the alias layer above).
+           primary-container / on-primary-container / error-soft hold FULL
+           colors (color-mix outputs) — consumed raw, no hsl() wrap, no
+           alpha modifiers (rulings v2.0.4/2.0.7. */
         surface: 'hsl(var(--md-sys-color-surface) / <alpha-value>)',
         'on-primary': 'hsl(var(--md-sys-color-on-primary) / <alpha-value>)',
         'on-surface': 'hsl(var(--md-sys-color-on-surface) / <alpha-value>)',
@@ -80,6 +85,9 @@ export default {
         success: 'hsl(var(--md-sys-color-success) / <alpha-value>)',
         warning: 'hsl(var(--md-sys-color-warning) / <alpha-value>)',
         info: 'hsl(var(--md-sys-color-info) / <alpha-value>)',
+        'primary-container': 'var(--md-sys-color-primary-container)',
+        'on-primary-container': 'var(--md-sys-color-on-primary-container)',
+        'error-soft': 'var(--md-sys-color-error-soft)',
       },
     },
   },

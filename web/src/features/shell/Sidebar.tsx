@@ -333,7 +333,10 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
       <aside
         aria-label="Navigation"
         className={cn(
-          'hidden shrink-0 flex-col border-r border-outline bg-surface md:flex',
+          // Chrome sits on the ground fleet-wide (the surface-step deviation retired — one continuous paper
+          // chrome frame; the mobile drawer below keeps bg-surface as a
+          // role="dialog" overlay, the app dialog register).
+          'hidden shrink-0 flex-col border-r border-outline bg-background md:flex',
           rail ? 'w-[4.5rem]' : 'w-60',
         )}
       >
