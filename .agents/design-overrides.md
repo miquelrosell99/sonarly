@@ -94,14 +94,14 @@ Recorded per `rosellramos-design-system/identity/procedure.md` — the palette's
 - **Ruled**: code comment pre-2026-10-08; registered 2026-10-18; superseded 2026-10-19.
 - **Review trigger**: none — the exception is gone; auth-page redesign follows the standard button register.
 
-### `rounded-full` pill convention (icon buttons, avatars, chips)
+### `rounded-full` pill convention (icon buttons, avatars, chips) (CONFIRMED 2026-10-26: circles, the notees precedent)
 
-- **Rule**: `rosellramos-design-system/references/tokens.md` shape scale — buttons 16/12/10px; the DS table has no pill step.
-- **Decision**: `rounded-full` (9999px) is the app's established convention for circular controls and containers: icon buttons, avatars, the play button, chips, pager dots, and toggle pills (88 usages across 41 files).
-- **Rationale**: A circle is the natural shape for single-icon controls at any size; it reads as one convention, not drift. Distinct from `.btn-pill`, which is a *text* button exception.
-- **Scope**: global convention — circular icon-only controls, avatars, and chips.
-- **Ruled**: 2026-10-18 audit.
-- **Review trigger**: DS adds a pill step to the shape scale; a shape-token sweep.
+- **Rule**: `rosellramos-design-system/references/tokens.md` shape scale — `corner-full` (9999px) owns "avatars, circular icon buttons, toggle thumbs, sliders"; the DS table has no square icon-button step.
+- **Decision**: `rounded-full` (9999px) is the app's convention for circular controls and containers: icon buttons, avatars, the play button, chips, pager dots, and toggle pills. Every icon-only button across the app rides it — top bar, sidebar (the playlists-section collapse/all/create trio included), catalog `size="icon"`, player-transport ghosts, queue and row actions, card hover actions and star ratings, modal chrome buttons, the search-box filter toggle, settings-rail and view-mode toggles, rule-block actions.
+- **Ruling trail**: 2026-10-18 audit registered the convention; a same-day 2026-10-26 sweep squared every icon-only button to `rounded-item` on a misread of the owner's ask — the owner corrected it within the hour (hamburger screenshot vs the notees top bar): icon-only buttons are CIRCLES, "the correct pattern, skill should drink from it". The square detour was fully reverted and the remaining square icon-only buttons (sidebar, modal closes, view-mode toggles, etc.) converted to circles. The notees `Button` (shadcn catalog, `rounded-button` at every size including `icon`) is the reference implementation; the skill's law now states the register explicitly.
+- **Scope**: global convention — icon-only controls, avatars, and chips are circular; icon CHIPS that are emblems inside tinted squares (statistics rank/avatar chips, stat-card leading icons) are containers, not buttons, and stay `rounded-item`.
+- **Ruled**: 2026-10-18 audit; confirmed by (second pass).
+- **Review trigger**: DS adds a square icon-button step; a shape-token sweep.
 
 ### Statistics proportional data-bar tint
 

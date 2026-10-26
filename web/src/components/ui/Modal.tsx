@@ -123,7 +123,7 @@ export function Modal({ open, onClose, title, children, footer, className, close
             onClick={onClose}
             disabled={closeDisabled}
             aria-label="Close"
-            className="rounded-item p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full aspect-square p-1 leading-none text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Icon name="mdi-close" size={20} />
           </button>

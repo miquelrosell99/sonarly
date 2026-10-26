@@ -133,7 +133,7 @@ function NotificationItem({
           type="button"
           onClick={() => setExiting(true)}
           aria-label="Dismiss"
-          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-item text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Icon name="mdi-close" size={14} />
         </button>

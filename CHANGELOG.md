@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Top bar chrome fixes** (owner feedback 2026-10-26): the divider after the Sonarly wordmark is gone, the bar rides the fleet 64px register (the old 44px fixed height left the controls with no breathing room), and a bottom hairline now separates it from the content — the sidebar and player bar already carry their hairlines, so the frame closes on all four sides.
+
+### Changed
+
+- **Icon-only buttons are circles**: every icon-only button — top bar, sidebar (the playlists-section trio included), catalog `size="icon"`, player-transport ghosts, queue and row actions, card hover actions and star ratings, modal chrome buttons, the search-box filter toggle, settings-rail and view-mode toggles, rule-block actions — rides `rounded-full` per the skill's `corner-full` register. A same-day square detour (`rounded-item`) was reverted within the hour; the skill's law now states the register explicitly. Registered in `.agents/design-overrides.md`.
+
 ### Changed
 
 - **UI aligned with the RosellRamos design system's rulings** (rulings v2.0.4–v2.0.9): buttons are now a borderless weight ladder — no visible borders on any variant, danger is a soft register (translucent error wash + error text, solid fill on hover), and every button carries an invisible 48px hit-area floor; selected segments (statistics range picker, share-dialog tabs, appearance theme tiles, playlist-type/match/mode toggles, lyrics mode pills, ingest-report filter chips) use the `primary-container` register instead of solid accent fills; centered dialogs ride a new 16px `rounded-dialog` token (28px is bottom-sheets only); tab strips mark the active tab with a short centered accent bar instead of a full-width underline; text fields default to the underline register (box reserved for search/toolbar and inline-edit inputs); all persistent chrome — sidebar, top bar, player bar — sits on the ground color as one continuous frame (the 2026-10-18 surface-step deviation retires). Registered in `.agents/design-overrides.md`; user-visible surfaces only, no API or data changes.

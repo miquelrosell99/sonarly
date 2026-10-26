@@ -107,7 +107,7 @@ export function StarRating({ rating = 0, onRate, className, variant = 'default' 
             onMouseEnter={(e) => handleMove(e, value)}
             aria-label={label}
             className={cn(
-              'icon-btn inline-flex min-h-6 min-w-6 items-center justify-center rounded-item transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
+              'icon-btn inline-flex min-h-6 min-w-6 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11',
               isOverlay ? 'p-0' : 'p-0.5',
               filled || half
                 ? 'text-primary'

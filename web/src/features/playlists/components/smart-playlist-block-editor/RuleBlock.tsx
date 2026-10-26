@@ -82,7 +82,7 @@ export function RuleBlock({
           disabled={!canMoveUp}
           aria-label="Move rule up"
           title="Move rule up"
-          className="rounded-item p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="rounded-full aspect-square p-1 leading-none text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Icon name="mdi-chevron-up" size={18} />
         </button>
@@ -92,7 +92,7 @@ export function RuleBlock({
           disabled={!canMoveDown}
           aria-label="Move rule down"
           title="Move rule down"
-          className="rounded-item p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="rounded-full aspect-square p-1 leading-none text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Icon name="mdi-chevron-down" size={18} />
         </button>
@@ -101,7 +101,7 @@ export function RuleBlock({
           onClick={onRemove}
           aria-label="Remove rule"
           title="Remove rule"
-          className="rounded-item p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="rounded-full aspect-square p-1 leading-none text-on-surface-variant transition hover:bg-surface-container-high hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <Icon name="mdi-delete" size={18} />
         </button>

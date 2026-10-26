@@ -202,7 +202,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
               aria-label="Collapse playlists"
               title="Collapse playlists"
               onClick={toggleCollapsed}
-              className="-m-2.5 flex h-11 w-11 items-center justify-center rounded-item text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="-m-2.5 flex h-11 w-11 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <Icon
                 name="mdi-chevron-down"
@@ -225,7 +225,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
               aria-label="All playlists"
               title="All playlists"
               className={cn(
-                'rounded-item p-1.5 transition hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11',
+                'rounded-full aspect-square p-1.5 leading-none transition hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11',
                 isActive(location, '/playlists')
                   ? 'text-primary'
                   : 'text-on-surface-variant hover:text-on-surface',
@@ -238,7 +238,7 @@ export function Sidebar({ config, playlists, user, mobileOpen = false, onMobileC
               aria-label="Create playlist"
               title="Create playlist"
               onClick={openCreatePlaylist}
-              className="rounded-item p-1.5 text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
+              className="rounded-full aspect-square p-1.5 leading-none text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11"
             >
               <Icon name="mdi-playlist-plus" size={18} />
             </button>

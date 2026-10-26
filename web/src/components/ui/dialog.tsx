@@ -50,7 +50,7 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-item p-1 text-on-surface-variant opacity-70 transition-opacity hover:bg-surface-container-high hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:bg-surface-container-high data-[state=open]:text-on-surface-variant">
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-full aspect-square p-1 leading-none text-on-surface-variant opacity-70 transition-opacity hover:bg-surface-container-high hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 focus:ring-offset-background disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:bg-surface-container-high data-[state=open]:text-on-surface-variant">
         <Icon name="mdi-close" size={16} />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>

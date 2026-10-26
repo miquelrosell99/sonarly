@@ -13,7 +13,7 @@ interface ColumnConfigMenuProps {
 }
 
 const MOVE_BUTTON_CLASS =
-  'rounded-item p-1 text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-on-surface-variant';
+  'rounded-full aspect-square p-1 leading-none text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-on-surface-variant';
 
 /**
  * Gear-affordance popover listing a list view's columns with show/hide

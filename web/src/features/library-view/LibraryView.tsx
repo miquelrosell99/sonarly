@@ -141,7 +141,7 @@ export function LibraryView<T>({
                     aria-label="List view"
                     onClick={() => setViewMode('list')}
                     className={cn(
-                      'rounded-item p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                      'rounded-full aspect-square p-1 leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                       viewMode === 'list' ? 'bg-surface-container-high text-primary' : 'text-on-surface-variant hover:text-on-surface',
                     )}
                   >
@@ -154,7 +154,7 @@ export function LibraryView<T>({
                     aria-label="Grid view"
                     onClick={() => setViewMode('grid')}
                     className={cn(
-                      'rounded-item p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                      'rounded-full aspect-square p-1 leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
                       viewMode === 'grid' ? 'bg-surface-container-high text-primary' : 'text-on-surface-variant hover:text-on-surface',
                     )}
                   >

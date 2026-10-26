@@ -79,7 +79,7 @@ function SidebarSettings() {
                 {item.type === 'playlists' && item.visible && (
                   <button
                     onClick={() => toggleCollapsed(index)}
-                    className="rounded-item p-1.5 text-on-surface-variant hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="rounded-full aspect-square p-1.5 leading-none text-on-surface-variant hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     aria-label={item.collapsed ? 'Expand playlists by default' : 'Collapse playlists by default'}
                     title={item.collapsed ? 'Expand by default' : 'Collapse by default'}
                   >
@@ -89,7 +89,7 @@ function SidebarSettings() {
                 <button
                   onClick={() => move(index, -1)}
                   disabled={index === 0}
-                  className="rounded-item p-1.5 text-on-surface-variant hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-30"
+                  className="rounded-full aspect-square p-1.5 leading-none text-on-surface-variant hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-30"
                   aria-label="Move up"
                 >
                   <Icon name="mdi-chevron-up" size={18} />
@@ -97,7 +97,7 @@ function SidebarSettings() {
                 <button
                   onClick={() => move(index, 1)}
                   disabled={index === items.length - 1}
-                  className="rounded-item p-1.5 text-on-surface-variant hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-30"
+                  className="rounded-full aspect-square p-1.5 leading-none text-on-surface-variant hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-30"
                   aria-label="Move down"
                 >
                   <Icon name="mdi-chevron-down" size={18} />

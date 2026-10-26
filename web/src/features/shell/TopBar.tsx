@@ -278,7 +278,7 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
   const setSelectedLibraryId = useLibraryStore((state) => state.setSelectedLibraryId);
 
   return (
-    <header className="relative z-50 grid h-11 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-4 bg-background px-4 sm:grid-cols-[1fr_2fr_1fr] min-[640px]:px-6">
+    <header className="relative z-50 grid h-16 shrink-0 grid-cols-[auto_1fr_auto] items-center gap-4 border-b border-outline bg-background px-4 sm:grid-cols-[1fr_2fr_1fr] min-[640px]:px-6">
       <div className="flex min-w-0 items-center gap-2">
         <button
           type="button"
@@ -296,7 +296,7 @@ export function TopBar({ user, onLogout, onMenuClick }: TopBarProps) {
           <BrandMark className="h-7 w-7" />
           <span className="hidden font-display min-[420px]:block">Sonarly</span>
         </Link>
-        <div className="ml-2 hidden w-44 shrink-0 border-l border-outline pl-2 md:block">
+        <div className="ml-2 hidden w-44 shrink-0 pl-2 md:block">
           <LibrarySelector
             libraries={librariesData?.libraries ?? []}
             selectedLibraryId={selectedLibraryId}

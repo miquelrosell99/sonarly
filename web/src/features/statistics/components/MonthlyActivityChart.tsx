@@ -302,7 +302,7 @@ export function MonthlyActivityChart({ monthlyPlays, mode, userId, range }: Mont
             <button
               type="button"
               onClick={() => setModalOpen(true)}
-              className="flex h-11 w-11 items-center justify-center rounded-item border border-outline text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-outline text-on-surface-variant transition hover:bg-surface-container-high hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               aria-label="Expand chart"
             >
               <Icon name="mdi-arrow-expand" size={18} />
