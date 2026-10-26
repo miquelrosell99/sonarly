@@ -202,6 +202,12 @@ A batch of rulings landed in the skill on 2026-10-26 (plus the 2026-10-21 action
 - **Ruled**: 2026-10-26 agent session.
 - **Review trigger**: a form-design pass; floating labels.
 
+### Popup surfaces carry no border
+
+- **What changed**: every floating surface lost its visible border — dropdown menus and sub-menus, popovers, select contents, context menus, autocomplete/search/user-share dropdowns, the library selector and column-config menus, the players popover, the AutoDJ/queue panels, and the centered dialogs (Modal, catalog `dialog`/`alert-dialog`, lyrics editor). Popups now float on the surface/container fill plus elevation shadow alone (M3's menu/dialog register: the border was a migration-era normalization error, "relies on surface color/height, not borders"). The scrim, radius tokens, and shadows are unchanged. Drive-by: two `EditEntityModal` ghost buttons dropped a stray `border border-outline` className (the borderless ladder ruling).
+- **Ruled**: 2026-10-26 owner feedback, applied same session.
+- **Review trigger**: a popup-redesign; a DS elevation revision.
+
 ## Resolved entries (kept for history)
 
 ### Chrome surface-step (sidebar, player bar on `--surface`) (RESOLVED 2026-10-26: deviation retired, all chrome on the ground)

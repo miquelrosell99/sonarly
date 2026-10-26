@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Popup surfaces no longer carry borders**: menus, popovers, select contents, context menus, autocomplete/search dropdowns, and centered dialogs now float on their surface color and elevation shadow alone — the visible hairline border on dark grounds read harsh. Radius, scrim, and shadow registers unchanged.
+
+### Fixed
+
 - **Top bar chrome fixes** (owner feedback 2026-10-26): the divider after the Sonarly wordmark is gone, the bar rides the fleet 64px register (the old 44px fixed height left the controls with no breathing room), and a bottom hairline now separates it from the content — the sidebar and player bar already carry their hairlines, so the frame closes on all four sides.
 
 ### Changed

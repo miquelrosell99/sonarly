@@ -89,7 +89,7 @@ export function LibrarySelector({ libraries, selectedLibraryId, onSelect, error 
         <div
           role="listbox"
           onKeyDown={handleListboxKeyDown}
-          className="absolute left-0 top-full z-40 mt-2 w-full rounded-popover border border-outline bg-surface p-1 shadow-xl"
+          className="absolute left-0 top-full z-40 mt-2 w-full rounded-popover bg-surface p-1 shadow-xl"
         >
           <button
             type="button"

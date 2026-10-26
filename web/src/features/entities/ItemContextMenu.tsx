@@ -294,7 +294,7 @@ export function ItemContextMenu({ sections, children, anchorToTrigger = false, p
       style={{ top: pos.y, left: pos.x }}
       onKeyDown={handleMenuKeyDown}
       className={cn(
-        'fixed z-50 min-w-[10rem] rounded-popover border border-outline bg-surface py-1 shadow-lg',
+        'fixed z-50 min-w-[10rem] rounded-popover bg-surface py-1 shadow-lg',
       )}
     >
       {visibleSections.map((section, sIdx) => (

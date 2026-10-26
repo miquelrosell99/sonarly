@@ -229,7 +229,7 @@ export function SearchBox({ filters, filtersOpen = false, onToggleFilters }: Sea
       {(isOpen || filtersOpen) && (
         <div
           className={cn(
-            'absolute left-0 right-0 top-full z-50 mt-2 overflow-auto rounded-popover border border-outline bg-background py-2 shadow-lg',
+            'absolute left-0 right-0 top-full z-50 mt-2 overflow-auto rounded-popover bg-background py-2 shadow-lg',
             filtersOpen ? 'max-h-[36rem]' : 'max-h-[24rem]',
           )}
         >

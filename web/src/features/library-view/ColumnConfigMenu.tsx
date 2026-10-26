@@ -135,7 +135,7 @@ export function ColumnConfigMenu({ entries, actionsLabel, onToggle, onMove }: Co
           ref={panelRef}
           role="group"
           aria-label="Column settings"
-          className="absolute right-0 top-full z-50 mt-2 w-60 rounded-popover border border-outline bg-surface p-2 shadow-lg"
+          className="absolute right-0 top-full z-50 mt-2 w-60 rounded-popover bg-surface p-2 shadow-lg"
         >
           <ul className="max-h-72 overflow-y-auto">
             {entries.map((entry, index) => renderRow(entry, index, entries.length, true))}

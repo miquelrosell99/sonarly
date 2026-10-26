@@ -112,7 +112,7 @@ export function UserShareSearch({
           id={listboxId}
           role="listbox"
           aria-label="Matching users"
-          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-popover border border-outline bg-surface shadow-lg"
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-popover bg-surface shadow-lg"
           onMouseDown={() => {
             ignoreBlurRef.current = true;
           }}

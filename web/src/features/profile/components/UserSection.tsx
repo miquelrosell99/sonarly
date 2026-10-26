@@ -52,7 +52,7 @@ export function UserSection({ user, onSettings, onAdmin, onLogout }: UserSection
       {open && (
         <div
           role="menu"
-          className="absolute bottom-full left-0 mb-2 w-48 rounded-popover border border-outline bg-surface py-1 shadow-sm"
+          className="absolute bottom-full left-0 mb-2 w-48 rounded-popover bg-surface py-1 shadow-sm"
         >
           <button
             type="button"

@@ -107,7 +107,7 @@ function PlayersDropdown({ user }: { user: User }) {
         <div
           role="dialog"
           aria-label="Players"
-          className="absolute right-0 top-full z-40 mt-2 w-64 rounded-popover border border-outline bg-surface p-1 shadow-xl"
+          className="absolute right-0 top-full z-40 mt-2 w-64 rounded-popover bg-surface p-1 shadow-xl"
         >
           {otherPlayers.map((player) => (
             <div key={player.id} className="px-3 py-2 text-sm">
