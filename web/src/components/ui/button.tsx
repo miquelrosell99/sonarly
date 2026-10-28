@@ -65,9 +65,15 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-10",
-        sm: "h-8 px-3 text-xs",
-        lg: "h-12 px-8 text-base",
+        // At-least-a-square ruling (fleet, shipped in notees 2026-10-28): the
+        // visible box must never be taller than it is wide — each size's
+        // min-width rides the SAME height utility, so the floor tracks the
+        // size token with no px literals. `icon` is fixed-width square by
+        // construction (w-10 against h-10). The invisible 48px ::after hit
+        // overlay is exempt — the ruling binds the VISIBLE box only.
+        default: "h-10 min-w-10",
+        sm: "h-8 min-w-8 px-3 text-xs",
+        lg: "h-12 min-w-12 px-8 text-base",
         icon: "h-10 w-10 rounded-full",
       },
     },

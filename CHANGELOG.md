@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Buttons are at least as wide as they are tall** (fleet ruling, shipped in notees 2026-10-28): every catalog `Button` size now carries a `min-w-*` floor riding the same spacing utility as its `h-*` height — compact labels can no longer render a visible box taller than it is wide (`size="icon"` was already fixed-width square). The invisible 48px `::after` hit-area overlay is untouched; no px literals, no API change.
+
 ### Fixed
 
 - **Popup surfaces no longer carry borders**: menus, popovers, select contents, context menus, autocomplete/search dropdowns, and centered dialogs now float on their surface color and elevation shadow alone — the visible hairline border on dark grounds read harsh. Radius, scrim, and shadow registers unchanged.
