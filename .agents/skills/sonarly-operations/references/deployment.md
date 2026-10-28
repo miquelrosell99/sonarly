@@ -13,25 +13,25 @@ template `docker/compose.yaml.example`.
    (`references/health-checks.md`) + `docker logs sonarly` shows migrations
    applied (ledger `schema_migrations`).
 
-### Fleet host (source/stack split
+### Fleet host (live stack in the checkout)
 
-The app source lives in the git repo; the RUNNING stack is the thin
-Komodo-managed deployment at `/etc/periphery/stacks/sonarly/` (compose copy +
-gitignored `.env` + `config/` + `backups/`). Komodo owns the container
-(stack `sonarly`, run_directory = that folder): update = commit + push +
-`v*` tag in the source tree, let CI publish, then **Komodo Redeploy**, which
-pulls `:latest`. Do NOT run raw `docker compose` while Komodo is reachable —
-Komodo would fight the out-of-band change on its next reconcile.
-
-**Komodo unreachable:** run compose from the live stack folder so its
-`.env` and `config/` bind paths resolve — NEVER from the repo checkout
-(incident-pattern documented in the notees repo 2026-10-20: a dev `up` from
-the checkout targets the wrong project/data or collides on the pinned port):
+The 2026-10-19 source/stack split retired: the RUNNING stack is the
+gitignored repo-root `compose.yaml` + `.env` (host-local artifacts, never
+committed; the tracked template is `docker/compose.yaml.example`). The DB
+bind is parameterized (`${SONARLY_DATA_DIR:-./config/sonarly/data}`) so the
+live database stays at the fleet stacks location (`/etc/periphery/stacks/sonarly/config`,
+absolute `SONARLY_DATA_DIR`/`SONARLY_INGEST_PATH` in `.env`) outside the
+checkout. Update = commit + push + `v*` tag, let CI publish, then redeploy
+from the repo root:
 
 ```sh
-cd /etc/periphery/stacks/sonarly
 docker compose pull && docker compose up -d
 ```
+
+Komodo's Redeploy is an optional equivalent (the stack's run directory is
+the repo root; it pulls `:latest` too) — not required, and no longer the
+prescribed path (owner ruling 2026-10-28: the compose path is the standard).
+Rollbacks pin an explicit older tag in the compose file.
 
 ### Fresh host (no live stack)
 
