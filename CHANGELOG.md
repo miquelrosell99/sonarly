@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Manual-dispatch workflows gained `git-ref` inputs with fail-loud guards** (Logseq playbook): `release-docker.yml` and `nightly-docker.yml` dispatches now take a `git-ref` input (default `main`) that the checkout honors. A release dispatch whose git-ref names a tag (`v*` / `refs/tags/v*`) fails loudly — a pushed tag is what triggers a real release and a dispatch cannot publish (ref_type is `branch`), so a tag-named dispatch almost certainly means the operator forgot to push the tag; a nightly dispatch naming any ref other than the default branch fails loudly the same way (a nightly must be main's head). Scheduled events are unchanged; the release publish gate (`ref_type == 'tag'`) is untouched.
+
 - **CI restructured to the fleet RosellRamos GitHub Actions pattern** (same alignment as the notees repos): CI now triggers on pull requests, a nightly cron (`23 3 * * *`) covering main's head, and manual dispatch — per-push CI on main is gone. The release workflow gains a dispatch re-run and a tag gate (`:latest` now applies to stable semver tags only; prereleases no longer clobber it), and a new scheduled `nightly-docker.yml` publishes the `:nightly` image channel (+ dated tag) from main. Runners pinned to `ubuntu-22.04`, every action SHA-pinned, `concurrency` blocks added, minimal `permissions:` throughout — no runtime behavior changes.
 
 ## [3.1.24] - 2026-10-28
