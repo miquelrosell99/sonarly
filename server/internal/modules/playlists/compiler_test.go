@@ -2,9 +2,26 @@ package playlists
 
 import (
 	"context"
+	"math"
 	"sort"
 	"testing"
+	"time"
 )
+
+// daysCovering returns the smallest day count N whose inTheLast window
+// (datetime('now', '-N days')) still reaches back to the given RFC 3339
+// instant. The fixture's last_played values are fixed timestamps while the
+// compiler compares against the wall clock, so sizing the window from the
+// fixture dates keeps these arms hermetic as time passes (a fixed count
+// like 300 silently expired on 2026-10-28).
+func daysCovering(t *testing.T, iso string) int {
+	t.Helper()
+	from, err := time.Parse(time.RFC3339, iso)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return int(math.Ceil(time.Since(from).Hours() / 24))
+}
 
 // compileIDs compiles rules and runs the id query, returning the result as
 // a sorted set-compare-friendly slice.
@@ -148,9 +165,14 @@ func TestCompilerUserFields(t *testing.T) {
 	assertIDs(t, compileIDs(t, env, all("rating", "isMissing", nil), owner), "s-b1", "s-b2", "s-nolib")
 	assertIDs(t, compileIDs(t, env, all("rating", "isPresent", nil), owner), "s-a1", "s-a2")
 	assertIDs(t, compileIDs(t, env, all("playcount", "gt", 5), owner), "s-a1")
-	assertIDs(t, compileIDs(t, env, all("lastplayed", "inTheLast", 300), owner), "s-a1", "s-a2")
-	assertIDs(t, compileIDs(t, env, all("lastplayed", "notInTheLast", 300), owner),
+	// Windows sized from the fixture dates (see daysCovering): both owner
+	// rows are inside `both`, only s-a1's recent row is inside a1Only.
+	both := daysCovering(t, "2026-01-01T10:00:00Z")
+	assertIDs(t, compileIDs(t, env, all("lastplayed", "inTheLast", both), owner), "s-a1", "s-a2")
+	assertIDs(t, compileIDs(t, env, all("lastplayed", "notInTheLast", both), owner),
 		"s-b1", "s-b2", "s-nolib")
+	a1Only := daysCovering(t, "2026-09-20T00:00:00Z")
+	assertIDs(t, compileIDs(t, env, all("lastplayed", "inTheLast", a1Only), owner), "s-a1")
 	assertIDs(t, compileIDs(t, env, all("lastplayed", "before", "2026-06-01T00:00:00Z"), owner), "s-a2")
 	assertIDs(t, compileIDs(t, env, all("lastplayed", "after", "2026-06-01T00:00:00Z"), owner), "s-a1")
 

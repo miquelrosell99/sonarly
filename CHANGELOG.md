@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Smart-playlist compiler test suite green again**: `TestCompilerUserFields`'s `lastplayed inTheLast` arm hardcoded a 300-day window against fixture timestamps seeded at fixed dates, while the compiler compares against the wall clock (`datetime('now')`) — the arm silently expired on 2026-10-28 and failed deterministically after. The windows are now sized from the fixture dates at test runtime (plus a new arm pinning the include/exclude boundary). Test-only fix; compiler behavior unchanged.
+
 ### Changed
 
 - **CI restructured to the fleet RosellRamos GitHub Actions pattern** (same alignment as the notees repos): CI now triggers on pull requests, a nightly cron (`23 3 * * *`) covering main's head, and manual dispatch — per-push CI on main is gone. The release workflow gains a dispatch re-run and a tag gate (`:latest` now applies to stable semver tags only; prereleases no longer clobber it), and a new scheduled `nightly-docker.yml` publishes the `:nightly` image channel (+ dated tag) from main. Runners pinned to `ubuntu-22.04`, every action SHA-pinned, `concurrency` blocks added, minimal `permissions:` throughout — no runtime behavior changes.
