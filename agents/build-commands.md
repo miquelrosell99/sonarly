@@ -87,7 +87,7 @@ docker compose -f compose.yaml up -d
 1. Update `CHANGELOG.md`: rename `## [Unreleased]` to `## [X.Y.Z] - <date>`, point the `[Unreleased]` compare link at the new tag, and add the release link.
 2. Commit (`chore(release): vX.Y.Z`) and push `main`.
 3. `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`.
-4. Watch the workflow (`gh run list --workflow=release-docker.yml`); it publishes `:latest` plus semver tags to GHCR.
+4. Watch the workflow (`gh run list --workflow=release-docker.yml`); it publishes the semver tags to GHCR and `:latest` for stable tags (prereleases don't clobber `:latest`); the scheduled `nightly-docker.yml` covers the `:nightly` channel from main's head.
 5. Redeploy the live stack (source/stack split, same pattern as notees): on the fleet host the running stack is the thin Komodo-managed deployment at `/etc/periphery/stacks/sonarly/` (compose copy + `.env` + `config/`), NOT the repo checkout. Redeploy via Komodo's **Redeploy** on the `sonarly` stack, which pulls `:latest`. Only if Komodo is unreachable, run compose **from that folder** (`cd /etc/periphery/stacks/sonarly && docker compose pull && docker compose up -d`) — never from the checkout, whose gitignored root `compose.yaml` is only the fresh-deployment template.
 
 Database migrations run automatically on container start (ledger-tracked, idempotent DDL). Rollback = restore the pre-update DB backup + the previous image tag (see docs/deployment.md).

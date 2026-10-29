@@ -5,6 +5,12 @@ All notable changes to Sonarly are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **CI restructured to the fleet RosellRamos GitHub Actions pattern** (same alignment as the notees repos): CI now triggers on pull requests, a nightly cron (`23 3 * * *`) covering main's head, and manual dispatch — per-push CI on main is gone. The release workflow gains a dispatch re-run and a tag gate (`:latest` now applies to stable semver tags only; prereleases no longer clobber it), and a new scheduled `nightly-docker.yml` publishes the `:nightly` image channel (+ dated tag) from main. Runners pinned to `ubuntu-22.04`, every action SHA-pinned, `concurrency` blocks added, minimal `permissions:` throughout — no runtime behavior changes.
+
 ## [3.1.24] - 2026-10-28
 
 ### Changed

@@ -21,9 +21,11 @@ Full-stack dev: server on :3000
 (`SESSION_SECRET=$(openssl rand -hex 32) SONARLY_LIBRARY_PATH=… go run ./cmd/sonarly`),
 Vite on :5173 proxying `/api` + `/rest` → :3000.
 
-CI (`.github/workflows/ci.yml`): pnpm install `--frozen-lockfile` →
-`pnpm -r build` → `pnpm test` → regenerate the contract schema and `diff`
-against the committed `schema.ts` (drift fails).
+CI (`.github/workflows/ci.yml`): triggers on PRs to main, a nightly cron
+(`23 3 * * *`) covering main's head, and manual dispatch — no per-push CI on
+main. Job body: pnpm install `--frozen-lockfile` → `pnpm -r build` →
+`pnpm test` → regenerate the contract schema and `diff` against the committed
+`schema.ts` (drift fails).
 
 ## CI-equivalent gate (run before claiming done)
 
@@ -40,8 +42,11 @@ cd server && go build ./... && go vet ./... && go test ./... -count=1
    repoint the bottom compare link, commit `chore(release): vX.Y.Z`.
 3. `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z` — the
    `release-docker.yml` workflow publishes `ghcr.io/miquelrosell99/sonarly`
-   at `:vX.Y.Z`, `:X.Y.Z`, `:X.Y` and `:latest` (build-arg
-   `SONARLY_VERSION=${{ github.ref_name }}`).
+   at `:vX.Y.Z`, `:X.Y.Z`, `:X.Y` and — for stable semver tags only —
+   `:latest` (build-arg `SONARLY_VERSION=${{ github.ref_name }}`;
+   prerelease tags never clobber `:latest`). A scheduled
+   `nightly-docker.yml` publishes the `:nightly` channel (+ a dated tag)
+   from main's head.
 4. Redeploy the live stack: bump the pinned tag in the gitignored root
    `compose.yaml`, `docker compose -f compose.yaml pull && docker compose -f compose.yaml up -d`,
    confirm healthy.

@@ -8,6 +8,9 @@
 
 services:
   sonarly:
+    # Image channels: :latest = latest stable semver release (tag-gated in the
+    # release workflow — prereleases never clobber it); :nightly = scheduled
+    # build of main's head (nightly-docker.yml). Pin :latest below = stable.
     image: ghcr.io/miquelrosell99/sonarly:latest
     build:
       context: .
