@@ -1,3 +1,10 @@
+# Nightly Docker image.
+#
+# Scheduled build of the repository default branch's head (main) plus manual
+# dispatch. Dispatch takes an optional git-ref (default main); a nightly MUST
+# be the default branch's head — a dispatch naming any other ref fails loudly,
+# because publishing an image built from another ref would mislabel it as
+# the nightly channel.
 name: Nightly Docker image
 
 on:
@@ -5,6 +12,12 @@ on:
     # nightly build of main's head, off the :00 mark
     - cron: '23 3 * * *'
   workflow_dispatch:
+    inputs:
+      git-ref:
+        description: 'Ref to check out — must be the default branch (main)'
+        required: false
+        default: main
+        type: string
 
 permissions:
   contents: read
@@ -18,8 +31,16 @@ jobs:
   docker:
     runs-on: ubuntu-22.04
     steps:
+      - name: Fail loudly on a dispatch of a non-default-branch ref
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.git-ref != 'main' }}
+        run: |
+          echo "::error::The nightly image must be built from the repository default branch's head (main) — publishing an image built from another ref would mislabel it as the nightly channel. Leave git-ref at main (or cut a proper release via a pushed v* tag)."
+          exit 1
+
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ inputs.git-ref || github.ref }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
