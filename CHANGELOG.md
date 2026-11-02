@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Docs(agents): gate economics + host memory discipline in
+  `agents/development-conventions.md`. Two-tier gate: scoped runs (`go test`
+  on the touched packages / vitest on the touched files) are the per-task
+  loop; the full suite is blocking at pre-landing, after a rebase onto a moved
+  main, and for shared-surface changes (the OpenAPI contract, generated web
+  types, migrations). Same pass records the host discipline: one suite at a
+  time (never parallel full gates — two OOM the dev host), worker caps under
+  pressure, and the load-symptom rule. Docs-only; no code surface.
+
+
 ### Fixed
 
 - **Smart-playlist compiler test suite green again**: `TestCompilerUserFields`'s `lastplayed inTheLast` arm hardcoded a 300-day window against fixture timestamps seeded at fixed dates, while the compiler compares against the wall clock (`datetime('now')`) — the arm silently expired on 2026-10-28 and failed deterministically after. The windows are now sized from the fixture dates at test runtime (plus a new arm pinning the include/exclude boundary). Test-only fix; compiler behavior unchanged.

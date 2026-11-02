@@ -48,3 +48,18 @@ All server state flows through @tanstack/react-query — no page holds fetched d
 - **The now-playing overlay is the one push that restores**: `PlayerBar` (open) and `NowPlayingRoute` (close → returnPath) set the store's one-shot `suppressNextReset` flag so the underlying page gets its scroll position back. Consume-and-reset semantics — never read the flag without clearing it.
 - **Underlay pages** (Playlist/Album/Genre/Composer/Label details mounted under `/now-playing/:context/:contextId/:songId`) receive their entity id through the optional `underlay: UnderlayParams` prop — wouter params don't reach them there. `fetchEnabled: false` means the player store covers the URL: the page must not fetch (zero-request refresh) and renders its loading state instead of a not-found; guests always fetch. Detail hooks accept an `enabled` argument for this.
 - **URL ↔ playback is single-writer per transition** (`NowPlayingRoute`, regression: React error #185 in v2.3.10): the play-start effect owns URL-target *changes* (deep link, back/forward → reposition once, keyed on `context|contextId|songId` in `handledTargetRef`), and the URL-sync effect owns *playback drift* (track end, skip, error-advance → rewrite the URL to the new current song). Never let both react to the same change — two effects re-asserting state against each other with stale closures oscillates until React aborts the tree with "Maximum update depth exceeded". When adding a third actor to this route (or a similar bidirectional sync elsewhere), decide per event which effect owns it.
+
+### Gate economics (all stacks)
+
+Scoped gates by default; the full suite is the blocking gate at exactly three
+moments — pre-landing, after a rebase onto a moved main, and when the change
+touches a shared surface (the OpenAPI contract, generated web types, db
+migrations, cross-module APIs). Per-task loop: `go test ./<touched-pkg>/...
+-count=1` / `pnpm --filter @sonarly/web test -- <files>` — the files covering
+the change; red-green rides those. Full suite once at the blocking point.
+
+Host memory discipline: one suite at a time — never parallel full gates (two
+concurrent gates OOM the dev host); sequential dispatches whose gates overlap;
+cap workers under pressure (`go test -p 2`, vitest `--maxWorkers=2`); a red
+that vanishes on an unloaded re-run is a load symptom — root-cause before
+retrying.
