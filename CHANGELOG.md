@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Ops(deployment): the live deployment moves from the repo checkout to the
+  fleet stacks folder (`/etc/periphery/stacks/sonarly/`) — fleet-wide shape
+  (owner 2026-11-16): every live stack lives in its periphery stacks folder,
+  checkouts stay off the prod host, development happens on the desktop
+  (`baymax`). Komodo run directory follows; `auto_update` stays on.
+
 - Ops(deployment): the live stack moves from `:latest` (stable semver) to the
   `:nightly` channel — the scheduled CI build of main's head. The nightly
   workflow now also tags the short commit SHA, so every nightly is immutable

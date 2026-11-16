@@ -15,26 +15,28 @@ template `docker/compose.yaml.example`.
    (`references/health-checks.md`) + `docker logs sonarly` shows migrations
    applied (ledger `schema_migrations`).
 
-### Fleet host (live stack in the checkout)
+### Fleet host (live stack at the stacks folder)
 
-The 2026-10-19 source/stack split retired: the RUNNING stack is the
-gitignored repo-root `compose.yaml` + `.env` (host-local artifacts, never
-committed; the tracked template is `docker/compose.yaml.example`). The DB
-bind is parameterized (`${SONARLY_DATA_DIR:-./config/sonarly/data}`) so the
-live database stays at the fleet stacks location (`/etc/periphery/stacks/sonarly/config`,
-absolute `SONARLY_DATA_DIR`/`SONARLY_INGEST_PATH` in `.env`) outside the
-checkout. Update = commit + push + `v*` tag, let CI publish, then redeploy
-from the repo root:
+Owner 2026-11-16 fleet shape: the RUNNING stack is the gitignored
+`compose.yaml` + `.env` at the fleet stacks folder
+(`/etc/periphery/stacks/sonarly/`; host-local artifacts, never committed;
+the tracked template is `docker/compose.yaml.example`), and the live
+database + ingest live in the same folder (`config/sonarly/...`) via
+absolute `SONARLY_DATA_DIR`/`SONARLY_INGEST_PATH` in `.env`. Checkouts stay
+off the prod host — development happens on the desktop host. Update = merge
+to main, let the scheduled nightly publish, and Komodo `auto_update`
+redeploys; the manual path from the stacks folder:
 
 ```sh
-docker compose pull && docker compose up -d
+cd /etc/periphery/stacks/sonarly && docker compose pull && docker compose up -d
 ```
 
 Komodo's Redeploy is an optional equivalent (the stack's run directory is
-the repo root; it pulls `:nightly` too) — not required, and no longer the
-prescribed path (owner ruling 2026-10-28: the compose path is the standard;
-owner 2026-11-16: `auto_update` is ON, so the channel moves hands-off).
-Rollbacks pin an explicit older tag in the compose file.
+the stacks folder; it pulls `:nightly` too) — not required, and no longer
+the prescribed path (owner ruling 2026-10-28: the compose path is the
+standard; owner 2026-11-16: `auto_update` is ON, so the channel moves
+hands-off). Rollbacks pin an explicit `nightly-YYYYMMDD` / short-SHA /
+semver tag in the compose file.
 
 ### Fresh host (no live stack)
 
