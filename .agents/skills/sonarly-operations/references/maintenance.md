@@ -21,7 +21,7 @@ surgery or user re-creation (see `sonarly-user-management` skill).
 ## Routine
 
 - **Upgrades:** see `references/deployment.md` — backup →
-  `pull && up -d` (the live compose tracks `:latest`) → healthy + smoke.
+  `pull && up -d` (the live compose tracks `:nightly`) → healthy + smoke.
 - **DB on local disk, always**; library may live on NFS/SMB (the polling
   watcher exists because inotify doesn't cross network shares).
 - **Disk:** `sonarly.db` (+ WAL) grows with the catalog; checkpoints happen on

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Ops(deployment): the live stack moves from `:latest` (stable semver) to the
+  `:nightly` channel — the scheduled CI build of main's head. The nightly
+  workflow now also tags the short commit SHA, so every nightly is immutable
+  and roll-back-able, and the fleet host's Komodo stack runs with
+  `auto_update` on (dev moved off the fleet host; this host is prod-only for
+  sonarly, same shape as notees). Rollback = pin a `nightly-YYYYMMDD`,
+  short-SHA, or older semver tag in the live compose and redeploy.
+
 - Docs(agents): gate economics + host memory discipline in
   `agents/development-conventions.md`. Two-tier gate: scoped runs (`go test`
   on the touched packages / vitest on the touched files) are the per-task

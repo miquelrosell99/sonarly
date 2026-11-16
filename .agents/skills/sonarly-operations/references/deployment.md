@@ -7,8 +7,10 @@ template `docker/compose.yaml.example`.
 
 1. Back up first (`references/backups.md`) — migrations run automatically at
    container start and are forward-only.
-2. The live stack tracks `ghcr.io/miquelrosell99/sonarly:latest`, so pulling
-   is enough — no tag edit.
+2. The live stack tracks the `:nightly` channel
+   (`ghcr.io/miquelrosell99/sonarly:nightly` — the scheduled CI build of
+   main's head), so pulling is enough. Rollback / hold a version = pin an
+   explicit `nightly-YYYYMMDD` or short-SHA tag in the compose file.
 3. Redeploy from the live stack location (below), then confirm healthy
    (`references/health-checks.md`) + `docker logs sonarly` shows migrations
    applied (ledger `schema_migrations`).
@@ -29,8 +31,9 @@ docker compose pull && docker compose up -d
 ```
 
 Komodo's Redeploy is an optional equivalent (the stack's run directory is
-the repo root; it pulls `:latest` too) — not required, and no longer the
-prescribed path (owner ruling 2026-10-28: the compose path is the standard).
+the repo root; it pulls `:nightly` too) — not required, and no longer the
+prescribed path (owner ruling 2026-10-28: the compose path is the standard;
+owner 2026-11-16: `auto_update` is ON, so the channel moves hands-off).
 Rollbacks pin an explicit older tag in the compose file.
 
 ### Fresh host (no live stack)
@@ -80,6 +83,7 @@ Compose-level: `SONARLY_PORT`, `PUID`/`PGID`, `LIBRARY_MUSIC`, build-arg
 ## Image tags
 
 A pushed `v*` tag publishes `:vX.Y.Z`, `:X.Y.Z`, `:X.Y`, `:latest` to
-`ghcr.io/miquelrosell99/sonarly`. The live stack tracks `:latest` for
-upgrades; rollbacks pin an explicit older semver tag. Never re-tag; next
+`ghcr.io/miquelrosell99/sonarly`. The live stack tracks the `:nightly`
+channel (scheduled main build) for upgrades; rollbacks pin an explicit
+`nightly-YYYYMMDD`, short-SHA, or older semver tag. Never re-tag; next
 patch instead.

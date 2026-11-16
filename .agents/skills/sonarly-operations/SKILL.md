@@ -12,14 +12,16 @@ gitignored repo-root `compose.yaml` + `.env` (host-local artifacts, never
 committed, enforced by the
 `rosellramos-coding-standards` skill); the tracked template is
 `docker/compose.yaml.example` (fresh hosts copy it to the repo root). The
-image is prebuilt (`ghcr.io/miquelrosell99/sonarly:latest` — host port
+image is prebuilt (`ghcr.io/miquelrosell99/sonarly:nightly` — the scheduled
+CI build of main's head, also tagged with the date and the short commit SHA;
+host port
 `${SONARLY_PORT:-4533}` → app `:3000`); the fleet host's data
 (SQLite DB under `./config/sonarly/data` by default, ingest drop folder,
 library bind per `.env`) overrides the bind via `SONARLY_DATA_DIR` /
 `SONARLY_INGEST_PATH` so it can live at the managed stacks location
 (`/etc/periphery/stacks/sonarly/config`) outside the checkout:
 
-- image `ghcr.io/miquelrosell99/sonarly:latest` — host port
+- image `ghcr.io/miquelrosell99/sonarly:nightly` — host port
   `${SONARLY_PORT:-4533}` → app `:3000`
 - volumes: `./config/sonarly/data:/data/db` (SQLite DB + avatars + artist
   images + upload staging), `${SONARLY_INGEST_PATH:-./config/sonarly/ingest}:/data/ingest`,
